@@ -227,12 +227,12 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {recent.map((a) => (
+                  {recent.map((a, i) => (
                     <button
-                      key={a.id}
+                      key={`${a.id ?? 'q'}-${i}`}
                       type="button"
                       onClick={() => navigate(a.lead_id ? `/asesor/contactos/${a.lead_id}` : '/asesor')}
-                      data-testid={`agent-log-${a.id}`}
+                      data-testid={`agent-log-${a.id ?? i}`}
                       className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors text-left"
                     >
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-medium text-[var(--theme)] bg-[rgba(var(--theme-rgb),0.15)] shrink-0">

@@ -17,9 +17,9 @@ function ScoreBar({ value }) {
   const v = Math.max(0, Math.min(100, value || 0));
   const color = v > 70 ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
               : v > 40 ? 'linear-gradient(90deg, var(--theme), var(--theme))'
-              : 'rgba(240,235,224,0.32)';
+              : 'rgba(var(--cream-rgb),0.32)';
   return (
-    <div style={{ position: 'relative', width: '100%', height: 6, background: 'rgba(240,235,224,0.08)', borderRadius: 9999 }}>
+    <div style={{ position: 'relative', width: '100%', height: 6, background: 'rgba(var(--cream-rgb),0.08)', borderRadius: 9999 }}>
       <div style={{ position: 'absolute', inset: 0, width: `${v}%`, background: color, borderRadius: 9999 }} />
     </div>
   );
@@ -59,7 +59,7 @@ function TimelineDrawer({ projectId, unit, onClose }) {
               {data.events.map((e, idx) => (
                 <li key={idx} data-testid={`engagement-event-${e.type}`} style={{
                   padding: 12, border: '1px solid var(--border)', borderRadius: 12,
-                  background: 'rgba(240,235,224,0.03)',
+                  background: 'rgba(var(--cream-rgb),0.03)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream)', textTransform: 'capitalize' }}>
@@ -135,13 +135,13 @@ export default function EngagementTab({ devId }) {
         <Card data-testid="engagement-recommendations" style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.08), rgba(var(--theme-rgb),0.04) 60%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <Sparkle size={14} color="#f9a8d4" />
-            <div className="eyebrow" style={{ color: '#f9a8d4' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
+            <div className="eyebrow" style={{ color: 'var(--rose)' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.recommendations.map((r, i) => (
               <li key={i} data-testid={`engagement-reco-${i}`} style={{
                 fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55, color: 'var(--cream)',
-                padding: '10px 12px', background: 'rgba(240,235,224,0.04)',
+                padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.04)',
                 border: '1px solid var(--border)', borderRadius: 10,
                 display: 'flex', alignItems: 'flex-start', gap: 10,
               }}>
@@ -185,7 +185,7 @@ export default function EngagementTab({ devId }) {
             </thead>
             <tbody>
               {items.slice(0, 200).map((u) => (
-                <tr key={u.unit_id} data-testid={`engagement-row-${u.unit_id}`} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)' }}>
+                <tr key={u.unit_id} data-testid={`engagement-row-${u.unit_id}`} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   <td style={{ padding: '10px 8px', color: 'var(--cream)', fontWeight: 600 }}>{u.unit_number}</td>
                   <td style={{ padding: '10px 8px', color: 'var(--cream-2)' }}>{u.prototype || '—'}</td>
                   <td style={{ padding: '10px 8px' }}>

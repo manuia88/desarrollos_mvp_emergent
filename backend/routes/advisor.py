@@ -1,4 +1,4 @@
-"""Advisor portal (CRM Pulppo+) routes.
+"""Advisor portal (CRM) routes.
 
 Exposes a single router under /api/asesor/* with all CRUD + AI endpoints.
 Role-gated to advisor / asesor_admin / superadmin.
@@ -1208,6 +1208,22 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "contacto", cid, before=old_c, after=c, request=request)
     except Exception: pass
+    # E4 · si el trato se CIERRA (ganado/perdido), alimenta el loop de aprendizaje del Cerebro
+    # (fail-open · solo si el Cerebro está prendido · no rompe el guardado del contacto)
+    try:
+        import os
+        if os.environ.get("CEREBRO_ENABLED") == "true" and "etapa" in patch:
+            _WON = {"cerrado", "ganada", "cerrado_ganado", "ganado"}
+            _LOST = {"perdida", "cerrado_perdido", "perdido"}
+            new_e, old_e = patch.get("etapa"), (old_c or {}).get("etapa")
+            if new_e in (_WON | _LOST) and old_e not in (_WON | _LOST):
+                import cerebro
+                await cerebro.on_deal_closed(
+                    db, user, ref=cid,
+                    outcome=("won" if new_e in _WON else "lost"),
+                    deal={"follow_ups": len(c.get("timeline") or [])})
+    except Exception as e:
+        logging.getLogger("dmx.advisor").info(f"[cerebro] hook on_deal_closed no aplicó: {e}")
     return c
 
 
@@ -2894,6 +2910,21 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
             # No perder XP/cierre si el $inc falla: marcar para reintento (reconcile en arranque)
             await db.asesor_operaciones.update_one({"id": oid}, {"$set": {"xp_pending": True}})
             logging.getLogger("dmx.advisor").error(f"[operacion] XP grant falló (oid={oid}) → xp_pending: {_xe}", exc_info=True)
+        # E6 · venta de PROYECTO cerrada → alimenta el loop del DESARROLLADOR (Cerebro · fail-open)
+        # califica las predicciones de ese proyecto (precio/días) y reentrena la valuación de su zona
+        try:
+            import os
+            if os.environ.get("CEREBRO_ENABLED") == "true":
+                import cerebro
+                from cerebro.executors import _demo_project
+                pid = op.get("dev_id") or op.get("project_id")
+                proj = _demo_project(pid) if pid else None
+                await cerebro.on_deal_closed(
+                    db, user, ref=(pid or oid), outcome="won", level="project",
+                    zone=(proj or {}).get("colonia"),
+                    deal={"sale_price": op.get("precio") or op.get("valor_cierre")})
+        except Exception as _ce:
+            logging.getLogger("dmx.advisor").info(f"[cerebro] hook venta-proyecto no aplicó: {_ce}")
     # Phase F0.11 — ML training event on status transition
     try:
         from observability import emit_ml_event
@@ -3425,7 +3456,7 @@ async def seed_demo(request: Request):
         {"user_id": user.user_id},
         {"$set": {
             "full_name": user.name or "Asesor Demo",
-            "brokerage": "Pulppo Real Estate",
+            "brokerage": "Inmobiliaria Demo",
             "license_ampi": "AMPI-CDMX-01234",
             "colonias": ["polanco", "condesa", "roma-norte"],
             "languages": ["es-MX", "en-US"],

@@ -1,0 +1,426 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - complementary "Barra lateral de navegación" [ref=e6]:
+      - link "Ir a Inicio" [ref=e7] [cursor=pointer]:
+        - /url: /desarrollador
+        - generic [ref=e8]: DMX
+        - generic [ref=e9]: Dev
+      - navigation "Navegación desarrollador" [ref=e10]:
+        - button "Inicio" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - generic [ref=e18]: Inicio
+        - button "Mis Proyectos" [ref=e20] [cursor=pointer]:
+          - img [ref=e21]
+          - generic [ref=e25]: Mis Proyectos
+        - generic [ref=e26]:
+          - button "CRM & Leads" [expanded] [ref=e27] [cursor=pointer]:
+            - img [ref=e28]
+            - generic [ref=e31]: CRM & Leads
+            - img [ref=e33]
+          - generic [ref=e35]:
+            - link "Tablero" [ref=e36] [cursor=pointer]:
+              - /url: /desarrollador/crm
+              - img [ref=e37]
+              - generic [ref=e40]: Tablero
+            - link "Embudo" [ref=e41] [cursor=pointer]:
+              - /url: /desarrollador/crm/funnel
+              - img [ref=e42]
+              - generic [ref=e46]: Embudo
+            - link "Leads" [ref=e47] [cursor=pointer]:
+              - /url: /desarrollador/leads
+              - img [ref=e48]
+              - generic [ref=e53]: Leads
+            - link "Auto-asignación" [ref=e54] [cursor=pointer]:
+              - /url: /desarrollador/crm/auto-assignments
+              - img [ref=e55]
+              - generic [ref=e61]: Auto-asignación
+            - link "Mensajes" [ref=e62] [cursor=pointer]:
+              - /url: /desarrollador/mensajes
+              - img [ref=e63]
+              - generic [ref=e65]: Mensajes
+            - link "Tu asistente" [ref=e66] [cursor=pointer]:
+              - /url: /desarrollador/crm/sala-control
+              - img [ref=e67]
+              - generic [ref=e69]: Tu asistente
+        - button "Inteligencia" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: Inteligencia
+          - img [ref=e76]
+        - button "Red comercial" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e85]: Red comercial
+          - img [ref=e87]
+        - button "Marketing" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - generic [ref=e94]: Marketing
+          - img [ref=e96]
+        - button "Ajustes" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: Ajustes
+          - img [ref=e105]
+      - button "C Constructora Ariel developer@demo.com" [ref=e108] [cursor=pointer]:
+        - generic [ref=e109]: C
+        - generic [ref=e110]:
+          - generic [ref=e111]: Constructora Ariel
+          - generic [ref=e112]: developer@demo.com
+        - img [ref=e114]
+    - generic [ref=e116]:
+      - banner [ref=e117]:
+        - button "Mis proyectos" [ref=e120] [cursor=pointer]:
+          - img [ref=e121]
+          - generic [ref=e124]: Mis proyectos
+          - img [ref=e125]
+        - button "Buscar… ⌘K" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - generic [ref=e131]: Buscar…
+          - generic [ref=e132]: ⌘K
+        - button [ref=e134] [cursor=pointer]:
+          - img [ref=e135]
+        - button "Menú de usuario" [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+      - main [ref=e143]:
+        - generic [ref=e144]:
+          - generic [ref=e145]: ALTO
+          - generic [ref=e146]:
+            - text: Altavista Polanco
+            - generic [ref=e147]: · Cuello de botella en conversión vista→lead — Mejorar fotos hero + CTA WhatsApp visible above-the-fold + agregar virtual tour interactiv…
+          - link "Ver" [ref=e148] [cursor=pointer]:
+            - /url: /desarrollador/desarrollos/altavista-polanco/ie
+          - button "Cerrar recomendación" [ref=e149] [cursor=pointer]:
+            - img [ref=e150]
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - heading "Tu asistente" [level=1] [ref=e156]:
+              - img [ref=e157]
+              - text: Tu asistente
+            - paragraph [ref=e159]:
+              - text: Hace el trabajo pesado por ti. Cuando algo es importante,
+              - strong [ref=e160]: te pide permiso primero
+              - text: .
+          - 'button "📍 Pregunto sobre: Todo mi portafolio ▾" [ref=e162] [cursor=pointer]':
+            - text: 📍
+            - generic [ref=e163]: "Pregunto sobre:"
+            - strong [ref=e164]: Todo mi portafolio
+            - generic [ref=e165]: ▾
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: ✨ Esto encontré · Comparar mis proyectos
+                - generic [ref=e170]: 📍 Todo mi portafolio
+              - button [ref=e171] [cursor=pointer]:
+                - img [ref=e172]
+            - generic [ref=e176]:
+              - generic [ref=e177]: Trabajé en tu proyecto
+              - generic [ref=e178]:
+                - generic [ref=e179]: Comparé 6 proyectos
+                - generic [ref=e180]: todo tu portafolio
+                - generic [ref=e181]: ejemplo · se llena con tus datos
+              - table [ref=e183]:
+                - rowgroup [ref=e184]:
+                  - row "Proyecto Zona Precio desde Vendido Días en venta" [ref=e185]:
+                    - columnheader "Proyecto" [ref=e186]
+                    - columnheader "Zona" [ref=e187]
+                    - columnheader "Precio desde" [ref=e188]
+                    - columnheader "Vendido" [ref=e189]
+                    - columnheader "Días en venta" [ref=e190]
+                - rowgroup [ref=e191]:
+                  - row "Altavista Polanco Polanco $14,500,000 8/56 ~100d" [ref=e192]:
+                    - cell "Altavista Polanco" [ref=e193]
+                    - cell "Polanco" [ref=e194]
+                    - cell "$14,500,000" [ref=e195]
+                    - cell "8/56" [ref=e196]
+                    - cell "~100d" [ref=e197]
+                  - row "Lomas Signature Lomas de Chapultepec $22,400,000 2/14 ~90d" [ref=e198]:
+                    - cell "Lomas Signature" [ref=e199]
+                    - cell "Lomas de Chapultepec" [ref=e200]
+                    - cell "$22,400,000" [ref=e201]
+                    - cell "2/14" [ref=e202]
+                    - cell "~90d" [ref=e203]
+                  - row "Pedregal Brutalist Jardines del Pedregal $19,800,000 1/9 ~88d" [ref=e204]:
+                    - cell "Pedregal Brutalist" [ref=e205]
+                    - cell "Jardines del Pedregal" [ref=e206]
+                    - cell "$19,800,000" [ref=e207]
+                    - cell "1/9" [ref=e208]
+                    - cell "~88d" [ref=e209]
+                  - row "Tamaulipas 89 Condesa $6,500,000 3/23 ~98d" [ref=e210]:
+                    - cell "Tamaulipas 89" [ref=e211]
+                    - cell "Condesa" [ref=e212]
+                    - cell "$6,500,000" [ref=e213]
+                    - cell "3/23" [ref=e214]
+                    - cell "~98d" [ref=e215]
+                  - row "Roma Norte 85 Roma Norte $5,800,000 1/20 ~95d" [ref=e216]:
+                    - cell "Roma Norte 85" [ref=e217]
+                    - cell "Roma Norte" [ref=e218]
+                    - cell "$5,800,000" [ref=e219]
+                    - cell "1/20" [ref=e220]
+                    - cell "~95d" [ref=e221]
+                  - row "Juárez Boutique Juárez $3,650,000 3/23 ~89d" [ref=e222]:
+                    - cell "Juárez Boutique" [ref=e223]
+                    - cell "Juárez" [ref=e224]
+                    - cell "$3,650,000" [ref=e225]
+                    - cell "3/23" [ref=e226]
+                    - cell "~89d" [ref=e227]
+              - generic [ref=e228]:
+                - generic [ref=e229]: 👉
+                - generic [ref=e230]:
+                  - strong [ref=e231]: "Conclusión:"
+                  - text: Altavista Polanco es el que mejor vende. Altavista Polanco es el más lento — revisa su precio o su anuncio.
+          - generic [ref=e232]: Mis tarjetas
+          - button "Crea tu propia tarjeta Combina las acciones que quieras." [ref=e234] [cursor=pointer]:
+            - img [ref=e236]
+            - generic [ref=e237]: Crea tu propia tarjeta
+            - generic [ref=e238]: Combina las acciones que quieras.
+          - generic [ref=e239]:
+            - generic [ref=e240]: Vender y promocionar
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - button "🏡 Conseguir compradores Reviso competencia, calculo ventas, sugiero precio, preparo tu anuncio y lo publico." [ref=e243] [cursor=pointer]:
+                  - generic [ref=e244]: 🏡
+                  - generic [ref=e245]: Conseguir compradores
+                  - generic [ref=e246]: Reviso competencia, calculo ventas, sugiero precio, preparo tu anuncio y lo publico.
+                - button "Hacer favorita" [ref=e248] [cursor=pointer]:
+                  - img [ref=e249]
+              - generic [ref=e251]:
+                - button "💲 Revisar mis precios Comparo el mercado de tu zona y te sugiero el mejor precio." [ref=e252] [cursor=pointer]:
+                  - generic [ref=e253]: 💲
+                  - generic [ref=e254]: Revisar mis precios
+                  - generic [ref=e255]: Comparo el mercado de tu zona y te sugiero el mejor precio.
+                - button "Hacer favorita" [ref=e257] [cursor=pointer]:
+                  - img [ref=e258]
+              - generic [ref=e260]:
+                - button "🎨 Prepararme el material Te armo el anuncio y la página de tu proyecto." [ref=e261] [cursor=pointer]:
+                  - generic [ref=e262]: 🎨
+                  - generic [ref=e263]: Prepararme el material
+                  - generic [ref=e264]: Te armo el anuncio y la página de tu proyecto.
+                - button "Hacer favorita" [ref=e266] [cursor=pointer]:
+                  - img [ref=e267]
+              - generic [ref=e269]:
+                - button "📣 Atraer más gente Material, redes y lo publico para que llegue más gente." [ref=e270] [cursor=pointer]:
+                  - generic [ref=e271]: 📣
+                  - generic [ref=e272]: Atraer más gente
+                  - generic [ref=e273]: Material, redes y lo publico para que llegue más gente.
+                - button "Hacer favorita" [ref=e275] [cursor=pointer]:
+                  - img [ref=e276]
+          - generic [ref=e278]:
+            - generic [ref=e279]: 🔥 Solo en DMX · info que nadie más tiene
+            - generic [ref=e280]:
+              - generic [ref=e281]:
+                - button "⚖️ Comparar mis proyectos Tus proyectos lado a lado (elige una zona arriba para comparar los de esa colonia)." [ref=e282] [cursor=pointer]:
+                  - generic [ref=e283]: ⚖️
+                  - generic [ref=e284]: Comparar mis proyectos
+                  - generic [ref=e285]: Tus proyectos lado a lado (elige una zona arriba para comparar los de esa colonia).
+                - button "Hacer favorita" [ref=e287] [cursor=pointer]:
+                  - img [ref=e288]
+              - generic [ref=e290]:
+                - button "💵 ¿A qué precio SÍ se vende? Precios REALES de cierre — no los de publicación. Nadie más tiene esto." [ref=e291] [cursor=pointer]:
+                  - generic [ref=e292]: 💵
+                  - generic [ref=e293]: ¿A qué precio SÍ se vende?
+                  - generic [ref=e294]: Precios REALES de cierre — no los de publicación. Nadie más tiene esto.
+                - button "Hacer favorita" [ref=e296] [cursor=pointer]:
+                  - img [ref=e297]
+              - generic [ref=e299]:
+                - button "⏱️ ¿En cuántos días se vende? Lo que tarda en venderse algo como lo tuyo, de verdad." [ref=e300] [cursor=pointer]:
+                  - generic [ref=e301]: ⏱️
+                  - generic [ref=e302]: ¿En cuántos días se vende?
+                  - generic [ref=e303]: Lo que tarda en venderse algo como lo tuyo, de verdad.
+                - button "Hacer favorita" [ref=e305] [cursor=pointer]:
+                  - img [ref=e306]
+              - generic [ref=e308]:
+                - button "🎯 ¿Cuánto vale de verdad? El valor real de tu unidad, con margen." [ref=e309] [cursor=pointer]:
+                  - generic [ref=e310]: 🎯
+                  - generic [ref=e311]: ¿Cuánto vale de verdad?
+                  - generic [ref=e312]: El valor real de tu unidad, con margen.
+                - button "Hacer favorita" [ref=e314] [cursor=pointer]:
+                  - img [ref=e315]
+              - generic [ref=e317]:
+                - button "🔮 ¿Y si cambio el precio? Si bajas 5% o agregas promo, cuánto más vendes." [ref=e318] [cursor=pointer]:
+                  - generic [ref=e319]: 🔮
+                  - generic [ref=e320]: ¿Y si cambio el precio?
+                  - generic [ref=e321]: Si bajas 5% o agregas promo, cuánto más vendes.
+                - button "Hacer favorita" [ref=e323] [cursor=pointer]:
+                  - img [ref=e324]
+              - generic [ref=e326]:
+                - button "🧑‍🤝‍🧑 ¿Quién compra en mi zona? El perfil de quién busca comprar cerca de ti." [ref=e327] [cursor=pointer]:
+                  - generic [ref=e328]: 🧑‍🤝‍🧑
+                  - generic [ref=e329]: ¿Quién compra en mi zona?
+                  - generic [ref=e330]: El perfil de quién busca comprar cerca de ti.
+                - button "Hacer favorita" [ref=e332] [cursor=pointer]:
+                  - img [ref=e333]
+              - generic [ref=e335]:
+                - button "🏊 ¿Qué amenidad vende más? Qué hace que digan que sí más rápido." [ref=e336] [cursor=pointer]:
+                  - generic [ref=e337]: 🏊
+                  - generic [ref=e338]: ¿Qué amenidad vende más?
+                  - generic [ref=e339]: Qué hace que digan que sí más rápido.
+                - button "Hacer favorita" [ref=e341] [cursor=pointer]:
+                  - img [ref=e342]
+              - generic [ref=e344]:
+                - button "⚖️ ¿Estoy caro o barato? Si tu precio va bien para lo que ofreces." [ref=e345] [cursor=pointer]:
+                  - generic [ref=e346]: ⚖️
+                  - generic [ref=e347]: ¿Estoy caro o barato?
+                  - generic [ref=e348]: Si tu precio va bien para lo que ofreces.
+                - button "Hacer favorita" [ref=e350] [cursor=pointer]:
+                  - img [ref=e351]
+              - generic [ref=e353]:
+                - button "📅 ¿Cuándo subo el precio? El mejor momento para subir, según el mercado." [ref=e354] [cursor=pointer]:
+                  - generic [ref=e355]: 📅
+                  - generic [ref=e356]: ¿Cuándo subo el precio?
+                  - generic [ref=e357]: El mejor momento para subir, según el mercado.
+                - button "Hacer favorita" [ref=e359] [cursor=pointer]:
+                  - img [ref=e360]
+              - generic [ref=e362]:
+                - button "🔥 ¿Quién está por comprar? Qué clientes están a punto de decidir." [ref=e363] [cursor=pointer]:
+                  - generic [ref=e364]: 🔥
+                  - generic [ref=e365]: ¿Quién está por comprar?
+                  - generic [ref=e366]: Qué clientes están a punto de decidir.
+                - button "Hacer favorita" [ref=e368] [cursor=pointer]:
+                  - img [ref=e369]
+              - generic [ref=e371]:
+                - button "🚀 ¿Qué zona va a subir? Dónde va a subir la plusvalía." [ref=e372] [cursor=pointer]:
+                  - generic [ref=e373]: 🚀
+                  - generic [ref=e374]: ¿Qué zona va a subir?
+                  - generic [ref=e375]: Dónde va a subir la plusvalía.
+                - button "Hacer favorita" [ref=e377] [cursor=pointer]:
+                  - img [ref=e378]
+              - generic [ref=e380]:
+                - button "🤑 ¿Cuánto voy a ganar? Tu ganancia proyectada al final." [ref=e381] [cursor=pointer]:
+                  - generic [ref=e382]: 🤑
+                  - generic [ref=e383]: ¿Cuánto voy a ganar?
+                  - generic [ref=e384]: Tu ganancia proyectada al final.
+                - button "Hacer favorita" [ref=e386] [cursor=pointer]:
+                  - img [ref=e387]
+              - generic [ref=e389]:
+                - button "🏆 ¿Cómo le hacen los que venden? Qué hacen distinto los devs que sí venden." [ref=e390] [cursor=pointer]:
+                  - generic [ref=e391]: 🏆
+                  - generic [ref=e392]: ¿Cómo le hacen los que venden?
+                  - generic [ref=e393]: Qué hacen distinto los devs que sí venden.
+                - button "Hacer favorita" [ref=e395] [cursor=pointer]:
+                  - img [ref=e396]
+          - generic [ref=e398]:
+            - generic [ref=e399]: Mi mercado
+            - generic [ref=e400]:
+              - generic [ref=e401]:
+                - button "🔭 Espiar a mi competencia Qué hacen los proyectos parecidos al tuyo." [ref=e402] [cursor=pointer]:
+                  - generic [ref=e403]: 🔭
+                  - generic [ref=e404]: Espiar a mi competencia
+                  - generic [ref=e405]: Qué hacen los proyectos parecidos al tuyo.
+                - button "Hacer favorita" [ref=e407] [cursor=pointer]:
+                  - img [ref=e408]
+              - generic [ref=e410]:
+                - button "📊 Cuánto voy a vender Cuántas unidades puedes mover y en cuánto tiempo." [ref=e411] [cursor=pointer]:
+                  - generic [ref=e412]: 📊
+                  - generic [ref=e413]: Cuánto voy a vender
+                  - generic [ref=e414]: Cuántas unidades puedes mover y en cuánto tiempo.
+                - button "Hacer favorita" [ref=e416] [cursor=pointer]:
+                  - img [ref=e417]
+              - generic [ref=e419]:
+                - button "🗺️ Inteligencia de mi zona Pulso, precios, riesgo y competencia, todo junto." [ref=e420] [cursor=pointer]:
+                  - generic [ref=e421]: 🗺️
+                  - generic [ref=e422]: Inteligencia de mi zona
+                  - generic [ref=e423]: Pulso, precios, riesgo y competencia, todo junto.
+                - button "Hacer favorita" [ref=e425] [cursor=pointer]:
+                  - img [ref=e426]
+              - generic [ref=e428]:
+                - button "🧭 Dónde construir La mejor zona para tu próximo proyecto." [ref=e429] [cursor=pointer]:
+                  - generic [ref=e430]: 🧭
+                  - generic [ref=e431]: Dónde construir
+                  - generic [ref=e432]: La mejor zona para tu próximo proyecto.
+                - button "Hacer favorita" [ref=e434] [cursor=pointer]:
+                  - img [ref=e435]
+          - generic [ref=e437]:
+            - generic [ref=e438]: Mi proyecto y dinero
+            - generic [ref=e439]:
+              - generic [ref=e440]:
+                - button "🩺 Cómo va mi proyecto Qué va bien, qué está atorado y qué arreglar." [ref=e441] [cursor=pointer]:
+                  - generic [ref=e442]: 🩺
+                  - generic [ref=e443]: Cómo va mi proyecto
+                  - generic [ref=e444]: Qué va bien, qué está atorado y qué arreglar.
+                - button "Hacer favorita" [ref=e446] [cursor=pointer]:
+                  - img [ref=e447]
+              - generic [ref=e449]:
+                - button "💰 Revisar mi dinero Tu flujo de dinero y la absorción." [ref=e450] [cursor=pointer]:
+                  - generic [ref=e451]: 💰
+                  - generic [ref=e452]: Revisar mi dinero
+                  - generic [ref=e453]: Tu flujo de dinero y la absorción.
+                - button "Hacer favorita" [ref=e455] [cursor=pointer]:
+                  - img [ref=e456]
+          - generic [ref=e458]:
+            - generic [ref=e459]: Equipo y reportes
+            - generic [ref=e460]:
+              - generic [ref=e461]:
+                - button "📄 Reporte inversionistas Un reporte listo para compartir." [ref=e462] [cursor=pointer]:
+                  - generic [ref=e463]: 📄
+                  - generic [ref=e464]: Reporte inversionistas
+                  - generic [ref=e465]: Un reporte listo para compartir.
+                - button "Hacer favorita" [ref=e467] [cursor=pointer]:
+                  - img [ref=e468]
+              - generic [ref=e470]:
+                - button "👥 Cómo va mi equipo Tus asesores y a quién asignar." [ref=e471] [cursor=pointer]:
+                  - generic [ref=e472]: 👥
+                  - generic [ref=e473]: Cómo va mi equipo
+                  - generic [ref=e474]: Tus asesores y a quién asignar.
+                - button "Hacer favorita" [ref=e476] [cursor=pointer]:
+                  - img [ref=e477]
+          - generic [ref=e479]:
+            - generic [ref=e480]: Lo que ya hice por ti
+            - generic [ref=e482]:
+              - img [ref=e483]
+              - generic [ref=e485]: Trabajé en tu proyecto
+          - button "¿Cuánto quieres que haga solo? ▼" [ref=e487] [cursor=pointer]:
+            - img [ref=e488]
+            - text: ¿Cuánto quieres que haga solo? ▼
+    - button "Reportar problema" [ref=e491] [cursor=pointer]:
+      - img [ref=e492]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e494] [cursor=pointer]:
+      - img [ref=e495]
+    - complementary [ref=e498]:
+      - generic [ref=e499]:
+        - generic [ref=e500]:
+          - img [ref=e502]
+          - generic [ref=e505]:
+            - generic [ref=e506]: Copilot DMX
+            - generic [ref=e507]: Claude Sonnet · contexto privado
+        - generic [ref=e508]:
+          - button [ref=e509] [cursor=pointer]:
+            - img [ref=e510]
+            - text: "0"
+          - button [ref=e512] [cursor=pointer]:
+            - img [ref=e513]
+            - text: Nueva
+          - button [ref=e514] [cursor=pointer]:
+            - img [ref=e515]
+      - generic [ref=e518]:
+        - button [ref=e519] [cursor=pointer]: Resume mi pipeline esta semana
+        - button [ref=e520] [cursor=pointer]: ¿Qué leads necesitan follow-up hoy?
+        - button [ref=e521] [cursor=pointer]: Top 3 acciones para vender más rápido
+        - button [ref=e522] [cursor=pointer]: Predice ventas próximo mes
+        - button [ref=e523] [cursor=pointer]: Proyectos con health bajo
+        - button [ref=e524] [cursor=pointer]: Reporte semanal para inversionistas
+      - generic [ref=e526]:
+        - img [ref=e528]
+        - generic [ref=e531]:
+          - generic [ref=e532]: Pregúntame lo que necesites
+          - generic [ref=e533]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e534]:
+          - button [ref=e535] [cursor=pointer]:
+            - generic [ref=e536]: Resume mi pipeline esta semana
+            - img [ref=e537]
+          - button [ref=e539] [cursor=pointer]:
+            - generic [ref=e540]: ¿Qué leads necesitan follow-up hoy?
+            - img [ref=e541]
+          - button [ref=e543] [cursor=pointer]:
+            - generic [ref=e544]: Top 3 acciones para vender más rápido
+            - img [ref=e545]
+          - button [ref=e547] [cursor=pointer]:
+            - generic [ref=e548]: Predice ventas próximo mes
+            - img [ref=e549]
+      - generic [ref=e551]:
+        - generic [ref=e552]:
+          - textbox [ref=e553]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e554]:
+            - img [ref=e555]
+        - generic [ref=e557]:
+          - generic [ref=e558]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e559]: 0/4000

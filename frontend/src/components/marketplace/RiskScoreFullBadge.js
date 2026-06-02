@@ -33,7 +33,7 @@ function MiniBar({ label, score }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', minWidth: 56 }}>{label}</span>
-      <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.10)', borderRadius: 9999, overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: 4, background: 'rgba(var(--cream-rgb),0.10)', borderRadius: 9999, overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: tone }} />
       </div>
       <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: tone, fontWeight: 700, minWidth: 28, textAlign: 'right' }}>{Math.round(pct)}</span>
@@ -84,8 +84,8 @@ export default function RiskScoreFullBadge({ zoneId, size = 'sm' }) {
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: 0,
             zIndex: Z.DROPDOWN, width: 220,
-            background: 'rgba(13,16,23,0.98)',
-            border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(var(--bg-rgb),0.98)',
+            border: '1px solid rgba(var(--cream-rgb),0.14)',
             borderRadius: 12, padding: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             display: 'grid', gap: 6,
@@ -104,13 +104,13 @@ export default function RiskScoreFullBadge({ zoneId, size = 'sm' }) {
       {open && (
         <div data-testid={`risk-fullbadge-drawer-${zoneId}`}
           onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(var(--bg-rgb),0.78)' }}>
           <div onClick={e => e.stopPropagation()}
             style={{
               position: 'absolute', right: 0, top: 0, bottom: 0,
               width: 'min(680px, 96vw)', overflowY: 'auto',
-              background: 'rgba(13,16,23,0.98)',
-              borderLeft: '1px solid rgba(255,255,255,0.10)', padding: 24,
+              background: 'rgba(var(--bg-rgb),0.98)',
+              borderLeft: '1px solid rgba(var(--cream-rgb),0.10)', padding: 24,
             }}>
             <h3 style={{ fontFamily: 'Outfit', color: 'var(--cream)', margin: 0, fontWeight: 800 }}>
               Risk Score · {zoneId}

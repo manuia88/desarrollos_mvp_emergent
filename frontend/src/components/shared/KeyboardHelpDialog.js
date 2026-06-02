@@ -36,8 +36,8 @@ function KbdCombo({ keys }) {
             display: 'inline-block',
             padding: '2px 7px',
             borderRadius: 6,
-            background: 'rgba(240,235,224,0.08)',
-            border: '1px solid rgba(240,235,224,0.2)',
+            background: 'rgba(var(--cream-rgb),0.08)',
+            border: '1px solid rgba(var(--cream-rgb),0.2)',
             color: 'var(--cream)',
             fontFamily: 'DM Mono, monospace',
             fontSize: 11,
@@ -97,8 +97,8 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
         style={{
           width: 'min(580px, 96vw)',
           maxHeight: '80vh',
-          background: 'rgba(13,16,23,0.96)',
-          border: '1px solid rgba(255,255,255,0.16)',
+          background: 'rgba(var(--bg-rgb),0.96)',
+          border: '1px solid rgba(var(--cream-rgb),0.16)',
           borderRadius: 16,
           display: 'flex',
           flexDirection: 'column',
@@ -120,15 +120,15 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
               Atajos de teclado
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-              Presiona <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(240,235,224,0.1)', border: '1px solid rgba(240,235,224,0.2)', fontSize: 10 }}>?</kbd> para abrir · <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(240,235,224,0.1)', border: '1px solid rgba(240,235,224,0.2)', fontSize: 10 }}>Esc</kbd> para cerrar
+              Presiona <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(var(--cream-rgb),0.1)', border: '1px solid rgba(var(--cream-rgb),0.2)', fontSize: 10 }}>?</kbd> para abrir · <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(var(--cream-rgb),0.1)', border: '1px solid rgba(var(--cream-rgb),0.2)', fontSize: 10 }}>Esc</kbd> para cerrar
             </div>
           </div>
           <button
             data-testid="keyboard-help-close"
             onClick={onClose}
             style={{
-              background: 'rgba(240,235,224,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
               borderRadius: 8, width: 32, height: 32,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'var(--cream-2)',
@@ -142,8 +142,8 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
         <div style={{ padding: '14px 20px 10px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(240,235,224,0.06)',
-            border: '1px solid rgba(240,235,224,0.15)',
+            background: 'rgba(var(--cream-rgb),0.06)',
+            border: '1px solid rgba(var(--cream-rgb),0.15)',
             borderRadius: 10, padding: '8px 12px',
           }}>
             <Search size={14} color="var(--cream-3)" />
@@ -174,7 +174,7 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
                 fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em',
                 textTransform: 'uppercase', color: 'var(--cream-3)',
                 fontFamily: 'DM Mono, monospace', marginBottom: 8,
-                paddingBottom: 6, borderBottom: '1px solid rgba(240,235,224,0.07)',
+                paddingBottom: 6, borderBottom: '1px solid rgba(var(--cream-rgb),0.07)',
               }}>
                 {section}
               </div>
@@ -186,7 +186,7 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
                     padding: '7px 8px', borderRadius: 8,
                     transition: 'background 0.12s',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.04)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.04)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>
@@ -209,7 +209,7 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
         {/* Footer */}
         <div style={{
           padding: '12px 20px',
-          borderTop: '1px solid rgba(240,235,224,0.08)',
+          borderTop: '1px solid rgba(var(--cream-rgb),0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: 11, color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>

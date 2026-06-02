@@ -6,7 +6,7 @@ import FadeUp from '../animations/FadeUp';
 import { MapPin, Play, Leaf, Route, Shield, Store, TrendUp, Radio } from '../icons';
 import { Z } from '../../styles/zIndex';
 
-const PARTNERS = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Pulppo', 'Habimetro'];
+const PARTNERS = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Habimetro'];
 
 function ScoreIcon({ k, color }) {
   const size = 11;

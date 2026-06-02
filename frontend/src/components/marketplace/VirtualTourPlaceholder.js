@@ -44,10 +44,10 @@ export default function VirtualTourPlaceholder({
       <div data-testid="virtual-tour-iframe" style={{
         position: 'relative',
         paddingTop: '56.25%', // 16:9
-        background: 'rgba(13,16,23,0.92)',
+        background: 'rgba(var(--bg-rgb),0.92)',
         borderRadius: 14,
         overflow: 'hidden',
-        border: '1px solid rgba(240,235,224,0.10)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
       }}>
         <iframe
           src={tourUrl}
@@ -75,7 +75,7 @@ export default function VirtualTourPlaceholder({
     }}>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(6,8,15,0.62)',
+        background: 'rgba(var(--bg-rgb),0.62)',
         backdropFilter: 'blur(8px)',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
@@ -103,7 +103,7 @@ export default function VirtualTourPlaceholder({
         </div>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 13,
-          color: 'rgba(240,235,224,0.6)',
+          color: 'rgba(var(--cream-rgb),0.6)',
           maxWidth: 380, marginBottom: 16,
         }}>
           Te avisamos en cuanto esté listo el recorrido 360° de {propiedadNombre || 'este desarrollo'}.
@@ -115,7 +115,7 @@ export default function VirtualTourPlaceholder({
             background: 'rgba(34,197,94,0.10)',
             border: '1px solid rgba(34,197,94,0.30)',
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-            color: '#86EFAC',
+            color: 'var(--green)',
           }}>
             ✓ Te avisamos cuando esté listo · {email}
           </div>
@@ -133,8 +133,8 @@ export default function VirtualTourPlaceholder({
               style={{
                 flex: 1, minWidth: 200,
                 padding: '10px 14px',
-                background: 'rgba(13,16,23,0.85)',
-                border: `1px solid ${error ? 'rgba(239,68,68,0.5)' : 'rgba(240,235,224,0.20)'}`,
+                background: 'rgba(var(--bg-rgb),0.85)',
+                border: `1px solid ${error ? 'rgba(239,68,68,0.5)' : 'rgba(var(--cream-rgb),0.20)'}`,
                 borderRadius: 9999, outline: 'none',
                 fontFamily: 'DM Sans', fontSize: 13,
                 color: 'var(--cream, #F0EBE0)',
@@ -161,7 +161,7 @@ export default function VirtualTourPlaceholder({
         {error && (
           <div style={{
             marginTop: 8,
-            fontFamily: 'DM Sans', fontSize: 11, color: '#FCA5A5',
+            fontFamily: 'DM Sans', fontSize: 11, color: 'var(--red)',
           }}>{error}</div>
         )}
       </div>

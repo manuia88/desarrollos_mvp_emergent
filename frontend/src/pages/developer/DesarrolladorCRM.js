@@ -14,11 +14,11 @@ const SOURCE_LABELS = {
 };
 
 const COL_COLOR = {
-  nuevo:            { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.30)',  fg: '#a5b4fc' },
-  en_contacto:      { bg: 'rgba(236,72,153,0.10)',  bd: 'rgba(236,72,153,0.30)',  fg: '#f9a8d4' },
-  visita_realizada: { bg: 'rgba(251,191,36,0.10)',  bd: 'rgba(251,191,36,0.30)',  fg: '#fcd34d' },
-  propuesta:        { bg: 'rgba(139,92,246,0.10)',  bd: 'rgba(139,92,246,0.30)',  fg: '#c4b5fd' },
-  cerrado:          { bg: 'rgba(34,197,94,0.10)',   bd: 'rgba(34,197,94,0.30)',   fg: '#86efac' },
+  nuevo:            { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.30)',  fg: '#4F46E5' },
+  en_contacto:      { bg: 'rgba(236,72,153,0.10)',  bd: 'rgba(236,72,153,0.30)',  fg: '#C63FAE' },
+  visita_realizada: { bg: 'rgba(251,191,36,0.10)',  bd: 'rgba(251,191,36,0.30)',  fg: '#C77F12' },
+  propuesta:        { bg: 'rgba(139,92,246,0.10)',  bd: 'rgba(139,92,246,0.30)',  fg: '#6D4AFF' },
+  cerrado:          { bg: 'rgba(34,197,94,0.10)',   bd: 'rgba(34,197,94,0.30)',   fg: '#1FA06A' },
 };
 const COL_TO_DEFAULT_STATUS = {
   nuevo: 'nuevo', en_contacto: 'contactado', visita_realizada: 'visita_realizada',
@@ -150,7 +150,7 @@ function KanbanTab({ projectId, onToast }) {
             onDrop={e => handleDrop(col.key, e)}
             style={{
               minHeight: 380,
-              background: isOver ? color.bg : 'rgba(13,17,24,0.5)',
+              background: isOver ? color.bg : 'rgba(var(--bg-rgb),0.5)',
               border: `1px solid ${isOver ? color.bd : 'var(--border)'}`,
               borderRadius: 14, padding: 12,
               display: 'flex', flexDirection: 'column', gap: 8,
@@ -200,7 +200,7 @@ function KanbanCard({ card, colKey, color }) {
       data-testid={`crm-card-${card.id}`}
       style={{
         padding: 10, borderRadius: 10,
-        background: hover ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.025)',
+        background: hover ? 'rgba(var(--cream-rgb),0.05)' : 'rgba(var(--cream-rgb),0.025)',
         border: `1px solid ${hover ? color.bd : 'var(--border)'}`,
         cursor: 'grab',
         transition: 'background 0.12s, border-color 0.12s',
@@ -310,7 +310,7 @@ function BrokersTab({ projectId, user, onToast }) {
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
-            <thead style={{ background: 'rgba(255,255,255,0.02)' }}>
+            <thead style={{ background: 'rgba(var(--cream-rgb),0.02)' }}>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 {['Broker', 'Origen', 'Acceso', '% Comisión', 'Estado', 'Asignado', ''].map(h => (
                   <th key={h} style={thStyle}>{h}</th>
@@ -354,7 +354,7 @@ function BrokersTab({ projectId, user, onToast }) {
                         style={{
                           padding: '5px 10px', borderRadius: 9999,
                           background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.32)',
-                          color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
+                          color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
                         }}>
                         Revocar
                       </button>
@@ -485,11 +485,11 @@ const thStyle = { textAlign: 'left', padding: '10px 14px', fontFamily: 'DM Sans'
 const tdStyle = { padding: '12px 14px', color: 'var(--cream-2)' };
 const inputStyle = {
   width: '100%', padding: '9px 12px',
-  background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)',
+  background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
   borderRadius: 10, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
 };
 const modalStyle = {
-  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)',
+  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)',
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {

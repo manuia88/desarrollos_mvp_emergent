@@ -89,7 +89,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
   if (!TOKEN) {
     return (
       <div data-testid="mapbox-token-missing" style={{
-        height, background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border)',
+        height, background: 'rgba(var(--cream-rgb),0.03)', border: '1px dashed var(--border)',
         borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
         <MapPin size={24} color="var(--cream-4)" />
@@ -105,7 +105,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
       {/* Coords overlay */}
       <div style={{
         position: 'absolute', bottom: 12, left: 12, right: readOnly ? 12 : 160,
-        background: 'rgba(13,17,24,0.86)', backdropFilter: 'blur(8px)',
+        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(8px)',
         borderRadius: 8, padding: '6px 12px',
         fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--cream-2)',
       }}>
@@ -135,7 +135,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
       {!readOnly && (
         <div style={{
           position: 'absolute', top: 12, left: 12,
-          background: 'rgba(13,17,24,0.82)', backdropFilter: 'blur(6px)',
+          background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(6px)',
           borderRadius: 8, padding: '5px 10px',
           fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)',
         }}>

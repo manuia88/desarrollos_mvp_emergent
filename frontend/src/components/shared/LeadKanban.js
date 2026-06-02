@@ -29,18 +29,18 @@ const SOURCE_LABELS = {
 // V2 cols: lead_nuevo / contactado / calificado / visita / negociacion / cierre / vendido
 const COL_TOKEN = {
   // V1
-  nuevo:            { bg: 'rgba(240,235,224,0.04)', bd: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
-  en_contacto:      { bg: 'rgba(240,235,224,0.07)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-2)' },
+  nuevo:            { bg: 'rgba(var(--cream-rgb),0.04)', bd: 'rgba(var(--cream-rgb),0.12)', fg: 'var(--cream-2)' },
+  en_contacto:      { bg: 'rgba(var(--cream-rgb),0.07)', bd: 'rgba(var(--cream-rgb),0.18)', fg: 'var(--cream-2)' },
   visita_realizada: { bg: 'rgba(245,158,11,0.08)',  bd: 'rgba(245,158,11,0.30)',  fg: 'var(--amber)' },
-  propuesta:        { bg: 'rgba(240,235,224,0.10)', bd: 'rgba(240,235,224,0.26)', fg: 'var(--cream)' },
+  propuesta:        { bg: 'rgba(var(--cream-rgb),0.10)', bd: 'rgba(var(--cream-rgb),0.26)', fg: 'var(--cream)' },
   cerrado:          { bg: 'rgba(34,197,94,0.08)',   bd: 'rgba(34,197,94,0.30)',   fg: 'var(--green)' },
   // V2
-  lead_nuevo:       { bg: 'rgba(240,235,224,0.04)', bd: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
-  contactado:       { bg: 'rgba(240,235,224,0.07)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-2)' },
+  lead_nuevo:       { bg: 'rgba(var(--cream-rgb),0.04)', bd: 'rgba(var(--cream-rgb),0.12)', fg: 'var(--cream-2)' },
+  contactado:       { bg: 'rgba(var(--cream-rgb),0.07)', bd: 'rgba(var(--cream-rgb),0.18)', fg: 'var(--cream-2)' },
   calificado:       { bg: 'rgba(99,102,241,0.08)',  bd: 'rgba(99,102,241,0.30)',  fg: '#a5b4fc' },
   visita:           { bg: 'rgba(245,158,11,0.08)',  bd: 'rgba(245,158,11,0.30)',  fg: 'var(--amber)' },
   negociacion:      { bg: 'rgba(236,72,153,0.08)',  bd: 'rgba(236,72,153,0.30)',  fg: '#f9a8d4' },
-  cierre:           { bg: 'rgba(240,235,224,0.10)', bd: 'rgba(240,235,224,0.26)', fg: 'var(--cream)' },
+  cierre:           { bg: 'rgba(var(--cream-rgb),0.10)', bd: 'rgba(var(--cream-rgb),0.26)', fg: 'var(--cream)' },
   vendido:          { bg: 'rgba(34,197,94,0.08)',   bd: 'rgba(34,197,94,0.30)',   fg: 'var(--green)' },
 };
 
@@ -229,7 +229,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
       style={{
         position: 'relative',
         padding: 'var(--d-pad-kanban, 10px)', borderRadius: 10,
-        background: hover ? 'rgba(240,235,224,0.05)' : 'rgba(240,235,224,0.02)',
+        background: hover ? 'rgba(var(--cream-rgb),0.05)' : 'rgba(var(--cream-rgb),0.02)',
         border: `1px solid ${hover ? tok.bd : 'var(--border)'}`,
         cursor: canMove ? 'grab' : 'pointer',
         opacity: canMove ? 1 : 0.92,
@@ -297,7 +297,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
           <span data-testid={`cross-badge-${card.id}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 6px', borderRadius: 9999,
-            background: 'rgba(240,235,224,0.06)', border: '1px solid rgba(240,235,224,0.18)',
+            background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.18)',
             color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700,
           }}>
             <Link2 size={10} /> {crossCount + 1} proyectos
@@ -326,7 +326,7 @@ function HeatBadge({ tag, score }) {
   const tones = {
     caliente: { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.32)',  fg: 'var(--red)',     showIcon: true },
     tibio:    { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)',   showIcon: false },
-    frio:     { bg: 'rgba(240,235,224,0.05)', bd: 'rgba(240,235,224,0.16)', fg: 'var(--cream-3)', showIcon: false },
+    frio:     { bg: 'rgba(var(--cream-rgb),0.05)', bd: 'rgba(var(--cream-rgb),0.16)', fg: 'var(--cream-3)', showIcon: false },
   };
   const t = tones[tag] || tones.frio;
   const tooltip = score != null ? `Heat: ${score}/100 (${tag})` : `Heat: ${tag}`;
@@ -399,7 +399,7 @@ function EnrichedSection({ card }) {
             width: 16, height: 16, borderRadius: '50%',
             background: asesor.picture ? `url(${asesor.picture}) center/cover no-repeat` : 'rgba(74,222,128,0.20)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Outfit', fontWeight: 800, fontSize: 9, color: '#4ADE80',
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 9, color: 'var(--green)',
           }}>
             {!asesor.picture && (asesor.name || '?').charAt(0).toUpperCase()}
           </div>
@@ -436,13 +436,13 @@ function EnrichedSection({ card }) {
               onClick={ev => ev.stopPropagation()}
               style={{
                 position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: Z.DROPDOWN,
-                padding: 6, borderRadius: 8, background: 'rgba(13,17,28,0.97)',
-                border: '1px solid rgba(255,255,255,0.10)', display: 'flex', flexDirection: 'column', gap: 3,
+                padding: 6, borderRadius: 8, background: 'rgba(var(--bg-rgb),0.97)',
+                border: '1px solid rgba(var(--cream-rgb),0.10)', display: 'flex', flexDirection: 'column', gap: 3,
               }}>
               {contact.whatsapp && (
                 <a href={`https://wa.me/${String(contact.whatsapp).replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
                   data-testid={`contact-wa-${card.id}`}
-                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(74,222,128,0.10)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(74,222,128,0.10)', color: 'var(--green)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
                   WhatsApp
                 </a>
               )}
@@ -461,7 +461,7 @@ function EnrichedSection({ card }) {
               {contact.contact_url && (
                 <a href={contact.contact_url} target="_blank" rel="noreferrer"
                   data-testid={`contact-url-${card.id}`}
-                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
                   Sitio
                 </a>
               )}
@@ -618,7 +618,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                     </span>
                     <span data-testid="lead-drawer-status-v2" style={{
                       padding: '3px 9px', borderRadius: 9999,
-                      background: 'rgba(240,235,224,0.05)', border: '1px solid var(--border)',
+                      background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)',
                       color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700,
                       textTransform: 'uppercase', letterSpacing: '0.04em',
                     }}>
@@ -644,7 +644,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                       onClick={handleNurtureToggle}
                       style={{
                         padding: '6px 12px', borderRadius: 9999,
-                        background: lead.nurture_active ? 'rgba(99,102,241,0.12)' : 'rgba(240,235,224,0.04)',
+                        background: lead.nurture_active ? 'rgba(99,102,241,0.12)' : 'rgba(var(--cream-rgb),0.04)',
                         border: `1px solid ${lead.nurture_active ? 'rgba(99,102,241,0.32)' : 'var(--border)'}`,
                         color: lead.nurture_active ? '#a5b4fc' : 'var(--cream-2)',
                         fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
@@ -662,7 +662,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                           padding: '6px 12px', borderRadius: 9999,
                           background: 'rgba(239,68,68,0.08)',
                           border: '1px solid rgba(239,68,68,0.30)',
-                          color: '#fca5a5',
+                          color: 'var(--red)',
                           fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
                           cursor: (pipelineBusy || !lead._permissions?.can_move) ? 'not-allowed' : 'pointer',
                           opacity: (pipelineBusy || !lead._permissions?.can_move) ? 0.6 : 1,
@@ -697,7 +697,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                   {crossLeads.map(cl => (
                     <div key={cl.id} data-testid={`cross-lead-${cl.id}`} style={{
                       padding: '8px 10px', borderRadius: 8,
-                      background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+                      background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       fontSize: 11.5, fontFamily: 'DM Sans', color: 'var(--cream-2)',
                     }}>
@@ -727,7 +727,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                   {conv.notes.map((n, i) => (
                     <div key={i} style={{
                       padding: 10, borderRadius: 8,
-                      background: 'rgba(240,235,224,0.03)', border: '1px solid var(--border)',
+                      background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)',
                       fontSize: 12, fontFamily: 'DM Sans', color: 'var(--cream-2)',
                     }}>
                       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)', marginBottom: 4 }}>
@@ -745,7 +745,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                 ai && !aiLocked ? (
                   <button data-testid="ai-refresh" onClick={refreshSummary} disabled={aiLoading} style={{
                     padding: '4px 10px', borderRadius: 9999, cursor: aiLoading ? 'not-allowed' : 'pointer',
-                    background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+                    background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                     color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 600,
                   }}>{aiLoading ? '…' : 'Refrescar'}</button>
                 ) : null
@@ -765,7 +765,7 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
                     <span style={{
                       padding: '2px 8px', borderRadius: 9999,
                       background: ai.sentiment === 'positivo' ? 'rgba(34,197,94,0.10)' :
-                                  ai.sentiment === 'preocupante' ? 'rgba(239,68,68,0.10)' : 'rgba(240,235,224,0.05)',
+                                  ai.sentiment === 'preocupante' ? 'rgba(239,68,68,0.10)' : 'rgba(var(--cream-rgb),0.05)',
                       border: `1px solid ${
                         ai.sentiment === 'positivo' ? 'rgba(34,197,94,0.30)' :
                         ai.sentiment === 'preocupante' ? 'rgba(239,68,68,0.30)' : 'var(--border)'}`,
@@ -838,7 +838,7 @@ function PermBadge({ active, label }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '3px 8px', borderRadius: 9999,
-      background: active ? 'rgba(34,197,94,0.10)' : 'rgba(240,235,224,0.04)',
+      background: active ? 'rgba(34,197,94,0.10)' : 'rgba(var(--cream-rgb),0.04)',
       border: `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
       color: active ? 'var(--green)' : 'var(--cream-3)',
       fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 600,
@@ -852,7 +852,7 @@ function Section({ title, icon, children, testid, right, className }) {
   return (
     <div data-testid={testid} className={className || ''} style={{
       padding: 14, borderRadius: 10,
-      background: 'rgba(240,235,224,0.025)', border: '1px solid var(--border)',
+      background: 'rgba(var(--cream-rgb),0.025)', border: '1px solid var(--border)',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 10,

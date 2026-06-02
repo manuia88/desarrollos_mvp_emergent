@@ -55,17 +55,17 @@ async function rejectLeadRec(recId) {
 
 // ─── Issue metadata ───────────────────────────────────────────────────────────
 const ISSUE_META = {
-  stale_lead:               { label: 'Lead sin contacto',      color: '#F87171' },
-  low_conversion_asesor:    { label: 'Conv. asesor baja',      color: '#F59E0B' },
+  stale_lead:               { label: 'Lead sin contacto',      color: 'var(--red)' },
+  low_conversion_asesor:    { label: 'Conv. asesor baja',      color: 'var(--amber)' },
   drop_at_stage:            { label: 'Drop-off en etapa',      color: 'var(--theme-3)' },
   underperforming_segment:  { label: 'Segmento bajo',          color: 'var(--theme)' },
   missing_followup:         { label: 'Sin seguimiento',        color: '#94A3B8' },
 };
 
 const TARGET_META = {
-  lead:         { label: 'Lead',      color: '#4ADE80' },
+  lead:         { label: 'Lead',      color: 'var(--green)' },
   asesor:       { label: 'Asesor',    color: 'var(--theme)' },
-  funnel_stage: { label: 'Etapa',     color: '#F59E0B' },
+  funnel_stage: { label: 'Etapa',     color: 'var(--amber)' },
   segment:      { label: 'Segmento',  color: 'var(--theme-3)' },
 };
 
@@ -208,7 +208,7 @@ export default function LeadAgentPanel({ orgId }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
         <Users size={14} color="#4ADE80" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>Sub-agente de Leads</span>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
       </div>
 
       {/* Period selector + Analyze button */}
@@ -218,8 +218,8 @@ export default function LeadAgentPanel({ orgId }) {
           value={String(periodDays)}
           onChange={e => setPeriodDays(parseInt(e.target.value))}
           style={{
-            padding: '7px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
+            padding: '7px 10px', borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.05)',
+            border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
             cursor: 'pointer', outline: 'none',
           }}
         >
@@ -243,7 +243,7 @@ export default function LeadAgentPanel({ orgId }) {
 
       {/* Error */}
       {analyzeError && (
-        <div data-testid="lead-analyze-error" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', color: '#F87171', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div data-testid="lead-analyze-error" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>
           {analyzeError}
         </div>
       )}
@@ -251,13 +251,13 @@ export default function LeadAgentPanel({ orgId }) {
       {/* Last run summary */}
       {lastRun && (
         <div data-testid="lead-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Clock size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
+          <Clock size={11} color="rgba(var(--cream-rgb),0.40)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)' }}>
             {lastRun.recommendations_count} issues del funnel detectados · {lastRun.period_days}d
           </span>
           <LayerBadge layer={lastRun.layer_used} />
           {lastRun.simulation_mode && (
-            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.30)', color: '#F59E0B', fontFamily: 'DM Sans', fontWeight: 700 }}>SIMULACIÓN</span>
+            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.30)', color: 'var(--amber)', fontFamily: 'DM Sans', fontWeight: 700 }}>SIMULACIÓN</span>
           )}
         </div>
       )}
@@ -269,12 +269,12 @@ export default function LeadAgentPanel({ orgId }) {
             style={{
               padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
               background: statusFilter === k ? 'rgba(74,222,128,0.14)' : 'transparent',
-              border: statusFilter === k ? '1px solid rgba(74,222,128,0.45)' : '1px solid rgba(255,255,255,0.08)',
-              color: statusFilter === k ? '#4ADE80' : 'rgba(240,235,224,0.50)',
+              border: statusFilter === k ? '1px solid rgba(74,222,128,0.45)' : '1px solid rgba(var(--cream-rgb),0.08)',
+              color: statusFilter === k ? '#4ADE80' : 'rgba(var(--cream-rgb),0.50)',
             }}
           >{l}</button>
         ))}
-        <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.35)', alignSelf: 'center' }}>{recsTotal} total</span>
+        <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.35)', alignSelf: 'center' }}>{recsTotal} total</span>
       </div>
 
       {/* Target type filter */}
@@ -284,8 +284,8 @@ export default function LeadAgentPanel({ orgId }) {
             style={{
               padding: '3px 9px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
               background: typeFilter === k ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
-              border: typeFilter === k ? '1px solid rgba(var(--theme-rgb),0.40)' : '1px solid rgba(255,255,255,0.06)',
-              color: typeFilter === k ? 'var(--theme)' : 'rgba(240,235,224,0.40)',
+              border: typeFilter === k ? '1px solid rgba(var(--theme-rgb),0.40)' : '1px solid rgba(var(--cream-rgb),0.06)',
+              color: typeFilter === k ? 'var(--theme)' : 'rgba(var(--cream-rgb),0.40)',
             }}
           >{l}</button>
         ))}
@@ -293,11 +293,11 @@ export default function LeadAgentPanel({ orgId }) {
 
       {/* Recommendations list */}
       {recsLoading ? (
-        <div style={{ padding: '20px 0', textAlign: 'center', color: 'rgba(240,235,224,0.35)', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div style={{ padding: '20px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.35)', fontFamily: 'DM Sans', fontSize: 12 }}>
           Cargando recomendaciones…
         </div>
       ) : recs.length === 0 ? (
-        <div data-testid="lead-no-recs" style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div data-testid="lead-no-recs" style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>
           No se detectaron issues en el funnel de leads.
         </div>
       ) : (
@@ -327,8 +327,8 @@ function LeadRecCard({ rec, busy, onApply, onReject }) {
       data-testid={`lead-rec-${rec.id}`}
       style={{
         padding: '10px 12px', borderRadius: 10,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px solid rgba(var(--cream-rgb),0.07)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
@@ -350,8 +350,8 @@ function LeadRecCard({ rec, busy, onApply, onReject }) {
         <div style={{ textAlign: 'right', minWidth: 80 }}>
           {rec.expected_lift_pct != null && (
             <>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.40)', marginBottom: 1 }}>lift esp.</div>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#4ADE80', fontWeight: 700 }}>+{rec.expected_lift_pct}%</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.40)', marginBottom: 1 }}>lift esp.</div>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>+{rec.expected_lift_pct}%</div>
             </>
           )}
           <div style={{ marginTop: 2 }}>
@@ -364,14 +364,14 @@ function LeadRecCard({ rec, busy, onApply, onReject }) {
       {rec.suggested_action_text && (
         <div style={{ marginTop: 7 }}>
           <div
-            style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             onClick={() => setExpanded(e => !e)}
           >
             <span style={{ fontSize: 10 }}>{expanded ? '▲' : '▼'}</span>
             Acción sugerida
           </div>
           {expanded && (
-            <div data-testid={`lead-rec-action-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
+            <div data-testid={`lead-rec-action-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.70)', lineHeight: 1.55 }}>
               {rec.suggested_action_text}
             </div>
           )}
@@ -388,7 +388,7 @@ function LeadRecCard({ rec, busy, onApply, onReject }) {
             style={{
               padding: '5px 13px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 700,
               background: busy === 'apply' ? 'rgba(74,222,128,0.20)' : 'rgba(74,222,128,0.12)',
-              border: '1px solid rgba(74,222,128,0.35)', color: '#4ADE80', cursor: busy ? 'not-allowed' : 'pointer',
+              border: '1px solid rgba(74,222,128,0.35)', color: 'var(--green)', cursor: busy ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
           >
@@ -402,7 +402,7 @@ function LeadRecCard({ rec, busy, onApply, onReject }) {
             style={{
               padding: '5px 13px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 700,
               background: busy === 'reject' ? 'rgba(248,113,113,0.20)' : 'rgba(248,113,113,0.08)',
-              border: '1px solid rgba(248,113,113,0.25)', color: '#F87171', cursor: busy ? 'not-allowed' : 'pointer',
+              border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)', cursor: busy ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
           >

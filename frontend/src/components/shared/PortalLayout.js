@@ -35,6 +35,7 @@ import CommandPaletteExtended from '../superadmin/CommandPaletteExtended';
 import { FounderPrefetchProvider } from '../../contexts/FounderPrefetchContext';
 import { disputes_pending_count as fetchDisputesPendingCount } from '../../api/badges';
 import AsesorSidebarV2 from '../asesor/AsesorSidebarV2';
+import DevSidebarV2 from '../developer/DevSidebarV2';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -42,6 +43,9 @@ const API = process.env.REACT_APP_BACKEND_URL;
 // asesor + flag → AsesorSidebarV2 · cualquier otro rol → nav default (V1).
 const SIDEBAR_V2 = process.env.REACT_APP_SIDEBAR_V2 === 'true';
 const ASESOR_ROLES = new Set(['advisor', 'asesor_admin', 'asesor_freelance']);
+// B7-dev · sidebar V2 del desarrollador (flag independiente · default OFF).
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+const DEV_ROLES = new Set(['developer_admin', 'developer_member', 'developer']);
 
 // ─── Badge counter cache ───────────────────────────────────────────────────────
 const BADGE_SOURCES = {
@@ -96,7 +100,7 @@ function NavItem({ item, collapsed, badge }) {
         </span>
       )}
       {collapsed && (
-        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(255,255,255,0.16)] text-[var(--frame-primary)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-[24px]">
+        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(var(--cream-rgb),0.16)] text-[var(--frame-primary)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-[24px]">
           {item.label}
         </span>
       )}
@@ -341,11 +345,14 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
   // F1.5 · role-aware tiene prioridad; renderSidebar se mantiene por backward-compat.
   const useAsesorV2 = SIDEBAR_V2 && ASESOR_ROLES.has(role);
+  const useDevV2 = DEV_V2 && DEV_ROLES.has(role);
   const sidebarContent = useAsesorV2
     ? <AsesorSidebarV2 user={user} onLogout={handleLogout} badges={badges} />
-    : (renderSidebar
-        ? renderSidebar({ collapsed, badges, handleLogout, user, role })
-        : defaultSidebarContent);
+    : useDevV2
+      ? <DevSidebarV2 user={user} onLogout={handleLogout} badges={badges} />
+      : (renderSidebar
+          ? renderSidebar({ collapsed, badges, handleLogout, user, role })
+          : defaultSidebarContent);
 
   return (
     <div className={`flex h-screen bg-[var(--frame-bg)] overflow-hidden${ASESOR_ROLES.has(role) ? ' frame-light' : ''}`} data-testid="portal-layout">
@@ -369,7 +376,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
       {/* Desktop sidebar */}
       <aside
-        className={`sidebar-portal hidden md:flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
+        className={`sidebar-portal hidden md:flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || useDevV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
         data-testid="portal-sidebar"
         aria-label="Barra lateral de navegación"
       >
@@ -455,7 +462,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
                 : <User size={14} />}
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] py-1 z-50">
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px] py-1 z-50">
                 <div className="px-3 py-2 border-b border-[rgba(var(--frame-fg),0.08)]">
                   <p className="text-[var(--frame-primary)] text-xs font-medium truncate">{user?.name}</p>
                   <p className="text-[rgba(var(--frame-fg),0.4)] text-[10px] truncate">{user?.email}</p>
@@ -500,7 +507,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
             página de rol asesor, venga de AdvisorLayout o de PortalLayout directo
             (Studio, social-ads, workflows…). Mismo patrón que `frame-light` del chrome.
             El color vive en UN solo lugar: asesor-aurora.css. */}
-        <main className={`flex-1 overflow-y-auto${isAsesor ? ' portal-asesor' : ''}`} data-testid="portal-main" id="main-content" tabIndex="-1">
+        <main className={`flex-1 overflow-y-auto${(isAsesor || useDevV2) ? ' portal-asesor' : ''}`} data-testid="portal-main" id="main-content" tabIndex="-1">
           {children}
         </main>
       </div>

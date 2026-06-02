@@ -31,23 +31,23 @@ function FileThumb({ file, onRemove }) {
 
   return (
     <div
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.09)]"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.09)]"
       data-testid="file-thumb"
     >
       {isImg && preview ? (
         <img src={preview} alt={file.name} className="w-9 h-9 rounded-md object-cover shrink-0" />
       ) : (
-        <div className="w-9 h-9 rounded-md bg-[rgba(240,235,224,0.08)] flex items-center justify-center shrink-0">
-          <FileText size={15} className="text-[rgba(240,235,224,0.4)]" />
+        <div className="w-9 h-9 rounded-md bg-[rgba(var(--cream-rgb),0.08)] flex items-center justify-center shrink-0">
+          <FileText size={15} className="text-[rgba(var(--cream-rgb),0.4)]" />
         </div>
       )}
       <div className="flex-1 min-w-0">
         <p className="text-[var(--cream)] text-xs font-medium truncate">{file.name}</p>
-        <p className="text-[rgba(240,235,224,0.35)] text-[10px]">{fmtBytes(file.size)}</p>
+        <p className="text-[rgba(var(--cream-rgb),0.35)] text-[10px]">{fmtBytes(file.size)}</p>
       </div>
       <button
         onClick={() => onRemove(file)}
-        className="shrink-0 text-[rgba(240,235,224,0.3)] hover:text-red-400 transition-colors"
+        className="shrink-0 text-[rgba(var(--cream-rgb),0.3)] hover:text-red-400 transition-colors"
         data-testid="file-thumb-remove"
       >
         <X size={13} />
@@ -112,17 +112,17 @@ export function DragDropZone({
         className={`relative flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed cursor-pointer
           transition-all duration-200 select-none
           ${dragging
-            ? 'border-[var(--cream)] bg-[rgba(240,235,224,0.09)] scale-[1.01]'
-            : 'border-[rgba(240,235,224,0.16)] bg-[rgba(240,235,224,0.03)] hover:border-[rgba(240,235,224,0.32)] hover:bg-[rgba(240,235,224,0.05)]'}`}
+            ? 'border-[var(--cream)] bg-[rgba(var(--cream-rgb),0.09)] scale-[1.01]'
+            : 'border-[rgba(var(--cream-rgb),0.16)] bg-[rgba(var(--cream-rgb),0.03)] hover:border-[rgba(var(--cream-rgb),0.32)] hover:bg-[rgba(var(--cream-rgb),0.05)]'}`}
         data-testid="drop-area"
       >
         <UploadCloud
           size={28}
-          className={`transition-all duration-200 ${dragging ? 'text-[var(--cream)] scale-110' : 'text-[rgba(240,235,224,0.3)]'}`}
+          className={`transition-all duration-200 ${dragging ? 'text-[var(--cream)] scale-110' : 'text-[rgba(var(--cream-rgb),0.3)]'}`}
         />
         <div className="text-center pointer-events-none">
-          <p className="text-[rgba(240,235,224,0.65)] text-sm">{label}</p>
-          <p className="text-[rgba(240,235,224,0.3)] text-xs mt-1">
+          <p className="text-[rgba(var(--cream-rgb),0.65)] text-sm">{label}</p>
+          <p className="text-[rgba(var(--cream-rgb),0.3)] text-xs mt-1">
             {accept ? `${accept} · ` : ''}Máx {maxSizeMB} MB · Hasta {maxFiles} archivos
           </p>
         </div>

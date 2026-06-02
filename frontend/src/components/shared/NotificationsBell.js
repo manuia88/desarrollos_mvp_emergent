@@ -105,13 +105,13 @@ export function NotificationsBell({ user }) {
     <div className="relative" ref={drawerRef}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative w-8 h-8 rounded-full flex items-center justify-center text-[rgba(240,235,224,0.6)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.08)] transition-colors"
+        className="relative w-8 h-8 rounded-full flex items-center justify-center text-[rgba(var(--cream-rgb),0.6)] hover:text-[var(--cream)] hover:bg-[rgba(var(--cream-rgb),0.08)] transition-colors"
         data-testid="notifications-bell-btn"
       >
         <Bell size={16} />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[var(--cream)] text-[var(--navy)] text-[9px] font-bold flex items-center justify-center"
+            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[var(--theme)] text-white text-[9px] font-bold flex items-center justify-center"
             data-testid="notifications-unread-count"
           >
             {unread > 99 ? '99+' : unread}
@@ -121,24 +121,24 @@ export function NotificationsBell({ user }) {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 max-h-[480px] rounded-2xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] flex flex-col z-50 overflow-hidden"
+          className="absolute right-0 top-full mt-2 w-80 max-h-[480px] rounded-2xl bg-[rgba(var(--bg-rgb),0.92)] border border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px] flex flex-col z-50 overflow-hidden"
           data-testid="notifications-drawer"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(240,235,224,0.08)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(var(--cream-rgb),0.08)]">
             <span className="text-[var(--cream)] font-semibold text-sm">Notificaciones</span>
             <div className="flex items-center gap-2">
               {unread > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="text-[rgba(240,235,224,0.5)] hover:text-[var(--cream)] text-xs flex items-center gap-1 transition-colors"
+                  className="text-[rgba(var(--cream-rgb),0.5)] hover:text-[var(--cream)] text-xs flex items-center gap-1 transition-colors"
                   data-testid="mark-all-read-btn"
                 >
                   <CheckCheck size={12} />
                   Leer todo
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)]">
+              <button onClick={() => setOpen(false)} className="text-[rgba(var(--cream-rgb),0.4)] hover:text-[var(--cream)]">
                 <X size={14} />
               </button>
             </div>
@@ -147,7 +147,7 @@ export function NotificationsBell({ user }) {
           {/* Body */}
           <div className="flex-1 overflow-y-auto">
             {notifs.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-[rgba(240,235,224,0.3)]">
+              <div className="flex flex-col items-center justify-center py-12 text-[rgba(var(--cream-rgb),0.3)]">
                 <Bell size={28} className="mb-2 opacity-30" />
                 <p className="text-sm">Sin notificaciones</p>
               </div>
@@ -157,7 +157,7 @@ export function NotificationsBell({ user }) {
               if (!items.length) return null;
               return (
                 <div key={gk}>
-                  <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[rgba(240,235,224,0.3)] bg-[rgba(240,235,224,0.03)] border-b border-[rgba(240,235,224,0.04)]">
+                  <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[rgba(var(--cream-rgb),0.3)] bg-[rgba(var(--cream-rgb),0.03)] border-b border-[rgba(var(--cream-rgb),0.04)]">
                     {GROUP_LABELS[gk]}
                   </div>
                   {items.map(n => {
@@ -166,18 +166,18 @@ export function NotificationsBell({ user }) {
                       <button
                         key={n.notification_id || n._id}
                         onClick={() => handleClick(n)}
-                        className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-[rgba(240,235,224,0.05)] transition-colors text-left border-b border-[rgba(240,235,224,0.04)] last:border-0
-                          ${!n.read ? 'bg-[rgba(240,235,224,0.04)]' : ''}`}
+                        className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-[rgba(var(--cream-rgb),0.05)] transition-colors text-left border-b border-[rgba(var(--cream-rgb),0.04)] last:border-0
+                          ${!n.read ? 'bg-[rgba(var(--cream-rgb),0.04)]' : ''}`}
                         data-testid={`notification-${n.notification_id}`}
                       >
-                        <Icon size={15} className={`shrink-0 mt-0.5 ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.35)]'}`} />
+                        <Icon size={15} className={`shrink-0 mt-0.5 ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.35)]'}`} />
                         <div className="min-w-0 flex-1">
-                          <p className={`text-xs leading-snug ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.55)]'}`}>
+                          <p className={`text-xs leading-snug ${!n.read ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.55)]'}`}>
                             {n.message || n.text || 'Notificación'}
                           </p>
                           <div className="flex items-center gap-1 mt-0.5">
-                            <Clock size={9} className="text-[rgba(240,235,224,0.25)]" />
-                            <span className="text-[10px] text-[rgba(240,235,224,0.25)]">{timeAgo(n.created_at || n.ts)}</span>
+                            <Clock size={9} className="text-[rgba(var(--cream-rgb),0.25)]" />
+                            <span className="text-[10px] text-[rgba(var(--cream-rgb),0.25)]">{timeAgo(n.created_at || n.ts)}</span>
                           </div>
                         </div>
                         {!n.read && (

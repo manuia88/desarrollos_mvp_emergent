@@ -8,7 +8,7 @@ import { InsightsTab } from './DesarrolladorReportes';
 function StatCard({ label, value, icon: Icon, testid }) {
   return (
     <div data-testid={testid} style={{
-      padding: '18px 20px', borderRadius: 14, background: 'rgba(255,255,255,0.04)',
+      padding: '18px 20px', borderRadius: 14, background: 'rgba(var(--cream-rgb),0.04)',
       border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -87,9 +87,9 @@ export default function InmobiliariaDashboard({ user, onLogout }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {data.top_asesores.map((a, i) => (
                     <div key={a.id || a.email} data-testid={`top-asesor-${i}`}
-                      style={{ padding: '13px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                      style={{ padding: '13px 18px', borderRadius: 11, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: '#818CF8' }}>#{i + 1}</span>
+                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--blue)' }}>#{i + 1}</span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>{a.name}</div>
@@ -101,7 +101,7 @@ export default function InmobiliariaDashboard({ user, onLogout }) {
                           <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)' }}>leads</div>
                         </div>
                         <div>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: '#4ADE80' }}>{a.win_rate}%</div>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--green)' }}>{a.win_rate}%</div>
                           <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)' }}>win rate</div>
                         </div>
                       </div>

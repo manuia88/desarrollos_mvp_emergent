@@ -10,12 +10,12 @@ import { Z } from '../../styles/zIndex';
 
 const inputStyle = {
   width: '100%', padding: '8px 11px', borderRadius: 10,
-  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
 };
 
 const SCENARIO_TONE = {
-  conservador: 'rgba(240,235,224,0.06)',
+  conservador: 'rgba(var(--cream-rgb),0.06)',
   base: 'rgba(var(--theme-rgb),0.10)',
   agresivo: 'rgba(var(--theme-rgb),0.10)',
 };
@@ -39,10 +39,10 @@ function AbsorptionLine({ scenario }) {
   }).join(' ');
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
-      <line x1={0} y1={H - 3} x2={W} y2={H - 3} stroke="rgba(240,235,224,0.10)" strokeWidth="1" />
+      <line x1={0} y1={H - 3} x2={W} y2={H - 3} stroke="rgba(var(--cream-rgb),0.10)" strokeWidth="1" />
       <path d={path} fill="none" stroke="var(--theme-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       {series.length > 1 && (
-        <text x={W - 4} y={12} textAnchor="end" fontFamily="DM Sans" fontSize="9" fill="rgba(240,235,224,0.58)">
+        <text x={W - 4} y={12} textAnchor="end" fontFamily="DM Sans" fontSize="9" fill="rgba(var(--cream-rgb),0.58)">
           {series.at(-1).cumulative_pct.toFixed(0)}%
         </text>
       )}
@@ -54,7 +54,7 @@ function ScenarioCard({ scn }) {
   const beHorizon = (scn.breakeven_month || -1) > 0;
   return (
     <Card data-testid={`scn-${scn.label}`} style={{
-      background: SCENARIO_TONE[scn.label] || 'rgba(240,235,224,0.04)',
+      background: SCENARIO_TONE[scn.label] || 'rgba(var(--cream-rgb),0.04)',
       border: `1px solid ${SCENARIO_BORDER[scn.label] || 'var(--border)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -69,11 +69,11 @@ function ScenarioCard({ scn }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-        <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+        <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
           <div className="eyebrow" style={{ fontSize: 9 }}>REVENUE</div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>${fmt0((scn.revenue_projection || 0) / 1_000_000)}M</div>
         </div>
-        <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+        <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
           <div className="eyebrow" style={{ fontSize: 9 }}>BREAKEVEN</div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: beHorizon ? 'var(--cream)' : '#fcd34d' }}>
             {beHorizon ? `Mes ${scn.breakeven_month}` : 'Fuera'}
@@ -147,7 +147,7 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
   return (
     <div data-testid="expansion-modal" style={{
       position: 'fixed', inset: 0, zIndex: Z.DRAWER,
-      background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
+      background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto',
     }}>
       <Card style={{
@@ -174,7 +174,7 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
           }}>
             <AlertTriangle size={14} color="#fcd34d" />
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-              <b style={{ color: '#fcd34d' }}>Estimaciones honestas:</b> basadas en benchmarks de mercado MX por NSE + demand_score (B6) + feasibility (B7). Refinará con tu data histórica de cierres reales.
+              <b style={{ color: 'var(--amber)' }}>Estimaciones honestas:</b> basadas en benchmarks de mercado MX por NSE + demand_score (B6) + feasibility (B7). Refinará con tu data histórica de cierres reales.
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
           }}><Sparkle size={13} /> {running ? 'Calculando…' : 'Ejecutar simulación'}</button>
 
           {err && (
-            <div style={{ padding: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 10, color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12, marginBottom: 14 }}>{err}</div>
+            <div style={{ padding: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 10, color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12, marginBottom: 14 }}>{err}</div>
           )}
 
           {sim && (

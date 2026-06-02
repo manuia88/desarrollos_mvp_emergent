@@ -60,17 +60,17 @@ function ExternalPropertyCard({ property }) {
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
           {property.location?.colonia && (
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)' }}>
               {property.location.colonia}
             </span>
           )}
           {property.m2_total && (
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.45)' }}>
               {property.m2_total} m²
             </span>
           )}
           {property.rooms && (
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.45)' }}>
               {property.rooms} rec.
             </span>
           )}
@@ -116,12 +116,12 @@ function MatchCard({ match }) {
   return (
     <div style={{
       borderRadius: 12, overflow: 'hidden',
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.03)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       transition: 'border-color 0.2s', cursor: 'pointer',
     }}
       onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(240,235,224,0.10)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.10)'}
     >
       <div style={{
         width: '100%', paddingTop: '56%', position: 'relative',
@@ -147,7 +147,7 @@ function MatchCard({ match }) {
         }}>
           {match.nombre || 'Proyecto'}
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.5)', marginBottom: 3 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 3 }}>
           {match.zona}
         </div>
         <div style={{
@@ -204,7 +204,7 @@ export default function UrlSearchModal({ open, onClose }) {
       onClick={handleClose}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.82)',
+        background: 'rgba(var(--bg-rgb),0.82)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
@@ -214,8 +214,8 @@ export default function UrlSearchModal({ open, onClose }) {
         data-testid="url-search-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 20, padding: '24px',
           width: '100%', maxWidth: 660,
           maxHeight: '90vh', overflowY: 'auto',
@@ -232,7 +232,7 @@ export default function UrlSearchModal({ open, onClose }) {
             </div>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 12,
-              color: 'rgba(240,235,224,0.45)', marginTop: 2,
+              color: 'rgba(var(--cream-rgb),0.45)', marginTop: 2,
             }}>
               Pega el enlace de Inmuebles24, Vivanuncios o EasyBroker
             </div>
@@ -242,9 +242,9 @@ export default function UrlSearchModal({ open, onClose }) {
             onClick={handleClose}
             style={{
               width: 30, height: 30, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
-              color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              color: 'rgba(var(--cream-rgb),0.6)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -257,8 +257,8 @@ export default function UrlSearchModal({ open, onClose }) {
           <>
             <div style={{
               display: 'flex', gap: 8, marginBottom: 10,
-              background: 'rgba(255,255,255,0.04)',
-              border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(240,235,224,0.15)'}`,
+              background: 'rgba(var(--cream-rgb),0.04)',
+              border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(var(--cream-rgb),0.15)'}`,
               borderRadius: 12, padding: '4px 4px 4px 14px',
               transition: 'border-color 0.2s',
             }}>
@@ -301,7 +301,7 @@ export default function UrlSearchModal({ open, onClose }) {
                   <>
                     <span style={{
                       width: 13, height: 13, borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                      border: '2px solid rgba(var(--cream-rgb),0.3)', borderTopColor: '#fff',
                       display: 'inline-block', animation: 'spin 0.7s linear infinite',
                     }} />
                     Procesando…
@@ -317,10 +317,10 @@ export default function UrlSearchModal({ open, onClose }) {
               {SUPPORTED.map(s => (
                 <span key={s} style={{
                   padding: '3px 9px', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(240,235,224,0.12)',
+                  background: 'rgba(var(--cream-rgb),0.04)',
+                  border: '1px solid rgba(var(--cream-rgb),0.12)',
                   fontFamily: 'DM Sans', fontSize: 10,
-                  color: 'rgba(240,235,224,0.45)',
+                  color: 'rgba(var(--cream-rgb),0.45)',
                 }}>
                   {s}
                 </span>
@@ -335,7 +335,7 @@ export default function UrlSearchModal({ open, onClose }) {
             padding: '12px 16px', borderRadius: 12, marginBottom: 16,
             background: 'rgba(239,68,68,0.08)',
             border: '1px solid rgba(239,68,68,0.25)',
-            fontFamily: 'DM Sans', fontSize: 13, color: '#FCA5A5',
+            fontFamily: 'DM Sans', fontSize: 13, color: 'var(--red)',
           }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>{error}</div>
             <div style={{ fontSize: 11, color: 'rgba(252,165,165,0.7)' }}>
@@ -351,7 +351,7 @@ export default function UrlSearchModal({ open, onClose }) {
             <div style={{ marginBottom: 20 }}>
               <div style={{
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-                color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase',
+                color: 'rgba(var(--cream-rgb),0.5)', textTransform: 'uppercase',
                 letterSpacing: '0.1em', marginBottom: 10,
               }}>
                 Propiedad encontrada
@@ -363,7 +363,7 @@ export default function UrlSearchModal({ open, onClose }) {
             <div>
               <div style={{
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-                color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase',
+                color: 'rgba(var(--cream-rgb),0.5)', textTransform: 'uppercase',
                 letterSpacing: '0.1em', marginBottom: 10,
               }}>
                 {result.matches?.length > 0
@@ -379,11 +379,11 @@ export default function UrlSearchModal({ open, onClose }) {
               ) : (
                 <div style={{
                   padding: '28px 24px', textAlign: 'center',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px dashed rgba(240,235,224,0.12)',
+                  background: 'rgba(var(--cream-rgb),0.02)',
+                  border: '1px dashed rgba(var(--cream-rgb),0.12)',
                   borderRadius: 14,
                   fontFamily: 'DM Sans', fontSize: 13,
-                  color: 'rgba(240,235,224,0.45)',
+                  color: 'rgba(var(--cream-rgb),0.45)',
                 }}>
                   No encontramos desarrollos similares en este momento
                 </div>
@@ -396,9 +396,9 @@ export default function UrlSearchModal({ open, onClose }) {
               data-testid="url-search-reset"
               style={{
                 marginTop: 20, padding: '8px 16px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(240,235,224,0.15)',
-                color: 'rgba(240,235,224,0.7)',
+                background: 'rgba(var(--cream-rgb),0.06)',
+                border: '1px solid rgba(var(--cream-rgb),0.15)',
+                color: 'rgba(var(--cream-rgb),0.7)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                 cursor: 'pointer',
               }}

@@ -21,15 +21,15 @@ const STATUS_CONFIG = {
     bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.35)',
   },
   approved: {
-    label: 'Aprobado', color: '#4ADE80',
+    label: 'Aprobado', color: 'var(--green)',
     bg: 'rgba(74,222,128,0.10)', bd: 'rgba(74,222,128,0.35)',
   },
   rejected: {
-    label: 'Rechazado', color: '#F87171',
+    label: 'Rechazado', color: 'var(--red)',
     bg: 'rgba(239,68,68,0.08)', bd: 'rgba(239,68,68,0.30)',
   },
   revoked: {
-    label: 'Revocado', color: '#F87171',
+    label: 'Revocado', color: 'var(--red)',
     bg: 'rgba(239,68,68,0.08)', bd: 'rgba(239,68,68,0.30)',
   },
 };
@@ -75,29 +75,29 @@ function RejectModal({ onClose, onConfirm, busy }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(6,8,15,0.80)',
+        background: 'rgba(var(--bg-rgb),0.80)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: Z.DRAWER, padding: 16,
       }}
     >
       <div style={{
-        background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'rgba(var(--bg-rgb),0.97)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         borderRadius: 16, width: '100%', maxWidth: 440, padding: 26,
       }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '0 0 14px' }}>
           Rechazar solicitud
         </h3>
-        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>
+        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>
           Motivo *
         </label>
         <textarea
           data-testid="reject-motivo-input"
           style={{
             width: '100%', padding: '10px 13px', borderRadius: 9,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(var(--cream-rgb),0.06)',
+            border: '1px solid rgba(var(--cream-rgb),0.10)',
             color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
             minHeight: 70, resize: 'vertical', boxSizing: 'border-box', marginBottom: 16,
           }}
@@ -110,7 +110,7 @@ function RejectModal({ onClose, onConfirm, busy }) {
           <button onClick={onClose}
             style={{
               padding: '9px 16px', borderRadius: 9999, background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)',
+              border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'rgba(var(--cream-rgb),0.55)',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer',
             }}>
             Cancelar
@@ -141,29 +141,29 @@ function RevokeModal({ onClose, onConfirm, busy }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(6,8,15,0.80)',
+        background: 'rgba(var(--bg-rgb),0.80)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: Z.DRAWER, padding: 16,
       }}
     >
       <div style={{
-        background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'rgba(var(--bg-rgb),0.97)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         borderRadius: 16, width: '100%', maxWidth: 440, padding: 26,
       }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '0 0 14px' }}>
           Revocar acceso
         </h3>
-        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>
+        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>
           Razon de revocacion *
         </label>
         <textarea
           data-testid="revoke-reason-input"
           style={{
             width: '100%', padding: '10px 13px', borderRadius: 9,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(var(--cream-rgb),0.06)',
+            border: '1px solid rgba(var(--cream-rgb),0.10)',
             color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
             minHeight: 70, resize: 'vertical', boxSizing: 'border-box', marginBottom: 16,
           }}
@@ -176,7 +176,7 @@ function RevokeModal({ onClose, onConfirm, busy }) {
           <button onClick={onClose}
             style={{
               padding: '9px 16px', borderRadius: 9999, background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)',
+              border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'rgba(var(--cream-rgb),0.55)',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer',
             }}>
             Cancelar
@@ -319,7 +319,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
             padding: '11px 18px', borderRadius: 10,
             background: 'rgba(99,102,241,0.18)',
             border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
             backdropFilter: 'blur(24px)',
           }}>
             {toast}
@@ -348,7 +348,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                 </span>
               )}
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.50)', margin: 0 }}>
               Asesores que solicitan acceso a tu inventario exclusivo.
             </p>
           </div>
@@ -384,9 +384,9 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
               style={{
                 padding: '6px 13px', borderRadius: 9999, fontSize: 12,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: filterStatus === s ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                border: filterStatus === s ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(var(--cream-rgb),0.10)',
                 background: filterStatus === s ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: filterStatus === s ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                color: filterStatus === s ? '#818CF8' : 'rgba(var(--cream-rgb),0.50)',
               }}
             >
               {STATUS_FILTER_LABELS[s]}
@@ -399,8 +399,8 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
             padding: '8px 12px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(var(--cream-rgb),0.03)',
+            border: '1px solid rgba(var(--cream-rgb),0.08)',
           }}>
             <input
               data-testid="select-all-checkbox"
@@ -409,22 +409,22 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
               onChange={toggleSelectAll}
               style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
             />
-            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)' }}>
               Seleccionar todas ({items.filter(i => i.status === 'pending').length} pendientes)
             </span>
           </div>
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Cargando solicitudes…
           </div>
         ) : items.length === 0 ? (
           <div data-testid="solicitudes-empty" style={{
             textAlign: 'center', padding: 70,
-            color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans',
+            color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans',
           }}>
-            <Users size={40} color="rgba(240,235,224,0.20)" style={{ marginBottom: 14 }} />
+            <Users size={40} color="rgba(var(--cream-rgb),0.20)" style={{ marginBottom: 14 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 6 }}>
               Sin solicitudes
             </div>
@@ -444,8 +444,8 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                   data-testid={`solicitud-row-${item.auth_id}`}
                   style={{
                     padding: '16px 18px', borderRadius: 12,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isPending ? 'rgba(250,204,21,0.20)' : 'rgba(255,255,255,0.08)'}`,
+                    background: 'rgba(var(--cream-rgb),0.03)',
+                    border: `1px solid ${isPending ? 'rgba(250,204,21,0.20)' : 'rgba(var(--cream-rgb),0.08)'}`,
                     display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap',
                   }}
                 >
@@ -469,10 +469,10 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                       ? `url(${item.asesor_picture}) center/cover no-repeat`
                       : 'linear-gradient(135deg,rgba(99,102,241,0.25),rgba(236,72,153,0.15))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(var(--cream-rgb),0.10)',
                   }}>
                     {!item.asesor_picture && (
-                      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#818CF8' }}>
+                      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--blue)' }}>
                         {(item.asesor_name || 'A').charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -489,21 +489,21 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                       {isPending && (
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
-                          fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)',
+                          fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.40)',
                         }}>
                           <Clock size={10} /> {waitingDays}d esperando
                         </span>
                       )}
                     </div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)', marginBottom: 6 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)', marginBottom: 6 }}>
                       {item.asesor_email}
                     </div>
                     {item.solicitud?.motivo && (
                       <div style={{
                         padding: '7px 10px', borderRadius: 7,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.07)',
-                        fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)',
+                        background: 'rgba(var(--cream-rgb),0.03)',
+                        border: '1px solid rgba(var(--cream-rgb),0.07)',
+                        fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.65)',
                         lineHeight: 1.45, marginBottom: 4,
                       }}>
                         {item.solicitud.motivo}
@@ -511,12 +511,12 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                     )}
                     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                       {item.solicitud?.experiencia_colonia && (
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.40)' }}>
                           Zona: {item.solicitud.experiencia_colonia}
                         </span>
                       )}
                       {item.solicitud?.clientes_interesados_count > 0 && (
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.40)' }}>
                           Clientes interesados: {item.solicitud.clientes_interesados_count}
                         </span>
                       )}
@@ -524,7 +524,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                     {item.comentario_decision && (
                       <div style={{
                         marginTop: 5, fontFamily: 'DM Sans', fontSize: 11.5,
-                        color: 'rgba(240,235,224,0.40)', fontStyle: 'italic',
+                        color: 'rgba(var(--cream-rgb),0.40)', fontStyle: 'italic',
                       }}>
                         Decision: {item.comentario_decision}
                       </div>
@@ -559,7 +559,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                             padding: '7px 12px', borderRadius: 9999,
                             background: 'rgba(239,68,68,0.10)',
                             border: '1px solid rgba(239,68,68,0.30)',
-                            color: '#F87171',
+                            color: 'var(--red)',
                             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                             cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: 5,
@@ -577,7 +577,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
                           padding: '7px 12px', borderRadius: 9999,
                           background: 'rgba(239,68,68,0.08)',
                           border: '1px solid rgba(239,68,68,0.25)',
-                          color: '#F87171',
+                          color: 'var(--red)',
                           fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                           cursor: 'pointer',
                           display: 'flex', alignItems: 'center', gap: 5,

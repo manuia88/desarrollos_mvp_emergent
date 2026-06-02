@@ -134,13 +134,13 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
             border: '1px solid rgba(34,197,94,0.24)',
             borderRadius: 10,
           }}>
-            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: '#86efac' }}>
+            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--green)' }}>
               {t('marketplace_v2.ai_understood')}
             </span>
             {Object.entries(aiFilters).map(([k, v]) => (
               <span key={k} style={{
                 padding: '2px 10px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)',
+                background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)',
                 fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)',
               }}>
                 <span style={{ color: 'var(--cream-3)' }}>{k}:</span>{' '}
@@ -318,7 +318,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
           onClick={() => setMoreOpen(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-            background: 'rgba(6,8,15,0.78)',
+            background: 'rgba(var(--bg-rgb),0.78)',
             backdropFilter: 'blur(12px)',
             display: 'flex', justifyContent: 'flex-end',
           }}>

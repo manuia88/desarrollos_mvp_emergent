@@ -41,10 +41,10 @@ const MAX_BG_BYTES = 500 * 1024;
 // ─── Status color config ────────────────────────────────────────────────────
 const STATUS_CFG = {
   disponible: { label: 'Disponible', color: '#22c55e', bg: 'rgba(34,197,94,0.22)', border: '#22c55e' },
-  apartado:   { label: 'Apartado',   color: '#f59e0b', bg: 'rgba(245,158,11,0.22)', border: '#f59e0b' },
+  apartado:   { label: 'Apartado',   color: 'var(--amber)', bg: 'rgba(245,158,11,0.22)', border: '#f59e0b' },
   reservado:  { label: 'Reservado',  color: '#60a5fa', bg: 'rgba(96,165,250,0.22)', border: '#60a5fa' },
-  vendido:    { label: 'Vendido',    color: '#ef4444', bg: 'rgba(239,68,68,0.22)',  border: '#ef4444' },
-  bloqueado:  { label: 'Bloqueado',  color: 'rgba(240,235,224,0.3)', bg: 'rgba(240,235,224,0.07)', border: 'rgba(240,235,224,0.2)' },
+  vendido:    { label: 'Vendido',    color: 'var(--red)', bg: 'rgba(239,68,68,0.22)',  border: '#ef4444' },
+  bloqueado:  { label: 'Bloqueado',  color: 'rgba(var(--cream-rgb),0.3)', bg: 'rgba(var(--cream-rgb),0.07)', border: 'rgba(var(--cream-rgb),0.2)' },
 };
 
 const fmtM = (v) => v == null ? null : `$${(v / 1_000_000).toFixed(1)}M`;
@@ -165,8 +165,8 @@ function Tooltip({ data }) {
         position: 'fixed',
         left: data.clientX + 14,
         top: data.clientY - 12,
-        background: 'rgba(6,8,15,0.96)',
-        border: '1px solid rgba(240,235,224,0.18)',
+        background: 'rgba(var(--bg-rgb),0.96)',
+        border: '1px solid rgba(var(--cream-rgb),0.18)',
         borderRadius: 10, padding: '10px 14px',
         zIndex: Z.MODAL_CRITICAL, pointerEvents: 'none',
         backdropFilter: 'blur(12px)',
@@ -546,8 +546,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             value={selectedFloor ?? ''}
             onChange={e => setSelectedFloor(Number(e.target.value))}
             style={{
-              background: 'rgba(240,235,224,0.08)', color: 'var(--cream)',
-              border: '1px solid rgba(240,235,224,0.16)', borderRadius: 8,
+              background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
+              border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
               padding: '6px 10px', fontSize: 13, fontFamily: 'DM Sans,sans-serif',
             }}
           >
@@ -558,7 +558,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             ))}
           </select>
         ) : (
-          <div style={{ display: 'flex', gap: 0, border: '1px solid rgba(240,235,224,0.12)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: 0, border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 8, overflow: 'hidden' }}>
             {floors.map(f => (
               <button
                 key={f.floor_number}
@@ -569,7 +569,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
                   background: selectedFloor === f.floor_number ? 'rgba(var(--theme-rgb),0.2)' : 'transparent',
                   color: selectedFloor === f.floor_number ? 'var(--theme)' : 'var(--cream-3)',
                   border: 'none',
-                  borderRight: '1px solid rgba(240,235,224,0.08)',
+                  borderRight: '1px solid rgba(var(--cream-rgb),0.08)',
                   fontSize: 11.5, fontWeight: selectedFloor === f.floor_number ? 700 : 400,
                   cursor: 'pointer', fontFamily: 'DM Sans,sans-serif',
                   transition: 'all 0.12s',
@@ -604,8 +604,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             style={{
               marginLeft: 'auto',
               display: 'flex', alignItems: 'center', gap: 5,
-              background: editMode ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(240,235,224,0.06)',
-              border: `1px solid ${editMode ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(240,235,224,0.14)'}`,
+              background: editMode ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(var(--cream-rgb),0.06)',
+              border: `1px solid ${editMode ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(var(--cream-rgb),0.14)'}`,
               color: editMode ? 'var(--theme)' : 'var(--cream-3)',
               borderRadius: 8, padding: '5px 12px', fontSize: 11.5, cursor: 'pointer',
               fontFamily: 'DM Sans,sans-serif',
@@ -645,8 +645,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
           type="number" placeholder="Mín $"
           value={priceMin} onChange={e => setPriceMin(e.target.value)}
           style={{
-            width: 90, background: 'rgba(240,235,224,0.06)',
-            border: '1px solid rgba(240,235,224,0.14)', borderRadius: 6,
+            width: 90, background: 'rgba(var(--cream-rgb),0.06)',
+            border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 6,
             padding: '4px 8px', color: 'var(--cream)', fontSize: 11, outline: 'none',
           }}
         />
@@ -656,8 +656,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
           type="number" placeholder="Máx $"
           value={priceMax} onChange={e => setPriceMax(e.target.value)}
           style={{
-            width: 90, background: 'rgba(240,235,224,0.06)',
-            border: '1px solid rgba(240,235,224,0.14)', borderRadius: 6,
+            width: 90, background: 'rgba(var(--cream-rgb),0.06)',
+            border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 6,
             padding: '4px 8px', color: 'var(--cream)', fontSize: 11, outline: 'none',
           }}
         />
@@ -685,8 +685,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             style={{
               marginLeft: 'auto',
               display: 'flex', alignItems: 'center', gap: 5,
-              background: 'rgba(240,235,224,0.08)',
-              border: '1px solid rgba(240,235,224,0.18)',
+              background: 'rgba(var(--cream-rgb),0.08)',
+              border: '1px solid rgba(var(--cream-rgb),0.18)',
               color: 'var(--cream-2)', borderRadius: 7,
               padding: '4px 10px', fontSize: 11, cursor: 'pointer',
             }}
@@ -711,11 +711,11 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
       )}
 
       {/* ── SVG Canvas ────────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(240,235,224,0.1)' }}>
+      <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         {loading && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(6,8,15,0.7)', zIndex: Z.DROPDOWN, borderRadius: 12,
+            background: 'rgba(var(--bg-rgb),0.7)', zIndex: Z.DROPDOWN, borderRadius: 12,
           }}>
             <span style={{ color: 'var(--cream-3)', fontSize: 13 }}>Cargando piso {selectedFloor}…</span>
           </div>
@@ -739,7 +739,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             style={{
               width: '100%',
               aspectRatio: '1000 / 800',
-              background: 'rgba(6,8,15,0.85)',
+              background: 'rgba(var(--bg-rgb),0.85)',
               cursor: editMode ? 'default' : (panDrag ? 'grabbing' : 'grab'),
               display: 'block',
               userSelect: 'none',
@@ -769,7 +769,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
               x={12} y={22}
               fontSize={14} fontWeight={700}
               fontFamily="Outfit,sans-serif"
-              fill="rgba(240,235,224,0.3)"
+              fill="rgba(var(--cream-rgb),0.3)"
               style={{ userSelect: 'none', pointerEvents: 'none' }}
             >
               PISO {selectedFloor}
@@ -778,11 +778,11 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             {/* Grid lines (light) */}
             {Array.from({ length: 11 }).map((_, i) => (
               <line key={`v${i}`} x1={i * 100} y1={0} x2={i * 100} y2={800}
-                stroke="rgba(240,235,224,0.03)" strokeWidth={1} />
+                stroke="rgba(var(--cream-rgb),0.03)" strokeWidth={1} />
             ))}
             {Array.from({ length: 9 }).map((_, i) => (
               <line key={`h${i}`} x1={0} y1={i * 100} x2={1000} y2={i * 100}
-                stroke="rgba(240,235,224,0.03)" strokeWidth={1} />
+                stroke="rgba(var(--cream-rgb),0.03)" strokeWidth={1} />
             ))}
 
             {/* Units */}
@@ -825,8 +825,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
               title={tip}
               style={{
                 width: 30, height: 30, borderRadius: 7,
-                background: 'rgba(6,8,15,0.88)',
-                border: '1px solid rgba(240,235,224,0.16)',
+                background: 'rgba(var(--bg-rgb),0.88)',
+                border: '1px solid rgba(var(--cream-rgb),0.16)',
                 color: 'var(--cream-2)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 backdropFilter: 'blur(4px)',
@@ -840,9 +840,9 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
         {/* Zoom level indicator */}
         <div style={{
           position: 'absolute', bottom: 12, left: 12,
-          fontSize: 10, color: 'rgba(240,235,224,0.3)',
+          fontSize: 10, color: 'rgba(var(--cream-rgb),0.3)',
           fontFamily: 'DM Mono,monospace',
-          background: 'rgba(6,8,15,0.7)', padding: '3px 7px', borderRadius: 5,
+          background: 'rgba(var(--bg-rgb),0.7)', padding: '3px 7px', borderRadius: 5,
         }}>
           {Math.round(zoom * 100)}%
         </div>
@@ -879,7 +879,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: Z.TOAST,
               background: '#0b0e18',
-              borderTop: '1px solid rgba(240,235,224,0.15)',
+              borderTop: '1px solid rgba(var(--cream-rgb),0.15)',
               borderRadius: '14px 14px 0 0',
               maxHeight: '85vh', overflowY: 'auto',
               boxShadow: '0 -16px 48px rgba(0,0,0,0.6)',
@@ -887,7 +887,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
           >
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '14px 18px', borderBottom: '1px solid rgba(240,235,224,0.08)',
+              padding: '14px 18px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
             }}>
               <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>
                 Unidad {selectedUnit.unit_number}

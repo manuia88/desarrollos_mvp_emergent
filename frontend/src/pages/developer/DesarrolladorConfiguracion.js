@@ -134,7 +134,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 18, lineHeight: 1.5 }}>
               Configura el endpoint y API key de cada partner. El webhook receiver ya está activo en{' '}
-              <code style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', padding: '2px 6px', borderRadius: 4 }}>/api/dev/erp-webhooks/:provider/event</code>.
+              <code style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--blue)', background: 'rgba(99,102,241,0.1)', padding: '2px 6px', borderRadius: 4 }}>/api/dev/erp-webhooks/:provider/event</code>.
               Las integraciones reales requieren acuerdo con cada partner.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -179,7 +179,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
                       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Últimos eventos</div>
                         {evts.slice(0, 3).map((ev, i) => (
-                          <div key={i} style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)', background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '5px 10px', marginBottom: 4 }}>
+                          <div key={i} style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)', background: 'rgba(var(--cream-rgb),0.03)', borderRadius: 6, padding: '5px 10px', marginBottom: 4 }}>
                             {ev.ts} · {JSON.stringify(ev.payload).slice(0, 80)}...
                           </div>
                         ))}
@@ -195,7 +195,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
 
       {/* ERP Config modal */}
       {activeProvider && (
-        <div onClick={() => setActiveProvider(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setActiveProvider(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="erp-config-modal" style={{ width: '100%', maxWidth: 460, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', marginBottom: 20 }}>
               Configurar {ERP_PROVIDERS.find(p => p.id === activeProvider)?.label}
@@ -209,13 +209,13 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
                 <input type={type} placeholder={placeholder} value={providerForm[key]}
                   onChange={e => setProviderForm(f => ({ ...f, [key]: e.target.value }))}
                   data-testid={`erp-input-${key}`}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               </div>
             ))}
             <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 18 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <AlertTriangle size={13} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fcd34d', lineHeight: 1.5 }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--amber)', lineHeight: 1.5 }}>
                   Integración stub — el webhook receiver registra eventos pero no activa sincronización bidireccional sin acuerdo partner activado.
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
 
 function ToggleRow({ label, desc, value, onChange, disabled, testId }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid rgba(var(--cream-rgb),0.05)' }}>
       <div>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream)' }}>{label}</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-4)', marginTop: 2 }}>{desc}</div>
@@ -249,8 +249,8 @@ function ToggleRow({ label, desc, value, onChange, disabled, testId }) {
         data-testid={testId}
         style={{
           width: 46, height: 26, borderRadius: 9999,
-          background: value ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)',
-          border: `1px solid ${value ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.15)'}`,
+          background: value ? 'rgba(34,197,94,0.25)' : 'rgba(var(--cream-rgb),0.08)',
+          border: `1px solid ${value ? 'rgba(34,197,94,0.5)' : 'rgba(var(--cream-rgb),0.15)'}`,
           position: 'relative', cursor: disabled ? 'default' : 'pointer', flexShrink: 0,
           transition: 'background 0.2s, border-color 0.2s',
         }}
@@ -258,7 +258,7 @@ function ToggleRow({ label, desc, value, onChange, disabled, testId }) {
         <div style={{
           position: 'absolute', top: 3, left: value ? 22 : 4,
           width: 18, height: 18, borderRadius: '50%',
-          background: value ? '#22c55e' : 'rgba(255,255,255,0.4)',
+          background: value ? '#22c55e' : 'rgba(var(--cream-rgb),0.4)',
           transition: 'left 0.18s, background 0.18s',
           boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
         }} />

@@ -210,7 +210,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
                         marginBottom: 10 }}>
             <BarChart size={20} color="#a5b4fc" />
           </div>
-          <div className="eyebrow" style={{ marginBottom: 6, color: '#a5b4fc' }}>4.24 · CASH FLOW FORECAST IA</div>
+          <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--blue)' }}>4.24 · CASH FLOW FORECAST IA</div>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '4px 0 8px', letterSpacing: '-0.02em' }}>
             Flujo de caja proyectado · 18 meses · 3 escenarios
           </h3>

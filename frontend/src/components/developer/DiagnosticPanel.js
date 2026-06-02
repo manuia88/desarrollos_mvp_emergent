@@ -57,9 +57,9 @@ export default function DiagnosticPanel({ devId, devName }) {
       data-testid="diagnostic-panel"
       style={{
         borderRadius: 16,
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         backdropFilter: 'blur(24px)',
-        background: 'rgba(13,16,23,0.92)',
+        background: 'rgba(var(--bg-rgb),0.92)',
         padding: 24,
         marginBottom: 16,
       }}
@@ -100,13 +100,13 @@ export default function DiagnosticPanel({ devId, devName }) {
             style={{
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
               padding: '8px 18px', borderRadius: 9999,
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: reanalyzing ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              background: reanalyzing ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(var(--cream-rgb),0.05)',
               color: 'var(--cream-2)', cursor: reanalyzing ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
             }}
             onMouseEnter={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.18)'; }}
-            onMouseLeave={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.05)'; }}
           >
             {reanalyzing ? 'Analizando…' : 'Re-analizar'}
           </button>
@@ -121,7 +121,7 @@ export default function DiagnosticPanel({ devId, devName }) {
       )}
 
       {state === 'error' && (
-        <div style={{ padding: '24px 0', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 13 }}>
+        <div style={{ padding: '24px 0', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 13 }}>
           No se pudo cargar el diagnóstico. Detalle: {errDetail}
         </div>
       )}
@@ -140,8 +140,8 @@ export default function DiagnosticPanel({ devId, devName }) {
             data-testid="comparable-alerts-section"
             style={{
               borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(var(--cream-rgb),0.08)',
+              background: 'rgba(var(--cream-rgb),0.03)',
               padding: '14px 16px',
               marginBottom: 4,
             }}
@@ -222,7 +222,7 @@ export default function DiagnosticPanel({ devId, devName }) {
                   {f.confidence === 'low' && (
                     <span style={{
                       fontFamily: 'DM Sans', fontSize: 10, padding: '2px 8px', borderRadius: 9999,
-                      background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)',
+                      background: 'rgba(var(--cream-rgb),0.08)', border: '1px solid rgba(var(--cream-rgb),0.14)',
                       color: 'var(--cream-3)',
                     }}>
                       Data parcial

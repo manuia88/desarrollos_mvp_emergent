@@ -29,7 +29,7 @@ export default function AmenitiesTab({ dev }) {
       {list.map(a => (
         <div key={a} style={{
           padding: 22,
-          background: 'rgba(255,255,255,0.03)',
+          background: 'rgba(var(--cream-rgb),0.03)',
           border: '1px solid var(--border)',
           borderRadius: 14,
           display: 'flex', flexDirection: 'column', gap: 10,

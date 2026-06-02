@@ -73,6 +73,9 @@ export const patchPricingExperiment = (id, body) => j(`/api/dev/pricing-experime
   method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
 });
 export const pricingResults = (id) => j(`/api/dev/pricing-experiments/${id}/results`);
+// Lado VISITANTE (público) — cierra el loop del A/B: descubre experimento activo + asigna + rastrea
+export const resolvePricingExperiment = (body) => post('/api/dev/pricing-experiments/resolve', body);
+export const trackPricingEvent = (id, body) => post(`/api/dev/pricing-experiments/${id}/track-event`, body);
 
 export const listReportTemplates = () => j('/api/dev/reports/templates');
 export const createReportTemplate = (body) => post('/api/dev/reports/templates', body);

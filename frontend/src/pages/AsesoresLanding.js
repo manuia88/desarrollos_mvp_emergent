@@ -8,7 +8,7 @@ import { useAuth } from '../App';
 const PILLARS = [
   {
     Icon: Database,
-    t: 'CRM Pulppo+ incluido',
+    t: 'CRM incluido',
     d: 'Contactos, búsquedas, captaciones, operaciones y comisiones en una sola pantalla. Sin Excel, sin WhatsApp perdido.',
   },
   {

@@ -1,0 +1,146 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary "Barra lateral de navegación" [ref=e5]:
+      - link "Ir a Inicio" [ref=e6] [cursor=pointer]:
+        - /url: /asesor
+        - generic [ref=e7]: DMX
+        - generic [ref=e8]: Asesor
+      - generic [ref=e10]:
+        - img [ref=e11]
+        - textbox "Buscar función…" [ref=e14]
+      - navigation "Navegación asesor" [ref=e15]:
+        - button "Inicio" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e21]: Inicio
+        - button "Mis Leads" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e29]: Mis Leads
+          - img [ref=e31]
+        - button "Agenda" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: Agenda
+          - img [ref=e39]
+        - button "Inventario" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - generic [ref=e47]: Inventario
+          - img [ref=e49]
+        - button "Conversaciones IA" [ref=e52] [cursor=pointer]:
+          - img [ref=e53]
+          - generic [ref=e55]: Conversaciones IA
+          - img [ref=e57]
+        - button "Automatizaciones" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e65]: Automatizaciones
+          - img [ref=e67]
+        - button "Studio Marketing" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e73]: Studio Marketing
+          - img [ref=e75]
+        - button "Anuncios Meta" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+          - generic [ref=e82]: Anuncios Meta
+          - img [ref=e84]
+        - button "Mi Performance" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+          - generic [ref=e90]: Mi Performance
+          - img [ref=e92]
+      - button "A Asesor Demo asesor@local.dmx.io" [ref=e95] [cursor=pointer]:
+        - generic [ref=e96]: A
+        - generic [ref=e97]:
+          - generic [ref=e98]: Asesor Demo
+          - generic [ref=e99]: asesor@local.dmx.io
+        - img [ref=e101]
+    - generic [ref=e103]:
+      - banner [ref=e104]:
+        - button "Buscar… ⌘K" [ref=e105] [cursor=pointer]:
+          - img [ref=e106]
+          - generic [ref=e109]: Buscar…
+          - generic [ref=e110]: ⌘K
+        - button [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+        - button "Menú de usuario" [ref=e117] [cursor=pointer]:
+          - img [ref=e118]
+      - main [ref=e121]:
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - heading "Leads" [level=1] [ref=e126]
+              - paragraph [ref=e127]: Tu embudo de prospectos · ordenado por quién está más listo.
+            - generic [ref=e128]:
+              - button "Ver con datos de ejemplo" [ref=e129] [cursor=pointer]: Ver con datos de ejemplo
+              - generic [ref=e131]:
+                - combobox [ref=e133]:
+                  - option "Ordenar · score" [selected]
+                  - option "Ordenar · fecha"
+                - tablist "Cambiar vista" [ref=e135]:
+                  - tab "Pipeline" [selected] [ref=e136] [cursor=pointer]:
+                    - img [ref=e137]
+                    - text: Pipeline
+                  - tab "Lista" [ref=e142] [cursor=pointer]:
+                    - img [ref=e143]
+                    - text: Lista
+                - button "Nuevo lead" [ref=e144] [cursor=pointer]:
+                  - img [ref=e145]
+                  - text: Nuevo lead
+          - button "Todos" [ref=e147] [cursor=pointer]
+          - generic [ref=e148]:
+            - generic [ref=e149]: Tu embudo de leads
+            - generic [ref=e150]: arrastra conforme avanzan
+          - generic [ref=e152]: Cargando…
+        - button "Abrir Plan venta IA" [ref=e153] [cursor=pointer]: AI
+    - button "Reportar problema" [ref=e154] [cursor=pointer]:
+      - img [ref=e155]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e157] [cursor=pointer]:
+      - img [ref=e158]
+    - complementary [ref=e161]:
+      - generic [ref=e162]:
+        - generic [ref=e163]:
+          - img [ref=e165]
+          - generic [ref=e168]:
+            - generic [ref=e169]: Copilot DMX
+            - generic [ref=e170]: Claude Sonnet · contexto privado
+        - generic [ref=e171]:
+          - button [ref=e172] [cursor=pointer]:
+            - img [ref=e173]
+            - text: "0"
+          - button [ref=e175] [cursor=pointer]:
+            - img [ref=e176]
+            - text: Nueva
+          - button [ref=e177] [cursor=pointer]:
+            - img [ref=e178]
+      - generic [ref=e181]:
+        - button [ref=e182] [cursor=pointer]: Mi pipeline esta semana
+        - button [ref=e183] [cursor=pointer]: ¿A quién debo llamar primero?
+        - button [ref=e184] [cursor=pointer]: Mejor proyecto para mis leads top
+        - button [ref=e185] [cursor=pointer]: Leads que puedo cerrar esta semana
+        - button [ref=e186] [cursor=pointer]: Mis links con mejor desempeño
+        - button [ref=e187] [cursor=pointer]: Cómo subir mi health score
+      - generic [ref=e189]:
+        - img [ref=e191]
+        - generic [ref=e194]:
+          - generic [ref=e195]: Pregúntame lo que necesites
+          - generic [ref=e196]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e197]:
+          - button [ref=e198] [cursor=pointer]:
+            - generic [ref=e199]: Mi pipeline esta semana
+            - img [ref=e200]
+          - button [ref=e202] [cursor=pointer]:
+            - generic [ref=e203]: ¿A quién debo llamar primero?
+            - img [ref=e204]
+          - button [ref=e206] [cursor=pointer]:
+            - generic [ref=e207]: Mejor proyecto para mis leads top
+            - img [ref=e208]
+          - button [ref=e210] [cursor=pointer]:
+            - generic [ref=e211]: Leads que puedo cerrar esta semana
+            - img [ref=e212]
+      - generic [ref=e214]:
+        - generic [ref=e215]:
+          - textbox [ref=e216]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e217]:
+            - img [ref=e218]
+        - generic [ref=e220]:
+          - generic [ref=e221]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e222]: 0/4000

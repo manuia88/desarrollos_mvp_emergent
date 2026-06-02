@@ -281,8 +281,8 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         </h2>
         <div className="space-y-1.5">
           {recentLeads.length === 0 && <p className="text-[var(--cream-3)] text-xs">{t('panels.no_leads')}</p>}
-          {recentLeads.map((lead) => (
-            <div key={lead.id} className="relative" onMouseEnter={() => setHoverLead(lead.id)} onMouseLeave={() => setHoverLead(null)}>
+          {recentLeads.map((lead, i) => (
+            <div key={lead.id ?? `lead-${i}`} className="relative" onMouseEnter={() => setHoverLead(lead.id)} onMouseLeave={() => setHoverLead(null)}>
               <button type="button" onClick={() => goLead(lead.id, `${lead.first_name || ''} ${lead.last_name || ''}`.trim())}
                 data-testid={`recent-lead-${lead.id}`}
                 className="w-full flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-[var(--surface-2)] transition-colors text-left">
@@ -332,8 +332,8 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         <div className="space-y-1.5">
           {recent.length === 0 ? (
             <p className="text-[var(--cream-3)] text-xs">{tp('recent.empty', 'Aún no has visto nada.')}</p>
-          ) : recent.map((it) => (
-            <button key={`${it.entity_type}:${it.entity_id}`} type="button"
+          ) : recent.map((it, i) => (
+            <button key={`${it.entity_type ?? 'e'}:${it.entity_id ?? 'x'}:${i}`} type="button"
               onClick={() => navigate(it.url || (it.entity_type === 'lead' ? `/asesor/contactos/${it.entity_id}` : '/asesor'))}
               data-testid={`recent-item-${it.entity_id}`}
               className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--surface-2)] transition-colors text-left">
@@ -524,7 +524,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {queue.map((a) => <ActionCard key={a.id} action={a} onCTA={onCTA} t={t} />)}
+                      {queue.map((a, i) => <ActionCard key={`${a.id ?? 'q'}-${i}`} action={a} onCTA={onCTA} t={t} />)}
                     </div>
                   )
                 )}
@@ -544,9 +544,9 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                       <div className="mt-2 space-y-1.5" data-testid="archived-list">
                         {archived.length === 0 ? (
                           <p className="text-[var(--cream-3)] text-xs py-2">{t('queue.no_archived')}</p>
-                        ) : archived.map((a) => (
+                        ) : archived.map((a, i) => (
                           <div
-                            key={a.id}
+                            key={`${a.id ?? 'a'}-${i}`}
                             className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]"
                           >
                             <span className="min-w-0 flex-1 text-[var(--cream-3)] text-xs truncate">{a.title}</span>

@@ -229,7 +229,7 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
         <BarChart2 size={14} color="var(--theme)" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>Sub-agente de Pricing</span>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
       </div>
 
       {/* Project selector + Analyze button */}
@@ -239,8 +239,8 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
           value={selectedProject}
           onChange={e => setSelectedProject(e.target.value)}
           style={{
-            flex: 1, padding: '7px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
+            flex: 1, padding: '7px 10px', borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.05)',
+            border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
             cursor: 'pointer', outline: 'none',
           }}
         >
@@ -270,7 +270,7 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
 
       {/* Analyze error */}
       {analyzeError && (
-        <div data-testid="pricing-analyze-error" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', color: '#F87171', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div data-testid="pricing-analyze-error" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>
           {analyzeError}
         </div>
       )}
@@ -278,18 +278,18 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
       {/* Last run summary */}
       {lastRun && (
         <div data-testid="pricing-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Clock size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
+          <Clock size={11} color="rgba(var(--cream-rgb),0.40)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)' }}>
             {lastRun.recommendations_count} recomendaciones generadas
           </span>
           <LayerBadge layer={lastRun.layer_used} />
           {lastRun.cost_usd > 0 && (
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.35)' }}>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.35)' }}>
               ${(lastRun.cost_usd * 17.5).toFixed(4)} MXN
             </span>
           )}
           {lastRun.simulation_mode && (
-            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.30)', color: '#F59E0B', fontFamily: 'DM Sans', fontWeight: 700 }}>SIMULACIÓN</span>
+            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.30)', color: 'var(--amber)', fontFamily: 'DM Sans', fontWeight: 700 }}>SIMULACIÓN</span>
           )}
         </div>
       )}
@@ -305,25 +305,25 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
               padding: '4px 11px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600,
               cursor: 'pointer',
               background: statusFilter === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
-              border: statusFilter === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.08)',
-              color: statusFilter === k ? 'var(--theme)' : 'rgba(240,235,224,0.50)',
+              border: statusFilter === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(var(--cream-rgb),0.08)',
+              color: statusFilter === k ? 'var(--theme)' : 'rgba(var(--cream-rgb),0.50)',
             }}
           >
             {l}
           </button>
         ))}
-        <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.35)', alignSelf: 'center' }}>
+        <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.35)', alignSelf: 'center' }}>
           {recsTotal} total
         </span>
       </div>
 
       {/* Recommendations list */}
       {recsLoading ? (
-        <div style={{ padding: '20px 0', textAlign: 'center', color: 'rgba(240,235,224,0.35)', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div style={{ padding: '20px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.35)', fontFamily: 'DM Sans', fontSize: 12 }}>
           Cargando recomendaciones…
         </div>
       ) : recs.length === 0 ? (
-        <div data-testid="pricing-no-recs" style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div data-testid="pricing-no-recs" style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>
           No se detectaron unidades con pricing sub-óptimo en este proyecto.
         </div>
       ) : (
@@ -353,8 +353,8 @@ function RecCard({ rec, busy, onApply, onReject }) {
       data-testid={`pricing-rec-${rec.id}`}
       style={{
         padding: '10px 12px', borderRadius: 10,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px solid rgba(var(--cream-rgb),0.07)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
@@ -373,13 +373,13 @@ function RecCard({ rec, busy, onApply, onReject }) {
         {/* Prices */}
         <div style={{ textAlign: 'right', minWidth: 130 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 3 }}>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.40)' }}>actual</span>
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.70)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.40)' }}>actual</span>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(var(--cream-rgb),0.70)' }}>
               {fmtMxn(rec.current_price_per_m2)}/m²
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.40)' }}>sugerido</span>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.40)' }}>sugerido</span>
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--theme)', fontWeight: 700 }}>
               {fmtMxn(rec.suggested_price_per_m2)}/m²
             </span>
@@ -394,14 +394,14 @@ function RecCard({ rec, busy, onApply, onReject }) {
       {rec.rationale_text && (
         <div style={{ marginTop: 7 }}>
           <div
-            style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             onClick={() => setExpanded(e => !e)}
           >
             <span style={{ fontSize: 10 }}>{expanded ? '▲' : '▼'}</span>
             Fundamento
           </div>
           {expanded && (
-            <div data-testid={`pricing-rec-rationale-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
+            <div data-testid={`pricing-rec-rationale-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.70)', lineHeight: 1.55 }}>
               {rec.rationale_text}
             </div>
           )}
@@ -418,7 +418,7 @@ function RecCard({ rec, busy, onApply, onReject }) {
             style={{
               padding: '5px 13px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 700,
               background: busy === 'apply' ? 'rgba(74,222,128,0.20)' : 'rgba(74,222,128,0.12)',
-              border: '1px solid rgba(74,222,128,0.35)', color: '#4ADE80', cursor: busy ? 'not-allowed' : 'pointer',
+              border: '1px solid rgba(74,222,128,0.35)', color: 'var(--green)', cursor: busy ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
           >
@@ -432,7 +432,7 @@ function RecCard({ rec, busy, onApply, onReject }) {
             style={{
               padding: '5px 13px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 700,
               background: busy === 'reject' ? 'rgba(248,113,113,0.20)' : 'rgba(248,113,113,0.08)',
-              border: '1px solid rgba(248,113,113,0.25)', color: '#F87171', cursor: busy ? 'not-allowed' : 'pointer',
+              border: '1px solid rgba(248,113,113,0.25)', color: 'var(--red)', cursor: busy ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
           >

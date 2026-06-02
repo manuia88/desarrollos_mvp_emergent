@@ -12,10 +12,10 @@ import { Plus, X, CheckCircle, AlertTriangle, Upload } from '../../components/ic
 import { Z } from '../../styles/zIndex';
 
 const COLS = [
-  { id: 'pending',   label: 'Pendiente',  color: '#f59e0b' },
+  { id: 'pending',   label: 'Pendiente',  color: 'var(--amber)' },
   { id: 'approved',  label: 'Aprobado',   color: '#22c55e' },
   { id: 'published', label: 'Publicado',  color: '#6366F1' },
-  { id: 'rejected',  label: 'Rechazado',  color: '#ef4444' },
+  { id: 'rejected',  label: 'Rechazado',  color: 'var(--red)' },
 ];
 
 const TYPE_LABELS = { foto: 'Foto', video: 'Video', plano: 'Plano', doc: 'Documento', render: 'Render' };
@@ -28,13 +28,13 @@ function ContentCard({ item, onApprove, onReject, onPublish }) {
 
   return (
     <div data-testid={`content-card-${item.id}`} style={{
-      background: 'rgba(255,255,255,0.035)', border: '1px solid var(--border)',
+      background: 'rgba(var(--cream-rgb),0.035)', border: '1px solid var(--border)',
       borderRadius: 12, overflow: 'hidden',
       transition: 'border-color 0.15s',
     }}>
       {/* Thumbnail */}
       {isImage && item.file_url && (
-        <div style={{ height: 110, background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
+        <div style={{ height: 110, background: 'rgba(var(--cream-rgb),0.03)', overflow: 'hidden' }}>
           <img src={item.file_url} alt={item.title || item.type}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={e => e.target.style.display = 'none'} />
@@ -56,7 +56,7 @@ function ContentCard({ item, onApprove, onReject, onPublish }) {
           Por: {item.uploader_name || item.uploader_id?.slice(0, 12) || '—'}
         </div>
         {item.comment && (
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
             {item.comment}
           </div>
         )}
@@ -68,21 +68,21 @@ function ContentCard({ item, onApprove, onReject, onPublish }) {
               <>
                 <input type="text" placeholder="Comentario (opcional)" value={comment}
                   onChange={e => setComment(e.target.value)}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => onApprove(item.id, comment)} data-testid={`approve-${item.id}`}
-                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
                     <CheckCircle size={11} style={{ marginRight: 4 }} />Aprobar
                   </button>
                   <button onClick={() => onReject(item.id, comment)} data-testid={`reject-${item.id}`}
-                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
                     <X size={11} style={{ marginRight: 4 }} />Rechazar
                   </button>
                 </div>
               </>
             ) : (
               <button onClick={() => setShowActions(true)}
-                style={{ width: '100%', padding: '7px', borderRadius: 7, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '7px', borderRadius: 7, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
                 Revisar
               </button>
             )}
@@ -90,7 +90,7 @@ function ContentCard({ item, onApprove, onReject, onPublish }) {
         )}
         {item.status === 'approved' && (
           <button onClick={() => onPublish(item.id)} data-testid={`publish-${item.id}`}
-            style={{ width: '100%', padding: '7px', borderRadius: 7, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+            style={{ width: '100%', padding: '7px', borderRadius: 7, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
             Publicar
           </button>
         )}
@@ -173,7 +173,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setShowMap(true)} data-testid="show-map-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)', borderRadius: 9999, color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 13, cursor: 'pointer' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)', borderRadius: 9999, color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, cursor: 'pointer' }}>
               Mapa proyectos
             </button>
             <button onClick={() => setShowUpload(true)} data-testid="add-content-btn"
@@ -189,7 +189,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
         {COLS.map(col => {
           const count = content.filter(c => c.status === col.id).length;
           return (
-            <div key={col.id} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${col.color}28`, borderRadius: 10, padding: '10px 18px' }}>
+            <div key={col.id} style={{ background: 'rgba(var(--cream-rgb),0.03)', border: `1px solid ${col.color}28`, borderRadius: 10, padding: '10px 18px' }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: col.color }}>{count}</div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-4)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{col.label}</div>
             </div>
@@ -209,12 +209,12 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.color }} />
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>{col.label}</div>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-4)', background: 'rgba(255,255,255,0.06)', borderRadius: 9999, padding: '1px 7px', marginLeft: 'auto' }}>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-4)', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 9999, padding: '1px 7px', marginLeft: 'auto' }}>
                     {cards.length}
                   </span>
                 </div>
                 {cards.length === 0 && (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: 12, padding: '24px 14px', textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-4)' }}>
+                  <div style={{ background: 'rgba(var(--cream-rgb),0.02)', border: '1px dashed var(--border)', borderRadius: 12, padding: '24px 14px', textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-4)' }}>
                     Sin elementos
                   </div>
                 )}
@@ -229,7 +229,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
 
       {/* Upload modal */}
       {showUpload && (
-        <div onClick={() => setShowUpload(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setShowUpload(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="upload-modal" style={{ width: '100%', maxWidth: 480, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Subir contenido</div>
@@ -248,7 +248,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {Object.entries(TYPE_LABELS).map(([k, v]) => (
                   <button key={k} onClick={() => setForm(f => ({ ...f, type: k }))} data-testid={`type-${k}`}
-                    style={{ padding: '6px 12px', borderRadius: 7, fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', background: form.type === k ? `${TYPE_COLOR[k]}20` : 'rgba(255,255,255,0.04)', border: `1px solid ${form.type === k ? TYPE_COLOR[k] + '44' : 'var(--border)'}`, color: form.type === k ? TYPE_COLOR[k] : 'var(--cream-3)' }}>
+                    style={{ padding: '6px 12px', borderRadius: 7, fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', background: form.type === k ? `${TYPE_COLOR[k]}20` : 'rgba(var(--cream-rgb),0.04)', border: `1px solid ${form.type === k ? TYPE_COLOR[k] + '44' : 'var(--border)'}`, color: form.type === k ? TYPE_COLOR[k] : 'var(--cream-3)' }}>
                     {v}
                   </button>
                 ))}
@@ -266,7 +266,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
             </div>
             <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <AlertTriangle size={13} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#fcd34d', lineHeight: 1.5 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--amber)', lineHeight: 1.5 }}>
                 El contenido irá a la cola "Pendiente" hasta que un director comercial lo apruebe.
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
 
       {/* Map modal */}
       {showMap && (
-        <div onClick={() => setShowMap(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setShowMap(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="map-modal" style={{ width: '100%', maxWidth: 700, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Ubicación de proyectos</div>
@@ -320,4 +320,4 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
 }
 
 const lblS = { fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 };
-const inputS = { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+const inputS = { width: '100%', background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };

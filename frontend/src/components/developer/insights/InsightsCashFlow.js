@@ -32,7 +32,7 @@ function MiniChart({ series = [] }) {
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 180, display: 'block' }}
          data-testid="cf-mini-chart">
       <line x1={padX} y1={yFor(0)} x2={W - padX} y2={yFor(0)}
-            stroke="rgba(240,235,224,0.18)" strokeWidth="1" strokeDasharray="3,3" />
+            stroke="rgba(var(--cream-rgb),0.18)" strokeWidth="1" strokeDasharray="3,3" />
       <path d={path('inflow_total')} fill="none" stroke="#22C55E" strokeWidth="1.4" />
       <path d={path('outflow_total')} fill="none" stroke="#EF4444" strokeWidth="1.4" />
       <path d={path('cumulative_balance')} fill="none" stroke="var(--theme-3)" strokeWidth="2" />
@@ -49,8 +49,8 @@ function StatBox({ label, value, sub, tone = 'neutral', testid }) {
   };
   return (
     <div data-testid={testid} style={{
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 12, padding: 12,
     }}>
       <span style={{
@@ -91,14 +91,14 @@ export default function InsightsCashFlow({ projectId }) {
   );
 
   if (err) return (
-    <div data-testid="cashflow-error" style={{ padding: 16, color: '#fca5a5' }}>Error: {err}</div>
+    <div data-testid="cashflow-error" style={{ padding: 16, color: 'var(--red)' }}>Error: {err}</div>
   );
 
   if (!doc) return (
     <div data-testid="cashflow-empty" style={{
       padding: 36, textAlign: 'center',
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 14,
     }}>
       <BarChart size={26} color="#f9a8d4" />
@@ -109,7 +109,7 @@ export default function InsightsCashFlow({ projectId }) {
         Genera tu primer reporte de flujo de caja con escenarios IA.
       </p>
       <Link
-        to={`/desarrollador/cash-flow/${projectId}`}
+        to={`/desarrollador/desarrollos/${projectId}/cash-flow`}
         data-testid="cashflow-go-full"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -146,8 +146,8 @@ export default function InsightsCashFlow({ projectId }) {
       </div>
 
       <div style={{
-        background: 'rgba(240,235,224,0.04)',
-        border: '1px solid rgba(240,235,224,0.10)',
+        background: 'rgba(var(--cream-rgb),0.04)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         borderRadius: 14, padding: 14,
       }}>
         <div style={{
@@ -157,13 +157,13 @@ export default function InsightsCashFlow({ projectId }) {
         <MiniChart series={series} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
           <Link
-            to={`/desarrollador/cash-flow/${projectId}`}
+            to={`/desarrollador/desarrollos/${projectId}/cash-flow`}
             data-testid="cashflow-link-full"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '6px 14px', borderRadius: 9999,
               background: 'transparent',
-              border: '1px solid rgba(240,235,224,0.16)',
+              border: '1px solid rgba(var(--cream-rgb),0.16)',
               color: 'var(--cream-2)', textDecoration: 'none',
               fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 600,
             }}>

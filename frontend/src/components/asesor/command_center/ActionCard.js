@@ -60,12 +60,12 @@ export default function ActionCard({ action, onCTA, t }) {
 
         {/* CTAs inline · +Archivar siempre disponible (guardar sin perder) */}
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
-          {[...(action.cta_actions || []), 'archivar'].map((cta) => {
+          {[...(action.cta_actions || []), 'archivar'].map((cta, i) => {
             const CtaIcon = CTA_ICONS[cta] || Eye;
             const danger = cta === 'descartar';
             return (
               <button
-                key={cta}
+                key={`${cta ?? 'cta'}-${i}`}
                 type="button"
                 onClick={() => onCTA(cta, action)}
                 data-testid={`action-cta-${cta}`}

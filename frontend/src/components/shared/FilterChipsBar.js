@@ -64,7 +64,7 @@ export function FilterChipsBar({
         return (
           <div key={fc.key} className="flex items-center gap-1">
             {/* Filter group label */}
-            <span className="text-[rgba(240,235,224,0.35)] text-xs shrink-0">{fc.label}:</span>
+            <span className="text-[rgba(var(--cream-rgb),0.35)] text-xs shrink-0">{fc.label}:</span>
             {/* Option chips */}
             <div className="flex items-center gap-1 flex-wrap">
               {fc.options.map(opt => {
@@ -83,12 +83,12 @@ export function FilterChipsBar({
                     }}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
                       ${isActive
-                        ? 'bg-[var(--cream)] text-[var(--navy)] scale-[1.02]'
-                        : 'bg-[rgba(240,235,224,0.06)] text-[rgba(240,235,224,0.55)] border border-[rgba(240,235,224,0.1)] hover:border-[rgba(240,235,224,0.25)] hover:text-[var(--cream)]'}`}
+                        ? 'bg-[var(--theme)] text-white scale-[1.02]'
+                        : 'bg-[rgba(var(--cream-rgb),0.06)] text-[rgba(var(--cream-rgb),0.55)] border border-[rgba(var(--cream-rgb),0.1)] hover:border-[rgba(var(--cream-rgb),0.25)] hover:text-[var(--cream)]'}`}
                   >
                     {opt.label}
                     {opt.count !== undefined && (
-                      <span className={`text-[9px] px-1 rounded-full ${isActive ? 'bg-[rgba(6,8,15,0.2)]' : 'bg-[rgba(240,235,224,0.1)]'}`}>
+                      <span className={`text-[9px] px-1 rounded-full ${isActive ? 'bg-[rgba(var(--bg-rgb),0.2)]' : 'bg-[rgba(var(--cream-rgb),0.1)]'}`}>
                         {opt.count}
                       </span>
                     )}
@@ -106,7 +106,7 @@ export function FilterChipsBar({
       {activeCount > 0 && (
         <button
           onClick={clearAll}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs text-[rgba(var(--cream-rgb),0.4)] hover:text-[var(--cream)] transition-colors"
           data-testid="filter-clear-all-btn"
         >
           <X size={10} />

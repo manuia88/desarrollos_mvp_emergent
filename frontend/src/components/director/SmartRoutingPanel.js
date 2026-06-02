@@ -58,15 +58,15 @@ async function reassignRouting(routingId, newAsesorId, reason) {
 // ─── Layer / status metadata ─────────────────────────────────────────────────
 const LAYER_META = {
   llm:       { label: 'LLM',       color: 'var(--theme)', Icon: Cpu },
-  cache:     { label: 'Cached',    color: '#F59E0B', Icon: Database },
-  cached:    { label: 'Cached',    color: '#F59E0B', Icon: Database },
+  cache:     { label: 'Cached',    color: 'var(--amber)', Icon: Database },
+  cached:    { label: 'Cached',    color: 'var(--amber)', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
 };
 
 const STATUS_META = {
-  pending:    { label: 'Pendiente',   color: '#F59E0B' },
-  accepted:   { label: 'Aceptado',    color: '#4ADE80' },
-  rejected:   { label: 'Rechazado',   color: '#F87171' },
+  pending:    { label: 'Pendiente',   color: 'var(--amber)' },
+  accepted:   { label: 'Aceptado',    color: 'var(--green)' },
+  rejected:   { label: 'Rechazado',   color: 'var(--red)' },
   reassigned: { label: 'Reasignado',  color: 'var(--theme)' },
   expired:    { label: 'Expirado',    color: '#94A3B8' },
 };
@@ -107,18 +107,18 @@ function StatTile({ label, value, sub, testid }) {
   return (
     <div data-testid={testid} style={{
       flex: 1, minWidth: 130, padding: 14,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.03)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       backdropFilter: 'blur(14px)',
       borderRadius: 14,
     }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.55)',
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(var(--cream-rgb),0.55)',
                     textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginTop: 4 }}>
         {value ?? '—'}
       </div>
       {sub ? (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 2 }}>{sub}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)', marginTop: 2 }}>{sub}</div>
       ) : null}
     </div>
   );
@@ -127,10 +127,10 @@ function StatTile({ label, value, sub, testid }) {
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, Icon }) {
   const styles = {
     primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
-    ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
-    success: { background: 'transparent', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' },
-    danger:  { background: 'transparent', color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.3)' },
-    indigo:  { background: 'transparent', color: '#A5B4FC', border: '1px solid rgba(var(--theme-rgb),0.30)' },
+    ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.18)' },
+    success: { background: 'transparent', color: 'var(--green)', border: '1px solid rgba(74,222,128,0.3)' },
+    danger:  { background: 'transparent', color: 'var(--red)', border: '1px solid rgba(252,165,165,0.3)' },
+    indigo:  { background: 'transparent', color: 'var(--blue)', border: '1px solid rgba(var(--theme-rgb),0.30)' },
   };
   return (
     <button
@@ -171,7 +171,7 @@ function FitBreakdown({ breakdown }) {
         const v = breakdown?.[k] ?? 0;
         return (
           <div key={k} style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(240,235,224,0.55)',
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(var(--cream-rgb),0.55)',
                           textTransform: 'uppercase' }}>{label}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: fitColor(v * 4) }}>{v}</div>
           </div>
@@ -279,14 +279,14 @@ export default function SmartRoutingPanel({ orgId }) {
     <div data-testid="smart-routing-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Header */}
       <div>
-        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.55)',
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(var(--cream-rgb),0.55)',
                       letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
           W4.6 Y.3A · Smart Routing Lead
         </div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0 }}>
           Smart Routing
         </h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.65)', margin: '4px 0 0' }}>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.65)', margin: '4px 0 0' }}>
           Asignación automática &lt;60 seg basada en zone-expertise + segmento + capacidad + conversión.
           3-layer fallback (LLM → cache → heurística).
         </p>
@@ -305,8 +305,8 @@ export default function SmartRoutingPanel({ orgId }) {
 
       {/* Manual create + filters row */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
-                    padding: 12, background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(240,235,224,0.08)', borderRadius: 12 }}>
+                    padding: 12, background: 'rgba(var(--cream-rgb),0.02)',
+                    border: '1px solid rgba(var(--cream-rgb),0.08)', borderRadius: 12 }}>
         <input
           data-testid="sr-input-lead-id"
           value={leadInput}
@@ -316,7 +316,7 @@ export default function SmartRoutingPanel({ orgId }) {
           style={{
             flex: 1, minWidth: 220, padding: '7px 14px',
             background: 'rgba(0,0,0,0.30)',
-            border: '1px solid rgba(240,235,224,0.18)',
+            border: '1px solid rgba(var(--cream-rgb),0.18)',
             borderRadius: 9999, color: 'var(--cream)',
             fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
           }}
@@ -339,8 +339,8 @@ export default function SmartRoutingPanel({ orgId }) {
                   : 'transparent',
                 border: statusFilter === s
                   ? '1px solid rgba(var(--theme-rgb),0.45)'
-                  : '1px solid rgba(255,255,255,0.08)',
-                color: statusFilter === s ? 'var(--cream)' : 'rgba(240,235,224,0.55)',
+                  : '1px solid rgba(var(--cream-rgb),0.08)',
+                color: statusFilter === s ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.55)',
               }}
             >
               {s}
@@ -352,7 +352,7 @@ export default function SmartRoutingPanel({ orgId }) {
       {/* Error banner */}
       {error ? (
         <div style={{ padding: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
-                      borderRadius: 10, color: '#FCA5A5', fontFamily: 'DM Sans', fontSize: 12,
+                      borderRadius: 10, color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12,
                       display: 'flex', gap: 8, alignItems: 'center' }}>
           <AlertTriangle size={13} /> {error}
         </div>
@@ -361,9 +361,9 @@ export default function SmartRoutingPanel({ orgId }) {
       {/* Layer breakdown */}
       {metrics?.summary?.by_layer ? (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: 'DM Sans', fontSize: 11,
-                      color: 'rgba(240,235,224,0.65)' }}>
+                      color: 'rgba(var(--cream-rgb),0.65)' }}>
           <span style={{ fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em',
-                         fontSize: 10, color: 'rgba(240,235,224,0.45)' }}>Capa usada:</span>
+                         fontSize: 10, color: 'rgba(var(--cream-rgb),0.45)' }}>Capa usada:</span>
           {Object.entries(metrics.summary.by_layer).map(([k, v]) => (
             <Badge key={k}
                    label={`${LAYER_META[k]?.label || k}: ${v}`}
@@ -377,13 +377,13 @@ export default function SmartRoutingPanel({ orgId }) {
       <div data-testid="sr-routings-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loading ? (
           <div style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12,
-                        color: 'rgba(240,235,224,0.50)' }}>Cargando routings…</div>
+                        color: 'rgba(var(--cream-rgb),0.50)' }}>Cargando routings…</div>
         ) : rows.length === 0 ? (
           <div data-testid="sr-no-routings" style={{
             padding: 32, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13,
-            color: 'rgba(240,235,224,0.45)',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px dashed rgba(240,235,224,0.10)',
+            color: 'rgba(var(--cream-rgb),0.45)',
+            background: 'rgba(var(--cream-rgb),0.02)',
+            border: '1px dashed rgba(var(--cream-rgb),0.10)',
             borderRadius: 12,
           }}>
             <Users size={28} style={{ opacity: 0.4, marginBottom: 6 }} /><br />
@@ -397,8 +397,8 @@ export default function SmartRoutingPanel({ orgId }) {
             const isBusy = busyId === r.routing_id;
             return (
               <div key={r.routing_id} data-testid={`sr-row-${r.routing_id}`} style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(240,235,224,0.08)',
+                background: 'rgba(var(--cream-rgb),0.03)',
+                border: '1px solid rgba(var(--cream-rgb),0.08)',
                 backdropFilter: 'blur(14px)',
                 borderRadius: 12, padding: 12,
               }}>
@@ -408,8 +408,8 @@ export default function SmartRoutingPanel({ orgId }) {
                       <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
                         {r.lead_id || '—'}
                       </span>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)' }}>→</span>
-                      <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'rgba(240,235,224,0.85)' }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(var(--cream-rgb),0.45)' }}>→</span>
+                      <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'rgba(var(--cream-rgb),0.85)' }}>
                         {r.suggested_asesor_name || r.suggested_asesor_id || '— (sin asesor)'}
                       </span>
                       <FitChip score={r.fit_score} />
@@ -419,10 +419,10 @@ export default function SmartRoutingPanel({ orgId }) {
                         <Badge label="simulado" color="#F59E0B" />
                       ) : null}
                     </div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.65)', lineHeight: 1.4 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(var(--cream-rgb),0.65)', lineHeight: 1.4 }}>
                       {r.rationale_text || '—'}
                     </div>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.45)', marginTop: 3 }}>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(var(--cream-rgb),0.45)', marginTop: 3 }}>
                       zona={r.lead_zone || '—'} · seg={r.lead_segment || '—'} · {r.routed_at?.slice(0, 16) || '—'}
                     </div>
                   </div>
@@ -482,7 +482,7 @@ export default function SmartRoutingPanel({ orgId }) {
                       style={{
                         flex: 1, minWidth: 180, padding: '5px 11px',
                         background: 'rgba(0,0,0,0.30)',
-                        border: '1px solid rgba(240,235,224,0.18)',
+                        border: '1px solid rgba(var(--cream-rgb),0.18)',
                         borderRadius: 9999, color: 'var(--cream)',
                         fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
                       }}

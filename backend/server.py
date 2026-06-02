@@ -775,6 +775,9 @@ app.include_router(wizard_router)
 # Phase 4 Batch 13 — Tracking attribution + Cross-portal sync
 from routes.b13 import (router as b13_router, ensure_b13_indexes)
 app.include_router(b13_router)
+# Cerebro DMX · Etapa 3 — API de la Sala de Control (multi-perfil · gated CEREBRO_ENABLED)
+from routes.cerebro import router as cerebro_router
+app.include_router(cerebro_router)
 
 # Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Weekly Brief
 from routes.dev_batch14 import (router as dev_batch14_router, ensure_batch14_indexes)
@@ -1279,6 +1282,13 @@ async def startup():
         await ensure_asesor_indexes(db)
     except Exception as _e:
         logging.warning(f"[startup] asesor indexes: {_e}")
+    # Cerebro DMX · Etapa 0 — cimientos: índices de cola de tareas + memoria gobernada
+    # (colecciones vacías/inofensivas · la EJECUCIÓN de agentes va detrás de CEREBRO_ENABLED)
+    try:
+        from cerebro import ensure_cerebro_all_indexes
+        await ensure_cerebro_all_indexes(db)
+    except Exception as _e:
+        logging.warning(f"[startup] cerebro indexes: {_e}")
     # Auto-reparable · reintenta el espejo de leads que no llegaron a "Mis Leads"
     try:
         from services.lead_bridge import retry_pending_mirrors

@@ -17,7 +17,7 @@ function ActorBar({ asesor = 0, cliente = 0 }) {
     return (
       <div data-testid="actor-bar-empty" style={{
         padding: 16, color: 'var(--cream-3)', fontSize: 12, textAlign: 'center',
-        background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.10)', borderRadius: 12,
+        background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.10)', borderRadius: 12,
       }}>
         Sin eventos de engagement en este periodo.
       </div>
@@ -29,7 +29,7 @@ function ActorBar({ asesor = 0, cliente = 0 }) {
     <div data-testid="actor-bar" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{
         display: 'flex', height: 32, borderRadius: 9999, overflow: 'hidden',
-        border: '1px solid rgba(240,235,224,0.10)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
       }}>
         <div data-testid="actor-bar-asesor" style={{
           width: `${aPct}%`, background: 'var(--theme)', display: 'flex', alignItems: 'center',
@@ -58,8 +58,8 @@ function ActorBar({ asesor = 0, cliente = 0 }) {
 function TopUnitsList({ title, items, testid, color }) {
   return (
     <div data-testid={testid} style={{
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 12, padding: 14,
     }}>
       <div style={{
@@ -95,7 +95,7 @@ function HourHistogram({ data = [] }) {
   return (
     <div data-testid="hour-histogram" style={{
       display: 'flex', alignItems: 'flex-end', gap: 2, height: 100,
-      padding: '8px 0', borderBottom: '1px solid rgba(240,235,224,0.10)',
+      padding: '8px 0', borderBottom: '1px solid rgba(var(--cream-rgb),0.10)',
     }}>
       {bars.map(b => (
         <div key={b.hour} title={`${b.hour}h: ${b.count}`} style={{
@@ -135,7 +135,7 @@ export default function InsightsEngagement({ projectId }) {
             onClick={() => setPeriod(p.key)}
             style={{
               padding: '6px 14px', borderRadius: 9999,
-              border: '1px solid rgba(240,235,224,0.14)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)',
               background: period === p.key
                 ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
               color: period === p.key ? '#fff' : 'var(--cream-2)',
@@ -146,7 +146,7 @@ export default function InsightsEngagement({ projectId }) {
       </div>
 
       {loading && <div style={{ padding: 24, color: 'var(--cream-3)' }}>Cargando engagement…</div>}
-      {err && <div style={{ padding: 16, color: '#fca5a5' }}>Error: {err}</div>}
+      {err && <div style={{ padding: 16, color: 'var(--red)' }}>Error: {err}</div>}
       {data && !loading && (
         <>
           <ActorBar asesor={data.total_visits_asesor} cliente={data.total_visits_cliente} />
@@ -163,8 +163,8 @@ export default function InsightsEngagement({ projectId }) {
           </div>
 
           <div style={{
-            background: 'rgba(240,235,224,0.04)',
-            border: '1px solid rgba(240,235,224,0.10)',
+            background: 'rgba(var(--cream-rgb),0.04)',
+            border: '1px solid rgba(var(--cream-rgb),0.10)',
             borderRadius: 12, padding: 14,
           }}>
             <div style={{
@@ -197,7 +197,7 @@ export default function InsightsEngagement({ projectId }) {
               border: '1px solid rgba(var(--theme-rgb),0.30)',
               borderRadius: 12, padding: 14,
             }}>
-              <span style={{ fontSize: 10, color: '#f9a8d4', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Conv. Cliente</span>
+              <span style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Conv. Cliente</span>
               <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit' }}>
                 {(data.conversion_rate_per_actor?.cliente ?? 0).toFixed(1)}%
               </div>

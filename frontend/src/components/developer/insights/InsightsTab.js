@@ -25,7 +25,7 @@ export default function InsightsTab({ projectId, user }) {
       {/* Sub-tab pills */}
       <div data-testid="insights-subtabs" style={{
         display: 'flex', gap: 6, flexWrap: 'wrap',
-        borderBottom: '1px solid rgba(240,235,224,0.10)',
+        borderBottom: '1px solid rgba(var(--cream-rgb),0.10)',
         paddingBottom: 12,
       }}>
         {SUBTABS.map(t => {
@@ -38,7 +38,7 @@ export default function InsightsTab({ projectId, user }) {
               style={{
                 padding: '8px 16px',
                 borderRadius: 9999,
-                border: '1px solid ' + (isActive ? 'transparent' : 'rgba(240,235,224,0.14)'),
+                border: '1px solid ' + (isActive ? 'transparent' : 'rgba(var(--cream-rgb),0.14)'),
                 background: isActive
                   ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'transparent',

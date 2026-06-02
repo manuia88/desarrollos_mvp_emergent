@@ -60,7 +60,7 @@ export function BattleCardCompetitorsTable({ myScore, myDimScores, competitors }
           <tr style={{ borderBottom: '1px solid rgba(99,102,241,0.3)' }}>
             <th style={{
               padding: '8px 12px', textAlign: 'left',
-              color: 'rgba(240,235,224,0.45)',
+              color: 'rgba(var(--cream-rgb),0.45)',
               fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>
               {t('battle_card.competitors.table_header', { defaultValue: 'Dimension' })}
@@ -70,7 +70,7 @@ export function BattleCardCompetitorsTable({ myScore, myDimScores, competitors }
                 key={col.id}
                 style={{
                   padding: '8px 12px', textAlign: 'center',
-                  color: col.isMe ? '#a5b4fc' : 'rgba(240,235,224,0.45)',
+                  color: col.isMe ? '#a5b4fc' : 'rgba(var(--cream-rgb),0.45)',
                   fontWeight: col.isMe ? 800 : 600,
                   fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
                   borderLeft: col.isMe ? '2px solid rgba(99,102,241,0.4)' : 'none',
@@ -86,13 +86,13 @@ export function BattleCardCompetitorsTable({ myScore, myDimScores, competitors }
             <tr
               key={dim}
               style={{
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                borderBottom: '1px solid rgba(var(--cream-rgb),0.05)',
+                background: i % 2 === 0 ? 'rgba(var(--cream-rgb),0.015)' : 'transparent',
               }}
             >
               <td style={{
                 padding: '7px 12px',
-                color: 'rgba(240,235,224,0.65)', fontWeight: 600,
+                color: 'rgba(var(--cream-rgb),0.65)', fontWeight: 600,
               }}>
                 {dimLabel(dim)}
               </td>
@@ -108,7 +108,7 @@ export function BattleCardCompetitorsTable({ myScore, myDimScores, competitors }
           <tr style={{ borderTop: '2px solid rgba(99,102,241,0.3)' }}>
             <td style={{
               padding: '8px 12px',
-              color: '#F0EBE0', fontWeight: 800, fontSize: 12,
+              color: 'var(--cream)', fontWeight: 800, fontSize: 12,
             }}>
               {t('battle_card.competitors.vs_label', { defaultValue: 'Total' })}
             </td>

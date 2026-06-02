@@ -200,30 +200,38 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
 async def forecast_analytics(request: Request, consolidated: bool = False):
     user = await _auth(request)
     dev_ids = _user_dev_ids(user)
-    from data_developments import DEVELOPMENTS_BY_ID
+    from data_developments import DEVELOPMENTS_BY_ID, ALL_UNITS
     my_devs = [DEVELOPMENTS_BY_ID[d] for d in dev_ids if d in DEVELOPMENTS_BY_ID]
     if not my_devs:
         return {"rows": [], "consolidated": None, "monthly_projection": []}
 
-    rng = random.Random(1729)
+    # Ventas REALES por desarrollo (antes se fabricaba con random.Random(1729)).
+    # El forecast ahora compara META de absorción vs VENDIDO REAL y proyecta con el ritmo real.
+    sold_by_dev = {}
+    for u in ALL_UNITS:
+        if u.get("status") == "vendido":
+            did = u.get("development_id")
+            sold_by_dev[did] = sold_by_dev.get(did, 0) + 1
+
     rows = []
     total_target = 0
     total_actual = 0
     for d in my_devs:
-        target = max(8, d["units_total"] // 6)
-        actual = int(target * rng.uniform(0.55, 1.25))
+        target = max(8, d["units_total"] // 6)      # meta de absorción (planeación)
+        actual = sold_by_dev.get(d["id"], 0)        # VENDIDAS REALES
         variance = round(100 * (actual - target) / target, 1) if target else 0
         trend = "up" if variance > 5 else "down" if variance < -5 else "flat"
-        # monthly 12m forward sensitivity (base, pess, opt)
+        # Proyección 12m determinística (sin random): ritmo = velocidad real estimada (u/mes)
         monthly = []
         today = _now()
         remain = max(0, d["units_available"])
+        rate = round(actual / 6.0, 2) if actual else round(remain / 18.0, 2)
         for i in range(12):
             m = (today.replace(day=1) + timedelta(days=30 * i)).strftime("%Y-%m")
-            base = max(0, round(remain / 18 + rng.gauss(0, 0.6), 2))
+            base = round(min(rate, remain), 2)
             monthly.append({
                 "month": m,
-                "base": round(base, 2),
+                "base": base,
                 "pessimist": round(base * 0.65, 2),
                 "optimist": round(base * 1.38, 2),
             })

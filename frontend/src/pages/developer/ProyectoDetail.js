@@ -42,11 +42,11 @@ const STAGE_LABELS = {
 };
 
 const STAGE_BADGE_STYLE = {
-  preventa:         { bg: 'rgba(245,158,11,0.15)',   color: '#f59e0b' },
-  en_construccion:  { bg: 'rgba(96,165,250,0.15)',   color: '#60a5fa' },
-  entrega_inmediata:{ bg: 'rgba(34,197,94,0.12)',    color: '#22c55e' },
-  exclusiva:        { bg: 'rgba(240,235,224,0.12)',  color: 'var(--cream-2)' },
-  entregado:        { bg: 'rgba(34,197,94,0.10)',    color: '#22c55e' },
+  preventa:         { bg: '#E2982E', color: '#fff' },
+  en_construccion:  { bg: '#3B82F6', color: '#fff' },
+  entrega_inmediata:{ bg: '#1FA06A', color: '#fff' },
+  exclusiva:        { bg: '#6D4AFF', color: '#fff' },
+  entregado:        { bg: '#1FA06A', color: '#fff' },
 };
 
 const fmtMXN = (v) => {
@@ -74,11 +74,11 @@ function PlaceholderTab({ tabLabel, phase }) {
     }}>
       <div style={{
         width: 48, height: 48, borderRadius: 12,
-        background: 'rgba(240,235,224,0.06)',
+        background: 'rgba(var(--cream-rgb),0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 4,
       }}>
-        <Building size={22} color="rgba(240,235,224,0.2)" />
+        <Building size={22} color="rgba(var(--cream-rgb),0.2)" />
       </div>
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
         {tabLabel}
@@ -135,13 +135,13 @@ function ProjectSwitcher({ currentSlug, onSwitch }) {
       ref={ref}
       style={{
         position: 'fixed', top: 80, right: 24, width: 280, zIndex: Z.MODAL,
-        background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.18)',
+        background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.18)',
         borderRadius: 12, overflow: 'hidden',
         backdropFilter: 'blur(16px)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
       }}
     >
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(240,235,224,0.1)' }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <input
           autoFocus
           value={search}
@@ -169,7 +169,7 @@ function ProjectSwitcher({ currentSlug, onSwitch }) {
                 color: 'var(--cream)', fontSize: 13, transition: 'background 0.1s',
                 display: 'flex', alignItems: 'center', gap: 8,
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
               <Building size={13} color="var(--cream-3)" />
@@ -290,8 +290,9 @@ export default function ProyectoDetail({ user, onLogout }) {
               {summary && (
                 <span style={{
                   background: stageStyle.bg, color: stageStyle.color,
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px',
-                  borderRadius: 6, letterSpacing: '0.04em',
+                  fontSize: 11, fontWeight: 800, padding: '4px 11px',
+                  borderRadius: 7, letterSpacing: '0.04em', textTransform: 'uppercase',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                 }}>
                   {STAGE_LABELS[summary.stage] || summary.stage}
                 </span>
@@ -316,12 +317,12 @@ export default function ProyectoDetail({ user, onLogout }) {
                 position: 'relative',
                 background: diagBadge?.criticals > 0 ? 'rgba(239,68,68,0.12)' :
                             diagBadge?.failed > 0 ? 'rgba(245,158,11,0.10)' :
-                            'rgba(240,235,224,0.08)',
+                            'rgba(var(--cream-rgb),0.08)',
                 color: diagBadge?.criticals > 0 ? '#ef4444' :
                        diagBadge?.failed > 0 ? '#f59e0b' : 'var(--cream)',
                 border: `1px solid ${diagBadge?.criticals > 0 ? 'rgba(239,68,68,0.3)' :
                                      diagBadge?.failed > 0 ? 'rgba(245,158,11,0.25)' :
-                                     'rgba(240,235,224,0.16)'}`,
+                                     'rgba(var(--cream-rgb),0.16)'}`,
                 borderRadius: 8, padding: '7px 12px', fontSize: 12,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
               }}
@@ -341,8 +342,8 @@ export default function ProyectoDetail({ user, onLogout }) {
             <button
               data-testid="edit-proyecto-btn"
               style={{
-                background: 'rgba(240,235,224,0.08)', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.16)', borderRadius: 8,
+                background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
+                border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
                 padding: '7px 14px', fontSize: 12, cursor: 'pointer',
               }}
             >
@@ -382,7 +383,7 @@ export default function ProyectoDetail({ user, onLogout }) {
         <div
           style={{
             display: 'flex', overflowX: 'auto', gap: 0,
-            border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10,
+            border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10,
             marginBottom: 24, flexShrink: 0,
           }}
           data-testid="proyecto-tabs"
@@ -394,10 +395,10 @@ export default function ProyectoDetail({ user, onLogout }) {
               onClick={() => setTab(t.key)}
               style={{
                 whiteSpace: 'nowrap', padding: '10px 16px',
-                background: activeTab === t.key ? 'rgba(240,235,224,0.10)' : 'transparent',
+                background: activeTab === t.key ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
                 color: activeTab === t.key ? 'var(--cream)' : 'var(--cream-3)',
                 border: 'none',
-                borderRight: i < TABS.length - 1 ? '1px solid rgba(240,235,224,0.08)' : 'none',
+                borderRight: i < TABS.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
                 fontSize: 12, fontWeight: activeTab === t.key ? 700 : 400,
                 cursor: 'pointer', transition: 'all 0.12s', fontFamily: 'DM Sans,sans-serif',
                 position: 'relative',
@@ -407,7 +408,7 @@ export default function ProyectoDetail({ user, onLogout }) {
               {t.phase && (
                 <span style={{
                   position: 'absolute', top: 4, right: 4,
-                  fontSize: 7, color: 'rgba(240,235,224,0.25)',
+                  fontSize: 7, color: 'rgba(var(--cream-rgb),0.25)',
                 }}>
                   {t.phase}
                 </span>
@@ -536,8 +537,8 @@ function Tours3DSection({ projectSlug, devId, user }) {
   return (
     <div data-testid="tours-3d-section" style={{
       marginTop: 28,
-      background: 'rgba(13,16,23,0.92)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      background: 'rgba(var(--bg-rgb),0.92)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 16,
       padding: 20,
     }}>
@@ -573,7 +574,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
               onClick={() => setShowUploader(true)}
               style={{
                 background: 'transparent', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.25)', borderRadius: 9999,
+                border: '1px solid rgba(var(--cream-rgb),0.25)', borderRadius: 9999,
                 padding: '8px 18px',
                 fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
                 cursor: 'pointer',
@@ -592,7 +593,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
       ) : scans.length === 0 ? (
         <div style={{
           padding: 24, textAlign: 'center',
-          border: '1px dashed rgba(240,235,224,0.18)', borderRadius: 12,
+          border: '1px dashed rgba(var(--cream-rgb),0.18)', borderRadius: 12,
           fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)',
         }}>
           Aún no hay tours 3D para este proyecto.
@@ -607,8 +608,8 @@ function Tours3DSection({ projectSlug, devId, user }) {
                 display: 'grid',
                 gridTemplateColumns: '1fr auto auto',
                 gap: 12, alignItems: 'center',
-                background: 'rgba(15,18,28,0.7)',
-                border: '1px solid rgba(240,235,224,0.08)',
+                background: 'rgba(var(--bg-rgb),0.7)',
+                border: '1px solid rgba(var(--cream-rgb),0.08)',
                 borderRadius: 12,
                 padding: '10px 14px',
               }}
@@ -635,7 +636,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                   disabled={s.status !== 'ready'}
                   style={{
                     background: 'transparent', color: 'var(--cream)',
-                    border: '1px solid rgba(240,235,224,0.25)', borderRadius: 9999,
+                    border: '1px solid rgba(var(--cream-rgb),0.25)', borderRadius: 9999,
                     padding: '5px 12px',
                     fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.06em',
                     cursor: s.status === 'ready' ? 'pointer' : 'not-allowed',
@@ -650,7 +651,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                     data-testid={`tour-action-delete-${s.unit_id}`}
                     onClick={() => handleDelete(s.scan_id)}
                     style={{
-                      background: 'rgba(239,68,68,0.10)', color: '#fca5a5',
+                      background: 'rgba(239,68,68,0.10)', color: 'var(--red)',
                       border: '1px solid rgba(239,68,68,0.35)', borderRadius: 9999,
                       padding: '5px 12px',
                       fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.06em',
@@ -681,7 +682,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
           onClick={() => setShowUploader(false)}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
+            background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(8px)',
             zIndex: Z.MODAL_CRITICAL, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 16,
           }}
@@ -704,7 +705,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
           onClick={() => setPreviewScan(null)}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(8px)',
+            background: 'rgba(var(--bg-rgb),0.85)', backdropFilter: 'blur(8px)',
             zIndex: Z.MODAL_CRITICAL, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 24,
           }}

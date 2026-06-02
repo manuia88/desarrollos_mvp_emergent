@@ -49,7 +49,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(6,8,15,0.78)',
+          background: 'rgba(var(--bg-rgb),0.78)',
           backdropFilter: 'blur(8px)',
           zIndex: Z.MODAL_CRITICAL,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -61,7 +61,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
           style={{
             width: '100%', maxWidth: 880, maxHeight: '92vh',
             background: '#0E1220',
-            border: '1px solid rgba(240,235,224,0.12)',
+            border: '1px solid rgba(var(--cream-rgb),0.12)',
             borderRadius: 18,
             overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
@@ -70,7 +70,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
           {/* Header */}
           <div style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(240,235,224,0.08)',
+            borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
             background: 'linear-gradient(90deg, rgba(99,102,241,0.06), rgba(236,72,153,0.04))',
           }}>
@@ -88,7 +88,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
               onClick={onClose}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(240,235,224,0.25)',
+                border: '1px solid rgba(var(--cream-rgb),0.25)',
                 borderRadius: 9999,
                 color: 'var(--cream)',
                 padding: '6px 14px',
@@ -128,8 +128,8 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
                     onChange={(e) => setOverrides((o) => ({ ...o, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     style={{
-                      background: 'rgba(15,18,28,0.85)',
-                      border: '1px solid rgba(240,235,224,0.12)',
+                      background: 'rgba(var(--bg-rgb),0.85)',
+                      border: '1px solid rgba(var(--cream-rgb),0.12)',
                       borderRadius: 10,
                       color: 'var(--cream)',
                       padding: '10px 12px',
@@ -147,7 +147,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
                 background: 'rgba(239,68,68,0.12)',
                 border: '1px solid rgba(239,68,68,0.4)',
                 borderRadius: 10,
-                color: '#fca5a5',
+                color: 'var(--red)',
                 fontFamily: 'DM Sans', fontSize: 13,
               }}>
                 {error}
@@ -162,7 +162,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
                 onClick={handleGenerate}
                 disabled={busy}
                 style={{
-                  background: busy ? 'rgba(240,235,224,0.15)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+                  background: busy ? 'rgba(var(--cream-rgb),0.15)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 9999,
@@ -180,7 +180,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
 
             {/* Divider */}
             <div style={{
-              height: 1, background: 'rgba(240,235,224,0.08)', margin: '4px 0',
+              height: 1, background: 'rgba(var(--cream-rgb),0.08)', margin: '4px 0',
             }} />
 
             {/* Custom upload */}

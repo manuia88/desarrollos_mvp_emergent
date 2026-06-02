@@ -87,7 +87,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
       onClick={close}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.86)', backdropFilter: 'blur(18px)',
+        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         overflowY: 'auto',
       }}
@@ -96,8 +96,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
         data-testid="colonia-quiz-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 22, padding: '24px',
           width: '100%', maxWidth: 540,
           maxHeight: '90vh', overflowY: 'auto',
@@ -121,9 +121,9 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
             onClick={close}
             style={{
               width: 30, height: 30, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
-              color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              color: 'rgba(var(--cream-rgb),0.6)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -137,14 +137,14 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               fontFamily: 'DM Sans', fontSize: 11,
-              color: 'rgba(240,235,224,0.5)', marginBottom: 6,
+              color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 6,
             }}>
               <span>Paso {Math.min(step + 1, totalScreens)} de {totalScreens}</span>
               <span>{progress}%</span>
             </div>
             <div style={{
               height: 4, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+              background: 'rgba(var(--cream-rgb),0.06)', overflow: 'hidden',
             }}>
               <div style={{
                 height: '100%',
@@ -169,7 +169,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
             {currentQuestion.subtitle && (
               <div style={{
                 fontFamily: 'DM Sans', fontSize: 13,
-                color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+                color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 18,
               }}>
                 {currentQuestion.subtitle}
               </div>
@@ -190,11 +190,11 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                       borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                       border: selected
                         ? '1px solid rgba(var(--theme-rgb),0.55)'
-                        : '1px solid rgba(240,235,224,0.12)',
+                        : '1px solid rgba(var(--cream-rgb),0.12)',
                       background: selected
                         ? 'rgba(var(--theme-rgb),0.14)'
-                        : 'rgba(255,255,255,0.03)',
-                      color: selected ? 'var(--cream, #F0EBE0)' : 'rgba(240,235,224,0.78)',
+                        : 'rgba(var(--cream-rgb),0.03)',
+                      color: selected ? 'var(--cream, #F0EBE0)' : 'rgba(var(--cream-rgb),0.78)',
                       fontFamily: 'DM Sans', fontWeight: selected ? 700 : 500, fontSize: 14,
                       transition: 'all 0.15s',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -223,9 +223,9 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                 disabled={step === 0}
                 style={{
                   padding: '11px 18px', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(240,235,224,0.15)',
-                  color: step === 0 ? 'rgba(240,235,224,0.25)' : 'rgba(240,235,224,0.7)',
+                  background: 'rgba(var(--cream-rgb),0.05)',
+                  border: '1px solid rgba(var(--cream-rgb),0.15)',
+                  color: step === 0 ? 'rgba(var(--cream-rgb),0.25)' : 'rgba(var(--cream-rgb),0.7)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
                   cursor: step === 0 ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -267,7 +267,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
             </div>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 13,
-              color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+              color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 18,
             }}>
               Te enviamos las 3 colonias que mejor matchean contigo y desarrollos disponibles ahí.
             </div>
@@ -280,8 +280,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
               placeholder="tu@email.com"
               style={{
                 width: '100%', padding: '12px 14px',
-                background: 'rgba(255,255,255,0.05)',
-                border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(240,235,224,0.15)'}`,
+                background: 'rgba(var(--cream-rgb),0.05)',
+                border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(var(--cream-rgb),0.15)'}`,
                 borderRadius: 10, outline: 'none',
                 fontFamily: 'DM Sans', fontSize: 14,
                 color: 'var(--cream, #F0EBE0)',
@@ -300,7 +300,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
               />
               <label htmlFor="quiz-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
-                color: 'rgba(240,235,224,0.55)', cursor: 'pointer', lineHeight: 1.5,
+                color: 'rgba(var(--cream-rgb),0.55)', cursor: 'pointer', lineHeight: 1.5,
               }}>
                 Acepto recibir mis matches y desarrollos relacionados de DesarrollosMX. Cancelo cuando quiera.
               </label>
@@ -311,7 +311,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                 padding: '9px 12px', borderRadius: 8, marginBottom: 14,
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.25)',
-                fontFamily: 'DM Sans', fontSize: 12, color: '#FCA5A5',
+                fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)',
               }}>
                 {error}
               </div>
@@ -322,9 +322,9 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                 onClick={prev}
                 style={{
                   padding: '12px 18px', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(240,235,224,0.15)',
-                  color: 'rgba(240,235,224,0.7)',
+                  background: 'rgba(var(--cream-rgb),0.05)',
+                  border: '1px solid rgba(var(--cream-rgb),0.15)',
+                  color: 'rgba(var(--cream-rgb),0.7)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -367,7 +367,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
             </div>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 12,
-              color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+              color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 18,
             }}>
               {results.email_sent
                 ? 'Te enviamos una copia por email.'
@@ -383,8 +383,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                   style={{
                     textAlign: 'left', cursor: onSelectColonia ? 'pointer' : 'default',
                     padding: '14px 16px', borderRadius: 14,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(240,235,224,0.1)',
+                    background: 'rgba(var(--cream-rgb),0.04)',
+                    border: '1px solid rgba(var(--cream-rgb),0.1)',
                     color: 'inherit',
                   }}
                 >
@@ -409,7 +409,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                   </div>
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 11,
-                    color: 'rgba(240,235,224,0.5)', marginBottom: 8,
+                    color: 'rgba(var(--cream-rgb),0.5)', marginBottom: 8,
                   }}>
                     {m.alcaldia} · {m.projects_count || 0} desarrollo{m.projects_count === 1 ? '' : 's'}
                   </div>
@@ -417,7 +417,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                     <ul style={{
                       margin: 0, paddingLeft: 16,
                       fontFamily: 'DM Sans', fontSize: 12,
-                      color: 'rgba(240,235,224,0.7)', lineHeight: 1.6,
+                      color: 'rgba(var(--cream-rgb),0.7)', lineHeight: 1.6,
                     }}>
                       {m.top_3_reasons.slice(0, 3).map((r, ri) => <li key={ri}>{r}</li>)}
                     </ul>
@@ -431,8 +431,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
               onClick={close}
               style={{
                 width: '100%', padding: '12px 18px', borderRadius: 9999,
-                border: '1px solid rgba(240,235,224,0.18)',
-                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(var(--cream-rgb),0.18)',
+                background: 'rgba(var(--cream-rgb),0.05)',
                 color: 'var(--cream, #F0EBE0)',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                 cursor: 'pointer',

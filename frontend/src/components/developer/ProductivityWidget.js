@@ -138,13 +138,13 @@ export default function ProductivityWidget({ period = '30d' }) {
       <div data-testid="productivity-confidence-card"
            style={{
              padding: 20, borderRadius: 16,
-             background: 'rgba(240,235,224,0.04)',
-             border: '1px solid rgba(240,235,224,0.12)',
+             background: 'rgba(var(--cream-rgb),0.04)',
+             border: '1px solid rgba(var(--cream-rgb),0.12)',
              display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap',
            }}>
         <div style={{
           width: 88, height: 88, borderRadius: 9999,
-          background: `conic-gradient(${ratioColor} ${ratio * 3.6}deg, rgba(240,235,224,0.08) 0)`,
+          background: `conic-gradient(${ratioColor} ${ratio * 3.6}deg, rgba(var(--cream-rgb),0.08) 0)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative', flexShrink: 0,
         }}>
@@ -188,13 +188,13 @@ export default function ProductivityWidget({ period = '30d' }) {
 
       {/* Per-asesor sortable table */}
       <div style={{
-        borderRadius: 14, border: '1px solid var(--border, rgba(240,235,224,0.1))',
+        borderRadius: 14, border: '1px solid var(--border, rgba(var(--cream-rgb),0.1))',
         overflow: 'hidden',
       }}>
         <table data-testid="productivity-table"
                style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
           <thead>
-            <tr style={{ background: 'rgba(240,235,224,0.05)' }}>
+            <tr style={{ background: 'rgba(var(--cream-rgb),0.05)' }}>
               {HEAD_COLS.map(c => (
                 <th key={c.key}
                     onClick={() => c.sortable && handleSort(c.key)}
@@ -265,8 +265,8 @@ function KPI({ label, value, testId, tone }) {
     <div data-testid={testId}
          style={{
            padding: 14, borderRadius: 12,
-           background: 'rgba(240,235,224,0.04)',
-           border: '1px solid rgba(240,235,224,0.1)',
+           background: 'rgba(var(--cream-rgb),0.04)',
+           border: '1px solid rgba(var(--cream-rgb),0.1)',
          }}>
       <div style={{
         fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',

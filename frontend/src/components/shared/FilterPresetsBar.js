@@ -87,7 +87,7 @@ export function FilterPresetsBar({ route, currentFilters, onLoadPreset }) {
             onClick={() => onDelete(p.id)}
             aria-label="Eliminar preset"
             style={{ background: 'transparent', border: 0, cursor: 'pointer',
-                      color: 'rgba(240,235,224,0.55)', padding: 0,
+                      color: 'rgba(var(--cream-rgb),0.55)', padding: 0,
                       display: 'flex', alignItems: 'center' }}
           >
             <Trash size={10} />
@@ -102,8 +102,8 @@ export function FilterPresetsBar({ route, currentFilters, onLoadPreset }) {
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '4px 10px', borderRadius: 9999,
             background: 'transparent',
-            border: '1px dashed rgba(240,235,224,0.25)',
-            color: 'rgba(240,235,224,0.6)', fontSize: 11,
+            border: '1px dashed rgba(var(--cream-rgb),0.25)',
+            color: 'rgba(var(--cream-rgb),0.6)', fontSize: 11,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -121,8 +121,8 @@ export function FilterPresetsBar({ route, currentFilters, onLoadPreset }) {
             autoFocus
             style={{
               padding: '4px 10px', borderRadius: 9999, fontSize: 11,
-              background: 'rgba(240,235,224,0.08)',
-              border: '1px solid rgba(240,235,224,0.2)',
+              background: 'rgba(var(--cream-rgb),0.08)',
+              border: '1px solid rgba(var(--cream-rgb),0.2)',
               color: 'var(--cream, #F0EBE0)', outline: 'none',
               fontFamily: 'inherit',
             }}

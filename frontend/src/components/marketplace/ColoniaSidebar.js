@@ -37,12 +37,12 @@ function RiskBar({ label, value }) {
         display: 'flex', justifyContent: 'space-between',
         fontFamily: 'DM Sans', fontSize: 12, marginBottom: 4,
       }}>
-        <span style={{ color: 'rgba(240,235,224,0.75)' }}>{label}</span>
+        <span style={{ color: 'rgba(var(--cream-rgb),0.75)' }}>{label}</span>
         <span style={{ fontWeight: 700, color }}>{value}</span>
       </div>
       <div style={{
         height: 6, borderRadius: 9999,
-        background: 'rgba(255,255,255,0.08)',
+        background: 'rgba(var(--cream-rgb),0.08)',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -116,7 +116,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
           onClick={onClose}
           style={{
             position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-            background: 'rgba(6,8,15,0.55)',
+            background: 'rgba(var(--bg-rgb),0.55)',
             backdropFilter: 'blur(4px)',
             display: 'none',
           }}
@@ -134,8 +134,8 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
           width: isOpen ? 380 : 0,
           minWidth: isOpen ? 380 : 0,
           zIndex: Z.DROPDOWN,
-          background: 'rgba(6,8,15,0.97)',
-          borderLeft: '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--bg-rgb),0.97)',
+          borderLeft: '1px solid rgba(var(--cream-rgb),0.10)',
           backdropFilter: 'blur(24px)',
           overflowY: 'auto',
           overflowX: 'hidden',
@@ -157,7 +157,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                   <>
                     <div style={{
                       fontFamily: 'DM Sans', fontSize: 11,
-                      color: 'rgba(240,235,224,0.5)',
+                      color: 'rgba(var(--cream-rgb),0.5)',
                       textTransform: 'uppercase', letterSpacing: '0.1em',
                       fontWeight: 600, marginBottom: 4,
                     }}>
@@ -185,7 +185,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                 {loading && (
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 14,
-                    color: 'rgba(240,235,224,0.5)', marginTop: 8,
+                    color: 'rgba(var(--cream-rgb),0.5)', marginTop: 8,
                   }}>
                     Cargando…
                   </div>
@@ -197,9 +197,9 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                 style={{
                   width: 30, height: 30,
                   borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(240,235,224,0.15)',
-                  color: 'rgba(240,235,224,0.6)',
+                  background: 'rgba(var(--cream-rgb),0.06)',
+                  border: '1px solid rgba(var(--cream-rgb),0.15)',
+                  color: 'rgba(var(--cream-rgb),0.6)',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
@@ -214,8 +214,8 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
             {data && !error && (
               <div data-testid="colonia-sidebar-tabs" style={{
                 display: 'flex', gap: 4, padding: 4,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(240,235,224,0.10)',
+                background: 'rgba(var(--cream-rgb),0.04)',
+                border: '1px solid rgba(var(--cream-rgb),0.10)',
                 borderRadius: 9999,
                 marginBottom: 18,
               }}>
@@ -233,7 +233,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                         flex: 1, padding: '7px 0', borderRadius: 9999,
                         border: 'none',
                         background: active ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
-                        color: active ? '#fff' : 'rgba(240,235,224,0.55)',
+                        color: active ? '#fff' : 'rgba(var(--cream-rgb),0.55)',
                         fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                         cursor: 'pointer',
                         transition: 'all 0.18s',
@@ -250,11 +250,11 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
             {error && (
               <div style={{
                 padding: '24px 16px', textAlign: 'center',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px dashed rgba(240,235,224,0.12)',
+                background: 'rgba(var(--cream-rgb),0.03)',
+                border: '1px dashed rgba(var(--cream-rgb),0.12)',
                 borderRadius: 14,
                 fontFamily: 'DM Sans', fontSize: 13,
-                color: 'rgba(240,235,224,0.5)',
+                color: 'rgba(var(--cream-rgb),0.5)',
               }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>Datos en construcción</div>
                 <div>Te avisaremos cuando esté listo.</div>
@@ -319,7 +319,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                           </div>
                           <div style={{
                             fontFamily: 'DM Sans', fontSize: 12,
-                            color: 'rgba(240,235,224,0.55)',
+                            color: 'rgba(var(--cream-rgb),0.55)',
                           }}>
                             {data.climate_twin.country}
                           </div>
@@ -339,7 +339,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                       {data.climate_twin.description && (
                         <div style={{
                           fontFamily: 'DM Sans', fontSize: 12,
-                          color: 'rgba(240,235,224,0.60)',
+                          color: 'rgba(var(--cream-rgb),0.60)',
                           lineHeight: 1.5,
                         }}>
                           {data.climate_twin.description}
@@ -450,7 +450,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                   <div style={{
                     marginTop: 6,
                     fontFamily: 'DM Sans', fontSize: 11,
-                    color: '#FCA5A5',
+                    color: 'var(--red)',
                     textAlign: 'center',
                   }}>{favError}</div>
                 )}
@@ -478,7 +478,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
             right: 0 !important;
             height: 100% !important;
             border-left: none !important;
-            border-top: 1px solid rgba(240,235,224,0.10) !important;
+            border-top: 1px solid rgba(var(--cream-rgb),0.10) !important;
             z-index: 50 !important;
           }
           .colonia-sidebar-backdrop { display: block !important; }
@@ -498,7 +498,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
 
 const sectionTitle = {
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-  color: 'rgba(240,235,224,0.5)',
+  color: 'rgba(var(--cream-rgb),0.5)',
   textTransform: 'uppercase', letterSpacing: '0.10em',
   marginBottom: 10,
 };
@@ -514,13 +514,13 @@ function StatCell({ label, value, highlight }) {
   return (
     <div style={{
       padding: '10px 12px',
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(240,235,224,0.08)',
+      background: 'rgba(var(--cream-rgb),0.03)',
+      border: '1px solid rgba(var(--cream-rgb),0.08)',
       borderRadius: 10,
     }}>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10,
-        color: 'rgba(240,235,224,0.45)', marginBottom: 3,
+        color: 'rgba(var(--cream-rgb),0.45)', marginBottom: 3,
       }}>
         {label}
       </div>

@@ -103,10 +103,10 @@ export function InlineEditField({
         className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-sm ${className}`}
         data-testid={testId || 'inline-edit-field'}
       >
-        <span className={displayed ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.3)]'}>
+        <span className={displayed ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.3)]'}>
           {displayed || placeholder}
         </span>
-        <Lock size={10} className="text-[rgba(240,235,224,0.2)] shrink-0" />
+        <Lock size={10} className="text-[rgba(var(--cream-rgb),0.2)] shrink-0" />
       </div>
     );
   }
@@ -117,19 +117,19 @@ export function InlineEditField({
       <div
         onClick={startEdit}
         className={`group relative cursor-pointer min-w-[60px] rounded px-1.5 py-0.5
-          hover:bg-[rgba(240,235,224,0.07)] transition-colors flex items-center gap-1.5 ${className}`}
+          hover:bg-[rgba(var(--cream-rgb),0.07)] transition-colors flex items-center gap-1.5 ${className}`}
         data-testid={testId || 'inline-edit-field'}
       >
-        <span className={`text-sm ${displayed ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.3)]'}`}>
+        <span className={`text-sm ${displayed ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.3)]'}`}>
           {displayed || placeholder}
         </span>
-        {saving && <Loader2 size={11} className="text-[rgba(240,235,224,0.4)] animate-spin shrink-0" />}
+        {saving && <Loader2 size={11} className="text-[rgba(var(--cream-rgb),0.4)] animate-spin shrink-0" />}
         {flashOk && <Check size={11} className="text-emerald-400 shrink-0" />}
         {!saving && !flashOk && (
-          <Pencil size={10} className="text-[rgba(240,235,224,0.2)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          <Pencil size={10} className="text-[rgba(var(--cream-rgb),0.2)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
         )}
         {error && (
-          <span className="absolute left-0 top-full mt-0.5 text-[10px] text-red-400 whitespace-nowrap z-10 bg-[#0d1022] px-1.5 py-0.5 rounded border border-red-400/20">
+          <span className="absolute left-0 top-full mt-0.5 text-[10px] text-red-400 whitespace-nowrap z-10 bg-[var(--surface,#0d1022)] px-1.5 py-0.5 rounded border border-red-400/20">
             {error}
           </span>
         )}
@@ -147,7 +147,7 @@ export function InlineEditField({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={save}
           onKeyDown={handleKey}
-          className="bg-[rgba(240,235,224,0.09)] border border-[rgba(240,235,224,0.25)] rounded px-2 py-0.5 text-[var(--cream)] text-sm outline-none focus:border-[rgba(240,235,224,0.5)]"
+          className="bg-[rgba(var(--cream-rgb),0.09)] border border-[rgba(var(--cream-rgb),0.25)] rounded px-2 py-0.5 text-[var(--cream)] text-sm outline-none focus:border-[rgba(var(--cream-rgb),0.5)]"
           data-testid="inline-edit-select"
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -160,12 +160,12 @@ export function InlineEditField({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={save}
           onKeyDown={handleKey}
-          className="bg-[rgba(240,235,224,0.09)] border border-[rgba(240,235,224,0.28)] rounded px-2 py-0.5 text-[var(--cream)] text-sm outline-none focus:border-[rgba(240,235,224,0.55)] min-w-[80px]"
+          className="bg-[rgba(var(--cream-rgb),0.09)] border border-[rgba(var(--cream-rgb),0.28)] rounded px-2 py-0.5 text-[var(--cream)] text-sm outline-none focus:border-[rgba(var(--cream-rgb),0.55)] min-w-[80px]"
           data-testid="inline-edit-input"
         />
       )}
       {error && (
-        <p className="absolute top-full left-0 mt-0.5 text-[10px] text-red-400 whitespace-nowrap z-10 bg-[#0d1022] px-1.5 py-0.5 rounded border border-red-400/20">
+        <p className="absolute top-full left-0 mt-0.5 text-[10px] text-red-400 whitespace-nowrap z-10 bg-[var(--surface,#0d1022)] px-1.5 py-0.5 rounded border border-red-400/20">
           {error}
         </p>
       )}

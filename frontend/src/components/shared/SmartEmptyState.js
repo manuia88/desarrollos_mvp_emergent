@@ -37,8 +37,8 @@ export function SmartEmptyState({
       style={{
         padding: compact ? '24px 18px' : '40px 28px',
         borderRadius: 16,
-        background: 'rgba(240,235,224,0.03)',
-        border: '1px dashed rgba(240,235,224,0.14)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px dashed rgba(var(--cream-rgb),0.14)',
         textAlign: 'center',
         fontFamily: 'DM Sans',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
@@ -62,7 +62,7 @@ export function SmartEmptyState({
       <p style={{
         margin: 0, maxWidth: 420,
         fontSize: compact ? 13 : 14, lineHeight: 1.5,
-        color: 'rgba(240,235,224,0.6)',
+        color: 'rgba(var(--cream-rgb),0.6)',
       }}>
         {state.body}
       </p>
@@ -88,7 +88,7 @@ export function SmartEmptyState({
                   : 'var(--cream, #F0EBE0)',
                 borderStyle: cta.primary ? 'none' : 'solid',
                 borderWidth: cta.primary ? 0 : 1,
-                borderColor: cta.primary ? 'transparent' : 'rgba(240,235,224,0.2)',
+                borderColor: cta.primary ? 'transparent' : 'rgba(var(--cream-rgb),0.2)',
                 transition: 'transform 0.15s ease',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}

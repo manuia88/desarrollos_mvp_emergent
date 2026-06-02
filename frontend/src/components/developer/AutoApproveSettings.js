@@ -22,7 +22,7 @@ function Toggle({ checked, onChange, testId }) {
     >
       {checked
         ? <ToggleRight size={30} color="var(--theme)" />
-        : <ToggleLeft size={30} color="rgba(240,235,224,0.25)" />}
+        : <ToggleLeft size={30} color="rgba(var(--cream-rgb),0.25)" />}
     </button>
   );
 }
@@ -54,8 +54,8 @@ function ColoniasMultiSelect({ selected, onChange }) {
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', padding: '10px 13px', borderRadius: 9,
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'rgba(var(--cream-rgb),0.06)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           textAlign: 'left',
@@ -66,7 +66,7 @@ function ColoniasMultiSelect({ selected, onChange }) {
             ? 'Todas las colonias (sin restriccion)'
             : `${selected.length} colonia${selected.length > 1 ? 's' : ''} seleccionada${selected.length > 1 ? 's' : ''}`}
         </span>
-        <ChevronDown size={14} color="rgba(240,235,224,0.40)" />
+        <ChevronDown size={14} color="rgba(var(--cream-rgb),0.40)" />
       </button>
 
       {/* Selected chips */}
@@ -94,8 +94,8 @@ function ColoniasMultiSelect({ selected, onChange }) {
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: Z.DROPDOWN,
-          background: 'rgba(13,17,28,0.98)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           borderRadius: 10, marginTop: 4, overflow: 'hidden',
           maxHeight: 240, overflowY: 'auto',
         }}>
@@ -109,9 +109,9 @@ function ColoniasMultiSelect({ selected, onChange }) {
                 background: selected.includes(c) ? 'rgba(var(--theme-rgb),0.12)' : 'transparent',
                 border: 'none', cursor: 'pointer',
                 fontFamily: 'DM Sans', fontSize: 13,
-                color: selected.includes(c) ? 'var(--theme)' : 'rgba(240,235,224,0.70)',
+                color: selected.includes(c) ? 'var(--theme)' : 'rgba(var(--cream-rgb),0.70)',
                 display: 'flex', alignItems: 'center', gap: 8,
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                borderBottom: '1px solid rgba(var(--cream-rgb),0.05)',
               }}
             >
               <input
@@ -197,7 +197,7 @@ export default function AutoApproveSettings() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: 60, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+      <div style={{ textAlign: 'center', padding: 60, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
         Cargando configuracion…
       </div>
     );
@@ -222,8 +222,8 @@ export default function AutoApproveSettings() {
 
       {/* Card */}
       <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px solid rgba(var(--cream-rgb),0.08)',
         borderRadius: 16, padding: '24px 24px 22px',
       }}>
         {/* Header */}
@@ -241,7 +241,7 @@ export default function AutoApproveSettings() {
               <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>
                 Aprobacion automatica
               </h3>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)', margin: '2px 0 0' }}>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)', margin: '2px 0 0' }}>
                 Aprueba asesores calificados sin intervencion manual
               </p>
             </div>
@@ -254,14 +254,14 @@ export default function AutoApproveSettings() {
         </div>
 
         {rule.enabled && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 18 }}>
+          <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.07)', paddingTop: 18 }}>
 
             {/* Trust Score slider */}
             <div style={{ marginBottom: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{
                   fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
-                  color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em',
+                  color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em',
                 }}>
                   Trust Score minimo
                 </label>
@@ -283,7 +283,7 @@ export default function AutoApproveSettings() {
                 onChange={e => setRule(r => ({ ...r, threshold_trust_score: parseInt(e.target.value) }))}
                 style={{ width: '100%', accentColor: 'var(--theme)' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.30)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(var(--cream-rgb),0.30)' }}>
                 <span>0</span><span>50</span><span>100</span>
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function AutoApproveSettings() {
                 <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>
                   Requerir experiencia en zona
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(var(--cream-rgb),0.45)' }}>
                   El asesor debe tener deals cerrados en las colonias objetivo
                 </div>
               </div>
@@ -310,7 +310,7 @@ export default function AutoApproveSettings() {
               <div style={{ marginBottom: 16 }}>
                 <label style={{
                   fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
-                  color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase',
+                  color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase',
                   letterSpacing: '0.07em', display: 'block', marginBottom: 5,
                 }}>
                   Colonias relevantes
@@ -326,7 +326,7 @@ export default function AutoApproveSettings() {
             <div style={{ marginBottom: 20 }}>
               <label style={{
                 fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
-                color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase',
+                color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase',
                 letterSpacing: '0.07em', display: 'block', marginBottom: 5,
               }}>
                 Minimo deals cerrados (ultimos 12 meses)
@@ -338,8 +338,8 @@ export default function AutoApproveSettings() {
                 onChange={e => setRule(r => ({ ...r, min_deals_closed_12m: parseInt(e.target.value) || 0 }))}
                 style={{
                   width: '100%', padding: '10px 13px', borderRadius: 9,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'rgba(var(--cream-rgb),0.06)',
+                  border: '1px solid rgba(var(--cream-rgb),0.10)',
                   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -361,7 +361,7 @@ export default function AutoApproveSettings() {
                   </span>
                 </div>
                 {simulating ? (
-                  <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.50)' }}>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(var(--cream-rgb),0.50)' }}>
                     Calculando…
                   </span>
                 ) : preview && (

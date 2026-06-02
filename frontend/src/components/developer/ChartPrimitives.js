@@ -6,7 +6,7 @@ const CSS_VAR = (name, fallback) => `var(${name}, ${fallback})`;
 const CREAM = CSS_VAR('--cream', '#F0EBE0');
 const CREAM_2 = CSS_VAR('--cream-2', '#D5CFC2');
 const CREAM_3 = CSS_VAR('--cream-3', '#8F897A');
-const BORDER = CSS_VAR('--border', 'rgba(240,235,224,0.08)');
+const BORDER = CSS_VAR('--border', 'rgba(var(--cream-rgb),0.08)');
 
 // ────────────────────────────────────────────────────────────────────────────
 // Sparkline: accepts an array of numbers + optional area fill
@@ -119,7 +119,7 @@ export function BarList({ items = [], maxWidth = 300, format = (v) => v }) {
               <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: CREAM_2 }}>{it.label}</span>
               <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: CREAM_3 }}>{format(it.value)}</span>
             </div>
-            <div style={{ height: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 8, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{
                 width: `${pct}%`, height: '100%',
                 background: it.color || 'var(--theme-3)',
@@ -151,7 +151,7 @@ export function HeatmapCalendar({ cells = [], cellSize = 11, gap = 2 }) {
   }
   if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
 
-  const colors = ['rgba(255,255,255,0.04)', 'rgba(var(--theme-rgb),0.18)', 'rgba(var(--theme-rgb),0.38)', 'rgba(var(--theme-rgb),0.62)', 'rgba(var(--theme-rgb),0.95)'];
+  const colors = ['rgba(var(--cream-rgb),0.04)', 'rgba(var(--theme-rgb),0.18)', 'rgba(var(--theme-rgb),0.38)', 'rgba(var(--theme-rgb),0.62)', 'rgba(var(--theme-rgb),0.95)'];
   const width = weeks.length * (cellSize + gap);
   const height = 7 * (cellSize + gap);
   return (

@@ -130,7 +130,7 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
         display: 'inline-flex', alignItems: 'center', gap: 8,
         padding: '7px 12px', borderRadius: 9999,
         background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.32)',
-        fontFamily: 'DM Sans', fontSize: 11, color: '#fcd34d',
+        fontFamily: 'DM Sans', fontSize: 11, color: 'var(--amber)',
       }}>
         <AlertTriangle size={11} />
         Drive: configura GOOGLE_OAUTH_CLIENT_ID en .env
@@ -281,7 +281,7 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
 const btnGlass = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '6px 12px', borderRadius: 9999,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)',
   fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', cursor: 'pointer',
 };
 const btnGhost = {

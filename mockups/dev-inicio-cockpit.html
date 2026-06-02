@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMX · Inicio Dev · Tema Claro (lenguaje Mis Leads)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFB;--surface:#FFFFFF;--surface-2:#F1F2F6;--ink:#1E2230;--ink-2:#5A6172;--ink-3:#969CAB;
+    --line:#E6E8EE;--line-2:#D5D8E2;--accent:#6D4AFF;--accent-2:#5B37E0;--accent-ink:#FFFFFF;--accent-text:#5B37E0;
+    --accent-soft:rgba(109,74,255,.10);--grad:linear-gradient(120deg,#6D4AFF,#C63FAE);
+    --hot:#F2635B;--warm:#E2982E;--cold:#3B82F6;--ok:#1FA06A;
+    --shadow:0 1px 2px rgba(20,25,45,.04),0 4px 10px rgba(20,25,45,.06);--shadow-lg:0 14px 34px rgba(20,25,45,.16);
+    --serif:'Outfit',system-ui,sans-serif;--sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:16px}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(760px 540px at 0% -10%,rgba(109,74,255,.26),transparent 56%),radial-gradient(840px 620px at 105% -4%,rgba(120,150,255,.26),transparent 60%),radial-gradient(720px 620px at 98% 108%,rgba(109,74,255,.12),transparent 55%)}
+  .app{position:relative;z-index:1;display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .serif{font-family:var(--serif)}.num{font-family:var(--serif);font-variant-numeric:tabular-nums}
+  .side{padding:24px 16px;border-right:1px solid var(--line);background:rgba(255,255,255,.5)}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;padding:0 6px}
+  .brand .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:18px}
+  .brand b{font-family:var(--serif);font-weight:700;font-size:17px}
+  .nav-label{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:6px 10px 10px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:var(--ink-2);font-size:14.5px;font-weight:500;cursor:pointer;margin-bottom:2px}
+  .nav-item:hover{background:var(--surface-2);color:var(--ink)}
+  .nav-item.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+  .ico{width:18px;height:18px;flex-shrink:0;opacity:.7}
+  .main{display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:14px;padding:16px 32px;border-bottom:1px solid var(--line)}
+  .search{flex:1;max-width:400px;display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;color:var(--ink-3);font-size:14px;background:var(--surface)}
+  .iconbtn{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);cursor:pointer}
+  .body{padding:26px 32px 60px}
+  .head{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px}
+  .head h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-.6px;line-height:1}
+  .head p{color:var(--ink-2);font-size:15px;margin-top:8px}
+  .head .tools{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .toggle{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+  .toggle button{border:0;background:transparent;color:var(--ink-3);font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;font-family:inherit}
+  .toggle button.on{background:var(--accent);color:#fff}
+  /* KPI strip (chips de negocio) */
+  .kpis{display:flex;gap:11px;flex-wrap:wrap;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+  .kc{flex:1;min-width:150px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+  .kc .kl{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  .kc .kv{font-family:var(--serif);font-weight:700;font-size:23px;margin-top:4px}
+  .kc .ks{font-size:12px;color:var(--ink-3);margin-top:1px}
+  .kc.hero{background:linear-gradient(120deg,var(--accent-soft),rgba(198,63,174,.05));border-color:rgba(109,74,255,.22);flex:1.6}
+  .secline{display:flex;align-items:baseline;gap:13px;margin:0 0 16px}
+  .secline .em{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);font-weight:700}
+  .secline .lab{font-family:var(--serif);font-weight:700;font-size:20px}
+  .secline .it{font-size:13.5px;color:var(--ink-3)}.secline .rule{flex:1;height:1px;background:var(--line)}
+  .focus{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:34px;background:linear-gradient(180deg,var(--accent-soft),transparent 90%);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fcard{padding:17px 19px;border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .fcard .ft{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .fcard .dot{width:8px;height:8px;border-radius:50%}.fcard .who{font-family:var(--serif);font-weight:700;font-size:17px}
+  .fcard .tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  .fcard .impact{font-family:var(--serif);font-weight:700;font-size:14px;color:var(--ok);margin-bottom:6px}
+  .fcard .msg{color:var(--ink-2);font-size:13.5px;line-height:1.5;margin-bottom:10px}.fcard .msg b{color:var(--ink);font-weight:700}
+  .fcard .src{font-size:10.5px;color:var(--ink-3);margin-bottom:12px}
+  .fcard .fa{display:flex;gap:8px;margin-top:auto}
+  .mini{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit}
+  .mini.go{background:var(--accent);border-color:var(--accent);color:#fff}
+  .mkt{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:34px}
+  .mcard{border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:var(--shadow);padding:15px 17px;display:flex;gap:12px;align-items:flex-start}
+  .mcard .mi{font-size:20px}.mcard .zone{font-family:var(--serif);font-weight:700;font-size:15px}.mcard .md{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+  .badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:999px}
+  .num-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:13px}
+  .foot{text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- sidebar (igual estilo Mis Leads) -->
+  <aside class="side">
+    <div class="brand"><div class="logo">D</div><b>DesarrollosMX</b></div>
+    <div class="nav-label">MÓDULO</div>
+    <div class="nav-item active"><span class="ico">▦</span> Inicio</div>
+    <div class="nav-item"><span class="ico">🏢</span> Mis Proyectos</div>
+    <div class="nav-item"><span class="ico">👥</span> CRM &amp; Leads</div>
+    <div class="nav-item"><span class="ico">📊</span> Inteligencia</div>
+    <div class="nav-item"><span class="ico">🤝</span> Red comercial</div>
+    <div class="nav-item"><span class="ico">📣</span> Marketing</div>
+    <div class="nav-item"><span class="ico">⚙️</span> Ajustes</div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="search">🔎 Buscar proyecto, unidad…</div>
+      <div class="iconbtn">🔔</div><div class="iconbtn">👤</div>
+    </div>
+    <div class="body">
+
+      <div class="head">
+        <div>
+          <h1 class="serif">Inicio</h1>
+          <p>Buenos días, Constructora Ariel · esto mueve tu negocio hoy.</p>
+        </div>
+        <div class="tools">
+          <div class="toggle"><button class="on">Resumen</button><button>Director AI</button><button>What-if</button><button>Tu ROI</button></div>
+        </div>
+      </div>
+
+      <!-- KPIs del negocio (reemplaza el banner oscuro de stats) -->
+      <div class="kpis">
+        <div class="kc hero"><div class="kl">💰 Dinero del portafolio</div><div class="kv">$774M <span style="font-size:13px;color:var(--ink-3);font-weight:500">por cobrar</span></div><div class="ks">cobrado $374M · <span style="color:var(--ok);font-weight:600">+$28M este mes</span></div></div>
+        <div class="kc"><div class="kl">Colocado</div><div class="kv">31%</div><div class="ks">22 de 70 uds</div></div>
+        <div class="kc"><div class="kl">Ritmo de venta</div><div class="kv">1.3<span style="font-size:13px;color:var(--ink-3)">/sem</span></div><div class="ks">conversión 6%</div></div>
+        <div class="kc"><div class="kl" style="color:var(--hot)">Necesitan acción</div><div class="kv" style="color:var(--hot)">2</div><div class="ks">salud baja</div></div>
+      </div>
+
+      <!-- FOCO DE HOY = jugadas (idéntico patrón a Mis Leads) -->
+      <div class="secline"><span class="em">Tus jugadas de hoy</span><span class="lab">El Cerebro priorizó esto para ti</span><span class="it">ordenado por $ en juego</span><span class="rule"></span></div>
+      <div class="focus">
+        <div class="fcard">
+          <div class="ft"><span class="dot" style="background:var(--hot)"></span><span class="who">Altavista Polanco</span><span class="tag" style="color:var(--hot)">PRECIO</span></div>
+          <div class="impact">+ $96M · vende 30% más rápido</div>
+          <div class="msg">Está <b>8% arriba</b> del valor de su zona ($14.8M vs $13.7M) — por eso solo vende 1.3/sem. Bájalo a mercado.</div>
+          <div class="src">Fuente: tu precio + valor de zona (DRPI) + valuación AVM</div>
+          <div class="fa"><button class="mini go">Ver y ajustar</button><button class="mini">¿Por qué?</button></div>
+        </div>
+        <div class="fcard">
+          <div class="ft"><span class="dot" style="background:var(--warm)"></span><span class="who">Lomas Signature</span><span class="tag" style="color:var(--warm)">ENTREGA</span></div>
+          <div class="impact" style="color:var(--hot)">$134M podrían quedar parados</div>
+          <div class="msg">Entrega en <b>5 meses</b> y a tu ritmo te quedan <b>6 unidades sin vender</b>. Empuja marketing o ajusta precio ya.</div>
+          <div class="src">Fuente: tu ritmo + pronóstico + fecha de entrega</div>
+          <div class="fa"><button class="mini go">Ver plan</button><button class="mini">Ignorar</button></div>
+        </div>
+        <div class="fcard">
+          <div class="ft"><span class="dot" style="background:var(--ok)"></span><span class="who">3 leads calientes</span><span class="tag" style="color:var(--ok)">CIERRE</span></div>
+          <div class="impact">~$44M en juego esta semana</div>
+          <div class="msg">En Altavista, a punto de decidir — y la demanda en Polanco <b>subió 22%</b>. Llámalos hoy.</div>
+          <div class="src">Fuente: scoring de leads + pulso de demanda (Live Pulse)</div>
+          <div class="fa"><button class="mini go">Ver leads</button><button class="mini">Más tarde</button></div>
+        </div>
+      </div>
+
+      <!-- El mercado hoy -->
+      <div class="secline"><span class="em">El mercado hoy</span><span class="lab">Lo que pasa afuera y te afecta</span><span class="rule"></span></div>
+      <div class="mkt">
+        <div class="mcard"><span class="mi">📈</span><div style="flex:1"><div class="zone">Polanco</div><div class="md">Búsquedas +22% este mes — empuja Altavista</div></div><span class="badge" style="background:var(--c-green,#EAF7F0);color:var(--ok)">a favor</span></div>
+        <div class="mcard"><span class="mi">⚔️</span><div style="flex:1"><div class="zone">Competidor</div><div class="md">A 800m de Lomas bajó precios 5% — vigila tu ritmo</div></div><span class="badge" style="background:#FDEEED;color:var(--hot)">atención</span></div>
+        <div class="mcard"><span class="mi">🏷️</span><div style="flex:1"><div class="zone">27 alertas de precio</div><div class="md">Unidades fuera del rango de mercado</div></div><span class="badge" style="background:var(--accent-soft);color:var(--accent-text)">revisar</span></div>
+      </div>
+
+      <!-- Tu negocio en números -->
+      <div class="secline"><span class="em">Tu negocio en números</span><span class="rule"></span></div>
+      <div class="num-grid">
+        <div class="kc"><div class="kl">Absorción</div><div class="kv">14%<span style="font-size:13px;color:var(--ink-3)">/mes</span></div><svg width="100%" height="22" viewBox="0 0 80 22"><polyline points="0,18 13,16 26,13 40,12 53,9 66,7 80,4" fill="none" stroke="#6D4AFF" stroke-width="2"/></svg></div>
+        <div class="kc"><div class="kl">Disponibles</div><div class="kv">322</div><div class="ks">reservadas 104</div></div>
+        <div class="kc"><div class="kl">Leads · conversión</div><div class="kv">12 · 6%</div><div class="ks">3 calientes</div></div>
+        <div class="kc"><div class="kl">Salud promedio</div><div class="kv" style="color:var(--warm)">48</div><div class="ks">de 100</div></div>
+      </div>
+
+      <div class="foot"><button class="mini go" style="padding:11px 20px">Ver y operar mis proyectos →</button></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

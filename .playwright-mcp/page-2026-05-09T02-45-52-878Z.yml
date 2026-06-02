@@ -1,0 +1,157 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /barrios
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Cambiar a español" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: EN
+        - generic [ref=e22]: ·
+        - generic [ref=e23]: ES
+      - button "Entrar" [ref=e24] [cursor=pointer]
+      - link "Abrir mapa" [ref=e25] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Abrir mapa
+  - main [ref=e29]:
+    - generic [ref=e30]: MOTOR IE · ¿CÓMO FUNCIONA?
+    - heading "Los 97 indicadores detrás de cada precio." [level=1] [ref=e31]:
+      - text: Los
+      - generic [ref=e32]: 97 indicadores
+      - text: detrás de cada precio.
+    - paragraph [ref=e33]: DesarrollosMX no opina. DMX mide. Para cada colonia cruzamos fuentes públicas oficiales, sensores propios y comparables del mercado en vivo. El resultado es una lectura verificable del territorio — el mismo motor que alimenta los dashboards del portal del desarrollador y el argumentario del asesor.
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: LIVE · IE ENGINE
+          - generic [ref=e38]: Roma Norte · lectura actual
+        - generic [ref=e39]: Haz click en un score para ver "cómo lo sabemos" →
+      - generic [ref=e40]: Cargando scores…
+      - generic [ref=e42]:
+        - img [ref=e43]
+        - text: Generando narrativa AI…
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - img [ref=e50]
+          - generic [ref=e53]: "14"
+        - generic [ref=e54]: Vida cotidiana
+        - generic [ref=e55]: Densidad de servicios, áreas verdes, ruido, ritmo del barrio, calidad del aire.
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - img [ref=e59]
+          - generic [ref=e63]: "12"
+        - generic [ref=e64]: Movilidad
+        - generic [ref=e65]: Tráfico observado por franja horaria, estaciones de Metro/Metrobús, ciclovía, tiempos puerta-a-puerta.
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - img [ref=e69]
+          - generic [ref=e71]: "18"
+        - generic [ref=e72]: Seguridad y riesgo
+        - generic [ref=e73]: Delito georreferenciado por tipo, riesgo sísmico, encharcamientos, grietas, iluminación.
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - img [ref=e77]
+          - generic [ref=e80]: "11"
+        - generic [ref=e81]: Comercio
+        - generic [ref=e82]: Densidad comercial, horarios, gastronomía, retail ancla, vida nocturna medida.
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - img [ref=e86]
+          - generic [ref=e87]: "16"
+        - generic [ref=e88]: Mercado
+        - generic [ref=e89]: Absorción de preventa, rotación de venta, inventario visible, velocidad por ticket.
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - img [ref=e93]
+          - generic [ref=e97]: "15"
+        - generic [ref=e98]: Construcción
+        - generic [ref=e99]: Permisos activos, tipologías, alturas permitidas, año, amenidades, nivel de acabados.
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - img [ref=e103]
+          - generic [ref=e106]: "11"
+        - generic [ref=e107]: Plusvalía
+        - generic [ref=e108]: Tendencia 5 años por colonia, comparables, premium vs submercado, outliers.
+    - generic [ref=e109]:
+      - generic [ref=e110]:
+        - generic [ref=e111]: QUIÉN USA EL MOTOR
+        - generic [ref=e112]: Compradores, asesores y desarrolladoras — la misma capa de verdad.
+        - generic [ref=e113]: El comprador lo ve resumido en el IE Score. El asesor lo usa para su argumentario Pulppo+. La desarrolladora lo usa para pricing dinámico y radar competidores. Mismo dato, tres lecturas distintas.
+      - link "Ver el motor en acción" [ref=e114] [cursor=pointer]:
+        - /url: /marketplace
+        - text: Ver el motor en acción
+        - img [ref=e115]
+    - generic [ref=e117]:
+      - generic [ref=e118]: Watchlist público
+      - heading "Sigue el riesgo de tus zonas favoritas" [level=3] [ref=e119]
+      - paragraph [ref=e120]: Recibe el boletín mensual del DRPI y alertas cuando una zona en tu lista cambie a tier crítico (Risk Score). 1 alerta por semana máximo.
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - generic [ref=e123]: Email
+          - textbox "Email" [ref=e124]:
+            - /placeholder: tu@correo.com
+        - generic [ref=e125]:
+          - generic [ref=e126]: Zonas a vigilar (separadas por coma)
+          - textbox "Zonas a vigilar (separadas por coma)" [ref=e127]:
+            - /placeholder: polanco, roma_norte, condesa
+        - generic [ref=e128]:
+          - generic [ref=e129]: Tipo de notificación
+          - combobox "Tipo de notificación" [ref=e130]:
+            - option "Boletines mensuales"
+            - option "Alertas de riesgo"
+            - option "Boletines + alertas" [selected]
+        - button "Crear watchlist" [ref=e131] [cursor=pointer]
+        - paragraph [ref=e132]: LFPDPPP — DesarrollosMX nunca compartirá tu correo. Audit trail conservado por compliance. Puedes darte de baja en cualquier momento desde el correo de gestión.
+  - generic [ref=e134]:
+    - generic [ref=e136]: Empieza hoy
+    - heading "Comprar bien no es suerte. Es información." [level=2] [ref=e137]:
+      - generic [ref=e138]: Comprar
+      - generic [ref=e139]: bien
+      - generic [ref=e140]: "no"
+      - generic [ref=e141]: es
+      - generic [ref=e142]: suerte.
+      - generic [ref=e143]: Es
+      - generic [ref=e144]: información.
+    - generic [ref=e145]:
+      - paragraph [ref=e146]: Abre el mapa de inteligencia más completo de la Ciudad de México y toma una decisión que aguante revisión en cinco años.
+      - generic [ref=e147]:
+        - button "Entrar al mapa" [ref=e148] [cursor=pointer]:
+          - img [ref=e149]
+          - text: Entrar al mapa
+        - button "Ver planes" [ref=e152] [cursor=pointer]
+  - contentinfo [ref=e153]:
+    - generic [ref=e156]:
+      - img [ref=e157]
+      - generic [ref=e159]: LFPDPPP Compliant · k-anonymity ≥5 · Audited Trail
+      - link "Methodology" [ref=e160] [cursor=pointer]:
+        - /url: /methodology
+      - link "Privacy" [ref=e161] [cursor=pointer]:
+        - /url: /privacy/dsr
+    - generic [ref=e162]:
+      - generic [ref=e163]:
+        - img [ref=e165]
+        - generic [ref=e168]: DMX
+      - generic [ref=e169]:
+        - link "Aviso de privacidad" [ref=e170] [cursor=pointer]:
+          - /url: "#"
+        - link "Términos de uso" [ref=e171] [cursor=pointer]:
+          - /url: "#"
+        - link "Para asesores" [ref=e172] [cursor=pointer]:
+          - /url: "#"
+        - link "Para desarrolladoras" [ref=e173] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e174]: © 2026 DesarrollosMX SA de CV · Ciudad de México
+  - button "Abrir chat Caya" [ref=e175] [cursor=pointer]:
+    - img [ref=e176]

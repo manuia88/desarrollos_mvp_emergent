@@ -20,7 +20,7 @@ const STATUS_COLORS = {
   green:   '#4ade80',
   amber:   '#fbbf24',
   red:     '#f87171',
-  neutral: 'rgba(240,235,224,0.3)',
+  neutral: 'rgba(var(--cream-rgb),0.3)',
 };
 
 function scoreColor(score) {
@@ -72,7 +72,7 @@ export function HealthScore({
         aria-expanded={open}
       >
         <svg width={outer} height={outer} className="-rotate-90" aria-hidden="true">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(240,235,224,0.08)" strokeWidth={stroke} />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(var(--cream-rgb),0.08)" strokeWidth={stroke} />
           <circle
             cx={cx} cy={cy} r={r} fill="none"
             stroke={color} strokeWidth={stroke}
@@ -87,29 +87,29 @@ export function HealthScore({
           <span className="font-bold tabular-nums" style={{ fontSize: numSize, color, lineHeight: 1.1 }}>
             {Math.round(score)}
           </span>
-          <span style={{ fontSize: numSize * 0.55, color: 'rgba(240,235,224,0.35)', lineHeight: 1 }}>/100</span>
+          <span style={{ fontSize: numSize * 0.55, color: 'rgba(var(--cream-rgb),0.35)', lineHeight: 1 }}>/100</span>
         </div>
       </button>
 
       {/* Breakdown popover */}
       {open && (
         <div
-          className="absolute top-full mt-2 z-50 w-[220px] rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] p-3"
+          className="absolute top-full mt-2 z-50 w-[220px] rounded-xl bg-[rgba(var(--bg-rgb),0.92)] border border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px] p-3"
           data-testid="health-score-breakdown"
         >
-          <p className="text-[rgba(240,235,224,0.4)] text-[10px] uppercase tracking-widest mb-2.5">
+          <p className="text-[rgba(var(--cream-rgb),0.4)] text-[10px] uppercase tracking-widest mb-2.5">
             {VARIANT_LABELS[variant]?.prefix || 'Desglose'}
           </p>
           {breakdown.length === 0 && (
-            <p className="text-[rgba(240,235,224,0.35)] text-xs">Sin desglose disponible.</p>
+            <p className="text-[rgba(var(--cream-rgb),0.35)] text-xs">Sin desglose disponible.</p>
           )}
           {breakdown.map((c, i) => (
             <div key={i} className="mb-2" data-testid={`health-component-${i}`}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[rgba(240,235,224,0.7)] text-xs">{c.label}</span>
+                <span className="text-[rgba(var(--cream-rgb),0.7)] text-xs">{c.label}</span>
                 <div className="flex items-center gap-1.5">
                   {c.weight && (
-                    <span className="text-[9px] text-[rgba(240,235,224,0.3)]">{Math.round(c.weight * 100)}%</span>
+                    <span className="text-[9px] text-[rgba(var(--cream-rgb),0.3)]">{Math.round(c.weight * 100)}%</span>
                   )}
                   <span
                     className="text-xs font-semibold"
@@ -119,7 +119,7 @@ export function HealthScore({
                   </span>
                 </div>
               </div>
-              <div className="h-1 bg-[rgba(240,235,224,0.07)] rounded-full overflow-hidden">
+              <div className="h-1 bg-[rgba(var(--cream-rgb),0.07)] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{

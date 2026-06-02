@@ -29,6 +29,9 @@ import {
   GitMerge, Layers, Sparkles,
   Share2, BarChart3, DollarSign, FileText, MapPin,
   Activity, Link, Bot, Bell, Radar, LineChart,
+  // DEV_NAV_V2 (B7-dev F2 · sidebar reorg desarrollador)
+  LayoutDashboard, TrendingUp, Target, Swords, Network, HeartHandshake,
+  Settings, Package, FolderOpen, FolderUp, BarChart2, AlertTriangle,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -121,6 +124,93 @@ export const ASESOR_NAV_V2 = [
   {
     key: 'herramientas', to: '/asesor/briefing', label: 'Tráfico + Clima', Icon: MapPin,
     description: 'Tráfico + clima de la zona antes de cada visita',
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// DEV_NAV_V2 — Sidebar Reorg V2 del DESARROLLADOR (B7-dev · Paso B + fusión 7 tabs)
+// Aditivo y paralelo a DEV_NAV (navByRole.js). Activado por REACT_APP_DEV_V2.
+// REGLA NO ORPHANS: cada `to:` existe en App.js (verificado).
+// Consolida 24 ítems casi planos → 2 accesos directos + 5 hubs = 7 entradas.
+// FUSIÓN (2026-06-02): Mensajes→dentro de CRM · Operación(Solicitudes/Disputas)→Red comercial
+//   · Mini Market→Marketing(ex-Studio). RESCATA 5 pantallas antes solo-URL.
+// (Lo apagado que necesita pantalla nueva — motores, suite IA — llega en Paso C.)
+/** @type {NavGroupV2[]} */
+export const DEV_NAV_V2 = [
+  // 1 · Inicio (acceso directo)
+  {
+    key: 'inicio', to: '/desarrollador', label: 'Inicio', Icon: LayoutDashboard, end: true,
+    description: 'Tu panel del día · salud de proyectos · alertas',
+  },
+  // 2 · Mis Proyectos (CENTRO · acceso directo)
+  {
+    key: 'proyectos', to: '/desarrollador/proyectos', label: 'Mis Proyectos', Icon: Building2,
+    badge_source: 'projects_health_below_60',
+    description: 'Tu centro · cada proyecto abre inventario, precios, demanda y leads',
+  },
+  // 3 · CRM & Leads (hub · Embudo, Leads, Auto-asignación + Mensajes fusionado)
+  {
+    key: 'crm', to: '/desarrollador/crm', label: 'CRM & Leads', Icon: ClipboardList,
+    badge_source: 'crm_unread_leads',
+    description: 'Embudo, leads, auto-asignación y conversaciones — todo el pipeline',
+    children: [
+      { key: 'crm-tablero',  to: '/desarrollador/crm',                  label: 'Tablero',         Icon: ClipboardList, badge_source: 'crm_unread_leads' },
+      { key: 'crm-embudo',   to: '/desarrollador/crm/funnel',           label: 'Embudo',          Icon: GitMerge },
+      { key: 'crm-leads',    to: '/desarrollador/leads',                label: 'Leads',           Icon: Users },
+      { key: 'crm-autoasig', to: '/desarrollador/crm/auto-assignments', label: 'Auto-asignación', Icon: Share2 },
+      { key: 'crm-mensajes', to: '/desarrollador/mensajes',             label: 'Mensajes',        Icon: MessageSquare },
+      { key: 'crm-cerebro',  to: '/desarrollador/crm/sala-control',     label: 'Tu asistente', Icon: Sparkles },
+    ],
+  },
+  // 4 · Inteligencia (hub · cerebro de mercado)
+  {
+    key: 'inteligencia', to: '/desarrollador/demanda', label: 'Inteligencia', Icon: Sparkles,
+    description: 'Demanda, precios, competidores y reportes — tu cerebro de mercado',
+    children: [
+      { key: 'int-demanda',      to: '/desarrollador/demanda',        label: 'Demanda',        Icon: BarChart3 },
+      { key: 'int-pricing',      to: '/desarrollador/pricing',        label: 'Precios IA',     Icon: TrendingUp },
+      { key: 'int-competidores', to: '/desarrollador/competidores',   label: 'Competidores',   Icon: Target },
+      { key: 'int-battle',       to: '/desarrollador/battle-card',    label: 'Battle Card',    Icon: Swords },
+      { key: 'int-reportes',     to: '/desarrollador/reportes',       label: 'Reportes IA',    Icon: LineChart },
+      { key: 'int-site',         to: '/desarrollador/site-selection', label: 'Site Selection', Icon: MapPin },
+    ],
+  },
+  // 5 · Red comercial (hub · Asesores/Equipo/Métricas/Alianzas + Solicitudes/Disputas fusionados)
+  {
+    key: 'red-comercial', to: '/desarrollador/red-comercial', label: 'Red comercial', Icon: Network,
+    description: 'Asesores, equipo, métricas, alianzas y bandeja de solicitudes/disputas',
+    children: [
+      { key: 'rc-red',         to: '/desarrollador/red-comercial',        label: 'Red comercial',     Icon: Network },
+      { key: 'rc-equipo',      to: '/desarrollador/usuarios',             label: 'Equipo',            Icon: Users },
+      { key: 'rc-met-eq',      to: '/desarrollador/crm/metricas-equipo',  label: 'Métricas equipo',   Icon: BarChart2 },
+      { key: 'rc-met-ase',     to: '/desarrollador/crm/asesores-metrics', label: 'Métricas asesores', Icon: BarChart2 },
+      { key: 'rc-alianzas',    to: '/desarrollador/cross-partnerships',   label: 'Alianzas',          Icon: HeartHandshake },
+      { key: 'rc-solicitudes', to: '/desarrollador/solicitudes',          label: 'Solicitudes',       Icon: Users,         badge_source: 'whitelist_pending_count' },
+      { key: 'rc-disputas',    to: '/desarrollador/disputas',             label: 'Disputas leads',    Icon: AlertTriangle, badge_source: 'disputes_pending_count' },
+    ],
+  },
+  // 6 · Marketing (hub · ex-Studio + Mini Market fusionado)
+  {
+    key: 'marketing', to: '/portal/studio/brand-kit', label: 'Marketing', Icon: Megaphone,
+    description: 'Mini Market + Studio: tu suite de difusión y contenido con IA',
+    children: [
+      { key: 'mk-minimarket',   to: '/desarrollador/mini-market',  label: 'Mini Market',      Icon: Store },
+      { key: 'mk-brand-kit',    to: '/portal/studio/brand-kit',    label: 'Brand Kit',        Icon: Package },
+      { key: 'mk-assets',       to: '/portal/studio/assets',       label: 'Assets',           Icon: FolderOpen },
+      { key: 'mk-import',       to: '/portal/studio/import',       label: 'Importar Listing', Icon: FolderUp },
+      { key: 'mk-carruseles',   to: '/portal/studio/carruseles',   label: 'Carruseles',       Icon: Sparkles },
+      { key: 'mk-auto-content', to: '/portal/studio/auto-content', label: 'Auto-Content',     Icon: Megaphone },
+      { key: 'mk-landings',     to: '/portal/studio/landings',     label: 'Landings',         Icon: Layers },
+    ],
+  },
+  // 7 · Ajustes (hub · rescata Políticas de cita)
+  {
+    key: 'ajustes', to: '/desarrollador/configuracion', label: 'Ajustes', Icon: Settings,
+    description: 'Configuración general, integraciones y políticas',
+    children: [
+      { key: 'aj-config',  to: '/desarrollador/configuracion',                label: 'Configuración',     Icon: Settings },
+      { key: 'aj-citas',   to: '/desarrollador/configuracion/citas-policies', label: 'Políticas de cita', Icon: CalendarDays },
+    ],
   },
 ];
 

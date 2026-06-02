@@ -53,7 +53,7 @@ function isoDate(date) {
 
 const inputStyle = {
   padding: '6px 10px', borderRadius: 7,
-  background: 'rgba(255,255,255,0.06)',
+  background: 'rgba(var(--cream-rgb),0.06)',
   border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5,
   outline: 'none', width: '100%', boxSizing: 'border-box',
@@ -61,7 +61,7 @@ const inputStyle = {
 
 const disabledInputStyle = {
   ...inputStyle,
-  opacity: 0.4, cursor: 'not-allowed', background: 'rgba(255,255,255,0.02)',
+  opacity: 0.4, cursor: 'not-allowed', background: 'rgba(var(--cream-rgb),0.02)',
 };
 
 export default function SlotsTab({ devId, user }) {
@@ -191,7 +191,7 @@ export default function SlotsTab({ devId, user }) {
           </p>
         </div>
         {!isAdmin && (
-          <div style={{ padding: '5px 11px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'DM Sans', fontSize: 11.5, color: '#FCD34D' }}>
+          <div style={{ padding: '5px 11px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--amber)' }}>
             Solo lectura
           </div>
         )}
@@ -218,7 +218,7 @@ export default function SlotsTab({ devId, user }) {
         <div style={{
           display: 'grid', gridTemplateColumns: '130px 60px 1fr 1fr 100px',
           gap: 0, padding: '10px 16px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'rgba(var(--cream-rgb),0.03)',
           borderBottom: '1px solid var(--border)',
         }}>
           {['Día', 'Activo', 'Apertura', 'Cierre', 'Máx. citas'].map(h => (
@@ -236,7 +236,7 @@ export default function SlotsTab({ devId, user }) {
               display: 'grid', gridTemplateColumns: '130px 60px 1fr 1fr 100px',
               gap: 0, padding: '11px 16px', alignItems: 'center',
               borderBottom: idx < DAYS.length - 1 ? '1px solid var(--border)' : 'none',
-              background: s.active ? 'transparent' : 'rgba(255,255,255,0.015)',
+              background: s.active ? 'transparent' : 'rgba(var(--cream-rgb),0.015)',
               transition: 'background 0.15s',
             }}>
               {/* Day label */}
@@ -298,7 +298,7 @@ export default function SlotsTab({ devId, user }) {
                   title={!isAdmin ? 'Solo administrador puede modificar slots' : ''}
                 />
                 {rowErr && (
-                  <div data-testid={`slot-error-${d.k}`} style={{ fontSize: 10.5, color: '#F87171', marginTop: 3, fontFamily: 'DM Sans' }}>{rowErr}</div>
+                  <div data-testid={`slot-error-${d.k}`} style={{ fontSize: 10.5, color: 'var(--red)', marginTop: 3, fontFamily: 'DM Sans' }}>{rowErr}</div>
                 )}
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function SlotsTab({ devId, user }) {
       )}
 
       {/* Preview próximas fechas */}
-      <div style={{ borderRadius: 12, border: '1px solid var(--border)', padding: '16px 18px', background: 'rgba(255,255,255,0.03)' }}>
+      <div style={{ borderRadius: 12, border: '1px solid var(--border)', padding: '16px 18px', background: 'rgba(var(--cream-rgb),0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
           <Clock size={13} color="var(--theme)" />
           <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -347,7 +347,7 @@ export default function SlotsTab({ devId, user }) {
             {preview.map((p, i) => (
               <div key={i} data-testid={`slots-preview-row-${i}`} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)',
+                padding: '8px 12px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.04)',
                 border: '1px solid var(--border)',
               }}>
                 <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream)', minWidth: 120 }}>{p.label}</div>

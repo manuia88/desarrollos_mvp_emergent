@@ -48,7 +48,7 @@ function StepDots({ step }) {
       {[1, 2, 3, 4].map(n => (
         <div key={n} style={{
           width: n === step ? 22 : 8, height: 8, borderRadius: 9999,
-          background: n <= step ? 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))' : 'rgba(240,235,224,0.18)',
+          background: n <= step ? 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))' : 'rgba(var(--cream-rgb),0.18)',
           transition: 'width 150ms ease',
         }} />
       ))}
@@ -76,9 +76,9 @@ function SiteSimilarZones({ seedZoneSlug, onPick }) {
   if (!seedZoneSlug) return null;
   return (
     <Field label="Zonas similares (Knowledge Graph)" hint={`Sugerencias para ${seedZoneSlug}`}>
-      {loading && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>Cargando sugerencias…</div>}
+      {loading && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)' }}>Cargando sugerencias…</div>}
       {!loading && rows.length === 0 && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>Sin zonas similares.</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.45)' }}>Sin zonas similares.</div>
       )}
       <div data-testid="site-similar-zones" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
         {rows.map(z => (
@@ -90,7 +90,7 @@ function SiteSimilarZones({ seedZoneSlug, onPick }) {
             style={{
               padding: '8px 14px', borderRadius: 9999,
               background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)',
-              color: '#c4b5fd', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}>
             {z.zone_name || z.zone_slug}
             {z.tier && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>· {z.tier}</span>}
@@ -124,7 +124,7 @@ function Field({ label, children, hint }) {
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 10,
-  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13.5, outline: 'none',
 };
 
@@ -199,7 +199,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
   return (
     <div data-testid="site-wizard" style={{
       position: 'fixed', inset: 0, zIndex: Z.DRAWER,
-      background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
+      background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <Card style={{
@@ -226,7 +226,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
           {fromHeatmap && prefillColonia && (
             <div data-testid="wizard-prefill-banner" style={{
               display: 'flex', gap: 10, alignItems: 'flex-start', padding: 12,
-              background: 'rgba(240,235,224,0.05)', border: '1px solid rgba(240,235,224,0.32)',
+              background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.32)',
               borderRadius: 10, marginBottom: 14,
             }}>
               <MapPin size={14} color="var(--cream)" />
@@ -330,7 +330,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
                        value={name} onChange={e => setName(e.target.value)} />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
-                <div style={{ background: 'rgba(240,235,224,0.04)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ background: 'rgba(var(--cream-rgb),0.04)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
                   <div className="eyebrow" style={{ marginBottom: 6 }}>RESUMEN DEL CRITERIO</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
                     <div>Tipo: <b style={{ color: 'var(--cream)' }}>{PROJECT_TYPES.find(x => x.v === inp.project_type)?.label}</b></div>
@@ -341,7 +341,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
                     <div>Presupuesto: <b style={{ color: 'var(--cream)' }}>${inp.budget_construction.toLocaleString()}</b></div>
                   </div>
                 </div>
-                <div style={{ background: 'rgba(240,235,224,0.04)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ background: 'rgba(var(--cream-rgb),0.04)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
                   <div className="eyebrow" style={{ marginBottom: 6 }}>FEATURES</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
                     <div>Estados: {(inp.preferred_states || []).map(s => <Badge key={s} tone="brand" style={{ marginRight: 4 }}>{s}</Badge>)}</div>
@@ -351,7 +351,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
                 </div>
               </div>
               {err && (
-                <div style={{ marginTop: 12, padding: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 10, color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>{err}</div>
+                <div style={{ marginTop: 12, padding: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 10, color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>{err}</div>
               )}
             </div>
           )}

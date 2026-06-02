@@ -67,7 +67,7 @@ export default function InsightsComparables({ projectId }) {
     <div data-testid="comp-loading" style={{ padding: 24, color: 'var(--cream-3)' }}>Buscando comparables…</div>
   );
   if (err) return (
-    <div data-testid="comp-error" style={{ padding: 16, color: '#fca5a5' }}>Error: {err}</div>
+    <div data-testid="comp-error" style={{ padding: 16, color: 'var(--red)' }}>Error: {err}</div>
   );
   if (!data) return null;
 
@@ -92,7 +92,7 @@ export default function InsightsComparables({ projectId }) {
                 onClick={() => setTopN(n)}
                 style={{
                   padding: '4px 12px', borderRadius: 9999,
-                  border: '1px solid rgba(240,235,224,0.14)',
+                  border: '1px solid rgba(var(--cream-rgb),0.14)',
                   background: topN === n ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
                   color: topN === n ? '#fff' : 'var(--cream-2)',
                   fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
@@ -107,7 +107,7 @@ export default function InsightsComparables({ projectId }) {
               disabled={!!exporting || (data?.comparables?.length ?? 0) === 0}
               style={{
                 padding: '4px 12px', borderRadius: 9999,
-                border: '1px solid rgba(240,235,224,0.16)',
+                border: '1px solid rgba(var(--cream-rgb),0.16)',
                 background: 'transparent', color: 'var(--cream-2)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
                 cursor: exporting ? 'wait' : 'pointer',
@@ -140,7 +140,7 @@ export default function InsightsComparables({ projectId }) {
         <div data-testid="comp-export-error" style={{
           padding: '8px 12px', borderRadius: 10,
           background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)',
-          color: '#fca5a5', fontSize: 12, fontFamily: 'DM Sans',
+          color: 'var(--red)', fontSize: 12, fontFamily: 'DM Sans',
         }}>{exportErr}</div>
       )}
 
@@ -181,16 +181,16 @@ export default function InsightsComparables({ projectId }) {
       {comps.length === 0 ? (
         <div data-testid="comp-empty" style={{
           padding: 28, textAlign: 'center', color: 'var(--cream-3)', fontSize: 12,
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           borderRadius: 12,
         }}>
           No se encontraron proyectos comparables en la zona.
         </div>
       ) : (
         <div style={{
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           borderRadius: 12, overflow: 'auto',
         }}>
           <table data-testid="comp-table" style={{
@@ -198,7 +198,7 @@ export default function InsightsComparables({ projectId }) {
             fontFamily: 'DM Sans, sans-serif',
           }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(240,235,224,0.10)' }}>
+              <tr style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.10)' }}>
                 {['Proyecto', 'Similitud', 'Precio/m²', 'Δ', 'Health', 'Δ', 'Velocidad', 'Δ', 'Días', 'Δ'].map((h, i) => (
                   <th key={i} style={{
                     padding: '10px 12px', textAlign: 'left',
@@ -210,7 +210,7 @@ export default function InsightsComparables({ projectId }) {
             </thead>
             <tbody>
               {comps.map((c) => (
-                <tr key={c.id} data-testid={`comp-row-${c.id}`} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)' }}>
+                <tr key={c.id} data-testid={`comp-row-${c.id}`} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   <td style={{ padding: '10px 12px', color: 'var(--cream)' }}>
                     <div style={{ fontWeight: 700 }}>{c.name}</div>
                     <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{c.colonia}</div>

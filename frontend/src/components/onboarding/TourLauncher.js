@@ -124,6 +124,19 @@ export default function TourLauncher({ children }) {
     }
   }, [user?.role, user?.user_id, startTour]);
 
+  // Capa 3 (fix 2026-06-02): limpieza defensiva de overlays huérfanos de react-joyride.
+  // Si el tour NO está corriendo pero quedó un overlay a pantalla completa (z-index alto),
+  // lo eliminamos → nunca puede "congelar"/oscurecer la pantalla sin tooltip para salir.
+  useEffect(() => {
+    if (run) return;
+    const kill = () => {
+      document.querySelectorAll('.react-joyride__overlay').forEach((n) => n.remove());
+    };
+    kill();
+    const id = setTimeout(kill, 120);
+    return () => clearTimeout(id);
+  }, [run]);
+
   // Localizar steps desde i18n (fallback a strings hardcoded si la clave no existe)
   const steps = useMemo(() => {
     if (!tourId || !rawSteps.length) return rawSteps;

@@ -47,14 +47,14 @@ function Field({ label, error, children }) {
         {label}
       </label>
       {children}
-      {error && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#F87171', marginTop: 3 }}>{error}</div>}
+      {error && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#DC2626', marginTop: 3 }}>{error}</div>}
     </div>
   );
 }
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 8,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
   outline: 'none', boxSizing: 'border-box',
 };
@@ -168,7 +168,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
     const isSuccess = result.status === 'created';
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
-        <div style={{ background: 'linear-gradient(135deg, #0D1118, #111827)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
+        <div style={{ background: 'var(--surface, linear-gradient(135deg, #0D1118, #111827))', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
           {isConflict ? (
             <>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
@@ -243,7 +243,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: Z.MODAL, padding: '24px 16px', overflowY: 'auto' }}>
-      <div style={{ background: 'linear-gradient(135deg, #0D1118, #111827)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 540, padding: '28px 28px 24px' }}>
+      <div style={{ background: 'var(--surface, linear-gradient(135deg, #0D1118, #111827))', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 540, padding: '28px 28px 24px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -261,7 +261,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
         </div>
 
         {errors._global && (
-          <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: '#F87171' }}>
+          <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: '#DC2626' }}>
             {errors._global}
           </div>
         )}
@@ -311,7 +311,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
                 ) : (
                   <input style={inputStyle} type="time" value={form.hora} onChange={e => set('hora', e.target.value)} data-testid="cita-hora" />
                 )}
-                {noSlots && <div style={{ fontSize: 11, color: '#FCD34D', marginTop: 3 }}>Sin horarios disponibles este día</div>}
+                {noSlots && <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 3 }}>Sin horarios disponibles este día</div>}
               </Field>
             </div>
             <Field label="Modalidad">
@@ -323,7 +323,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
                       flex: 1, padding: '9px 0', borderRadius: 8, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
-                      background: form.modalidad === m.k ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(255,255,255,0.04)',
+                      background: form.modalidad === m.k ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(var(--cream-rgb),0.04)',
                       border: `1px solid ${form.modalidad === m.k ? 'rgba(var(--theme-rgb),0.5)' : 'var(--border)'}`,
                       color: form.modalidad === m.k ? 'var(--theme-3)' : 'var(--cream-3)',
                     }}>
@@ -355,7 +355,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
                     style={{
                       padding: '7px 12px', borderRadius: 9999, cursor: 'pointer',
                       fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500,
-                      background: form.payment_methods.includes(pm.k) ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+                      background: form.payment_methods.includes(pm.k) ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(var(--cream-rgb),0.04)',
                       border: `1px solid ${form.payment_methods.includes(pm.k) ? 'rgba(var(--theme-rgb),0.5)' : 'var(--border)'}`,
                       color: form.payment_methods.includes(pm.k) ? 'var(--theme)' : 'var(--cream-3)',
                     }}>
@@ -368,7 +368,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
 
           {/* ④ ASESOR */}
           <Collapse title="④ Asesor" open={open.asesor} onToggle={() => toggle('asesor')}>
-            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)' }}>
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)' }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
                 {user?.name || 'Usuario actual'} · <span style={{ color: 'var(--cream-3)' }}>{user?.role}</span>
               </div>
@@ -401,7 +401,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
                 de DesarrollosMX, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.
               </label>
             </div>
-            {errors.lfpdppp && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#F87171', marginTop: 3 }}>{errors.lfpdppp}</div>}
+            {errors.lfpdppp && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#DC2626', marginTop: 3 }}>{errors.lfpdppp}</div>}
           </Collapse>
 
           {/* Footer */}

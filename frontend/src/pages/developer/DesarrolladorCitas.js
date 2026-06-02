@@ -7,17 +7,17 @@ import { CalendarCheck, Plus, Clock, Phone, Video, X, CheckCircle, AlertCircle }
 import { Z } from '../../styles/zIndex';
 
 const STATUS_COLORS = {
-  agendada:     { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.4)', text: '#818CF8' },
-  confirmada:   { bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.4)', text: '#4ADE80' },
-  realizada:    { bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', text: '#86EFAC' },
-  cancelada:    { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', text: '#F87171' },
-  no_show:      { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.35)', text: '#FCD34D' },
-  reagendada:   { bg: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.35)', text: '#F472B6' },
-  under_review: { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.35)', text: '#FCD34D' },
+  agendada:     { bg: '#6366F1', border: '#6366F1', text: '#fff' },
+  confirmada:   { bg: '#1FA06A', border: '#1FA06A', text: '#fff' },
+  realizada:    { bg: '#15875A', border: '#15875A', text: '#fff' },
+  cancelada:    { bg: '#E0463D', border: '#E0463D', text: '#fff' },
+  no_show:      { bg: '#C77F12', border: '#C77F12', text: '#fff' },
+  reagendada:   { bg: '#C63FAE', border: '#C63FAE', text: '#fff' },
+  under_review: { bg: '#C77F12', border: '#C77F12', text: '#fff' },
 };
 
 function StatusBadge({ status }) {
-  const c = STATUS_COLORS[status] || { bg: 'rgba(255,255,255,0.06)', border: 'var(--border)', text: 'var(--cream-3)' };
+  const c = STATUS_COLORS[status] || { bg: 'rgba(var(--cream-rgb),0.06)', border: 'var(--border)', text: 'var(--cream-3)' };
   const labels = { agendada: 'Agendada', confirmada: 'Confirmada', realizada: 'Realizada', cancelada: 'Cancelada', no_show: 'No Show', reagendada: 'Reagendada', under_review: 'En revisión' };
   return (
     <span data-testid={`status-badge-${status}`} style={{
@@ -52,7 +52,7 @@ function CitaDrawer({ apt, user, onClose, onAction }) {
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
   const isUnderReview = apt.status === 'under_review' || lead.status === 'under_review';
 
-  const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 7, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
 
   const handleSave = async () => {
     if (!status) return;
@@ -94,7 +94,7 @@ function CitaDrawer({ apt, user, onClose, onAction }) {
             {contact.phone && <span data-testid="drawer-contact-phone">{contact.phone}</span>}
             {contact.email && <span>{contact.email}</span>}
           </div>
-          <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 7 }}>
               <Clock size={12} /> {fmtDatetime(apt.datetime)}
             </div>
@@ -113,14 +113,14 @@ function CitaDrawer({ apt, user, onClose, onAction }) {
         {/* Under-review actions (admin only) */}
         {isAdmin && isUnderReview && apt.lead_id && (
           <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#FCD34D', marginBottom: 10, fontWeight: 600 }}>Lead en revisión</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--amber)', marginBottom: 10, fontWeight: 600 }}>Lead en revisión</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => handleReview('approve')} disabled={reviewing} data-testid="approve-review-btn"
-                style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.4)', color: 'var(--green)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
                 Aprobar
               </button>
               <button onClick={() => handleReview('reject')} disabled={reviewing} data-testid="reject-review-btn"
-                style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer' }}>
                 Rechazar (dup)
               </button>
             </div>
@@ -147,7 +147,7 @@ function CitaDrawer({ apt, user, onClose, onAction }) {
               <input style={{ ...inputStyle, marginTop: 8 }} value={rescheduleReason} onChange={e => setRescheduleReason(e.target.value)} placeholder="Motivo de reagendamiento" />
             </>
           )}
-          {err && <div style={{ fontSize: 11, color: '#F87171', marginTop: 6 }}>{err}</div>}
+          {err && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>{err}</div>}
           {status && (
             <button onClick={handleSave} disabled={saving} data-testid="save-cita-status-btn"
               style={{ marginTop: 10, width: '100%', padding: '10px 0', borderRadius: 9999, background: 'var(--grad)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer' }}>
@@ -194,7 +194,7 @@ export default function DesarrolladorCitas({ user, onLogout }) {
             <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>
               Citas
               {underReviewCount > 0 && (
-                <span style={{ marginLeft: 10, padding: '3px 9px', borderRadius: 9999, fontSize: 13, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#FCD34D' }}>
+                <span style={{ marginLeft: 10, padding: '3px 9px', borderRadius: 9999, fontSize: 13, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: 'var(--amber)' }}>
                   {underReviewCount} en revisión
                 </span>
               )}
@@ -210,7 +210,7 @@ export default function DesarrolladorCitas({ user, onLogout }) {
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
           <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="dev-citas-filter-status">
             <option value="">Todos los estados</option>
             <option value="agendada">Agendada</option>
@@ -220,10 +220,10 @@ export default function DesarrolladorCitas({ user, onLogout }) {
             <option value="under_review">En revisión</option>
           </select>
           <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="dev-citas-filter-from" />
           <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="dev-citas-filter-to" />
           {(filters.status || filters.from || filters.to) && (
             <button onClick={() => setFilters({ status: '', project_id: '', from: '', to: '' })}
@@ -251,11 +251,11 @@ export default function DesarrolladorCitas({ user, onLogout }) {
                   onClick={() => setSelectedApt(apt)}
                   style={{
                     padding: '13px 18px', borderRadius: 12, border: `1px solid ${isReview ? 'rgba(251,191,36,0.3)' : 'var(--border)'}`,
-                    background: isReview ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.04)',
+                    background: isReview ? 'rgba(251,191,36,0.05)' : 'rgba(var(--cream-rgb),0.04)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = isReview ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.07)'}
-                  onMouseLeave={e => e.currentTarget.style.background = isReview ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.04)'}>
+                  onMouseEnter={e => e.currentTarget.style.background = isReview ? 'rgba(251,191,36,0.08)' : 'rgba(var(--cream-rgb),0.07)'}
+                  onMouseLeave={e => e.currentTarget.style.background = isReview ? 'rgba(251,191,36,0.05)' : 'rgba(var(--cream-rgb),0.04)'}>
                   <div style={{ width: 38, height: 38, borderRadius: 9, background: isReview ? 'rgba(251,191,36,0.12)' : 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {isReview ? <AlertCircle size={15} color="#FCD34D" /> : apt.modalidad === 'videollamada' ? <Video size={15} color="#818CF8" /> : <Phone size={15} color="#818CF8" />}
                   </div>

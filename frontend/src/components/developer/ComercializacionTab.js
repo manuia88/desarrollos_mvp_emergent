@@ -20,9 +20,9 @@ const BROKER_TYPE_LABELS = {
 };
 
 const BROKER_STATUS_COLORS = {
-  active:  { bg: 'rgba(34,197,94,0.12)', color: '#22c55e' },
-  paused:  { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
-  revoked: { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' },
+  active:  { bg: '#1FA06A', color: '#fff' },
+  paused:  { bg: '#C77F12', color: '#fff' },
+  revoked: { bg: '#E0463D', color: '#fff' },
 };
 
 function Toggle({ value, onChange, label, disabled }) {
@@ -32,15 +32,15 @@ function Toggle({ value, onChange, label, disabled }) {
         onClick={() => !disabled && onChange(!value)}
         style={{
           width: 42, height: 24, borderRadius: 12, position: 'relative',
-          background: value ? 'var(--cream)' : 'rgba(240,235,224,0.15)',
-          border: `1.5px solid ${value ? 'var(--cream)' : 'rgba(240,235,224,0.25)'}`,
+          background: value ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.15)',
+          border: `1.5px solid ${value ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.25)'}`,
           transition: 'all 0.2s', cursor: disabled ? 'default' : 'pointer', flexShrink: 0,
         }}
       >
         <div style={{
           position: 'absolute', top: 2, left: value ? 20 : 2,
           width: 16, height: 16, borderRadius: '50%',
-          background: value ? 'var(--navy)' : 'rgba(240,235,224,0.4)',
+          background: value ? 'var(--navy)' : 'rgba(var(--cream-rgb),0.4)',
           transition: 'left 0.2s',
         }} />
       </div>
@@ -77,11 +77,11 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: Z.DRAWER,
+      position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.85)', zIndex: Z.DRAWER,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
-        background: 'var(--navy)', border: '1px solid rgba(240,235,224,0.18)',
+        background: 'var(--navy)', border: '1px solid rgba(var(--cream-rgb),0.18)',
         borderRadius: 14, padding: 28, width: 400, maxWidth: '90vw',
       }}>
         <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
@@ -94,8 +94,8 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
               value={selectedUser}
               onChange={e => setSelectedUser(e.target.value)}
               style={{
-                width: '100%', background: 'rgba(240,235,224,0.06)', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+                width: '100%', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)',
+                border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
                 padding: '8px 10px', fontSize: 13,
               }}
             >
@@ -113,22 +113,22 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
               type="number" min="0" max="15" step="0.5"
               value={commission} onChange={e => setCommission(e.target.value)}
               style={{
-                width: '100%', background: 'rgba(240,235,224,0.06)', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+                width: '100%', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)',
+                border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
                 padding: '8px 10px', fontSize: 13, boxSizing: 'border-box',
               }}
             />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
-          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream-2)', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream-2)', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
             Cancelar
           </button>
           <button
             data-testid="confirm-assign-broker-btn"
             onClick={handleAssign} disabled={saving || !selectedUser}
             style={{
-              background: 'var(--cream)', color: 'var(--navy)', border: 'none',
+              background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none',
               borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700,
               cursor: saving || !selectedUser ? 'default' : 'pointer',
             }}
@@ -213,7 +213,7 @@ export default function ComercializacionTab({ devId, user }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Section 1: Política comercial */}
-      <div style={{ background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 12, padding: '18px 20px' }}>
+      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
             Política comercial
@@ -223,16 +223,16 @@ export default function ComercializacionTab({ devId, user }) {
               <button
                 data-testid="comercial-defaults-btn"
                 onClick={() => setShowDefaults(!showDefaults)}
-                style={{ background: 'rgba(240,235,224,0.07)', color: 'var(--cream-2)', border: '1px solid rgba(240,235,224,0.12)', borderRadius: 7, padding: '5px 11px', fontSize: 11, cursor: 'pointer' }}
+                style={{ background: 'rgba(var(--cream-rgb),0.07)', color: 'var(--cream-2)', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 7, padding: '5px 11px', fontSize: 11, cursor: 'pointer' }}
               >
                 Aplicar desde otro proyecto ↓
               </button>
               {showDefaults && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
                   {otherProjects.map(p => (
                     <button key={p.id} onClick={() => applyFrom(p.id)}
                       style={{ width: '100%', background: 'none', border: 'none', padding: '8px 14px', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontSize: 12 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.06)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                       {p.name}
                     </button>
@@ -295,7 +295,7 @@ export default function ComercializacionTab({ devId, user }) {
       </div>
 
       {/* Section 2: Brokers asignados */}
-      <div style={{ background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 12, padding: '18px 20px' }}>
+      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
             Brokers asignados
@@ -309,8 +309,8 @@ export default function ComercializacionTab({ devId, user }) {
               onClick={() => setShowAssignModal(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                background: 'rgba(240,235,224,0.10)', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.16)', borderRadius: 8,
+                background: 'rgba(var(--cream-rgb),0.10)', color: 'var(--cream)',
+                border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
                 padding: '6px 12px', fontSize: 12, cursor: 'pointer',
               }}
             >
@@ -327,9 +327,9 @@ export default function ComercializacionTab({ devId, user }) {
               const st = BROKER_STATUS_COLORS[b.status] || BROKER_STATUS_COLORS.active;
               const info = b.broker_info || {};
               return (
-                <div key={b.id} data-testid={`broker-row-${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(240,235,224,0.03)', borderRadius: 8, border: '1px solid rgba(240,235,224,0.07)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(240,235,224,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Users size={14} color="rgba(240,235,224,0.4)" />
+                <div key={b.id} data-testid={`broker-row-${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.03)', borderRadius: 8, border: '1px solid rgba(var(--cream-rgb),0.07)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(var(--cream-rgb),0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Users size={14} color="rgba(var(--cream-rgb),0.4)" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>{info.name || info.email || b.broker_user_id}</div>
@@ -338,8 +338,8 @@ export default function ComercializacionTab({ devId, user }) {
                   <span style={{ background: st.bg, color: st.color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{b.status}</span>
                   {isAdmin && b.status === 'active' && (
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => handleBrokerAction(b.id, 'pause')} style={{ background: 'none', border: '1px solid rgba(240,235,224,0.1)', color: 'var(--cream-3)', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Pausar</button>
-                      <button onClick={() => handleBrokerAction(b.id, 'revoke')} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Revocar</button>
+                      <button onClick={() => handleBrokerAction(b.id, 'pause')} style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.1)', color: 'var(--cream-3)', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Pausar</button>
+                      <button onClick={() => handleBrokerAction(b.id, 'revoke')} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--red)', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Revocar</button>
                     </div>
                   )}
                 </div>
@@ -351,7 +351,7 @@ export default function ComercializacionTab({ devId, user }) {
 
       {/* Section 3: Pre-asignaciones in-house (admin only) */}
       {isAdmin && (
-        <div style={{ background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 12, padding: '18px 20px' }}>
+        <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
           <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
             Pre-asignar asesores in-house
           </h3>
@@ -366,9 +366,9 @@ export default function ComercializacionTab({ devId, user }) {
                 const isAssigned = preassigns.some(p => p.assigned_user_id === (u.user_id || u.id));
                 return (
                   <div key={u.user_id || u.id} data-testid={`preassign-row-${u.user_id || u.id}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: isAssigned ? 'rgba(240,235,224,0.06)' : 'rgba(240,235,224,0.02)', borderRadius: 8, border: `1px solid ${isAssigned ? 'rgba(240,235,224,0.16)' : 'rgba(240,235,224,0.06)'}`, transition: 'all 0.12s' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(240,235,224,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Users size={13} color="rgba(240,235,224,0.4)" />
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: isAssigned ? 'rgba(var(--cream-rgb),0.06)' : 'rgba(var(--cream-rgb),0.02)', borderRadius: 8, border: `1px solid ${isAssigned ? 'rgba(var(--cream-rgb),0.16)' : 'rgba(var(--cream-rgb),0.06)'}`, transition: 'all 0.12s' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(var(--cream-rgb),0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Users size={13} color="rgba(var(--cream-rgb),0.4)" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, color: 'var(--cream)', fontWeight: isAssigned ? 600 : 400 }}>{u.name || u.email}</div>
@@ -379,12 +379,12 @@ export default function ComercializacionTab({ devId, user }) {
                         onClick={() => handlePreassignToggle(u.user_id || u.id, isAssigned)}
                         style={{
                           width: 36, height: 20, borderRadius: 10, position: 'relative',
-                          background: isAssigned ? 'var(--cream)' : 'rgba(240,235,224,0.12)',
-                          border: `1.5px solid ${isAssigned ? 'var(--cream)' : 'rgba(240,235,224,0.2)'}`,
+                          background: isAssigned ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.12)',
+                          border: `1.5px solid ${isAssigned ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.2)'}`,
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}
                       >
-                        <div style={{ position: 'absolute', top: 2, left: isAssigned ? 16 : 2, width: 12, height: 12, borderRadius: '50%', background: isAssigned ? 'var(--navy)' : 'rgba(240,235,224,0.4)', transition: 'left 0.15s' }} />
+                        <div style={{ position: 'absolute', top: 2, left: isAssigned ? 16 : 2, width: 12, height: 12, borderRadius: '50%', background: isAssigned ? 'var(--navy)' : 'rgba(var(--cream-rgb),0.4)', transition: 'left 0.15s' }} />
                       </div>
                       <span style={{ fontSize: 11, color: isAssigned ? 'var(--cream)' : 'var(--cream-3)' }}>
                         {isAssigned ? 'Pre-asignado' : 'No asignado'}

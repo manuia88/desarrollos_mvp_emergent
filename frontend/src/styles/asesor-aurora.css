@@ -35,8 +35,10 @@
 
   /* texto (los componentes usan --cream* como tinta principal/secundaria/terciaria) */
   --cream: #1E2230;
-  --cream-2: #5A6172;
-  --cream-3: #969CAB;
+  --cream-rgb: 30, 34, 48;   /* tinta oscura del tema claro · voltea los rgba(var(--cream-rgb),…) hardcodeados del portal */
+  --bg-rgb: 241, 242, 246;   /* superficie clara · voltea los fondos oscuros duros (rgba(var(--bg-rgb),…)) */
+  --cream-2: #434A5C;        /* secundaria con MÁS contraste (antes #5A6172) */
+  --cream-3: #6B7385;        /* etiquetas/terciaria legibles (antes #969CAB · "se perdían") */
 
   /* líneas */
   --border: #E6E8EE;
@@ -57,6 +59,14 @@
   --warm: #E2982E;
   --cold: #3B82F6;
   --ok: #1FA06A;
+
+  /* semánticos dev legacy — contraste sobre blanco en tema claro
+     (en oscuro heredan #EF4444/#F59E0B/#22C55E de :root) */
+  --red: #DC2626;
+  --amber: #C77F12;
+  --green: #1FA06A;
+  --blue: #2563EB;
+  --rose: #C63FAE;
 
   /* sombras suaves del tema claro */
   --asr-shadow: 0 1px 2px rgba(20, 25, 45, 0.05), 0 6px 16px rgba(20, 25, 45, 0.08);

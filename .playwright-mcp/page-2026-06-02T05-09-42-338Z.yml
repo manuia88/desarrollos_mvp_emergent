@@ -1,0 +1,121 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary "Barra lateral de navegación" [ref=e5]:
+      - link "Ir a Inicio" [ref=e6] [cursor=pointer]:
+        - /url: /desarrollador
+        - generic [ref=e7]: DMX
+        - generic [ref=e8]: Dev
+      - navigation "Navegación desarrollador" [ref=e9]:
+        - button "Inicio" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+          - generic [ref=e17]: Inicio
+        - button "Mis Proyectos" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - generic [ref=e24]: Mis Proyectos
+        - button "CRM & Leads" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+          - generic [ref=e30]: CRM & Leads
+          - img [ref=e32]
+        - button "Inteligencia" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+          - generic [ref=e38]: Inteligencia
+          - img [ref=e40]
+        - button "Red comercial" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e49]: Red comercial
+          - img [ref=e51]
+        - button "Marketing" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - generic [ref=e58]: Marketing
+          - img [ref=e60]
+        - button "Ajustes" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e67]: Ajustes
+          - img [ref=e69]
+      - button "C Constructora Ariel developer@demo.com" [ref=e72] [cursor=pointer]:
+        - generic [ref=e73]: C
+        - generic [ref=e74]:
+          - generic [ref=e75]: Constructora Ariel
+          - generic [ref=e76]: developer@demo.com
+        - img [ref=e78]
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - button "Mis proyectos" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: Mis proyectos
+          - img [ref=e89]
+        - button "Buscar… ⌘K" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+          - generic [ref=e95]: Buscar…
+          - generic [ref=e96]: ⌘K
+        - button [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+        - button "Menú de usuario" [ref=e103] [cursor=pointer]:
+          - img [ref=e104]
+      - main [ref=e107]:
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - heading "Tu asistente" [level=1] [ref=e111]:
+              - img [ref=e112]
+              - text: Tu asistente
+            - paragraph [ref=e114]:
+              - text: Hace el trabajo pesado por ti. Cuando algo es importante (como publicar o cambiar un precio),
+              - strong [ref=e115]: te pide permiso primero
+              - text: .
+          - paragraph [ref=e116]: Un momento…
+    - button "Reportar problema" [ref=e117] [cursor=pointer]:
+      - img [ref=e118]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e120] [cursor=pointer]:
+      - img [ref=e121]
+    - complementary [ref=e124]:
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - img [ref=e128]
+          - generic [ref=e131]:
+            - generic [ref=e132]: Copilot DMX
+            - generic [ref=e133]: Claude Sonnet · contexto privado
+        - generic [ref=e134]:
+          - button [ref=e135] [cursor=pointer]:
+            - img [ref=e136]
+            - text: "0"
+          - button [ref=e138] [cursor=pointer]:
+            - img [ref=e139]
+            - text: Nueva
+          - button [ref=e140] [cursor=pointer]:
+            - img [ref=e141]
+      - generic [ref=e144]:
+        - button [ref=e145] [cursor=pointer]: Resume mi pipeline esta semana
+        - button [ref=e146] [cursor=pointer]: ¿Qué leads necesitan follow-up hoy?
+        - button [ref=e147] [cursor=pointer]: Top 3 acciones para vender más rápido
+        - button [ref=e148] [cursor=pointer]: Predice ventas próximo mes
+        - button [ref=e149] [cursor=pointer]: Proyectos con health bajo
+        - button [ref=e150] [cursor=pointer]: Reporte semanal para inversionistas
+      - generic [ref=e152]:
+        - img [ref=e154]
+        - generic [ref=e157]:
+          - generic [ref=e158]: Pregúntame lo que necesites
+          - generic [ref=e159]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e160]:
+          - button [ref=e161] [cursor=pointer]:
+            - generic [ref=e162]: Resume mi pipeline esta semana
+            - img [ref=e163]
+          - button [ref=e165] [cursor=pointer]:
+            - generic [ref=e166]: ¿Qué leads necesitan follow-up hoy?
+            - img [ref=e167]
+          - button [ref=e169] [cursor=pointer]:
+            - generic [ref=e170]: Top 3 acciones para vender más rápido
+            - img [ref=e171]
+          - button [ref=e173] [cursor=pointer]:
+            - generic [ref=e174]: Predice ventas próximo mes
+            - img [ref=e175]
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - textbox [ref=e179]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e180]:
+            - img [ref=e181]
+        - generic [ref=e183]:
+          - generic [ref=e184]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e185]: 0/4000

@@ -146,7 +146,7 @@ function ExecutiveTab({ onToast }) {
               <Metric label="Absorción" v={`${active.metrics.absorption_pct}%`} />
               <Metric label="Unidades cerradas" v={fmt0(active.metrics.units_sold)} />
               <Metric label="Ticket promedio" v={fmtMXN(active.metrics.avg_price)} />
-              <Metric label="Ingresos del mes" v={fmtMXN(active.metrics.revenue)} accent="#86efac" />
+              <Metric label="Ingresos del mes" v={fmtMXN(active.metrics.revenue)} accent="var(--ok,#86efac)" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }} className="rep-cols">
@@ -180,7 +180,7 @@ function AbsorptionTab() {
       .catch(e => setErr(e.message || 'Error'));
   }, []);
 
-  if (err) return <Card style={{ padding: 40, textAlign: 'center', color: '#fca5a5' }}>Error: {err}</Card>;
+  if (err) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Error: {err}</Card>;
   if (!data) return <Card style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</Card>;
 
   const winLoss = data.win_loss || {};
@@ -212,7 +212,7 @@ function AbsorptionTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)' }}>
           <span>Menos</span>
           {[0,1,2,3,4].map(l => (
-            <span key={l} style={{ width: 10, height: 10, borderRadius: 2, background: ['rgba(255,255,255,0.04)', 'rgba(236,72,153,0.18)', 'rgba(236,72,153,0.38)', 'rgba(236,72,153,0.62)', 'rgba(236,72,153,0.95)'][l] }} />
+            <span key={l} style={{ width: 10, height: 10, borderRadius: 2, background: ['rgba(var(--cream-rgb),0.04)', 'rgba(236,72,153,0.18)', 'rgba(236,72,153,0.38)', 'rgba(236,72,153,0.62)', 'rgba(236,72,153,0.95)'][l] }} />
           ))}
           <span>Más</span>
         </div>
@@ -225,7 +225,7 @@ function AbsorptionTab() {
           ¿Por qué se perdieron las ventas?
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
-          <Metric label="Ganadas" v={fmt0(winLoss.won)} accent="#86efac" />
+          <Metric label="Ganadas" v={fmt0(winLoss.won)} accent="var(--ok,#86efac)" />
           <Metric label="Win rate" v={`${winLoss.win_rate_pct}%`} />
         </div>
         <BarList
@@ -273,7 +273,7 @@ function ForecastTab() {
               Ventas planificadas vs reales
             </h3>
           </div>
-          <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 9999, padding: 3 }} data-testid="forecast-mode-toggle">
+          <div style={{ display: 'flex', gap: 2, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 9999, padding: 3 }} data-testid="forecast-mode-toggle">
             {['individual', 'consolidated'].map(m => (
               <button
                 key={m}
@@ -346,9 +346,9 @@ function ForecastTab() {
           height={260}
           xLabels={xLabels}
           series={[
-            { name: 'Pesimista', color: '#fca5a5', values: monthly.map((m, i) => ({ x: i, y: m.pessimist })) },
-            { name: 'Base', color: '#EC4899', values: monthly.map((m, i) => ({ x: i, y: m.base })) },
-            { name: 'Optimista', color: '#86efac', values: monthly.map((m, i) => ({ x: i, y: m.optimist })) },
+            { name: 'Pesimista', color: 'var(--red)', values: monthly.map((m, i) => ({ x: i, y: m.pessimist })) },
+            { name: 'Base', color: 'var(--rose)', values: monthly.map((m, i) => ({ x: i, y: m.base })) },
+            { name: 'Optimista', color: 'var(--green)', values: monthly.map((m, i) => ({ x: i, y: m.optimist })) },
           ]}
         />
         <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
@@ -372,7 +372,7 @@ function ForecastTab() {
 // ═════════════════════════════════════════════════════════════════════════════
 function Metric({ label, v, accent }) {
   return (
-    <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
+    <div style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
       <div className="eyebrow" style={{ marginBottom: 4 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: accent || 'var(--cream)' }}>{v}</div>
     </div>
@@ -381,7 +381,7 @@ function Metric({ label, v, accent }) {
 
 function ListBox({ title, items, tone }) {
   return (
-    <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14 }}>
+    <div style={{ padding: 14, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 14 }}>
       <div className="eyebrow" style={{ marginBottom: 10 }}>{title}</div>
       {items.map((t, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
@@ -525,7 +525,7 @@ function MovementAlertsTab({ onToast }) {
                 </thead>
                 <tbody>
                   {data.alerts_by_asesor.map(a => (
-                    <tr key={a.asesor_id} style={{ borderBottom: '1px solid rgba(240,235,224,0.04)' }}>
+                    <tr key={a.asesor_id} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.04)' }}>
                       <td style={{ padding: '10px 4px', color: 'var(--cream)' }}>{a.asesor_name}</td>
                       <td style={{ textAlign: 'right', padding: '10px 4px', color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace' }}>{a.alerts_received}</td>
                     </tr>
@@ -551,8 +551,8 @@ function PeriodFilter({ value, onChange }) {
           onClick={() => onChange(o.k)}
           style={{
             padding: '6px 12px', borderRadius: 9999, cursor: 'pointer',
-            background: value === o.k ? 'rgba(240,235,224,0.10)' : 'transparent',
-            border: `1px solid ${value === o.k ? 'rgba(240,235,224,0.30)' : 'var(--border)'}`,
+            background: value === o.k ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
+            border: `1px solid ${value === o.k ? 'rgba(var(--cream-rgb),0.30)' : 'var(--border)'}`,
             color: value === o.k ? 'var(--cream)' : 'var(--cream-3)',
             fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
           }}>{o.label}</button>
@@ -574,8 +574,8 @@ function HeatCohortCard({ tag, total, won, close_rate, share_pct }) {
   const tones = {
     caliente:     { bg: 'rgba(239,68,68,0.08)',  bd: 'rgba(239,68,68,0.30)',  fg: 'var(--red)' },
     tibio:        { bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)' },
-    frio:         { bg: 'rgba(240,235,224,0.05)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-3)' },
-    sin_calcular: { bg: 'rgba(240,235,224,0.03)', bd: 'rgba(240,235,224,0.10)', fg: 'var(--cream-3)' },
+    frio:         { bg: 'rgba(var(--cream-rgb),0.05)', bd: 'rgba(var(--cream-rgb),0.18)', fg: 'var(--cream-3)' },
+    sin_calcular: { bg: 'rgba(var(--cream-rgb),0.03)', bd: 'rgba(var(--cream-rgb),0.10)', fg: 'var(--cream-3)' },
   };
   const t = tones[tag] || tones.frio;
   return (
@@ -619,8 +619,8 @@ function BrandedReportsTab({ onToast }) {
             onClick={() => setSubtab(s.k)}
             style={{
               padding: '6px 12px', borderRadius: 9999, cursor: 'pointer',
-              background: subtab === s.k ? 'rgba(240,235,224,0.10)' : 'transparent',
-              border: `1px solid ${subtab === s.k ? 'rgba(240,235,224,0.30)' : 'var(--border)'}`,
+              background: subtab === s.k ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
+              border: `1px solid ${subtab === s.k ? 'rgba(var(--cream-rgb),0.30)' : 'var(--border)'}`,
               color: subtab === s.k ? 'var(--cream)' : 'var(--cream-3)',
               fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
             }}>{s.label}</button>
@@ -664,7 +664,7 @@ function TemplatesSubtab({ onToast }) {
           { type: 'team_perf', config: {} },
           { type: 'narrative_ai', config: {} },
         ],
-        branding: { primary_color: primaryColor, secondary_color: '#F0EBE0', header_text: headerText, footer_text: 'Confidencial · DesarrollosMX' },
+        branding: { primary_color: primaryColor, secondary_color: 'var(--cream)', header_text: headerText, footer_text: 'Confidencial · DesarrollosMX' },
         default: false,
       });
       onToast?.({ kind: 'success', text: 'Template creado' });
@@ -904,7 +904,7 @@ function DistributionsSubtab({ onToast }) {
 
 const inpRep = {
   width: '100%', padding: '8px 10px', borderRadius: 6,
-  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
 };
 const lblRep = {
@@ -913,7 +913,7 @@ const lblRep = {
 };
 const btnPriRep = {
   padding: '10px 18px', borderRadius: 9999, cursor: 'pointer',
-  background: 'rgba(240,235,224,0.10)', border: '1px solid rgba(240,235,224,0.30)',
+  background: 'rgba(var(--cream-rgb),0.10)', border: '1px solid rgba(var(--cream-rgb),0.30)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
 };
 const btnSecRep = {

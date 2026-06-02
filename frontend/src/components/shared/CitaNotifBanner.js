@@ -20,7 +20,7 @@ const post = (url, body) => j(url, { method: 'POST', headers: { 'Content-Type': 
 
 const TYPE_TONE = {
   cita_post_check:           { bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)', Icon: AlertCircle },
-  cita_followup:             { bg: 'rgba(240,235,224,0.06)', bd: 'rgba(240,235,224,0.20)', fg: 'var(--cream-2)', Icon: MessageCircle },
+  cita_followup:             { bg: 'rgba(var(--cream-rgb),0.06)', bd: 'rgba(var(--cream-rgb),0.20)', fg: 'var(--cream-2)', Icon: MessageCircle },
   cita_client_confirmed:     { bg: 'rgba(34,197,94,0.08)',  bd: 'rgba(34,197,94,0.30)', fg: 'var(--green)', Icon: CheckCircle },
   cita_client_cancelled:     { bg: 'rgba(239,68,68,0.08)',  bd: 'rgba(239,68,68,0.30)', fg: 'var(--red)', Icon: X },
   cita_client_rescheduled:   { bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)', Icon: CalendarCheck },

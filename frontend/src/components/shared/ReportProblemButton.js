@@ -63,14 +63,14 @@ export default function ReportProblemButton({ user }) {
 
       {open && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: Z.DRAWER,
+          position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.85)', zIndex: Z.DRAWER,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }} onClick={reset}>
           <div
             data-testid="report-problem-modal"
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'var(--navy)', border: '1px solid rgba(240,235,224,0.18)',
+              background: 'var(--navy)', border: '1px solid rgba(var(--cream-rgb),0.18)',
               borderRadius: 14, padding: 24, width: 440, maxWidth: '100%',
             }}>
             {!submitted ? (
@@ -94,22 +94,22 @@ export default function ReportProblemButton({ user }) {
                   placeholder="Ej: Intenté subir un render en Contenido pero después de 30s salió error 500…"
                   rows={5}
                   style={{
-                    width: '100%', background: 'rgba(240,235,224,0.06)',
-                    border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+                    width: '100%', background: 'rgba(var(--cream-rgb),0.06)',
+                    border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
                     padding: 10, fontSize: 13, color: 'var(--cream)',
                     resize: 'vertical', fontFamily: 'DM Sans,sans-serif', boxSizing: 'border-box',
                   }}
                 />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
                   <button onClick={reset} disabled={submitting}
-                    style={{ background: 'none', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream-3)', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
+                    style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream-3)', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
                     Cancelar
                   </button>
                   <button
                     data-testid="submit-problem-btn"
                     onClick={submit} disabled={submitting || !description.trim()}
                     style={{
-                      background: description.trim() ? 'var(--cream)' : 'rgba(240,235,224,0.1)',
+                      background: description.trim() ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.1)',
                       color: description.trim() ? 'var(--navy)' : 'var(--cream-3)',
                       border: 'none', borderRadius: 8, padding: '7px 16px',
                       fontSize: 12, fontWeight: 700,
@@ -138,10 +138,10 @@ export default function ReportProblemButton({ user }) {
               </div>
             ) : (
               <div>
-                <h3 style={{ margin: '0 0 6px', fontSize: 14, color: '#ef4444' }}>Error al enviar</h3>
+                <h3 style={{ margin: '0 0 6px', fontSize: 14, color: 'var(--red)' }}>Error al enviar</h3>
                 <p style={{ fontSize: 12, color: 'var(--cream-3)' }}>{submitted.error}</p>
                 <button onClick={reset}
-                  style={{ background: 'rgba(240,235,224,0.1)', color: 'var(--cream)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', marginTop: 10 }}>
+                  style={{ background: 'rgba(var(--cream-rgb),0.1)', color: 'var(--cream)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', marginTop: 10 }}>
                   Cerrar
                 </button>
               </div>

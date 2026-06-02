@@ -72,9 +72,9 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
         data-testid="ai-suggestions-loading"
         style={{
           padding: compact ? 10 : 14, borderRadius: 12,
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.08)',
-          color: 'rgba(240,235,224,0.45)', fontFamily: 'DM Sans', fontSize: 13,
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.08)',
+          color: 'rgba(var(--cream-rgb),0.45)', fontFamily: 'DM Sans', fontSize: 13,
         }}
       >
         Cargando sugerencias…
@@ -90,9 +90,9 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
         data-testid="ai-suggestions-empty"
         style={{
           padding: 12, borderRadius: 12,
-          background: 'rgba(240,235,224,0.03)',
-          border: '1px dashed rgba(240,235,224,0.12)',
-          color: 'rgba(240,235,224,0.38)', fontFamily: 'DM Sans', fontSize: 12,
+          background: 'rgba(var(--cream-rgb),0.03)',
+          border: '1px dashed rgba(var(--cream-rgb),0.12)',
+          color: 'rgba(var(--cream-rgb),0.38)', fontFamily: 'DM Sans', fontSize: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
@@ -103,7 +103,7 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
           disabled={refreshing}
           style={{
             background: 'transparent', border: 0, cursor: 'pointer',
-            color: 'var(--cream-2, rgba(240,235,224,0.65))',
+            color: 'var(--cream-2, rgba(var(--cream-rgb),0.65))',
             display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
@@ -121,7 +121,7 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          color: 'rgba(240,235,224,0.58)', fontFamily: 'DM Sans',
+          color: 'rgba(var(--cream-rgb),0.58)', fontFamily: 'DM Sans',
           fontSize: 11, letterSpacing: 0.7, textTransform: 'uppercase',
         }}>
           <Sparkle size={13} />
@@ -133,7 +133,7 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
           disabled={refreshing}
           style={{
             background: 'transparent', border: 0, cursor: 'pointer',
-            color: 'rgba(240,235,224,0.55)',
+            color: 'rgba(var(--cream-rgb),0.55)',
             display: 'flex', alignItems: 'center', gap: 4, fontSize: 11,
             fontFamily: 'DM Sans',
           }}
@@ -162,7 +162,7 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase',
-                  color: 'rgba(240,235,224,0.55)', marginBottom: 3,
+                  color: 'rgba(var(--cream-rgb),0.55)', marginBottom: 3,
                 }}>
                   {color.label}
                 </div>
@@ -179,14 +179,14 @@ export function AISuggestionCard({ entityType, entityId, compact = false, onNavi
                 aria-label="Descartar"
                 style={{
                   background: 'transparent', border: 0, cursor: 'pointer',
-                  color: 'rgba(240,235,224,0.45)', padding: 2,
+                  color: 'rgba(var(--cream-rgb),0.45)', padding: 2,
                 }}
               >
                 <X size={14} />
               </button>
             </div>
             <div style={{
-              fontSize: compact ? 12 : 13, color: 'rgba(240,235,224,0.78)',
+              fontSize: compact ? 12 : 13, color: 'rgba(var(--cream-rgb),0.78)',
               lineHeight: 1.45,
             }}>
               {s.body}

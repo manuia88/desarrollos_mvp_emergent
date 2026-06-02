@@ -15,6 +15,8 @@ const del = (url) => j(url, { method: 'DELETE' });
 
 // Phase 4 Batch 14 — Developer dashboard
 export const getDashboard = () => j('/api/desarrollador/dashboard');
+// Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
+export const getDevPlays = () => j('/api/dev/projects/plays');
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);
@@ -254,6 +256,7 @@ export const getUnitPriceHistory = (devId, unitId) => j(`/api/dev/units/${devId}
 export const getUnitComparables = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/comparables`);
 export const getUnitMarketComparables = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/market-comparables`);
 export const getUnitAIPrediction = (devId, unitId) => post(`/api/dev/units/${devId}/${unitId}/ai-prediction`, {});
+export const getUnitAvm = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/avm`);
 export const patchUnit = (devId, unitId, b) => patch(`/api/dev/units/${devId}/${unitId}`, b);
 export const getUnitEngagement = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/engagement`);
 export const listDevAssets = (devId, type) => j(`/api/developments/${devId}/assets${type ? `?asset_type=${type}` : ''}`);

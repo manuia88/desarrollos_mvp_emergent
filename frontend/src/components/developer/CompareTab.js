@@ -31,14 +31,14 @@ function StudyColumn({ study, winners, idx }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
-        <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+        <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
           <div className="eyebrow" style={{ fontSize: 9 }}>FEASIBILITY AVG</div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{study.avg_feasibility}</div>
           {winners.avg_feasibility === study.id && (
             <Badge tone="brand" data-testid={`winner-${study.id}-avg_feasibility`}>WINNER</Badge>
           )}
         </div>
-        <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+        <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
           <div className="eyebrow" style={{ fontSize: 9 }}>ZONAS EVAL.</div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{study.total_zones_evaluated}</div>
         </div>
@@ -56,7 +56,7 @@ function StudyColumn({ study, winners, idx }) {
         </thead>
         <tbody>
           {(study.top_3_zones || []).map((z) => (
-            <tr key={z.colonia_id} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)' }}>
+            <tr key={z.colonia_id} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' }}>
               <td style={{ padding: '6px 4px', color: 'var(--cream)' }}>{z.colonia}</td>
               <td style={{ padding: '6px 4px', color: 'var(--cream)', textAlign: 'right', fontWeight: 600 }}>{z.feasibility_score}</td>
               <td style={{ padding: '6px 4px', color: 'var(--cream-2)', textAlign: 'right' }}>{z.estimated_roi_5y}%</td>
@@ -155,7 +155,7 @@ export default function CompareTab() {
           </span>
         </div>
         {err && (
-          <div style={{ marginTop: 10, padding: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 8, color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>{err}</div>
+          <div style={{ marginTop: 10, padding: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', borderRadius: 8, color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>{err}</div>
         )}
       </Card>
 
@@ -175,7 +175,7 @@ export default function CompareTab() {
           <Card style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.06) 60%, transparent)', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Sparkle size={13} color="#f9a8d4" />
-              <div className="eyebrow" style={{ color: '#f9a8d4' }}>DIFERENCIA CLAVE · CLAUDE HAIKU</div>
+              <div className="eyebrow" style={{ color: 'var(--rose)' }}>DIFERENCIA CLAVE · CLAUDE HAIKU</div>
             </div>
             <p data-testid="compare-narrative" style={{ fontFamily: 'DM Sans', fontSize: 13.2, color: 'var(--cream)', lineHeight: 1.55, margin: 0 }}>
               {result.diff_matrix.narrative_diff}
@@ -191,7 +191,7 @@ export default function CompareTab() {
                 return (
                   <div key={metric} data-testid={`winner-${metric}`} style={{
                     padding: 10, borderRadius: 10,
-                    background: 'rgba(240,235,224,0.04)',
+                    background: 'rgba(var(--cream-rgb),0.04)',
                     border: '1px solid var(--border)',
                   }}>
                     <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>{SUB_LABEL[metric] || metric}</div>

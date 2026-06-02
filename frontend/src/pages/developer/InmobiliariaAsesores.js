@@ -6,7 +6,7 @@ import { Plus, X, UserCheck, CheckCircle, AlertCircle } from '../../components/i
 import { Z } from '../../styles/zIndex';
 
 const ROLES = ['asesor', 'admin', 'director', 'marketing'];
-const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
 
 function Badge({ status }) {
   const ok = status === 'active';
@@ -40,7 +40,7 @@ function CreateModal({ onClose, onCreated }) {
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: 0 }}>Nuevo asesor DMX</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)' }}><X size={16} /></button>
         </div>
-        {err && <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', fontFamily: 'DM Sans', fontSize: 12, marginBottom: 12 }}>{err}</div>}
+        {err && <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12, marginBottom: 12 }}>{err}</div>}
         {[
           { k: 'name', label: 'Nombre', placeholder: 'Juan Pérez', testid: 'inm-name-input' },
           { k: 'email', label: 'Email', placeholder: 'juan@desarrollosmx.io', type: 'email', testid: 'inm-email-input' },
@@ -110,7 +110,7 @@ export default function InmobiliariaAsesores({ user, onLogout }) {
         </div>
 
         {successMsg && (
-          <div style={{ padding: '9px 14px', borderRadius: 8, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ADE80', fontFamily: 'DM Sans', fontSize: 12.5, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ padding: '9px 14px', borderRadius: 8, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12.5, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
             <CheckCircle size={13} /> {successMsg}
           </div>
         )}
@@ -126,9 +126,9 @@ export default function InmobiliariaAsesores({ user, onLogout }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {asesores.map(a => (
               <div key={a.id} data-testid={`inm-asesor-row-${a.id}`}
-                style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: '#818CF8' }}>
+                  <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--blue)' }}>
                     {(a.name || a.email).charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -140,7 +140,7 @@ export default function InmobiliariaAsesores({ user, onLogout }) {
                 {a.status !== 'disabled' && (
                   <button onClick={() => handleDisable(a.id)} disabled={saving[a.id]}
                     data-testid={`disable-asesor-${a.id}`}
-                    style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, cursor: 'pointer' }}>
+                    style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, cursor: 'pointer' }}>
                     Desactivar
                   </button>
                 )}

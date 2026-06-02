@@ -30,7 +30,7 @@ function WorkingHoursGrid({ hours, onChange }) {
           <div key={day} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: 10, fontWeight: 700, color: active ? 'var(--cream)' : 'rgba(240,235,224,0.35)',
+              fontSize: 10, fontWeight: 700, color: active ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.35)',
               cursor: 'pointer', textTransform: 'uppercase',
             }}>
               <input
@@ -46,12 +46,12 @@ function WorkingHoursGrid({ hours, onChange }) {
                 <input
                   type="number" min={0} max={23} value={range[0]}
                   onChange={e => onChange({ ...hours, [day]: [+e.target.value, range[1]] })}
-                  style={{ width: '100%', background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream)', borderRadius: 4, padding: '2px 4px', fontSize: 11, textAlign: 'center' }}
+                  style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', borderRadius: 4, padding: '2px 4px', fontSize: 11, textAlign: 'center' }}
                 />
                 <input
                   type="number" min={0} max={23} value={range[1]}
                   onChange={e => onChange({ ...hours, [day]: [range[0], +e.target.value] })}
-                  style={{ width: '100%', background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream)', borderRadius: 4, padding: '2px 4px', fontSize: 11, textAlign: 'center' }}
+                  style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', borderRadius: 4, padding: '2px 4px', fontSize: 11, textAlign: 'center' }}
                 />
               </div>
             )}
@@ -131,11 +131,11 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
         }}
       >
-        <Building size={14} color="rgba(240,235,224,0.55)" />
+        <Building size={14} color="rgba(var(--cream-rgb),0.55)" />
         <span style={{ flex: 1, textAlign: 'left', fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
           {project.name || project.id}
         </span>
-        {expanded ? <ChevronDown size={14} color="rgba(240,235,224,0.4)" /> : <ChevronRight size={14} color="rgba(240,235,224,0.4)" />}
+        {expanded ? <ChevronDown size={14} color="rgba(var(--cream-rgb),0.4)" /> : <ChevronRight size={14} color="rgba(var(--cream-rgb),0.4)" />}
       </button>
 
       {expanded && policy && (
@@ -151,9 +151,9 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                   onClick={() => setPolicy(p => ({ ...p, policy_type: opt.value }))}
                   style={{
                     padding: '6px 14px', borderRadius: 9999, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                    border: `1px solid ${policy.policy_type === opt.value ? 'rgba(99,102,241,0.6)' : 'rgba(240,235,224,0.12)'}`,
+                    border: `1px solid ${policy.policy_type === opt.value ? 'rgba(99,102,241,0.6)' : 'rgba(var(--cream-rgb),0.12)'}`,
                     background: policy.policy_type === opt.value ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    color: policy.policy_type === opt.value ? '#c7d2fe' : 'rgba(240,235,224,0.5)',
+                    color: policy.policy_type === opt.value ? '#c7d2fe' : 'rgba(var(--cream-rgb),0.5)',
                     transition: 'all 0.15s',
                   }}
                   title={opt.desc}
@@ -179,12 +179,12 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
           <div>
             <div className="eyebrow" style={{ marginBottom: 8 }}>
               POOL DE ASESORES
-              <span style={{ marginLeft: 6, fontSize: 9, color: 'rgba(240,235,224,0.3)', textTransform: 'none', fontWeight: 400 }}>
+              <span style={{ marginLeft: 6, fontSize: 9, color: 'rgba(var(--cream-rgb),0.3)', textTransform: 'none', fontWeight: 400 }}>
                 (solo con Google Calendar conectado)
               </span>
             </div>
             {asesoresWithGoogle.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.35)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(var(--cream-rgb),0.35)' }}>
                 Sin asesores con Google Calendar conectado. Pide a tus asesores que conecten su calendario en /asesor/configuracion.
               </div>
             ) : (
@@ -203,9 +203,9 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                       }))}
                       style={{
                         padding: '4px 12px', borderRadius: 9999, cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                        border: `1px solid ${inPool ? 'rgba(74,222,128,0.4)' : 'rgba(240,235,224,0.12)'}`,
+                        border: `1px solid ${inPool ? 'rgba(74,222,128,0.4)' : 'rgba(var(--cream-rgb),0.12)'}`,
                         background: inPool ? 'rgba(74,222,128,0.08)' : 'transparent',
-                        color: inPool ? '#86efac' : 'rgba(240,235,224,0.45)',
+                        color: inPool ? '#86efac' : 'rgba(var(--cream-rgb),0.45)',
                         transition: 'all 0.15s',
                       }}
                     >
@@ -230,7 +230,7 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
           {/* Slot config */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ fontSize: 10, fontWeight: 700, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: 'rgba(var(--cream-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
                 Duración de cita (min)
               </label>
               <input
@@ -238,11 +238,11 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                 type="number" min={15} max={240} step={15}
                 value={policy.slot_duration_min || 60}
                 onChange={e => setPolicy(p => ({ ...p, slot_duration_min: +e.target.value }))}
-                style={{ width: '100%', background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.15)', color: 'var(--cream)', borderRadius: 8, padding: '7px 12px', fontSize: 13 }}
+                style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', borderRadius: 8, padding: '7px 12px', fontSize: 13 }}
               />
             </div>
             <div>
-              <label style={{ fontSize: 10, fontWeight: 700, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: 'rgba(var(--cream-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
                 Buffer entre citas (min)
               </label>
               <input
@@ -250,7 +250,7 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                 type="number" min={0} max={60} step={5}
                 value={policy.buffer_min || 15}
                 onChange={e => setPolicy(p => ({ ...p, buffer_min: +e.target.value }))}
-                style={{ width: '100%', background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.15)', color: 'var(--cream)', borderRadius: 8, padding: '7px 12px', fontSize: 13 }}
+                style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', borderRadius: 8, padding: '7px 12px', fontSize: 13 }}
               />
             </div>
           </div>
@@ -273,7 +273,7 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
               onClick={loadPreview}
               style={{
                 padding: '8px 16px', borderRadius: 9999, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                background: 'transparent', border: '1px solid rgba(240,235,224,0.18)', color: 'rgba(240,235,224,0.55)',
+                background: 'transparent', border: '1px solid rgba(var(--cream-rgb),0.18)', color: 'rgba(var(--cream-rgb),0.55)',
               }}
             >
               <Calendar size={10} style={{ marginRight: 4 }} /> Ver próximos slots
@@ -299,7 +299,7 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                   <div key={i} style={{
                     padding: '4px 10px', borderRadius: 8, fontSize: 11,
                     background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.22)',
-                    color: '#c7d2fe',
+                    color: 'var(--blue)',
                   }}>
                     {new Date(s.slot_start).toLocaleString('es-MX', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
@@ -307,11 +307,11 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
               </div>
             </div>
           )}
-          {preview.length === 0 && <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.25)' }}>Guarda la política y haz clic en "Ver próximos slots" para ver disponibilidad.</div>}
+          {preview.length === 0 && <div style={{ fontSize: 11, color: 'rgba(var(--cream-rgb),0.25)' }}>Guarda la política y haz clic en "Ver próximos slots" para ver disponibilidad.</div>}
         </div>
       )}
       {expanded && !policy && (
-        <div style={{ marginTop: 12, height: 40, background: 'rgba(240,235,224,0.05)', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <div style={{ marginTop: 12, height: 40, background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite' }} />
       )}
     </Card>
   );
@@ -369,14 +369,14 @@ export default function CitasPolicies({ user, onLogout }) {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ height: 56, borderRadius: 12, background: 'rgba(240,235,224,0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div key={i} style={{ height: 56, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))}
         </div>
       ) : (
         <div>
           {projects.length === 0 ? (
             <Card>
-              <p style={{ color: 'rgba(240,235,224,0.4)', fontSize: 13 }}>No tienes proyectos activos aún.</p>
+              <p style={{ color: 'rgba(var(--cream-rgb),0.4)', fontSize: 13 }}>No tienes proyectos activos aún.</p>
             </Card>
           ) : (
             projects.map(p => (

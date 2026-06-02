@@ -25,8 +25,8 @@ function SectionCard({ sectionKey, sectionLabel, allOptions, selected, isEditing
   const keys = Object.keys(allOptions);
   return (
     <div style={{
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.1)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.1)',
       borderRadius: 10, padding: '16px 18px', marginBottom: 12,
     }}>
       <h4 style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif', letterSpacing: '0.02em' }}>
@@ -43,16 +43,16 @@ function SectionCard({ sectionKey, sectionLabel, allOptions, selected, isEditing
                 display: 'flex', alignItems: 'center', gap: 8,
                 cursor: isEditing ? 'pointer' : 'default',
                 padding: '6px 8px', borderRadius: 7,
-                background: checked ? 'rgba(240,235,224,0.08)' : 'transparent',
-                border: `1px solid ${checked ? 'rgba(240,235,224,0.2)' : 'transparent'}`,
+                background: checked ? 'rgba(var(--cream-rgb),0.08)' : 'transparent',
+                border: `1px solid ${checked ? 'rgba(var(--cream-rgb),0.2)' : 'transparent'}`,
                 transition: 'all 0.12s',
                 opacity: !isEditing && !checked ? 0.45 : 1,
               }}
             >
               <div style={{
                 width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                background: checked ? 'var(--cream)' : 'rgba(240,235,224,0.12)',
-                border: `1.5px solid ${checked ? 'var(--cream)' : 'rgba(240,235,224,0.3)'}`,
+                background: checked ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.12)',
+                border: `1.5px solid ${checked ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.3)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.12s',
               }}>
@@ -146,8 +146,8 @@ export default function AmenidadesTab({ devId, user }) {
                 data-testid="smart-defaults-btn"
                 onClick={() => setShowDefaults(!showDefaults)}
                 style={{
-                  background: 'rgba(240,235,224,0.08)', color: 'var(--cream-2)',
-                  border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+                  background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)',
+                  border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
                   padding: '6px 12px', fontSize: 12, cursor: 'pointer',
                 }}
               >
@@ -156,7 +156,7 @@ export default function AmenidadesTab({ devId, user }) {
               {showDefaults && (
                 <div style={{
                   position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4,
-                  background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.16)',
+                  background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.16)',
                   borderRadius: 10, overflow: 'hidden', minWidth: 220,
                   boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
                 }}>
@@ -170,7 +170,7 @@ export default function AmenidadesTab({ devId, user }) {
                         padding: '8px 14px', textAlign: 'left', cursor: 'pointer',
                         color: 'var(--cream)', fontSize: 12,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.06)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >
                       {p.name}
@@ -185,8 +185,8 @@ export default function AmenidadesTab({ devId, user }) {
               data-testid="edit-amenidades-btn"
               onClick={() => setIsEditing(true)}
               style={{
-                background: 'rgba(240,235,224,0.10)', color: 'var(--cream)',
-                border: '1px solid rgba(240,235,224,0.16)', borderRadius: 8,
+                background: 'rgba(var(--cream-rgb),0.10)', color: 'var(--cream)',
+                border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
                 padding: '6px 14px', fontSize: 12, cursor: 'pointer',
               }}
             >
@@ -196,14 +196,14 @@ export default function AmenidadesTab({ devId, user }) {
           {isEditing && (
             <>
               <button onClick={() => { setIsEditing(false); setSelected(data.amenities || []); }}
-                style={{ background: 'none', color: 'var(--cream-3)', border: '1px solid rgba(240,235,224,0.12)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
+                style={{ background: 'none', color: 'var(--cream-3)', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
                 Cancelar
               </button>
               <button
                 data-testid="save-amenidades-btn"
                 onClick={handleSave} disabled={saving}
                 style={{
-                  background: 'var(--cream)', color: 'var(--navy)',
+                  background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff',
                   border: 'none', borderRadius: 8, padding: '6px 16px',
                   fontSize: 12, fontWeight: 700, cursor: saving ? 'default' : 'pointer',
                 }}

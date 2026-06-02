@@ -53,13 +53,14 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
             type: 'fill',
             source: SOURCE_ID,
             paint: {
+              // Mapbox NO parsea variables CSS — usar colores literales (theme #6D4AFF = 109,74,255).
               'fill-color': [
                 'interpolate', ['linear'], ['get', 'demand_score'],
-                0,   'rgba(240,235,224,0.05)',
-                15,  'rgba(var(--theme-rgb),0.32)',
-                40,  'rgba(var(--theme-rgb),0.55)',
-                70,  'rgba(var(--theme-rgb),0.62)',
-                100, 'rgba(var(--theme-rgb),0.85)',
+                0,   'rgba(109,74,255,0.10)',
+                15,  'rgba(109,74,255,0.32)',
+                40,  'rgba(109,74,255,0.55)',
+                70,  'rgba(109,74,255,0.62)',
+                100, 'rgba(109,74,255,0.85)',
               ],
               'fill-opacity': 0.85,
             },
@@ -69,7 +70,7 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
             type: 'line',
             source: SOURCE_ID,
             paint: {
-              'line-color': 'rgba(240,235,224,0.42)',
+              'line-color': 'rgba(109,74,255,0.45)',
               'line-width': 1.2,
             },
           });
@@ -134,7 +135,7 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
   if (!TOKEN) {
     return (
       <div data-testid="demand-mapbox-token-missing" style={{
-        height, borderRadius: 12, padding: 20, background: 'rgba(255,255,255,0.04)',
+        height, borderRadius: 12, padding: 20, background: 'rgba(var(--cream-rgb),0.04)',
         border: '1px solid var(--border)', color: 'var(--cream-3)',
         fontFamily: 'DM Sans', fontSize: 12.5,
         display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',

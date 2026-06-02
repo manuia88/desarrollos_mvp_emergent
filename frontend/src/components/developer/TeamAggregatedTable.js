@@ -91,7 +91,7 @@ export default function TeamAggregatedTable({ period = '30d' }) {
   }
 
   if (error) {
-    return <div data-testid="team-table-error" style={{ padding: 16, color: '#fca5a5' }}>{error}</div>;
+    return <div data-testid="team-table-error" style={{ padding: 16, color: 'var(--red)' }}>{error}</div>;
   }
 
   if (!data?.asesores?.length) {
@@ -131,12 +131,12 @@ export default function TeamAggregatedTable({ period = '30d' }) {
 
       {/* Sortable table */}
       <div style={{
-        borderRadius: 14, border: '1px solid var(--border, rgba(240,235,224,0.1))',
+        borderRadius: 14, border: '1px solid var(--border, rgba(var(--cream-rgb),0.1))',
         overflow: 'auto',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
           <thead>
-            <tr style={{ background: 'rgba(240,235,224,0.05)' }}>
+            <tr style={{ background: 'rgba(var(--cream-rgb),0.05)' }}>
               {COLS.map(c => (
                 <th key={c.key}
                     onClick={() => handleSort(c.key)}
@@ -167,7 +167,7 @@ export default function TeamAggregatedTable({ period = '30d' }) {
                     cursor: 'pointer',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(240,235,224,0.03)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.03)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}>
                 <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--cream)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -244,8 +244,8 @@ function KPI({ label, value, testId }) {
     <div data-testid={testId}
          style={{
            padding: 12, borderRadius: 12,
-           background: 'rgba(240,235,224,0.04)',
-           border: '1px solid rgba(240,235,224,0.1)',
+           background: 'rgba(var(--cream-rgb),0.04)',
+           border: '1px solid rgba(var(--cream-rgb),0.1)',
          }}>
       <div style={{
         fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -297,13 +297,13 @@ function AsesorDrawer({ asesor, period, onClose }) {
            onClick={onClose}
            style={{
              position: 'fixed', inset: 0, zIndex: Z.STICKY,
-             background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(4px)',
+             background: 'rgba(var(--bg-rgb),0.65)', backdropFilter: 'blur(4px)',
            }} />
       <aside data-testid={`asesor-drawer-${asesor.asesor_id}`}
              style={{
                position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
                background: 'var(--bg, #06080F)',
-               borderLeft: '1px solid var(--border, rgba(240,235,224,0.12))',
+               borderLeft: '1px solid var(--border, rgba(var(--cream-rgb),0.12))',
                zIndex: Z.STICKY, padding: 24, overflow: 'auto', fontFamily: 'DM Sans',
                color: 'var(--cream)',
              }}>
@@ -325,8 +325,8 @@ function AsesorDrawer({ asesor, period, onClose }) {
         <div data-testid="asesor-drawer-timeseries"
              style={{
                padding: 14, borderRadius: 12,
-               background: 'rgba(240,235,224,0.04)',
-               border: '1px solid rgba(240,235,224,0.12)',
+               background: 'rgba(var(--cream-rgb),0.04)',
+               border: '1px solid rgba(var(--cream-rgb),0.12)',
                marginBottom: 16,
              }}>
           <div style={{

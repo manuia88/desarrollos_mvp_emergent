@@ -56,7 +56,7 @@ export default function DescriptionTab({ dev }) {
         {statsCards.map(({ Icon, val, unit }, i) => (
           <div key={i} style={{
             padding: 18,
-            background: 'rgba(255,255,255,0.04)',
+            background: 'rgba(var(--cream-rgb),0.04)',
             border: '1px solid var(--border)',
             borderRadius: 14,
             display: 'flex', flexDirection: 'column', gap: 6,
@@ -139,7 +139,7 @@ export default function DescriptionTab({ dev }) {
             {pct >= 0 ? '↑' : '↓'} {pct >= 0 ? '+' : ''}{pct}% desde lanzamiento
           </div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+        <div style={{ background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
           <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: '100%', height: 140 }}>
             <defs>
               <linearGradient id="ph-area" x1="0" y1="0" x2="0" y2="1">
@@ -213,7 +213,7 @@ export default function DescriptionTab({ dev }) {
                 borderRadius: 9999,
               }}>
                 <Icon size={11} color="#86efac" />
-                <span style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11.5, color: '#86efac' }}>{label}</span>
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11.5, color: 'var(--green)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function DescriptionTab({ dev }) {
               { k: t('dev.dev_stats.units'), v: (developer.units_sold || 0).toLocaleString('es-MX') },
               { k: t('dev.dev_stats.years'), v: developer.years_experience },
             ].map(({ k, v }) => (
-              <div key={k} style={{ padding: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+              <div key={k} style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{v}</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k}</div>
               </div>

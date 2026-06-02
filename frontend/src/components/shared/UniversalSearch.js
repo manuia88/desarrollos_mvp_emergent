@@ -173,23 +173,23 @@ export function UniversalSearch({ onClose, user }) {
       data-testid="universal-search-modal"
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-      <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] overflow-hidden">
+      <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-[rgba(var(--bg-rgb),0.92)] border border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px] overflow-hidden">
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)]">
-          <Search size={17} className="text-[rgba(240,235,224,0.4)] shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(var(--cream-rgb),0.08)]">
+          <Search size={17} className="text-[rgba(var(--cream-rgb),0.4)] shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={e => { setQuery(e.target.value); setActiveIdx(-1); setAtlaxAnswer(null); setAtlaxError(false); }}
             onKeyDown={handleKey}
             placeholder="Buscar proyectos, colonias, leads…"
-            className="flex-1 bg-transparent text-[var(--cream)] placeholder-[rgba(240,235,224,0.3)] outline-none text-sm"
+            className="flex-1 bg-transparent text-[var(--cream)] placeholder-[rgba(var(--cream-rgb),0.3)] outline-none text-sm"
             data-testid="universal-search-input"
           />
           {loading && (
-            <span className="w-4 h-4 border-2 border-[rgba(240,235,224,0.2)] border-t-[var(--cream)] rounded-full animate-spin" />
+            <span className="w-4 h-4 border-2 border-[rgba(var(--cream-rgb),0.2)] border-t-[var(--cream)] rounded-full animate-spin" />
           )}
-          <button onClick={onClose} className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors">
+          <button onClick={onClose} className="text-[rgba(var(--cream-rgb),0.4)] hover:text-[var(--cream)] transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -208,7 +208,7 @@ export function UniversalSearch({ onClose, user }) {
                 <Sparkles size={15} className="text-[#a99bff] shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[var(--cream)] text-sm font-medium">{t('commandBar.askAtlax', '🤖 Preguntar a Atlax')}</p>
-                  <p className="text-[rgba(240,235,224,0.5)] text-xs truncate">"{q}"</p>
+                  <p className="text-[rgba(var(--cream-rgb),0.5)] text-xs truncate">"{q}"</p>
                 </div>
                 {atlaxLoading
                   ? <span className="w-4 h-4 border-2 border-[rgba(169,155,255,0.3)] border-t-[#a99bff] rounded-full animate-spin shrink-0" />
@@ -216,16 +216,16 @@ export function UniversalSearch({ onClose, user }) {
               </button>
 
               {atlaxLoading && !atlaxAnswer && (
-                <p className="px-3 py-2 text-xs text-[rgba(240,235,224,0.4)]">{t('commandBar.thinking', 'Atlax está pensando…')}</p>
+                <p className="px-3 py-2 text-xs text-[rgba(var(--cream-rgb),0.4)]">{t('commandBar.thinking', 'Atlax está pensando…')}</p>
               )}
 
               {atlaxAnswer && (
-                <div className="mt-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] p-3" data-testid="atlax-answer">
+                <div className="mt-2 rounded-xl bg-[rgba(var(--cream-rgb),0.04)] border border-[rgba(var(--cream-rgb),0.08)] p-3" data-testid="atlax-answer">
                   <p className="text-[var(--cream)] text-sm whitespace-pre-wrap leading-relaxed">{atlaxAnswer.reply}</p>
                   {atlaxAnswer.tools_used && atlaxAnswer.tools_used.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-[rgba(255,255,255,0.06)] flex flex-wrap items-center gap-1.5">
-                      <Wrench size={11} className="text-[rgba(240,235,224,0.35)]" />
-                      <span className="text-[10px] uppercase tracking-wider text-[rgba(240,235,224,0.35)] mr-1">{t('commandBar.toolsUsed', 'Herramientas usadas')}</span>
+                    <div className="mt-2.5 pt-2 border-t border-[rgba(var(--cream-rgb),0.06)] flex flex-wrap items-center gap-1.5">
+                      <Wrench size={11} className="text-[rgba(var(--cream-rgb),0.35)]" />
+                      <span className="text-[10px] uppercase tracking-wider text-[rgba(var(--cream-rgb),0.35)] mr-1">{t('commandBar.toolsUsed', 'Herramientas usadas')}</span>
                       {atlaxAnswer.tools_used.map((tool, i) => (
                         <span key={i} className="px-1.5 py-0.5 rounded bg-[rgba(124,108,255,0.15)] text-[10px] text-[#a99bff]">{tool}</span>
                       ))}
@@ -241,7 +241,7 @@ export function UniversalSearch({ onClose, user }) {
           )}
 
           {query.length >= 2 && results.length === 0 && !loading && !showAtlax && (
-            <div className="px-4 py-8 text-center text-[rgba(240,235,224,0.4)] text-sm">
+            <div className="px-4 py-8 text-center text-[rgba(var(--cream-rgb),0.4)] text-sm">
               Sin resultados para "{query}"
             </div>
           )}
@@ -252,7 +252,7 @@ export function UniversalSearch({ onClose, user }) {
                 const Icon = TYPE_ICONS[type] || Search;
                 return (
                   <div key={type} className="mb-1">
-                    <div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-widest text-[rgba(240,235,224,0.3)]">
+                    <div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-widest text-[rgba(var(--cream-rgb),0.3)]">
                       {TYPE_LABELS[type] || type}
                     </div>
                     {items.map((item, i) => {
@@ -261,16 +261,16 @@ export function UniversalSearch({ onClose, user }) {
                         <button
                           key={item.id}
                           onClick={() => navigateTo(item)}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left
-                            ${globalIdx === activeIdx ? 'bg-[rgba(240,235,224,0.08)]' : ''}`}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[rgba(var(--cream-rgb),0.06)] transition-colors text-left
+                            ${globalIdx === activeIdx ? 'bg-[rgba(var(--cream-rgb),0.08)]' : ''}`}
                           data-testid={`search-result-${item.id}`}
                         >
-                          <Icon size={14} className="text-[rgba(240,235,224,0.4)] shrink-0" />
+                          <Icon size={14} className="text-[rgba(var(--cream-rgb),0.4)] shrink-0" />
                           <div className="min-w-0 flex-1">
                             <p className="text-[var(--cream)] text-sm truncate">{item.label}</p>
-                            {item.sub && <p className="text-[rgba(240,235,224,0.4)] text-xs truncate">{item.sub}</p>}
+                            {item.sub && <p className="text-[rgba(var(--cream-rgb),0.4)] text-xs truncate">{item.sub}</p>}
                           </div>
-                          <ArrowRight size={12} className="text-[rgba(240,235,224,0.2)] shrink-0" />
+                          <ArrowRight size={12} className="text-[rgba(var(--cream-rgb),0.2)] shrink-0" />
                         </button>
                       );
                     })}
@@ -283,34 +283,34 @@ export function UniversalSearch({ onClose, user }) {
           {/* Recent searches */}
           {!query && recent.length > 0 && (
             <div className="py-2">
-              <div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-widest text-[rgba(240,235,224,0.3)]">
+              <div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-widest text-[rgba(var(--cream-rgb),0.3)]">
                 Recientes
               </div>
               {recent.map((r, i) => (
                 <button
                   key={i}
                   onClick={() => setQuery(r)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[rgba(var(--cream-rgb),0.06)] transition-colors text-left"
                 >
-                  <Clock size={13} className="text-[rgba(240,235,224,0.3)] shrink-0" />
-                  <span className="text-[rgba(240,235,224,0.65)] text-sm truncate">{r}</span>
+                  <Clock size={13} className="text-[rgba(var(--cream-rgb),0.3)] shrink-0" />
+                  <span className="text-[rgba(var(--cream-rgb),0.65)] text-sm truncate">{r}</span>
                 </button>
               ))}
             </div>
           )}
 
           {!query && recent.length === 0 && (
-            <div className="px-4 py-8 text-center text-[rgba(240,235,224,0.3)] text-sm">
+            <div className="px-4 py-8 text-center text-[rgba(var(--cream-rgb),0.3)] text-sm">
               Escribe para buscar proyectos, colonias, leads…
             </div>
           )}
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-[rgba(240,235,224,0.06)] text-[10px] text-[rgba(240,235,224,0.25)]">
-          <span><kbd className="px-1 rounded bg-[rgba(240,235,224,0.08)]">↑↓</kbd> navegar</span>
-          <span><kbd className="px-1 rounded bg-[rgba(240,235,224,0.08)]">↵</kbd> abrir</span>
-          <span><kbd className="px-1 rounded bg-[rgba(240,235,224,0.08)]">esc</kbd> cerrar</span>
+        <div className="flex items-center gap-4 px-4 py-2 border-t border-[rgba(var(--cream-rgb),0.06)] text-[10px] text-[rgba(var(--cream-rgb),0.25)]">
+          <span><kbd className="px-1 rounded bg-[rgba(var(--cream-rgb),0.08)]">↑↓</kbd> navegar</span>
+          <span><kbd className="px-1 rounded bg-[rgba(var(--cream-rgb),0.08)]">↵</kbd> abrir</span>
+          <span><kbd className="px-1 rounded bg-[rgba(var(--cream-rgb),0.08)]">esc</kbd> cerrar</span>
         </div>
       </div>
     </div>

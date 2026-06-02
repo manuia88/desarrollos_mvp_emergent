@@ -1,0 +1,175 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary "Barra lateral de navegación" [ref=e5]:
+      - link "Ir a Inicio" [ref=e6] [cursor=pointer]:
+        - /url: /asesor
+        - generic [ref=e7]: DMX
+        - generic [ref=e8]: Asesor
+      - generic [ref=e10]:
+        - img [ref=e11]
+        - textbox "Buscar función…" [ref=e14]
+      - navigation "Navegación asesor" [ref=e15]:
+        - button "Inicio" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e21]: Inicio
+        - button "Mis Leads" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e29]: Mis Leads
+          - img [ref=e31]
+        - button "Agenda" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: Agenda
+          - img [ref=e39]
+        - button "Inventario" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - generic [ref=e47]: Inventario
+          - img [ref=e49]
+        - button "Conversaciones IA" [ref=e52] [cursor=pointer]:
+          - img [ref=e53]
+          - generic [ref=e55]: Conversaciones IA
+          - img [ref=e57]
+        - button "Automatizaciones" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e65]: Automatizaciones
+          - img [ref=e67]
+        - button "Studio Marketing" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e73]: Studio Marketing
+          - img [ref=e75]
+        - generic [ref=e77]:
+          - button "Mi Performance" [expanded] [ref=e78] [cursor=pointer]:
+            - img [ref=e79]
+            - generic [ref=e81]: Mi Performance
+            - img [ref=e83]
+          - generic [ref=e85]:
+            - link "Métricas" [ref=e86] [cursor=pointer]:
+              - /url: /asesor/metricas
+              - img [ref=e87]
+              - generic [ref=e90]: Métricas
+            - link "Comisiones" [ref=e91] [cursor=pointer]:
+              - /url: /asesor/comisiones
+              - img [ref=e92]
+              - generic [ref=e94]: Comisiones
+            - link "Operaciones" [ref=e95] [cursor=pointer]:
+              - /url: /asesor/operaciones
+              - img [ref=e96]
+              - generic [ref=e98]: Operaciones
+            - link "CMA · Análisis" [ref=e99] [cursor=pointer]:
+              - /url: /asesor/cma
+              - img [ref=e100]
+              - generic [ref=e102]: CMA · Análisis
+            - link "Briefings" [ref=e103] [cursor=pointer]:
+              - /url: /asesor/briefings
+              - img [ref=e104]
+              - generic [ref=e107]: Briefings
+            - link "Links tracking" [ref=e108] [cursor=pointer]:
+              - /url: /asesor/links-tracking
+              - img [ref=e109]
+              - generic [ref=e112]: Links tracking
+        - button "Herramientas" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: Herramientas
+          - img [ref=e119]
+      - button "A Asesor Demo asesor@local.dmx.io" [ref=e122] [cursor=pointer]:
+        - generic [ref=e123]: A
+        - generic [ref=e124]:
+          - generic [ref=e125]: Asesor Demo
+          - generic [ref=e126]: asesor@local.dmx.io
+        - img [ref=e128]
+    - generic [ref=e130]:
+      - banner [ref=e131]:
+        - button "Buscar… ⌘K" [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+          - generic [ref=e136]: Buscar…
+          - generic [ref=e137]: ⌘K
+        - button [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+        - button "Menú de usuario" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+      - main [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e151]:
+            - generic [ref=e152]: MÉTRICAS · MI PERFORMANCE
+            - heading "Mi panel de rendimiento" [level=1] [ref=e153]
+            - paragraph [ref=e154]: Pipeline, conversión, tiempo de respuesta y posición en el equipo.
+          - generic [ref=e155]:
+            - generic [ref=e156]:
+              - generic [ref=e157]:
+                - generic [ref=e158]: Tu día hoy
+                - generic [ref=e159]: Buenas tardes, Asesor
+                - generic [ref=e160]: Sin acciones pendientes
+              - generic [ref=e161]:
+                - button "..." [disabled] [ref=e162]
+                - link "Ver todos" [ref=e163] [cursor=pointer]:
+                  - /url: /asesor/leads
+            - generic [ref=e164]: Cargando feed…
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - generic [ref=e168]: "Periodo:"
+              - generic [ref=e169]:
+                - button "7 días" [ref=e170] [cursor=pointer]
+                - button "30 días" [ref=e171] [cursor=pointer]:
+                  - text: 30 días
+                  - img [ref=e172]
+                - button "90 días" [ref=e175] [cursor=pointer]
+            - button "Limpiar (1)" [ref=e176] [cursor=pointer]:
+              - img [ref=e177]
+              - text: Limpiar (1)
+          - generic [ref=e180]: Cargando métricas…
+        - button "Abrir Plan venta IA" [ref=e181] [cursor=pointer]: AI
+    - button "Reportar problema" [ref=e182] [cursor=pointer]:
+      - img [ref=e183]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e185] [cursor=pointer]:
+      - img [ref=e186]
+    - complementary [ref=e189]:
+      - generic [ref=e190]:
+        - generic [ref=e191]:
+          - img [ref=e193]
+          - generic [ref=e196]:
+            - generic [ref=e197]: Copilot DMX
+            - generic [ref=e198]: Claude Sonnet · contexto privado
+        - generic [ref=e199]:
+          - button [ref=e200] [cursor=pointer]:
+            - img [ref=e201]
+            - text: "0"
+          - button [ref=e203] [cursor=pointer]:
+            - img [ref=e204]
+            - text: Nueva
+          - button [ref=e205] [cursor=pointer]:
+            - img [ref=e206]
+      - generic [ref=e209]:
+        - button [ref=e210] [cursor=pointer]: Mi pipeline esta semana
+        - button [ref=e211] [cursor=pointer]: ¿A quién debo llamar primero?
+        - button [ref=e212] [cursor=pointer]: Mejor proyecto para mis leads top
+        - button [ref=e213] [cursor=pointer]: Leads que puedo cerrar esta semana
+        - button [ref=e214] [cursor=pointer]: Mis links con mejor desempeño
+        - button [ref=e215] [cursor=pointer]: Cómo subir mi health score
+      - generic [ref=e217]:
+        - img [ref=e219]
+        - generic [ref=e222]:
+          - generic [ref=e223]: Pregúntame lo que necesites
+          - generic [ref=e224]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e225]:
+          - button [ref=e226] [cursor=pointer]:
+            - generic [ref=e227]: Mi pipeline esta semana
+            - img [ref=e228]
+          - button [ref=e230] [cursor=pointer]:
+            - generic [ref=e231]: ¿A quién debo llamar primero?
+            - img [ref=e232]
+          - button [ref=e234] [cursor=pointer]:
+            - generic [ref=e235]: Mejor proyecto para mis leads top
+            - img [ref=e236]
+          - button [ref=e238] [cursor=pointer]:
+            - generic [ref=e239]: Leads que puedo cerrar esta semana
+            - img [ref=e240]
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - textbox [ref=e244]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e245]:
+            - img [ref=e246]
+        - generic [ref=e248]:
+          - generic [ref=e249]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e250]: 0/4000

@@ -16,8 +16,8 @@ function fmtPrice(n) {
 }
 
 const SOURCE_CFG = {
-  own_org: { label: 'Mi organización', color: '#818CF8', bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.28)' },
-  cross_partnership: { label: 'Alianza cruzada', color: '#EC4899', bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.28)' },
+  own_org: { label: 'Mi organización', color: 'var(--blue)', bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.28)' },
+  cross_partnership: { label: 'Alianza cruzada', color: 'var(--rose)', bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.28)' },
 };
 
 function SourceBadge({ source }) {
@@ -35,11 +35,11 @@ function ProjectCard({ project }) {
   return (
     <div data-testid={`mm-project-${project.id}`}
       style={{
-        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid rgba(var(--cream-rgb),0.08)',
         borderRadius: 16, overflow: 'hidden', transition: 'border-color 220ms, transform 220ms',
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       <div style={{
         height: 140, position: 'relative',
@@ -54,23 +54,23 @@ function ProjectCard({ project }) {
           {project.name}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-          <MapPin size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+          <MapPin size={11} color="rgba(var(--cream-rgb),0.40)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)' }}>
             {project.colonia || project.neighborhood}{project.ciudad ? `, ${project.ciudad}` : ''}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-          <DollarSign size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+          <DollarSign size={11} color="rgba(var(--cream-rgb),0.40)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)' }}>
             {fmtPrice(project.price_min)} — {fmtPrice(project.price_max)}
           </span>
         </div>
         {project.partner_org_id && (
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)', marginTop: 4 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.40)', marginTop: 4 }}>
             Aliado: {project.partner_org_id}
           </div>
         )}
-        <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.35)' }}>
+        <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.35)' }}>
           {devId}
         </div>
       </div>
@@ -126,7 +126,7 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div data-testid="desarrollador-mini-market" style={{ maxWidth: 1200 }}>
         {toast && (
-          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -138,7 +138,7 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
               Mini Market
             </h1>
           </div>
-          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.50)', margin: 0 }}>
             Inventario disponible para tu equipo: proyectos propios y de organizaciones aliadas.
           </p>
         </div>
@@ -146,15 +146,15 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
         {/* Stats */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Propios</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#818CF8' }}>{ownCount}</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Propios</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--blue)' }}>{ownCount}</div>
           </div>
           <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.22)' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Cross-org</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#EC4899' }}>{crossCount}</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Cross-org</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--rose)' }}>{crossCount}</div>
           </div>
-          <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Total visible</div>
+          <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.08)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Total visible</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)' }}>{items.length}</div>
           </div>
         </div>
@@ -169,9 +169,9 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 14px', borderRadius: 9999,
-                background: externalEnabled ? 'rgba(74,222,128,0.10)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${externalEnabled ? 'rgba(74,222,128,0.32)' : 'rgba(255,255,255,0.10)'}`,
-                color: externalEnabled ? '#4ADE80' : 'rgba(240,235,224,0.55)',
+                background: externalEnabled ? 'rgba(74,222,128,0.10)' : 'rgba(var(--cream-rgb),0.04)',
+                border: `1px solid ${externalEnabled ? 'rgba(74,222,128,0.32)' : 'rgba(var(--cream-rgb),0.10)'}`,
+                color: externalEnabled ? '#4ADE80' : 'rgba(var(--cream-rgb),0.55)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: busyToggle ? 'wait' : 'pointer',
                 opacity: busyToggle ? 0.6 : 1,
               }}
@@ -188,9 +188,9 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
                 style={{
                   padding: '7px 13px', borderRadius: 9999, fontSize: 12,
                   fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                  border: filterSource === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                  border: filterSource === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(var(--cream-rgb),0.10)',
                   background: filterSource === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                  color: filterSource === k ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                  color: filterSource === k ? '#818CF8' : 'rgba(var(--cream-rgb),0.50)',
                 }}>
                 {l}
               </button>
@@ -199,12 +199,12 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Cargando inventario…
           </div>
         ) : filtered.length === 0 ? (
-          <div data-testid="mm-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
-            <Layers size={38} color="rgba(240,235,224,0.20)" style={{ marginBottom: 12 }} />
+          <div data-testid="mm-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans' }}>
+            <Layers size={38} color="rgba(var(--cream-rgb),0.20)" style={{ marginBottom: 12 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 5 }}>
               Sin proyectos disponibles
             </div>

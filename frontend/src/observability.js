@@ -7,9 +7,12 @@ let _sentryInited = false;
 let _posthogInited = false;
 
 export function initObservability() {
-  // Sentry
+  // Sentry — solo init con un DSN-URL válido. Un token de usuario ("sntryu_…") NO
+  // es un DSN (un DSN es https://…@…ingest.sentry.io/…) y dispara "Invalid Sentry Dsn"
+  // en consola. Guardamos para no inicializar con un valor inválido (fail-silent).
   const dsn = process.env.REACT_APP_SENTRY_DSN || '';
-  if (dsn && !_sentryInited) {
+  const dsnValid = /^https?:\/\/.+@.+\/.+/.test(dsn);
+  if (dsnValid && !_sentryInited) {
     try {
       Sentry.init({
         dsn,

@@ -1,0 +1,82 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /barrios
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Cambiar a español" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: EN
+        - generic [ref=e22]: ·
+        - generic [ref=e23]: ES
+      - button "Entrar" [ref=e24] [cursor=pointer]
+      - link "Abrir mapa" [ref=e25] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Abrir mapa
+  - main [ref=e29]:
+    - generic [ref=e30]:
+      - generic [ref=e31]: Marketplace de desarrollos
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - heading "Todos los estrenos de CDMX, con la inteligencia que ningún portal tiene." [level=1] [ref=e34]
+          - paragraph [ref=e35]: Preventas, obras en curso y entregas inmediatas — filtradas por los scores de su barrio y los 97 indicadores que hay detrás de cada precio.
+        - generic [ref=e36]:
+          - button "Buscar por foto" [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+            - text: Buscar por foto
+          - button "Buscar por URL" [ref=e41] [cursor=pointer]:
+            - img [ref=e42]
+            - text: Buscar por URL
+          - button "Mi colonia ideal" [ref=e46] [cursor=pointer]:
+            - img [ref=e47]
+            - text: Mi colonia ideal
+          - button "Comparar" [ref=e50] [cursor=pointer]:
+            - img [ref=e51]
+            - text: Comparar
+          - generic [ref=e52]:
+            - button "Lista" [ref=e53] [cursor=pointer]
+            - button "Mapa" [ref=e54] [cursor=pointer]
+    - generic [ref=e57]:
+      - generic [ref=e59]:
+        - img [ref=e60]
+        - 'textbox "Describe tu hogar ideal — ej: \"depa 2 rec en Roma Norte máximo 5 millones con terraza\"" [ref=e63]'
+        - button "Interpretar" [disabled] [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - text: Interpretar
+      - generic [ref=e68]:
+        - button "Ubicación" [ref=e70] [cursor=pointer]:
+          - text: Ubicación
+          - img [ref=e71]
+        - button "Tipo" [ref=e74] [cursor=pointer]:
+          - text: Tipo
+          - img [ref=e75]
+        - button "Precio" [ref=e78] [cursor=pointer]:
+          - text: Precio
+          - img [ref=e79]
+        - button "Recámaras" [ref=e82] [cursor=pointer]:
+          - text: Recámaras
+          - img [ref=e83]
+        - button "Más filtros" [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - generic [ref=e87]: Ordenar
+          - combobox [ref=e88] [cursor=pointer]:
+            - 'option "Publicación: más reciente" [selected]'
+            - 'option "Precio: menor a mayor"'
+            - 'option "Precio: mayor a menor"'
+            - option "Mayor m²"
+    - generic [ref=e89]:
+      - generic [ref=e90]: 0 desarrollos
+      - generic [ref=e91]: …
+  - button "Abrir chat Caya" [ref=e92] [cursor=pointer]:
+    - img [ref=e93]

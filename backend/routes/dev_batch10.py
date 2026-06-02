@@ -314,6 +314,135 @@ async def list_projects_with_stats(request: Request):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# GET /api/dev/projects/plays — "Tus jugadas de hoy" (upgrade Inicio · fusión + agentic)
+# Fusiona TU dato con el MERCADO y rankea por $ en juego. Cierra ciclo en memoria del Cerebro.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _months_until(ym):
+    """'YYYY-MM' → meses desde hoy (>=0) o None."""
+    try:
+        parts = str(ym).split("-")
+        y, m = int(parts[0]), int(parts[1])
+        now = datetime.now(timezone.utc)
+        return max(0, (y - now.year) * 12 + (m - now.month))
+    except Exception:
+        return None
+
+
+def _mm(v):
+    try:
+        return f"${v / 1_000_000:.0f}M"
+    except Exception:
+        return "$0M"
+
+
+@router.get("/projects/plays")
+async def dev_plays(request: Request):
+    """Las 2-3 jugadas de mayor palanca del portafolio, fusionando datos propios + mercado.
+    Tipos: precio-vs-mercado · agotamiento-vs-entrega · cierre-a-la-mano · proyecto-que-frena.
+    Rankeadas por $ en juego. Registra en memoria gobernada lo que se propuso (cierra ciclo)."""
+    user = await _auth(request)
+    db = _db(request)
+    projects = await list_projects_with_stats(request)   # tenant-scoped + enriquecido
+
+    # mercado comparable: mediana de price_from por colonia (todo el inventario CDMX)
+    from data_developments import DEVELOPMENTS
+    from data_seed import COLONIAS
+    cmap = {c["id"]: c["name"] for c in COLONIAS}
+    zone_prices: Dict[str, List[int]] = {}
+    for d in DEVELOPMENTS:
+        cid = d.get("colonia_id", d.get("colonia", ""))
+        cname = cmap.get(cid, str(d.get("colonia", cid)).replace("_", " ").title())
+        if d.get("price_from"):
+            zone_prices.setdefault(cname, []).append(d["price_from"])
+
+    def market_of(cname):
+        ps = sorted(zone_prices.get(cname, []))
+        return ps[len(ps) // 2] if ps else None
+
+    plays: List[Dict[str, Any]] = []
+    for p in projects:
+        by = p.get("units_by_status") or {}
+        avail = by.get("disponible", 0)
+        pf = p.get("price_from") or 0
+        ws = p.get("weekly_sales") or []
+        recent = ws[-4:] or [0]
+        ritmo = sum(recent) / len(recent) if recent else 0
+        name, pid = p.get("name"), p.get("id")
+        health = p.get("health_score") or 0
+        route = f"/desarrollador/proyectos/{pid}"
+
+        # 1) PRECIO vs MERCADO DE ZONA
+        mk = market_of(p.get("colonia"))
+        if mk and pf and avail and (pf - mk) / mk >= 0.05:
+            gap = (pf - mk) / mk
+            plays.append({
+                "type": "precio", "severity": "alta", "project_id": pid, "project_name": name,
+                "emoji": "🏷️", "title": f"{name} está {round(gap*100)}% arriba del valor de su zona",
+                "detail": f"Tu precio {_mm(pf)} vs {_mm(mk)} del mercado en {p.get('colonia')} — por eso va lento. Bajar a mercado vende más rápido con margen sano.",
+                "impact_label": f"~{_mm(avail*pf*gap)} afectados por sobreprecio",
+                "impact_value": avail * pf * gap,
+                "action_label": "Ver y ajustar precio", "action_route": route,
+                "sources": "tu precio + valor de zona (DRPI) + valuación (AVM · estimado)",
+            })
+
+        # 2) AGOTAMIENTO vs ENTREGA (riesgo de inventario parado)
+        md = _months_until(p.get("delivery_estimate"))
+        if ritmo > 0 and md is not None and avail:
+            leftover = max(0, round(avail - ritmo * 4.33 * md))
+            if leftover > 0:
+                plays.append({
+                    "type": "inventario", "severity": "media", "project_id": pid, "project_name": name,
+                    "emoji": "⏳", "title": f"{name} llegaría a la entrega con {leftover} unidades sin vender",
+                    "detail": f"Entrega en {md} meses y a tu ritmo ({ritmo:.1f}/sem) no alcanzas. Empuja marketing o ajusta precio ahora.",
+                    "impact_label": f"~{_mm(leftover*pf)} podrían quedar parados",
+                    "impact_value": leftover * pf,
+                    "action_label": "Ver plan", "action_route": route,
+                    "sources": "tu ritmo de venta + pronóstico + fecha de entrega",
+                })
+
+        # 3) CIERRE A LA MANO (leads activos + demanda)
+        leads = p.get("leads_active", 0)
+        if leads > 0:
+            plays.append({
+                "type": "cierre", "severity": "oportunidad", "project_id": pid, "project_name": name,
+                "emoji": "🔥", "title": f"{leads} cliente(s) activo(s) en {name} por cerrar",
+                "detail": f"Tienen actividad reciente; un empujón cierra. Conversión actual {p.get('conversion_pct', 0)}%.",
+                "impact_label": f"~{_mm(leads*pf)} en juego",
+                "impact_value": leads * pf,
+                "action_label": "Ver leads", "action_route": route,
+                "sources": "scoring de leads + pulso de demanda (Live Pulse)",
+            })
+
+        # 4) PROYECTO QUE FRENA (salud baja · siempre surfacea lo que estanca dinero)
+        if 0 < health < 70 and avail:
+            plays.append({
+                "type": "salud", "severity": "media", "project_id": pid, "project_name": name,
+                "emoji": "🩺", "title": f"{name} va lento — salud {health}/100",
+                "detail": "Hay 2-3 cosas frenando sus ventas (fotos, precio o seguimiento). Arréglalas y se mueve.",
+                "impact_label": f"{avail} uds · {_mm(avail*pf)} por destrabar",
+                "impact_value": avail * pf * 0.4,   # ponderado: no todo está en riesgo, pero pesa
+                "action_label": "Ver qué lo frena", "action_route": route,
+                "sources": "diagnóstico de salud del proyecto (35 señales)",
+            })
+
+    plays.sort(key=lambda x: x["impact_value"], reverse=True)
+    top = plays[:3]
+
+    # cierre de ciclo: registra en memoria gobernada lo que el Cerebro le propuso (fail-open)
+    try:
+        import os
+        if os.environ.get("CEREBRO_ENABLED") == "true" and top:
+            import cerebro
+            await cerebro.remember(db, user, scope="world", key="dev_plays_shown",
+                                   value={"types": [t["type"] for t in top], "n": len(top)})
+    except Exception:
+        pass
+
+    return {"plays": top, "total_detected": len(plays)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # GET /api/dev/projects/:id/summary
 # ═══════════════════════════════════════════════════════════════════════════════
 

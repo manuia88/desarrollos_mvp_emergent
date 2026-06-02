@@ -7,10 +7,10 @@ import { Z } from '../../styles/zIndex';
 
 const STAGE_COLORS = {
   cimentacion:   { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
-  estructura:    { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: '#f9a8d4' },
-  instalaciones: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.35)', fg: '#fcd34d' },
-  acabados:      { bg: 'rgba(34,197,94,0.14)',  bd: 'rgba(34,197,94,0.35)',  fg: '#86efac' },
-  entrega:       { bg: 'rgba(139,92,246,0.14)', bd: 'rgba(139,92,246,0.35)', fg: '#c4b5fd' },
+  estructura:    { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: '#C63FAE' },
+  instalaciones: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.35)', fg: '#C77F12' },
+  acabados:      { bg: 'rgba(34,197,94,0.14)',  bd: 'rgba(34,197,94,0.35)',  fg: '#1FA06A' },
+  entrega:       { bg: 'rgba(139,92,246,0.14)', bd: 'rgba(139,92,246,0.35)', fg: '#6D4AFF' },
 };
 
 export default function AvanceObraTab({ devId, readOnly = false }) {
@@ -81,7 +81,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 260, maxWidth: 420 }}>
-            <div style={{ height: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 14, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{
                 width: `${overall}%`, height: '100%',
                 background: 'var(--grad)',
@@ -115,7 +115,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
                     {i + 1}. {s.label}
                     {done && <Badge tone="ok" style={{ marginLeft: 8 }}>Completada</Badge>}
                   </div>
-                  <div style={{ height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 999, marginTop: 8, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 999, marginTop: 8, overflow: 'hidden' }}>
                     <div style={{
                       width: `${s.percent}%`, height: '100%', background: clr.fg,
                       transition: 'width 0.5s',
@@ -135,7 +135,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
                       onClick={() => { setEditing(s.key); setPct(s.percent); }}
                       style={{
                         padding: '6px 12px', borderRadius: 9999,
-                        background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                        background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                         color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, cursor: 'pointer',
                       }}>
                       Actualizar
@@ -145,14 +145,14 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
               </div>
 
               {isEditing && (
-                <div style={{ marginTop: 14, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ marginTop: 14, padding: 12, background: 'rgba(var(--cream-rgb),0.03)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <input
                     data-testid={`avance-pct-${s.key}`}
                     type="number" min={0} max={100} step={1}
                     value={pct} onChange={e => setPct(+e.target.value)}
                     style={{
                       width: 100, padding: '8px 10px',
-                      background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)',
+                      background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
                       borderRadius: 8, color: 'var(--cream)',
                       fontFamily: 'DM Mono, monospace', fontSize: 13,
                     }}
@@ -217,7 +217,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
             placeholder="Comentario del residente de obra (máx 800 chars)…"
             rows={3} maxLength={800}
             style={{
-              width: '100%', padding: 10, background: 'rgba(13,17,24,0.6)',
+              width: '100%', padding: 10, background: 'rgba(var(--bg-rgb),0.6)',
               border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream)',
               fontFamily: 'DM Sans', fontSize: 13, resize: 'vertical', marginBottom: 8,
             }}
@@ -229,7 +229,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
               placeholder="URL de foto (opcional)"
               style={{
                 flex: 1, minWidth: 240, padding: '8px 10px',
-                background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)',
+                background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
                 borderRadius: 8, color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12,
               }}
             />
@@ -367,7 +367,7 @@ function UnitRow({ u, onSave, readOnly }) {
           />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 999 }}>
+            <div style={{ flex: 1, height: 6, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 999 }}>
               <div style={{ width: `${u.percent_complete}%`, height: '100%', background: clr.fg, borderRadius: 999 }} />
             </div>
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: clr.fg, fontWeight: 600 }}>{u.percent_complete}%</span>
@@ -384,7 +384,7 @@ function UnitRow({ u, onSave, readOnly }) {
             onClick={() => { setPct(u.percent_complete); setStage(u.current_stage || 'cimentacion'); setEditing(true); }}
             style={{
               padding: '5px 10px', borderRadius: 9999,
-              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+              background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
               color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
             }}>
             Actualizar

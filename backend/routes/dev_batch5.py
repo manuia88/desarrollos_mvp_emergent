@@ -266,6 +266,70 @@ async def assign_visitor(exp_id: str, payload: AssignVisitorInput, request: Requ
     return {"variant_label": label, "_existing": False}
 
 
+class ResolveVisitorInput(BaseModel):
+    visitor_id: str
+    project_id: str
+    unit_id: Optional[str] = None
+
+
+@router.post("/api/dev/pricing-experiments/resolve")
+async def resolve_active_experiment(payload: ResolveVisitorInput, request: Request):
+    """PÚBLICO (sin auth). Para la página pública del proyecto: descubre el experimento
+    ACTIVO del proyecto, asigna al visitante a una variante (determinista, idempotente)
+    y REGISTRA la vista. Devuelve la variante con su modificador de precio para renderizar
+    el A/B. Cierra el loop inerte: el experimento empieza a acumular datos reales y los
+    resultados del Pricing Lab dejan de salir vacíos. Fail-soft: si no hay experimento → active:false."""
+    db = _db(request)
+    exp = await db.pricing_experiments.find_one(
+        {"project_id": payload.project_id, "status": "active"},
+        {"_id": 0},
+        sort=[("created_at", -1)],
+    )
+    if not exp:
+        return {"active": False}
+    if exp.get("target_units") and payload.unit_id and payload.unit_id not in exp["target_units"]:
+        return {"active": False}
+
+    exp_id = exp["id"]
+    existing = await db.pricing_visitor_assignments.find_one(
+        {"experiment_id": exp_id, "visitor_id": payload.visitor_id}, {"_id": 0}
+    )
+    if existing:
+        label = existing["variant_label"]
+    else:
+        label = _hash_visitor_to_variant(payload.visitor_id, exp_id, exp["variants"])
+        await db.pricing_visitor_assignments.insert_one({
+            "id": _uid("pva"),
+            "experiment_id": exp_id,
+            "visitor_id": payload.visitor_id,
+            "variant_label": label,
+            "assigned_at": _now().isoformat(),
+        })
+        await db.pricing_experiments.update_one(
+            {"id": exp_id, "variants.label": label},
+            {"$inc": {"variants.$.stats.views": 1}},
+        )
+        try:
+            from observability import emit_ml_event
+            await emit_ml_event(
+                db, event_type="pricing_variant_assigned", user_id=payload.visitor_id,
+                org_id=exp.get("dev_org_id", "dmx"), role="public",
+                context={"experiment_id": exp_id, "variant": label}, ai_decision={}, user_action={},
+            )
+        except Exception:
+            pass
+
+    variant = next((v for v in exp["variants"] if v["label"] == label), exp["variants"][0])
+    return {
+        "active": True,
+        "experiment_id": exp_id,
+        "type": exp.get("type"),
+        "variant_label": label,
+        "price_modifier": variant.get("price_modifier") or {},
+        "bundle_price": variant.get("bundle_price"),
+    }
+
+
 class TrackEventInput(BaseModel):
     visitor_id: str
     event: str = Field(..., pattern=r"^(view|lead|cita|cierre)$")

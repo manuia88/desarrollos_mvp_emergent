@@ -49,8 +49,8 @@ function ConfidenceBand({ low, high, point, label = 'Forecast' }) {
   return (
     <svg viewBox="0 0 100 18" style={{ width: '100%', height: 30 }} role="img" aria-label={`${label} confidence band`}>
       {/* axis */}
-      <line x1="5" y1="9" x2="95" y2="9" stroke="rgba(240,235,224,0.18)" strokeWidth="0.4" />
-      <line x1={toX(0)} y1="3" x2={toX(0)} y2="15" stroke="rgba(240,235,224,0.30)" strokeWidth="0.5" strokeDasharray="1.5 1" />
+      <line x1="5" y1="9" x2="95" y2="9" stroke="rgba(var(--cream-rgb),0.18)" strokeWidth="0.4" />
+      <line x1={toX(0)} y1="3" x2={toX(0)} y2="15" stroke="rgba(var(--cream-rgb),0.30)" strokeWidth="0.5" strokeDasharray="1.5 1" />
       {/* band */}
       <rect
         x={Math.min(lowX, highX)} y="6" width={Math.abs(highX - lowX)} height="6"
@@ -85,8 +85,8 @@ function inputStyle() {
   return {
     width: '100%', boxSizing: 'border-box',
     padding: '9px 12px', borderRadius: 10,
-    background: 'rgba(13,16,23,0.85)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(var(--bg-rgb),0.85)',
+    border: '1px solid rgba(var(--cream-rgb),0.10)',
     color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
     outline: 'none',
   };
@@ -222,7 +222,7 @@ function ResultCard({ result }) {
   return (
     <div data-testid="whatif-result-card" style={{
       padding: 18, borderRadius: 14,
-      background: 'rgba(13,16,23,0.85)',
+      background: 'rgba(var(--bg-rgb),0.85)',
       border: '1px solid rgba(var(--theme-rgb),0.25)',
       backdropFilter: 'blur(24px)',
     }}>
@@ -234,7 +234,7 @@ function ResultCard({ result }) {
         {sim && (
           <span data-testid="whatif-sim-badge" style={{
             padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-            background: 'rgba(245,158,11,0.16)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.30)',
+            background: 'rgba(245,158,11,0.16)', color: 'var(--amber)', border: '1px solid rgba(245,158,11,0.30)',
           }}>SIMULATED</span>
         )}
         <span style={{
@@ -247,7 +247,7 @@ function ResultCard({ result }) {
         {metrics.map((m, i) => (
           <div key={i} style={{
             padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.08)',
+            background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.08)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
               <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', letterSpacing: '0.04em' }}>{m.label}</span>
@@ -312,16 +312,16 @@ function ResultSkeleton() {
   return (
     <div style={{
       padding: 18, borderRadius: 14, minHeight: 280,
-      background: 'rgba(13,16,23,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(var(--bg-rgb),0.85)', border: '1px solid rgba(var(--cream-rgb),0.06)',
       animation: 'pulse 1.5s ease-in-out infinite',
     }}>
-      <div style={{ height: 12, width: 120, background: 'rgba(240,235,224,0.08)', borderRadius: 4, marginBottom: 14 }} />
+      <div style={{ height: 12, width: 120, background: 'rgba(var(--cream-rgb),0.08)', borderRadius: 4, marginBottom: 14 }} />
       <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ height: 60, borderRadius: 10, background: 'rgba(240,235,224,0.04)' }} />
+          <div key={i} style={{ height: 60, borderRadius: 10, background: 'rgba(var(--cream-rgb),0.04)' }} />
         ))}
       </div>
-      <div style={{ height: 30, background: 'rgba(240,235,224,0.04)', borderRadius: 6 }} />
+      <div style={{ height: 30, background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 6 }} />
     </div>
   );
 }
@@ -420,7 +420,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
       {/* Header */}
       <div style={{
         padding: '14px 18px', borderRadius: 14,
-        background: 'rgba(13,16,23,0.65)', border: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(var(--bg-rgb),0.65)', border: '1px solid rgba(var(--cream-rgb),0.06)',
         display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       }}>
         <Building size={16} color="var(--theme)" />
@@ -446,8 +446,8 @@ export default function WhatIfPanel({ user, projects = [] }) {
               onClick={() => setScenarioType(s.key)}
               style={{
                 padding: '14px 16px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                background: active ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(13,16,23,0.55)',
-                border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.06)',
+                background: active ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(var(--bg-rgb),0.55)',
+                border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(var(--cream-rgb),0.06)',
                 color: 'var(--cream)', backdropFilter: 'blur(24px)',
                 transition: 'background 0.18s, border 0.18s',
               }}
@@ -463,7 +463,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
       <div style={{ display: 'grid', gap: 18, gridTemplateColumns: '1fr', alignItems: 'start' }} className="whatif-body-grid">
         <div data-testid="whatif-form" style={{
           padding: 18, borderRadius: 14,
-          background: 'rgba(13,16,23,0.65)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(var(--bg-rgb),0.65)', border: '1px solid rgba(var(--cream-rgb),0.06)',
         }}>
           {scenarioType === 'price_change' && <PriceChangeForm projects={projects} value={formValue} onChange={setFormValue} />}
           {scenarioType === 'promo' && <PromoForm projects={projects} value={formValue} onChange={setFormValue} />}
@@ -488,7 +488,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
             <div data-testid="whatif-error" style={{
               marginTop: 12, padding: '8px 12px', borderRadius: 10,
               background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.28)',
-              fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5',
+              fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)',
             }}>{error}</div>
           )}
         </div>
@@ -498,7 +498,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
           {!loading && !result && (
             <div data-testid="whatif-empty" style={{
               padding: 24, borderRadius: 14, textAlign: 'center',
-              background: 'rgba(13,16,23,0.55)', border: '1px dashed rgba(255,255,255,0.10)',
+              background: 'rgba(var(--bg-rgb),0.55)', border: '1px dashed rgba(var(--cream-rgb),0.10)',
               color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13,
             }}>
               Selecciona un escenario y simula el impacto antes de ejecutar.
@@ -512,7 +512,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
       {history.length > 0 && (
         <div style={{
           padding: 14, borderRadius: 14,
-          background: 'rgba(13,16,23,0.55)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(var(--bg-rgb),0.55)', border: '1px solid rgba(var(--cream-rgb),0.06)',
         }}>
           <button
             data-testid="whatif-history-toggle"
@@ -534,7 +534,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
                   onClick={() => replayHistory(h.scenario_id)}
                   style={{
                     padding: '8px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
-                    background: 'rgba(240,235,224,0.03)', border: '1px solid rgba(240,235,224,0.06)',
+                    background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid rgba(var(--cream-rgb),0.06)',
                     color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12,
                   }}
                 >

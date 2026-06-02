@@ -50,8 +50,8 @@ export default function BrandingVariantSelector({ value, onChange }) {
               style={{
                 position: 'relative',
                 textAlign: 'left',
-                background: 'rgba(15,18,28,0.85)',
-                border: selected ? '2px solid #EC4899' : '1px solid rgba(240,235,224,0.12)',
+                background: 'rgba(var(--bg-rgb),0.85)',
+                border: selected ? '2px solid #EC4899' : '1px solid rgba(var(--cream-rgb),0.12)',
                 borderRadius: 14,
                 padding: 14,
                 cursor: 'pointer',
@@ -65,7 +65,7 @@ export default function BrandingVariantSelector({ value, onChange }) {
                 borderRadius: 10,
                 background: bg,
                 marginBottom: 10,
-                border: '1px solid rgba(240,235,224,0.10)',
+                border: '1px solid rgba(var(--cream-rgb),0.10)',
                 position: 'relative', overflow: 'hidden',
               }}>
                 <div style={{

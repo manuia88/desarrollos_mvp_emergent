@@ -95,7 +95,7 @@ function Section({ title, testId, children }) {
     <section data-testid={testId} style={{ marginTop: 28, marginBottom: 32 }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18,
-        paddingBottom: 12, borderBottom: '1px solid rgba(240,235,224,0.08)',
+        paddingBottom: 12, borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
       }}>
         <h2 style={{
           fontFamily: 'Outfit', fontWeight: 700, fontSize: 18,
@@ -112,10 +112,10 @@ function Section({ title, testId, children }) {
 // ─── W5.ASR.3 Parte 2 · Smart Lists Rollup Panel ─────────────────────────────
 const ICONS = { Flame, Clock, AlertTriangle, Calendar, TrendingUp };
 const PRESET_PALETTE = {
-  rose:   { bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.32)', fg: '#f9a8d4', bar: '#EC4899' },
-  amber:  { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.32)', fg: '#fcd34d', bar: '#F59E0B' },
-  indigo: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.32)', fg: '#a5b4fc', bar: '#6366F1' },
-  green:  { bg: 'rgba(34,197,94,0.10)',  bd: 'rgba(34,197,94,0.32)',  fg: '#86efac', bar: '#22C55E' },
+  rose:   { bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.32)', fg: '#C63FAE', bar: '#EC4899' },
+  amber:  { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.32)', fg: '#C77F12', bar: '#F59E0B' },
+  indigo: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.32)', fg: '#4F46E5', bar: '#6366F1' },
+  green:  { bg: 'rgba(34,197,94,0.10)',  bd: 'rgba(34,197,94,0.32)',  fg: '#1FA06A', bar: '#22C55E' },
 };
 
 function SmartListsRollupPanel() {
@@ -151,7 +151,7 @@ function SmartListsRollupPanel() {
   if (error) {
     return (
       <div data-testid="smart-lists-rollup-error"
-        style={{ padding: 24, color: '#fca5a5', fontSize: 12.5 }}>
+        style={{ padding: 24, color: 'var(--red)', fontSize: 12.5 }}>
         {error}
       </div>
     );
@@ -229,7 +229,7 @@ function SmartListsRollupPanel() {
                     </div>
                     <div style={{
                       height: 3, borderRadius: 2,
-                      background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+                      background: 'rgba(var(--cream-rgb),0.06)', overflow: 'hidden',
                     }}>
                       <div style={{
                         height: '100%',
@@ -271,7 +271,7 @@ function DrillDownModal({ presetKey, info, total, onClose }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(13,17,24,0.85)', backdropFilter: 'blur(4px)',
+        background: 'rgba(var(--bg-rgb),0.85)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20,
       }}>
@@ -279,7 +279,7 @@ function DrillDownModal({ presetKey, info, total, onClose }) {
         data-testid={`rollup-drilldown-${presetKey}`}
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#15171F', border: `1px solid ${palette.bd}`,
+          background: 'var(--surface,#15171F)', border: `1px solid ${palette.bd}`,
           borderRadius: 16, padding: 22, maxWidth: 520, width: '100%',
           maxHeight: '80vh', overflow: 'auto',
           fontFamily: 'DM Sans',
@@ -345,7 +345,7 @@ function DrillDownModal({ presetKey, info, total, onClose }) {
               return (
                 <tr key={r.asesor_id || idx}
                   data-testid={`rollup-row-${idx}`}
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.05)' }}>
                   <td style={{ padding: '10px 12px', fontSize: 12.5, color: 'var(--cream)' }}>
                     {r.asesor_name}
                   </td>

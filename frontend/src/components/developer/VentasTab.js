@@ -16,11 +16,11 @@ import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icon
 import { Z } from '../../styles/zIndex';
 
 const STATUS_CONFIG = {
-  disponible:  { label: 'Disponible',  color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-  apartado:    { label: 'Apartado',    color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-  reservado:   { label: 'Reservado',   color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
-  vendido:     { label: 'Vendido',     color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-  bloqueado:   { label: 'Bloqueado',   color: 'rgba(240,235,224,0.3)', bg: 'rgba(240,235,224,0.06)' },
+  disponible:  { label: 'Disponible',  color: '#fff', bg: '#1FA06A' },
+  apartado:    { label: 'Apartado',    color: '#fff', bg: '#C77F12' },
+  reservado:   { label: 'Reservado',   color: '#fff', bg: '#3B82F6' },
+  vendido:     { label: 'Vendido',     color: '#fff', bg: '#E0463D' },
+  bloqueado:   { label: 'Bloqueado',   color: '#fff', bg: '#8A92A6' },
 };
 
 const fmtMXN = (v) => v == null ? '—' : `$${(v / 1_000_000).toFixed(2)}M`;
@@ -37,8 +37,9 @@ function StatusChip({ status }) {
   return (
     <span style={{
       background: cfg.bg, color: cfg.color,
-      fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 10, letterSpacing: '0.03em',
+      fontSize: 10, fontWeight: 800, padding: '3px 9px',
+      borderRadius: 7, letterSpacing: '0.03em',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
     }}>
       {cfg.label}
     </span>
@@ -139,8 +140,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Buscar unidad…"
             style={{
-              width: '100%', background: 'rgba(240,235,224,0.06)',
-              border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+              width: '100%', background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
               padding: '6px 10px 6px 30px', color: 'var(--cream)', fontSize: 13,
               outline: 'none', boxSizing: 'border-box',
             }}
@@ -153,8 +154,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
           onClick={onBulkUpload}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(240,235,224,0.08)', color: 'var(--cream)',
-            border: '1px solid rgba(240,235,224,0.16)', borderRadius: 8,
+            background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
+            border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
             padding: '6px 12px', fontSize: 12, cursor: 'pointer',
           }}
         >
@@ -162,14 +163,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
         </button>
 
         {/* Density */}
-        <div style={{ display: 'flex', background: 'rgba(240,235,224,0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(240,235,224,0.1)' }}>
+        <div style={{ display: 'flex', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
           {['compacto', 'expandido'].map(m => (
             <button
               key={m}
               data-testid={`density-${m}`}
               onClick={() => setPref('density_mode', m)}
               style={{
-                background: density_mode === m ? 'rgba(240,235,224,0.14)' : 'transparent',
+                background: density_mode === m ? 'rgba(var(--cream-rgb),0.14)' : 'transparent',
                 color: density_mode === m ? 'var(--cream)' : 'var(--cream-3)',
                 border: 'none', padding: '5px 10px', fontSize: 11, cursor: 'pointer',
                 textTransform: 'capitalize',
@@ -211,15 +212,15 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(240,235,224,0.1)' }}>
+      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
           <thead>
-            <tr style={{ background: 'rgba(240,235,224,0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
+            <tr style={{ background: 'rgba(var(--cream-rgb),0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
               {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Estado', 'Acciones'].map(h => (
                 <th key={h} style={{
                   padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                   textAlign: 'left', fontSize: 10, fontWeight: 600,
-                  color: 'var(--cream-3)', borderBottom: '1px solid rgba(240,235,224,0.1)',
+                  color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
                   whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -234,10 +235,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
                 data-testid={`unit-row-${u.unit_number}`}
                 style={{
                   height: rowHeight,
-                  borderBottom: i < paged.length - 1 ? '1px solid rgba(240,235,224,0.06)' : 'none',
+                  borderBottom: i < paged.length - 1 ? '1px solid rgba(var(--cream-rgb),0.06)' : 'none',
                   cursor: 'pointer', transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.04)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 onClick={() => setDrawerUnit(u)}
               >
@@ -288,14 +289,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            style={{ background: 'rgba(240,235,224,0.08)', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.12)', borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: page === 1 ? 'default' : 'pointer' }}>
+            style={{ background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: page === 1 ? 'default' : 'pointer' }}>
             ← Anterior
           </button>
           <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>
             Página {page} de {totalPages}
           </span>
           <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            style={{ background: 'rgba(240,235,224,0.08)', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.12)', borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: page === totalPages ? 'default' : 'pointer' }}>
+            style={{ background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: page === totalPages ? 'default' : 'pointer' }}>
             Siguiente →
           </button>
         </div>
@@ -343,21 +344,21 @@ function PorPrototipo({ units, onFilterInventario }) {
             data-testid={`proto-card-${p.name}`}
             onClick={() => onFilterInventario(p.name)}
             style={{
-              background: 'rgba(240,235,224,0.04)',
-              border: '1px solid rgba(240,235,224,0.12)',
+              background: 'rgba(var(--cream-rgb),0.04)',
+              border: '1px solid rgba(var(--cream-rgb),0.12)',
               borderRadius: 12, padding: 18, cursor: 'pointer',
               transition: 'border-color 0.15s, transform 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.28)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.12)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.28)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.12)'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
             {/* Placeholder thumbnail */}
             <div style={{
               height: 80, borderRadius: 8, marginBottom: 12,
-              background: 'rgba(240,235,224,0.06)',
+              background: 'rgba(var(--cream-rgb),0.06)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Building size={28} color="rgba(240,235,224,0.18)" />
+              <Building size={28} color="rgba(var(--cream-rgb),0.18)" />
             </div>
 
             <h4 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
@@ -422,9 +423,9 @@ function VistaDePlanta({ units, user, devId }) {
             data-testid={`level-filter-${lv}`}
             onClick={() => setLevelFilter(lv)}
             style={{
-              background: levelFilter === String(lv) ? 'var(--cream)' : 'rgba(240,235,224,0.06)',
+              background: levelFilter === String(lv) ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
               color: levelFilter === String(lv) ? 'var(--navy)' : 'var(--cream-2)',
-              border: levelFilter === String(lv) ? 'none' : '1px solid rgba(240,235,224,0.1)',
+              border: levelFilter === String(lv) ? 'none' : '1px solid rgba(var(--cream-rgb),0.1)',
               borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer',
             }}
           >
@@ -478,8 +479,8 @@ function VistaDePlanta({ units, user, devId }) {
       {/* Color legend */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 16,
-        padding: '10px 14px', background: 'rgba(240,235,224,0.04)',
-        borderRadius: 8, border: '1px solid rgba(240,235,224,0.08)',
+        padding: '10px 14px', background: 'rgba(var(--cream-rgb),0.04)',
+        borderRadius: 8, border: '1px solid rgba(var(--cream-rgb),0.08)',
       }}>
         {Object.entries(STATUS_CONFIG).map(([k, v]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -493,7 +494,7 @@ function VistaDePlanta({ units, user, devId }) {
       {tooltip && (
         <div style={{
           position: 'fixed', left: tooltip.x + 12, top: tooltip.y - 8,
-          background: 'rgba(6,8,15,0.95)', border: '1px solid rgba(240,235,224,0.18)',
+          background: 'rgba(var(--bg-rgb),0.95)', border: '1px solid rgba(var(--cream-rgb),0.18)',
           borderRadius: 8, padding: '8px 12px', zIndex: Z.MODAL_CRITICAL, pointerEvents: 'none',
           backdropFilter: 'blur(8px)', minWidth: 140,
         }}>
@@ -575,7 +576,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
       {/* Sub-tab bar */}
       <div style={{
         display: 'flex', gap: 0, marginBottom: 20,
-        border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10, overflow: 'hidden',
+        border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, overflow: 'hidden',
       }}>
         {SUB_TABS.map(st => (
           <button
@@ -584,9 +585,9 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             onClick={() => setSubTab(st.key)}
             style={{
               flex: 1, padding: '9px 14px',
-              background: activeSubTab === st.key ? 'rgba(240,235,224,0.10)' : 'transparent',
+              background: activeSubTab === st.key ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
               color: activeSubTab === st.key ? 'var(--cream)' : 'var(--cream-3)',
-              border: 'none', borderRight: '1px solid rgba(240,235,224,0.1)',
+              border: 'none', borderRight: '1px solid rgba(var(--cream-rgb),0.1)',
               fontSize: 12, fontWeight: activeSubTab === st.key ? 700 : 400,
               cursor: 'pointer', transition: 'all 0.12s', fontFamily: 'DM Sans,sans-serif',
             }}

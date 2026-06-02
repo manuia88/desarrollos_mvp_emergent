@@ -50,10 +50,10 @@ export default function CustomBrochureUploader({ projectId, onUploaded }) {
 
   return (
     <div data-testid="custom-brochure-uploader" style={{
-      border: '1.5px dashed rgba(240,235,224,0.25)',
+      border: '1.5px dashed rgba(var(--cream-rgb),0.25)',
       borderRadius: 14,
       padding: 18,
-      background: 'rgba(15,18,28,0.5)',
+      background: 'rgba(var(--bg-rgb),0.5)',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 220 }}>
@@ -72,7 +72,7 @@ export default function CustomBrochureUploader({ projectId, onUploaded }) {
           style={{
             background: 'transparent',
             color: 'var(--cream)',
-            border: '1px solid rgba(240,235,224,0.3)',
+            border: '1px solid rgba(var(--cream-rgb),0.3)',
             borderRadius: 9999,
             padding: '8px 18px',
             fontFamily: 'Outfit', fontWeight: 700, fontSize: 12,
@@ -93,7 +93,7 @@ export default function CustomBrochureUploader({ projectId, onUploaded }) {
         />
       </div>
       {uploading && (
-        <div style={{ marginTop: 12, height: 4, background: 'rgba(240,235,224,0.1)', borderRadius: 9999, overflow: 'hidden' }}>
+        <div style={{ marginTop: 12, height: 4, background: 'rgba(var(--cream-rgb),0.1)', borderRadius: 9999, overflow: 'hidden' }}>
           <div style={{
             width: `${progress}%`,
             height: '100%',
@@ -109,7 +109,7 @@ export default function CustomBrochureUploader({ projectId, onUploaded }) {
           background: 'rgba(239,68,68,0.12)',
           border: '1px solid rgba(239,68,68,0.4)',
           borderRadius: 8,
-          color: '#fca5a5',
+          color: 'var(--red)',
           fontFamily: 'DM Sans', fontSize: 12,
         }}>
           {error}

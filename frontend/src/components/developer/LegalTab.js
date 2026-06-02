@@ -10,9 +10,9 @@ import { FileText, Check, Clock, X } from '../../components/icons';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const DOC_STATUS = {
-  pendiente:  { label: 'Pendiente',  color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  pendiente:  { label: 'Pendiente',  color: 'var(--amber)', bg: 'rgba(245,158,11,0.12)' },
   aprobado:   { label: 'Aprobado',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
-  rechazado:  { label: 'Rechazado',  color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+  rechazado:  { label: 'Rechazado',  color: 'var(--red)', bg: 'rgba(239,68,68,0.12)' },
   revision:   { label: 'En revisión',color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
 };
 
@@ -36,17 +36,17 @@ function DocCard({ doc, onDelete }) {
       data-testid={`doc-card-${doc.id}`}
       style={{
         display: 'flex', alignItems: 'center', gap: 14,
-        background: 'rgba(240,235,224,0.04)',
-        border: '1px solid rgba(240,235,224,0.10)',
+        background: 'rgba(var(--cream-rgb),0.04)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         borderRadius: 10, padding: '12px 16px',
       }}
     >
       <div style={{
         width: 40, height: 48, borderRadius: 6, flexShrink: 0,
-        background: 'rgba(240,235,224,0.08)',
+        background: 'rgba(var(--cream-rgb),0.08)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <FileText size={20} color="rgba(240,235,224,0.4)" />
+        <FileText size={20} color="rgba(var(--cream-rgb),0.4)" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -61,7 +61,7 @@ function DocCard({ doc, onDelete }) {
       </span>
       {doc.file_url && (
         <a href={doc.file_url} target="_blank" rel="noreferrer"
-          style={{ color: 'var(--cream-3)', textDecoration: 'none', fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(240,235,224,0.1)' }}>
+          style={{ color: 'var(--cream-3)', textDecoration: 'none', fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
           Ver
         </a>
       )}
@@ -89,18 +89,18 @@ function LegalTimeline({ docs }) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 80 }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%',
-                  background: done ? 'var(--cream)' : 'rgba(240,235,224,0.08)',
-                  border: `2px solid ${done ? 'var(--cream)' : 'rgba(240,235,224,0.2)'}`,
+                  background: done ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.08)',
+                  border: `2px solid ${done ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.2)'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {done ? <Check size={13} color="var(--navy)" strokeWidth={3} /> : <Clock size={13} color="rgba(240,235,224,0.3)" />}
+                  {done ? <Check size={13} color="var(--navy)" strokeWidth={3} /> : <Clock size={13} color="rgba(var(--cream-rgb),0.3)" />}
                 </div>
                 <span style={{ fontSize: 9, color: done ? 'var(--cream)' : 'var(--cream-3)', textAlign: 'center', lineHeight: 1.3, fontWeight: done ? 600 : 400 }}>
                   {s.label}
                 </span>
               </div>
               {i < TIMELINE_STAGES.length - 1 && (
-                <div style={{ flex: 1, height: 2, background: done ? 'rgba(240,235,224,0.3)' : 'rgba(240,235,224,0.08)', marginTop: -16 }} />
+                <div style={{ flex: 1, height: 2, background: done ? 'rgba(var(--cream-rgb),0.3)' : 'rgba(var(--cream-rgb),0.08)', marginTop: -16 }} />
               )}
             </React.Fragment>
           );
@@ -162,7 +162,7 @@ export default function LegalTab({ devId, user }) {
 
       {/* Upload section */}
       <div style={{
-        background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)',
+        background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)',
         borderRadius: 10, padding: '16px 18px', marginBottom: 20,
       }}>
         <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>
@@ -173,8 +173,8 @@ export default function LegalTab({ devId, user }) {
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
             style={{
-              background: 'rgba(240,235,224,0.08)', color: 'var(--cream)',
-              border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+              background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
               padding: '6px 10px', fontSize: 12, cursor: 'pointer',
             }}
           >

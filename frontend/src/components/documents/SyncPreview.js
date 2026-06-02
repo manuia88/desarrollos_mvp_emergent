@@ -75,7 +75,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
   };
 
   if (loading) return <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>Cargando preview…</div>;
-  if (err) return <div style={{ color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5 }}>Error: {err}</div>;
+  if (err) return <div style={{ color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12.5 }}>Error: {err}</div>;
 
   const diffs = data?.diffs || [];
   const unitsDiff = data?.units_diff;
@@ -112,10 +112,10 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
           padding: 12, marginBottom: 14, borderRadius: 12,
           background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.32)',
           display: 'flex', alignItems: 'flex-start', gap: 8,
-          color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.5,
+          color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.5,
         }}>
           <AlertTriangle size={14} />
-          <span><strong style={{ color: '#fde68a' }}>Auto-aplicación pausada</strong> — {data.auto_sync_paused_reason}<br/>
+          <span><strong style={{ color: 'var(--amber)' }}>Auto-aplicación pausada</strong> — {data.auto_sync_paused_reason}<br/>
           Puedes ver el preview y aplicar manualmente, pero el sistema no auto-publica hasta resolver críticos.</span>
         </div>
       )}
@@ -164,7 +164,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>{d.source_doc_type}</span>
                   {d.is_private && <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(148,163,184,0.12)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>PRIVADO</span>}
-                  {d.is_locked && <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(245,158,11,0.12)', color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>BLOQUEADO</span>}
+                  {d.is_locked && <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(245,158,11,0.12)', color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>BLOQUEADO</span>}
                 </div>
                 <button onClick={() => toggleLock(d.field, d.is_locked)} title={d.is_locked ? 'Desbloquear' : 'Bloquear (auto-sync no lo tocará)'} style={{
                   padding: '4px 10px', borderRadius: 9999, background: 'transparent',
@@ -181,7 +181,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
                 <div style={{ alignSelf: 'center', textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 16 }}>→</div>
                 <div style={{ padding: 10, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.22)', borderRadius: 8 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Propuesto</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: '#86efac', wordBreak: 'break-word' }}>{fmtVal(d.proposed)}</div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--green)', wordBreak: 'break-word' }}>{fmtVal(d.proposed)}</div>
                 </div>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
                 <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>lp</span>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-                <strong>{unitsDiff.current_count}</strong> unidades actuales → <strong style={{ color: '#86efac' }}>{unitsDiff.proposed_count}</strong> propuestas (reemplazo full).
+                <strong>{unitsDiff.current_count}</strong> unidades actuales → <strong style={{ color: 'var(--green)' }}>{unitsDiff.proposed_count}</strong> propuestas (reemplazo full).
               </div>
             </div>
           )}

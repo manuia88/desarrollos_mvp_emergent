@@ -1,0 +1,404 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - complementary "Barra lateral de navegación" [ref=e6]:
+      - link "Ir a Inicio" [ref=e7] [cursor=pointer]:
+        - /url: /desarrollador
+        - generic [ref=e8]: DMX
+        - generic [ref=e9]: Dev
+      - navigation "Navegación desarrollador" [ref=e10]:
+        - button "Inicio" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - generic [ref=e18]: Inicio
+        - button "Mis Proyectos" [ref=e20] [cursor=pointer]:
+          - img [ref=e21]
+          - generic [ref=e25]: Mis Proyectos
+        - button "CRM & Leads" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e31]: CRM & Leads
+          - img [ref=e33]
+        - button "Mensajes" [ref=e36] [cursor=pointer]:
+          - img [ref=e37]
+          - generic [ref=e39]: Mensajes
+        - button "Inteligencia" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Inteligencia
+          - img [ref=e46]
+        - button "Red comercial" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e55]: Red comercial
+          - img [ref=e57]
+        - button "Operación" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Operación
+          - img [ref=e66]
+        - button "Studio" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e72]: Studio
+          - img [ref=e74]
+        - button "Ajustes" [ref=e77] [cursor=pointer]:
+          - img [ref=e78]
+          - generic [ref=e81]: Ajustes
+          - img [ref=e83]
+      - button "C Constructora Ariel developer@demo.com" [ref=e86] [cursor=pointer]:
+        - generic [ref=e87]: C
+        - generic [ref=e88]:
+          - generic [ref=e89]: Constructora Ariel
+          - generic [ref=e90]: developer@demo.com
+        - img [ref=e92]
+    - generic [ref=e94]:
+      - banner [ref=e95]:
+        - button "Mis proyectos" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e102]: Mis proyectos
+          - img [ref=e103]
+        - button "Buscar… ⌘K" [ref=e105] [cursor=pointer]:
+          - img [ref=e106]
+          - generic [ref=e109]: Buscar…
+          - generic [ref=e110]: ⌘K
+        - button [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+        - button "Menú de usuario" [ref=e117] [cursor=pointer]:
+          - img [ref=e118]
+      - main [ref=e121]:
+        - generic [ref=e122]:
+          - generic [ref=e123]: ALTO
+          - generic [ref=e124]:
+            - text: Altavista Polanco
+            - generic [ref=e125]: · Cuello de botella en conversión vista→lead — Mejorar fotos hero + CTA WhatsApp visible above-the-fold + agregar virtual tour interactiv…
+          - link "Ver" [ref=e126] [cursor=pointer]:
+            - /url: /desarrollador/desarrollos/altavista-polanco/ie
+          - button "Cerrar recomendación" [ref=e127] [cursor=pointer]:
+            - img [ref=e128]
+        - generic [ref=e131]:
+          - generic [ref=e133]:
+            - generic [ref=e134]: PORTAL DESARROLLADOR
+            - heading "Buenos días, Constructora" [level=1] [ref=e135]
+            - paragraph [ref=e136]: Panorama operativo del portafolio en tiempo real.
+          - generic [ref=e137]:
+            - button "Resumen" [ref=e138] [cursor=pointer]
+            - button "Director AI" [ref=e139] [cursor=pointer]
+            - button "What-if" [ref=e140] [cursor=pointer]
+            - button "Tu ROI Phase Y" [ref=e141] [cursor=pointer]
+          - generic [ref=e143]:
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - img [ref=e146]
+                - text: ESTA SEMANA · IA
+              - paragraph [ref=e149]: "Esta semana: 0 leads nuevos, 0 ventas. Salud del portafolio: 37/100."
+              - generic [ref=e151]:
+                - img [ref=e152]
+                - generic [ref=e154]: Revisar leads sin contactar en las últimas 48h
+            - generic [ref=e155]:
+              - generic [ref=e157]:
+                - generic [ref=e158]: Leads nuevos
+                - generic [ref=e159]: "0"
+              - generic [ref=e161]:
+                - generic [ref=e162]: Ventas/reservas
+                - generic [ref=e163]: "0"
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - generic [ref=e166]: Salud portafolio
+                  - generic [ref=e167]: 37/100
+                - img [ref=e168]
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: CONFIGURACIÓN INICIAL
+                - generic [ref=e175]: 1 de 5 pasos completados
+              - generic [ref=e176]: 20%
+            - generic [ref=e179]:
+              - generic [ref=e180]:
+                - img [ref=e182]
+                - generic [ref=e184]: Crear primer proyecto
+              - link "Subir 5+ fotos a un prototipo" [ref=e185] [cursor=pointer]:
+                - /url: /desarrollador/proyectos
+                - generic [ref=e186]:
+                  - generic [ref=e188]: Subir 5+ fotos a un prototipo
+                  - img [ref=e189]
+              - link "Definir precios y disponibilidad" [ref=e191] [cursor=pointer]:
+                - /url: /desarrollador/proyectos
+                - generic [ref=e192]:
+                  - generic [ref=e194]: Definir precios y disponibilidad
+                  - img [ref=e195]
+              - link "Asignar asesor a proyecto" [ref=e197] [cursor=pointer]:
+                - /url: /desarrollador/proyectos
+                - generic [ref=e198]:
+                  - generic [ref=e200]: Asignar asesor a proyecto
+                  - img [ref=e201]
+              - link "Publicar a marketplace" [ref=e203] [cursor=pointer]:
+                - /url: /desarrollador/proyectos
+                - generic [ref=e204]:
+                  - generic [ref=e206]: Publicar a marketplace
+                  - img [ref=e207]
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - generic [ref=e211]: Desarrollos
+              - generic [ref=e212]: "18"
+            - generic [ref=e213]:
+              - generic [ref=e214]: Unidades totales
+              - generic [ref=e215]: "496"
+            - generic [ref=e216]:
+              - generic [ref=e217]: Disponibles
+              - generic [ref=e218]: "322"
+            - generic [ref=e219]:
+              - generic [ref=e220]: Reservadas
+              - generic [ref=e221]: "104"
+            - generic [ref=e222]:
+              - generic [ref=e223]: Vendidas
+              - generic [ref=e224]: "70"
+            - generic [ref=e225]:
+              - generic [ref=e226]: Absorción
+              - generic [ref=e227]: 14.1%
+            - generic [ref=e228]:
+              - generic [ref=e229]: Ingresos cerrados
+              - generic [ref=e230]: $778,662,039
+            - generic [ref=e231]:
+              - generic [ref=e232]: Pipeline reservado
+              - generic [ref=e233]: $1,090,032,159
+          - generic [ref=e235]: PULSO DE TUS ZONAS
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - generic [ref=e238]: SUGERENCIAS DE PRECIO
+              - generic [ref=e239]:
+                - generic [ref=e240]: "27"
+                - link "Revisar" [ref=e241] [cursor=pointer]:
+                  - /url: /desarrollador/pricing
+                  - text: Revisar
+                  - img [ref=e242]
+              - generic [ref=e244]: pendientes de aprobación del director comercial
+            - generic [ref=e245]:
+              - generic [ref=e246]: ALERTAS DE COMPETIDORES
+              - generic [ref=e247]:
+                - generic [ref=e248]: "0"
+                - link "Radar" [ref=e249] [cursor=pointer]:
+                  - /url: /desarrollador/competidores
+                  - text: Radar
+                  - img [ref=e250]
+              - generic [ref=e252]: movimientos relevantes en tu zona
+          - generic [ref=e253]:
+            - generic [ref=e254]:
+              - generic [ref=e255]: DESARROLLOS ACTIVOS
+              - generic [ref=e256]:
+                - link "Altavista Polanco preventa Polanco · entrega 2027-10 40/56 desde $14,500,000" [ref=e257] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=altavista-polanco
+                  - generic [ref=e258]:
+                    - generic [ref=e259]: Altavista Polanco
+                    - generic [ref=e260]: preventa
+                  - generic [ref=e261]: Polanco · entrega 2027-10
+                  - generic [ref=e262]:
+                    - generic [ref=e263]: 40/56
+                    - generic [ref=e264]: desde $14,500,000
+                - link "Lomas Signature en construccion Lomas de Chapultepec · entrega 2026-11 8/14 desde $22,400,000" [ref=e265] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=lomas-signature
+                  - generic [ref=e266]:
+                    - generic [ref=e267]: Lomas Signature
+                    - generic [ref=e268]: en construccion
+                  - generic [ref=e269]: Lomas de Chapultepec · entrega 2026-11
+                  - generic [ref=e270]:
+                    - generic [ref=e271]: 8/14
+                    - generic [ref=e272]: desde $22,400,000
+                - link "Pedregal Brutalist preventa Jardines del Pedregal · entrega 2028-03 5/9 desde $19,800,000" [ref=e273] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=pedregal-brutalist
+                  - generic [ref=e274]:
+                    - generic [ref=e275]: Pedregal Brutalist
+                    - generic [ref=e276]: preventa
+                  - generic [ref=e277]: Jardines del Pedregal · entrega 2028-03
+                  - generic [ref=e278]:
+                    - generic [ref=e279]: 5/9
+                    - generic [ref=e280]: desde $19,800,000
+                - link "Tamaulipas 89 en construccion Condesa · entrega 2026-08 16/23 desde $6,500,000" [ref=e281] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=tamaulipas-89
+                  - generic [ref=e282]:
+                    - generic [ref=e283]: Tamaulipas 89
+                    - generic [ref=e284]: en construccion
+                  - generic [ref=e285]: Condesa · entrega 2026-08
+                  - generic [ref=e286]:
+                    - generic [ref=e287]: 16/23
+                    - generic [ref=e288]: desde $6,500,000
+                - link "Roma Norte 85 preventa Roma Norte · entrega 2027-04 13/20 desde $5,800,000" [ref=e289] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=roma-norte-85
+                  - generic [ref=e290]:
+                    - generic [ref=e291]: Roma Norte 85
+                    - generic [ref=e292]: preventa
+                  - generic [ref=e293]: Roma Norte · entrega 2027-04
+                  - generic [ref=e294]:
+                    - generic [ref=e295]: 13/20
+                    - generic [ref=e296]: desde $5,800,000
+                - link "Juárez Boutique preventa Juárez · entrega 2027-08 13/23 desde $3,650,000" [ref=e297] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=juarez-boutique
+                  - generic [ref=e298]:
+                    - generic [ref=e299]: Juárez Boutique
+                    - generic [ref=e300]: preventa
+                  - generic [ref=e301]: Juárez · entrega 2027-08
+                  - generic [ref=e302]:
+                    - generic [ref=e303]: 13/23
+                    - generic [ref=e304]: desde $3,650,000
+                - link "Del Valle Garden en construccion Del Valle Centro · entrega 2026-06 15/20 desde $4,900,000" [ref=e305] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=del-valle-garden
+                  - generic [ref=e306]:
+                    - generic [ref=e307]: Del Valle Garden
+                    - generic [ref=e308]: en construccion
+                  - generic [ref=e309]: Del Valle Centro · entrega 2026-06
+                  - generic [ref=e310]:
+                    - generic [ref=e311]: 15/20
+                    - generic [ref=e312]: desde $4,900,000
+                - link "Narvarte 32 preventa Narvarte Poniente · entrega 2027-05 16/26 desde $3,250,000" [ref=e313] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=narvarte-32
+                  - generic [ref=e314]:
+                    - generic [ref=e315]: Narvarte 32
+                    - generic [ref=e316]: preventa
+                  - generic [ref=e317]: Narvarte Poniente · entrega 2027-05
+                  - generic [ref=e318]:
+                    - generic [ref=e319]: 16/26
+                    - generic [ref=e320]: desde $3,250,000
+                - link "Anzures Classic entrega inmediata Anzures · entrega 2026-02 10/16 desde $5,400,000" [ref=e321] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=anzures-classic
+                  - generic [ref=e322]:
+                    - generic [ref=e323]: Anzures Classic
+                    - generic [ref=e324]: entrega inmediata
+                  - generic [ref=e325]: Anzures · entrega 2026-02
+                  - generic [ref=e326]:
+                    - generic [ref=e327]: 10/16
+                    - generic [ref=e328]: desde $5,400,000
+                - link "Santa Fe Tower preventa Santa Fe · entrega 2028-02 65/89 desde $7,400,000" [ref=e329] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=santa-fe-tower
+                  - generic [ref=e330]:
+                    - generic [ref=e331]: Santa Fe Tower
+                    - generic [ref=e332]: preventa
+                  - generic [ref=e333]: Santa Fe · entrega 2028-02
+                  - generic [ref=e334]:
+                    - generic [ref=e335]: 65/89
+                    - generic [ref=e336]: desde $7,400,000
+                - link "Doctores Loft preventa Doctores · entrega 2027-11 12/17 desde $2,450,000" [ref=e337] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=doctores-loft
+                  - generic [ref=e338]:
+                    - generic [ref=e339]: Doctores Loft
+                    - generic [ref=e340]: preventa
+                  - generic [ref=e341]: Doctores · entrega 2027-11
+                  - generic [ref=e342]:
+                    - generic [ref=e343]: 12/17
+                    - generic [ref=e344]: desde $2,450,000
+                - link "Roma Sur 52 en construccion Roma Sur · entrega 2026-10 17/32 desde $4,200,000" [ref=e345] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=roma-sur-52
+                  - generic [ref=e346]:
+                    - generic [ref=e347]: Roma Sur 52
+                    - generic [ref=e348]: en construccion
+                  - generic [ref=e349]: Roma Sur · entrega 2026-10
+                  - generic [ref=e350]:
+                    - generic [ref=e351]: 17/32
+                    - generic [ref=e352]: desde $4,200,000
+                - link "Coyoacán Reserve exclusiva Coyoacán Centro · entrega 2026-05 3/6 desde $9,800,000" [ref=e353] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=coyoacan-reserve
+                  - generic [ref=e354]:
+                    - generic [ref=e355]: Coyoacán Reserve
+                    - generic [ref=e356]: exclusiva
+                  - generic [ref=e357]: Coyoacán Centro · entrega 2026-05
+                  - generic [ref=e358]:
+                    - generic [ref=e359]: 3/6
+                    - generic [ref=e360]: desde $9,800,000
+                - link "Nápoles WTC en construccion Nápoles · entrega 2026-12 32/50 desde $3,780,000" [ref=e361] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=napoles-wtc
+                  - generic [ref=e362]:
+                    - generic [ref=e363]: Nápoles WTC
+                    - generic [ref=e364]: en construccion
+                  - generic [ref=e365]: Nápoles · entrega 2026-12
+                  - generic [ref=e366]:
+                    - generic [ref=e367]: 32/50
+                    - generic [ref=e368]: desde $3,780,000
+                - link "Cuauhtémoc Central entrega inmediata Cuauhtémoc · entrega 2026-01 10/20 desde $2,850,000" [ref=e369] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=cuauhtemoc-central
+                  - generic [ref=e370]:
+                    - generic [ref=e371]: Cuauhtémoc Central
+                    - generic [ref=e372]: entrega inmediata
+                  - generic [ref=e373]: Cuauhtémoc · entrega 2026-01
+                  - generic [ref=e374]:
+                    - generic [ref=e375]: 10/20
+                    - generic [ref=e376]: desde $2,850,000
+                - link "Polanco Moderno en construccion Polanco · entrega 2027-02 22/32 desde $11,800,000" [ref=e377] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=polanco-moderno
+                  - generic [ref=e378]:
+                    - generic [ref=e379]: Polanco Moderno
+                    - generic [ref=e380]: en construccion
+                  - generic [ref=e381]: Polanco · entrega 2027-02
+                  - generic [ref=e382]:
+                    - generic [ref=e383]: 22/32
+                    - generic [ref=e384]: desde $11,800,000
+                - link "Orquídea Roma preventa Roma Norte · entrega 2027-09 11/20 desde $4,950,000" [ref=e385] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=roma-norte-orquidea
+                  - generic [ref=e386]:
+                    - generic [ref=e387]: Orquídea Roma
+                    - generic [ref=e388]: preventa
+                  - generic [ref=e389]: Roma Norte · entrega 2027-09
+                  - generic [ref=e390]:
+                    - generic [ref=e391]: 11/20
+                    - generic [ref=e392]: desde $4,950,000
+                - link "Terraza Condesa preventa Condesa · entrega 2027-06 14/23 desde $6,200,000" [ref=e393] [cursor=pointer]:
+                  - /url: /desarrollador/inventario?dev=condesa-terraza
+                  - generic [ref=e394]:
+                    - generic [ref=e395]: Terraza Condesa
+                    - generic [ref=e396]: preventa
+                  - generic [ref=e397]: Condesa · entrega 2027-06
+                  - generic [ref=e398]:
+                    - generic [ref=e399]: 14/23
+                    - generic [ref=e400]: desde $6,200,000
+            - generic [ref=e401]:
+              - generic [ref=e402]: ACTIVIDAD RECIENTE
+              - generic [ref=e403]:
+                - img [ref=e404]
+                - paragraph [ref=e406]: Sin actividad reciente
+    - button "Reportar problema" [ref=e407] [cursor=pointer]:
+      - img [ref=e408]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e410] [cursor=pointer]:
+      - img [ref=e411]
+    - complementary [ref=e414]:
+      - generic [ref=e415]:
+        - generic [ref=e416]:
+          - img [ref=e418]
+          - generic [ref=e421]:
+            - generic [ref=e422]: Copilot DMX
+            - generic [ref=e423]: Claude Sonnet · contexto privado
+        - generic [ref=e424]:
+          - button [ref=e425] [cursor=pointer]:
+            - img [ref=e426]
+            - text: "0"
+          - button [ref=e428] [cursor=pointer]:
+            - img [ref=e429]
+            - text: Nueva
+          - button [ref=e430] [cursor=pointer]:
+            - img [ref=e431]
+      - generic [ref=e434]:
+        - button [ref=e435] [cursor=pointer]: Resume mi pipeline esta semana
+        - button [ref=e436] [cursor=pointer]: ¿Qué leads necesitan follow-up hoy?
+        - button [ref=e437] [cursor=pointer]: Top 3 acciones para vender más rápido
+        - button [ref=e438] [cursor=pointer]: Predice ventas próximo mes
+        - button [ref=e439] [cursor=pointer]: Proyectos con health bajo
+        - button [ref=e440] [cursor=pointer]: Reporte semanal para inversionistas
+      - generic [ref=e442]:
+        - img [ref=e444]
+        - generic [ref=e447]:
+          - generic [ref=e448]: Pregúntame lo que necesites
+          - generic [ref=e449]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e450]:
+          - button [ref=e451] [cursor=pointer]:
+            - generic [ref=e452]: Resume mi pipeline esta semana
+            - img [ref=e453]
+          - button [ref=e455] [cursor=pointer]:
+            - generic [ref=e456]: ¿Qué leads necesitan follow-up hoy?
+            - img [ref=e457]
+          - button [ref=e459] [cursor=pointer]:
+            - generic [ref=e460]: Top 3 acciones para vender más rápido
+            - img [ref=e461]
+          - button [ref=e463] [cursor=pointer]:
+            - generic [ref=e464]: Predice ventas próximo mes
+            - img [ref=e465]
+      - generic [ref=e467]:
+        - generic [ref=e468]:
+          - textbox [ref=e469]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e470]:
+            - img [ref=e471]
+        - generic [ref=e473]:
+          - generic [ref=e474]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e475]: 0/4000

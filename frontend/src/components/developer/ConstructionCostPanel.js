@@ -26,7 +26,7 @@ function Sparkline({ data }) {
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }} data-testid="cost-sparkline">
       <polyline points={pts} fill="none" stroke="var(--theme)" strokeWidth="2" />
       {data.map((d, i) => i % 3 === 0 && (
-        <text key={i} x={(i / (vals.length - 1)) * W} y={H} fontSize="7" fill="rgba(240,235,224,0.4)" textAnchor="middle" fontFamily="DM Sans">
+        <text key={i} x={(i / (vals.length - 1)) * W} y={H} fontSize="7" fill="rgba(var(--cream-rgb),0.4)" textAnchor="middle" fontFamily="DM Sans">
           M{d.month}
         </text>
       ))}
@@ -81,7 +81,7 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
         <button
           onClick={load}
           data-testid="cost-panel-refresh"
-          style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9999, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+          style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 9999, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
         >
           <RefreshCw size={11} color="var(--cream-3)" />
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>Actualizar</span>
@@ -98,8 +98,8 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
               onClick={() => setBtype(t)}
               style={{
                 padding: '4px 12px', borderRadius: 9999,
-                background: btype === t ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${btype === t ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`,
+                background: btype === t ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(var(--cream-rgb),0.03)',
+                border: `1px solid ${btype === t ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(var(--cream-rgb),0.08)'}`,
                 color: btype === t ? 'var(--theme)' : 'var(--cream-3)',
                 fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer',
               }}
@@ -116,8 +116,8 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
               onClick={() => setTier(t)}
               style={{
                 padding: '4px 12px', borderRadius: 9999,
-                background: tier === t ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${tier === t ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(255,255,255,0.08)'}`,
+                background: tier === t ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(var(--cream-rgb),0.03)',
+                border: `1px solid ${tier === t ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(var(--cream-rgb),0.08)'}`,
                 color: tier === t ? '#f9a8d4' : 'var(--cream-3)',
                 fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer',
               }}
@@ -129,7 +129,7 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
       </div>
 
       {err && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5', marginBottom: 12 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
           Error: {err}
         </div>
       )}
@@ -141,7 +141,7 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
           {/* Main KPIs */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 140px', padding: '12px 14px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Costo / m²</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Costo / m²</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                 {fmtMXN(data.cost_per_m2_mxn)}
               </div>
@@ -151,7 +151,7 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
             </div>
             {fcst && (
               <div style={{ flex: '1 1 140px', padding: '12px 14px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.2)' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total {m2} m²</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total {m2} m²</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                   {fmtMXN(fcst.total_today_mxn)}
                 </div>
@@ -174,19 +174,19 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
 
           {/* Stub warning */}
           {data.stub_reason && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#fcd34d', padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--amber)', padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
               Datos parciales: {data.stub_reason}
             </div>
           )}
 
           {/* Sources */}
           {data.sources && Object.keys(data.sources).length > 0 && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.3)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.3)' }}>
               Fuentes: {Object.entries(data.sources).map(([k, v]) => `${k.toUpperCase()}=${v}`).join(' · ')}
             </div>
           )}
           {(!data.sources || Object.keys(data.sources).length === 0) && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.3)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.3)' }}>
               Fuentes: BANXICO INPP · INEGI INPC (pendiente token)
             </div>
           )}
@@ -208,7 +208,7 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
           onBlur={load}
           style={{
             width: 90, padding: '4px 10px', borderRadius: 9999,
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.12)',
             color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
           }}
         />

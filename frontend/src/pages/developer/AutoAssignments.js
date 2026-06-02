@@ -25,7 +25,7 @@ const POLICY_LABELS = {
 function KPIStrip({ kpis, loading }) {
   if (loading) return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
-      {[1,2,3,4].map(i => <div key={i} style={{ height: 72, borderRadius: 10, background: 'rgba(240,235,224,0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
+      {[1,2,3,4].map(i => <div key={i} style={{ height: 72, borderRadius: 10, background: 'rgba(var(--cream-rgb),0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
     </div>
   );
   return (
@@ -72,7 +72,7 @@ function DistributionChart({ data }) {
               height: `${Math.round((d.count / maxCount) * 90)}px`,
               opacity: 0.85, transition: 'height 0.3s ease',
             }} />
-            <span style={{ fontSize: 9, color: 'rgba(240,235,224,0.4)', textAlign: 'center', maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 9, color: 'rgba(var(--cream-rgb),0.4)', textAlign: 'center', maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {d.asesor_id?.slice(0, 10)}
             </span>
           </div>
@@ -121,7 +121,7 @@ export default function AutoAssignments({ user, onLogout }) {
 
       {/* Filter bar */}
       <div data-testid="assignment-filters" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
-        <Filter size={12} color="rgba(240,235,224,0.35)" />
+        <Filter size={12} color="rgba(var(--cream-rgb),0.35)" />
         {['round_robin', 'load_balance', 'pre_selected'].map(pt => (
           <button
             key={pt}
@@ -129,9 +129,9 @@ export default function AutoAssignments({ user, onLogout }) {
             onClick={() => setFilters(f => ({ ...f, policy_type: f.policy_type === pt ? '' : pt }))}
             style={{
               padding: '4px 12px', borderRadius: 9999, fontSize: 10, fontWeight: 700, cursor: 'pointer',
-              border: `1px solid ${filters.policy_type === pt ? 'rgba(99,102,241,0.5)' : 'rgba(240,235,224,0.12)'}`,
+              border: `1px solid ${filters.policy_type === pt ? 'rgba(99,102,241,0.5)' : 'rgba(var(--cream-rgb),0.12)'}`,
               background: filters.policy_type === pt ? 'rgba(99,102,241,0.12)' : 'transparent',
-              color: filters.policy_type === pt ? '#c7d2fe' : 'rgba(240,235,224,0.45)',
+              color: filters.policy_type === pt ? '#c7d2fe' : 'rgba(var(--cream-rgb),0.45)',
             }}
           >
             {POLICY_LABELS[pt]}
@@ -141,13 +141,13 @@ export default function AutoAssignments({ user, onLogout }) {
           type="date"
           value={filters.date_from}
           onChange={e => setFilters(f => ({ ...f, date_from: e.target.value }))}
-          style={{ background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream)', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}
+          style={{ background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}
         />
         <input
           type="date"
           value={filters.date_to}
           onChange={e => setFilters(f => ({ ...f, date_to: e.target.value }))}
-          style={{ background: 'rgba(240,235,224,0.07)', border: '1px solid rgba(240,235,224,0.12)', color: 'var(--cream)', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}
+          style={{ background: 'rgba(var(--cream-rgb),0.07)', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream)', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}
         />
       </div>
 
@@ -159,9 +159,9 @@ export default function AutoAssignments({ user, onLogout }) {
           ÚLTIMAS {data?.items?.length || 0} ASIGNACIONES
         </div>
         {loading && !data ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(240,235,224,0.3)', fontSize: 13 }}>Cargando…</div>
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.3)', fontSize: 13 }}>Cargando…</div>
         ) : (data?.items?.length === 0 || !data?.items) ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(240,235,224,0.3)', fontSize: 13 }}>
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'rgba(var(--cream-rgb),0.3)', fontSize: 13 }}>
             Sin asignaciones aún. Configura una política y activa el booking desde el marketplace.
           </div>
         ) : (
@@ -170,7 +170,7 @@ export default function AutoAssignments({ user, onLogout }) {
               <thead>
                 <tr>
                   {['Lead', 'Asesor', 'Slot', 'Política', 'Estado'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '6px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(240,235,224,0.35)', borderBottom: '1px solid rgba(240,235,224,0.08)', whiteSpace: 'nowrap' }}>
+                    <th key={h} style={{ textAlign: 'left', padding: '6px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(var(--cream-rgb),0.35)', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)', whiteSpace: 'nowrap' }}>
                       {h}
                     </th>
                   ))}
@@ -180,10 +180,10 @@ export default function AutoAssignments({ user, onLogout }) {
                 {(data?.items || []).map(item => {
                   const st = STATUS_BADGE[item.status] || { tone: 'ok', label: item.status || '—' };
                   return (
-                    <tr key={item.id || item.appointment_id} data-testid={`assignment-row-${item.id}`} style={{ borderBottom: '1px solid rgba(240,235,224,0.05)' }}>
+                    <tr key={item.id || item.appointment_id} data-testid={`assignment-row-${item.id}`} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.05)' }}>
                       <td style={{ padding: '7px 8px', color: 'var(--cream)', fontFamily: 'DM Sans,sans-serif' }}>{item.lead_id?.slice(0, 12) || '—'}</td>
-                      <td style={{ padding: '7px 8px', color: 'rgba(240,235,224,0.7)' }}>{item.asesor_id?.slice(0, 14) || '—'}</td>
-                      <td style={{ padding: '7px 8px', color: 'rgba(240,235,224,0.7)', whiteSpace: 'nowrap' }}>{formatSlot(item.datetime)}</td>
+                      <td style={{ padding: '7px 8px', color: 'rgba(var(--cream-rgb),0.7)' }}>{item.asesor_id?.slice(0, 14) || '—'}</td>
+                      <td style={{ padding: '7px 8px', color: 'rgba(var(--cream-rgb),0.7)', whiteSpace: 'nowrap' }}>{formatSlot(item.datetime)}</td>
                       <td style={{ padding: '7px 8px' }}>
                         <span style={{ fontSize: 10, color: 'rgba(199,210,254,0.7)' }}>{POLICY_LABELS[item.policy_used] || item.policy_used || '—'}</span>
                       </td>

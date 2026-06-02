@@ -70,11 +70,11 @@ function BarTooltip({ data }) {
         zIndex: 50,
         padding: '14px 16px',
         borderRadius: 14,
-        background: 'rgba(6,8,15,0.97)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(var(--bg-rgb),0.97)',
+        border: '1px solid rgba(var(--cream-rgb),0.12)',
         backdropFilter: 'blur(24px)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-        color: '#F0EBE0',
+        color: 'var(--cream)',
         fontFamily: 'DM Sans, sans-serif',
         fontSize: 12,
         lineHeight: 1.55,
@@ -91,7 +91,7 @@ function BarTooltip({ data }) {
         }}>
           {t(`probability.confidence.${data.confidence_lvl}`, { defaultValue: data.confidence_lvl })}
         </span>
-        <span style={{ color: 'rgba(240,235,224,0.5)', fontSize: 11 }}>
+        <span style={{ color: 'rgba(var(--cream-rgb),0.5)', fontSize: 11 }}>
           {t('probability.tooltip.sources_label', { defaultValue: 'Fuentes' })}
         </span>
       </div>
@@ -109,7 +109,7 @@ function BarTooltip({ data }) {
                 background: 'rgba(99,102,241,0.16)',
                 border: '1px solid rgba(99,102,241,0.32)',
                 fontSize: 10, fontWeight: 700,
-                color: '#a5b4fc', letterSpacing: '0.05em',
+                color: 'var(--blue)', letterSpacing: '0.05em',
               }}
             >
               <span style={{
@@ -130,7 +130,7 @@ function BarTooltip({ data }) {
       {data.explanation_es && (
         <p style={{
           margin: '0 0 8px',
-          color: 'rgba(240,235,224,0.72)',
+          color: 'rgba(var(--cream-rgb),0.72)',
           fontSize: 11,
           lineHeight: 1.5,
         }}>
@@ -140,7 +140,7 @@ function BarTooltip({ data }) {
 
       {/* Footer */}
       {data.computed_at && (
-        <p style={{ margin: 0, color: 'rgba(240,235,224,0.38)', fontSize: 10 }}>
+        <p style={{ margin: 0, color: 'rgba(var(--cream-rgb),0.38)', fontSize: 10 }}>
           {t('probability.tooltip.footer_updated', {
             defaultValue: 'Actualizado hace {{time}}',
             time: _elapsed(data.computed_at),
@@ -200,17 +200,17 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
         style={{
           padding: '10px 14px',
           borderRadius: 12,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(var(--cream-rgb),0.03)',
+          border: '1px solid rgba(var(--cream-rgb),0.07)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 12,
-          color: 'rgba(240,235,224,0.45)',
+          color: 'rgba(var(--cream-rgb),0.45)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.2)', flexShrink: 0,
+          background: 'rgba(var(--cream-rgb),0.2)', flexShrink: 0,
         }} />
         {t('probability.fallback.data_acumulando', {
           defaultValue: 'Prediccion no disponible · data acumulandose',
@@ -229,8 +229,8 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
       style={{
         padding: '14px 16px',
         borderRadius: 16,
-        background: 'rgba(13,16,23,0.85)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(var(--bg-rgb),0.85)',
+        border: '1px solid rgba(var(--cream-rgb),0.08)',
         backdropFilter: 'blur(12px)',
         position: 'relative',
         userSelect: 'none',
@@ -244,7 +244,7 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
         <span style={{
           fontFamily: 'DM Sans, sans-serif',
           fontWeight: 700, fontSize: 12,
-          color: 'rgba(240,235,224,0.65)',
+          color: 'rgba(var(--cream-rgb),0.65)',
           textTransform: 'uppercase', letterSpacing: '0.08em',
         }}>
           {displayTitle}
@@ -264,7 +264,7 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
       <div
         style={{
           position: 'relative', height: 8, borderRadius: 9999,
-          background: 'rgba(255,255,255,0.07)',
+          background: 'rgba(var(--cream-rgb),0.07)',
           overflow: 'hidden', cursor: 'pointer',
         }}
         onClick={toggleTooltip}
@@ -299,7 +299,7 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
         display: 'flex', justifyContent: 'space-between',
         marginTop: 4,
         fontFamily: 'DM Sans, sans-serif',
-        fontSize: 9, color: 'rgba(240,235,224,0.3)',
+        fontSize: 9, color: 'rgba(var(--cream-rgb),0.3)',
       }}>
         <span>0%</span>
         <span>50%</span>
@@ -317,7 +317,7 @@ export function ProbabilityBar({ type, entity_id, params = {}, title }) {
           margin: '8px 0 0',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 10,
-          color: 'rgba(240,235,224,0.32)',
+          color: 'rgba(var(--cream-rgb),0.32)',
         }}>
           {t('probability.tooltip.footer_updated', {
             defaultValue: 'Actualizado hace {{time}}',

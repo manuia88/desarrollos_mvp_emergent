@@ -44,12 +44,12 @@ export default function RadarChart({ data = {}, size = 220, color = 'var(--theme
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} data-testid="radar-chart">
       {/* Grid */}
       {grids.map((g) => (
-        <polygon key={g.pct} points={g.pts} fill="none" stroke="rgba(240,235,224,0.12)" strokeWidth="1" />
+        <polygon key={g.pct} points={g.pts} fill="none" stroke="rgba(var(--cream-rgb),0.12)" strokeWidth="1" />
       ))}
       {/* Axes */}
       {keys.map((_k, i) => {
         const [x, y] = pointFor(i, 100);
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(240,235,224,0.10)" strokeWidth="1" />;
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(var(--cream-rgb),0.10)" strokeWidth="1" />;
       })}
       {/* Polygon (data) */}
       <polygon points={polygon} fill={color} fillOpacity="0.18" stroke={color} strokeWidth="1.6" />
@@ -62,7 +62,7 @@ export default function RadarChart({ data = {}, size = 220, color = 'var(--theme
       {keys.map((k, i) => {
         const [x, y] = labelFor(i);
         return (
-          <text key={`label-${k}`} x={x} y={y} fontFamily="DM Sans" fontSize="10" fill="rgba(240,235,224,0.72)"
+          <text key={`label-${k}`} x={x} y={y} fontFamily="DM Sans" fontSize="10" fill="rgba(var(--cream-rgb),0.72)"
                 textAnchor="middle" dominantBaseline="middle">{SUB_LABELS[k]}</text>
         );
       })}

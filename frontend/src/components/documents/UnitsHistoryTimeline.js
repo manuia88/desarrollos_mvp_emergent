@@ -12,7 +12,7 @@ const SOURCE_BADGES = {
   drive_webhook: { label: 'drive · webhook', bg: 'rgba(var(--theme-rgb),0.16)', fg: '#f9a8d4', border: 'rgba(var(--theme-rgb),0.32)' },
   drive_watcher: { label: 'drive · cron',    bg: 'rgba(168,85,247,0.16)', fg: '#e9d5ff', border: 'rgba(168,85,247,0.32)' },
   bulk_upload:   { label: 'bulk',           bg: 'rgba(245,158,11,0.16)', fg: '#fcd34d', border: 'rgba(245,158,11,0.32)' },
-  system:        { label: 'system',         bg: 'rgba(255,255,255,0.06)', fg: 'var(--cream-3)', border: 'var(--border)' },
+  system:        { label: 'system',         bg: 'rgba(var(--cream-rgb),0.06)', fg: 'var(--cream-3)', border: 'var(--border)' },
 };
 
 function fmtDate(iso) {
@@ -54,7 +54,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [devId, role]);
 
   if (loading) return <div data-testid="uh-loading" style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Cargando histórico…</div>;
-  if (error) return <div data-testid="uh-error" style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5' }}>Error: {error}</div>;
+  if (error) return <div data-testid="uh-error" style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)' }}>Error: {error}</div>;
 
   const items = data?.history || [];
 
@@ -62,7 +62,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
     return (
       <div data-testid="uh-empty" style={{
         padding: 22, textAlign: 'center', borderRadius: 12,
-        border: '1px dashed var(--border)', background: 'rgba(255,255,255,0.02)',
+        border: '1px dashed var(--border)', background: 'rgba(var(--cream-rgb),0.02)',
       }}>
         <Sparkle size={18} color="var(--cream-3)" />
         <div style={{ fontFamily: 'Outfit', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)', marginTop: 8 }}>
@@ -82,7 +82,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
         <button onClick={load} data-testid="uh-refresh" style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '5px 10px', borderRadius: 9999,
-          background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+          background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)',
           fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-2)', cursor: 'pointer',
         }}>
           <RefreshCw size={10} /> Actualizar
@@ -90,7 +90,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
       </div>
       <div style={{
         borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden',
-        background: 'rgba(255,255,255,0.02)',
+        background: 'rgba(var(--cream-rgb),0.02)',
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: compact ? '1.4fr 1fr 1.6fr 0.9fr' : '1.4fr 0.9fr 1.4fr 1.4fr 0.9fr 1fr', gap: 0, padding: '8px 14px', background: 'rgba(var(--theme-rgb),0.06)', borderBottom: '1px solid var(--border)' }}>
           {(compact

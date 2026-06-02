@@ -7,6 +7,32 @@ import { TOURS, getFirstLoginTourId } from '../config/tours';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// ─── Fix definitivo "tour se atora / pantalla congelada" (2026-06-02) ──────────
+// CAUSA RAÍZ: los tours (react-joyride) apuntan a elementos del DOM por
+// data-testid (nav-item-*, nuevo-proyecto-btn, diagnostic-widget…). Cada rediseño
+// de UI mueve/renombra esos elementos → el paso queda sin target → react-joyride
+// deja un overlay huérfano a pantalla completa SIN tooltip (sin botón para avanzar
+// ni cerrar) = pantalla "congelada". Los parches previos tocaron el overlay, nunca
+// esta causa. Durante el rediseño del portal Dev se rompería en CADA pantalla.
+//
+// Capa 1 (aquí): tours APAGADOS por defecto — auto Y manual (react-joyride deja un
+//   overlay a pantalla completa SIN tooltip aun en pasos con target válido = "stall").
+//   Revivible con el flag cuando la UI esté estable y los anchors de tours.js sean
+//   estables (idealmente migrar a un walkthrough propio sin react-joyride).
+// Capa 2: startTour filtra pasos cuyo target NO existe (defensa si se revive).
+// Capa 3 (TourLauncher): limpieza de overlays huérfanos cuando el tour no corre.
+const TOURS_ENABLED = process.env.REACT_APP_ONBOARDING_TOURS === 'true';
+
+// Mantiene solo los pasos cuyo target existe (o son centrados/body).
+function filterStepsToDom(steps) {
+  if (typeof document === 'undefined') return steps || [];
+  return (steps || []).filter((s) => {
+    const t = s?.target;
+    if (!t || t === 'body' || s.placement === 'center') return true;
+    try { return !!document.querySelector(t); } catch { return false; }
+  });
+}
+
 async function fetchPrefs() {
   try {
     const res = await fetch(`${API}/api/preferences/me`, { credentials: 'include' });
@@ -53,6 +79,7 @@ export function useTour(user) {
 
   // On user load: check if first_login tour is needed
   useEffect(() => {
+    if (!TOURS_ENABLED) return;  // Capa 1: auto-tour apagado (anti-stall durante rediseño)
     if (!user?.role) return;
 
     const firstLoginId = getFirstLoginTourId(user.role);
@@ -95,10 +122,15 @@ export function useTour(user) {
   }, [user?.role, user?.user_id]);
 
   const startTour = useCallback((id) => {
+    if (!TOURS_ENABLED) return;  // Capa 1: tour manual también apagado durante el rediseño
     const tour = TOURS[id];
     if (!tour) return;
+    // Capa 2: solo pasos cuyo target existe AHORA → el tour nunca se atora en un
+    // elemento ausente. Si no queda ninguno, no se arranca (evita overlay huérfano).
+    const usable = filterStepsToDom(tour.steps);
+    if (!usable.length) return;
     setTourId(id);
-    setSteps(tour.steps);
+    setSteps(usable);
     setStepIndex(0);
     setRun(true);
   }, []);

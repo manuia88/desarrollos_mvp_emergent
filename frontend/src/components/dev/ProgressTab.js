@@ -33,7 +33,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
             {t('dev.last_update')}: {cp.last_update}
           </div>
         </div>
-        <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, overflow: 'hidden' }}>
+        <div style={{ height: 10, background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 9999, overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${pct}%`,
             background: 'var(--grad)',
@@ -94,7 +94,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
           {visibleLog.map((entry, i) => (
             <div key={i} style={{
               padding: 16,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(var(--cream-rgb),0.03)',
               border: '1px solid var(--border)',
               borderRadius: 14,
               display: 'flex', gap: 14,

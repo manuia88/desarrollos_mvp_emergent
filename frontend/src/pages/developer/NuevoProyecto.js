@@ -103,12 +103,12 @@ function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
           <Input value={data.cp || ''} onChange={v => set('cp', v)} tid="cp" />
         </Field>
         <Field label="Coordenadas (lat, lng)" hint="Click en el mapa para fijar el marker">
-          <div className="text-xs text-[var(--cream-2)] font-mono px-3 py-2 bg-[rgba(240,235,224,0.04)] rounded-lg border border-[rgba(240,235,224,0.12)]">
+          <div className="text-xs text-[var(--cream-2)] font-mono px-3 py-2 bg-[rgba(var(--cream-rgb),0.04)] rounded-lg border border-[rgba(var(--cream-rgb),0.12)]">
             {data.lat && data.lng ? `${Number(data.lat).toFixed(5)}, ${Number(data.lng).toFixed(5)}` : 'Sin definir'}
           </div>
         </Field>
       </div>
-      <div className="rounded-xl overflow-hidden border border-[rgba(240,235,224,0.12)]">
+      <div className="rounded-xl overflow-hidden border border-[rgba(var(--cream-rgb),0.12)]">
         <MapboxPicker
           lat={data.lat || 19.4326}
           lng={data.lng || -99.1332}
@@ -138,19 +138,19 @@ function Step4Amenidades({ data = [], onChange, ia_prefill }) {
   };
   return (
     <div className="space-y-5">
-      <div className="text-xs text-[rgba(240,235,224,0.55)]">
+      <div className="text-xs text-[rgba(var(--cream-rgb),0.55)]">
         Selecciona amenidades disponibles. <strong className="text-[var(--cream)]">{selected.size}</strong> activas.
       </div>
       {Object.entries(AMENITY_CATS).map(([cat, list]) => (
         <div key={cat}>
-          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(240,235,224,0.5)] mb-2">{cat}</h4>
+          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(var(--cream-rgb),0.5)] mb-2">{cat}</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {list.map(a => (
               <label key={a} data-testid={`amenity-${a}`}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors
                   ${selected.has(a)
-                    ? 'bg-[rgba(240,235,224,0.12)] border-[rgba(240,235,224,0.3)] text-[var(--cream)]'
-                    : 'bg-[rgba(240,235,224,0.03)] border-[rgba(240,235,224,0.08)] text-[rgba(240,235,224,0.65)]'}`}>
+                    ? 'bg-[rgba(var(--cream-rgb),0.12)] border-[rgba(var(--cream-rgb),0.3)] text-[var(--cream)]'
+                    : 'bg-[rgba(var(--cream-rgb),0.03)] border-[rgba(var(--cream-rgb),0.08)] text-[rgba(var(--cream-rgb),0.65)]'}`}>
                 <input type="checkbox" checked={selected.has(a)} onChange={() => toggle(a)}
                   className="accent-[var(--cream)]" />
                 <span className="text-xs capitalize">{a.replace('_', ' ')}</span>
@@ -177,7 +177,7 @@ function Step5Contenido({ data = {}, onChange }) {
   };
   return (
     <div>
-      <p className="text-xs text-[rgba(240,235,224,0.55)] mb-3">
+      <p className="text-xs text-[rgba(var(--cream-rgb),0.55)] mb-3">
         Fotos cover, planos, renders, brochure, video y tour 360°. Mínimo <strong>1 foto cover</strong>.
       </p>
       <DragDropZone
@@ -218,7 +218,7 @@ function Step6Legal({ data = {}, onChange }) {
         <RadioGrid value={data.estado || 'sin_contrato'} onChange={v => set('estado', v)} opts={estados} tid="legal-status" />
       </Field>
       <div>
-        <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(240,235,224,0.5)] mb-2">Documentos legales</h4>
+        <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(var(--cream-rgb),0.5)] mb-2">Documentos legales</h4>
         <DragDropZone
           accept=".pdf,.docx,.xlsx"
           maxSizeMB={20}
@@ -248,7 +248,7 @@ function Step7Comercializacion({ data = {}, onChange, ia_prefill }) {
         value={works} onChange={v => set('works_with_brokers', v)} />
 
       {works && (
-        <div className="pl-4 border-l-2 border-[rgba(240,235,224,0.12)] space-y-4">
+        <div className="pl-4 border-l-2 border-[rgba(var(--cream-rgb),0.12)] space-y-4">
           <Field label={`Comisión default: ${commission}%`}>
             <input type="range" min="1" max="10" step="0.5" value={commission}
               onChange={e => set('default_commission_pct', Number(e.target.value))}
@@ -257,11 +257,11 @@ function Step7Comercializacion({ data = {}, onChange, ia_prefill }) {
           <Toggle label="IVA incluido en comisión" tid="iva"
             value={data.iva_included || false} onChange={v => set('iva_included', v)} />
           <div>
-            <label className="text-xs text-[rgba(240,235,224,0.55)] block mb-2">Términos adicionales (opcional)</label>
+            <label className="text-xs text-[rgba(var(--cream-rgb),0.55)] block mb-2">Términos adicionales (opcional)</label>
             <textarea value={data.broker_terms || ''} onChange={e => set('broker_terms', e.target.value)}
               rows={3} data-testid="broker-terms"
               placeholder="Política de exclusividad, co-brokerage, plazos de pago…"
-              className="w-full px-3 py-2 rounded-lg bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] text-[var(--cream)] text-sm" />
+              className="w-full px-3 py-2 rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.12)] text-[var(--cream)] text-sm" />
           </div>
         </div>
       )}
@@ -271,7 +271,7 @@ function Step7Comercializacion({ data = {}, onChange, ia_prefill }) {
         onChange={v => set('in_house_only', v)}
         disabled={works} />
 
-      <div className="text-[10px] text-[rgba(240,235,224,0.35)] italic">
+      <div className="text-[10px] text-[rgba(var(--cream-rgb),0.35)] italic">
         Pre-asignación de asesores internos se puede configurar después desde la pestaña Comercialización.
       </div>
     </div>
@@ -285,13 +285,13 @@ function Field({ label, hint, ia, children }) {
   const iaSource = ia?.source;
   return (
     <div>
-      <label className="text-xs text-[rgba(240,235,224,0.65)] block mb-1.5 flex items-center gap-1.5">
+      <label className="text-xs text-[rgba(var(--cream-rgb),0.65)] block mb-1.5 flex items-center gap-1.5">
         {label}
         {iaValue != null && <Sparkles size={10} className="text-amber-400"
           title={`Detectado por IA (${iaConf || '?'}% conf) · ${iaSource || ''}`} />}
       </label>
       {children}
-      {hint && <div className="text-[10px] text-[rgba(240,235,224,0.35)] mt-1">{hint}</div>}
+      {hint && <div className="text-[10px] text-[rgba(var(--cream-rgb),0.35)] mt-1">{hint}</div>}
     </div>
   );
 }
@@ -300,7 +300,7 @@ function Input({ value, onChange, type = 'text', tid, disabled }) {
   return (
     <input value={value ?? ''} onChange={e => onChange(e.target.value)} type={type}
       data-testid={`wizard-input-${tid}`} disabled={disabled}
-      className="w-full px-3 py-2 rounded-lg bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] text-[var(--cream)] text-sm disabled:opacity-60" />
+      className="w-full px-3 py-2 rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.12)] text-[var(--cream)] text-sm disabled:opacity-60" />
   );
 }
 
@@ -312,8 +312,8 @@ function RadioGrid({ value, onChange, opts, tid }) {
           data-testid={`${tid}-opt-${o.v}`}
           className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors
             ${value === o.v
-              ? 'bg-[rgba(240,235,224,0.14)] border-[rgba(240,235,224,0.4)] text-[var(--cream)]'
-              : 'bg-[rgba(240,235,224,0.03)] border-[rgba(240,235,224,0.08)] text-[rgba(240,235,224,0.65)]'}`}>
+              ? 'bg-[rgba(var(--cream-rgb),0.14)] border-[rgba(var(--cream-rgb),0.4)] text-[var(--cream)]'
+              : 'bg-[rgba(var(--cream-rgb),0.03)] border-[rgba(var(--cream-rgb),0.08)] text-[rgba(var(--cream-rgb),0.65)]'}`}>
           {o.label}
         </button>
       ))}
@@ -329,8 +329,8 @@ function Toggle({ label, value, onChange, tid, disabled }) {
         onClick={() => onChange(!value)}
         data-testid={`wizard-toggle-${tid}`}
         className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-40
-          ${value ? 'bg-[var(--cream)]' : 'bg-[rgba(240,235,224,0.14)]'}`}>
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--navy)] transition-all
+          ${value ? 'bg-[var(--theme)]' : 'bg-[rgba(var(--cream-rgb),0.14)]'}`}>
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all
           ${value ? 'left-5' : 'left-0.5'}`} />
       </button>
     </div>
@@ -369,7 +369,7 @@ function IaUploadTab({ onPrefillReady }) {
 
   return (
     <div>
-      <p className="text-sm text-[rgba(240,235,224,0.6)] mb-3">
+      <p className="text-sm text-[rgba(var(--cream-rgb),0.6)] mb-3">
         Sube PDFs, Excel, Word o CSV con info del proyecto. La IA extraerá campos y pre-llenará el wizard.
       </p>
       <DragDropZone
@@ -403,7 +403,7 @@ function IaResultSummary({ result, onProceed }) {
   const flat = useMemo(() => flattenExtraction(result?.extraction || {}), [result]);
   const confColor = (c) => c >= 80 ? 'text-emerald-400' : c >= 50 ? 'text-amber-400' : 'text-red-400';
   return (
-    <div className="mt-6 p-4 rounded-xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.12)]">
+    <div className="mt-6 p-4 rounded-xl bg-[rgba(var(--cream-rgb),0.04)] border border-[rgba(var(--cream-rgb),0.12)]">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles size={14} className="text-amber-400" />
         <h4 className="text-sm font-bold text-[var(--cream)]">Resumen de extracción</h4>
@@ -411,15 +411,15 @@ function IaResultSummary({ result, onProceed }) {
           <span className="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">FALLBACK STUB</span>
         )}
       </div>
-      <div className="text-xs text-[rgba(240,235,224,0.65)] mb-3">
+      <div className="text-xs text-[rgba(var(--cream-rgb),0.65)] mb-3">
         {result.fields_extracted_count} campo(s) detectado(s) ·
         confianza promedio <span className={confColor(result.avg_confidence)}>{result.avg_confidence}%</span> ·
         desde {result.files?.length || 0} archivo(s)
       </div>
-      <div className="max-h-52 overflow-y-auto border border-[rgba(240,235,224,0.06)] rounded-lg">
+      <div className="max-h-52 overflow-y-auto border border-[rgba(var(--cream-rgb),0.06)] rounded-lg">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[rgba(240,235,224,0.04)] text-[rgba(240,235,224,0.5)]">
+            <tr className="bg-[rgba(var(--cream-rgb),0.04)] text-[rgba(var(--cream-rgb),0.5)]">
               <th className="text-left px-3 py-1.5">Campo</th>
               <th className="text-left px-3 py-1.5">Valor</th>
               <th className="text-right px-3 py-1.5">Conf</th>
@@ -427,8 +427,8 @@ function IaResultSummary({ result, onProceed }) {
           </thead>
           <tbody>
             {flat.slice(0, 15).map((f, i) => (
-              <tr key={i} className="border-t border-[rgba(240,235,224,0.04)]">
-                <td className="px-3 py-1.5 text-[rgba(240,235,224,0.7)]">{f.key}</td>
+              <tr key={i} className="border-t border-[rgba(var(--cream-rgb),0.04)]">
+                <td className="px-3 py-1.5 text-[rgba(var(--cream-rgb),0.7)]">{f.key}</td>
                 <td className="px-3 py-1.5 text-[var(--cream)] truncate max-w-xs">
                   {String(f.value ?? '—').slice(0, 50)}
                 </td>
@@ -443,7 +443,7 @@ function IaResultSummary({ result, onProceed }) {
       <div className="flex gap-2 mt-4">
         <button onClick={onProceed}
           data-testid="ia-proceed-btn"
-          className="px-5 py-2 rounded-full bg-[var(--cream)] text-[var(--navy)] text-sm font-bold">
+          className="px-5 py-2 rounded-full bg-[var(--theme)] text-white text-sm font-bold">
           Continuar al wizard pre-llenado
         </button>
       </div>
@@ -494,7 +494,7 @@ function DriveImportTab() {
 
   return (
     <div>
-      <p className="text-sm text-[rgba(240,235,224,0.6)] mb-4">
+      <p className="text-sm text-[rgba(var(--cream-rgb),0.6)] mb-4">
         Conecta tu Google Drive o pega una URL de folder público con los documentos del proyecto.
       </p>
 
@@ -510,21 +510,21 @@ function DriveImportTab() {
         </div>
       )}
 
-      <div className="p-5 rounded-xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.1)]">
+      <div className="p-5 rounded-xl bg-[rgba(var(--cream-rgb),0.04)] border border-[rgba(var(--cream-rgb),0.1)]">
         <h4 className="text-sm font-bold text-[var(--cream)] mb-2 flex items-center gap-2">
           <Cloud size={14} /> Pegar URL de carpeta
         </h4>
-        <p className="text-xs text-[rgba(240,235,224,0.5)] mb-3">
+        <p className="text-xs text-[rgba(var(--cream-rgb),0.5)] mb-3">
           Ej: <code>https://drive.google.com/drive/folders/1a2b3c…</code>
         </p>
         <div className="flex gap-2">
           <input value={url} onChange={e => setUrl(e.target.value)}
             placeholder="https://drive.google.com/drive/folders/..."
             data-testid="drive-url-input"
-            className="flex-1 px-3 py-2 rounded-lg bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] text-[var(--cream)] text-sm" />
+            className="flex-1 px-3 py-2 rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.12)] text-[var(--cream)] text-sm" />
           <button onClick={submit} disabled={!url || loading}
             data-testid="drive-process-btn"
-            className="px-4 py-2 rounded-lg bg-[var(--cream)] text-[var(--navy)] text-sm font-bold disabled:opacity-40">
+            className="px-4 py-2 rounded-lg bg-[var(--theme)] text-white text-sm font-bold disabled:opacity-40">
             {loading ? 'Procesando…' : 'Procesar'}
           </button>
         </div>
@@ -535,9 +535,9 @@ function DriveImportTab() {
         )}
       </div>
 
-      <div className="mt-4 p-5 rounded-xl bg-[rgba(240,235,224,0.02)] border border-[rgba(240,235,224,0.06)]">
-        <h4 className="text-sm font-bold text-[rgba(240,235,224,0.5)] mb-2">Conectar Drive personal (OAuth)</h4>
-        <p className="text-xs text-[rgba(240,235,224,0.4)]">
+      <div className="mt-4 p-5 rounded-xl bg-[rgba(var(--cream-rgb),0.02)] border border-[rgba(var(--cream-rgb),0.06)]">
+        <h4 className="text-sm font-bold text-[rgba(var(--cream-rgb),0.5)] mb-2">Conectar Drive personal (OAuth)</h4>
+        <p className="text-xs text-[rgba(var(--cream-rgb),0.4)]">
           Próximamente integrado con la conexión global del portal de desarrollador.
           Ve a Drive → Conectar en el sidebar para configurar tu cuenta Google.
         </p>
@@ -618,12 +618,12 @@ export default function NuevoProyectoPage({ user, onLogout }) {
       <div className="max-w-5xl mx-auto p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-[var(--cream)] font-[Outfit]">Nuevo proyecto</h1>
-          <p className="text-sm text-[rgba(240,235,224,0.55)] mt-1">
+          <p className="text-sm text-[rgba(var(--cream-rgb),0.55)] mt-1">
             Crea un proyecto nuevo en 7 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
           </p>
         </div>
 
-        <div className="flex gap-1 p-1 rounded-xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] mb-6 w-fit">
+        <div className="flex gap-1 p-1 rounded-xl bg-[rgba(var(--cream-rgb),0.04)] border border-[rgba(var(--cream-rgb),0.08)] mb-6 w-fit">
           {tabs.map(t => {
             const Icon = t.icon;
             return (
@@ -631,8 +631,8 @@ export default function NuevoProyectoPage({ user, onLogout }) {
                 data-testid={`wizard-tab-${t.v}`}
                 className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors
                   ${mode === t.v
-                    ? 'bg-[var(--cream)] text-[var(--navy)]'
-                    : 'text-[rgba(240,235,224,0.6)] hover:text-[var(--cream)]'}`}>
+                    ? 'bg-[var(--theme)] text-white'
+                    : 'text-[rgba(var(--cream-rgb),0.6)] hover:text-[var(--cream)]'}`}>
                 <Icon size={12} /> {t.label}
               </button>
             );
@@ -640,19 +640,19 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         </div>
 
         {mode === 'ia' && !iaPrefill && (
-          <div className="p-6 rounded-2xl bg-[rgba(240,235,224,0.02)] border border-[rgba(240,235,224,0.08)]">
+          <div className="p-6 rounded-2xl bg-[rgba(var(--cream-rgb),0.02)] border border-[rgba(var(--cream-rgb),0.08)]">
             <IaUploadTab onPrefillReady={(r) => { setIaPrefill(r); setMode('manual'); }} />
           </div>
         )}
 
         {mode === 'drive' && (
-          <div className="p-6 rounded-2xl bg-[rgba(240,235,224,0.02)] border border-[rgba(240,235,224,0.08)]">
+          <div className="p-6 rounded-2xl bg-[rgba(var(--cream-rgb),0.02)] border border-[rgba(var(--cream-rgb),0.08)]">
             <DriveImportTab />
           </div>
         )}
 
         {mode === 'manual' && (
-          <div className="h-[72vh] rounded-2xl overflow-hidden border border-[rgba(240,235,224,0.08)]">
+          <div className="h-[72vh] rounded-2xl overflow-hidden border border-[rgba(var(--cream-rgb),0.08)]">
             <SmartWizard
               title={iaPrefill ? 'Wizard (pre-llenado por IA)' : 'Crear proyecto'}
               steps={steps}
@@ -666,7 +666,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
 
         {submitting && (
           <div className="fixed inset-0 bg-black/60 z-[1500] flex items-center justify-center">
-            <div className="bg-[var(--navy)] border border-[rgba(240,235,224,0.2)] rounded-xl p-6 text-[var(--cream)]">
+            <div className="bg-[var(--surface-2,rgba(var(--cream-rgb),0.04))] border border-[var(--border,rgba(var(--cream-rgb),0.2))] rounded-xl p-6 text-[var(--cream)]">
               Creando proyecto…
             </div>
           </div>

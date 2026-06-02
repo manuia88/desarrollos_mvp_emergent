@@ -10,10 +10,10 @@ import { KPIStrip } from '../shared/KPIStrip';
 import { Check, AlertTriangle, X, RefreshCw, Sparkle, Activity } from '../../components/icons';
 
 const SEVERITY_COLOR = {
-  critical: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'CRÍTICO' },
-  high:     { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', label: 'ALTO' },
-  medium:   { bg: 'rgba(96,165,250,0.12)', color: '#60a5fa', label: 'MEDIO' },
-  low:      { bg: 'rgba(240,235,224,0.08)', color: 'var(--cream-3)', label: 'BAJO' },
+  critical: { bg: 'rgba(239,68,68,0.15)', color: '#DC2626', label: 'CRÍTICO' },
+  high:     { bg: 'rgba(245,158,11,0.15)', color: '#D97706', label: 'ALTO' },
+  medium:   { bg: 'rgba(96,165,250,0.12)', color: '#2563EB', label: 'MEDIO' },
+  low:      { bg: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-3)', label: 'BAJO' },
 };
 
 const ERROR_TYPE_LABELS = {
@@ -78,7 +78,7 @@ function ProbeRow({ probe, devId, onRefresh }) {
       data-testid={`probe-row-${probe.probe_id}`}
       style={{
         borderLeft: `2px solid ${probe.passed ? 'rgba(34,197,94,0.4)' : sev.color}`,
-        background: 'rgba(240,235,224,0.03)',
+        background: 'rgba(var(--cream-rgb),0.03)',
         borderRadius: 6, padding: '8px 12px', marginBottom: 6,
       }}
     >
@@ -105,7 +105,7 @@ function ProbeRow({ probe, devId, onRefresh }) {
       </div>
 
       {expanded && !probe.passed && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(240,235,224,0.08)' }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(var(--cream-rgb),0.08)' }}>
           {probe.error_type && (
             <div style={{ marginBottom: 6 }}>
               <span style={{ fontSize: 9, color: 'var(--cream-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tipo de error</span>
@@ -245,7 +245,7 @@ export default function DiagnosticReportContent({ devId, user }) {
   if (!diag) {
     return (
       <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-        <Activity size={32} color="rgba(240,235,224,0.2)" />
+        <Activity size={32} color="rgba(var(--cream-rgb),0.2)" />
         <p style={{ margin: '14px 0 16px', fontSize: 13, color: 'var(--cream-3)' }}>
           Este proyecto no tiene diagnóstico previo.
         </p>
@@ -253,7 +253,7 @@ export default function DiagnosticReportContent({ devId, user }) {
           data-testid="run-first-diagnostic"
           onClick={handleRun} disabled={running}
           style={{
-            background: 'var(--cream)', color: 'var(--navy)',
+            background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff',
             border: 'none', borderRadius: 8, padding: '8px 18px',
             fontSize: 12, fontWeight: 700,
             cursor: running ? 'default' : 'pointer',
@@ -309,8 +309,8 @@ export default function DiagnosticReportContent({ devId, user }) {
             data-testid="export-json-btn"
             onClick={handleExportJson}
             style={{
-              background: 'rgba(240,235,224,0.08)', color: 'var(--cream-2)',
-              border: '1px solid rgba(240,235,224,0.14)', borderRadius: 7,
+              background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 7,
               padding: '5px 10px', fontSize: 10, cursor: 'pointer',
             }}
           >
@@ -320,7 +320,7 @@ export default function DiagnosticReportContent({ devId, user }) {
             data-testid="run-diagnostic-btn"
             onClick={handleRun} disabled={running}
             style={{
-              background: 'var(--cream)', color: 'var(--navy)',
+              background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff',
               border: 'none', borderRadius: 7, padding: '5px 12px',
               fontSize: 10, fontWeight: 700,
               cursor: running ? 'default' : 'pointer',
@@ -348,9 +348,9 @@ export default function DiagnosticReportContent({ devId, user }) {
           <button key={s} data-testid={`sev-filter-${s}`}
             onClick={() => setSeverityFilter(severityFilter === s ? null : s)}
             style={{
-              background: severityFilter === s ? SEVERITY_COLOR[s].color : 'rgba(240,235,224,0.04)',
+              background: severityFilter === s ? SEVERITY_COLOR[s].color : 'rgba(var(--cream-rgb),0.04)',
               color: severityFilter === s ? 'var(--navy)' : 'var(--cream-3)',
-              border: `1px solid ${severityFilter === s ? SEVERITY_COLOR[s].color : 'rgba(240,235,224,0.1)'}`,
+              border: `1px solid ${severityFilter === s ? SEVERITY_COLOR[s].color : 'rgba(var(--cream-rgb),0.1)'}`,
               borderRadius: 5, padding: '2px 8px', fontSize: 10, cursor: 'pointer',
               fontWeight: severityFilter === s ? 700 : 400,
             }}>
@@ -364,9 +364,9 @@ export default function DiagnosticReportContent({ devId, user }) {
           <button key={m}
             onClick={() => setModuleFilter(moduleFilter === m ? null : m)}
             style={{
-              background: moduleFilter === m ? 'var(--cream)' : 'rgba(240,235,224,0.04)',
+              background: moduleFilter === m ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.04)',
               color: moduleFilter === m ? 'var(--navy)' : 'var(--cream-3)',
-              border: `1px solid ${moduleFilter === m ? 'var(--cream)' : 'rgba(240,235,224,0.1)'}`,
+              border: `1px solid ${moduleFilter === m ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.1)'}`,
               borderRadius: 5, padding: '2px 8px', fontSize: 10, cursor: 'pointer',
               fontWeight: moduleFilter === m ? 700 : 400,
             }}>

@@ -82,7 +82,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
       </div>
 
       {/* Filter pills */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{t('dev.f_status')}</span>
           {['todos', 'disponible', 'reservado', 'vendido'].map(s => {
@@ -181,7 +181,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
           {hover && isRegistered && (
             <div style={{
               marginTop: 12, padding: '8px 12px',
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(var(--cream-rgb),0.03)',
               border: '1px solid var(--border)', borderRadius: 10,
               display: 'inline-flex', alignItems: 'center', gap: 10,
               fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)',
@@ -212,7 +212,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
                 left: 0, right: 0,
                 top: `${56 + visibleCount * 42 + 10}px`,
                 bottom: 0,
-                background: 'linear-gradient(180deg, rgba(6,8,15,0.35) 0%, rgba(6,8,15,0.82) 45%, rgba(6,8,15,0.92) 100%)',
+                background: 'linear-gradient(180deg, rgba(var(--bg-rgb),0.35) 0%, rgba(var(--bg-rgb),0.82) 45%, rgba(var(--bg-rgb),0.92) 100%)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 justifyContent: 'center',
@@ -228,7 +228,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
                   textAlign: 'center',
                   maxWidth: 380,
                   padding: 22,
-                  background: 'rgba(14,18,32,0.92)',
+                  background: 'rgba(var(--bg-rgb),0.92)',
                   border: '1px solid rgba(var(--theme-rgb),0.36)',
                   borderRadius: 16,
                   backdropFilter: 'blur(10px)',
@@ -295,7 +295,7 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
   ];
 
   return (
-    <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 14 }}>
+    <div style={{ overflowX: 'auto', background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 14 }}>
       <table data-testid="price-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>

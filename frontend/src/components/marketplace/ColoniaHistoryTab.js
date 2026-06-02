@@ -19,7 +19,7 @@ function ConfidenceRing({ pct = 0, size = 44 }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <circle cx={size / 2} cy={size / 2} r={r}
-        stroke="rgba(255,255,255,0.08)" strokeWidth="3" fill="none" />
+        stroke="rgba(var(--cream-rgb),0.08)" strokeWidth="3" fill="none" />
       <circle cx={size / 2} cy={size / 2} r={r}
         stroke={color} strokeWidth="3" fill="none"
         strokeDasharray={c}
@@ -70,7 +70,7 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
     return (
       <div data-testid="colonia-history-loading" style={{
         padding: 30, textAlign: 'center',
-        fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.45)',
+        fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.45)',
       }}>
         Generando análisis con IA…
       </div>
@@ -81,10 +81,10 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
     return (
       <div data-testid="colonia-history-empty" style={{
         padding: '24px 18px', borderRadius: 12,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px dashed rgba(240,235,224,0.12)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px dashed rgba(var(--cream-rgb),0.12)',
         fontFamily: 'DM Sans', fontSize: 13,
-        color: 'rgba(240,235,224,0.55)', textAlign: 'center',
+        color: 'rgba(var(--cream-rgb),0.55)', textAlign: 'center',
       }}>
         Historia disponible cuando completemos análisis · {coloniaNombre || coloniaId}
       </div>
@@ -124,7 +124,7 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
           </div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.55,
-            color: 'rgba(240,235,224,0.78)',
+            color: 'rgba(var(--cream-rgb),0.78)',
           }}>
             {data.summary_text}
           </div>
@@ -141,8 +141,8 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
             {data.past_milestones.map((m, i) => (
               <div key={i} style={{
                 padding: '10px 12px', borderRadius: 10,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(240,235,224,0.08)',
+                background: 'rgba(var(--cream-rgb),0.03)',
+                border: '1px solid rgba(var(--cream-rgb),0.08)',
                 position: 'relative',
               }}>
                 <div style={{
@@ -159,7 +159,7 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
                 </div>
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.5,
-                  color: 'rgba(240,235,224,0.78)',
+                  color: 'rgba(var(--cream-rgb),0.78)',
                 }}>
                   {m.event}
                 </div>
@@ -187,7 +187,7 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
         <div style={{
           marginTop: 14,
           fontFamily: 'DM Sans', fontSize: 9, fontWeight: 600,
-          color: 'rgba(240,235,224,0.30)',
+          color: 'rgba(var(--cream-rgb),0.30)',
           textAlign: 'right',
           textTransform: 'uppercase', letterSpacing: '0.07em',
         }}>
@@ -203,7 +203,7 @@ function ProjectionCard({ p }) {
   return (
     <div style={{
       padding: '12px 14px', borderRadius: 12,
-      background: 'rgba(13,16,23,0.92)',
+      background: 'rgba(var(--bg-rgb),0.92)',
       border: '1px solid rgba(var(--theme-rgb),0.18)',
       backdropFilter: 'blur(24px)',
     }}>
@@ -229,7 +229,7 @@ function ProjectionCard({ p }) {
                 fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
                 padding: '2px 8px', borderRadius: 9999,
                 background: 'rgba(34,197,94,0.10)',
-                color: '#86EFAC',
+                color: 'var(--green)',
                 border: '1px solid rgba(34,197,94,0.25)',
               }}>
                 ${Math.round(p.precio_proyectado_m2 / 1000)}k/m²
@@ -238,7 +238,7 @@ function ProjectionCard({ p }) {
           </div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.5,
-            color: 'rgba(240,235,224,0.82)',
+            color: 'rgba(var(--cream-rgb),0.82)',
             marginBottom: 8,
           }}>
             {p.prediction}
@@ -282,7 +282,7 @@ function ProjectionCard({ p }) {
 
 const sectionTitle = {
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-  color: 'rgba(240,235,224,0.5)',
+  color: 'rgba(var(--cream-rgb),0.5)',
   textTransform: 'uppercase', letterSpacing: '0.10em',
   marginBottom: 10,
 };
@@ -290,7 +290,7 @@ const sectionTitle = {
 const tinyList = {
   margin: '4px 0 0', paddingLeft: 16,
   fontFamily: 'DM Sans', fontSize: 11, lineHeight: 1.55,
-  color: 'rgba(240,235,224,0.7)',
+  color: 'rgba(var(--cream-rgb),0.7)',
 };
 
 function tinyTag(bg, color) {

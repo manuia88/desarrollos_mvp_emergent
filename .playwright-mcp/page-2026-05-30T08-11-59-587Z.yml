@@ -1,0 +1,466 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - complementary "Barra lateral de navegación" [ref=e6]:
+      - link "Ir a Inicio" [ref=e7] [cursor=pointer]:
+        - /url: /asesor
+        - generic [ref=e8]: DMX
+        - generic [ref=e9]: Asesor
+      - generic [ref=e11]:
+        - img [ref=e12]
+        - textbox "Buscar función…" [ref=e15]
+      - navigation "Navegación asesor" [ref=e16]:
+        - button "Inicio" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: Inicio
+        - generic [ref=e23]:
+          - button "Mis Leads" [expanded] [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+            - generic [ref=e30]: Mis Leads
+            - img [ref=e32]
+          - generic [ref=e34]:
+            - link "Lista de leads" [ref=e35] [cursor=pointer]:
+              - /url: /asesor/contactos
+              - img [ref=e36]
+              - generic [ref=e41]: Lista de leads
+            - link "Búsquedas guardadas" [ref=e42] [cursor=pointer]:
+              - /url: /asesor/busquedas
+              - img [ref=e43]
+              - generic [ref=e46]: Búsquedas guardadas
+            - link "Conectar fuentes" [ref=e47] [cursor=pointer]:
+              - /url: /asesor/lead-aliases
+              - img [ref=e48]
+              - generic [ref=e50]: Conectar fuentes
+        - button "Agenda" [ref=e52] [cursor=pointer]:
+          - img [ref=e53]
+          - generic [ref=e55]: Agenda
+          - img [ref=e57]
+        - button "Inventario" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e65]: Inventario
+          - img [ref=e67]
+        - button "Conversaciones IA" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e73]: Conversaciones IA
+          - img [ref=e75]
+        - button "Automatizaciones" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+          - generic [ref=e83]: Automatizaciones
+          - img [ref=e85]
+        - button "Studio Marketing" [ref=e88] [cursor=pointer]:
+          - img [ref=e89]
+          - generic [ref=e91]: Studio Marketing
+          - img [ref=e93]
+        - button "Anuncios Meta" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e100]: Anuncios Meta
+          - img [ref=e102]
+        - button "Mi Performance" [ref=e105] [cursor=pointer]:
+          - img [ref=e106]
+          - generic [ref=e108]: Mi Performance
+          - img [ref=e110]
+      - button "A Asesor Demo asesor@local.dmx.io" [ref=e113] [cursor=pointer]:
+        - generic [ref=e114]: A
+        - generic [ref=e115]:
+          - generic [ref=e116]: Asesor Demo
+          - generic [ref=e117]: asesor@local.dmx.io
+        - img [ref=e119]
+    - generic [ref=e121]:
+      - banner [ref=e122]:
+        - button "Buscar… ⌘K" [ref=e123] [cursor=pointer]:
+          - img [ref=e124]
+          - generic [ref=e127]: Buscar…
+          - generic [ref=e128]: ⌘K
+        - button [ref=e130] [cursor=pointer]:
+          - img [ref=e131]
+        - button "Menú de usuario" [ref=e135] [cursor=pointer]:
+          - img [ref=e136]
+      - main [ref=e139]:
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e143]:
+              - heading "Leads" [level=1] [ref=e144]
+              - paragraph [ref=e145]: Tu embudo de prospectos · ordenado por quién está más listo.
+            - generic [ref=e146]:
+              - button "Datos de ejemplo · salir" [ref=e147] [cursor=pointer]: Datos de ejemplo · salir
+              - generic [ref=e149]:
+                - combobox [ref=e151]:
+                  - option "Ordenar · score" [selected]
+                  - option "Ordenar · fecha"
+                - tablist "Cambiar vista" [ref=e153]:
+                  - tab "Pipeline" [selected] [ref=e154] [cursor=pointer]:
+                    - img [ref=e155]
+                    - text: Pipeline
+                  - tab "Lista" [ref=e160] [cursor=pointer]:
+                    - img [ref=e161]
+                    - text: Lista
+                - button "Nuevo lead" [ref=e162] [cursor=pointer]:
+                  - img [ref=e163]
+                  - text: Nuevo lead
+          - generic [ref=e164]:
+            - button "Todos 14" [ref=e165] [cursor=pointer]:
+              - text: Todos
+              - generic [ref=e166]: "14"
+            - button "Calientes 3" [ref=e167] [cursor=pointer]:
+              - text: Calientes
+              - generic [ref=e169]: "3"
+            - button "Sin contactar (48h) 5" [ref=e170] [cursor=pointer]:
+              - text: Sin contactar (48h)
+              - generic [ref=e171]: "5"
+            - button "Sin actividad (14d) 0" [ref=e172] [cursor=pointer]:
+              - text: Sin actividad (14d)
+              - generic [ref=e173]: "0"
+            - button "Visita pendiente 2" [ref=e174] [cursor=pointer]:
+              - text: Visita pendiente
+              - generic [ref=e175]: "2"
+            - button "En negociación 0" [ref=e176] [cursor=pointer]:
+              - text: En negociación
+              - generic [ref=e177]: "0"
+          - generic [ref=e178]:
+            - generic [ref=e179]:
+              - generic [ref=e180]: Foco de hoy
+              - generic [ref=e181]: la IA priorizó esto para ti
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - generic [ref=e185]:
+                  - generic [ref=e187]: María González
+                  - generic [ref=e188]: cerrar
+                - generic [ref=e189]: 87% lista para cerrar. Lleva 2 días esperando — contáctala hoy antes de que se enfríe.
+                - generic [ref=e190]:
+                  - button "WhatsApp" [ref=e191] [cursor=pointer]:
+                    - img [ref=e192]
+                    - text: WhatsApp
+                  - button "Ver perfil" [ref=e194] [cursor=pointer]:
+                    - img [ref=e195]
+                    - text: Ver perfil
+              - generic [ref=e198]:
+                - generic [ref=e199]:
+                  - generic [ref=e201]: Juan Pérez
+                  - generic [ref=e202]: reactivar
+                - generic [ref=e203]: 9 días sin contacto. Se está enfriando. Mándale las 3 nuevas de Condesa.
+                - generic [ref=e204]:
+                  - button "WhatsApp" [ref=e205] [cursor=pointer]:
+                    - img [ref=e206]
+                    - text: WhatsApp
+                  - button "Ver perfil" [ref=e208] [cursor=pointer]:
+                    - img [ref=e209]
+                    - text: Ver perfil
+              - generic [ref=e212]:
+                - generic [ref=e213]:
+                  - generic [ref=e215]: Luis Ramírez
+                  - generic [ref=e216]: cita hoy
+                - generic [ref=e217]: Visita a las 4:00 pm en Reforma 350. Llévale el comparativo de la zona.
+                - generic [ref=e218]:
+                  - button "Ver cita" [ref=e219] [cursor=pointer]
+                  - button "Comparativo" [ref=e220] [cursor=pointer]
+          - generic [ref=e221]:
+            - generic [ref=e222]: Tu embudo de leads
+            - generic [ref=e223]: arrastra conforme avanzan
+          - generic [ref=e225]:
+            - generic [ref=e226]:
+              - generic [ref=e227]:
+                - generic [ref=e228]:
+                  - generic [ref=e229]: Nuevo
+                  - generic [ref=e230]: "3"
+                - generic [ref=e231]: 2 entraron hoy
+              - generic [ref=e233]:
+                - generic [ref=e234]:
+                  - generic [ref=e235]: AT
+                  - generic [ref=e236]:
+                    - generic [ref=e237]: Ana Torres
+                    - generic [ref=e238]: Referido
+                  - button "Fijar arriba" [ref=e239] [cursor=pointer]:
+                    - img [ref=e240]
+                - generic [ref=e242]:
+                  - generic [ref=e243]:
+                    - text: Score
+                    - generic [ref=e244]: Frío
+                  - generic [ref=e245]: "24"
+                - generic [ref=e249]: Roma · hasta $4,000,000
+                - generic [ref=e250]:
+                  - img [ref=e251]
+                  - generic [ref=e253]: Calificar presupuesto
+                - generic [ref=e254]:
+                  - generic [ref=e255]: Sin propiedades aún
+                  - generic [ref=e256]: entró hoy
+                - generic [ref=e257]:
+                  - link "WhatsApp" [ref=e258] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Ana%2C%20
+                    - img [ref=e259]
+                  - generic [ref=e261]:
+                    - text: Abrir
+                    - img [ref=e262]
+            - generic [ref=e264]:
+              - generic [ref=e265]:
+                - generic [ref=e266]:
+                  - generic [ref=e267]: Contactado
+                  - generic [ref=e268]: "5"
+                - generic [ref=e269]: 2 enfriándose
+              - generic [ref=e271]:
+                - generic [ref=e272]:
+                  - generic [ref=e273]: JP
+                  - generic [ref=e274]:
+                    - generic [ref=e275]: Juan Pérez
+                    - generic [ref=e276]: Facebook
+                  - button "Fijar arriba" [ref=e277] [cursor=pointer]:
+                    - img [ref=e278]
+                - generic [ref=e280]:
+                  - generic [ref=e281]:
+                    - text: Score
+                    - generic [ref=e282]: Tibio
+                  - generic [ref=e283]: "54"
+                - generic [ref=e287]: Condesa · hasta $9,000,000
+                - generic [ref=e288]:
+                  - img [ref=e289]
+                  - generic [ref=e291]: Reactivar por WhatsApp
+                - generic [ref=e292]:
+                  - generic [ref=e293]: 2 propiedades enviadas
+                  - generic [ref=e294]: 9d sin contacto
+                - generic [ref=e295]:
+                  - link "WhatsApp" [ref=e296] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Juan%2C%20
+                    - img [ref=e297]
+                  - generic [ref=e299]:
+                    - text: Abrir
+                    - img [ref=e300]
+            - generic [ref=e302]:
+              - generic [ref=e303]:
+                - generic [ref=e304]:
+                  - generic [ref=e305]: Visita
+                  - generic [ref=e306]: "2"
+                - generic [ref=e307]: 1 cita hoy
+              - generic [ref=e309]:
+                - generic [ref=e310]:
+                  - generic [ref=e311]: LR
+                  - generic [ref=e312]:
+                    - generic [ref=e313]: Luis Ramírez
+                    - generic [ref=e314]: Web
+                  - button "Fijar arriba" [ref=e315] [cursor=pointer]:
+                    - img [ref=e316]
+                - generic [ref=e318]:
+                  - generic [ref=e319]:
+                    - text: Score
+                    - generic [ref=e320]: Caliente
+                  - generic [ref=e321]: "72"
+                - generic [ref=e325]: Reforma
+                - generic [ref=e326]:
+                  - img [ref=e327]
+                  - generic [ref=e329]: Confirmar cita 4 pm
+                - generic [ref=e330]:
+                  - generic [ref=e331]: 3 propiedades · 1 cita
+                  - generic [ref=e332]: cita hoy
+                - generic [ref=e333]:
+                  - link "WhatsApp" [ref=e334] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Luis%2C%20
+                    - img [ref=e335]
+                  - generic [ref=e337]:
+                    - text: Abrir
+                    - img [ref=e338]
+            - generic [ref=e340]:
+              - generic [ref=e341]:
+                - generic [ref=e342]:
+                  - generic [ref=e343]: Negociación
+                  - generic [ref=e344]: "4"
+                - generic [ref=e345]: $2.1M en juego
+              - generic [ref=e347]:
+                - generic [ref=e348]:
+                  - generic [ref=e349]: MG
+                  - generic [ref=e350]:
+                    - generic [ref=e351]: María González
+                    - generic [ref=e352]: Web
+                  - button "Fijar arriba" [ref=e353] [cursor=pointer]:
+                    - img [ref=e354]
+                - generic [ref=e356]:
+                  - generic [ref=e357]:
+                    - text: Score
+                    - generic [ref=e358]: Caliente
+                  - generic [ref=e359]: "87"
+                - generic [ref=e363]: Polanco · hasta $8,000,000
+                - generic [ref=e364]:
+                  - img [ref=e365]
+                  - generic [ref=e367]: Enviar oferta hoy
+                - generic [ref=e368]:
+                  - generic [ref=e369]: 4 propiedades · 1 le gustó
+                  - generic [ref=e370]: hace 2 días
+                - generic [ref=e371]:
+                  - link "WhatsApp" [ref=e372] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Mar%C3%ADa%2C%20
+                    - img [ref=e373]
+                  - generic [ref=e375]:
+                    - text: Abrir
+                    - img [ref=e376]
+            - generic [ref=e378]:
+              - generic [ref=e379]:
+                - generic [ref=e380]:
+                  - generic [ref=e381]: Cerrado
+                  - generic [ref=e382]: "2"
+                - generic [ref=e383]: $1.4M este mes
+              - generic [ref=e385]: 2 cierres este mes
+          - dialog [ref=e386]:
+            - generic [ref=e387]:
+              - generic [ref=e388]:
+                - generic [ref=e389]: MG
+                - generic [ref=e390]:
+                  - generic [ref=e391]: María González
+                  - generic [ref=e392]:
+                    - generic [ref=e393]:
+                      - img [ref=e394]
+                      - text: Caliente
+                    - generic [ref=e396]: · Negociación
+                    - generic [ref=e397]:
+                      - text: ·
+                      - generic [ref=e398]: TÚ
+                      - text: Asignada a ti
+                - generic [ref=e399]:
+                  - link "WhatsApp" [ref=e400] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Mar%C3%ADa%2C%20
+                    - img [ref=e401]
+                    - text: WhatsApp
+                  - button "Agendar" [ref=e403] [cursor=pointer]:
+                    - img [ref=e404]
+                    - text: Agendar
+                - button "Cerrar" [ref=e406] [cursor=pointer]:
+                  - img [ref=e407]
+              - generic [ref=e410]:
+                - generic [ref=e411]: Etapa
+                - button "Nuevo" [ref=e412] [cursor=pointer]
+                - button "Contactado" [ref=e413] [cursor=pointer]
+                - button "Visita" [ref=e414] [cursor=pointer]
+                - button "Negociación" [ref=e415] [cursor=pointer]
+                - button "Cerrado" [ref=e416] [cursor=pointer]
+              - generic [ref=e417]:
+                - generic [ref=e418]: IA
+                - generic [ref=e419]: "María, crédito aprobado, busca 2 rec en Polanco hasta $8M. Ya vio 8 propiedades, le gustó la de Reforma y tiene cita el viernes 4 pm. Falta: confirmar la visita y meter oferta."
+              - generic [ref=e420]:
+                - generic [ref=e421]: IA
+                - textbox "Pregúntale a la IA sobre María…" [ref=e422]
+                - button "Resumir" [ref=e423] [cursor=pointer]
+                - button "Redactar seguimiento" [ref=e424] [cursor=pointer]
+                - button "¿Qué le ofrezco?" [ref=e425] [cursor=pointer]
+              - tablist [ref=e426]:
+                - tab "Resumen" [ref=e427] [cursor=pointer]
+                - tab "Propiedades" [ref=e428] [cursor=pointer]
+                - tab "Conversaciones2" [active] [selected] [ref=e429] [cursor=pointer]
+                - tab "Actividad2" [ref=e430] [cursor=pointer]
+              - generic [ref=e431]:
+                - generic [ref=e432]:
+                  - img [ref=e433]
+                  - text: Solo aparecen los canales donde María te ha escrito · responde por el mismo o agrega otro con "+ canal"
+                - generic [ref=e435]:
+                  - generic [ref=e436]:
+                    - generic [ref=e437]: Ánimo del cliente
+                    - generic [ref=e438]: Positivo
+                    - generic [ref=e440]: contenta · lista para avanzar
+                  - generic [ref=e441]:
+                    - generic [ref=e442]: Estado
+                    - generic [ref=e443]: Te toca responder
+                    - generic [ref=e445]: te escribió hace 1 h
+                - generic [ref=e446]:
+                  - img [ref=e447]
+                  - generic [ref=e449]: "Objeción detectada: le preocupa el precio"
+                  - generic [ref=e450] [cursor=pointer]: Cómo responder →
+                - generic [ref=e451]:
+                  - button "Todos" [ref=e452] [cursor=pointer]
+                  - button "WhatsApp" [ref=e453] [cursor=pointer]: WhatsApp
+                  - button "Instagram" [ref=e455] [cursor=pointer]: Instagram
+                  - button "Facebook" [ref=e457] [cursor=pointer]: Facebook
+                  - button "LinkedIn" [ref=e459] [cursor=pointer]: LinkedIn
+                  - button "+ canal" [ref=e461] [cursor=pointer]
+                - generic [ref=e462]:
+                  - generic [ref=e463]: — Llegó por la web · 12 may —
+                  - generic [ref=e464]:
+                    - generic [ref=e465]: Hola, vi su anuncio de Polanco. ¿Sigue disponible?
+                    - generic [ref=e466]: Facebook · 12 may
+                  - generic [ref=e468]:
+                    - generic [ref=e469]: ¡Hola María! Sí, sigue disponible. Te comparto 3 opciones en Polanco que encajan con tu presupuesto y zona.
+                    - generic [ref=e470]: Tú · WhatsApp · hace 4 días
+                  - generic [ref=e471]:
+                    - generic [ref=e472]:
+                      - generic [ref=e474]: $8,000,000
+                      - generic [ref=e475]:
+                        - generic [ref=e476]: Depto en Reforma 350
+                        - generic [ref=e477]: 2 rec · 2 baños · 110 m²
+                    - generic [ref=e478]: Tú · enviada por WhatsApp · hace 4 días
+                  - generic [ref=e479]:
+                    - generic [ref=e480]: vi tu story de Polanco, me interesa muchísimo
+                    - generic [ref=e481]: Instagram · hace 3 h
+                  - generic [ref=e483]:
+                    - generic [ref=e484]: Te escribo también por aquí — ¿podemos agendar la visita el viernes?
+                    - generic [ref=e485]: LinkedIn · hace 2 h
+                  - generic [ref=e487]:
+                    - generic [ref=e488]: ¿Sigue disponible la de Reforma?
+                    - generic [ref=e489]: WhatsApp · hace 1 h
+                - generic [ref=e491]:
+                  - img [ref=e493]
+                  - generic [ref=e495]: "Sugerencia: \"Hola María, la de Reforma sigue disponible. ¿Te late el viernes 4 pm para la visita?\""
+                  - button "Usar" [ref=e496] [cursor=pointer]
+                - generic [ref=e497]:
+                  - button "Propiedad" [ref=e498] [cursor=pointer]:
+                    - img [ref=e499]
+                    - text: Propiedad
+                  - button "Plantillas" [ref=e503] [cursor=pointer]:
+                    - img [ref=e504]
+                    - text: Plantillas
+                  - generic [ref=e506]:
+                    - text: Respondes por
+                    - generic [ref=e507]: WhatsApp
+                  - textbox "Escribe tu respuesta…" [ref=e509]
+                  - button "Enviar" [ref=e510] [cursor=pointer]:
+                    - img [ref=e511]
+                    - text: Enviar
+        - button "Abrir Plan venta IA" [ref=e514] [cursor=pointer]: AI
+    - button "Reportar problema" [ref=e515] [cursor=pointer]:
+      - img [ref=e516]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e518] [cursor=pointer]:
+      - img [ref=e519]
+    - complementary [ref=e522]:
+      - generic [ref=e523]:
+        - generic [ref=e524]:
+          - img [ref=e526]
+          - generic [ref=e529]:
+            - generic [ref=e530]: Copilot DMX
+            - generic [ref=e531]: Claude Sonnet · contexto privado
+        - generic [ref=e532]:
+          - button [ref=e533] [cursor=pointer]:
+            - img [ref=e534]
+            - text: "0"
+          - button [ref=e536] [cursor=pointer]:
+            - img [ref=e537]
+            - text: Nueva
+          - button [ref=e538] [cursor=pointer]:
+            - img [ref=e539]
+      - generic [ref=e542]:
+        - button [ref=e543] [cursor=pointer]: Mi pipeline esta semana
+        - button [ref=e544] [cursor=pointer]: ¿A quién debo llamar primero?
+        - button [ref=e545] [cursor=pointer]: Mejor proyecto para mis leads top
+        - button [ref=e546] [cursor=pointer]: Leads que puedo cerrar esta semana
+        - button [ref=e547] [cursor=pointer]: Mis links con mejor desempeño
+        - button [ref=e548] [cursor=pointer]: Cómo subir mi health score
+      - generic [ref=e550]:
+        - img [ref=e552]
+        - generic [ref=e555]:
+          - generic [ref=e556]: Pregúntame lo que necesites
+          - generic [ref=e557]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e558]:
+          - button [ref=e559] [cursor=pointer]:
+            - generic [ref=e560]: Mi pipeline esta semana
+            - img [ref=e561]
+          - button [ref=e563] [cursor=pointer]:
+            - generic [ref=e564]: ¿A quién debo llamar primero?
+            - img [ref=e565]
+          - button [ref=e567] [cursor=pointer]:
+            - generic [ref=e568]: Mejor proyecto para mis leads top
+            - img [ref=e569]
+          - button [ref=e571] [cursor=pointer]:
+            - generic [ref=e572]: Leads que puedo cerrar esta semana
+            - img [ref=e573]
+      - generic [ref=e575]:
+        - generic [ref=e576]:
+          - textbox [ref=e577]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e578]:
+            - img [ref=e579]
+        - generic [ref=e581]:
+          - generic [ref=e582]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e583]: 0/4000

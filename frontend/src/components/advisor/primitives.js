@@ -17,15 +17,21 @@ export function PageHeader({ eyebrow, title, sub, actions }) {
   );
 }
 
-export function Card({ children, style, ...rest }) {
+export function Card({ children, style, hover = false, ...rest }) {
+  // Tema claro (.portal-asesor): superficie sólida + sombra real (nivel Mis Leads).
+  // Oscuro (usuarios reales): fallback al valor previo → SIN cambios.
   return (
-    <div {...rest} style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid var(--border)',
-      borderRadius: 16,
-      padding: 18,
-      ...style,
-    }}>
+    <div
+      {...rest}
+      className={`${hover ? 'asr-premium asr-premium--hover ' : ''}${rest.className || ''}`.trim() || undefined}
+      style={{
+        background: 'var(--surface, rgba(255,255,255,0.03))',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        boxShadow: 'var(--asr-shadow, none)',
+        padding: 18,
+        ...style,
+      }}>
       {children}
     </div>
   );
@@ -33,31 +39,50 @@ export function Card({ children, style, ...rest }) {
 
 export function Stat({ label, value, sub, accent }) {
   return (
-    <Card style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, letterSpacing: '-0.02em', color: accent || 'var(--cream)' }}>{value}</div>
-      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{sub}</div>}
+    <Card
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 5, position: 'relative', overflow: 'hidden',
+        borderColor: 'var(--border-2, var(--border))', paddingLeft: 18,
+        transition: 'transform .16s, box-shadow .16s, border-color .16s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)';
+        e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = '';
+        e.currentTarget.style.borderColor = 'var(--border-2, var(--border))';
+      }}
+    >
+      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: accent || 'var(--theme, #6D4AFF)' }} />
+      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, color: 'var(--cream-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, letterSpacing: '-0.02em', color: accent || 'var(--cream)', lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{sub}</div>}
     </Card>
   );
 }
 
 export function Badge({ children, tone = 'neutral' }) {
+  // SÓLIDOS con texto blanco → el nombre NO se pierde (alto contraste, vivo, en claro y oscuro).
   const palette = {
-    neutral: { bg: 'rgba(255,255,255,0.06)', bo: 'var(--border)', fg: 'var(--cream-2)' },
-    ok:      { bg: 'rgba(34,197,94,0.15)',  bo: 'rgba(34,197,94,0.38)',  fg: '#86efac' },
-    warn:    { bg: 'rgba(245,158,11,0.15)', bo: 'rgba(245,158,11,0.38)', fg: '#fcd34d' },
-    bad:     { bg: 'rgba(239,68,68,0.15)',  bo: 'rgba(239,68,68,0.38)',  fg: '#fca5a5' },
-    brand:   { bg: 'rgba(var(--theme-rgb),0.12)', bo: 'rgba(var(--theme-rgb),0.32)', fg: 'var(--theme)' },
-    pink:    { bg: 'rgba(var(--theme-rgb),0.12)', bo: 'rgba(var(--theme-rgb),0.32)', fg: '#f9a8d4' },
+    neutral: { bg: 'var(--surface-2, rgba(255,255,255,0.06))', fg: 'var(--cream-2)', solid: false },
+    ok:      { bg: '#1FA06A', fg: '#fff', solid: true },
+    warn:    { bg: '#C77F12', fg: '#fff', solid: true },
+    bad:     { bg: '#E0463D', fg: '#fff', solid: true },
+    brand:   { bg: '#6D4AFF', fg: '#fff', solid: true },
+    pink:    { bg: '#C63FAE', fg: '#fff', solid: true },
   };
   const p = palette[tone] || palette.neutral;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 9px', borderRadius: 9999,
-      background: p.bg, border: `1px solid ${p.bo}`, color: p.fg,
-      fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5,
-      textTransform: 'uppercase', letterSpacing: '0.06em',
+      padding: '4px 11px', borderRadius: 9999,
+      background: p.bg, border: p.solid ? 'none' : '1px solid var(--border-2, var(--border))', color: p.fg,
+      fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10,
+      textTransform: 'uppercase', letterSpacing: '0.05em',
+      boxShadow: p.solid ? '0 2px 6px -2px rgba(0,0,0,0.25)' : 'none',
     }}>{children}</span>
   );
 }

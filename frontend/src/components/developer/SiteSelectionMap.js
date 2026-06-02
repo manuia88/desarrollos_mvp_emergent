@@ -79,7 +79,7 @@ export default function SiteSelectionMap({ zones = [], selectedId, onSelect, hei
             paint: {
               'fill-color': [
                 'interpolate', ['linear'], ['get', 'feasibility'],
-                0,  'rgba(240,235,224,0.05)',
+                0,  'rgba(var(--cream-rgb),0.05)',
                 40, 'rgba(var(--theme-rgb),0.32)',
                 65, 'rgba(var(--theme-rgb),0.55)',
                 85, 'rgba(var(--theme-rgb),0.65)',
@@ -91,7 +91,7 @@ export default function SiteSelectionMap({ zones = [], selectedId, onSelect, hei
           map.addLayer({
             id: LINE_LAYER, type: 'line', source: SOURCE,
             filter: ['==', '$type', 'Polygon'],
-            paint: { 'line-color': 'rgba(240,235,224,0.42)', 'line-width': 1.2 },
+            paint: { 'line-color': 'rgba(var(--cream-rgb),0.42)', 'line-width': 1.2 },
           });
           map.addLayer({
             id: POINT_LAYER, type: 'circle', source: SOURCE,
@@ -147,7 +147,7 @@ export default function SiteSelectionMap({ zones = [], selectedId, onSelect, hei
   if (!TOKEN) {
     return (
       <div data-testid="site-map-token-missing" style={{
-        height, borderRadius: 12, padding: 20, background: 'rgba(255,255,255,0.04)',
+        height, borderRadius: 12, padding: 20, background: 'rgba(var(--cream-rgb),0.04)',
         border: '1px solid var(--border)', color: 'var(--cream-3)',
         fontFamily: 'DM Sans', fontSize: 12.5,
         display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',

@@ -61,14 +61,14 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
     <div
       data-testid={`lp-widget-${zone_slug}`}
       style={{
-        background: 'rgba(13,16,23,0.85)', backdropFilter: 'blur(20px)',
+        background: 'rgba(var(--bg-rgb),0.85)', backdropFilter: 'blur(20px)',
         border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 14,
         padding: compact ? 12 : 16,
         display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200,
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>
-          <div style={{ fontFamily: 'DM Mono', fontSize: 9.5, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 9.5, color: 'rgba(var(--cream-rgb),0.55)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {t('live_pulse.widget.pulse_de_tu_zona')}
           </div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: compact ? 14 : 16, color: 'var(--cream, #F0EBE0)', marginTop: 2, textTransform: 'capitalize' }}>
@@ -86,7 +86,7 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
         <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: compact ? 24 : 30, color: 'rgba(var(--theme-rgb),0.95)', letterSpacing: '-0.02em' }}>
           {pulse.score}
         </span>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.55)' }}>/ 100</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.55)' }}>/ 100</span>
       </div>
       {spark.length > 1 && (
         <div style={{ height: compact ? 28 : 36 }}>

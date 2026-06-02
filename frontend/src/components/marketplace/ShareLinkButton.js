@@ -67,8 +67,8 @@ export default function ShareLinkButton({
         onClick={() => setOpen(v => !v)}
         style={{
           padding: '12px 22px', borderRadius: 9999,
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(240,235,224,0.18)',
+          background: 'rgba(var(--cream-rgb),0.05)',
+          border: '1px solid rgba(var(--cream-rgb),0.18)',
           color: 'var(--cream, #F0EBE0)',
           fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
           cursor: 'pointer',
@@ -83,13 +83,13 @@ export default function ShareLinkButton({
         <div data-testid="share-link-menu" style={{
           position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: Z.DROPDOWN,
           padding: 10, borderRadius: 14, minWidth: 240,
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.14)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.14)',
           backdropFilter: 'blur(24px)',
         }}>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
-            color: 'rgba(240,235,224,0.45)',
+            color: 'rgba(var(--cream-rgb),0.45)',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             padding: '4px 6px 8px',
           }}>
@@ -125,8 +125,8 @@ export default function ShareLinkButton({
           <div style={{
             marginTop: 6, padding: '6px 10px',
             fontFamily: 'DM Sans', fontSize: 10,
-            color: 'rgba(240,235,224,0.35)',
-            borderTop: '1px solid rgba(240,235,224,0.08)', paddingTop: 8,
+            color: 'rgba(var(--cream-rgb),0.35)',
+            borderTop: '1px solid rgba(var(--cream-rgb),0.08)', paddingTop: 8,
             wordBreak: 'break-all',
           }}>
             {fullUrl.length > 52 ? `${fullUrl.slice(0, 52)}…` : fullUrl}

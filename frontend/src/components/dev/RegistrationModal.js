@@ -29,7 +29,7 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.STICKY,
-        background: 'rgba(6,8,15,0.82)',
+        background: 'rgba(var(--bg-rgb),0.82)',
         backdropFilter: 'blur(14px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24,
@@ -117,7 +117,7 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
         {context && (
           <div style={{
             marginTop: 18, padding: '10px 12px',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'rgba(var(--cream-rgb),0.03)',
             border: '1px solid var(--border)',
             borderRadius: 10,
             fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)',

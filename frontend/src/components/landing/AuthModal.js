@@ -7,7 +7,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const ROLES = [
   { k: 'buyer',           label: 'Soy comprador',  sub: 'Exploro desarrollos y busco mi próxima casa o inversión.' },
-  { k: 'advisor',         label: 'Soy asesor',     sub: 'Uso el CRM Pulppo+ para gestionar contactos, búsquedas y operaciones.' },
+  { k: 'advisor',         label: 'Soy asesor',     sub: 'Uso el CRM para gestionar contactos, búsquedas y operaciones.' },
   { k: 'developer_admin', label: 'Soy developer',  sub: 'Administro desarrollos, inventario y uso los insights de demanda + pricing.' },
 ];
 

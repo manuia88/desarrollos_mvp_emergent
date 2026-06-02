@@ -79,7 +79,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
             <div className="eyebrow" style={{ marginBottom: 2 }}>ROI 5y</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{zone.estimated_roi_5y}%</div>
           </div>
-          <div style={{ padding: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ padding: 10, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 10 }}>
             <div className="eyebrow" style={{ marginBottom: 2 }}>UNIDADES EST.</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{zone.target_units_estimate}</div>
           </div>
@@ -97,7 +97,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
         <Card style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04) 60%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Sparkle size={13} color="#f9a8d4" />
-            <div className="eyebrow" style={{ color: '#f9a8d4' }}>NARRATIVE IA · CLAUDE HAIKU</div>
+            <div className="eyebrow" style={{ color: 'var(--rose)' }}>NARRATIVE IA · CLAUDE HAIKU</div>
           </div>
           <p data-testid="site-zone-narrative" style={{ fontFamily: 'DM Sans', fontSize: 13.2, color: 'var(--cream)', lineHeight: 1.55, margin: 0 }}>
             {zone.narrative || '—'}
@@ -110,7 +110,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
         {/* Pros/Cons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           <Card style={{ padding: 14 }}>
-            <div className="eyebrow" style={{ marginBottom: 6, color: '#86efac' }}>PROS</div>
+            <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--green)' }}>PROS</div>
             <ul data-testid="site-zone-pros" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {(zone.pros || []).map((p, i) => (
                 <li key={i} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>• {p}</li>
@@ -118,7 +118,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
             </ul>
           </Card>
           <Card style={{ padding: 14 }}>
-            <div className="eyebrow" style={{ marginBottom: 6, color: '#fca5a5' }}>CONS</div>
+            <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--red)' }}>CONS</div>
             <ul data-testid="site-zone-cons" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {(zone.cons || []).map((c, i) => (
                 <li key={i} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>• {c}</li>
@@ -135,7 +135,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
               {Object.entries(zone.data_points || {})
                 .filter(([k, v]) => typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean')
                 .map(([k, v]) => (
-                <tr key={k} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)' }}>
+                <tr key={k} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   <td style={{ padding: '6px 0', color: 'var(--cream-3)', textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</td>
                   <td style={{ padding: '6px 0', color: 'var(--cream)', textAlign: 'right', fontWeight: 600 }}>
                     {typeof v === 'number' ? (k.includes('price') ? `$${v.toLocaleString()}` : v) : String(v)}
@@ -199,7 +199,7 @@ function StudiesTab({ studies, onOpen, onNew }) {
               <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 6 }}>
                 Creado: {(s.created_at || '').slice(0, 10)} · {(s.inputs?.total_units_target || 0)} unidades target
               </div>
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 4, color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600 }}>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600 }}>
                 Ver detalles <ArrowRight size={11} />
               </div>
             </Card>
@@ -251,7 +251,7 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
 
       {isFailed && (
         <Card style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.4)' }}>
-          <div className="eyebrow" style={{ color: '#fca5a5', marginBottom: 6 }}>EL MOTOR FALLÓ</div>
+          <div className="eyebrow" style={{ color: 'var(--red)', marginBottom: 6 }}>EL MOTOR FALLÓ</div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>
             {study.error_message || 'Error sin detalle. Crea un nuevo estudio para reintentar.'}
           </div>
@@ -281,7 +281,7 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
             {zones.map(z => (
               <button key={z.colonia_id} data-testid={`site-zone-${z.colonia_id}`} onClick={() => onSelectZone(z.colonia_id)} style={{
                 textAlign: 'left', padding: '11px 14px',
-                background: selectedZoneId === z.colonia_id ? 'rgba(236,72,153,0.12)' : 'rgba(240,235,224,0.03)',
+                background: selectedZoneId === z.colonia_id ? 'rgba(236,72,153,0.12)' : 'rgba(var(--cream-rgb),0.03)',
                 border: '1px solid ' + (selectedZoneId === z.colonia_id ? 'rgba(236,72,153,0.4)' : 'var(--border)'),
                 borderRadius: 12, cursor: 'pointer',
               }}>

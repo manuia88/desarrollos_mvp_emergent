@@ -140,7 +140,7 @@ export default function Inteligencia() {
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6 }}>
               El comprador lo ve resumido en el IE Score. El asesor lo usa para su
-              argumentario Pulppo+. La desarrolladora lo usa para pricing dinámico y
+              argumentario. La desarrolladora lo usa para pricing dinámico y
               radar competidores. Mismo dato, tres lecturas distintas.
             </div>
           </div>

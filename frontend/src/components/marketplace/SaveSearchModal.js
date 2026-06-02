@@ -46,7 +46,7 @@ function FiltersPreview({ filters }) {
             background: 'rgba(var(--theme-rgb),0.12)',
             border: '1px solid rgba(var(--theme-rgb),0.22)',
             fontFamily: 'DM Sans', fontSize: 11,
-            color: 'rgba(240,235,224,0.75)',
+            color: 'rgba(var(--cream-rgb),0.75)',
           }}>
             {p}
           </span>
@@ -98,7 +98,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
       onClick={handleClose}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.82)',
+        background: 'rgba(var(--bg-rgb),0.82)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
@@ -108,8 +108,8 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
         data-testid="save-search-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 20, padding: '24px',
           width: '100%', maxWidth: 440,
         }}
@@ -123,7 +123,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
             }}>
               Guardar búsqueda
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.45)', marginTop: 2 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.45)', marginTop: 2 }}>
               Recibe alertas cuando haya nuevas propiedades
             </div>
           </div>
@@ -132,9 +132,9 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
             onClick={handleClose}
             style={{
               width: 30, height: 30, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
-              color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              color: 'rgba(var(--cream-rgb),0.6)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -146,17 +146,17 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
         {!hasFilters ? (
           <div style={{
             padding: '28px 20px', textAlign: 'center',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px dashed rgba(240,235,224,0.12)',
+            background: 'rgba(var(--cream-rgb),0.02)',
+            border: '1px dashed rgba(var(--cream-rgb),0.12)',
             borderRadius: 14,
-            fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.5)',
+            fontFamily: 'DM Sans', color: 'rgba(var(--cream-rgb),0.5)',
           }}>
             <div style={{
               width: 44, height: 44, borderRadius: 9999, margin: '0 auto 12px',
-              background: 'rgba(255,255,255,0.05)',
+              background: 'rgba(var(--cream-rgb),0.05)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Bell size={18} style={{ color: 'rgba(240,235,224,0.3)' }} />
+              <Bell size={18} style={{ color: 'rgba(var(--cream-rgb),0.3)' }} />
             </div>
             <div style={{ fontWeight: 700, marginBottom: 5 }}>Aplica filtros primero</div>
             <div style={{ fontSize: 12 }}>Sin filtros no hay nada que guardar</div>
@@ -172,7 +172,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
             <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
             <div style={{
               fontFamily: 'Outfit', fontWeight: 700, fontSize: 16,
-              color: '#86EFAC', marginBottom: 8,
+              color: 'var(--green)', marginBottom: 8,
             }}>
               ¡Alerta guardada!
             </div>
@@ -193,7 +193,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
             <div style={{ marginBottom: 14 }}>
               <label style={{
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-                color: 'rgba(240,235,224,0.7)',
+                color: 'rgba(var(--cream-rgb),0.7)',
                 display: 'block', marginBottom: 7,
               }}>
                 Correo electrónico
@@ -206,8 +206,8 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                 placeholder="tu@email.com"
                 style={{
                   width: '100%', padding: '11px 14px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(240,235,224,0.15)'}`,
+                  background: 'rgba(var(--cream-rgb),0.05)',
+                  border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(var(--cream-rgb),0.15)'}`,
                   borderRadius: 10, outline: 'none',
                   fontFamily: 'DM Sans', fontSize: 13,
                   color: 'var(--cream, #F0EBE0)',
@@ -220,7 +220,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
             <div style={{ marginBottom: 16 }}>
               <label style={{
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-                color: 'rgba(240,235,224,0.7)',
+                color: 'rgba(var(--cream-rgb),0.7)',
                 display: 'block', marginBottom: 7,
               }}>
                 Frecuencia de alertas
@@ -238,12 +238,12 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                       flex: 1, padding: '9px 0', borderRadius: 9999, cursor: 'pointer',
                       border: frequency === k
                         ? '1px solid rgba(var(--theme-rgb),0.5)'
-                        : '1px solid rgba(240,235,224,0.15)',
+                        : '1px solid rgba(var(--cream-rgb),0.15)',
                       background: frequency === k
                         ? 'rgba(var(--theme-rgb),0.15)'
-                        : 'rgba(255,255,255,0.04)',
+                        : 'rgba(var(--cream-rgb),0.04)',
                       fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                      color: frequency === k ? 'rgba(var(--theme-rgb),0.9)' : 'rgba(240,235,224,0.5)',
+                      color: frequency === k ? 'rgba(var(--theme-rgb),0.9)' : 'rgba(var(--cream-rgb),0.5)',
                       transition: 'all 0.15s',
                     }}
                   >
@@ -265,7 +265,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
               />
               <label htmlFor="ss-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
-                color: 'rgba(240,235,224,0.55)', cursor: 'pointer', lineHeight: 1.5,
+                color: 'rgba(var(--cream-rgb),0.55)', cursor: 'pointer', lineHeight: 1.5,
               }}>
                 Acepto recibir alertas de nuevas propiedades de DesarrollosMX. Puedo cancelar en cualquier momento.
               </label>
@@ -276,7 +276,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                 padding: '9px 12px', borderRadius: 8, marginBottom: 14,
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.25)',
-                fontFamily: 'DM Sans', fontSize: 12, color: '#FCA5A5',
+                fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)',
               }}>
                 {error}
               </div>
@@ -304,7 +304,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                 <>
                   <span style={{
                     width: 15, height: 15, borderRadius: '50%',
-                    border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                    border: '2px solid rgba(var(--cream-rgb),0.3)', borderTopColor: '#fff',
                     display: 'inline-block', animation: 'spin 0.7s linear infinite',
                   }} />
                   Guardando…

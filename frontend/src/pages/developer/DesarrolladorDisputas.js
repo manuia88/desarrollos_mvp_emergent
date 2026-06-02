@@ -28,13 +28,13 @@ function KpiCard({ label, value, Icon, color = 'var(--cream)', testid }) {
       data-testid={testid}
       style={{
         flex: '1 1 180px', minWidth: 160,
-        background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(var(--bg-rgb),0.92)', backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(var(--cream-rgb),0.08)',
         borderRadius: 16, padding: '18px 22px',
       }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         {Icon && <Icon size={14} color={color} />}
-        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.55)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
           {label}
         </span>
       </div>
@@ -50,16 +50,16 @@ function PillBtn({ children, onClick, kind = 'ghost', disabled, testid }) {
       color: '#fff', border: '1px solid transparent',
     },
     success: {
-      background: 'rgba(34,197,94,0.10)', color: '#86efac',
+      background: 'rgba(34,197,94,0.10)', color: 'var(--green)',
       border: '1px solid rgba(34,197,94,0.35)',
     },
     danger: {
-      background: 'rgba(239,68,68,0.10)', color: '#fca5a5',
+      background: 'rgba(239,68,68,0.10)', color: 'var(--red)',
       border: '1px solid rgba(239,68,68,0.35)',
     },
     ghost: {
-      background: 'rgba(255,255,255,0.04)', color: 'var(--cream-2, #d6d2c4)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)', color: 'var(--cream-2, #d6d2c4)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
     },
   };
   const p = palettes[kind] || palettes.ghost;
@@ -92,7 +92,7 @@ function VelocityBadge({ count }) {
       padding: '3px 12px', borderRadius: 9999, fontSize: 10,
       fontFamily: 'DM Mono, monospace', fontWeight: 700,
       background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)',
-      color: '#fcd34d',
+      color: 'var(--amber)',
     }}>
       <Clock size={9} /> Velocidad {count}/30min
     </span>
@@ -103,14 +103,14 @@ function SmartEmptyState({ title, sub }) {
   return (
     <div data-testid="empty-state" style={{
       padding: '60px 24px', textAlign: 'center',
-      background: 'rgba(13,16,23,0.55)', backdropFilter: 'blur(24px)',
-      border: '1px dashed rgba(255,255,255,0.10)', borderRadius: 18,
+      background: 'rgba(var(--bg-rgb),0.55)', backdropFilter: 'blur(24px)',
+      border: '1px dashed rgba(var(--cream-rgb),0.10)', borderRadius: 18,
     }}>
       <div style={{ display: 'inline-flex', padding: 14, borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', marginBottom: 16 }}>
         <Inbox size={20} color="#a5b4fc" />
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream, #F0EBE0)', marginBottom: 6 }}>{title}</div>
-      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.55)' }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.55)' }}>{sub}</div>}
     </div>
   );
 }
@@ -132,10 +132,10 @@ function ApproveModal({ open, lead, onClose, onConfirm, busy }) {
           </div>
           <button onClick={onClose} data-testid="approve-close-btn" style={iconBtnStyle}><X size={14} /></button>
         </div>
-        <div style={{ padding: '20px 24px', fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(240,235,224,0.85)', lineHeight: 1.55 }}>
+        <div style={{ padding: '20px 24px', fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(var(--cream-rgb),0.85)', lineHeight: 1.55 }}>
           {t('disputes.approve_body', 'El lead volvera a estado "nuevo" y el asesor podra operarlo. Esta accion queda registrada en el audit log inmutable.')}
-          <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', marginBottom: 4 }}>Lead</div>
+          <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid rgba(var(--cream-rgb),0.08)' }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(var(--cream-rgb),0.45)', textTransform: 'uppercase', marginBottom: 4 }}>Lead</div>
             <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream, #F0EBE0)' }}>{lead.contact?.name || lead.lead_id}</div>
           </div>
         </div>
@@ -196,7 +196,7 @@ function RejectModal({ open, lead, onClose, onConfirm, busy }) {
           <div>
             <label style={fieldLabelStyle}>
               {t('disputes.reason_text_label', 'Detalle')}
-              {requiresText && <span style={{ color: '#fda4af', marginLeft: 6 }}>*</span>}
+              {requiresText && <span style={{ color: 'var(--red)', marginLeft: 6 }}>*</span>}
             </label>
             <textarea
               data-testid="reject-reason-text"
@@ -206,7 +206,7 @@ function RejectModal({ open, lead, onClose, onConfirm, busy }) {
               rows={4}
               style={textareaStyle}
             />
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)', textAlign: 'right', marginTop: 4 }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(var(--cream-rgb),0.45)', textAlign: 'right', marginTop: 4 }}>
               {reasonText.length}/500
             </div>
           </div>
@@ -217,7 +217,7 @@ function RejectModal({ open, lead, onClose, onConfirm, busy }) {
             background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)',
           }}>
             <AlertTriangle size={14} color="#fda4af" style={{ flexShrink: 0, marginTop: 2 }} />
-            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fecaca', lineHeight: 1.5 }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)', lineHeight: 1.5 }}>
               {t('disputes.cooldown_warning', 'Al rechazar, este asesor no podra registrar leads en este proyecto durante 90 dias')}
             </span>
           </div>
@@ -252,8 +252,8 @@ function DisputeCard({ row, onApprove, onReject, onClickLead }) {
     <div
       data-testid={`dispute-card-${row.lead_id}`}
       style={{
-        background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+        background: 'rgba(var(--bg-rgb),0.92)', backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(var(--cream-rgb),0.08)', borderRadius: 18,
         padding: '20px 22px',
         transition: 'transform 220ms ease, border-color 220ms ease',
       }}
@@ -263,7 +263,7 @@ function DisputeCard({ row, onApprove, onReject, onClickLead }) {
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+        e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.08)';
       }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'flex-start' }}>
         <div
@@ -280,13 +280,13 @@ function DisputeCard({ row, onApprove, onReject, onClickLead }) {
                 padding: '3px 12px', borderRadius: 9999, fontSize: 10,
                 fontFamily: 'DM Mono, monospace', fontWeight: 700,
                 background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)',
-                color: '#a5b4fc',
+                color: 'var(--blue)',
               }}>
                 {t('disputes.suspected_match', 'Posible match')}: {row.suspected_match_lead_id.slice(0, 14)}…
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)' }}>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.65)' }}>
             <span>{c.phone || '—'}</span>
             <span>{c.email || '—'}</span>
           </div>
@@ -315,10 +315,10 @@ function FieldRow({ Icon, label, value }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-        {Icon && <Icon size={11} color="rgba(240,235,224,0.45)" />}
-        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+        {Icon && <Icon size={11} color="rgba(var(--cream-rgb),0.45)" />}
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(var(--cream-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
       </div>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.85)', fontWeight: 500 }}>{value}</div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(var(--cream-rgb),0.85)', fontWeight: 500 }}>{value}</div>
     </div>
   );
 }
@@ -333,10 +333,10 @@ function FloatingToast({ toast, onClose }) {
   }, [toast, onClose]);
   if (!toast) return null;
   const palette = toast.kind === 'success'
-    ? { bg: 'rgba(34,197,94,0.18)', bd: 'rgba(34,197,94,0.45)', fg: '#bbf7d0' }
+    ? { bg: '#1FA06A', bd: '#1FA06A', fg: '#fff' }
     : toast.kind === 'error'
-      ? { bg: 'rgba(239,68,68,0.18)', bd: 'rgba(239,68,68,0.45)', fg: '#fecaca' }
-      : { bg: 'rgba(99,102,241,0.18)', bd: 'rgba(99,102,241,0.42)', fg: '#e0e7ff' };
+      ? { bg: '#E0463D', bd: '#E0463D', fg: '#fff' }
+      : { bg: '#6366F1', bd: '#6366F1', fg: '#fff' };
   return (
     <div data-testid="toast" style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 300,
@@ -357,13 +357,13 @@ const modalBackdropStyle = {
   padding: 20,
 };
 const modalCardStyle = {
-  background: 'rgba(13,16,23,0.96)', backdropFilter: 'blur(24px)',
-  border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20,
+  background: 'rgba(var(--bg-rgb),0.96)', backdropFilter: 'blur(24px)',
+  border: '1px solid rgba(var(--cream-rgb),0.10)', borderRadius: 20,
   width: '100%', maxWidth: 460, overflow: 'hidden',
 };
 const modalHeaderStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  padding: '18px 24px', borderBottom: '1px solid rgba(var(--cream-rgb),0.06)',
 };
 const modalFooterStyle = {
   display: 'flex', justifyContent: 'flex-end', gap: 10,
@@ -372,23 +372,23 @@ const modalFooterStyle = {
 const iconBtnStyle = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 28, height: 28, borderRadius: 9999,
-  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.08)',
   color: 'var(--cream-2, #d6d2c4)', cursor: 'pointer',
 };
 const fieldLabelStyle = {
   display: 'block', fontFamily: 'DM Mono, monospace', fontSize: 10,
-  color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase',
+  color: 'rgba(var(--cream-rgb),0.55)', textTransform: 'uppercase',
   letterSpacing: '0.06em', marginBottom: 6,
 };
 const selectStyle = {
   width: '100%', padding: '10px 14px', borderRadius: 9999,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.12)',
   color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans', fontSize: 13,
   outline: 'none',
 };
 const textareaStyle = {
   width: '100%', padding: '12px 14px', borderRadius: 16,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.12)',
   color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans', fontSize: 13,
   outline: 'none', resize: 'vertical', minHeight: 90,
 };
@@ -484,13 +484,13 @@ export default function DesarrolladorDisputas({ user, onLogout }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
           <div>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.08em', color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', marginBottom: 8 }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.08em', color: 'rgba(var(--cream-rgb),0.45)', textTransform: 'uppercase', marginBottom: 8 }}>
               {t('disputes.eyebrow', 'Workflow diario · revision de leads')}
             </div>
             <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 32, color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>
               {t('disputes.title', 'Disputas de leads')}
             </h1>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(240,235,224,0.65)', marginTop: 8, maxWidth: 620, lineHeight: 1.55 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(var(--cream-rgb),0.65)', marginTop: 8, maxWidth: 620, lineHeight: 1.55 }}>
               {t('disputes.subtitle', 'Revisa los leads en estado bajo revision. Aprueba si son legitimos · rechaza para cerrar y activar cooldown 90d en este proyecto.')}
             </p>
           </div>
@@ -509,7 +509,7 @@ export default function DesarrolladorDisputas({ user, onLogout }) {
 
         {/* List */}
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.55)' }}>
+          <div style={{ padding: 60, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.55)' }}>
             {t('disputes.loading', 'Cargando disputas...')}
           </div>
         ) : rows.length === 0 ? (

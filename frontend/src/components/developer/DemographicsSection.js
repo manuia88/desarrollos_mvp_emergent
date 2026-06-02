@@ -84,13 +84,13 @@ export default function DemographicsSection({ zone }) {
         <>
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginBottom: 12 }}>
-            <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+            <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
               <div className="eyebrow" style={{ fontSize: 9 }}>POBLACIÓN</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
                 {popTotal.toLocaleString()}
               </div>
             </div>
-            <div style={{ padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 8 }}>
+            <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
               <div className="eyebrow" style={{ fontSize: 9 }}>MATCH SEGMENTO</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
                 {matchPct != null ? `${matchPct}%` : '—'}

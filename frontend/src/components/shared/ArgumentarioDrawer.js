@@ -115,7 +115,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-          background: 'rgba(6,8,15,0.6)', backdropFilter: 'blur(4px)',
+          background: 'rgba(var(--bg-rgb),0.6)', backdropFilter: 'blur(4px)',
         }}
       />
       {/* Drawer */}
@@ -126,8 +126,8 @@ export default function ArgumentarioDrawer({ open, onClose }) {
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: Z.DROPDOWN,
           width: 'min(560px, 100vw)',
-          background: 'rgba(6,8,15,0.96)',
-          borderLeft: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.96)',
+          borderLeft: '1px solid rgba(var(--cream-rgb),0.12)',
           backdropFilter: 'blur(28px)',
           display: 'flex', flexDirection: 'column',
           animation: 'slideInRight 280ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -144,7 +144,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
         <header style={{
           padding: '20px 24px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(240,235,224,0.08)',
+          borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
         }}>
           <div>
             <div style={{
@@ -163,7 +163,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
             style={{
               width: 36, height: 36,
               borderRadius: 9999,
-              border: '1px solid rgba(240,235,224,0.18)',
+              border: '1px solid rgba(var(--cream-rgb),0.18)',
               background: 'transparent',
               color: 'var(--cream)',
               cursor: 'pointer',
@@ -192,7 +192,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
                     borderRadius: 9999,
                     border: active
                       ? '1px solid transparent'
-                      : '1px solid rgba(240,235,224,0.18)',
+                      : '1px solid rgba(var(--cream-rgb),0.18)',
                     background: active ? GRADIENT : 'transparent',
                     color: active ? '#fff' : 'var(--cream)',
                     fontSize: 11, fontWeight: active ? 600 : 400,
@@ -214,8 +214,8 @@ export default function ArgumentarioDrawer({ open, onClose }) {
             style={{
               padding: 14,
               borderRadius: 14,
-              border: '1px solid rgba(240,235,224,0.18)',
-              background: 'rgba(240,235,224,0.04)',
+              border: '1px solid rgba(var(--cream-rgb),0.18)',
+              background: 'rgba(var(--cream-rgb),0.04)',
               color: 'var(--cream)',
               fontSize: 13.5,
               fontFamily: 'inherit',
@@ -250,7 +250,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
               style={{
                 padding: '12px 18px',
                 borderRadius: 9999,
-                border: '1px solid rgba(240,235,224,0.18)',
+                border: '1px solid rgba(var(--cream-rgb),0.18)',
                 background: 'transparent',
                 color: 'var(--cream)',
                 fontSize: 12,
@@ -264,7 +264,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
               padding: 10, borderRadius: 10,
               background: 'rgba(239,68,68,0.1)',
               border: '1px solid rgba(239,68,68,0.25)',
-              color: '#fca5a5', fontSize: 12,
+              color: 'var(--red)', fontSize: 12,
             }}>{error}</div>
           )}
 
@@ -285,8 +285,8 @@ export default function ArgumentarioDrawer({ open, onClose }) {
                     textAlign: 'left',
                     padding: '10px 14px',
                     borderRadius: 12,
-                    border: '1px solid rgba(240,235,224,0.12)',
-                    background: 'rgba(240,235,224,0.03)',
+                    border: '1px solid rgba(var(--cream-rgb),0.12)',
+                    background: 'rgba(var(--cream-rgb),0.03)',
                     color: 'var(--cream)',
                     fontSize: 12.5, cursor: 'pointer',
                   }}
@@ -326,7 +326,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
                     textAlign: 'left',
                     padding: '10px 14px',
                     borderRadius: 12,
-                    border: '1px solid rgba(240,235,224,0.1)',
+                    border: '1px solid rgba(var(--cream-rgb),0.1)',
                     background: 'transparent',
                     color: 'var(--cream)',
                     fontSize: 12, cursor: 'pointer',
@@ -358,7 +358,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
 
               {(result.kb_sources || []).length > 0 && (
                 <div style={{
-                  borderTop: '1px solid rgba(240,235,224,0.08)',
+                  borderTop: '1px solid rgba(var(--cream-rgb),0.08)',
                   paddingTop: 10,
                 }}>
                   <div style={{
@@ -373,8 +373,8 @@ export default function ArgumentarioDrawer({ open, onClose }) {
                         style={{
                           padding: '4px 10px',
                           borderRadius: 9999,
-                          background: 'rgba(240,235,224,0.06)',
-                          border: '1px solid rgba(240,235,224,0.14)',
+                          background: 'rgba(var(--cream-rgb),0.06)',
+                          border: '1px solid rgba(var(--cream-rgb),0.14)',
                           fontSize: 10,
                           color: 'var(--cream)',
                           letterSpacing: '0.02em',

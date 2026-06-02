@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMX · Leads · Tema Claro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFB; --surface:#FFFFFF; --surface-2:#F1F2F6;
+    --ink:#1E2230; --ink-2:#5A6172; --ink-3:#969CAB;
+    --line:#E6E8EE; --line-2:#D5D8E2;
+    --accent:#6D4AFF; --accent-2:#5B37E0; --accent-ink:#FFFFFF; --accent-text:#5B37E0; --accent-soft:rgba(109,74,255,.10); --grad:linear-gradient(120deg,#6D4AFF,#C63FAE);
+    --hot:#F2635B; --warm:#E2982E; --cold:#3B82F6; --ok:#1FA06A;
+    --c-blue:#EEF4FF; --c-purple:#F3EFFF; --c-mint:#EAF8F1; --c-amber:#FEF5E7; --c-green:#EAF7F0;
+    --shadow:0 1px 2px rgba(20,25,45,.04),0 4px 10px rgba(20,25,45,.06);
+    --shadow-lg:0 14px 34px rgba(20,25,45,.16);
+    --serif:'Outfit',system-ui,sans-serif; --sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:16px}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(760px 540px at 0% -10%,rgba(109,74,255,.26),transparent 56%),radial-gradient(840px 620px at 105% -4%,rgba(120,150,255,.26),transparent 60%),radial-gradient(720px 620px at 98% 108%,rgba(109,74,255,.12),transparent 55%)}
+  .app{position:relative;z-index:1;display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .serif{font-family:var(--serif)} .num{font-family:var(--serif);font-variant-numeric:tabular-nums}
+
+  .side{padding:24px 16px;border-right:1px solid var(--line);background:rgba(255,255,255,.5)}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;padding:0 6px}
+  .brand .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:18px}
+  .brand b{font-family:var(--serif);font-weight:700;font-size:17px}
+  .nav-label{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:6px 10px 10px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:var(--ink-2);font-size:14.5px;font-weight:500;cursor:pointer;transition:.15s;margin-bottom:2px}
+  .nav-item:hover{background:var(--surface-2);color:var(--ink)}
+  .nav-item.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+  .nav-item.active .ico{color:var(--accent-text)} .nav-item .ico{width:18px;height:18px;color:var(--ink-3);flex-shrink:0}
+
+  .main{display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:14px;padding:16px 32px;border-bottom:1px solid var(--line)}
+  .search{flex:1;max-width:400px;display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;color:var(--ink-3);font-size:14px;background:var(--surface)}
+  .top .pill{margin-left:auto;display:flex;gap:8px}
+  .iconbtn{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);cursor:pointer}
+  .iconbtn:hover{border-color:var(--line-2);color:var(--ink)}
+  .body{padding:26px 32px 60px;overflow-y:auto}
+
+  .head{display:flex;align-items:flex-end;gap:16px;margin-bottom:16px}
+  .head h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-.6px;line-height:1}
+  .head p{color:var(--ink-2);font-size:15px;margin-top:8px}
+  .head .tools{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .ddl{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;color:var(--ink-2);cursor:pointer;background:var(--surface)}
+  .toggle{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+  .toggle button{border:0;background:transparent;color:var(--ink-3);font-size:13.5px;font-weight:600;padding:8px 15px;cursor:pointer;font-family:inherit}
+  .toggle button.on{background:var(--accent);color:var(--accent-ink)}
+  .btn-primary{display:inline-flex;align-items:center;gap:7px;padding:10px 17px;border-radius:9px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13.5px;cursor:pointer;font-family:var(--sans)}
+  .btn-primary:hover{background:var(--accent-2)}
+
+  .chips{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:8px;border:1px solid var(--line);color:var(--ink-2);font-size:13.5px;font-weight:600;cursor:pointer;background:var(--surface)}
+  .chip:hover{border-color:var(--line-2);color:var(--ink)} .chip.on{background:var(--accent-soft);color:var(--ink);border-color:transparent}
+  .chip .cn{font-family:var(--serif);font-size:13px;color:var(--ink-3)} .chip .gd{width:8px;height:8px;border-radius:50%}
+
+  .secline{display:flex;align-items:baseline;gap:13px;margin:0 0 16px}
+  .secline .em{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);font-weight:700}
+  .secline .lab{font-family:var(--serif);font-weight:700;font-size:20px}
+  .secline .it{font-size:13.5px;color:var(--ink-3)} .secline .rule{flex:1;height:1px;background:var(--line)}
+
+  .focus{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:34px;background:linear-gradient(180deg,var(--accent-soft),transparent 90%);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fcard{padding:17px 19px;border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:var(--shadow)}
+  .fcard .ft{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .fcard .dot{width:8px;height:8px;border-radius:50%} .fcard .who{font-family:var(--serif);font-weight:700;font-size:17px}
+  .fcard .tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--accent-text);text-transform:uppercase}
+  .fcard .msg{color:var(--ink-2);font-size:14px;line-height:1.5;margin-bottom:14px} .fcard .msg b{color:var(--ink);font-weight:700}
+  .fcard .fa{display:flex;gap:8px}
+  .mini{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit}
+  .mini:hover{border-color:var(--line-2)} .mini.go{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+  .kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start}
+  .col-h{margin-bottom:13px;padding:0 2px 11px;border-bottom:2px solid var(--line)}
+  .col-h .r1{display:flex;align-items:baseline;gap:8px} .col-h b{font-family:var(--serif);font-weight:700;font-size:15px}
+  .col-h .cc{margin-left:auto;font-family:var(--serif);font-weight:600;font-size:15px;color:var(--ink-2)}
+  .col-h .intel{font-size:12px;color:var(--ink-3);margin-top:4px} .col-h .intel.acc{color:var(--accent-text);font-weight:600}
+  .col{min-height:80px;display:flex;flex-direction:column;gap:12px}
+  .lead{padding:15px;border-radius:12px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);cursor:pointer;transition:.16s}
+  .lead:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--accent)}
+  .lead .lt{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+  .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,rgba(109,74,255,.45),rgba(120,150,255,.42));display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:14px;color:var(--ink);flex-shrink:0}
+  .lead .nm{font-family:var(--serif);font-weight:700;font-size:16px;line-height:1.15} .lead .sub{color:var(--ink-3);font-size:12.5px;margin-top:2px}
+  .scorerow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .scorerow .sl{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;display:flex;gap:6px}
+  .tw.hot{color:var(--hot)}.tw.warm{color:var(--warm)}.tw.cold{color:var(--cold)}
+  .scorerow .sv{font-family:var(--serif);font-weight:700;font-size:24px;color:var(--accent-text)}
+  .track{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden} .fill{height:100%;border-radius:99px;background:var(--accent)}
+  .meta{color:var(--ink-2);font-size:13.5px;margin:11px 0 9px}
+  .nextact{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink);font-weight:600;margin-bottom:9px} .nextact .na-ic{color:var(--accent-text);flex-shrink:0}
+  .cardrow2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;font-size:12px} .props{color:var(--ink-2)} .aging{color:var(--ink-3)} .aging.warn{color:var(--warm);font-weight:600}
+  .qa{display:flex;gap:7px;align-items:center}
+  .qbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);cursor:pointer} .qbtn:hover{color:#25a050;border-color:#25d36655;background:#25d3660d}
+  .qa .open{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  .empty{padding:22px 12px;text-align:center;color:var(--ink-3);font-size:12.5px;border:1px dashed var(--line);border-radius:11px}
+
+  .fab{position:fixed;right:28px;bottom:28px;z-index:30;display:flex;flex-direction:column;gap:11px;align-items:center}
+  .orb{width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:16px;color:var(--accent-ink);background:var(--accent);box-shadow:var(--shadow-lg)}
+  .orb:hover{transform:translateY(-2px)} .orb.sm{width:46px;height:46px;background:var(--surface);color:var(--ink-2);border:1px solid var(--line)}
+
+  .scrim{position:fixed;inset:0;background:rgba(26,34,48,.34);z-index:40;opacity:0;pointer-events:none;transition:.25s}.scrim.show{opacity:1;pointer-events:auto}
+  .modal{position:fixed;top:50%;left:50%;width:min(1000px,95vw);max-height:90vh;z-index:50;background:var(--bg);border:1px solid var(--line);border-radius:16px;transform:translate(-50%,-48%);opacity:0;pointer-events:none;transition:.24s;overflow-y:auto;box-shadow:0 30px 90px rgba(26,34,48,.25)}
+  .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+  .narw{position:fixed;top:50%;transform:translateY(-50%);z-index:51;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;pointer-events:none;transition:.25s;box-shadow:var(--shadow)}
+  .narw.show{opacity:1;pointer-events:auto}.narw:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .narw.prev{left:calc(50% - min(500px,47.5vw) - 60px)}.narw.next{right:calc(50% - min(500px,47.5vw) - 60px)}
+  .dwrap{padding:30px 34px 40px}
+  .dh{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+  .dh .av{width:62px;height:62px;font-size:22px}
+  .dh .nm{font-family:var(--serif);font-weight:700;font-size:28px;letter-spacing:-.3px}
+  .dh .nmsub{color:var(--ink-2);font-size:13.5px;margin-top:6px;display:flex;align-items:center;gap:9px}
+  .tg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.tg .d{width:8px;height:8px;border-radius:50%}
+  .hdracts{display:flex;gap:8px;margin-left:auto}
+  .hbtn{display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer} .hbtn:hover{border-color:var(--line-2)} .hbtn.key{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .dh .x{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);cursor:pointer;flex-shrink:0} .dh .x:hover{color:var(--ink)}
+
+  .brief{display:flex;gap:13px;padding:16px 18px;border:1px solid rgba(109,74,255,.45);border-radius:12px;background:var(--accent-soft);margin-bottom:20px}
+  .brief .bi{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex-shrink:0;font-family:var(--serif);font-weight:700;font-size:12px}
+  .brief .bt{font-size:15px;line-height:1.55;color:var(--ink)} .brief .bt b{font-weight:700} .brief .bt .falta{color:var(--accent-text);font-weight:700}
+  .tabbar{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:22px}
+  .tabbar button{border:0;background:transparent;color:var(--ink-3);font-family:var(--sans);font-size:15px;font-weight:600;padding:11px 16px;cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px} .tabbar button:hover{color:var(--ink-2)} .tabbar button.on{color:var(--ink);border-bottom-color:var(--accent)}
+  .pane{display:none} .pane.on{display:block}
+
+  .rsec{margin-bottom:24px} .rsec-h{font-size:12px;letter-spacing:.13em;color:var(--ink-3);text-transform:uppercase;font-weight:700;margin-bottom:12px} .rsec-h .muted{text-transform:none;font-weight:400;font-style:italic}
+  .datos{display:grid;grid-template-columns:1fr 1.1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .dcol{padding:16px 18px} .dcol.enrich{border-left:1px solid var(--line);background:var(--accent-soft)}
+  .drow{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink);padding:6px 0} .drow .di{color:var(--ink-3);flex-shrink:0} .drow .cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .enrich-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px} .enrich-h .src{margin-left:auto;color:var(--ok);font-weight:700;text-transform:none;letter-spacing:0;display:inline-flex;align-items:center;gap:4px}
+  .dcol.enrich .drow{cursor:pointer;border-radius:7px;padding:7px 8px;margin:0 -8px} .dcol.enrich .drow:hover{background:rgba(255,255,255,.6)} .vchk{margin-left:auto;color:var(--ok);flex-shrink:0}
+  .readyrow{display:flex;align-items:center;gap:22px;border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--surface)}
+  .readybig{display:flex;flex-direction:column;flex-shrink:0;line-height:1} .readybig .pct{font-family:var(--serif);font-weight:700;font-size:44px;color:var(--accent-text)} .readybig em{font-style:normal;font-size:12px;color:var(--ink-3);margin-top:7px}
+  .readywhy{font-size:15px;color:var(--ink-2);line-height:1.55;border-left:1px solid var(--line);padding-left:22px} .readywhy b{color:var(--ink);font-weight:700}
+  .criterios{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .criterios .cr{padding:15px 16px;border-right:1px solid var(--line)} .criterios .cr:last-child{border-right:0}
+  .criterios .crl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px} .criterios .crv{font-family:var(--serif);font-weight:700;font-size:16px}
+  .steps{border:1px solid var(--line);border-radius:12px;padding:4px 16px;background:var(--surface)}
+  .steprow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--ink-2)} .steprow:last-child{border-bottom:0}
+  .steprow .ck{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-2);flex-shrink:0} .steprow.done{color:var(--ink-3)} .steprow.done .ck{background:var(--accent);border-color:var(--accent)}
+
+  .engage{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:10px;margin-bottom:15px;background:var(--surface)}
+  .engage .lv{width:9px;height:9px;border-radius:50%;background:var(--ok);animation:pulse 1.8s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .engage .et{font-size:14px;color:var(--ink-2)} .engage .et b{font-family:var(--serif);font-weight:700;color:var(--ink)}
+  .engage .es{margin-left:auto;display:flex;gap:16px;font-size:13px;font-family:var(--serif);font-weight:700} .engage .up{color:var(--ok)}.engage .dn{color:var(--hot)}.engage .vw{color:var(--ink-2)}
+  .pk{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+  .pkcol .pkh{display:flex;align-items:center;gap:7px;margin-bottom:10px;font-size:11.5px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em} .pkcol .pkh .pd{width:7px;height:7px;border-radius:50%} .pkcol .pkh .pc{margin-left:auto;font-family:var(--serif);color:var(--ink-3)}
+  .prop{border-radius:9px;border:1px solid var(--line);background:var(--surface);overflow:hidden;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow)} .prop:hover{border-color:var(--line-2)}
+  .prop .ph{height:50px;background:var(--surface-2);position:relative;border-bottom:1px solid var(--line)} .prop .ph .pp{position:absolute;left:8px;bottom:6px;font-family:var(--serif);font-weight:700;font-size:12px;color:var(--accent-text)}
+  .prop .pb{padding:8px 10px} .prop .pt{font-size:12.5px;font-weight:600} .prop .pm{color:var(--ink-3);font-size:11px;margin-top:2px}
+  .reco{border:1px dashed rgba(109,74,255,.6);border-radius:9px;padding:10px;font-size:11px;color:var(--accent-text);text-align:center;font-weight:600;cursor:pointer}
+  .tinder-cta{margin-top:16px;padding:17px 19px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:11px;display:flex;align-items:center;gap:15px;background:var(--surface)}
+  .tinder-cta .ti{width:42px;height:42px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex-shrink:0} .tinder-cta .tx b{font-family:var(--serif);font-weight:700;font-size:14.5px;display:block} .tinder-cta .tx p{color:var(--ink-2);font-size:12.5px;margin-top:3px;line-height:1.45} .tinder-cta .btn-primary{margin-left:auto}
+
+  /* Conversaciones: chat */
+  .convhint{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-3);margin-bottom:14px}
+  .replyon{font-size:12.5px;color:var(--ink-2);font-weight:600;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;align-self:center}
+  .rchan{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border:1px solid rgba(109,74,255,.55);border-radius:99px;padding:5px 11px;font-weight:700;color:var(--ink);cursor:pointer} .rchan .cdot{width:8px;height:8px;border-radius:50%}
+  .addchan{border:1px dashed var(--line-2);background:transparent;color:var(--ink-3);font-family:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;cursor:pointer} .addchan:hover{border-color:var(--accent);color:var(--accent-text)}
+  .chanfilter{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+  .chanfilter button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:6px} .chanfilter button.on{background:var(--accent-soft);color:var(--ink);border-color:transparent} .chanfilter .cdot{width:8px;height:8px;border-radius:50%}
+  .thread{display:flex;flex-direction:column;gap:13px;max-height:320px;overflow-y:auto;padding:2px 4px 6px}
+  .msg{max-width:78%;display:flex;flex-direction:column;gap:5px} .msg.in{align-self:flex-start} .msg.out{align-self:flex-end;align-items:flex-end}
+  .bubble{padding:11px 15px;border-radius:15px;font-size:14.5px;line-height:1.55}
+  .msg.in .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg.out .bubble{background:var(--accent-soft);border:1px solid rgba(109,74,255,.5);border-bottom-right-radius:5px}
+  .mmeta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)} .mmeta .cdot{width:8px;height:8px;border-radius:50%}
+  .more{color:var(--accent-text);cursor:pointer;font-size:13px;font-weight:700;display:inline-block;margin-top:4px}
+  .clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .sysline{align-self:center;font-size:12px;color:var(--ink-3);font-style:italic;padding:3px 0;text-align:center}
+  .compose{margin-top:16px;display:flex;gap:9px;align-items:center}
+  .chansel{border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-size:13.5px;font-weight:600;padding:11px 12px;border-radius:9px;cursor:pointer}
+  .compose input{flex:1;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-size:14.5px} .compose input::placeholder{color:var(--ink-3)}
+
+  /* Actividad */
+  .actbtns{display:flex;gap:9px;margin-bottom:18px}
+  .ctxbtn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;box-shadow:var(--shadow);transition:.15s} .ctxbtn:hover{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-1px)} .ctxbtn svg{color:var(--accent-text)}
+  .tl{border:1px solid var(--line);border-radius:12px;padding:4px 18px;background:var(--surface)}
+  .tlrow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--ink-2)} .tlrow:last-child{border-bottom:0}
+  .tlrow .ti2{width:9px;height:9px;border-radius:50%;flex-shrink:0} .ti2.nota{background:var(--ink-3)} .ti2.task{background:var(--warm)} .ti2.cita{background:var(--cold)} .ti2.sys{background:var(--ink-3);opacity:.5}
+  .tlrow b{color:var(--ink);font-weight:700} .tlrow .badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent-text)} .tlrow .when{margin-left:auto;color:var(--ink-3);font-size:12.5px;white-space:nowrap}
+  /* upgrades */
+  .tabbar button:hover{background:var(--surface-2)} .tabbar button.on{background:var(--accent-soft)}
+  .tabbar .tcount{margin-left:6px;font-size:11px;font-weight:700;background:var(--accent);color:var(--accent-ink);border-radius:99px;padding:0 7px}
+  .specs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-2);font-weight:600} .specs span{display:inline-flex;align-items:center;gap:3px}
+  .prop .paddr{color:var(--ink-3);font-size:10.5px;margin-top:2px}
+  .attachbtn{display:inline-flex;align-items:center;gap:7px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer;flex-shrink:0} .attachbtn:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .propmsg{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);width:250px}
+  .propmsg .pmh{height:60px;background:var(--surface-2);position:relative} .propmsg .pmh .pp{position:absolute;left:9px;bottom:7px;font-family:var(--serif);font-weight:700;color:var(--accent-text);font-size:13px}
+  .propmsg .pmb{padding:9px 11px} .propmsg .pmt{font-size:13px;font-weight:700} .propmsg .pmspecs{font-size:11px;color:var(--ink-2);margin-top:3px;font-weight:600}
+  .propmsg .pmadd{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent-text);font-weight:700;padding:7px 11px;border-top:1px solid var(--line);background:var(--accent-soft)}
+  .pendlist{display:flex;flex-direction:column;gap:10px}
+  .pend{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:var(--surface)}
+  .pend .pdot{width:9px;height:9px;border-radius:50%;flex-shrink:0} .pend .pdot.task{background:var(--warm)} .pend .pdot.cita{background:var(--cold)}
+  .pend .pinfo{display:flex;flex-direction:column} .pend .pinfo b{font-size:14.5px;font-weight:700} .pend .pinfo span{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .donebtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer} .donebtn:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .stagebar{display:flex;align-items:center;gap:7px;margin-bottom:20px;flex-wrap:wrap}
+  .stagebar .stl{font-size:11px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-right:4px}
+  .stchip{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:99px;cursor:pointer} .stchip:hover{border-color:var(--accent)} .stchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .disc{display:grid;grid-template-columns:auto 1fr;gap:18px;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface)}
+  .disctype{display:flex;align-items:center;gap:13px} .disctype .dbig{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:24px} .disctype b{font-family:var(--serif);font-weight:700;font-size:16px;display:block} .disctype span{font-size:12.5px;color:var(--ink-3)}
+  .disctips{border-left:1px solid var(--line);padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--ink-2)}
+  .convmeta{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:16px;background:var(--surface)}
+  .convmeta .cm{flex:1;padding:11px 15px;border-right:1px solid var(--line)} .convmeta .cm:last-child{border-right:0}
+  .convmeta .cml{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);display:block;margin-bottom:5px} .convmeta .cmv{font-family:var(--serif);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px} .cmv.pos{color:var(--ok)} .cmv .gd{width:8px;height:8px;border-radius:50%}
+  .aisugg{display:flex;align-items:center;gap:11px;border:1px solid rgba(109,74,255,.55);background:var(--accent-soft);border-radius:10px;padding:11px 14px;margin-bottom:11px}
+  .aisugg .ai-i{width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex-shrink:0} .aisugg span{font-size:13px;color:var(--ink);line-height:1.4} .aisugg b{font-weight:700;color:var(--accent-text)}
+  .usebtn{margin-left:auto;flex-shrink:0;border:0;background:var(--accent);color:var(--accent-ink);font-family:inherit;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:8px;cursor:pointer}
+  .copilotbar{display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface);margin-bottom:20px}
+  .copilotbar .ci2{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex-shrink:0;font-family:var(--serif);font-weight:700;font-size:12px}
+  .copilotbar input{flex:1;border:0;background:transparent;font-family:inherit;font-size:14px;color:var(--ink);outline:none} .copilotbar input::placeholder{color:var(--ink-3)}
+  .cpchip{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-size:12px;font-weight:600;padding:6px 11px;border-radius:99px;cursor:pointer;white-space:nowrap} .cpchip:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .signals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .signal{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--surface)} .signal .sgl{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);margin-bottom:7px} .signal .sgv{font-family:var(--serif);font-weight:700;font-size:15.5px} .signal .sgs{font-size:12px;color:var(--ink-2);margin-top:3px} .signal.warn{border-left:3px solid var(--warm)}
+  .autorow{display:flex;align-items:center;gap:13px;border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--surface)}
+  .autorow .ai-i2{width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;flex-shrink:0}
+  .autorow .at{flex:1} .autorow .at b{font-size:14.5px;font-weight:700} .autorow .at span{font-size:12.5px;color:var(--ink-2);display:block;margin-top:2px}
+  .switch{width:42px;height:24px;border-radius:99px;background:var(--accent);position:relative;cursor:pointer;flex-shrink:0} .switch::after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .objbar{display:flex;align-items:center;gap:10px;border:1px solid rgba(224,83,58,.4);background:rgba(224,83,58,.08);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13.5px;color:var(--ink)} .objbar .ob-i{color:var(--hot);flex-shrink:0} .objbar b{font-weight:700} .objbar .obfix{margin-left:auto;color:var(--accent-text);font-weight:700;cursor:pointer;white-space:nowrap}
+  .consent{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ok);font-weight:700;margin-top:8px}
+  .assignee{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink-2);font-weight:600} .assignee .aav{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;font-size:9.5px;font-weight:700;font-family:var(--serif)}
+  .offsugg{margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink);background:var(--accent-soft);border-radius:9px;padding:11px 14px} .offsugg b{color:var(--accent-text);font-weight:700} .offsugg svg{flex-shrink:0;color:var(--accent-text)}
+  /* polish: columnas como paneles · hovers · acentos de sección */
+  .kanban>div{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .lead{box-shadow:0 2px 4px rgba(20,25,45,.05),0 6px 16px rgba(20,25,45,.09)}
+  .fcard{box-shadow:0 2px 5px rgba(20,25,45,.05),0 8px 20px rgba(20,25,45,.08)}
+  /* ===== upgrades premium ===== */
+  @keyframes fillin{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes panefade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .fill{transform-origin:left;animation:fillin .9s cubic-bezier(.4,0,.2,1)}
+  .pane.on{animation:panefade .3s ease-out}
+  .lead{transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s,border-color .2s}
+  .fcard,.ctxbtn,.btn-primary,.hbtn,.mini,.prop,.signal,.pend{transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s,border-color .2s,background .15s}
+  .sv,.pct,.crv,.pp,.cc,.fnum,.lscore,.num,.cn,.pc,.tcount,.pmspecs,.specs{font-variant-numeric:tabular-nums}
+  .sdot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:8px;vertical-align:middle}
+  .ring{position:relative;width:94px;height:94px;border-radius:50%;background:conic-gradient(#6D4AFF,#C63FAE calc(var(--p) * 1%),#E7E9F2 0);display:grid;place-items:center;flex-shrink:0}
+  .ring::before{content:"";position:absolute;width:72px;height:72px;border-radius:50%;background:var(--surface)}
+  .ring span{position:relative;font-family:var(--serif);font-weight:700;font-size:27px;color:var(--accent-text);font-variant-numeric:tabular-nums;line-height:1} .ring span small{font-size:14px}
+  .av{position:relative} .av.active::after{content:"";position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--surface)}
+  /* degradado morado→rosa SOLO en momentos hero */
+  .btn-primary,.hbtn.key,.mini.go,.usebtn,.toggle button.on{background:var(--grad);border-color:transparent;color:#fff}
+  .orb{background:var(--grad)} .orb.sm{background:var(--surface)}
+  .copilotbar .ci2,.brief .bi,.ai-i,.tinder-cta .ti{background:var(--grad);color:#fff}
+  .stchip.on{background:var(--grad);border-color:transparent;color:#fff}
+  .fcard{transition:.15s} .fcard:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--accent)}
+  .signal{transition:.15s} .signal:hover{border-color:var(--line-2)} .pend{transition:.15s} .pend:hover{border-color:var(--line-2);box-shadow:var(--shadow)}
+  .prop{transition:.15s} .prop:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  /* secciones: tarjeta blanca + filo de color delgado (sin fondo saturado) */
+  .datos{border-left:3px solid #3B82F6} .disc{border-left:3px solid #7C4DFF} .readyrow{border-left:3px solid var(--accent)} .autorow{border-left:3px solid var(--ok)} .pend{border-left:3px solid var(--warm)}
+  .convmeta .cmh{display:block;font-size:11.5px;color:var(--ink-3);margin-top:4px;font-weight:400}
+  .demohint{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:25;background:var(--surface);border:1px solid var(--line);padding:8px 16px;border-radius:9px;font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow)}
+  svg{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">D</div><b>DesarrollosMX</b></div>
+    <div class="nav-label">Módulo</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Inicio</div>
+    <div class="nav-item active"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>Leads</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>Inventario</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversaciones</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 11 18-5v12L3 14v-3z"/></svg>Marketing</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18M18 9l-5 5-3-3-4 4"/></svg>Mi Negocio</div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>Buscar lead, propiedad…</div>
+      <div class="pill"><div class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div><div class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div></div>
+    </div>
+    <div class="body">
+      <div class="head"><div><h1>Leads</h1><p>Tu embudo de prospectos · ordenado por quién está más listo.</p></div>
+        <div class="tools"><div class="ddl">Ordenar · score <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div><div class="toggle"><button class="on">Kanban</button><button>Lista</button></div><button class="btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Nuevo lead</button></div>
+      </div>
+      <div class="chips">
+        <div class="chip on">Todos <span class="cn">14</span></div>
+        <div class="chip"><span class="gd" style="background:var(--hot)"></span>Calientes <span class="cn">3</span></div>
+        <div class="chip">Sin contactar 48h <span class="cn">5</span></div>
+        <div class="chip">Sin actividad 14d <span class="cn">8</span></div>
+        <div class="chip">Visita pendiente <span class="cn">2</span></div>
+      </div>
+
+      <div class="secline"><span class="em">Foco de hoy</span><span class="it">la IA priorizó esto para ti</span><span class="rule"></span></div>
+      <div class="focus">
+        <div class="fcard"><div class="ft"><span class="dot" style="background:var(--hot)"></span><span class="who">María González</span><span class="tag">cerrar</span></div><div class="msg"><b>87% lista para cerrar.</b> Lleva 2 días esperando — contáctala hoy antes de que se enfríe.</div><div class="fa"><button class="mini go">WhatsApp</button><button class="mini" onclick="openDrawer()">Ver perfil</button></div></div>
+        <div class="fcard"><div class="ft"><span class="dot" style="background:var(--warm)"></span><span class="who">Juan Pérez</span><span class="tag">reactivar</span></div><div class="msg"><b>9 días sin contacto.</b> Se está enfriando. Mándale las 3 nuevas de Condesa.</div><div class="fa"><button class="mini go">WhatsApp</button><button class="mini" onclick="openDrawer()">Ver perfil</button></div></div>
+        <div class="fcard"><div class="ft"><span class="dot" style="background:var(--ok)"></span><span class="who">Luis Ramírez</span><span class="tag">cita hoy</span></div><div class="msg"><b>Visita a las 4:00 pm</b> en Reforma 350. Llévale el comparativo de la zona.</div><div class="fa"><button class="mini go">Ver cita</button><button class="mini">Comparativo</button></div></div>
+      </div>
+
+      <div class="secline"><span class="lab">Tu embudo de leads</span><span class="it">arrastra conforme avanzan</span><span class="rule"></span></div>
+      <div class="kanban">
+        <div><div class="col-h"><div class="r1"><b>Nuevo</b><span class="cc">3</span></div><div class="intel">2 entraron hoy</div></div>
+          <div class="col"><div class="lead" onclick="openDrawer()"><div class="lt"><div class="av" style="background:#E3ECFF;color:#2563EB">AT</div><div><div class="nm">Ana Torres</div><div class="sub">Referido</div></div></div><div class="scorerow"><span class="sl">Score <span class="tw cold">Frío</span></span><span class="sv">24</span></div><div class="track"><div class="fill" style="width:24%"></div></div><div class="meta">Roma · hasta $4M</div><div class="nextact"><svg class="na-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Calificar presupuesto</div><div class="cardrow2"><span class="props">Sin propiedades aún</span><span class="aging">entró hoy</span></div><div class="qa"><div class="qbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg></div><span class="open">Abrir →</span></div></div></div>
+        </div>
+        <div><div class="col-h"><div class="r1"><b>Contactado</b><span class="cc">5</span></div><div class="intel">2 enfriándose</div></div>
+          <div class="col"><div class="lead" onclick="openDrawer()"><div class="lt"><div class="av" style="background:#FCEFD6;color:#B5730A">JP</div><div><div class="nm">Juan Pérez</div><div class="sub">Facebook</div></div></div><div class="scorerow"><span class="sl">Score <span class="tw warm">Tibio</span></span><span class="sv">54</span></div><div class="track"><div class="fill" style="width:54%"></div></div><div class="meta">Condesa · $5–9M</div><div class="nextact"><svg class="na-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Reactivar por WhatsApp</div><div class="cardrow2"><span class="props">2 propiedades enviadas</span><span class="aging warn">9d sin contacto</span></div><div class="qa"><div class="qbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg></div><span class="open">Abrir →</span></div></div></div>
+        </div>
+        <div><div class="col-h"><div class="r1"><b>Visita</b><span class="cc">2</span></div><div class="intel">1 cita hoy</div></div>
+          <div class="col"><div class="lead" onclick="openDrawer()"><div class="lt"><div class="av" style="background:#DAF5E7;color:#137C4F">LR</div><div><div class="nm">Luis Ramírez</div><div class="sub">Web</div></div></div><div class="scorerow"><span class="sl">Score <span class="tw hot">Caliente</span></span><span class="sv">72</span></div><div class="track"><div class="fill" style="width:72%"></div></div><div class="meta">Reforma · cita 4pm</div><div class="nextact"><svg class="na-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Confirmar cita 4 pm</div><div class="cardrow2"><span class="props">3 propiedades · 1 cita</span><span class="aging">cita hoy</span></div><div class="qa"><div class="qbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg></div><span class="open">Abrir →</span></div></div></div>
+        </div>
+        <div><div class="col-h"><div class="r1"><b>Negociación</b><span class="cc">4</span></div><div class="intel acc">$2.1M en juego</div></div>
+          <div class="col"><div class="lead" onclick="openDrawer()"><div class="lt"><div class="av active" style="background:#EAE2FF;color:#5B37E0">MG</div><div><div class="nm">María González</div><div class="sub">Web</div></div></div><div class="scorerow"><span class="sl">Score <span class="tw hot">Caliente</span></span><span class="sv">87</span></div><div class="track"><div class="fill" style="width:87%"></div></div><div class="meta">Polanco · $8M</div><div class="nextact"><svg class="na-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Enviar oferta hoy</div><div class="cardrow2"><span class="props">4 propiedades · 1 le gustó</span><span class="aging">hace 2 días</span></div><div class="qa"><div class="qbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg></div><span class="open">Abrir →</span></div></div></div>
+        </div>
+        <div><div class="col-h"><div class="r1"><b>Cerrado</b><span class="cc">2</span></div><div class="intel acc">$1.4M este mes</div></div>
+          <div class="col"><div class="empty">2 cierres este mes</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fab"><button class="orb sm"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m22 2-7 20-4-9-9-4z"/></svg></button><button class="orb">AI</button></div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<button class="narw prev" id="aprev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+<button class="narw next" id="anext"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+<div class="modal" id="modal"><div class="dwrap">
+  <div class="dh"><div class="av active" style="background:#EAE2FF;color:#5B37E0">MG</div><div><div class="nm">María González</div><div class="nmsub"><span class="tg"><span class="d" style="background:var(--hot)"></span>Caliente</span> · Negociación · <span class="assignee"><span class="aav">TÚ</span>Asignada a ti</span></div></div>
+    <div class="hdracts"><button class="hbtn key"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg>WhatsApp</button><button class="hbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</button></div>
+    <div class="x" onclick="closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+  </div>
+  <div class="stagebar"><span class="stl">Etapa</span><button class="stchip">Nuevo</button><button class="stchip">Contactado</button><button class="stchip">Visita</button><button class="stchip on">Negociación</button><button class="stchip">Cerrado</button></div>
+  <div class="brief"><div class="bi">IA</div><div class="bt"><b>María, crédito aprobado</b>, busca 2 rec en Polanco hasta $8M. Ya vio 8 propiedades, le gustó la de Reforma y tiene cita el viernes 4 pm. <span class="falta">Falta: confirmar la visita y meter oferta.</span></div></div>
+
+  <div class="copilotbar"><div class="ci2">IA</div><input placeholder="Pregúntale a la IA sobre María…"><button class="cpchip">Resumir</button><button class="cpchip">Redactar seguimiento</button><button class="cpchip">¿Qué le ofrezco?</button></div>
+  <div class="tabbar">
+    <button class="on" onclick="showTab(this,'resumen')">Resumen</button>
+    <button onclick="showTab(this,'props')">Propiedades</button>
+    <button onclick="showTab(this,'conv')">Conversaciones <span class="tcount">2</span></button>
+    <button onclick="showTab(this,'act')">Actividad <span class="tcount">2</span></button>
+  </div>
+
+  <div class="pane on" id="p-resumen">
+    <div class="rsec"><div class="rsec-h"><span class="sdot" style="background:#3B82F6"></span>Datos del cliente</div>
+      <div class="datos">
+        <div class="dcol">
+          <div class="drow"><svg class="di" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg>55 1234 5678</div>
+          <div class="drow"><svg class="di" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>maria.gonzalez@gmail.com</div>
+          <div class="drow"><svg class="di" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>Llegó por Facebook Ads</div>
+          <div class="consent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Consentimiento para mensajear · registrado</div>
+        </div>
+        <div class="dcol enrich">
+          <div class="enrich-h">Redes sociales<span class="src"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>verificadas</span></div>
+          <div class="drow"><span class="cdot" style="background:#0A66C2"></span>LinkedIn · Directora de Marketing, Grupo Altavista<svg class="vchk" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="drow"><span class="cdot" style="background:#E1306C"></span>Instagram · @maria.gonzalez<svg class="vchk" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="drow"><span class="cdot" style="background:#1877F2"></span>Facebook · María González<svg class="vchk" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="rsec"><div class="rsec-h"><span class="sdot" style="background:#7C4DFF"></span>Cómo tratarla <span class="muted">· estilo de comunicación</span></div><div class="disc"><div class="disctype"><span class="dbig">I</span><div><b>Influyente</b><span>cálida · social · decide con emoción</span></div></div><div class="disctips"><div>· Sé cercano y entusiasta, evita lo técnico</div><div>· Usa historias y testimonios, no solo números</div><div>· Dale opciones y hazla sentir especial</div></div></div></div>
+    <div class="rsec"><div class="rsec-h">Qué tan listo está</div><div class="readyrow"><div class="readybig"><div class="ring" style="--p:87"><span>87<small>%</small></span></div><em style="margin-top:11px">probabilidad de cierre</em></div><div class="readywhy">Crédito aprobado · busca activamente · respondió hace 2 días. <b>Vale la pena darle seguimiento hoy.</b></div></div></div>
+    <div class="rsec"><div class="rsec-h"><span class="sdot" style="background:var(--ok)"></span>Señales IA</div><div class="signals"><div class="signal"><div class="sgl">Mejor momento</div><div class="sgv">WhatsApp · 8–10 pm</div><div class="sgs">cuando más responde</div></div><div class="signal warn"><div class="sgl">Riesgo de enfriamiento</div><div class="sgv">Bajo</div><div class="sgs">respondió hace 2 días</div></div></div></div>
+    <div class="rsec"><div class="rsec-h">Qué busca el cliente</div>
+      <div class="criterios">
+        <div class="cr"><div class="crl">Presupuesto</div><div class="crv">Hasta $8M</div></div>
+        <div class="cr"><div class="crl">Zona</div><div class="crv">Polanco</div></div>
+        <div class="cr"><div class="crl">Financiamiento</div><div class="crv">Crédito aprobado</div></div>
+        <div class="cr"><div class="crl">Decide con</div><div class="crv">Su hermana</div></div>
+      </div>
+    </div>
+    <div class="rsec"><div class="rsec-h"><span class="sdot" style="background:var(--warm)"></span>Pendientes <span class="muted">· tareas y citas en proceso</span></div>
+      <div class="pendlist">
+        <div class="pend"><span class="pdot task"></span><div class="pinfo"><b>Enviar comparativo de Polanco</b><span>Tarea · vence hoy</span></div><button class="donebtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Completar</button></div>
+        <div class="pend"><span class="pdot cita"></span><div class="pinfo"><b>Visita a Reforma 350</b><span>Cita · viernes 4 pm</span></div><button class="donebtn">Ver</button></div>
+        <div class="pend"><span class="pdot task"></span><div class="pinfo"><b>Meter oferta a la de Reforma</b><span>Tarea · sugerida por IA</span></div><button class="donebtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Completar</button></div>
+      </div>
+    </div>
+    <div class="rsec"><div class="rsec-h"><span class="sdot" style="background:var(--ok)"></span>Automatización del lead</div><div class="autorow"><div class="ai-i2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div><div class="at"><b>Piloto automático activo</b><span>El pipeline se mueve solo · seguimiento cada 3 días si no responde</span></div><div class="switch"></div></div></div>
+    <div class="rsec"><div class="rsec-h">Avance al cierre <span class="muted">· en negociación</span></div>
+      <div class="criterios">
+        <div class="cr"><div class="crl">Etapa</div><div class="crv">Negociación</div></div>
+        <div class="cr"><div class="crl">Oferta</div><div class="crv">$7.6M</div></div>
+        <div class="cr"><div class="crl">Comisión est.</div><div class="crv">$380k</div></div>
+        <div class="cr"><div class="crl">Cierre est.</div><div class="crv">Junio</div></div>
+      </div>
+      <div class="offsugg"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg><span><b>Oferta sugerida: $7.4M</b> · 82% de probabilidad de aceptación (según cierres comparables)</span></div>
+    </div>
+  </div>
+
+  <div class="pane" id="p-props">
+    <div class="secline"><span class="lab" style="font-size:18px">Propiedades de María</span><span class="it">disponibilidad y avance</span><span class="rule"></span></div>
+    <div class="engage"><span class="lv"></span><div class="et"><b>Abrió el link hace 2h</b> · sigue activa</div><div class="es"><span class="vw">8 vistas</span><span class="up">3 👍</span><span class="dn">2 👎</span></div></div>
+    <div class="pk">
+      <div class="pkcol"><div class="pkh"><span class="pd" style="background:var(--cold)"></span>Preguntando dispo.<span class="pc">2</span></div><div class="prop"><div class="ph"><span class="pp">$7,800,000</span></div><div class="pb"><div class="pt">Depto en Polanco</div><div class="paddr">Av. Horacio 1020</div><div class="specs"><span>2 rec</span><span>2 baños</span><span>1 est</span><span>120 m²</span></div><div class="pm" style="color:var(--ink-3);font-size:10.5px;margin-top:5px">broker sin responder · 1d</div></div></div><div class="reco">+ IA sugiere 3 en Polanco (92%)</div></div>
+      <div class="pkcol"><div class="pkh"><span class="pd" style="background:var(--warm)"></span>Enviada al cliente<span class="pc">1</span></div><div class="prop"><div class="ph"><span class="pp">$6,900,000</span></div><div class="pb"><div class="pt">Depto en Anzures</div><div class="paddr">Leibnitz 240</div><div class="specs"><span>2 rec</span><span>1 baño</span><span>1 est</span><span>98 m²</span></div></div></div></div>
+      <div class="pkcol"><div class="pkh"><span class="pd" style="background:var(--ok)"></span>Le gustó / cita<span class="pc">1</span></div><div class="prop"><div class="ph"><span class="pp">$8,000,000</span></div><div class="pb"><div class="pt">Depto en Reforma</div><div class="paddr">Reforma 350</div><div class="specs"><span>2 rec</span><span>2 baños</span><span>2 est</span><span>110 m²</span></div><div class="pm" style="color:var(--ok);font-size:10.5px;margin-top:5px;font-weight:600">cita vie 4pm · 👍</div></div></div></div>
+      <div class="pkcol"><div class="pkh"><span class="pd" style="background:var(--hot)"></span>Descartada<span class="pc">1</span></div><div class="prop" style="opacity:.6"><div class="ph"><span class="pp">$9,100,000</span></div><div class="pb"><div class="pt">Depto en Lomas</div><div class="paddr">Sierra Madre 615</div><div class="specs"><span>3 rec</span><span>3 baños</span><span>2 est</span><span>180 m²</span></div><div class="pm" style="color:var(--hot);font-size:10.5px;margin-top:5px">precio alto · 👎</div></div></div></div>
+    </div>
+    <div class="tinder-cta"><div class="ti"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg></div><div class="tx"><b>Enviar link de propiedades a María</b><p>Un link · desliza 👍/👎 y busca más en la Bolsa sin salir. Cada deslizada vuelve aquí.</p></div><button class="btn-primary">Crear y enviar</button></div>
+  </div>
+
+  <div class="pane" id="p-conv">
+    <div class="convhint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Solo aparecen los canales donde María te ha escrito · responde por el mismo o agrega otro con "+ canal"</div>
+    <div class="convmeta"><div class="cm"><span class="cml">Ánimo del cliente</span><span class="cmv pos"><span class="gd" style="background:var(--ok)"></span>Positivo</span><span class="cmh">contenta · lista para avanzar</span></div><div class="cm"><span class="cml">Estado</span><span class="cmv"><span class="gd" style="background:var(--warm)"></span>Te toca responder</span><span class="cmh">te escribió hace 1 h</span></div></div>
+    <div class="objbar"><svg class="ob-i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.3 3.8 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg><span><b>Objeción detectada:</b> le preocupa el precio</span><span class="obfix">Cómo responder →</span></div>
+    <div class="chanfilter">
+      <button class="on" onclick="filterCh(this,'all')">Todos</button>
+      <button onclick="filterCh(this,'wa')"><span class="cdot" style="background:#25D366"></span>WhatsApp</button>
+      <button onclick="filterCh(this,'ig')"><span class="cdot" style="background:#E1306C"></span>Instagram</button>
+      <button onclick="filterCh(this,'fb')"><span class="cdot" style="background:#1877F2"></span>Facebook</button>
+      <button onclick="filterCh(this,'li')"><span class="cdot" style="background:#0A66C2"></span>LinkedIn</button>
+      <button class="addchan">+ canal</button>
+    </div>
+    <div class="thread" id="thread">
+      <div class="sysline">— Llegó por la web · 12 may —</div>
+      <div class="msg in" data-ch="fb"><div class="bubble">Hola, vi su anuncio de Polanco. ¿Sigue disponible?</div><div class="mmeta"><span class="cdot" style="background:#1877F2"></span>Facebook · 12 may</div></div>
+      <div class="msg out" data-ch="wa"><div class="bubble">¡Hola María! Sí, sigue disponible. Te comparto 3 opciones en Polanco que encajan con tu presupuesto y zona.</div><div class="mmeta">Tú · WhatsApp · hace 4 días</div></div>
+      <div class="msg out" data-ch="wa"><div class="propmsg"><div class="pmh"><span class="pp">$8,000,000</span></div><div class="pmb"><div class="pmt">Depto en Reforma 350</div><div class="pmspecs">2 rec · 2 baños · 110 m²</div></div></div><div class="mmeta">Tú · enviada por WhatsApp · hace 4 días</div></div>
+      <div class="msg in" data-ch="wa"><div class="propmsg"><div class="pmh"><span class="pp">$7,500,000</span></div><div class="pmb"><div class="pmt">"Mira esta que vi en Inmuebles24"</div><div class="pmspecs">Polanco · 2 rec · 95 m²</div></div><div class="pmadd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Agregada a sus propiedades automáticamente</div></div><div class="mmeta"><span class="cdot" style="background:#25D366"></span>WhatsApp · hace 3 días</div></div>
+      <div class="msg in" data-ch="wa"><div class="bubble"><span class="clip" id="m1">Muchas gracias! La verdad estoy buscando algo de 2 recámaras, idealmente con balcón o terraza, que acepte mi crédito hipotecario aprobado. Me importa mucho la seguridad de la zona y que esté cerca de buenas escuelas porque tengo dos hijos. El presupuesto máximo es de 8 millones pero podría estirarme un poco si vale la pena. Decido junto con mi hermana así que necesito mandarle fotos y la ficha de cada una. ¿Me puedes mandar todo lo que tengas en Polanco y Anzures?</span><span class="more" onclick="expand('m1',this)">ver más</span></div><div class="mmeta"><span class="cdot" style="background:#25D366"></span>WhatsApp · hace 3 días</div></div>
+      <div class="msg in" data-ch="ig"><div class="bubble">vi tu story de Polanco, me interesa muchísimo</div><div class="mmeta"><span class="cdot" style="background:#E1306C"></span>Instagram · hace 3 h</div></div>
+      <div class="msg in" data-ch="li"><div class="bubble">Te escribo también por aquí — ¿podemos agendar la visita el viernes?</div><div class="mmeta"><span class="cdot" style="background:#0A66C2"></span>LinkedIn · hace 2 h</div></div>
+      <div class="msg in" data-ch="wa"><div class="bubble">¿Sigue disponible la de Reforma?</div><div class="mmeta"><span class="cdot" style="background:#25D366"></span>WhatsApp · hace 1 h</div></div>
+    </div>
+    <div class="aisugg"><div class="ai-i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg></div><span><b>Sugerencia:</b> "Hola María, la de Reforma sigue disponible. ¿Te late el viernes 4 pm para la visita?"</span><button class="usebtn">Usar</button></div>
+    <div class="compose">
+      <button class="attachbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>Propiedad</button>
+      <button class="attachbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8"/></svg>Plantillas</button>
+      <span class="replyon">Respondes por <span class="rchan" id="rchan"><span class="cdot" style="background:#25D366"></span>WhatsApp</span></span>
+      <input placeholder="Escribe tu respuesta…"><button class="hbtn key">Enviar</button>
+    </div>
+  </div>
+
+  <div class="pane" id="p-act">
+    <div class="actbtns"><button class="ctxbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Nota</button><button class="ctxbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Tarea</button><button class="ctxbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Cita</button><button class="ctxbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Nota por voz</button></div>
+    <div class="tl">
+      <div class="tlrow"><span class="ti2 task"></span><b>Tarea</b> · enviar comparativo de Polanco <span class="badge">pendiente</span><span class="when">vence hoy</span></div>
+      <div class="tlrow"><span class="ti2 cita"></span><b>Cita</b> · visita Reforma 350 · viernes 4 pm<span class="when">en 2 días</span></div>
+      <div class="tlrow"><span class="ti2 nota"></span><b>Nota</b> · crédito aprobado y presupuesto confirmados<span class="when">hace 2 días</span></div>
+      <div class="tlrow"><span class="ti2 sys"></span>Cambió a etapa Negociación<span class="when">hace 3 días</span></div>
+      <div class="tlrow"><span class="ti2 sys"></span>Visita registrada · Depto Reforma<span class="when">hace 5 días</span></div>
+    </div>
+  </div>
+</div></div>
+
+<div class="demohint">Tema claro · 4 tabs · clic en un lead · Esc para cerrar</div>
+<script>
+  function openDrawer(){['modal','scrim','aprev','anext'].forEach(i=>document.getElementById(i).classList.add('show'));resetTabs();}
+  function closeDrawer(){['modal','scrim','aprev','anext'].forEach(i=>document.getElementById(i).classList.remove('show'));}
+  function showTab(btn,id){document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');}
+  function resetTabs(){const f=document.querySelector('.tabbar button');if(f)showTab(f,'resumen');}
+  function filterCh(btn,ch){btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.querySelectorAll('#thread .msg').forEach(m=>{m.style.display=(ch==='all'||m.dataset.ch===ch)?'flex':'none';});var map={all:['WhatsApp','#25D366'],wa:['WhatsApp','#25D366'],ig:['Instagram','#E1306C'],fb:['Facebook','#1877F2'],li:['LinkedIn','#0A66C2']};var r=document.getElementById('rchan');if(r&&map[ch])r.innerHTML='<span class="cdot" style="background:'+map[ch][1]+'"></span>'+map[ch][0];}
+  function expand(id,el){document.getElementById(id).classList.remove('clip');el.style.display='none';}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+</script>
+</body>
+</html>

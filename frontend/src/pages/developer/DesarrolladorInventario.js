@@ -134,7 +134,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 18px',
               background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.3)',
-              borderRadius: 9999, color: '#a5b4fc', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              borderRadius: 9999, color: 'var(--blue)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer',
             }}>
             <Upload size={13} /> Bulk Upload
           </button>
@@ -206,7 +206,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <Badge tone={TONE[u.status]}>{u.status}</Badge>
-                            {u.overridden && <span style={{ marginLeft: 6, fontFamily: 'DM Sans', fontSize: 9.5, color: '#fcd34d' }}>· override</span>}
+                            {u.overridden && <span style={{ marginLeft: 6, fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--amber)' }}>· override</span>}
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             {hold ? (
@@ -229,7 +229,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                                 style={{
                                   padding: '4px 10px', borderRadius: 7,
                                   background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)',
-                                  color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 11.5, cursor: 'pointer',
+                                  color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 11.5, cursor: 'pointer',
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
                                 }}>
                                 <Clock size={10} /> Apartar
@@ -273,7 +273,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
 
       {/* Status edit modal */}
       {editing && (
-        <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div onClick={e => e.stopPropagation()} data-testid="status-modal" style={{ width: 380, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 22 }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>UNIDAD {editing.unit.unit_number}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 14 }}>
@@ -294,7 +294,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
 
       {/* Hold modal */}
       {holdModal && (
-        <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 400, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Clock size={16} color="#f59e0b" />
@@ -313,7 +313,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                   <button key={h} onClick={() => setHoldHours(h)} data-testid={`hold-hours-${h}`}
                     style={{
                       flex: 1, padding: '10px 0', borderRadius: 9, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      background: holdHours === h ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                      background: holdHours === h ? 'rgba(245,158,11,0.15)' : 'rgba(var(--cream-rgb),0.04)',
                       border: `1px solid ${holdHours === h ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
                       color: holdHours === h ? '#fcd34d' : 'var(--cream-3)',
                     }}>
@@ -331,7 +331,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                 value={holdReason}
                 onChange={e => setHoldReason(e.target.value)}
                 data-testid="hold-reason-input"
-                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -340,7 +340,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                 Cancelar
               </button>
               <button onClick={createHold} disabled={holdLoading} data-testid="confirm-hold-btn"
-                style={{ flex: 2, padding: '10px 0', borderRadius: 9, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.35)', color: '#fcd34d', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: holdLoading ? 0.6 : 1 }}>
+                style={{ flex: 2, padding: '10px 0', borderRadius: 9, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.35)', color: 'var(--amber)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: holdLoading ? 0.6 : 1 }}>
                 {holdLoading ? 'Apartando...' : `Apartar ${holdHours}h`}
               </button>
             </div>

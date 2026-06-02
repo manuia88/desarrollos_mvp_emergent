@@ -17,8 +17,8 @@ const PERIODS = [
 const ROLE_META = {
   developer_admin:   { label: 'Desarrollador',  Icon: Building2,   color: 'var(--theme)' },
   advisor:           { label: 'Asesor',          Icon: User,        color: '#34d399' },
-  inmobiliaria_admin:{ label: 'Inmobiliaria',    Icon: Briefcase,   color: '#fbbf24' },
-  buyer:             { label: 'Comprador',       Icon: Heart,       color: '#f472b6' },
+  inmobiliaria_admin:{ label: 'Inmobiliaria',    Icon: Briefcase,   color: 'var(--amber)' },
+  buyer:             { label: 'Comprador',       Icon: Heart,       color: 'var(--rose)' },
 };
 
 const TOUR_LABELS = {
@@ -32,7 +32,7 @@ const TOUR_LABELS = {
 function FunnelBar({ started, completed, color }) {
   const pct = started > 0 ? Math.round(completed / started * 100) : 0;
   return (
-    <div style={{ position: 'relative', height: 6, borderRadius: 9999, background: 'rgba(240,235,224,0.08)', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', height: 6, borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.08)', overflow: 'hidden' }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, height: '100%',
         width: `${pct}%`, borderRadius: 9999,
@@ -57,8 +57,8 @@ function RoleCard({ role, data }) {
       data-testid={`tour-card-${role}`}
       className="rounded-2xl"
       style={{
-        background: 'rgba(240,235,224,0.03)',
-        border: '1px solid rgba(240,235,224,0.1)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px solid rgba(var(--cream-rgb),0.1)',
         padding: '18px 20px',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}
@@ -182,8 +182,8 @@ export default function TourCompletionAnalytics({ period: controlledPeriod } = {
             onClick={() => setPeriod(p.key)}
             style={{
               padding: '5px 14px', borderRadius: 9999,
-              background: period === p.key ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(240,235,224,0.05)',
-              border: `1px solid ${period === p.key ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(240,235,224,0.12)'}`,
+              background: period === p.key ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(var(--cream-rgb),0.05)',
+              border: `1px solid ${period === p.key ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(var(--cream-rgb),0.12)'}`,
               color: period === p.key ? 'var(--cream)' : 'var(--cream-3)',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
               transition: 'all 0.15s',
@@ -250,7 +250,7 @@ export default function TourCompletionAnalytics({ period: controlledPeriod } = {
                   <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
                     {ROLE_META[r]?.label || r}
                   </span>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#f87171', fontWeight: 700, marginLeft: 'auto' }}>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--red)', fontWeight: 700, marginLeft: 'auto' }}>
                     {byRole[r]?.completion_rate_pct ?? 0}%
                   </span>
                 </div>
@@ -272,7 +272,7 @@ export default function TourCompletionAnalytics({ period: controlledPeriod } = {
                   <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
                     {ROLE_META[r]?.label || r}
                   </span>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#fbbf24', fontWeight: 700, marginLeft: 'auto' }}>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--amber)', fontWeight: 700, marginLeft: 'auto' }}>
                     {byRole[r]?.dismiss_rate_pct ?? 0}%
                   </span>
                 </div>

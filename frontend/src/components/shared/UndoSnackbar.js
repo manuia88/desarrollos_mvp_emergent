@@ -29,7 +29,7 @@ function CountdownBar({ timeout, startAt }) {
   }, [timeout, startAt]);
 
   return (
-    <div className="h-[2px] w-full bg-[rgba(240,235,224,0.08)] rounded-full overflow-hidden mt-2">
+    <div className="h-[2px] w-full bg-[rgba(var(--cream-rgb),0.08)] rounded-full overflow-hidden mt-2">
       <div
         className="h-full rounded-full transition-none"
         style={{
@@ -44,12 +44,12 @@ function CountdownBar({ timeout, startAt }) {
 function SnackItem({ item, onUndo, onDismiss }) {
   return (
     <div
-      className="pointer-events-auto w-[320px] rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] px-4 py-3"
+      className="pointer-events-auto w-[320px] rounded-xl bg-[rgba(var(--bg-rgb),0.92)] border border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px] px-4 py-3"
       style={{ animation: 'fadeInUp 0.2s ease-out' }}
       data-testid={`undo-snackbar-${item.id}`}
     >
       <div className="flex items-center gap-3">
-        <span className="flex-1 text-[rgba(240,235,224,0.8)] text-sm leading-snug">{item.message}</span>
+        <span className="flex-1 text-[rgba(var(--cream-rgb),0.8)] text-sm leading-snug">{item.message}</span>
         <button
           onClick={() => onUndo(item)}
           className="flex items-center gap-1.5 text-[var(--cream)] text-sm font-semibold hover:opacity-75 transition-opacity shrink-0"
@@ -60,7 +60,7 @@ function SnackItem({ item, onUndo, onDismiss }) {
         </button>
         <button
           onClick={() => onDismiss(item.id)}
-          className="text-[rgba(240,235,224,0.3)] hover:text-[rgba(240,235,224,0.7)] transition-colors shrink-0"
+          className="text-[rgba(var(--cream-rgb),0.3)] hover:text-[rgba(var(--cream-rgb),0.7)] transition-colors shrink-0"
           data-testid="undo-dismiss-btn"
         >
           <X size={14} />

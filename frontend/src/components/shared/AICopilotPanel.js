@@ -49,8 +49,8 @@ function MessageBubble({ msg }) {
       style={{
         alignSelf: isUser ? 'flex-end' : 'flex-start',
         maxWidth: '88%',
-        background: isUser ? 'rgba(240,235,224,0.10)' : 'rgba(13,16,23,0.92)',
-        border: '1px solid ' + (isUser ? 'rgba(240,235,224,0.14)' : 'rgba(var(--theme-rgb),0.30)'),
+        background: isUser ? 'rgba(var(--cream-rgb),0.10)' : 'rgba(var(--bg-rgb),0.92)',
+        border: '1px solid ' + (isUser ? 'rgba(var(--cream-rgb),0.14)' : 'rgba(var(--theme-rgb),0.30)'),
         backdropFilter: 'blur(24px)',
         borderRadius: 14,
         padding: '10px 14px',
@@ -88,15 +88,15 @@ function ConversationsSidebar({
       style={{
         position: 'absolute', top: 0, left: 0, bottom: 0, width: '60%',
         maxWidth: 280,
-        background: 'rgba(13,16,23,0.96)',
-        borderRight: '1px solid rgba(240,235,224,0.10)',
+        background: 'rgba(var(--bg-rgb),0.96)',
+        borderRight: '1px solid rgba(var(--cream-rgb),0.10)',
         backdropFilter: 'blur(24px)',
         display: 'flex', flexDirection: 'column', zIndex: Z.BASE,
       }}
     >
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 14px', borderBottom: '1px solid rgba(240,235,224,0.08)',
+        padding: '12px 14px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
       }}>
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--cream)', fontSize: 13 }}>
           Conversaciones
@@ -200,8 +200,8 @@ function EmptyState({ onPick, prompts }) {
             onClick={() => onPick(p)}
             style={{
               padding: '10px 14px', borderRadius: 12,
-              border: '1px solid rgba(240,235,224,0.14)',
-              background: 'rgba(13,16,23,0.92)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)',
+              background: 'rgba(var(--bg-rgb),0.92)',
               color: 'var(--cream-2)',
               fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 500,
               cursor: 'pointer', textAlign: 'left',
@@ -213,7 +213,7 @@ function EmptyState({ onPick, prompts }) {
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(240,235,224,0.14)';
+              e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.14)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}>
             <span>{p.label}</span>
@@ -308,7 +308,7 @@ export default function AICopilotPanel({ user }) {
         onClick={cp.close}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(6,8,15,0.55)',
+          background: 'rgba(var(--bg-rgb),0.55)',
           backdropFilter: 'blur(2px)',
           opacity: cp.isOpen ? 1 : 0,
           pointerEvents: cp.isOpen ? 'auto' : 'none',
@@ -324,8 +324,8 @@ export default function AICopilotPanel({ user }) {
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0,
           width: drawerWidth, maxWidth: '100vw',
-          background: 'rgba(6,8,15,0.96)',
-          borderLeft: isMobile ? 'none' : '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--bg-rgb),0.96)',
+          borderLeft: isMobile ? 'none' : '1px solid rgba(var(--cream-rgb),0.10)',
           backdropFilter: 'blur(24px)',
           color: 'var(--cream)',
           transform: cp.isOpen ? 'translateX(0)' : 'translateX(105%)',
@@ -337,7 +337,7 @@ export default function AICopilotPanel({ user }) {
         {/* Header */}
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px', borderBottom: '1px solid rgba(240,235,224,0.08)',
+          padding: '14px 16px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {isMobile && (
@@ -373,7 +373,7 @@ export default function AICopilotPanel({ user }) {
               onClick={() => setHistoryOpen(o => !o)}
               aria-label="Conversaciones"
               style={{
-                background: 'transparent', border: '1px solid rgba(240,235,224,0.14)',
+                background: 'transparent', border: '1px solid rgba(var(--cream-rgb),0.14)',
                 borderRadius: 9999, padding: '5px 10px', cursor: 'pointer',
                 color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontSize: 11, fontFamily: 'DM Sans',
@@ -385,7 +385,7 @@ export default function AICopilotPanel({ user }) {
               onClick={cp.newConversation}
               aria-label="Nueva conversación"
               style={{
-                background: 'transparent', border: '1px solid rgba(240,235,224,0.14)',
+                background: 'transparent', border: '1px solid rgba(var(--cream-rgb),0.14)',
                 borderRadius: 9999, padding: '5px 10px', cursor: 'pointer',
                 color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontSize: 11, fontFamily: 'DM Sans',
@@ -409,7 +409,7 @@ export default function AICopilotPanel({ user }) {
         <div data-testid="copilot-quick-actions" style={{
           display: 'flex', gap: 6, overflowX: 'auto',
           padding: '10px 16px',
-          borderBottom: '1px solid rgba(240,235,224,0.06)',
+          borderBottom: '1px solid rgba(var(--cream-rgb),0.06)',
         }}>
           {prompts.map(p => (
             <button
@@ -461,7 +461,7 @@ export default function AICopilotPanel({ user }) {
             <div data-testid="copilot-loading" style={{
               alignSelf: 'flex-start',
               padding: '8px 12px', borderRadius: 12,
-              background: 'rgba(13,16,23,0.92)',
+              background: 'rgba(var(--bg-rgb),0.92)',
               border: '1px solid rgba(var(--theme-rgb),0.30)',
               backdropFilter: 'blur(24px)',
               color: 'var(--cream-2)', fontSize: 12, fontFamily: 'DM Sans',
@@ -475,14 +475,14 @@ export default function AICopilotPanel({ user }) {
 
         {/* Composer */}
         <div style={{
-          borderTop: '1px solid rgba(240,235,224,0.08)',
+          borderTop: '1px solid rgba(var(--cream-rgb),0.08)',
           padding: '12px 16px',
-          background: 'rgba(13,16,23,0.92)',
+          background: 'rgba(var(--bg-rgb),0.92)',
         }}>
           <div style={{
             display: 'flex', alignItems: 'flex-end', gap: 8,
-            background: 'rgba(240,235,224,0.04)',
-            border: '1px solid rgba(240,235,224,0.14)',
+            background: 'rgba(var(--cream-rgb),0.04)',
+            border: '1px solid rgba(var(--cream-rgb),0.14)',
             borderRadius: 16, padding: '8px 10px',
           }}>
             <textarea
@@ -513,7 +513,7 @@ export default function AICopilotPanel({ user }) {
               style={{
                 width: 32, height: 32, borderRadius: 9999,
                 background: (cp.loading || !draft.trim())
-                  ? 'rgba(240,235,224,0.10)'
+                  ? 'rgba(var(--cream-rgb),0.10)'
                   : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 border: 'none', color: '#fff',
                 cursor: (cp.loading || !draft.trim()) ? 'not-allowed' : 'pointer',
@@ -533,7 +533,7 @@ export default function AICopilotPanel({ user }) {
             <div data-testid="copilot-error" style={{
               marginTop: 8, padding: '6px 10px', borderRadius: 10,
               background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)',
-              color: '#fca5a5', fontSize: 11, fontFamily: 'DM Sans',
+              color: 'var(--red)', fontSize: 11, fontFamily: 'DM Sans',
             }}>{cp.error}</div>
           )}
         </div>
@@ -559,16 +559,16 @@ export default function AICopilotPanel({ user }) {
         .dmx-md h3 { font-size: 13px; }
         .dmx-md strong { color: var(--cream); }
         .dmx-md code {
-           background: rgba(240,235,224,0.08); padding: 1px 5px;
+           background: rgba(var(--cream-rgb),0.08); padding: 1px 5px;
            border-radius: 4px; font-size: 11.5px;
         }
         .dmx-md pre {
-           background: rgba(240,235,224,0.06); padding: 8px;
+           background: rgba(var(--cream-rgb),0.06); padding: 8px;
            border-radius: 8px; overflow-x: auto; font-size: 11.5px;
         }
         .dmx-md table { border-collapse: collapse; margin: 6px 0; font-size: 11.5px; }
         .dmx-md th, .dmx-md td {
-           border: 1px solid rgba(240,235,224,0.14);
+           border: 1px solid rgba(var(--cream-rgb),0.14);
            padding: 4px 8px; text-align: left;
         }
         .dmx-md a { color: var(--theme); text-decoration: underline; }

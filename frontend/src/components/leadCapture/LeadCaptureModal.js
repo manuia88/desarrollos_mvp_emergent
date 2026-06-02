@@ -42,6 +42,7 @@ export default function LeadCaptureModal({
   propertyTitle = '',
   defaultAudience = 'neutral',
   sourcePage = '',
+  onCaptured,
 }) {
   const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
@@ -110,6 +111,7 @@ export default function LeadCaptureModal({
       });
       setSuccess(r || {});
       setStep('confirmation');
+      try { onCaptured?.(r); } catch (_) { /* ignore */ }
       try { localStorage.setItem(CAPTURED_FLAG, '1'); } catch { /* ignore */ }
     } catch (e2) {
       if (e2?.status === 422) setErr(t('leadCapture.err_invalid_whatsapp'));

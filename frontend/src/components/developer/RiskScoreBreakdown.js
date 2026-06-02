@@ -16,8 +16,8 @@ function ComponentCard({ title, status, value, sub, children }) {
   return (
     <div data-testid={`risk-component-${title.toLowerCase().replace(/\s+/g, '-')}`}
       style={{
-        background: isActive ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${isActive ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(255,255,255,0.08)'}`,
+        background: isActive ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(var(--cream-rgb),0.03)',
+        border: `1px solid ${isActive ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(var(--cream-rgb),0.08)'}`,
         borderRadius: 14, padding: 16,
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -58,7 +58,7 @@ export default function RiskScoreBreakdown({ zoneId }) {
       <div data-testid="risk-breakdown-unavailable" style={{
         padding: 16, borderRadius: 12,
         background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.32)',
-        color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 13,
+        color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 13,
       }}>
         Risk Score no disponible: {data.reason || 'sin datos'}.
         SESNSP publica con ~30-60d de retraso.
@@ -126,8 +126,8 @@ export default function RiskScoreBreakdown({ zoneId }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
             {Object.entries(byCat).map(([cat, n]) => (
               <div key={cat} data-testid={`risk-cat-${cat}`} style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: 'rgba(var(--cream-rgb),0.04)',
+                border: '1px solid rgba(var(--cream-rgb),0.10)',
                 borderRadius: 12, padding: 10,
               }}>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>{CAT_LABELS[cat] || cat}</div>

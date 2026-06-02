@@ -1,0 +1,98 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /barrios
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Cambiar a español" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: EN
+        - generic [ref=e22]: ·
+        - generic [ref=e23]: ES
+      - button "Entrar" [ref=e24] [cursor=pointer]
+      - link "Abrir mapa" [ref=e25] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Abrir mapa
+  - main [ref=e29]:
+    - generic [ref=e30]:
+      - generic [ref=e31]: Metodología abierta · DesarrollosMX
+      - heading "Cómo calculamos los datos DMX" [level=1] [ref=e32]
+      - paragraph [ref=e33]: DesarrollosMX publica métricas trazables y reproducibles. Esta página describe los modelos estadísticos, fuentes de datos y validaciones que sostienen el DRPI, el Zone Score, el Risk Score (próximamente) y el Construction Cost Index.
+    - heading "1 · DRPI · Modelo hedónico" [level=2] [ref=e35]
+    - heading "2 · Zone Score A-F" [level=2] [ref=e37]
+    - heading "3 · Risk Score V2 multi-source" [level=2] [ref=e39]
+    - heading "4 · Construction Cost Index" [level=2] [ref=e41]
+    - generic [ref=e42]:
+      - heading "5 · Validación" [level=2] [ref=e43]
+      - paragraph [ref=e45]:
+        - text: Métricas de validación rigurosas (R², RMSE, MAPE) están disponibles en formato JSON público en
+        - code [ref=e46]: /api/data-lake/public/validation
+        - text: ", actualizadas snapshot-vs-snapshot."
+    - heading "6 · Citación y prensa" [level=2] [ref=e48]
+    - generic [ref=e49]:
+      - heading "7 · Compliance LFPDPPP" [level=2] [ref=e50]
+      - generic [ref=e51]:
+        - paragraph [ref=e52]:
+          - text: Todos los endpoints públicos de la API DMX implementan las siguientes salvaguardas de privacidad conforme a la
+          - strong [ref=e53]: Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)
+          - text: .
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - paragraph [ref=e56]: k-anonimidad ≥ 5
+            - paragraph [ref=e57]: Las consultas de zona que retornan menos de 5 registros son bloqueadas automáticamente para prevenir re-identificación de individuos.
+          - generic [ref=e58]:
+            - paragraph [ref=e59]: PII Stripping por tier
+            - paragraph [ref=e60]:
+              - text: Capa de anonimización automática elimina nombre, email, RFC, CURP y datos de contacto de todos los responses públicos (tiers
+              - code [ref=e61]: free
+              - text: "y"
+              - code [ref=e62]: pro
+              - text: ). Tier
+              - code [ref=e63]: enterprise
+              - text: recibe identificadores hash únicamente.
+          - generic [ref=e64]:
+            - paragraph [ref=e65]: Privacidad diferencial (free tier)
+            - paragraph [ref=e66]:
+              - text: Los outputs numéricos en tier
+              - code [ref=e67]: free
+              - text: (índices DRPI, precios promedio) incorporan ruido de Laplace (ε = 1.0) para proteger privacidad individual.
+          - generic [ref=e68]:
+            - paragraph [ref=e69]: Derechos ARCO + Audit trail 5 años
+            - paragraph [ref=e70]:
+              - text: Los titulares pueden ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición en
+              - link "/privacy/dsr" [ref=e71] [cursor=pointer]:
+                - /url: /privacy/dsr
+              - text: . Cada consulta a la API se registra en un audit trail con retención de 5 años por requerimiento LFPDPPP.
+        - paragraph [ref=e72]: "Nota: Esta implementación técnica no constituye asesoría legal. El titular de la plataforma es responsable de obtener revisión jurídica profesional antes del lanzamiento."
+    - generic [ref=e73]:
+      - heading "8 · Suscripción a boletines y alertas" [level=2] [ref=e74]
+      - generic [ref=e75]:
+        - paragraph [ref=e76]: Recibe el boletín mensual del DRPI y alertas cuando una zona en tu lista cambie a tier crítico (Risk Score). 1 alerta por semana máximo.
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: Email
+            - textbox "Email" [ref=e81]:
+              - /placeholder: tu@correo.com
+          - generic [ref=e82]:
+            - generic [ref=e83]: Zonas a vigilar (separadas por coma)
+            - textbox "Zonas a vigilar (separadas por coma)" [ref=e84]:
+              - /placeholder: polanco, roma_norte, condesa
+          - generic [ref=e85]:
+            - generic [ref=e86]: Tipo de notificación
+            - combobox "Tipo de notificación" [ref=e87]:
+              - option "Boletines mensuales" [selected]
+              - option "Alertas de riesgo"
+              - option "Boletines + alertas"
+          - button "Suscribirme" [ref=e88] [cursor=pointer]
+          - paragraph [ref=e89]: LFPDPPP — DesarrollosMX nunca compartirá tu correo. Audit trail conservado por compliance. Puedes darte de baja en cualquier momento desde el correo de gestión.

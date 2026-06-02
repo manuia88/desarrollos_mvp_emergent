@@ -38,13 +38,13 @@ function ResultCard({ match }) {
       style={{
         borderRadius: 14,
         overflow: 'hidden',
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(240,235,224,0.10)',
+        background: 'rgba(var(--cream-rgb),0.03)',
+        border: '1px solid rgba(var(--cream-rgb),0.10)',
         cursor: 'pointer',
         transition: 'border-color 0.2s',
       }}
       onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(240,235,224,0.10)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(var(--cream-rgb),0.10)'}
     >
       {/* Thumbnail */}
       <div style={{
@@ -87,7 +87,7 @@ function ResultCard({ match }) {
         </div>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 11,
-          color: 'rgba(240,235,224,0.5)',
+          color: 'rgba(var(--cream-rgb),0.5)',
           marginBottom: 4,
         }}>
           {match.zona || '—'}
@@ -162,7 +162,7 @@ export default function ImageSearchModal({ open, onClose }) {
       onClick={handleClose}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.80)',
+        background: 'rgba(var(--bg-rgb),0.80)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
@@ -172,8 +172,8 @@ export default function ImageSearchModal({ open, onClose }) {
         data-testid="image-search-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 20,
           width: '100%', maxWidth: 680,
           maxHeight: '90vh',
@@ -196,7 +196,7 @@ export default function ImageSearchModal({ open, onClose }) {
             </div>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 12,
-              color: 'rgba(240,235,224,0.45)', marginTop: 2,
+              color: 'rgba(var(--cream-rgb),0.45)', marginTop: 2,
             }}>
               Sube una foto y encontramos propiedades similares con IA
             </div>
@@ -206,9 +206,9 @@ export default function ImageSearchModal({ open, onClose }) {
             onClick={handleClose}
             style={{
               width: 32, height: 32, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
-              color: 'rgba(240,235,224,0.6)',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              color: 'rgba(var(--cream-rgb),0.6)',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -226,12 +226,12 @@ export default function ImageSearchModal({ open, onClose }) {
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
             style={{
-              border: `2px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.7)' : 'rgba(240,235,224,0.18)'}`,
+              border: `2px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.7)' : 'rgba(var(--cream-rgb),0.18)'}`,
               borderRadius: 16,
               padding: preview ? 12 : '40px 24px',
               cursor: 'pointer',
               transition: 'border-color 0.2s, background 0.2s',
-              background: dragOver ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(255,255,255,0.02)',
+              background: dragOver ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(var(--cream-rgb),0.02)',
               marginBottom: 16,
               textAlign: preview ? 'left' : 'center',
               display: preview ? 'flex' : 'block',
@@ -258,7 +258,7 @@ export default function ImageSearchModal({ open, onClose }) {
                   </div>
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 11,
-                    color: 'rgba(240,235,224,0.45)', marginTop: 3,
+                    color: 'rgba(var(--cream-rgb),0.45)', marginTop: 3,
                   }}>
                     {file ? `${Math.round(file.size / 1024)} KB · ` : ''}
                     Haz click para cambiar
@@ -284,7 +284,7 @@ export default function ImageSearchModal({ open, onClose }) {
                 </div>
                 <div style={{
                   fontFamily: 'DM Sans', fontSize: 12,
-                  color: 'rgba(240,235,224,0.40)',
+                  color: 'rgba(var(--cream-rgb),0.40)',
                 }}>
                   JPEG, PNG o WebP · Máximo 5 MB
                 </div>
@@ -308,7 +308,7 @@ export default function ImageSearchModal({ open, onClose }) {
             background: 'rgba(239,68,68,0.10)',
             border: '1px solid rgba(239,68,68,0.30)',
             fontFamily: 'DM Sans', fontSize: 13,
-            color: '#FCA5A5',
+            color: 'var(--red)',
           }}>
             {error}
           </div>
@@ -337,7 +337,7 @@ export default function ImageSearchModal({ open, onClose }) {
               <>
                 <span style={{
                   width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid rgba(255,255,255,0.3)',
+                  border: '2px solid rgba(var(--cream-rgb),0.3)',
                   borderTopColor: '#fff',
                   display: 'inline-block',
                   animation: 'spin 0.7s linear infinite',
@@ -371,7 +371,7 @@ export default function ImageSearchModal({ open, onClose }) {
                 {results.processing_ms && (
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 11,
-                    color: 'rgba(240,235,224,0.35)', marginTop: 2,
+                    color: 'rgba(var(--cream-rgb),0.35)', marginTop: 2,
                   }}>
                     Procesado en {results.processing_ms} ms
                   </div>
@@ -381,9 +381,9 @@ export default function ImageSearchModal({ open, onClose }) {
                 onClick={() => { setResults(null); setPreview(null); setFile(null); }}
                 style={{
                   padding: '7px 14px', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(240,235,224,0.15)',
-                  color: 'rgba(240,235,224,0.7)',
+                  background: 'rgba(var(--cream-rgb),0.06)',
+                  border: '1px solid rgba(var(--cream-rgb),0.15)',
+                  color: 'rgba(var(--cream-rgb),0.7)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                   cursor: 'pointer',
                 }}
@@ -396,11 +396,11 @@ export default function ImageSearchModal({ open, onClose }) {
             {!hasMatches ? (
               <div style={{
                 padding: '32px 24px', textAlign: 'center',
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px dashed rgba(240,235,224,0.12)',
+                background: 'rgba(var(--cream-rgb),0.02)',
+                border: '1px dashed rgba(var(--cream-rgb),0.12)',
                 borderRadius: 16,
                 fontFamily: 'DM Sans', fontSize: 13,
-                color: 'rgba(240,235,224,0.50)',
+                color: 'rgba(var(--cream-rgb),0.50)',
               }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
                   Sin matches

@@ -52,7 +52,7 @@ export default function DuplicateProjectModal({ source, onClose, onDuplicated })
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.MODAL,
-      background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
+      background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div onClick={(e) => e.stopPropagation()} data-testid="duplicate-project-modal" style={{
@@ -92,7 +92,7 @@ export default function DuplicateProjectModal({ source, onClose, onDuplicated })
                   placeholder={t('projectWizard.newNamePlaceholder', 'Ej. Polanco Heights Fase 2')}
                   style={{
                     marginTop: 6, width: '100%',
-                    background: 'rgba(240,235,224,0.04)', color: 'var(--cream)',
+                    background: 'rgba(var(--cream-rgb),0.04)', color: 'var(--cream)',
                     border: '1px solid var(--border)', borderRadius: 10,
                     padding: '10px 12px', fontFamily: 'DM Sans', fontSize: 14,
                   }}
@@ -113,7 +113,7 @@ export default function DuplicateProjectModal({ source, onClose, onDuplicated })
                         onChange={(e) => onChangeOverride(f, e.target.value)}
                         placeholder={String(source?.[f] || '')}
                         style={{
-                          background: 'rgba(240,235,224,0.03)', color: 'var(--cream)',
+                          background: 'rgba(var(--cream-rgb),0.03)', color: 'var(--cream)',
                           border: '1px solid var(--border)', borderRadius: 8,
                           padding: '8px 10px', fontFamily: 'DM Sans', fontSize: 13,
                         }}
@@ -127,7 +127,7 @@ export default function DuplicateProjectModal({ source, onClose, onDuplicated })
                 <div role="alert" style={{
                   marginTop: 14, padding: '10px 12px',
                   background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.30)',
-                  borderRadius: 10, color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 13,
+                  borderRadius: 10, color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 13,
                 }}>
                   {error}
                 </div>
@@ -143,7 +143,7 @@ export default function DuplicateProjectModal({ source, onClose, onDuplicated })
             }}>
               <Check size={18} color="#86efac" />
               <div>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: '#86efac' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: 'var(--green)' }}>
                   {t('projectWizard.successTitle', 'Proyecto duplicado')}
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>

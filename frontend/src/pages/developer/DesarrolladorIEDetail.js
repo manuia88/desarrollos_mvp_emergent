@@ -46,7 +46,7 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
   };
 
   if (!data) return <DeveloperLayout user={user} onLogout={onLogout}><div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</div></DeveloperLayout>;
-  if (data.error) return <DeveloperLayout user={user} onLogout={onLogout}><Card style={{ padding: 40, textAlign: 'center', color: '#fca5a5' }}>Error cargando IE</Card></DeveloperLayout>;
+  if (data.error) return <DeveloperLayout user={user} onLogout={onLogout}><Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Error cargando IE</Card></DeveloperLayout>;
 
   const tier = TIER_COLORS[data.overall_tier] || TIER_COLORS.fair;
 
@@ -88,7 +88,7 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {data.categories.map(c => (
-              <div key={c.key} style={{ padding: '10px 14px', background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)', borderRadius: 12, minWidth: 110 }}>
+              <div key={c.key} style={{ padding: '10px 14px', background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)', borderRadius: 12, minWidth: 110 }}>
                 <div className="eyebrow" style={{ marginBottom: 3, fontSize: 9 }}>{CAT_LABELS[c.key] || c.label}</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>{c.avg}</div>
               </div>
@@ -128,13 +128,13 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
                     style={{
                       width: '100%', textAlign: 'left', cursor: 'pointer',
                       padding: 12, borderRadius: 10,
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'rgba(var(--cream-rgb),0.02)',
                       border: '1px solid var(--border)',
                       display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 10,
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.02)'}
                   >
                     <div>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>
@@ -145,7 +145,7 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
                         <span style={{ color: s.delta_vs_colonia > 0 ? '#86efac' : s.delta_vs_colonia < 0 ? '#fca5a5' : 'var(--cream-3)' }}>
                           {s.delta_vs_colonia > 0 ? '+' : ''}{s.delta_vs_colonia}
                         </span>
-                        {s.is_stub && <span style={{ marginLeft: 6, padding: '1px 5px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: '#fcd34d', fontSize: 9 }}>PILOTO</span>}
+                        {s.is_stub && <span style={{ marginLeft: 6, padding: '1px 5px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: 'var(--amber)', fontSize: 9 }}>PILOTO</span>}
                       </div>
                     </div>
                     <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: t.fg }}>
@@ -177,7 +177,7 @@ function DrillDownModal({ score, data, onClose }) {
     <div
       data-testid="ie-drill-modal"
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', border: '1px solid var(--border)',
         borderRadius: 16, padding: 22, maxWidth: 640, width: '100%', maxHeight: '88vh', overflowY: 'auto',
@@ -205,7 +205,7 @@ function DrillDownModal({ score, data, onClose }) {
         </div>
 
         {!data ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando recomendaciones IA…</div>
-         : data.error ? <div style={{ padding: 20, color: '#fca5a5' }}>Error al cargar recomendaciones.</div>
+         : data.error ? <div style={{ padding: 20, color: 'var(--red)' }}>Error al cargar recomendaciones.</div>
          : (
           <>
             <div style={{ padding: 14, background: 'linear-gradient(140deg, rgba(236,72,153,0.08), transparent)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 16 }}>
@@ -223,7 +223,7 @@ function DrillDownModal({ score, data, onClose }) {
               {data.recommendations.map((r, i) => (
                 <div key={i} data-testid={`ie-rec-${i}`} style={{
                   padding: 14, borderRadius: 12,
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'rgba(var(--cream-rgb),0.03)',
                   border: '1px solid var(--border)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -250,7 +250,7 @@ function DrillDownModal({ score, data, onClose }) {
 
 function MiniMetric({ label, v, color }) {
   return (
-    <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+    <div style={{ padding: 10, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
       <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color }}>{v}</div>
     </div>
@@ -307,7 +307,7 @@ function ColoniaBenchmarkCard({ myData, benchmark }) {
           return (
             <div key={c.key} data-testid={`ie-bench-${c.key}`} style={{
               padding: 12, borderRadius: 12,
-              background: 'rgba(13,17,24,0.55)', border: '1px solid var(--border)',
+              background: 'rgba(var(--bg-rgb),0.55)', border: '1px solid var(--border)',
             }}>
               <div className="eyebrow" style={{ marginBottom: 4, fontSize: 9 }}>{c.label}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>

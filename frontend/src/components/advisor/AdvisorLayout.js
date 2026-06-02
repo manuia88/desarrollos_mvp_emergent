@@ -36,7 +36,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
             Acceso restringido al portal de asesores
           </h1>
           <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 18 }}>
-            Tu cuenta actual tiene rol <strong>{user.role}</strong>. Solicita el upgrade a asesor para entrar al CRM Pulppo+.
+            Tu cuenta actual tiene rol <strong>{user.role}</strong>. Solicita el upgrade a asesor para entrar al CRM.
           </p>
           <Link to="/" className="btn btn-primary" style={{ justifyContent: 'center' }}>Volver al inicio</Link>
         </div>

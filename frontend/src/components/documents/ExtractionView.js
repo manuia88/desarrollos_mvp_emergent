@@ -31,7 +31,7 @@ function Pills({ items, accent = false }) {
       {items.map((it, i) => (
         <span key={i} style={{
           padding: '3px 10px', borderRadius: 9999,
-          background: accent ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(255,255,255,0.04)',
+          background: accent ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(var(--cream-rgb),0.04)',
           border: `1px solid ${accent ? 'rgba(var(--theme-rgb),0.3)' : 'var(--border)'}`,
           color: accent ? 'var(--theme)' : 'var(--cream-2)',
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
@@ -58,7 +58,7 @@ function LpRenderer({ d }) {
         <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', textAlign: 'left' }}>
+              <tr style={{ background: 'rgba(var(--cream-rgb),0.02)', textAlign: 'left' }}>
                 {['Tipo', 'Recámaras', 'Baños', 'm²', 'Planta', 'Status', 'Precio'].map(h => (
                   <th key={h} style={{ padding: '8px 10px', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
                 ))}
@@ -161,7 +161,7 @@ export default function ExtractionView({ docId, docType, scope = 'superadmin', o
       {!isExtracted && (
         <div style={{
           padding: 14, marginBottom: 14, borderRadius: 12,
-          background: isFailed ? 'rgba(239,68,68,0.08)' : (isPending ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(255,255,255,0.02)'),
+          background: isFailed ? 'rgba(239,68,68,0.08)' : (isPending ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(var(--cream-rgb),0.02)'),
           border: `1px solid ${isFailed ? 'rgba(239,68,68,0.32)' : (isPending ? 'rgba(var(--theme-rgb),0.32)' : 'var(--border)')}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -171,7 +171,7 @@ export default function ExtractionView({ docId, docType, scope = 'superadmin', o
             </span>
           </div>
           {isFailed && data?.extraction_error && (
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#fca5a5', marginBottom: 8 }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--red)', marginBottom: 8 }}>
               {data.extraction_error}
             </div>
           )}
@@ -192,7 +192,7 @@ export default function ExtractionView({ docId, docType, scope = 'superadmin', o
       )}
 
       {err && (
-        <div style={{ padding: 10, marginBottom: 12, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>
+        <div style={{ padding: 10, marginBottom: 12, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>
           {err}
         </div>
       )}
@@ -216,7 +216,7 @@ export default function ExtractionView({ docId, docType, scope = 'superadmin', o
           {/* Footer */}
           <div style={{
             display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 14,
-            padding: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 10,
+            padding: 10, background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 10,
             fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)',
           }}>
             <span><strong style={{ color: 'var(--cream-2)' }}>Modelo:</strong> {extr.model}</span>

@@ -56,7 +56,7 @@ export default function AccuracyTopZonesTicker() {
     <div data-testid="accuracy-top-ticker" style={{
       position: 'relative', overflow: 'hidden',
       padding: '12px 0', borderRadius: 14,
-      background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
+      background: 'rgba(var(--bg-rgb),0.92)', backdropFilter: 'blur(24px)',
       border: '1px solid rgba(99,102,241,0.18)',
     }}>
       <div style={{
@@ -94,12 +94,12 @@ function TickerItem({ z, t }) {
   return (
     <div data-testid={`ticker-zone-${z.zone_slug}`} style={{
       display: 'flex', alignItems: 'center', gap: 10,
-      fontFamily: 'DM Sans', fontSize: 13, color: '#F0EBE0',
+      fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)',
     }}>
       <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {z.zone_slug}
       </span>
-      <span style={{ fontFamily: 'DM Mono', color: 'rgba(240,235,224,0.65)' }}>
+      <span style={{ fontFamily: 'DM Mono', color: 'rgba(var(--cream-rgb),0.65)' }}>
         {t('confianza.ticker.metric')} {Number(z.mape_30d).toFixed(1)}%
       </span>
       <span style={{

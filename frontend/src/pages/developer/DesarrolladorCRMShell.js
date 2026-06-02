@@ -27,11 +27,11 @@ function PlaceholderContent({ label }) {
     }}>
       <div style={{
         width: 48, height: 48, borderRadius: 12,
-        background: 'rgba(240,235,224,0.06)',
+        background: 'rgba(var(--cream-rgb),0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 4,
       }}>
-        <Building size={22} color="rgba(240,235,224,0.2)" />
+        <Building size={22} color="rgba(var(--cream-rgb),0.2)" />
       </div>
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
         {label}
@@ -51,11 +51,11 @@ function MensajesPlaceholder() {
     }}>
       <div style={{
         width: 48, height: 48, borderRadius: 12,
-        background: 'rgba(240,235,224,0.06)',
+        background: 'rgba(var(--cream-rgb),0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 4,
       }}>
-        <MessageSquare size={22} color="rgba(240,235,224,0.2)" />
+        <MessageSquare size={22} color="rgba(var(--cream-rgb),0.2)" />
       </div>
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
         Mensajes / WhatsApp
@@ -110,7 +110,7 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
         <div
           style={{
             display: 'flex', overflowX: 'auto',
-            border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10,
+            border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10,
             marginBottom: 24,
           }}
           data-testid="crm-tabs"
@@ -122,10 +122,10 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
               onClick={() => setTab(t.key)}
               style={{
                 whiteSpace: 'nowrap', flex: 1, padding: '10px 14px',
-                background: activeTab === t.key ? 'rgba(240,235,224,0.10)' : 'transparent',
+                background: activeTab === t.key ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
                 color: activeTab === t.key ? 'var(--cream)' : 'var(--cream-3)',
                 border: 'none',
-                borderRight: i < TABS.length - 1 ? '1px solid rgba(240,235,224,0.08)' : 'none',
+                borderRight: i < TABS.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
                 fontSize: 12, fontWeight: activeTab === t.key ? 700 : 400,
                 cursor: 'pointer', transition: 'all 0.12s', fontFamily: 'DM Sans,sans-serif',
                 position: 'relative',
@@ -135,7 +135,7 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
               {t.phase && (
                 <span style={{
                   position: 'absolute', top: 4, right: 4,
-                  fontSize: 7, color: 'rgba(240,235,224,0.25)',
+                  fontSize: 7, color: 'rgba(var(--cream-rgb),0.25)',
                 }}>
                   {t.phase}
                 </span>

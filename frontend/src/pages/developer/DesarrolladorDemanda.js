@@ -51,7 +51,7 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 12 }} className="dem-heat-grid">
           {!heat || heat._err ? (
-            <div style={{ height: 460, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
+            <div style={{ height: 460, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
               {heat?._err ? 'No se pudo cargar el heatmap.' : 'Cargando heatmap…'}
             </div>
           ) : (
@@ -62,7 +62,7 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
             <div className="eyebrow" style={{ marginBottom: 4 }}>TOP 10 COLONIAS · DEMANDA</div>
             {(heat?.top_10 || []).map((c, idx) => (
               <button key={c.colonia_id} data-testid={`demand-top-${c.colonia_id}`} onClick={() => setSelectedColonia({ ...c, alcaldia: null })} style={{
-                textAlign: 'left', padding: '10px 12px', background: selectedColonia?.colonia_id === c.colonia_id ? 'rgba(236,72,153,0.10)' : 'rgba(240,235,224,0.03)',
+                textAlign: 'left', padding: '10px 12px', background: selectedColonia?.colonia_id === c.colonia_id ? 'rgba(236,72,153,0.10)' : 'rgba(var(--cream-rgb),0.03)',
                 border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -113,7 +113,7 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
               </Card>
               <Card>
                 <div className="eyebrow" style={{ marginBottom: 4 }}>DEMANDA NO ATENDIDA</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: '#fcd34d' }}>{legacy.unmet_demand.length}</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--amber)' }}>{legacy.unmet_demand.length}</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>colonias sin oferta tuya</div>
               </Card>
             </div>
@@ -130,7 +130,7 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
                       <div style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13, color: 'var(--cream)' }}>{c.colonia}</div>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{c.alcaldia}</div>
                     </div>
-                    <div style={{ position: 'relative', height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 9999 }}>
+                    <div style={{ position: 'relative', height: 8, background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 9999 }}>
                       <div style={{
                         position: 'absolute', inset: 0,
                         width: `${c.heat}%`,
@@ -177,10 +177,10 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
 
             {legacy.unmet_demand.length > 0 && (
               <Card style={{ marginTop: 14, background: 'linear-gradient(140deg, rgba(245,158,11,0.08), transparent)' }}>
-                <div className="eyebrow" style={{ marginBottom: 10, color: '#fcd34d' }}>OPORTUNIDAD · DEMANDA SIN OFERTA</div>
+                <div className="eyebrow" style={{ marginBottom: 10, color: 'var(--amber)' }}>OPORTUNIDAD · DEMANDA SIN OFERTA</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
                   {legacy.unmet_demand.map(u => (
-                    <div key={u.colonia_id} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                    <div key={u.colonia_id} style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>{u.colonia}</div>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{fmt0(u.searches_30d)} búsquedas · 0 supply tuyo</div>
                     </div>

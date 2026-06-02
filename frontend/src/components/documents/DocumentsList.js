@@ -60,7 +60,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
   return (
     <div data-testid="doc-preview-drawer" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.STICKY,
-      background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)',
+      background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)',
       display: 'flex', justifyContent: 'flex-end',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -84,7 +84,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
           }}><X size={14} /></button>
         </div>
 
-        {err && <div style={{ color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5 }}>Error: {err}</div>}
+        {err && <div style={{ color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12.5 }}>Error: {err}</div>}
         {!data && !err && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>Cargando…</div>}
 
         {data && (
@@ -97,23 +97,23 @@ function PreviewDrawer({ doc, scope, onClose }) {
                 </span>
               )}
               {data.ocr_confidence != null && (
-                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
                   Confianza {Math.round(data.ocr_confidence * 100)}%
                 </span>
               )}
               {data.ocr_pages_count > 0 && (
-                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
                   {data.ocr_pages_count} páginas
                 </span>
               )}
               {data.ocr_text_chars > 0 && (
-                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5 }}>
                   {data.ocr_text_chars} chars
                 </span>
               )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18, padding: 14, background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
               <Meta label="Subido por">{data.uploader_name} ({data.uploader_role})</Meta>
               <Meta label="Subido">{fmtDate(data.created_at)}</Meta>
               <Meta label="Procesado">{fmtDate(data.processed_at)}</Meta>
@@ -125,7 +125,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
             {data.upload_notes && (
               <div style={{ marginBottom: 14 }}>
                 <div className="eyebrow" style={{ marginBottom: 4 }}>Notas</div>
-                <div style={{ padding: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.5 }}>
+                <div style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.5 }}>
                   {data.upload_notes}
                 </div>
               </div>
@@ -152,7 +152,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
             {tab === 'ocr' && (
               <>
                 {data.ocr_error && (
-                  <div style={{ padding: 12, marginBottom: 14, borderRadius: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>
+                  <div style={{ padding: 12, marginBottom: 14, borderRadius: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>
                     <strong>Error OCR:</strong> {data.ocr_error}
                   </div>
                 )}
@@ -328,7 +328,7 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
               <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.02)', textAlign: 'left' }}>
+                <tr style={{ background: 'rgba(var(--cream-rgb),0.02)', textAlign: 'left' }}>
                   {['Archivo', 'Tipo', 'Status', 'Tamaño', 'Subido', 'Acciones'].map(h => (
                     <th key={h} style={{ padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
@@ -378,7 +378,7 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
                       </button>
                       <button data-testid="doc-delete" onClick={() => handleDelete(d.id)} title="Eliminar" style={{
                         padding: '5px 9px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)',
-                        color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 10.5, cursor: 'pointer',
+                        color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 10.5, cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                       }}>
                         <Trash size={11} />

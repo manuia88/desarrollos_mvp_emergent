@@ -648,6 +648,104 @@ async def get_unit_ai_prediction(dev_id: str, unit_id: str, request: Request):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# UNIT AVM — valuación de mercado REAL · cierra el círculo PRECIO
+# Antes el dev solo veía la prob. de cierre (Haiku). Esto añade el VALOR DE MERCADO
+# calibrado (modelo hedónico real → heurístico si no hay modelo), su intervalo de
+# confianza (FSD, Fitch-style), el "por qué", y REGISTRA la predicción
+# (persist_avm_prediction) para que al venderse la unidad se compare vs lo real y
+# reentrene el modelo de la zona. IA-native, no adivinanza.
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/units/{dev_id}/{unit_id}/avm")
+async def get_unit_avm(dev_id: str, unit_id: str, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    dev_ids = _user_dev_ids(user)
+    if dev_id not in dev_ids:
+        raise HTTPException(403, "Proyecto no accesible")
+
+    dev, unit = _get_unit(dev_id, unit_id)
+    if not unit:
+        raise HTTPException(404, "Unidad no encontrada")
+
+    colonia = dev.get("colonia_id") or dev.get("colonia_slug") or dev.get("colonia") or ""
+    m2 = float(unit.get("m2_total") or unit.get("m2_privative") or unit.get("area_total") or unit.get("area") or 0)
+    rec = int(unit.get("bedrooms") or unit.get("recamaras") or 2)
+    ban = int(unit.get("bathrooms") or unit.get("banos") or 2)
+    antiguedad = 0  # preventa / obra nueva
+    listed = float(unit.get("price") or 0)
+
+    if m2 <= 0 or not colonia:
+        return {"available": False, "reason": "Faltan datos de la unidad (área o colonia)."}
+
+    # 1) Valuación calibrada (hedónica real → heurística) + explicación ("por qué")
+    try:
+        from avm_public_engine import avm_quick_async
+        avm = await avm_quick_async(db, colonia, m2, rec, ban, antiguedad, with_explain=True)
+    except Exception as e:
+        logging.getLogger("dev_batch11").warning("avm_quick_async failed: %s", e)
+        avm = {"error": "engine_error"}
+    if avm.get("error"):
+        return {"available": False, "reason": "Sin datos de mercado para esta zona.", "colonia": colonia}
+
+    estimate = avm.get("precio_estimado") or 0
+
+    # 2) Intervalo de confianza FSD + 3) REGISTRAR predicción (abre el círculo; cierra al vender)
+    fsd = {"available": False}
+    prediction_id = None
+    try:
+        from fsd_engine import compute_fsd, persist_avm_prediction
+        feats = {"m2": m2, "recamaras": rec, "banos": ban, "antiguedad_anos": antiguedad}
+        fsd = await compute_fsd(db, feats, colonia)
+        if fsd.get("available"):
+            prediction_id = await persist_avm_prediction(
+                db, property_id=f"{dev_id}__{unit_id}", zone_slug=colonia,
+                fsd=fsd, property_features=feats,
+            )
+    except Exception as e:
+        logging.getLogger("dev_batch11").warning("fsd/persist failed: %s", e)
+
+    has_fsd = bool(fsd.get("available"))
+    value = fsd.get("value") if has_fsd else estimate
+    low = (fsd.get("low_estimate") if has_fsd else avm.get("range_low")) or 0
+    high = (fsd.get("high_estimate") if has_fsd else avm.get("range_high")) or 0
+    confidence = fsd.get("confidence_lvl") if has_fsd else avm.get("confidence", "media")
+
+    # Comparar vs el precio que el dev tiene LISTADO (la lectura que mueve la aguja)
+    vs_pct = round(100 * (listed - value) / value, 1) if value else 0
+    vs_label = ("Por encima del mercado" if vs_pct > 3 else
+                "Por debajo del mercado" if vs_pct < -3 else "En línea con el mercado")
+
+    await _safe_audit(db, user, "read", "unit_avm", f"{dev_id}__{unit_id}",
+                      before=None, after=None, request=request,
+                      ml_event="unit_avm_requested",
+                      ml_context={"dev_id": dev_id, "unit_id": unit_id, "prediction_id": prediction_id})
+
+    return {
+        "available": True,
+        "value": round(value),
+        "range_low": round(low),
+        "range_high": round(high),
+        "per_m2": round(value / m2) if m2 else 0,
+        "confidence": confidence,
+        "fsd_pct": fsd.get("fsd_pct") if has_fsd else None,
+        "pricing_model": avm.get("pricing_model", "heuristic"),
+        "explain": avm.get("explain"),
+        "feature_breakdown": fsd.get("feature_breakdown") if has_fsd else None,
+        "listed_price": round(listed),
+        "vs_market_pct": vs_pct,
+        "vs_market_label": vs_label,
+        "colonia": colonia,
+        "m2": m2,
+        "prediction_id": prediction_id,
+        "loop_closed": prediction_id is not None,
+        "loop_note": ("Valuación registrada: al venderse la unidad se compara contra lo real y reentrena el modelo de la zona."
+                      if prediction_id else
+                      "Estimación calibrada. El registro para reentreno se activa cuando hay modelo hedónico promovido en la zona."),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # UNIT ENGAGEMENT  (stub honesto enriquecido con IE scores si existen)
 # ══════════════════════════════════════════════════════════════════════════════
 

@@ -64,7 +64,7 @@ export default function CrossCheckView({ devId, scope = 'superadmin', onOpenDoc 
   };
 
   if (loading) return <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Cargando cross-check…</div>;
-  if (err) return <div style={{ color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>Error: {err}</div>;
+  if (err) return <div style={{ color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12 }}>Error: {err}</div>;
 
   const results = data?.results || [];
   const summaryTone = data?.criticals > 0 ? 'critical' : data?.warnings > 0 ? 'warning' : (data?.passed > 0 ? 'pass' : 'info');
@@ -90,9 +90,9 @@ export default function CrossCheckView({ devId, scope = 'superadmin', onOpenDoc 
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5' }}><strong>{data?.criticals || 0}</strong> críticos</span>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fcd34d' }}><strong>{data?.warnings || 0}</strong> warnings</span>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#86efac' }}><strong>{data?.passed || 0}</strong> pass</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)' }}><strong>{data?.criticals || 0}</strong> críticos</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--amber)' }}><strong>{data?.warnings || 0}</strong> warnings</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--green)' }}><strong>{data?.passed || 0}</strong> pass</span>
           <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}><strong>{data?.inconclusive || 0}</strong> inconclusos</span>
           <button data-testid="cross-check-trigger" onClick={trigger} disabled={busy} style={{
             marginLeft: 'auto',
@@ -149,7 +149,7 @@ export default function CrossCheckView({ devId, scope = 'superadmin', onOpenDoc 
 
             <div style={{
               padding: 10, marginBottom: 8, borderRadius: 8,
-              background: 'rgba(255,255,255,0.02)',
+              background: 'rgba(var(--cream-rgb),0.02)',
               fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5,
             }}>
               {r.message}

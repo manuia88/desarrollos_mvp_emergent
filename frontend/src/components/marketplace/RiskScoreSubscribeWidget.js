@@ -13,10 +13,10 @@ export default function RiskScoreSubscribeWidget({ zoneId, zoneLabel }) {
         marginTop: 8,
         padding: 12,
         borderRadius: 16,
-        background: 'rgba(13,16,23,0.6)',
+        background: 'rgba(var(--bg-rgb),0.6)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(240,235,224,0.08)',
+        border: '1px solid rgba(var(--cream-rgb),0.08)',
         display: 'grid',
         gap: 8,
       }}
@@ -43,8 +43,8 @@ export default function RiskScoreSubscribeWidget({ zoneId, zoneLabel }) {
           style={{
             padding: '5px 14px',
             borderRadius: 9999,
-            background: open ? 'rgba(240,235,224,0.06)' : 'rgba(var(--theme-rgb),0.18)',
-            border: `1px solid ${open ? 'rgba(240,235,224,0.18)' : 'rgba(var(--theme-rgb),0.4)'}`,
+            background: open ? 'rgba(var(--cream-rgb),0.06)' : 'rgba(var(--theme-rgb),0.18)',
+            border: `1px solid ${open ? 'rgba(var(--cream-rgb),0.18)' : 'rgba(var(--theme-rgb),0.4)'}`,
             color: open ? 'var(--cream-3)' : 'rgba(165,180,252,0.95)',
             fontFamily: 'DM Sans, sans-serif',
             fontWeight: 600,

@@ -22,7 +22,7 @@ function DimBar({ value }) {
   const pct = Math.max(0, Math.min(100, value || 0));
   const color = pct >= 80 ? '#22C55E' : pct >= 60 ? '#84CC16' : pct >= 40 ? '#F59E0B' : '#EF4444';
   return (
-    <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 9999, overflow: 'hidden' }}>
+    <div style={{ height: 6, background: 'rgba(var(--cream-rgb),0.08)', borderRadius: 9999, overflow: 'hidden' }}>
       <div style={{
         height: '100%', width: `${pct}%`,
         background: color, borderRadius: 9999,
@@ -37,8 +37,8 @@ function DimCard({ dim, value, placeholder }) {
   return (
     <div style={{
       padding: '12px 14px', borderRadius: 12,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      background: 'rgba(var(--cream-rgb),0.03)',
+      border: '1px solid rgba(var(--cream-rgb),0.07)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -47,8 +47,8 @@ function DimCard({ dim, value, placeholder }) {
           </span>
           {placeholder && (
             <span style={{
-              fontFamily: 'DM Sans', fontSize: 9, color: 'rgba(240,235,224,0.4)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9999,
+              fontFamily: 'DM Sans', fontSize: 9, color: 'rgba(var(--cream-rgb),0.4)',
+              border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 9999,
               padding: '1px 5px',
             }}>estimado</span>
           )}
@@ -57,7 +57,7 @@ function DimCard({ dim, value, placeholder }) {
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title={dim.tooltip}
           >
-            <Activity size={10} color="rgba(240,235,224,0.3)" />
+            <Activity size={10} color="rgba(var(--cream-rgb),0.3)" />
           </button>
         </div>
         <span style={{
@@ -104,7 +104,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
-        background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(6px)',
+        background: 'rgba(var(--bg-rgb),0.72)', backdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
       }}
     >
@@ -114,8 +114,8 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
         style={{
           width: '100%', maxWidth: 420,
           height: '100%', overflowY: 'auto',
-          background: 'rgba(13,16,23,0.97)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(var(--bg-rgb),0.97)',
+          border: '1px solid rgba(var(--cream-rgb),0.08)',
           padding: '24px 20px',
           display: 'flex', flexDirection: 'column', gap: 18,
         }}
@@ -124,8 +124,8 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', top: 0,
-          background: 'rgba(13,16,23,0.98)', padding: '0 0 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)', zIndex: Z.BASE,
+          background: 'rgba(var(--bg-rgb),0.98)', padding: '0 0 12px',
+          borderBottom: '1px solid rgba(var(--cream-rgb),0.07)', zIndex: Z.BASE,
         }}>
           <div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
@@ -144,7 +144,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
           <button
             data-testid="zone-score-breakdown-close"
             onClick={onClose}
-            style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9999, padding: '6px 8px', cursor: 'pointer' }}
+            style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 9999, padding: '6px 8px', cursor: 'pointer' }}
           >
             <X size={14} color="var(--cream-3)" />
           </button>
@@ -168,7 +168,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
         )}
 
         <p style={{
-          fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.25)',
+          fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(var(--cream-rgb),0.25)',
           lineHeight: 1.5, marginTop: 'auto',
         }}>
           Score compuesto de 6 dimensiones. Dimensiones marcadas "estimado" serán sustituidas

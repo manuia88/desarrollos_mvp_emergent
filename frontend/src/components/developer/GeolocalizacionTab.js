@@ -68,7 +68,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
     }
   };
 
-  if (err) return <Card style={{ padding: 40, textAlign: 'center', color: '#fca5a5' }}>{err}</Card>;
+  if (err) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>{err}</Card>;
   if (!loc) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando mapa…</Card>;
 
   return (
@@ -143,7 +143,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
               </button>
             </div>
             {!hasLocation && (
-              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9999, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.28)', color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid="geojson-no-loc-hint">
+              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9999, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.28)', color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid="geojson-no-loc-hint">
                 <MapPin size={11} /> Guarda la ubicación primero
               </div>
             )}

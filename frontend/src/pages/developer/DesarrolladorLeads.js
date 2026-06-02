@@ -117,7 +117,7 @@ function PipelineTab({ onToast, currentUser }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
         <Stat label="Total leads" v={fmt0(stats.total)} />
         <Stat label="Activos"     v={fmt0(stats.active)} />
-        <Stat label="Ganados"     v={fmt0(stats.won)}  accent="#86efac" />
+        <Stat label="Ganados"     v={fmt0(stats.won)}  accent="var(--ok,#86efac)" />
         <Stat label="Perdidos"    v={fmt0(stats.lost)} accent="#fca5a5" />
         <Stat label="Win rate"    v={stats.winRate == null ? '—' : `${stats.winRate}%`} />
       </div>
@@ -142,7 +142,7 @@ function PipelineTab({ onToast, currentUser }) {
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
-            <thead style={{ background: 'rgba(255,255,255,0.02)' }}>
+            <thead style={{ background: 'rgba(var(--cream-rgb),0.02)' }}>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 {['Contacto', 'Intent', 'Fuente', 'Estado', 'Asignado', 'Budget max', 'Última act.'].map(h => (
                   <th key={h} style={thStyle}>{h}</th>
@@ -243,7 +243,7 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
 
   return (
     <div data-testid="lead-drawer" onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', borderLeft: '1px solid var(--border)',
         width: 'min(480px, 100%)', height: '100%', overflowY: 'auto', padding: 22,
@@ -323,7 +323,7 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
             onChange={e => setNote(e.target.value)}
             placeholder="Agregar nota…"
             style={{
-              width: '100%', padding: 10, background: 'rgba(13,17,24,0.6)',
+              width: '100%', padding: 10, background: 'rgba(var(--bg-rgb),0.6)',
               border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream)',
               fontFamily: 'DM Sans', fontSize: 13, resize: 'vertical', marginBottom: 8,
             }}
@@ -344,7 +344,7 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
             {notes.map(n => (
               <div key={n.id} data-testid={`lead-note-${n.id}`} style={{
                 padding: 10, borderRadius: 10,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream)', fontWeight: 600 }}>
@@ -482,7 +482,7 @@ function AnalyticsTab() {
   useEffect(() => { api.getLeadsAnalytics().then(setData).catch(() => setData({ error: true })); }, []);
 
   if (!data) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</Card>;
-  if (data.error) return <Card style={{ padding: 40, textAlign: 'center', color: '#fca5a5' }}>Error cargando analytics</Card>;
+  if (data.error) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Error cargando analytics</Card>;
   if (data.total === 0) return (
     <Card style={{ padding: 60, textAlign: 'center' }}>
       <Sparkle size={18} color="var(--cream-3)" />
@@ -516,7 +516,7 @@ function AnalyticsTab() {
           Desempeño global
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <BigStat label="Win rate"        v={data.win_rate != null ? `${data.win_rate}%` : '—'} accent="#86efac" />
+          <BigStat label="Win rate"        v={data.win_rate != null ? `${data.win_rate}%` : '—'} accent="var(--ok,#86efac)" />
           <BigStat label="Avg time-to-close" v={data.avg_time_to_close_days != null ? `${data.avg_time_to_close_days}d` : '—'} />
           <BigStat label="Total leads"     v={fmt0(data.total)} />
           <BigStat label="Cerrados"        v={fmt0(data.lost_reasons.reduce((a, r) => a + r.count, 0) + (data.funnel.find(f => f.k === 'cerrado_ganado')?.count || 0))} />
@@ -531,7 +531,7 @@ function AnalyticsTab() {
         </h3>
         <BarList
           items={data.source_breakdown.map(s => ({
-            label: `${s.label} · ${s.pct}%`, value: s.count, color: '#EC4899',
+            label: `${s.label} · ${s.pct}%`, value: s.count, color: 'var(--rose)',
           }))}
           format={v => `${v}`}
         />
@@ -555,8 +555,8 @@ function AnalyticsTab() {
                 <tr key={p.user_id} data-testid={`assignee-row-${p.user_id}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={tdStyle}><span style={{ color: 'var(--cream)', fontWeight: 600 }}>{p.name}</span></td>
                   <td style={{ ...tdStyle, fontFamily: 'DM Mono, monospace' }}>{p.active}</td>
-                  <td style={{ ...tdStyle, color: '#86efac', fontFamily: 'DM Mono, monospace' }}>{p.won}</td>
-                  <td style={{ ...tdStyle, color: '#fca5a5', fontFamily: 'DM Mono, monospace' }}>{p.lost}</td>
+                  <td style={{ ...tdStyle, color: 'var(--green)', fontFamily: 'DM Mono, monospace' }}>{p.won}</td>
+                  <td style={{ ...tdStyle, color: 'var(--red)', fontFamily: 'DM Mono, monospace' }}>{p.lost}</td>
                   <td style={tdStyle}>
                     {p.win_rate != null ? <Badge tone={p.win_rate >= 50 ? 'ok' : p.win_rate >= 25 ? 'warn' : 'bad'}>{p.win_rate}%</Badge> : '—'}
                   </td>
@@ -577,7 +577,7 @@ function AnalyticsTab() {
 // ═════════════════════════════════════════════════════════════════════════════
 function Stat({ label, v, accent }) {
   return (
-    <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
+    <div style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
       <div className="eyebrow" style={{ marginBottom: 3 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: accent || 'var(--cream)' }}>{v}</div>
     </div>
@@ -586,7 +586,7 @@ function Stat({ label, v, accent }) {
 
 function BigStat({ label, v, accent }) {
   return (
-    <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10 }}>
+    <div style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10 }}>
       <div className="eyebrow" style={{ fontSize: 9, marginBottom: 4 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: accent || 'var(--cream)' }}>{v}</div>
     </div>
@@ -618,7 +618,7 @@ function Select({ value, onChange, tid, children, width }) {
     <select data-testid={tid} value={value} onChange={e => onChange(e.target.value)}
       style={{
         width: width || 'auto', padding: '8px 10px',
-        background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)',
+        background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
         borderRadius: 9, color: 'var(--cream)',
         fontFamily: 'DM Sans', fontSize: 12.5, cursor: 'pointer',
       }}>
@@ -629,14 +629,14 @@ function Select({ value, onChange, tid, children, width }) {
 
 const thStyle = { textAlign: 'left', padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 500, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' };
 const tdStyle = { padding: '12px 14px', color: 'var(--cream-2)' };
-const sectionStyle = { padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 12 };
+const sectionStyle = { padding: 14, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 12 };
 const inputStyle = {
   width: '100%', padding: '9px 12px',
-  background: 'rgba(13,17,24,0.6)', border: '1px solid var(--border)',
+  background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
   borderRadius: 10, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
 };
 const modalStyle = {
-  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)',
+  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)',
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {

@@ -1,0 +1,28 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /barrios
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Cambiar a español" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: EN
+        - generic [ref=e22]: ·
+        - generic [ref=e23]: ES
+      - button "Entrar" [ref=e24] [cursor=pointer]
+      - link "Abrir mapa" [ref=e25] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Abrir mapa
+  - main [ref=e29]:
+    - generic [ref=e30]: Cargando datos de la zona…

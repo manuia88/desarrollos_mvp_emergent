@@ -24,7 +24,7 @@ const PILL_BTN = (active) => ({
   padding: '7px 16px', borderRadius: 9999,
   background: active ? 'var(--bg, #06080F)' : 'transparent',
   color: active ? 'var(--cream)' : 'var(--cream-3)',
-  border: `1px solid ${active ? 'rgba(240,235,224,0.3)' : 'rgba(240,235,224,0.12)'}`,
+  border: `1px solid ${active ? 'rgba(var(--cream-rgb),0.3)' : 'rgba(var(--cream-rgb),0.12)'}`,
   cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'DM Sans',
 });
 
@@ -121,8 +121,8 @@ export default function CrmFunnel({ user, onLogout }) {
                 placeholder="ID del proyecto (slug)"
                 style={{
                   padding: '8px 14px', borderRadius: 9999,
-                  background: 'rgba(240,235,224,0.06)',
-                  border: '1px solid rgba(240,235,224,0.16)',
+                  background: 'rgba(var(--cream-rgb),0.06)',
+                  border: '1px solid rgba(var(--cream-rgb),0.16)',
                   color: 'var(--cream)', fontSize: 13, fontFamily: 'DM Sans',
                   width: 320, outline: 'none',
                 }} />
@@ -175,8 +175,8 @@ function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismis
     <div style={{ position: 'relative' }}>
       <div data-testid="funnel-chart" style={{
         padding: 16, borderRadius: 14,
-        background: 'rgba(240,235,224,0.04)',
-        border: '1px solid rgba(240,235,224,0.1)',
+        background: 'rgba(var(--cream-rgb),0.04)',
+        border: '1px solid rgba(var(--cream-rgb),0.1)',
         fontFamily: 'DM Sans',
       }}>
         <div style={{
@@ -209,7 +209,7 @@ function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismis
               </div>
               <div style={{
                 height: 22, borderRadius: 9999,
-                background: 'rgba(240,235,224,0.06)', overflow: 'hidden',
+                background: 'rgba(var(--cream-rgb),0.06)', overflow: 'hidden',
               }}>
                 <div style={{
                   width: `${w}%`, height: '100%',
@@ -226,8 +226,8 @@ function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismis
       {breakdown?.rows?.length > 0 && (
         <div data-testid="funnel-breakdown" style={{
           marginTop: 16, padding: 14, borderRadius: 14,
-          background: 'rgba(240,235,224,0.03)',
-          border: '1px solid rgba(240,235,224,0.08)',
+          background: 'rgba(var(--cream-rgb),0.03)',
+          border: '1px solid rgba(var(--cream-rgb),0.08)',
           fontFamily: 'DM Sans',
         }}>
           <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 8,
@@ -267,13 +267,13 @@ function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismis
         <div data-testid="funnel-ai-suggestion" style={{
           position: 'fixed', bottom: 18, right: 18, zIndex: Z.DROPDOWN,
           maxWidth: 360, padding: 14, borderRadius: 14,
-          background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(240,235,224,0.18)',
+          background: 'rgba(var(--bg-rgb),0.92)', backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(var(--cream-rgb),0.18)',
           fontFamily: 'DM Sans',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6,
                           fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
-                          color: '#a5b4fc', marginBottom: 6 }}>
+                          color: 'var(--blue)', marginBottom: 6 }}>
             <Sparkle size={11} /> Sugerencia IA
             <button onClick={onDismissSuggestion}
                      data-testid="funnel-ai-dismiss"
@@ -319,8 +319,8 @@ function SankeyView({ sankey, onNodeClick }) {
     <div data-testid="sankey-wrap" style={{
       width: '100%', overflowX: 'auto',
       borderRadius: 14,
-      border: '1px solid rgba(240,235,224,0.1)',
-      background: 'rgba(240,235,224,0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.1)',
+      background: 'rgba(var(--cream-rgb),0.04)',
     }}>
       <div style={{ minWidth: 800, height: 600 }}>
         <ResponsiveSankey
@@ -345,7 +345,7 @@ function SankeyView({ sankey, onNodeClick }) {
           linkOpacity={0.45} linkHoverOthersOpacity={0.12}
           labelPosition="outside" labelOrientation="horizontal"
           labelTextColor="#F0EBE0" theme={{
-            tooltip: { container: { background: '#06080F', color: '#F0EBE0',
+            tooltip: { container: { background: '#06080F', color: 'var(--cream)',
                                        fontSize: 12, fontFamily: 'DM Sans' } },
           }}
           onClick={(node) => onNodeClick?.(node)}

@@ -17,7 +17,7 @@ function Fallback({ hue = 231, seed = 0 }) {
       {Array.from({ length: 11 }).map((_, row) =>
         Array.from({ length: 10 }).map((_, col) => (
           <rect key={`${row}${col}`} x={180 + col*62} y={105 + row*28} width={38} height={16}
-            fill={((row*10+col+seed) % 3) > 0 ? `hsla(${hue},70%,65%,0.45)` : 'rgba(255,255,255,0.04)'} rx={2} />
+            fill={((row*10+col+seed) % 3) > 0 ? `hsla(${hue},70%,65%,0.45)` : 'rgba(var(--cream-rgb),0.04)'} rx={2} />
         ))
       )}
     </svg>
@@ -93,7 +93,7 @@ export default function PhotoGallery({ dev }) {
               </>
             )}
             <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
-              padding: '4px 12px', borderRadius: 9999, background: 'rgba(6,8,15,0.7)',
+              padding: '4px 12px', borderRadius: 9999, background: 'rgba(var(--bg-rgb),0.7)',
               fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream)',
               backdropFilter: 'blur(6px)' }}>
               {active + 1} / {photos.length}

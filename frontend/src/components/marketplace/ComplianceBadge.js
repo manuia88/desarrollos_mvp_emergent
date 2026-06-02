@@ -48,7 +48,7 @@ function BreakdownModal({ data, onClose }) {
   return (
     <div data-testid="badge-breakdown-modal" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.STICKY,
-      background: 'rgba(6,8,15,0.84)', backdropFilter: 'blur(14px)',
+      background: 'rgba(var(--bg-rgb),0.84)', backdropFilter: 'blur(14px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -77,7 +77,7 @@ function BreakdownModal({ data, onClose }) {
         <ScoreRow label="Cumplimiento de reglas" score={data.scores.compliance} />
         <ScoreRow label="Calidad documental" score={data.scores.quality_docs} />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 14, padding: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 14, padding: 10, background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 10 }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
             <strong style={{ color: 'var(--cream-2)' }}>{data.verified_docs_count}</strong> documento{data.verified_docs_count === 1 ? '' : 's'} verificado{data.verified_docs_count === 1 ? '' : 's'}
           </span>

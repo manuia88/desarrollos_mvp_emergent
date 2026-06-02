@@ -10,7 +10,7 @@ const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 const POI_CATEGORIES = [
   { k: 'schools', label: 'Escuelas', color: '#22C55E' },
   { k: 'hospitals', label: 'Hospitales', color: 'var(--theme-3)' },
-  { k: 'metro', label: 'Metro', color: '#F59E0B' },
+  { k: 'metro', label: 'Metro', color: 'var(--amber)' },
   { k: 'parks', label: 'Parques', color: '#10B981' },
   { k: 'supermarkets', label: 'Super', color: '#A78BFA' },
 ];
@@ -161,7 +161,7 @@ export default function LocationTab({ dev, user, onGateOpen }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }} className="land-grid">
             {landmarks.map(l => (
               <div key={l.name} style={{
-                padding: 14, background: 'rgba(255,255,255,0.03)',
+                padding: 14, background: 'rgba(var(--cream-rgb),0.03)',
                 border: '1px solid var(--border)', borderRadius: 12,
               }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 6 }}>{l.name}</div>

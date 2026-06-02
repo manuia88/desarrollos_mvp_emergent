@@ -36,20 +36,20 @@ function SectionPanel({ section, openState, onToggle, user }) {
   const isOpen = openState !== undefined ? openState : section.defaultOpen !== false;
 
   return (
-    <div className="border-b border-[rgba(240,235,224,0.07)] last:border-0">
+    <div className="border-b border-[rgba(var(--cream-rgb),0.07)] last:border-0">
       <button
         onClick={() => onToggle(section.id)}
         data-density-drawer-section
-        className="w-full flex items-center gap-2.5 px-5 py-3.5 text-left hover:bg-[rgba(240,235,224,0.04)] transition-colors"
+        className="w-full flex items-center gap-2.5 px-5 py-3.5 text-left hover:bg-[rgba(var(--cream-rgb),0.04)] transition-colors"
         data-testid={`drawer-section-${section.id}`}
       >
-        <span className="flex-1 text-sm font-medium text-[rgba(240,235,224,0.8)]">{section.title}</span>
+        <span className="flex-1 text-sm font-medium text-[rgba(var(--cream-rgb),0.8)]">{section.title}</span>
         {isOpen
-          ? <ChevronDown size={13} className="text-[rgba(240,235,224,0.3)] shrink-0" />
-          : <ChevronRight size={13} className="text-[rgba(240,235,224,0.3)] shrink-0" />}
+          ? <ChevronDown size={13} className="text-[rgba(var(--cream-rgb),0.3)] shrink-0" />
+          : <ChevronRight size={13} className="text-[rgba(var(--cream-rgb),0.3)] shrink-0" />}
       </button>
       {isOpen && (
-        <div className="px-5 pb-4 text-sm text-[rgba(240,235,224,0.65)]">
+        <div className="px-5 pb-4 text-sm text-[rgba(var(--cream-rgb),0.65)]">
           {section.content}
         </div>
       )}
@@ -155,14 +155,14 @@ export function EntityDrawer({
       {!isMobile ? (
         /* Desktop: right slide-in panel */
         <div
-          className="absolute right-0 top-0 bottom-0 flex flex-col bg-[rgba(13,16,23,0.92)] border-l border-[rgba(255,255,255,0.16)] backdrop-blur-[24px]"
+          className="absolute right-0 top-0 bottom-0 flex flex-col bg-[rgba(var(--bg-rgb),0.92)] border-l border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px]"
           style={{ width: `${width}px`, animation: 'slideInRight 0.22s ease-out' }}
           data-testid="entity-drawer-panel"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(240,235,224,0.08)] shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(var(--cream-rgb),0.08)] shrink-0">
             <h2 className="text-[var(--cream)] font-semibold font-[Outfit]">{title}</h2>
-            <button onClick={onClose} className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors" data-testid="entity-drawer-close">
+            <button onClick={onClose} className="text-[rgba(var(--cream-rgb),0.4)] hover:text-[var(--cream)] transition-colors" data-testid="entity-drawer-close">
               <X size={18} />
             </button>
           </div>
@@ -171,7 +171,7 @@ export function EntityDrawer({
       ) : (
         /* Mobile: bottom-sheet */
         <div
-          className="absolute bottom-0 left-0 right-0 flex flex-col bg-[rgba(13,16,23,0.92)] rounded-t-2xl border-t border-[rgba(255,255,255,0.16)] backdrop-blur-[24px]"
+          className="absolute bottom-0 left-0 right-0 flex flex-col bg-[rgba(var(--bg-rgb),0.92)] rounded-t-2xl border-t border-[rgba(var(--cream-rgb),0.16)] backdrop-blur-[24px]"
           style={{ maxHeight: '90vh', animation: 'slideInUp 0.22s ease-out' }}
           data-testid="entity-drawer-bottom-sheet"
           onTouchStart={handleTouchStart}
@@ -180,11 +180,11 @@ export function EntityDrawer({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-center pt-3 pb-1 shrink-0">
-            <div className="w-10 h-1 rounded-full bg-[rgba(240,235,224,0.2)]" />
+            <div className="w-10 h-1 rounded-full bg-[rgba(var(--cream-rgb),0.2)]" />
           </div>
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(240,235,224,0.08)] shrink-0">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(var(--cream-rgb),0.08)] shrink-0">
             <h2 className="text-[var(--cream)] font-semibold font-[Outfit]">{title}</h2>
-            <button onClick={onClose} className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)]" data-testid="entity-drawer-close-mobile">
+            <button onClick={onClose} className="text-[rgba(var(--cream-rgb),0.4)] hover:text-[var(--cream)]" data-testid="entity-drawer-close-mobile">
               <X size={18} />
             </button>
           </div>

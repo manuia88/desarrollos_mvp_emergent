@@ -55,11 +55,11 @@ function SourcesTooltip({ sources, explanation, onClose }) {
         minWidth: 220,
         padding: '12px 14px',
         borderRadius: 12,
-        background: 'rgba(6,8,15,0.97)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(var(--bg-rgb),0.97)',
+        border: '1px solid rgba(var(--cream-rgb),0.12)',
         backdropFilter: 'blur(20px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
-        color: '#F0EBE0',
+        color: 'var(--cream)',
         fontFamily: 'DM Sans, sans-serif',
         fontSize: 12,
         lineHeight: 1.5,
@@ -96,7 +96,7 @@ function SourcesTooltip({ sources, explanation, onClose }) {
       )}
       {/* Explanation */}
       {explanation && (
-        <p style={{ margin: 0, color: 'rgba(240,235,224,0.75)', fontSize: 11 }}>
+        <p style={{ margin: 0, color: 'rgba(var(--cream-rgb),0.75)', fontSize: 11 }}>
           {explanation}
         </p>
       )}

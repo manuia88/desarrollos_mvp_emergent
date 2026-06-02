@@ -1,5 +1,5 @@
 // /desarrollador — executive overview (Phase 4 Batch 14: Weekly Brief + Activity Feed + Setup Checklist + Quick Actions)
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
@@ -10,7 +10,7 @@ import { ActivityFeed } from '../../components/shared/ActivityFeed';
 import { SetupChecklist } from '../../components/shared/SetupChecklist';
 import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import { resolveQuickActions } from '../../config/quickActions';
-import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar, Building } from '../../components/icons';
+import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar } from '../../components/icons';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
@@ -19,6 +19,15 @@ import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Dinero compacto para que no se desborde de las tarjetas ($778.7M · $1.09B).
+const fmtBig = (n) => {
+  if (!n) return '$0';
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
+  return `$${Math.round(n)}`;
+};
 
 // ─── Weekly Brief Widget ──────────────────────────────────────────────────────
 function WeeklyBriefWidget() {
@@ -37,7 +46,7 @@ function WeeklyBriefWidget() {
 
   if (loading) {
     return (
-      <div style={{ height: 100, borderRadius: 12, background: 'rgba(240,235,224,0.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: 100, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
     );
   }
   if (!brief || brief.error) return null;
@@ -45,66 +54,106 @@ function WeeklyBriefWidget() {
   const kpis = brief.kpi_changes || [];
 
   return (
-    <Card
+    <div
       data-testid="weekly-brief-widget"
-      style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(236,72,153,0.06) 100%)', marginBottom: 18 }}
+      style={{
+        position: 'relative', overflow: 'hidden', marginBottom: 18, borderRadius: 18, padding: '22px 24px',
+        background: 'linear-gradient(120deg, #4B2BD4 0%, #6D4AFF 48%, #B23BC0 100%)',
+        boxShadow: '0 18px 40px -16px rgba(76,43,212,0.55)', color: '#fff',
+      }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <div className="eyebrow" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Sparkle size={10} color="var(--indigo-3)" />
-            ESTA SEMANA · IA
-          </div>
-          <p style={{ margin: '0 0 8px', fontSize: 13.5, color: 'var(--cream)', lineHeight: 1.5, fontFamily: 'DM Sans,sans-serif' }}>
-            {brief.summary}
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-            {brief.top_action && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 20,
-                background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-              }}>
-                <Activity size={10} color="#c7d2fe" />
-                <span style={{ fontSize: 11, color: '#c7d2fe' }}>{brief.top_action}</span>
-              </div>
-            )}
-            {brief.top_risk && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 20,
-                background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)',
-              }}>
-                <AlertCircle size={10} color="#fcd34d" />
-                <span style={{ fontSize: 11, color: '#fcd34d' }}>{brief.top_risk}</span>
-              </div>
-            )}
-          </div>
-        </div>
+      <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(var(--cream-rgb),0.85)', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+        <Sparkle size={12} color="#fff" /> ESTA SEMANA · IA
+      </div>
+      <p style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, fontFamily: 'Outfit,sans-serif', maxWidth: 760 }}>
+        {brief.summary}
+      </p>
 
-        {/* KPI chips */}
-        {kpis.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {kpis.map((k, i) => (
+      {/* KPIs como tiles blancos sólidos sobre el hero (alto contraste) */}
+      {kpis.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
+          {kpis.map((k, i) => {
+            const tone = k.trend === 'up' ? '31,160,106' : k.trend === 'down' ? '242,99,91' : '109,74,255';
+            return (
               <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '6px 10px', borderRadius: 8,
-                background: 'rgba(240,235,224,0.04)',
-                border: '1px solid rgba(240,235,224,0.08)',
-                minWidth: 150,
+                padding: '13px 15px', borderRadius: 13, background: '#fff',
+                boxShadow: '0 8px 20px -10px rgba(0,0,0,0.35)',
               }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.4)', marginBottom: 1 }}>{k.label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>{k.value}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ fontSize: 10.5, color: '#434A5C', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 800 }}>{k.label}</div>
+                  {k.trend === 'up' && <TrendUp size={15} color={`rgb(${tone})`} />}
+                  {k.trend === 'down' && <TrendDown size={15} color={`rgb(${tone})`} />}
                 </div>
-                {k.trend === 'up' && <TrendUp size={12} color="#4ade80" />}
-                {k.trend === 'down' && <TrendDown size={12} color="#f87171" />}
+                <div style={{ fontSize: 27, fontWeight: 800, color: `rgb(${tone})`, fontFamily: 'Outfit,sans-serif', marginTop: 3, lineHeight: 1 }}>{k.value}</div>
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* acción = botón blanco (resalta sobre el hero) · riesgo = contorno */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        {brief.top_action && (
+          <button style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+            padding: '10px 17px', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: 'DM Sans,sans-serif',
+            background: '#fff', color: '#4B2BD4', border: 'none', boxShadow: '0 6px 16px -8px rgba(0,0,0,0.4)',
+          }}>
+            <Activity size={14} /> {brief.top_action}
+          </button>
+        )}
+        {brief.top_risk && (
+          <button style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+            padding: '10px 17px', borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans,sans-serif',
+            background: 'rgba(var(--cream-rgb),0.14)', color: '#fff', border: '1px solid rgba(var(--cream-rgb),0.5)',
+          }}>
+            <AlertCircle size={14} /> {brief.top_risk}
+          </button>
         )}
       </div>
-    </Card>
+    </div>
+  );
+}
+
+// ─── Tus jugadas de hoy (VALOR: fusión dato + mercado · diseño con carácter) ───
+function DevPlaysWidget() {
+  const navigate = useNavigate();
+  const [plays, setPlays] = useState(null);
+  useEffect(() => { api.getDevPlays().then(d => setPlays(d.plays || [])).catch(() => setPlays([])); }, []);
+  if (!plays || !plays.length) return null;
+  const TONE = { alta: '242,99,91', media: '226,152,46', oportunidad: '31,160,106' };
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div className="eyebrow" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--theme)' }}>
+        <Sparkle size={11} /> TUS JUGADAS DE HOY · ORDENADAS POR $ EN JUEGO
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 12 }}>
+        {plays.map((pl, i) => {
+          const tone = TONE[pl.severity] || '109,74,255';
+          return (
+            <div key={i} data-testid={`play-${i}`}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 16px 30px -14px rgba(${tone},0.45)`; e.currentTarget.style.borderColor = `rgba(${tone},0.5)`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; }}
+              style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '15px 16px 15px 18px', boxShadow: 'var(--asr-shadow, none)', transition: 'transform .16s, box-shadow .16s, border-color .16s', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: `rgb(${tone})` }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 18 }}>{pl.emoji}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: '#fff', background: `rgb(${tone})`, borderRadius: 999, padding: '3px 9px' }}>{pl.type}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 800, color: `rgb(${tone})`, fontFamily: 'Outfit,sans-serif' }}>{pl.impact_label}</span>
+              </div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif', lineHeight: 1.3 }}>{pl.title}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>{pl.detail}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>Fuente: {pl.sources}</div>
+              <button onClick={() => navigate(pl.action_route)} data-testid={`play-cta-${i}`}
+                style={{ alignSelf: 'flex-start', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
+                {pl.action_label} <ArrowRight size={13} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -146,14 +195,14 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       />
 
       {/* Tab navigation */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.07))', paddingBottom: 4 }}>
         {[['resumen', 'Resumen'], ['director', 'Director AI'], ['whatif', 'What-if'], ['roi', 'Tu ROI Phase Y']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
             style={{
               padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
               fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: 'none',
-              background: activeTab === key ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.05)',
-              color: activeTab === key ? '#fff' : 'rgba(240,235,224,0.55)',
+              background: activeTab === key ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'var(--surface-2, rgba(var(--cream-rgb),0.05))',
+              color: activeTab === key ? '#fff' : 'var(--cream-2)',
               transition: 'background 0.18s, color 0.18s',
             }}
           >{label}</button>
@@ -187,8 +236,11 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* Resumen tab (existing content) */}
       {activeTab === 'resumen' && (
         <>
-      {/* Weekly Brief */}
+      {/* Weekly Brief (hero) */}
       <WeeklyBriefWidget />
+
+      {/* Tus jugadas de hoy (valor: fusión dato + mercado) */}
+      <DevPlaysWidget />
 
       {/* Setup Checklist (visible only if incomplete) */}
       <SetupChecklist style={{ marginBottom: 18 }} />
@@ -196,15 +248,15 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {!data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 22 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, marginBottom: 22 }}>
               <Stat label="Desarrollos" value={data.developments_count} />
               <Stat label="Unidades totales" value={data.units_total} />
               <Stat label="Disponibles" value={data.units_available} />
-              <Stat label="Reservadas" value={data.units_reserved} accent="#fcd34d" />
-              <Stat label="Vendidas" value={data.units_sold} accent="#86efac" />
+              <Stat label="Reservadas" value={data.units_reserved} accent="var(--warm,#fcd34d)" />
+              <Stat label="Vendidas" value={data.units_sold} accent="var(--ok,#86efac)" />
               <Stat label="Absorción" value={`${data.absorption_pct}%`} />
-              <Stat label="Ingresos cerrados" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_booked)}</span>} accent="#86efac" />
-              <Stat label="Pipeline reservado" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_pipeline)}</span>} accent="#fcd34d" />
+              <Stat label="Ingresos cerrados" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_booked)} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtBig(data.revenue_booked)}</span>} accent="var(--ok,#86efac)" />
+              <Stat label="Pipeline reservado" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_pipeline)} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtBig(data.revenue_pipeline)}</span>} accent="var(--warm,#fcd34d)" />
             </div>
 
             {/* W5.5 P2 — Pulso de tus zonas */}
@@ -228,25 +280,27 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             })()}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
-              <Card style={{ background: 'linear-gradient(140deg, rgba(99,102,241,0.1), transparent)' }}>
-                <div className="eyebrow" style={{ marginBottom: 8 }}>SUGERENCIAS DE PRECIO</div>
+              <Card style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+                <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--warm, #E2982E)' }} />
+                <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--cream-2)' }}>SUGERENCIAS DE PRECIO</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: 'var(--cream)', letterSpacing: '-0.022em' }}>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, color: 'var(--warm, #E2982E)', letterSpacing: '-0.022em', lineHeight: 1 }}>
                     {data.pricing_alerts}
                   </div>
-                  <Link to="/desarrollador/pricing" className="btn btn-glass btn-sm">Revisar <ArrowRight size={10} /></Link>
+                  <Link to="/desarrollador/pricing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 12.5, fontWeight: 800, textDecoration: 'none', boxShadow: '0 6px 16px -8px rgba(109,74,255,0.5)' }}>Revisar <ArrowRight size={12} /></Link>
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>pendientes de aprobación del director comercial</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6 }}>pendientes de aprobación del director comercial</div>
               </Card>
-              <Card style={{ background: 'linear-gradient(140deg, rgba(236,72,153,0.1), transparent)' }}>
-                <div className="eyebrow" style={{ marginBottom: 8 }}>ALERTAS DE COMPETIDORES</div>
+              <Card style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+                <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: (data.competitor_alerts || 0) > 0 ? 'var(--hot, #F2635B)' : 'var(--theme, #6D4AFF)' }} />
+                <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--cream-2)' }}>ALERTAS DE COMPETIDORES</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: 'var(--cream)', letterSpacing: '-0.022em' }}>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, color: (data.competitor_alerts || 0) > 0 ? 'var(--hot, #F2635B)' : 'var(--cream)', letterSpacing: '-0.022em', lineHeight: 1 }}>
                     {data.competitor_alerts || 0}
                   </div>
-                  <Link to="/desarrollador/competidores" className="btn btn-glass btn-sm">Radar <ArrowRight size={10} /></Link>
+                  <Link to="/desarrollador/competidores" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--surface, #fff)', color: 'var(--theme, #6D4AFF)', border: '1px solid rgba(109,74,255,0.4)', borderRadius: 9, padding: '9px 15px', fontSize: 12.5, fontWeight: 800, textDecoration: 'none' }}>Radar <ArrowRight size={12} /></Link>
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>movimientos relevantes en tu zona</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6 }}>movimientos relevantes en tu zona</div>
               </Card>
             </div>
 
@@ -261,7 +315,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                     </div>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
                       Tus documentos legales y comerciales están alimentando automáticamente la ficha pública del marketplace.
-                      {pausedDevs > 0 && <span style={{ color: '#fcd34d' }}> · {pausedDevs} pausado{pausedDevs === 1 ? '' : 's'} por críticos cross-check.</span>}
+                      {pausedDevs > 0 && <span style={{ color: 'var(--amber)' }}> · {pausedDevs} pausado{pausedDevs === 1 ? '' : 's'} por críticos cross-check.</span>}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                       {syncPending.items.slice(0, 4).map(s => (
@@ -281,13 +335,16 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
             {/* Bottom grid: Proyectos + Activity Feed */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }} className="ddash-bottom">
-              <Card>
+              <Card style={{ background: 'var(--surface-2, rgba(var(--cream-rgb),0.03))', borderColor: 'var(--border-2, var(--border))' }}>
                 <div className="eyebrow" style={{ marginBottom: 12 }}>DESARROLLOS ACTIVOS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                   {data.developments.map(d => (
-                    <Link key={d.id} to={`/desarrollador/inventario?dev=${d.id}`} data-testid={`ddev-${d.id}`} style={{
-                      padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none',
-                      transition: 'border-color 0.15s',
+                    <Link key={d.id} to={`/desarrollador/inventario?dev=${d.id}`} data-testid={`ddev-${d.id}`}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; }}
+                      style={{
+                      padding: 14, background: 'var(--surface, rgba(var(--cream-rgb),0.03))', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, textDecoration: 'none',
+                      boxShadow: 'var(--asr-shadow, none)', transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s', display: 'block',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', letterSpacing: '-0.01em' }}>{d.name}</div>

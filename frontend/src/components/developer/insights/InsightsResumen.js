@@ -17,8 +17,8 @@ const fmtMXN = (v) => {
 function KPICard({ label, value, sub, testid }) {
   return (
     <div data-testid={testid} style={{
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 14, padding: '14px 16px',
       display: 'flex', flexDirection: 'column', gap: 4,
     }}>
@@ -82,7 +82,7 @@ export default function InsightsResumen({ projectId }) {
     </div>
   );
   if (err) return (
-    <div data-testid="resumen-error" style={{ padding: 24, color: '#fca5a5' }}>
+    <div data-testid="resumen-error" style={{ padding: 24, color: 'var(--red)' }}>
       Error: {err}
     </div>
   );
@@ -113,8 +113,8 @@ export default function InsightsResumen({ projectId }) {
       {/* Health + trend row */}
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 2fr' }}>
         <div data-testid="resumen-health" style={{
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           borderRadius: 14, padding: 14,
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
@@ -131,8 +131,8 @@ export default function InsightsResumen({ projectId }) {
         </div>
 
         <div style={{
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.10)',
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.10)',
           borderRadius: 14, padding: 14,
         }}>
           <div style={{

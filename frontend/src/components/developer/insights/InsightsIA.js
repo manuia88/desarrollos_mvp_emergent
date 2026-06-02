@@ -11,8 +11,8 @@ import {
 import { Sparkle } from '../../icons';
 
 const PRIORITY_TONE = {
-  high: { bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.32)', label: 'Alta',  color: '#fca5a5' },
-  med:  { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.32)', label: 'Media', color: '#fbbf24' },
+  high: { bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.32)', label: 'Alta',  color: 'var(--red)' },
+  med:  { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.32)', label: 'Media', color: 'var(--amber)' },
   low:  { bg: 'rgba(var(--theme-rgb),0.10)', border: 'rgba(var(--theme-rgb),0.32)', label: 'Baja',  color: 'var(--theme)' },
 };
 
@@ -20,7 +20,7 @@ function ConfidenceBar({ pct = 0, testid }) {
   return (
     <div data-testid={testid} style={{
       width: '100%', height: 6, borderRadius: 9999,
-      background: 'rgba(240,235,224,0.08)', overflow: 'hidden', marginTop: 6,
+      background: 'rgba(var(--cream-rgb),0.08)', overflow: 'hidden', marginTop: 6,
     }}>
       <div style={{
         width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%',
@@ -33,8 +33,8 @@ function ConfidenceBar({ pct = 0, testid }) {
 function PredictionCard({ p, idx }) {
   return (
     <div data-testid={`prediction-${idx}`} style={{
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.10)',
+      background: 'rgba(var(--cream-rgb),0.04)',
+      border: '1px solid rgba(var(--cream-rgb),0.10)',
       borderRadius: 12, padding: 14,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -126,7 +126,7 @@ export default function InsightsIA({ projectId }) {
     </div>
   );
   if (err) return (
-    <div data-testid="ia-error" style={{ padding: 16, color: '#fca5a5' }}>Error: {err}</div>
+    <div data-testid="ia-error" style={{ padding: 16, color: 'var(--red)' }}>Error: {err}</div>
   );
 
   return (
@@ -141,7 +141,7 @@ export default function InsightsIA({ projectId }) {
           disabled={refreshing}
           style={{
             padding: '6px 14px', borderRadius: 9999,
-            border: '1px solid rgba(240,235,224,0.16)',
+            border: '1px solid rgba(var(--cream-rgb),0.16)',
             background: 'transparent', color: 'var(--cream-2)',
             fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 600,
             cursor: refreshing ? 'wait' : 'pointer', opacity: refreshing ? 0.6 : 1,

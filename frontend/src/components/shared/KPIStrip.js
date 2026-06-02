@@ -16,7 +16,7 @@ function TrendChip({ value, suffix = '%' }) {
       className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full
         ${isUp ? 'bg-emerald-500/15 text-emerald-400'
           : isDown ? 'bg-red-500/15 text-red-400'
-          : 'bg-[rgba(240,235,224,0.08)] text-[rgba(240,235,224,0.4)]'}`}
+          : 'bg-[rgba(var(--cream-rgb),0.08)] text-[rgba(var(--cream-rgb),0.4)]'}`}
     >
       <Icon size={9} />
       {Math.abs(value)}{suffix}
@@ -35,8 +35,8 @@ export function KPIStrip({ items = [], period_filter, onPeriodChange, className 
               onClick={() => onPeriodChange?.(p)}
               className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
                 ${period_filter === p
-                  ? 'bg-[var(--cream)] text-[var(--navy)]'
-                  : 'text-[rgba(240,235,224,0.45)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)]'}`}
+                  ? 'bg-[var(--theme)] text-white'
+                  : 'text-[rgba(var(--cream-rgb),0.55)] hover:text-[var(--cream)] hover:bg-[rgba(var(--cream-rgb),0.06)]'}`}
             >
               {p}
             </button>
@@ -48,20 +48,20 @@ export function KPIStrip({ items = [], period_filter, onPeriodChange, className 
         {items.map((item, i) => (
           <div
             key={i}
-            className="rounded-xl bg-[#0f1320] border border-[rgba(240,235,224,0.08)] p-3 space-y-1"
+            className="rounded-xl bg-[var(--surface,#0f1320)] border border-[var(--border,rgba(var(--cream-rgb),0.08))] shadow-[var(--asr-shadow,none)] p-3 space-y-1"
             data-testid={`kpi-card-${i}`}
           >
             <div className="flex items-center justify-between gap-1">
-              <p className="text-[rgba(240,235,224,0.45)] text-[10px] uppercase tracking-wide truncate">
+              <p className="text-[rgba(var(--cream-rgb),0.45)] text-[10px] uppercase tracking-wide truncate">
                 {item.label}
               </p>
-              {item.icon && <item.icon size={12} className="text-[rgba(240,235,224,0.25)] shrink-0" />}
+              {item.icon && <item.icon size={12} className="text-[rgba(var(--cream-rgb),0.25)] shrink-0" />}
             </div>
             <p className="text-[var(--cream)] text-xl font-bold leading-none">{item.value ?? '—'}</p>
             <div className="flex items-center gap-1.5 min-h-[16px]">
               {item.trend !== undefined && <TrendChip value={item.trend} suffix={item.trendSuffix || '%'} />}
               {item.subtext && (
-                <span className="text-[rgba(240,235,224,0.3)] text-[10px] truncate">{item.subtext}</span>
+                <span className="text-[rgba(var(--cream-rgb),0.3)] text-[10px] truncate">{item.subtext}</span>
               )}
             </div>
           </div>

@@ -102,7 +102,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
               style={{
                 position: 'relative',
                 padding: '8px 12px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                 color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
@@ -126,7 +126,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
               onClick={() => setShowConfig(true)}
               style={{
                 padding: '8px 14px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                 color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
@@ -149,7 +149,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
             {data.alerts.length > 0 && (
               <Card style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(239,68,68,0.10), transparent)', border: '1px solid rgba(239,68,68,0.32)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div className="eyebrow" style={{ color: '#fca5a5' }}>ALERTAS · ACCIÓN RECOMENDADA</div>
+                  <div className="eyebrow" style={{ color: 'var(--red)' }}>ALERTAS · ACCIÓN RECOMENDADA</div>
                   {cfg && (
                     <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)' }}>
                       Umbral pricing: ±{cfg.price_delta_threshold_pct}% · abs: {cfg.absorption_threshold_pct}%
@@ -224,7 +224,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                           style={{
                             padding: '7px 12px', borderRadius: 9999,
                             background: 'rgba(236,72,153,0.14)', border: '1px solid rgba(236,72,153,0.3)',
-                            color: '#f9a8d4', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                            color: 'var(--rose)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                           }}>
                           <TrendUp size={11} /> Histórico
@@ -239,7 +239,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                               padding: '7px 10px', borderRadius: 9999,
                               background: simulatingId === c.id ? 'rgba(148,163,184,0.25)' : 'rgba(251,191,36,0.12)',
                               border: '1px solid rgba(251,191,36,0.32)',
-                              color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
+                              color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
                               cursor: simulatingId === c.id ? 'wait' : 'pointer',
                               display: 'inline-flex', alignItems: 'center', gap: 5,
                             }}>
@@ -286,7 +286,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
         <div
           data-testid="notif-drawer"
           onClick={() => setShowNotifDrawer(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0D1118', borderLeft: '1px solid var(--border)',
             width: 'min(420px, 100%)', height: '100%', overflowY: 'auto',
@@ -314,7 +314,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                 style={{
                   width: '100%', padding: '8px 14px', marginBottom: 12,
                   background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)',
-                  borderRadius: 9999, color: '#f9a8d4',
+                  borderRadius: 9999, color: 'var(--rose)',
                   fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 }}>
                 Marcar todas como leídas
@@ -334,7 +334,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                 return (
                   <div key={n.id} data-testid={`notif-${n.id}`} style={{
                     padding: 14, borderRadius: 12,
-                    background: unread ? 'rgba(236,72,153,0.08)' : 'rgba(255,255,255,0.03)',
+                    background: unread ? 'rgba(236,72,153,0.08)' : 'rgba(var(--cream-rgb),0.03)',
                     border: `1px solid ${unread ? 'rgba(236,72,153,0.3)' : 'var(--border)'}`,
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 8 }}>
@@ -376,7 +376,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
         <div
           data-testid="comp-history-modal"
           onClick={() => setHistoryFor(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0D1118', border: '1px solid var(--border)',
             borderRadius: 16, padding: 20, maxWidth: 720, width: '100%',
@@ -403,7 +403,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                   width={640} height={240}
                   xLabels={history.history.map(h => h.month.slice(5))}
                   series={[{
-                    name: 'Precio/m²', color: '#EC4899',
+                    name: 'Precio/m²', color: 'var(--rose)',
                     values: history.history.map((h, i) => ({ x: i, y: h.price_sqm_mxn })),
                   }]}
                   yFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
@@ -436,7 +436,7 @@ function Stat({ label, value }) {
 
 function Metric({ label, v, accent }) {
   return (
-    <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10 }}>
+    <div style={{ padding: 10, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10 }}>
       <div className="eyebrow" style={{ marginBottom: 3, fontSize: 9 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: accent || 'var(--cream)' }}>{v}</div>
     </div>
@@ -453,7 +453,7 @@ function AlertConfigModal({ cfg, onClose, onSave }) {
     <div
       data-testid="comp-config-modal"
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', border: '1px solid var(--border)',
         borderRadius: 16, padding: 22, maxWidth: 460, width: '100%',
@@ -529,7 +529,7 @@ function Toggle({ label, value, onChange, tid }) {
       onClick={() => onChange(!value)}
       style={{
         flex: 1, padding: '10px 12px', borderRadius: 10,
-        background: value ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.03)',
+        background: value ? 'rgba(236,72,153,0.15)' : 'rgba(var(--cream-rgb),0.03)',
         border: `1px solid ${value ? 'rgba(236,72,153,0.35)' : 'var(--border)'}`,
         color: value ? '#f9a8d4' : 'var(--cream-3)',
         fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
@@ -541,7 +541,7 @@ function Toggle({ label, value, onChange, tid }) {
 }
 
 const inputStyle = {
-  width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.04)',
+  width: '100%', padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.04)',
   border: '1px solid var(--border)', borderRadius: 10,
   color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 13,
 };

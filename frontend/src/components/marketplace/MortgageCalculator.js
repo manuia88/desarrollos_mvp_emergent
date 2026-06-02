@@ -41,7 +41,7 @@ function ResultCard({ entry, idx = 0 }) {
       style={{
         padding: '16px 18px',
         borderRadius: 14,
-        background: 'rgba(13,16,23,0.92)',
+        background: 'rgba(var(--bg-rgb),0.92)',
         border: `1px solid ${viable ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(239,68,68,0.28)'}`,
         backdropFilter: 'blur(24px)',
       }}
@@ -100,7 +100,7 @@ function Kpi({ label, value, highlight }) {
     <div>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 9, fontWeight: 600,
-        color: 'rgba(240,235,224,0.45)',
+        color: 'rgba(var(--cream-rgb),0.45)',
         textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2,
       }}>
         {label}
@@ -220,7 +220,7 @@ export default function MortgageCalculator({
           </div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 12,
-            color: 'rgba(240,235,224,0.5)', marginTop: 4,
+            color: 'rgba(var(--cream-rgb),0.5)', marginTop: 4,
           }}>
             Compara Infonavit, Fovissste y 5 bancos en una sola corrida.
           </div>
@@ -239,7 +239,7 @@ export default function MortgageCalculator({
           <label key={f.k} style={{ display: 'block' }}>
             <div style={{
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
-              color: 'rgba(240,235,224,0.7)', marginBottom: 5,
+              color: 'rgba(var(--cream-rgb),0.7)', marginBottom: 5,
             }}>
               {f.label}{f.required && <span style={{ color: 'var(--theme-3)' }}> *</span>}
             </div>
@@ -262,7 +262,7 @@ export default function MortgageCalculator({
           padding: '9px 12px', borderRadius: 8, marginBottom: 12,
           background: 'rgba(239,68,68,0.08)',
           border: '1px solid rgba(239,68,68,0.25)',
-          fontFamily: 'DM Sans', fontSize: 12, color: '#FCA5A5',
+          fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)',
         }}>
           {error}
         </div>
@@ -294,8 +294,8 @@ export default function MortgageCalculator({
             <div style={{
               padding: '16px 18px',
               borderRadius: 14,
-              background: 'rgba(13,16,23,0.92)',
-              border: '1px solid rgba(240,235,224,0.10)',
+              background: 'rgba(var(--bg-rgb),0.92)',
+              border: '1px solid rgba(var(--cream-rgb),0.10)',
               backdropFilter: 'blur(24px)',
             }}>
               <div style={{
@@ -322,7 +322,7 @@ export default function MortgageCalculator({
                       </div>
                       <div style={{
                         fontFamily: 'DM Sans', fontSize: 10,
-                        color: 'rgba(240,235,224,0.5)',
+                        color: 'rgba(var(--cream-rgb),0.5)',
                       }}>
                         CAT {b.cat_pct}% · DTI {(b.dti_ratio * 100).toFixed(1)}%
                       </div>
@@ -346,8 +346,8 @@ export default function MortgageCalculator({
               onClick={() => setSaveOpen(true)}
               style={{
                 padding: '11px 18px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(240,235,224,0.18)',
+                background: 'rgba(var(--cream-rgb),0.05)',
+                border: '1px solid rgba(var(--cream-rgb),0.18)',
                 color: 'var(--cream, #F0EBE0)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
                 cursor: 'pointer',
@@ -360,8 +360,8 @@ export default function MortgageCalculator({
           {saveOpen && !saveDone && (
             <div style={{
               padding: 14, borderRadius: 12,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(240,235,224,0.10)',
+              background: 'rgba(var(--cream-rgb),0.03)',
+              border: '1px solid rgba(var(--cream-rgb),0.10)',
             }}>
               <input
                 data-testid="mortgage-save-email"
@@ -372,7 +372,7 @@ export default function MortgageCalculator({
               />
               <label style={{
                 display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10,
-                fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)',
+                fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.55)',
               }}>
                 <input type="checkbox" data-testid="mortgage-save-accept"
                   checked={saveAccepted} onChange={e => setSaveAccepted(e.target.checked)}
@@ -401,7 +401,7 @@ export default function MortgageCalculator({
               padding: '10px 14px', borderRadius: 10,
               background: 'rgba(34,197,94,0.08)',
               border: '1px solid rgba(34,197,94,0.30)',
-              fontFamily: 'DM Sans', fontSize: 13, color: '#86EFAC',
+              fontFamily: 'DM Sans', fontSize: 13, color: 'var(--green)',
             }}>
               ✓ Cálculo enviado a {saveEmail}.
             </div>
@@ -411,7 +411,7 @@ export default function MortgageCalculator({
             <div style={{
               marginTop: 14,
               fontFamily: 'DM Sans', fontSize: 11,
-              color: 'rgba(240,235,224,0.4)', lineHeight: 1.5,
+              color: 'rgba(var(--cream-rgb),0.4)', lineHeight: 1.5,
             }}>
               {result.disclaimer}
             </div>
@@ -432,13 +432,13 @@ export default function MortgageCalculator({
     return (
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.86)', backdropFilter: 'blur(18px)',
+        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         overflowY: 'auto',
       }}>
         <div onClick={e => e.stopPropagation()} style={{
-          background: 'rgba(13,16,23,0.97)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.97)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 22, padding: '24px',
           width: '100%', maxWidth: 880, maxHeight: '92vh', overflowY: 'auto',
         }}>
@@ -452,8 +452,8 @@ export default function MortgageCalculator({
 
 const inputStyle = {
   width: '100%', padding: '10px 12px',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(240,235,224,0.15)',
+  background: 'rgba(var(--cream-rgb),0.05)',
+  border: '1px solid rgba(var(--cream-rgb),0.15)',
   borderRadius: 9, outline: 'none',
   fontFamily: 'DM Sans', fontSize: 13,
   color: 'var(--cream, #F0EBE0)',
@@ -462,8 +462,8 @@ const inputStyle = {
 
 const closeBtnStyle = {
   width: 30, height: 30, borderRadius: 9999,
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(240,235,224,0.15)',
-  color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+  background: 'rgba(var(--cream-rgb),0.06)',
+  border: '1px solid rgba(var(--cream-rgb),0.15)',
+  color: 'rgba(var(--cream-rgb),0.6)', cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
 };

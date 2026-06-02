@@ -20,16 +20,16 @@ function CustomTooltip({ active, payload, label }) {
   return (
     <div style={{
       padding: '10px 14px', borderRadius: 12,
-      background: 'rgba(6,8,15,0.97)',
+      background: 'rgba(var(--bg-rgb),0.97)',
       border: '1px solid rgba(99,102,241,0.3)',
       backdropFilter: 'blur(20px)',
-      fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: '#F0EBE0',
+      fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream)',
     }}>
-      <p style={{ margin: 0, fontWeight: 700, color: '#a5b4fc' }}>{label}</p>
-      <p style={{ margin: '4px 0 0', color: '#F0EBE0' }}>
+      <p style={{ margin: 0, fontWeight: 700, color: 'var(--blue)' }}>{label}</p>
+      <p style={{ margin: '4px 0 0', color: 'var(--cream)' }}>
         {t('battle_card.ranking.position_label', { defaultValue: 'Rank' })} #{d.ranking || '—'}
       </p>
-      <p style={{ margin: '2px 0 0', color: 'rgba(240,235,224,0.55)' }}>
+      <p style={{ margin: '2px 0 0', color: 'rgba(var(--cream-rgb),0.55)' }}>
         Score: {d.my_score?.toFixed(1) ?? '—'}
       </p>
     </div>
@@ -45,7 +45,7 @@ export function BattleCardRankingTimeline({ history }) {
         data-testid="battle-card-ranking-timeline-empty"
         style={{
           padding: '20px', textAlign: 'center',
-          color: 'rgba(240,235,224,0.35)', fontSize: 12,
+          color: 'rgba(var(--cream-rgb),0.35)', fontSize: 12,
           fontFamily: 'DM Sans, sans-serif',
         }}
       >
@@ -67,7 +67,7 @@ export function BattleCardRankingTimeline({ history }) {
     <div data-testid="battle-card-ranking-timeline">
       <p style={{
         fontFamily: 'DM Sans, sans-serif', fontWeight: 700,
-        fontSize: 11, color: 'rgba(240,235,224,0.5)',
+        fontSize: 11, color: 'rgba(var(--cream-rgb),0.5)',
         textTransform: 'uppercase', letterSpacing: '0.08em',
         margin: '0 0 10px',
       }}>
@@ -75,10 +75,10 @@ export function BattleCardRankingTimeline({ history }) {
       </p>
       <ResponsiveContainer width="100%" height={140}>
         <LineChart data={data} margin={{ top: 6, right: 8, bottom: 4, left: -20 }}>
-          <CartesianGrid stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <CartesianGrid stroke="rgba(var(--cream-rgb),0.05)" strokeDasharray="4 4" />
           <XAxis
             dataKey="week_iso"
-            tick={{ fill: 'rgba(240,235,224,0.35)', fontSize: 9, fontFamily: 'DM Sans' }}
+            tick={{ fill: 'rgba(var(--cream-rgb),0.35)', fontSize: 9, fontFamily: 'DM Sans' }}
             axisLine={false} tickLine={false}
           />
           <YAxis
@@ -87,7 +87,7 @@ export function BattleCardRankingTimeline({ history }) {
               const actual = maxRank + 1 - v;
               return actual >= 1 && actual <= maxRank ? `#${actual}` : '';
             }}
-            tick={{ fill: 'rgba(240,235,224,0.35)', fontSize: 9, fontFamily: 'DM Sans' }}
+            tick={{ fill: 'rgba(var(--cream-rgb),0.35)', fontSize: 9, fontFamily: 'DM Sans' }}
             axisLine={false} tickLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -95,7 +95,7 @@ export function BattleCardRankingTimeline({ history }) {
             type="monotone" dataKey="rank_inverted"
             stroke={INDIGO} strokeWidth={2.5}
             dot={{ r: 3, fill: INDIGO, strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: '#a5b4fc' }}
+            activeDot={{ r: 5, fill: 'var(--blue)' }}
             connectNulls={false}
           />
         </LineChart>

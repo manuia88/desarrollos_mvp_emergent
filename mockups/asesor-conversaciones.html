@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMX · Conversaciones · Bandeja global</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFB; --surface:#FFFFFF; --surface-2:#F1F2F6;
+    --ink:#1E2230; --ink-2:#5A6172; --ink-3:#969CAB;
+    --line:#E6E8EE; --line-2:#D5D8E2;
+    --accent:#6D4AFF; --accent-2:#5B37E0; --accent-ink:#FFFFFF; --accent-text:#5B37E0; --accent-soft:rgba(109,74,255,.10); --grad:linear-gradient(120deg,#6D4AFF,#C63FAE);
+    --hot:#F2635B; --warm:#E2982E; --cold:#3B82F6; --ok:#1FA06A;
+    --shadow:0 1px 2px rgba(20,25,45,.04),0 4px 10px rgba(20,25,45,.06);
+    --shadow-lg:0 14px 34px rgba(20,25,45,.16);
+    --serif:'Outfit',system-ui,sans-serif; --sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-size:16px}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(700px 500px at 1% -8%,rgba(109,74,255,.10),transparent 56%)}
+  .serif{font-family:var(--serif)}
+  .app{position:relative;z-index:1;display:grid;grid-template-columns:228px 1fr;height:100vh}
+
+  .side{padding:24px 16px;border-right:1px solid var(--line);background:rgba(255,255,255,.6)}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;padding:0 6px}
+  .brand .logo{width:32px;height:32px;border-radius:8px;background:var(--grad);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:18px}
+  .brand b{font-family:var(--serif);font-weight:700;font-size:17px}
+  .nav-label{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:6px 10px 10px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:var(--ink-2);font-size:14.5px;font-weight:500;cursor:pointer;margin-bottom:2px}
+  .nav-item:hover{background:var(--surface-2);color:var(--ink)} .nav-item.active{background:var(--accent-soft);color:var(--ink);font-weight:600} .nav-item.active .ico{color:var(--accent-text)} .nav-item .ico{width:18px;height:18px;color:var(--ink-3);flex-shrink:0}
+  .nav-item .nb{margin-left:auto;font-size:11px;font-weight:700;background:var(--grad);color:#fff;border-radius:99px;padding:1px 8px}
+
+  /* bandeja split */
+  .inbox{display:grid;grid-template-columns:340px 1fr 322px;min-width:0;height:100vh}
+  /* lista */
+  .clist{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+  .clhead{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+  .clhead h1{font-family:var(--serif);font-size:24px;font-weight:700;margin-bottom:13px}
+  .search{display:flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid var(--line);border-radius:9px;color:var(--ink-3);font-size:13.5px;background:var(--surface-2)}
+  .clfilters{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}
+  .fchip{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:99px;cursor:pointer} .fchip:hover{border-color:var(--line-2)} .fchip.on{background:var(--accent-soft);color:var(--ink);border-color:transparent} .fchip .n{color:var(--ink-3);font-family:var(--serif)}
+  .clscroll{overflow-y:auto;flex:1;min-height:0}
+  .crow{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}
+  .crow:hover{background:var(--surface-2)} .crow.on{background:var(--accent-soft)}
+  .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:15px;flex-shrink:0;position:relative}
+  .av.active::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--surface)}
+  .cbody{flex:1;min-width:0}
+  .ctop{display:flex;align-items:center;gap:8px}
+  .cname{font-family:var(--serif);font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ctime{margin-left:auto;font-size:11px;color:var(--ink-3);white-space:nowrap;flex-shrink:0}
+  .cprev{font-size:13.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+  .cprev.unread-txt{color:var(--ink);font-weight:600}
+  .cmeta{display:flex;align-items:center;gap:9px;margin-top:7px}
+  .chanb{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-3)} .chanb .cdot{width:8px;height:8px;border-radius:50%}
+  .tdot{width:8px;height:8px;border-radius:50%}
+  .cscore{font-family:var(--serif);font-weight:700;font-size:12px;color:var(--accent-text)}
+  .unread{margin-left:auto;background:var(--grad);color:#fff;border-radius:99px;font-size:11px;font-weight:700;padding:1px 8px;font-variant-numeric:tabular-nums}
+
+  /* hilo */
+  .thp{display:flex;flex-direction:column;min-width:0;height:100vh;background:var(--bg)}
+  .thh{display:flex;align-items:center;gap:13px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .thh .av{width:44px;height:44px;font-size:14px}
+  .thh .nm{font-family:var(--serif);font-weight:700;font-size:18px}
+  .thh .sub{font-size:12.5px;color:var(--ink-2);margin-top:2px;display:flex;align-items:center;gap:8px}
+  .tg{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em} .tg .d{width:8px;height:8px;border-radius:50%}
+  .thh .acts{margin-left:auto;display:flex;gap:9px}
+  .hbtn{display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer} .hbtn:hover{border-color:var(--line-2)} .hbtn.key{background:var(--grad);border-color:transparent;color:#fff}
+
+  .thbody{flex:1;min-height:0;overflow-y:auto;padding:18px 24px}
+  .convmeta{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:16px;background:var(--surface);box-shadow:var(--shadow)}
+  .convmeta .cm{flex:1;padding:11px 15px;border-right:1px solid var(--line)} .convmeta .cm:last-child{border-right:0}
+  .convmeta .cml{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);display:block;margin-bottom:5px} .convmeta .cmv{font-family:var(--serif);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px} .cmv.pos{color:var(--ok)} .cmv .gd{width:8px;height:8px;border-radius:50%} .convmeta .cmh{display:block;font-size:11.5px;color:var(--ink-3);margin-top:4px;font-weight:400}
+  .chanfilter{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+  .chanfilter button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:6px} .chanfilter button.on{background:var(--accent-soft);color:var(--ink);border-color:transparent} .chanfilter .cdot{width:8px;height:8px;border-radius:50%}
+  .addchan{border:1px dashed var(--line-2);background:transparent;color:var(--ink-3);font-family:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;cursor:pointer} .addchan:hover{border-color:var(--accent);color:var(--accent-text)}
+  .thread{display:flex;flex-direction:column;gap:13px}
+  .msg{max-width:62%;display:flex;flex-direction:column;gap:5px} .msg.in{align-self:flex-start} .msg.out{align-self:flex-end;align-items:flex-end}
+  .bubble{padding:11px 15px;border-radius:15px;font-size:14.5px;line-height:1.55;box-shadow:var(--shadow)}
+  .msg.in .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg.out .bubble{background:var(--accent-soft);border:1px solid rgba(109,74,255,.3);border-bottom-right-radius:5px}
+  .mmeta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)} .mmeta .cdot{width:8px;height:8px;border-radius:50%}
+  .sysline{align-self:center;font-size:12px;color:var(--ink-3);font-style:italic;padding:3px 0}
+  .aisugg{display:flex;align-items:center;gap:11px;border:1px solid rgba(109,74,255,.4);background:var(--accent-soft);border-radius:10px;padding:11px 14px;margin:0 24px 11px}
+  .aisugg .ai-i{width:26px;height:26px;border-radius:7px;background:var(--grad);color:#fff;display:grid;place-items:center;flex-shrink:0} .aisugg span{font-size:13px;color:var(--ink);line-height:1.4} .aisugg b{font-weight:700;color:var(--accent-text)}
+  .usebtn{margin-left:auto;flex-shrink:0;border:0;background:var(--grad);color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:8px;cursor:pointer}
+  .compose{display:flex;gap:9px;align-items:center;padding:14px 24px;border-top:1px solid var(--line);background:var(--surface)}
+  .attachbtn{display:inline-flex;align-items:center;gap:7px;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer;flex-shrink:0} .attachbtn:hover{border-color:var(--accent);background:var(--accent-soft)} .attachbtn svg{color:var(--accent-text)}
+  .replyon{font-size:12.5px;color:var(--ink-2);font-weight:600;display:inline-flex;align-items:center;gap:7px;white-space:nowrap} .rchan{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border:1px solid rgba(109,74,255,.4);border-radius:99px;padding:5px 11px;font-weight:700;color:var(--ink)} .rchan .cdot{width:8px;height:8px;border-radius:50%}
+  .compose input{flex:1;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:14.5px;outline:none} .compose input::placeholder{color:var(--ink-3)}
+  svg{display:block}
+  /* panel de contexto (estilo GoHighLevel) */
+  .cpanel{border-left:1px solid var(--line);background:var(--surface);overflow-y:auto;min-height:0;height:100vh;padding:20px 18px}
+  .cph{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+  .cph .av{width:62px;height:62px;font-size:21px;margin-bottom:11px}
+  .cph .nm{font-family:var(--serif);font-weight:700;font-size:18px}
+  .cph .sub{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+  .verperfil{margin-top:14px;width:100%;justify-content:center}
+  .cpsec{margin-bottom:22px}
+  .cpsec-h{display:flex;align-items:center;gap:8px;margin-bottom:11px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)} .cpsec-h .sdot{width:8px;height:8px;border-radius:3px}
+  .cpsec-h .add{margin-left:auto;border:1px solid var(--line);background:var(--surface);color:var(--accent-text);font-family:inherit;font-weight:700;font-size:11.5px;padding:4px 10px;border-radius:7px;cursor:pointer} .cpsec-h .add:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .cpdatos .di{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);padding:5px 0} .cpdatos .di svg{color:var(--ink-3);flex-shrink:0}
+  .cpcard{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--surface);box-shadow:var(--shadow);font-size:13.5px;margin-bottom:8px} .cpcard b{font-family:var(--serif);font-weight:700} .cpcard .meta{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+  .cptask{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink-2)} .cptask:last-child{border-bottom:0}
+  .cptask .ck{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-2);flex-shrink:0;cursor:pointer} .cptask.done{color:var(--ink-3)} .cptask.done .ck{background:var(--grad);border-color:transparent} .cptask .when{margin-left:auto;font-size:11px;color:var(--ink-3);white-space:nowrap}
+  .noteadd{display:flex;gap:8px;margin-top:11px} .noteadd input{flex:1;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13px;outline:none} .noteadd input::placeholder{color:var(--ink-3)}
+  .cmeta2{display:flex;align-items:center;gap:7px;margin-top:7px}
+  .intent{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--ink-2)}
+  .draftp{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent-text)} .draftp svg{width:11px;height:11px}
+  .demohint{position:fixed;right:18px;bottom:14px;z-index:25;background:var(--surface);border:1px solid var(--line);padding:8px 15px;border-radius:9px;font-size:12px;color:var(--ink-2);box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">D</div><b>DesarrollosMX</b></div>
+    <div class="nav-label">Módulo</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Inicio</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>Leads</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>Inventario</div>
+    <div class="nav-item active"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversaciones<span class="nb">7</span></div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 11 18-5v12L3 14v-3z"/></svg>Marketing</div>
+    <div class="nav-item"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18M18 9l-5 5-3-3-4 4"/></svg>Mi Negocio</div>
+  </aside>
+
+  <div class="inbox">
+    <!-- LISTA de conversaciones -->
+    <div class="clist">
+      <div class="clhead">
+        <h1>Conversaciones</h1>
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>Buscar conversación…</div>
+        <div class="clfilters">
+          <div class="fchip on">Todas <span class="n">7</span></div>
+          <div class="fchip">No leídas <span class="n">4</span></div>
+          <div class="fchip"><span class="tdot" style="background:var(--hot)"></span>Calientes <span class="n">3</span></div>
+          <div class="fchip">Sin responder <span class="n">5</span></div>
+        </div>
+      </div>
+      <div class="clscroll">
+        <div class="crow on">
+          <div class="av active" style="background:#EAE2FF;color:#5B37E0">MG</div>
+          <div class="cbody"><div class="ctop"><span class="cname">María González</span><span class="ctime">hace 1 h</span></div>
+            <div class="cprev unread-txt">¿Sigue disponible la de Reforma?</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#25D366"></span>WhatsApp</span><span class="tdot" style="background:var(--hot)"></span><span class="cscore">87</span><span class="unread">2</span></div><div class="cmeta2"><span class="draftp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>Borrador IA</span><span class="intent">disponibilidad</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#FDE8E6;color:#C2493B">HS</div>
+          <div class="cbody"><div class="ctop"><span class="cname">Heriberto Soto</span><span class="ctime">hace 5 h</span></div>
+            <div class="cprev unread-txt">Vi tu story de Polanco, ¿qué precio?</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#E1306C"></span>Instagram</span><span class="tdot" style="background:var(--hot)"></span><span class="cscore">78</span><span class="unread">3</span></div><div class="cmeta2"><span class="draftp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>Borrador IA</span><span class="intent">precio</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#DAF5E7;color:#137C4F">LR</div>
+          <div class="cbody"><div class="ctop"><span class="cname">Luis Ramírez</span><span class="ctime">hace 2 h</span></div>
+            <div class="cprev">Confirmo la cita de hoy a las 4 pm</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#25D366"></span>WhatsApp</span><span class="tdot" style="background:var(--hot)"></span><span class="cscore">72</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#FCEFD6;color:#B5730A">JP</div>
+          <div class="cbody"><div class="ctop"><span class="cname">Juan Pérez</span><span class="ctime">hace 3 h</span></div>
+            <div class="cprev unread-txt">Me interesa la de Condesa que publicaste</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#1877F2"></span>Facebook</span><span class="tdot" style="background:var(--warm)"></span><span class="cscore">54</span><span class="unread">1</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#E3ECFF;color:#2563EB">PL</div>
+          <div class="cbody"><div class="ctop"><span class="cname">Pedro Lima</span><span class="ctime">ayer</span></div>
+            <div class="cprev unread-txt">¿Podemos agendar una llamada?</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#0A66C2"></span>LinkedIn</span><span class="tdot" style="background:var(--warm)"></span><span class="cscore">48</span><span class="unread">1</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#E7F3EE;color:#1FA06A">DR</div>
+          <div class="cbody"><div class="ctop"><span class="cname">Daniela Ruiz</span><span class="ctime">ayer</span></div>
+            <div class="cprev">¡Gracias por la información! Lo reviso</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#25D366"></span>WhatsApp</span><span class="tdot" style="background:var(--ok)"></span><span class="cscore">61</span></div></div>
+        </div>
+        <div class="crow">
+          <div class="av" style="background:#EEF0F4;color:#5A6172">U2</div>
+          <div class="cbody"><div class="ctop"><span class="cname">usuario_2231</span><span class="ctime">2 días</span></div>
+            <div class="cprev">info plz 🙏</div>
+            <div class="cmeta"><span class="chanb"><span class="cdot" style="background:#111"></span>TikTok</span><span class="tdot" style="background:var(--cold)"></span><span class="cscore">18</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HILO de la conversación seleccionada -->
+    <div class="thp">
+      <div class="thh">
+        <div class="av active" style="background:#EAE2FF;color:#5B37E0">MG</div>
+        <div><div class="nm">María González</div><div class="sub"><span class="tg"><span class="d" style="background:var(--hot)"></span>Caliente</span> · Negociación · activa ahora</div></div>
+        <div class="acts"><button class="hbtn">Agendar</button><button class="hbtn key">Ver perfil →</button></div>
+      </div>
+      <div class="thbody">
+        <div class="convmeta"><div class="cm"><span class="cml">Ánimo del cliente</span><span class="cmv pos"><span class="gd" style="background:var(--ok)"></span>Positivo</span><span class="cmh">contenta · lista para avanzar</span></div><div class="cm"><span class="cml">Estado</span><span class="cmv"><span class="gd" style="background:var(--warm)"></span>Te toca responder</span><span class="cmh">te escribió hace 1 h</span></div><div class="cm"><span class="cml">Listo para cerrar</span><span class="cmv">87%</span><span class="cmh">vale la pena hoy</span></div></div>
+        <div class="chanfilter">
+          <button class="on">Todos</button>
+          <button><span class="cdot" style="background:#25D366"></span>WhatsApp</button>
+          <button><span class="cdot" style="background:#E1306C"></span>Instagram</button>
+          <button><span class="cdot" style="background:#1877F2"></span>Facebook</button>
+          <button class="addchan">+ canal</button>
+        </div>
+        <div class="thread">
+          <div class="sysline">— Llegó por Facebook Ads · 12 may —</div>
+          <div class="msg in"><div class="bubble">Hola, vi su anuncio de Polanco. ¿Sigue disponible?</div><div class="mmeta"><span class="cdot" style="background:#1877F2"></span>Facebook · 12 may</div></div>
+          <div class="msg out"><div class="bubble">¡Hola María! Sí, sigue disponible. Te comparto 3 opciones en Polanco que encajan con tu presupuesto.</div><div class="mmeta">Tú · WhatsApp · hace 4 días</div></div>
+          <div class="msg in"><div class="bubble">vi tu story de Polanco, me interesa muchísimo</div><div class="mmeta"><span class="cdot" style="background:#E1306C"></span>Instagram · hace 3 h</div></div>
+          <div class="msg in"><div class="bubble">¿Sigue disponible la de Reforma?</div><div class="mmeta"><span class="cdot" style="background:#25D366"></span>WhatsApp · hace 1 h</div></div>
+        </div>
+      </div>
+      <div class="aisugg"><div class="ai-i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg></div><span><b>Sugerencia:</b> "Hola María, la de Reforma sigue disponible. ¿Te late el viernes 4 pm para la visita?"</span><button class="usebtn">Usar</button></div>
+      <div class="compose">
+        <button class="attachbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg>Propiedad</button>
+        <span class="replyon">Respondes por <span class="rchan"><span class="cdot" style="background:#25D366"></span>WhatsApp</span></span>
+        <input placeholder="Escribe tu respuesta…"><button class="hbtn key">Enviar</button>
+      </div>
+    </div>
+
+    <!-- PANEL DE CONTEXTO (estilo GoHighLevel) -->
+    <div class="cpanel">
+      <div class="cph">
+        <div class="av active" style="background:#EAE2FF;color:#5B37E0">MG</div>
+        <div class="nm">María González</div>
+        <div class="sub">Caliente · 87% listo · Polanco $8M</div>
+        <button class="hbtn key verperfil">Ver perfil completo</button>
+      </div>
+      <div class="cpsec">
+        <div class="cpsec-h"><span class="sdot" style="background:#3B82F6"></span>Datos</div>
+        <div class="cpdatos">
+          <div class="di"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5a8.5 8.5 0 1 1 16.1-4.5z"/></svg>55 1234 5678</div>
+          <div class="di"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>maria.gonzalez@gmail.com</div>
+          <div class="di"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>Llegó por Facebook Ads</div>
+        </div>
+      </div>
+      <div class="cpsec">
+        <div class="cpsec-h"><span class="sdot" style="background:var(--cold)"></span>Citas<button class="add">+ Agendar</button></div>
+        <div class="cpcard"><b>Visita a Reforma 350</b><div class="meta">Viernes 4:00 pm · en 2 días</div></div>
+      </div>
+      <div class="cpsec">
+        <div class="cpsec-h"><span class="sdot" style="background:var(--warm)"></span>Tareas<button class="add">+ Tarea</button></div>
+        <div class="cptask"><span class="ck"></span>Enviar comparativo de Polanco<span class="when">hoy</span></div>
+        <div class="cptask"><span class="ck"></span>Meter oferta a Reforma<span class="when">—</span></div>
+        <div class="cptask done"><span class="ck"></span>Calificar presupuesto<span class="when">hecho</span></div>
+      </div>
+      <div class="cpsec">
+        <div class="cpsec-h"><span class="sdot" style="background:var(--accent)"></span>Notas<button class="add">+ Nota</button></div>
+        <div class="cpcard">Crédito aprobado · decide con su hermana · busca 2 rec con balcón<div class="meta">hace 2 días</div></div>
+        <div class="noteadd"><input placeholder="Agregar nota…"><button class="hbtn key" style="padding:9px 13px">Guardar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="demohint">Bandeja global · clic en una conversación para abrirla</div>
+<script>
+  document.querySelectorAll('.crow').forEach(r=>r.addEventListener('click',()=>{document.querySelectorAll('.crow').forEach(x=>x.classList.remove('on'));r.classList.add('on');var n=r.querySelector('.cname').textContent;var av=r.querySelector('.av');document.querySelector('.thh .nm').textContent=n;var t=document.querySelector('.thh .av');t.textContent=av.textContent;t.setAttribute('style',av.getAttribute('style'));}));
+</script>
+</body>
+</html>

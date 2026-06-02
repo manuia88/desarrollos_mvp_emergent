@@ -33,14 +33,14 @@ function StepDot({ index, currentIndex, step, isPassed }) {
     <div className="flex flex-col items-center gap-1 flex-1" data-testid={`wizard-step-dot-${index}`}>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
         ${state === 'done'   ? 'bg-emerald-500 text-white'
-        : state === 'active' ? 'bg-[var(--cream)] text-[var(--navy)]'
-        : 'bg-[rgba(240,235,224,0.1)] text-[rgba(240,235,224,0.3)]'}`}>
+        : state === 'active' ? 'bg-[var(--theme)] text-white'
+        : 'bg-[rgba(var(--cream-rgb),0.1)] text-[rgba(var(--cream-rgb),0.3)]'}`}>
         {state === 'done' ? <Check size={13} /> : index + 1}
       </div>
       <span className={`text-[9px] text-center max-w-[64px] truncate leading-tight
-        ${state === 'active' ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.35)]'}`}>
+        ${state === 'active' ? 'text-[var(--cream)]' : 'text-[rgba(var(--cream-rgb),0.35)]'}`}>
         {step.title}
-        {step.optional && <span className="block text-[8px] text-[rgba(240,235,224,0.25)]">opcional</span>}
+        {step.optional && <span className="block text-[8px] text-[rgba(var(--cream-rgb),0.25)]">opcional</span>}
       </span>
     </div>
   );
@@ -131,19 +131,19 @@ export function SmartWizard({
   const progressPct = steps.length <= 1 ? 100 : (currentStep / (steps.length - 1)) * 100;
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1022]" data-testid="smart-wizard">
+    <div className="flex flex-col h-full bg-[var(--surface,#0d1022)]" data-testid="smart-wizard">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[rgba(240,235,224,0.08)]">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[rgba(var(--cream-rgb),0.08)]">
         <h3 className="text-[var(--cream)] font-semibold font-[Outfit]">{title}</h3>
         {onCancel && (
-          <button onClick={onCancel} className="text-[rgba(240,235,224,0.35)] hover:text-[var(--cream)] transition-colors" data-testid="wizard-cancel-btn">
+          <button onClick={onCancel} className="text-[rgba(var(--cream-rgb),0.35)] hover:text-[var(--cream)] transition-colors" data-testid="wizard-cancel-btn">
             <X size={17} />
           </button>
         )}
       </div>
 
       {/* Progress bar */}
-      <div className="h-[3px] bg-[rgba(240,235,224,0.07)] mx-5 mt-3 rounded-full overflow-hidden">
+      <div className="h-[3px] bg-[rgba(var(--cream-rgb),0.07)] mx-5 mt-3 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-400"
           style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, var(--theme), var(--theme-3))' }}
@@ -156,7 +156,7 @@ export function SmartWizard({
           <React.Fragment key={s.id}>
             <StepDot index={i} currentIndex={currentStep} step={s} isPassed={i < currentStep} />
             {i < steps.length - 1 && (
-              <div className="flex-1 h-[1px] bg-[rgba(240,235,224,0.08)] mt-3.5 mx-1" />
+              <div className="flex-1 h-[1px] bg-[rgba(var(--cream-rgb),0.08)] mt-3.5 mx-1" />
             )}
           </React.Fragment>
         ))}
@@ -164,11 +164,11 @@ export function SmartWizard({
 
       {/* Draft recovery banner */}
       {draftBanner && (
-        <div className="mx-5 mb-2 p-3 rounded-xl bg-[rgba(240,235,224,0.07)] border border-[rgba(240,235,224,0.1)] flex items-center gap-3">
-          <Save size={14} className="text-[rgba(240,235,224,0.5)] shrink-0" />
-          <span className="flex-1 text-xs text-[rgba(240,235,224,0.7)]">Tienes un borrador guardado — ¿Continuar?</span>
+        <div className="mx-5 mb-2 p-3 rounded-xl bg-[rgba(var(--cream-rgb),0.07)] border border-[rgba(var(--cream-rgb),0.1)] flex items-center gap-3">
+          <Save size={14} className="text-[rgba(var(--cream-rgb),0.5)] shrink-0" />
+          <span className="flex-1 text-xs text-[rgba(var(--cream-rgb),0.7)]">Tienes un borrador guardado — ¿Continuar?</span>
           <button onClick={resumeDraft} className="text-[var(--cream)] text-xs font-semibold hover:opacity-80 whitespace-nowrap" data-testid="wizard-resume-draft-btn">Continuar</button>
-          <button onClick={discardDraft} className="text-[rgba(240,235,224,0.35)] hover:text-[var(--cream)]" data-testid="wizard-discard-draft-btn"><X size={12} /></button>
+          <button onClick={discardDraft} className="text-[rgba(var(--cream-rgb),0.35)] hover:text-[var(--cream)]" data-testid="wizard-discard-draft-btn"><X size={12} /></button>
         </div>
       )}
 
@@ -197,12 +197,12 @@ export function SmartWizard({
       </div>
 
       {/* Footer navigation */}
-      <div className="px-5 py-4 border-t border-[rgba(240,235,224,0.08)] flex items-center gap-2 shrink-0">
+      <div className="px-5 py-4 border-t border-[rgba(var(--cream-rgb),0.08)] flex items-center gap-2 shrink-0">
         {/* Back */}
         {currentStep > 0 ? (
           <button
             onClick={goPrev}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(240,235,224,0.55)] hover:text-[var(--cream)] text-sm transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(var(--cream-rgb),0.55)] hover:text-[var(--cream)] text-sm transition-colors"
             data-testid="wizard-back-btn"
           >
             <ChevronLeft size={14} />
@@ -218,7 +218,7 @@ export function SmartWizard({
         <button
           onClick={saveDraftManual}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all
-            ${savedFlash ? 'text-emerald-400' : 'text-[rgba(240,235,224,0.4)] hover:text-[rgba(240,235,224,0.7)]'}`}
+            ${savedFlash ? 'text-emerald-400' : 'text-[rgba(var(--cream-rgb),0.4)] hover:text-[rgba(var(--cream-rgb),0.7)]'}`}
           data-testid="wizard-save-draft-btn"
         >
           {savedFlash ? <Check size={13} /> : <Save size={13} />}
@@ -229,7 +229,7 @@ export function SmartWizard({
         {step?.optional && currentStep < steps.length - 1 && (
           <button
             onClick={skipStep}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(240,235,224,0.35)] hover:text-[rgba(240,235,224,0.6)] text-sm transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(var(--cream-rgb),0.35)] hover:text-[rgba(var(--cream-rgb),0.6)] text-sm transition-colors"
             data-testid="wizard-skip-btn"
           >
             <SkipForward size={13} />
@@ -241,7 +241,7 @@ export function SmartWizard({
         {currentStep < steps.length - 1 ? (
           <button
             onClick={goNext}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--cream)] text-[var(--navy)] font-semibold text-sm hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--theme)] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
             data-testid="wizard-next-btn"
           >
             Siguiente <ChevronRight size={14} />

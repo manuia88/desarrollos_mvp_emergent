@@ -6,9 +6,11 @@
 /* ── DMX Design Tokens ───────────────────────────────────────────────────── */
 :root {
   --bg:        #06080F;
+  --bg-rgb:    6, 8, 15;       /* fondo base en RGB · se voltea a superficie clara en .portal-asesor */
   --bg-2:      #0D1017;
   --bg-3:      #111827;
   --cream:     #F0EBE0;
+  --cream-rgb: 240, 235, 224;   /* tinta principal en RGB · se voltea a oscuro en .portal-asesor (tema claro) */
   --cream-2:   rgba(240,235,224,0.62);
   --cream-3:   rgba(240,235,224,0.32);
   --indigo:    #6366F1;
@@ -18,6 +20,7 @@
   --green:     #22C55E;
   --amber:     #F59E0B;
   --red:       #EF4444;
+  --blue:      #818CF8;
   /* Theme tokens · default = indigo (matches legacy hardcoded values).
    * Overridden per-section inside .portal-superadmin scope. Other portals
    * keep indigo via these defaults so visual parity is preserved. */

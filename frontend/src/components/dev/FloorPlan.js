@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 
 const STATUS_COLORS = {
   disponible: { fill: 'rgba(34,197,94,0.55)', stroke: '#22C55E', label: 'var(--cream)' },
-  reservado: { fill: 'rgba(245,158,11,0.55)', stroke: '#F59E0B', label: 'var(--cream)' },
-  vendido: { fill: 'rgba(239,68,68,0.38)', stroke: '#EF4444', label: 'var(--cream-3)' },
+  reservado: { fill: 'rgba(245,158,11,0.55)', stroke: 'var(--amber)', label: 'var(--cream)' },
+  vendido: { fill: 'rgba(239,68,68,0.38)', stroke: 'var(--red)', label: 'var(--cream-3)' },
 };
 
 function layoutForLevel(units) {
@@ -87,10 +87,10 @@ export default function FloorPlan({ units, selectedUnitId, onUnitClick, onUnitHo
       </div>
 
       {/* SVG */}
-      <div style={{ position: 'relative', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 8 }}>
+      <div style={{ position: 'relative', background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 8 }}>
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           {/* Outer wall */}
-          <rect x={12} y={12} width={width - 24} height={height - 24} fill="none" stroke="rgba(240,235,224,0.22)" strokeWidth={2} rx={12} />
+          <rect x={12} y={12} width={width - 24} height={height - 24} fill="none" stroke="rgba(var(--cream-rgb),0.22)" strokeWidth={2} rx={12} />
           {boxes.map(b => {
             const c = STATUS_COLORS[b.status] || STATUS_COLORS.disponible;
             const selected = selectedUnitId === b.id;

@@ -53,12 +53,13 @@ const STAGE_LABELS = {
   entregado: 'Entregado',
 };
 
+// Badges SÓLIDOS con texto blanco (legibles · alto contraste · consistente con el sistema).
 const STAGE_COLORS = {
-  preventa: { bg: 'rgba(245,158,11,0.12)', fg: 'var(--amber)' },
-  en_construccion: { bg: 'rgba(59,130,246,0.12)', fg: '#60a5fa' },
-  entrega_inmediata: { bg: 'rgba(34,197,94,0.12)', fg: 'var(--green)' },
-  exclusiva: { bg: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
-  entregado: { bg: 'rgba(34,197,94,0.10)', fg: 'var(--green)' },
+  preventa: { bg: '#E2982E', fg: '#fff' },
+  en_construccion: { bg: '#3B82F6', fg: '#fff' },
+  entrega_inmediata: { bg: '#1FA06A', fg: '#fff' },
+  exclusiva: { bg: '#6D4AFF', fg: '#fff' },
+  entregado: { bg: '#1FA06A', fg: '#fff' },
 };
 
 const fmtMXN = (v) => {
@@ -85,33 +86,35 @@ function ProjectCard({ project, onClick, onDuplicate }) {
   const by = project.units_by_status || {};
   const sold = (by.vendido || 0) + (by.reservado || 0);
   const pctVendido = Math.round((sold / total) * 100);
-  const disponibles = by.disponible || 0;
 
   return (
     <article
       data-testid={`project-card-${project.id}`}
       onClick={onClick}
       style={{
-        background: 'rgba(240,235,224,0.04)',
-        border: '1px solid rgba(240,235,224,0.12)',
-        borderRadius: 12,
+        background: 'var(--surface, rgba(var(--cream-rgb),0.04))',
+        border: '1px solid var(--border-2, rgba(var(--cream-rgb),0.12))',
+        borderRadius: 14,
+        boxShadow: 'var(--asr-shadow, none)',
         cursor: 'pointer',
         overflow: 'hidden',
-        transition: 'border-color 0.18s, transform 0.18s',
+        transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
         display: 'flex',
         flexDirection: 'column',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'rgba(240,235,224,0.28)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)';
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 16px 30px -14px rgba(109,74,255,0.4)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'rgba(240,235,224,0.12)';
+        e.currentTarget.style.borderColor = 'var(--border-2, rgba(var(--cream-rgb),0.12))';
         e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)';
       }}
     >
       {/* Hero image */}
-      <div style={{ height: 130, position: 'relative', background: 'rgba(6,8,15,0.6)', flexShrink: 0 }}>
+      <div style={{ height: 130, position: 'relative', background: 'rgba(var(--bg-rgb),0.6)', flexShrink: 0 }}>
         {project.cover_photo ? (
           <img
             src={project.cover_photo}
@@ -121,9 +124,9 @@ function ProjectCard({ project, onClick, onDuplicate }) {
         ) : (
           <div style={{
             width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', background: 'linear-gradient(135deg, rgba(6,8,15,0.9) 0%, rgba(240,235,224,0.06) 100%)',
+            justifyContent: 'center', background: 'linear-gradient(135deg, rgba(var(--bg-rgb),0.9) 0%, rgba(var(--cream-rgb),0.06) 100%)',
           }}>
-            <Building size={36} color="rgba(240,235,224,0.18)" />
+            <Building size={36} color="rgba(var(--cream-rgb),0.18)" />
           </div>
         )}
         {/* Stage badge */}
@@ -145,7 +148,7 @@ function ProjectCard({ project, onClick, onDuplicate }) {
               position: 'absolute', bottom: 8, left: 10,
               background: 'rgba(245,158,11,0.15)',
               border: '1px solid rgba(245,158,11,0.35)',
-              color: '#fcd34d',
+              color: 'var(--amber)',
               fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
               padding: '2px 7px', borderRadius: 4,
               backdropFilter: 'blur(6px)',
@@ -166,7 +169,7 @@ function ProjectCard({ project, onClick, onDuplicate }) {
             onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
             style={{
               position: 'absolute', bottom: 8, right: 8,
-              background: 'rgba(13,17,24,0.72)', border: '1px solid rgba(240,235,224,0.18)',
+              background: 'rgba(var(--bg-rgb),0.72)', border: '1px solid rgba(var(--cream-rgb),0.18)',
               color: 'var(--cream-2)', borderRadius: 999, padding: 6, cursor: 'pointer',
               backdropFilter: 'blur(6px)',
             }}
@@ -193,10 +196,10 @@ function ProjectCard({ project, onClick, onDuplicate }) {
             <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Vendido</span>
             <span style={{ fontSize: 11, color: 'var(--cream-2)', fontWeight: 600 }}>{pctVendido}%</span>
           </div>
-          <div style={{ height: 4, borderRadius: 2, background: 'rgba(240,235,224,0.1)' }}>
+          <div style={{ height: 4, borderRadius: 2, background: 'rgba(var(--cream-rgb),0.1)' }}>
             <div style={{
               height: '100%', borderRadius: 2, width: `${pctVendido}%`,
-              background: 'linear-gradient(90deg, var(--gradient-from,#06080F), var(--cream))',
+              background: 'var(--grad, linear-gradient(90deg,#6D4AFF,#C63FAE))',
               transition: 'width 0.5s',
             }} />
           </div>
@@ -212,7 +215,7 @@ function ProjectCard({ project, onClick, onDuplicate }) {
 
         {/* Weekly sales sparkline */}
         {project.weekly_sales && project.weekly_sales.some(v => v > 0) && (
-          <div style={{ borderTop: '1px solid rgba(240,235,224,0.08)', paddingTop: 10 }}>
+          <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.08)', paddingTop: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
                 <div style={{ fontSize: 9, color: 'var(--cream-3)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -234,7 +237,7 @@ function ProjectCard({ project, onClick, onDuplicate }) {
 function StatPill({ icon, label, value }) {
   return (
     <div style={{
-      background: 'rgba(240,235,224,0.04)',
+      background: 'rgba(var(--cream-rgb),0.04)',
       borderRadius: 8, padding: '6px 10px',
       display: 'flex', flexDirection: 'column', gap: 2,
     }}>
@@ -248,7 +251,12 @@ function StatPill({ icon, label, value }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function MisProyectos({ user, onLogout }) {
+export default function MisProyectos(props) {
+  // Diseño original (el fondo claro lo aplica el tema .portal-asesor en PortalLayout cuando DEV_V2).
+  return <MisProyectosV1 {...props} />;
+}
+
+function MisProyectosV1({ user, onLogout }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -316,7 +324,7 @@ export default function MisProyectos({ user, onLogout }) {
             onClick={() => navigate('/desarrollador/proyectos/nuevo')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              background: 'var(--cream)', color: 'var(--navy)',
+              background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff',
               border: 'none', borderRadius: 8, padding: '8px 16px',
               fontSize: 13, fontWeight: 700, cursor: 'pointer',
               fontFamily: 'DM Sans,sans-serif',
@@ -336,9 +344,9 @@ export default function MisProyectos({ user, onLogout }) {
                 data-testid={`stage-filter-${s}`}
                 onClick={() => { setStageFilter(s); setPage(1); }}
                 style={{
-                  background: stageFilter === s ? 'var(--cream)' : 'rgba(240,235,224,0.06)',
-                  color: stageFilter === s ? 'var(--navy)' : 'var(--cream-2)',
-                  border: stageFilter === s ? 'none' : '1px solid rgba(240,235,224,0.14)',
+                  background: stageFilter === s ? 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))' : 'rgba(var(--cream-rgb),0.06)',
+                  color: stageFilter === s ? '#fff' : 'var(--cream-2)',
+                  border: stageFilter === s ? 'none' : '1px solid rgba(var(--cream-rgb),0.14)',
                   borderRadius: 20, padding: '5px 12px',
                   fontSize: 12, fontWeight: stageFilter === s ? 700 : 400,
                   cursor: 'pointer', transition: 'all 0.15s',
@@ -356,8 +364,8 @@ export default function MisProyectos({ user, onLogout }) {
             value={sort}
             onChange={e => setSort(e.target.value)}
             style={{
-              background: 'rgba(240,235,224,0.06)', color: 'var(--cream)',
-              border: '1px solid rgba(240,235,224,0.14)', borderRadius: 8,
+              background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)',
+              border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
               padding: '5px 10px', fontSize: 12, cursor: 'pointer',
             }}
           >
@@ -365,14 +373,14 @@ export default function MisProyectos({ user, onLogout }) {
           </select>
 
           {/* View toggle */}
-          <div style={{ display: 'flex', background: 'rgba(240,235,224,0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(240,235,224,0.14)' }}>
+          <div style={{ display: 'flex', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(var(--cream-rgb),0.14)' }}>
             {['cards', 'lista'].map(m => (
               <button
                 key={m}
                 data-testid={`view-${m}`}
                 onClick={() => setViewMode(m)}
                 style={{
-                  background: viewMode === m ? 'rgba(240,235,224,0.14)' : 'transparent',
+                  background: viewMode === m ? 'rgba(var(--cream-rgb),0.14)' : 'transparent',
                   color: viewMode === m ? 'var(--cream)' : 'var(--cream-3)',
                   border: 'none', padding: '5px 12px', fontSize: 12, cursor: 'pointer',
                   fontFamily: 'DM Sans,sans-serif',
@@ -440,16 +448,16 @@ export default function MisProyectos({ user, onLogout }) {
 }
 
 const paginationBtnStyle = (disabled) => ({
-  background: disabled ? 'rgba(240,235,224,0.04)' : 'rgba(240,235,224,0.10)',
+  background: disabled ? 'rgba(var(--cream-rgb),0.04)' : 'rgba(var(--cream-rgb),0.10)',
   color: disabled ? 'var(--cream-4)' : 'var(--cream)',
-  border: '1px solid rgba(240,235,224,0.14)',
+  border: '1px solid rgba(var(--cream-rgb),0.14)',
   borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: disabled ? 'default' : 'pointer',
 });
 
 function EmptyState({ stageFilter }) {
   return (
     <div style={{ textAlign: 'center', padding: '64px 24px' }}>
-      <Building size={48} color="rgba(240,235,224,0.15)" style={{ marginBottom: 16 }} />
+      <Building size={48} color="rgba(var(--cream-rgb),0.15)" style={{ marginBottom: 16 }} />
       <h3 style={{ margin: '0 0 8px', fontSize: 18, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
         {stageFilter !== 'todos' ? `No hay proyectos en "${STAGE_LABELS[stageFilter] || stageFilter}"` : 'No tienes proyectos aún'}
       </h3>
@@ -466,8 +474,8 @@ function LoadingSkeleton({ viewMode }) {
       {[...Array(8)].map((_, i) => (
         <div key={i} style={{
           height: 280, borderRadius: 12,
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.08)',
+          background: 'rgba(var(--cream-rgb),0.04)',
+          border: '1px solid rgba(var(--cream-rgb),0.08)',
           animation: 'pulse 1.5s ease-in-out infinite',
         }} />
       ))}
@@ -477,12 +485,12 @@ function LoadingSkeleton({ viewMode }) {
 
 function ListaView({ projects, onSelect, onDuplicate }) {
   return (
-    <div style={{ border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, overflow: 'hidden' }}>
       <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ background: 'rgba(240,235,224,0.06)' }}>
+          <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
             {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud', ''].map((h, i) => (
-              <th key={`${h}-${i}`} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', borderBottom: '1px solid rgba(240,235,224,0.1)' }}>
+              <th key={`${h}-${i}`} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }}>
                 {h}
               </th>
             ))}
@@ -500,10 +508,10 @@ function ListaView({ projects, onSelect, onDuplicate }) {
                 onClick={() => onSelect(p.id)}
                 style={{
                   cursor: 'pointer',
-                  borderBottom: i < projects.length - 1 ? '1px solid rgba(240,235,224,0.07)' : 'none',
+                  borderBottom: i < projects.length - 1 ? '1px solid rgba(var(--cream-rgb),0.07)' : 'none',
                   transition: 'background 0.12s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,235,224,0.04)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.04)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <td style={{ padding: '10px 14px' }}>

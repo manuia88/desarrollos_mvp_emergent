@@ -1,0 +1,309 @@
+- generic [ref=e2]:
+  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary "Barra lateral de navegación" [ref=e5]:
+      - link "Ir a Inicio" [ref=e6] [cursor=pointer]:
+        - /url: /asesor
+        - generic [ref=e7]: DMX
+        - generic [ref=e8]: Asesor
+      - generic [ref=e10]:
+        - img [ref=e11]
+        - textbox "Buscar función…" [ref=e14]
+      - navigation "Navegación asesor" [ref=e15]:
+        - button "Inicio" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e21]: Inicio
+        - generic [ref=e22]:
+          - button "Mis Leads" [expanded] [ref=e23] [cursor=pointer]:
+            - img [ref=e24]
+            - generic [ref=e29]: Mis Leads
+            - img [ref=e31]
+          - generic [ref=e33]:
+            - link "Lista de leads" [ref=e34] [cursor=pointer]:
+              - /url: /asesor/contactos
+              - img [ref=e35]
+              - generic [ref=e40]: Lista de leads
+            - link "Búsquedas guardadas" [ref=e41] [cursor=pointer]:
+              - /url: /asesor/busquedas
+              - img [ref=e42]
+              - generic [ref=e45]: Búsquedas guardadas
+            - link "Conectar fuentes" [ref=e46] [cursor=pointer]:
+              - /url: /asesor/lead-aliases
+              - img [ref=e47]
+              - generic [ref=e49]: Conectar fuentes
+        - button "Agenda" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Agenda
+          - img [ref=e56]
+        - button "Inventario" [ref=e59] [cursor=pointer]:
+          - img [ref=e60]
+          - generic [ref=e64]: Inventario
+          - img [ref=e66]
+        - button "Conversaciones IA" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e72]: Conversaciones IA
+          - img [ref=e74]
+        - button "Automatizaciones" [ref=e77] [cursor=pointer]:
+          - img [ref=e78]
+          - generic [ref=e82]: Automatizaciones
+          - img [ref=e84]
+        - button "Studio Marketing" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+          - generic [ref=e90]: Studio Marketing
+          - img [ref=e92]
+        - button "Anuncios Meta" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e99]: Anuncios Meta
+          - img [ref=e101]
+        - button "Mi Performance" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e107]: Mi Performance
+          - img [ref=e109]
+      - button "A Asesor Demo asesor@local.dmx.io" [ref=e112] [cursor=pointer]:
+        - generic [ref=e113]: A
+        - generic [ref=e114]:
+          - generic [ref=e115]: Asesor Demo
+          - generic [ref=e116]: asesor@local.dmx.io
+        - img [ref=e118]
+    - generic [ref=e120]:
+      - banner [ref=e121]:
+        - button "Buscar… ⌘K" [ref=e122] [cursor=pointer]:
+          - img [ref=e123]
+          - generic [ref=e126]: Buscar…
+          - generic [ref=e127]: ⌘K
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e130]
+        - button "Menú de usuario" [ref=e134] [cursor=pointer]:
+          - img [ref=e135]
+      - main [active] [ref=e138]:
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - heading "Leads" [level=1] [ref=e143]
+              - paragraph [ref=e144]: Tu embudo de prospectos · ordenado por quién está más listo.
+            - generic [ref=e145]:
+              - combobox [ref=e147]:
+                - option "Ordenar · score" [selected]
+                - option "Ordenar · fecha"
+              - tablist "Cambiar vista" [ref=e149]:
+                - tab "Pipeline" [selected] [ref=e150] [cursor=pointer]:
+                  - img [ref=e151]
+                  - text: Pipeline
+                - tab "Lista" [ref=e156] [cursor=pointer]:
+                  - img [ref=e157]
+                  - text: Lista
+              - button "Nuevo lead" [ref=e158] [cursor=pointer]:
+                - img [ref=e159]
+                - text: Nuevo lead
+          - generic [ref=e160]:
+            - button "Todos 7" [ref=e452] [cursor=pointer]:
+              - text: Todos
+              - generic [ref=e453]: "7"
+            - button "Calientes 0" [ref=e454] [cursor=pointer]:
+              - text: Calientes
+              - generic [ref=e456]: "0"
+            - button "Sin contactar (48h) 0" [ref=e457] [cursor=pointer]:
+              - text: Sin contactar (48h)
+              - generic [ref=e458]: "0"
+            - button "Sin actividad (14d) 0" [ref=e459] [cursor=pointer]:
+              - text: Sin actividad (14d)
+              - generic [ref=e460]: "0"
+            - button "Visita pendiente 0" [ref=e461] [cursor=pointer]:
+              - text: Visita pendiente
+              - generic [ref=e462]: "0"
+            - button "En negociación 0" [ref=e463] [cursor=pointer]:
+              - text: En negociación
+              - generic [ref=e464]: "0"
+          - generic [ref=e174]:
+            - generic [ref=e175]:
+              - generic [ref=e176]: Foco de hoy
+              - generic [ref=e177]: la IA priorizó esto para ti
+            - generic [ref=e465]:
+              - generic [ref=e466]:
+                - generic [ref=e468]: Tip de tu coach
+                - generic [ref=e469]: coach
+              - generic [ref=e470]: "Mantén el ritmo: prioriza tus leads calientes hoy."
+              - generic [ref=e471]:
+                - button "Marcar como hecho" [ref=e472] [cursor=pointer]:
+                  - img [ref=e473]
+                - button "Descartar" [ref=e475] [cursor=pointer]:
+                  - img [ref=e476]
+          - generic [ref=e217]:
+            - generic [ref=e218]: Tu embudo de leads
+            - generic [ref=e219]: arrastra conforme avanzan
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - generic [ref=e223]:
+                - generic [ref=e224]:
+                  - generic [ref=e225]: Nuevo
+                  - generic [ref=e226]: "1"
+                - generic [ref=e227]: 1 entró hoy
+              - generic [ref=e229]:
+                - generic [ref=e230]:
+                  - generic [ref=e231]: AT
+                  - generic [ref=e232]:
+                    - generic [ref=e233]: Ana Torres
+                    - generic [ref=e234]: Referido
+                  - button "Fijar arriba" [ref=e235] [cursor=pointer]:
+                    - img [ref=e236]
+                - generic [ref=e238]:
+                  - generic [ref=e239]:
+                    - text: Score
+                    - generic [ref=e240]: Frío
+                  - generic [ref=e241]: "24"
+                - generic [ref=e245]: Sin búsqueda registrada
+                - generic [ref=e250]:
+                  - generic [ref=e251]: Sin propiedades aún
+                  - generic [ref=e252]: entró hoy
+                - generic [ref=e253]:
+                  - link "WhatsApp" [ref=e254] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Ana%2C%20
+                    - img [ref=e255]
+                  - generic [ref=e257]:
+                    - text: Abrir
+                    - img [ref=e258]
+            - generic [ref=e260]:
+              - generic [ref=e262]:
+                - generic [ref=e263]: Contactado
+                - generic [ref=e264]: "1"
+              - generic [ref=e267]:
+                - generic [ref=e268]:
+                  - generic [ref=e269]: JP
+                  - generic [ref=e270]:
+                    - generic [ref=e271]: Juan Pérez
+                    - generic [ref=e272]: Facebook
+                  - button "Fijar arriba" [ref=e273] [cursor=pointer]:
+                    - img [ref=e274]
+                - generic [ref=e276]:
+                  - generic [ref=e277]:
+                    - text: Score
+                    - generic [ref=e278]: Tibio
+                  - generic [ref=e279]: "54"
+                - generic [ref=e283]: Sin búsqueda registrada
+                - generic [ref=e288]:
+                  - generic [ref=e289]: Sin propiedades aún
+                  - generic [ref=e290]: entró hoy
+                - generic [ref=e291]:
+                  - link "WhatsApp" [ref=e292] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Juan%2C%20
+                    - img [ref=e293]
+                  - generic [ref=e295]:
+                    - text: Abrir
+                    - img [ref=e296]
+            - generic [ref=e298]:
+              - generic [ref=e300]:
+                - generic [ref=e301]: Visita
+                - generic [ref=e302]: "1"
+              - generic [ref=e305]:
+                - generic [ref=e306]:
+                  - generic [ref=e307]: LR
+                  - generic [ref=e308]:
+                    - generic [ref=e309]: Luis Ramírez
+                    - generic [ref=e310]: Web
+                  - button "Fijar arriba" [ref=e311] [cursor=pointer]:
+                    - img [ref=e312]
+                - generic [ref=e314]:
+                  - generic [ref=e315]:
+                    - text: Score
+                    - generic [ref=e316]: Caliente
+                  - generic [ref=e317]: "72"
+                - generic [ref=e321]: Sin búsqueda registrada
+                - generic [ref=e326]:
+                  - generic [ref=e327]: Sin propiedades aún
+                  - generic [ref=e328]: entró hoy
+                - generic [ref=e329]:
+                  - link "WhatsApp" [ref=e330] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Luis%2C%20
+                    - img [ref=e331]
+                  - generic [ref=e333]:
+                    - text: Abrir
+                    - img [ref=e334]
+            - generic [ref=e336]:
+              - generic [ref=e338]:
+                - generic [ref=e339]: Negociación
+                - generic [ref=e340]: "1"
+              - generic [ref=e343]:
+                - generic [ref=e344]:
+                  - generic [ref=e345]: MG
+                  - generic [ref=e346]:
+                    - generic [ref=e347]: María González
+                    - generic [ref=e348]: Web
+                  - button "Fijar arriba" [ref=e349] [cursor=pointer]:
+                    - img [ref=e350]
+                - generic [ref=e352]:
+                  - generic [ref=e353]:
+                    - text: Score
+                    - generic [ref=e354]: Caliente
+                  - generic [ref=e355]: "87"
+                - generic [ref=e359]: Sin búsqueda registrada
+                - generic [ref=e364]:
+                  - generic [ref=e365]: Sin propiedades aún
+                  - generic [ref=e366]: entró hoy
+                - generic [ref=e367]:
+                  - link "WhatsApp" [ref=e368] [cursor=pointer]:
+                    - /url: https://wa.me/5512345678?text=Hola%20Mar%C3%ADa%2C%20
+                    - img [ref=e369]
+                  - generic [ref=e371]:
+                    - text: Abrir
+                    - img [ref=e372]
+            - generic [ref=e374]:
+              - generic [ref=e376]:
+                - generic [ref=e377]: Cerrado
+                - generic [ref=e378]: "0"
+              - generic [ref=e381]: Sin leads en esta etapa
+        - button "Abrir Plan venta IA" [ref=e382] [cursor=pointer]: AI
+    - button "Reportar problema" [ref=e383] [cursor=pointer]:
+      - img [ref=e384]
+    - button "Abrir Copilot DMX (Cmd+J)" [ref=e386] [cursor=pointer]:
+      - img [ref=e387]
+    - complementary [ref=e390]:
+      - generic [ref=e391]:
+        - generic [ref=e392]:
+          - img [ref=e394]
+          - generic [ref=e397]:
+            - generic [ref=e398]: Copilot DMX
+            - generic [ref=e399]: Claude Sonnet · contexto privado
+        - generic [ref=e400]:
+          - button [ref=e401] [cursor=pointer]:
+            - img [ref=e402]
+            - text: "0"
+          - button [ref=e404] [cursor=pointer]:
+            - img [ref=e405]
+            - text: Nueva
+          - button [ref=e406] [cursor=pointer]:
+            - img [ref=e407]
+      - generic [ref=e410]:
+        - button [ref=e411] [cursor=pointer]: Mi pipeline esta semana
+        - button [ref=e412] [cursor=pointer]: ¿A quién debo llamar primero?
+        - button [ref=e413] [cursor=pointer]: Mejor proyecto para mis leads top
+        - button [ref=e414] [cursor=pointer]: Leads que puedo cerrar esta semana
+        - button [ref=e415] [cursor=pointer]: Mis links con mejor desempeño
+        - button [ref=e416] [cursor=pointer]: Cómo subir mi health score
+      - generic [ref=e418]:
+        - img [ref=e420]
+        - generic [ref=e423]:
+          - generic [ref=e424]: Pregúntame lo que necesites
+          - generic [ref=e425]: Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.
+        - generic [ref=e426]:
+          - button [ref=e427] [cursor=pointer]:
+            - generic [ref=e428]: Mi pipeline esta semana
+            - img [ref=e429]
+          - button [ref=e431] [cursor=pointer]:
+            - generic [ref=e432]: ¿A quién debo llamar primero?
+            - img [ref=e433]
+          - button [ref=e435] [cursor=pointer]:
+            - generic [ref=e436]: Mejor proyecto para mis leads top
+            - img [ref=e437]
+          - button [ref=e439] [cursor=pointer]:
+            - generic [ref=e440]: Leads que puedo cerrar esta semana
+            - img [ref=e441]
+      - generic [ref=e443]:
+        - generic [ref=e444]:
+          - textbox [ref=e445]:
+            - /placeholder: Pregunta lo que necesites… (Enter envía, Shift+Enter salto)
+          - button [disabled] [ref=e446]:
+            - img [ref=e447]
+        - generic [ref=e449]:
+          - generic [ref=e450]: Cmd+J abre/cierra · Esc para cerrar
+          - generic [ref=e451]: 0/4000

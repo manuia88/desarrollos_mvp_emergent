@@ -226,7 +226,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
               <span data-testid={`asset-cat-${a.ai_category}`} style={{
                 position: 'absolute', top: 8, left: 8,
                 padding: '3px 9px', borderRadius: 9999,
-                background: 'rgba(6,8,15,0.74)', backdropFilter: 'blur(10px)',
+                background: 'rgba(var(--bg-rgb),0.74)', backdropFilter: 'blur(10px)',
                 color: CAT_TONE[a.ai_category] || '#fff',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 9.5,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -247,7 +247,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
 
             <div style={{ padding: 10 }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', lineHeight: 1.4, minHeight: 32 }}>
-                {a.ai_caption || (a.ai_error ? <span style={{ color: '#fca5a5' }}>Sin caption (error IA)</span> : <span style={{ color: 'var(--cream-3)', fontStyle: 'italic' }}>Categorizando con IA…</span>)}
+                {a.ai_caption || (a.ai_error ? <span style={{ color: 'var(--red)' }}>Sin caption (error IA)</span> : <span style={{ color: 'var(--cream-3)', fontStyle: 'italic' }}>Categorizando con IA…</span>)}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginTop: 8, alignItems: 'center' }}>
                 <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)' }}>
@@ -270,7 +270,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
                   <button data-testid="asset-delete" onClick={() => handleDelete(a.id)} title="Eliminar" style={{
                     padding: '4px 8px', borderRadius: 9999,
                     background: 'transparent', border: '1px solid rgba(239,68,68,0.32)',
-                    color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 10, cursor: 'pointer',
+                    color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 10, cursor: 'pointer',
                   }}><Trash size={9} /></button>
                 </div>
               </div>

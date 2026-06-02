@@ -22,7 +22,7 @@ function PhotoPlaceholder({ idx = 0 }) {
       <rect x={80} y={40} width={240} height={160} fill="rgba(28,28,58,0.75)" />
       {[0,1,2,3,4].map(row => [0,1,2,3].map(col => (
         <rect key={`${row}${col}`} x={100 + col*55} y={55 + row*26} width={28} height={16}
-          fill={((row*4+col+idx) % 3) > 0 ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.04)'} rx={2} />
+          fill={((row*4+col+idx) % 3) > 0 ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(var(--cream-rgb),0.04)'} rx={2} />
       )))}
       <rect x={80} y={170} width={240} height={30} fill="rgba(var(--theme-rgb),0.15)" />
     </svg>
@@ -120,7 +120,7 @@ export default function PropertyCard({ property, index = 0, colonia }) {
           ))}
         </div>
 
-        <div style={{ padding: '10px 0', borderTop: '1px dashed rgba(255,255,255,0.12)', borderBottom: '1px dashed rgba(255,255,255,0.12)' }}>
+        <div style={{ padding: '10px 0', borderTop: '1px dashed rgba(var(--cream-rgb),0.12)', borderBottom: '1px dashed rgba(var(--cream-rgb),0.12)' }}>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.025em' }}>
             {property.price_display}
           </div>

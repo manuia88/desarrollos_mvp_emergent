@@ -1,0 +1,1338 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   DMX · DESIGN SYSTEM v2 · COMPLETO
+   
+   Estética: Viegas Estudio (retomotiongraphics) aplicada a DMX
+   
+   Documenta TODOS los componentes visuales del mockup, incluyendo los que
+   originalmente vivían como inline styles. Cualquier desarrollador puede
+   leer este CSS y replicar el diseño sin abrir el JSX.
+   
+   Estructura:
+     1.  Variables globales (paleta, espacios, motion)
+     2.  Temas per-portal (asesor / developer / marketplace)
+     3.  Colores de sección (sidebar: principal / operación / performance)
+     4.  Reset + base
+     5.  Backgrounds del portal (auroras + grid)
+     6.  Typography (font helpers, hero, lead, accent)
+     7.  Eyebrow (pill outlined con dot glow)
+     8.  Buttons (theme gradient + ghost)
+     9.  Step card (numerada border-left)
+     10. Hero step (versión grande)
+     11. Resource card (horizontal con icon-box + arrow)
+     12. KPI card (border-left glow + Bebas value)
+     13. Prompt box (asimétrico, mono)
+     14. Skill tag (pill outlined small)
+     15. Site header (sticky + glassmorphism)
+     16. Brand block (logo + dot pulsante)
+     17. Sidebar (layout + section labels + nav-items)
+     18. TopBar (búsqueda, notificación, avatar)
+     19. Tab nav (switcher pills)
+     20. Property card (marketplace · imagen placeholder + content)
+     21. Filter pills (marketplace)
+     22. Section header (eyebrow + h2 + sub)
+     23. Fade-up (motion reveal)
+     24. Scrollbar
+     25. Accesibilidad (reduced motion)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1 · VARIABLES GLOBALES
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Acentos disponibles cross-portal · usados en deltas, dots, accents */
+  --cyan:   #00e5ff;
+  --purple: #7c2fff;
+  --pink:   #ff2e7e;
+  --green:  #00ff88;
+
+  /* Superficies (dark theme) */
+  --bg:        #07070f;                       /* fondo base · navy casi negro */
+  --bg-card:   rgba(255, 255, 255, 0.025);    /* card sutil glassmorphism */
+  --bg-card-2: rgba(255, 255, 255, 0.05);     /* card hover */
+  --border:    rgba(255, 255, 255, 0.08);     /* border universal */
+
+  /* Texto · 3 niveles de contraste */
+  --text:      #ffffff;                        /* títulos, valores, active items */
+  --text-dim:  rgba(255, 255, 255, 0.72);     /* cuerpo, leads, items inactivos */
+  --text-mute: rgba(255, 255, 255, 0.55);     /* labels mono, counts inactivos, divisores */
+
+  /* Motion tokens */
+  --t-fast: 200ms;
+  --t-med:  400ms;
+  --ease:   cubic-bezier(0.22, 1, 0.36, 1);   /* easing "viegas" — out fuerte */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2 · TEMAS PER-PORTAL
+   
+   Cada portal define --theme-* que el resto del sistema consume.
+   Cambias la clase root del body y todo el portal cambia de color.
+   
+   Tres familias:
+     .portal-asesor      → ROSA  → MAGENTA-PURPLE  (gradient horizontal)
+     .portal-developer   → PURPLE LAVANDA → INDIGO (gradient horizontal)
+     .portal-marketplace → LIME → TEAL-MENTA       (gradient horizontal)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.portal-asesor {
+  --theme:      #ff2e7e;                /* color "puro" para borders, dots, glows */
+  --theme-rgb:  255, 46, 126;
+  --theme-2:    #ff5fa0;                /* gradient start · pink rosa claro */
+  --theme-3:    #d946ef;                /* gradient end · magenta-purple */
+  --theme-text: #1a0009;                /* color de texto SOBRE el gradient */
+}
+
+.portal-developer {
+  --theme:      #7c2fff;
+  --theme-rgb:  124, 47, 255;
+  --theme-2:    #a463ff;                /* purple lavanda */
+  --theme-3:    #3b82f6;                /* indigo blue */
+  --theme-text: #0a0014;
+}
+
+.portal-marketplace {
+  --theme:      #6FED9D;                /* verde medio (punto centro del gradient) */
+  --theme-rgb:  111, 237, 157;
+  --theme-lime: #ABF150;                /* extremo izq · gradient start */
+  --theme-teal: #38E4BE;                /* extremo der · gradient end */
+  --theme-2:    #ABF150;
+  --theme-3:    #38E4BE;
+  --theme-text: #001a0e;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3 · COLORES DE SECCIÓN (sidebar)
+   
+   Tres colores fijos que viven SOBRE el tema del portal.
+   Se aplican únicamente al item activo + label de sección.
+   Los items inactivos quedan en gris (--text-dim).
+   
+   PRINCIPAL   → #ff2e7e · 255, 46, 126    (rosa)
+   OPERACIÓN   → #7c2fff · 124, 47, 255    (morado)
+   VENTAS      → #7c2fff · 124, 47, 255    (alias de operación)
+   PERFORMANCE → #6FED9D · 111, 237, 157   (lima)
+   INTELIGENCIA→ #6FED9D · 111, 237, 157   (alias de performance)
+   
+   Implementación: se inyectan inline en el componente porque dependen
+   del estado runtime (qué item está activo).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4 · RESET + BASE
+   ═══════════════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; }      /* botones heredan Rajdhani por default */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5 · BACKGROUNDS DEL PORTAL
+   
+   Dos capas fijas (position: fixed) que viven detrás de todo:
+     a) Aurora layer · 3 radial-gradients que dan el tinte ambiente
+     b) Grid layer · líneas cada 32px con mask radial
+   
+   Z-index 0 ambas. El contenido principal va en z-index 1.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dmx-bg-aurora {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.portal-asesor .dmx-bg-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 46, 126, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 80%, rgba(217, 70, 239, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(124, 47, 255, 0.08), transparent 60%);
+}
+.portal-developer .dmx-bg-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124, 47, 255, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 80%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0, 229, 255, 0.08), transparent 60%);
+}
+.portal-marketplace .dmx-bg-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(171, 241, 80, 0.16), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 80%, rgba(56, 228, 190, 0.14), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(111, 237, 157, 0.08), transparent 60%);
+}
+
+/* Grid con mask que difumina hacia los bordes */
+.dmx-bg-grid {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6 · TYPOGRAPHY
+   
+   Display: Bebas Neue (condensada, mayúscula natural)
+   Body: Rajdhani (técnica, ligera)
+   Mono: JetBrains Mono (counts, labels, code)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.font-display { font-family: 'Bebas Neue', sans-serif; font-weight: 400; }
+.font-mono    { font-family: 'JetBrains Mono', monospace; }
+
+/* Hero h1 · gigante con clamp responsive */
+.hero-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  font-size: clamp(48px, 11vw, 84px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  margin-bottom: 20px;
+}
+
+/* H2 estándar (lo usan SectionHeader y secciones internas)
+   Pattern: <h2 class="h2-display">Tu <span class="accent">performance</span></h2> */
+.h2-display {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+.h2-display.large    { font-size: 48px; }     /* hero secundario marketplace */
+.h2-display.medium   { font-size: 36px; }     /* h2 menor */
+.h2-display.small    { font-size: 32px; }     /* h2 PromptBox/StudioIA */
+.h2-display.xlarge   { font-size: clamp(56px, 12vw, 104px); line-height: 0.92; letter-spacing: -0.01em; }  /* marketplace hero */
+
+/* Lead paragraph · subtítulo bajo hero */
+.lead {
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+  max-width: 540px;
+}
+.lead strong { color: var(--text); font-weight: 600; }
+.lead.large       { font-size: 18px; }                    /* marketplace hero lead */
+.lead.no-margin   { margin-bottom: 0; }                   /* dentro de SectionHeader */
+.lead.centered    { margin-left: auto; margin-right: auto; text-align: center; }
+
+/* Accent span · palabra en color tema dentro de heading */
+.accent { color: var(--theme); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7 · EYEBROW (pill outlined con dot glow)
+   
+   Label uppercase pequeño que va arriba de cada sección.
+   Border y dot heredan currentColor → cambias .color y todo cambia.
+   
+   Uso:
+     <span class="eyebrow" style="color: var(--theme)">DASHBOARD · BIENVENIDA</span>
+   
+   El componente típicamente recibe el color tema, pero también puede usar
+   colores específicos (cyan, purple, pink) cuando se quiere fuera de tema.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 24px;
+}
+.eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;          /* dot glow */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8 · BUTTONS
+   
+   Triple-shadow stack: ring + sombra cercana + glow lejano.
+   Highlight diagonal interno con ::before para sensación de "lift".
+   
+   Variantes:
+     .btn-theme  → gradient horizontal del tema
+     .btn-ghost  → outlined transparente
+   
+   Modificadores por padding:
+     .btn-sm     → pequeño (filter pills, navbar)
+     .btn-md     → default
+   ═══════════════════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 26px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--t-fast) var(--ease),
+              box-shadow var(--t-med) var(--ease);
+  isolation: isolate;
+}
+.btn::before {                              /* highlight diagonal interno */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 50%);
+  z-index: -1;
+}
+.btn:active { transform: scale(0.98); }
+
+/* Primary · gradient horizontal del tema con triple shadow */
+.btn-theme {
+  background: linear-gradient(90deg, var(--theme-2) 0%, var(--theme-3) 100%);
+  color: var(--theme-text);
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.3),       /* ring */
+    0 8px 24px rgba(var(--theme-rgb), 0.35),     /* drop shadow */
+    0 0 60px rgba(var(--theme-rgb), 0.25);       /* glow lejano */
+}
+.btn-theme:hover {
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.5),
+    0 8px 32px rgba(var(--theme-rgb), 0.55),
+    0 0 80px rgba(var(--theme-rgb), 0.5);
+}
+/* Marketplace override · usa lime/teal puros */
+.portal-marketplace .btn-theme {
+  background: linear-gradient(90deg, var(--theme-lime) 0%, var(--theme-teal) 100%);
+}
+
+/* Secondary · ghost outlined */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--theme);
+}
+
+/* Modificadores de tamaño */
+.btn-sm {
+  padding: 10px 18px;
+  font-size: 11px;
+}
+.btn-filter {                              /* pills del filter bar marketplace */
+  padding: 11px 18px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9 · STEP CARD
+   
+   Card numerada con border-left de 3px en color tema.
+   Layout: grid 60px (número) + 1fr (contenido).
+   Número en Bebas Neue 32px con drop-shadow glow.
+   
+   Uso:
+     <div class="step">
+       <div class="step-num">01</div>
+       <div>
+         <h4>Crear ficha técnica</h4>
+         <p>Sube planos, ubicación...</p>
+       </div>
+     </div>
+   ═══════════════════════════════════════════════════════════════════════════ */
+.step {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-left: 3px solid var(--theme);
+  transition: all var(--t-fast) var(--ease);
+}
+.step:hover {
+  border-color: rgba(var(--theme-rgb), 0.3);
+  background: var(--bg-card-2);
+}
+.step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--theme);
+  letter-spacing: 0.04em;
+  filter: drop-shadow(0 0 6px rgba(var(--theme-rgb), 0.4));
+}
+.step h4 {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  margin-bottom: 4px;
+  letter-spacing: 0.01em;
+}
+.step p {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10 · HERO STEP
+   
+   Versión grande del step para tops de cada vista.
+   Número Bebas Neue 56px con glow más intenso · padding más amplio.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.hero-step {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--theme);
+  border-radius: 18px;
+  padding: 36px 32px;
+  transition: all var(--t-fast) var(--ease);
+}
+.hero-step:hover { border-color: rgba(var(--theme-rgb), 0.3); }
+.hero-step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--theme);
+  letter-spacing: 0.04em;
+  filter: drop-shadow(0 0 12px rgba(var(--theme-rgb), 0.5));
+  margin-bottom: 14px;
+  display: inline-block;
+}
+.hero-step-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11 · RESOURCE CARD
+   
+   Card horizontal: [icon-box 48×48] [título/sub] [arrow →]
+   Border-left de 4px con box-shadow glow para drama.
+   Hover: translateX(4px) + border tema + flecha se mueve.
+   
+   Pseudo-element ::before crea el border-left con glow real
+   (no se puede dar box-shadow a un border, por eso es absoluto).
+   ═══════════════════════════════════════════════════════════════════════════ */
+.resource {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 18px 18px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--t-fast) var(--ease);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.resource::before {                              /* border-left con glow */
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--theme);
+  box-shadow: 0 0 12px var(--theme);
+}
+.resource:hover {
+  border-color: var(--theme);
+  background: var(--bg-card-2);
+  transform: translateX(4px);
+}
+.resource .icon-box {
+  width: 48px;
+  height: 48px;
+  margin-left: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--theme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme);
+  flex-shrink: 0;
+}
+.resource .meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.resource .title {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+.resource .sub {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.resource .arrow {
+  font-size: 22px;
+  color: var(--theme);
+  transition: transform var(--t-fast) var(--ease);
+  display: flex;
+}
+.resource:hover .arrow { transform: translateX(4px); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12 · KPI CARD
+   
+   Indicador con border-left glow (mismo pattern que resource).
+   Label mono uppercase + Bebas Neue value 40px.
+   Delta optional (up/down) con color verde/rosa.
+   
+   Layout: padding 20×22 · border-radius 12.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.kpi {
+  padding: 20px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--t-fast) var(--ease);
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--theme);
+  box-shadow: 0 0 8px var(--theme);
+}
+.kpi:hover {
+  background: var(--bg-card-2);
+  border-color: rgba(var(--theme-rgb), 0.25);
+}
+.kpi-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin-bottom: 10px;
+}
+.kpi-row {                                  /* contenedor de value + delta */
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.kpi-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.kpi-delta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  margin-left: 8px;
+}
+.kpi-delta.up   { color: var(--green); }
+.kpi-delta.down { color: var(--pink); }
+
+/* Grid contenedor de KPIs (3 columnas) */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   13 · PROMPT BOX
+   
+   Code-block style asimétrico: border-left 2px + radius 0/8/8/0.
+   Fondo casi negro · texto mono · prefix > coloreado.
+   
+   Uso:
+     <div class="prompt-box">
+       <div class="prompt-label">REEL CAPTACIÓN</div>
+       <div class="prompt-text">Genera un reel vertical 9:16...</div>
+     </div>
+   ═══════════════════════════════════════════════════════════════════════════ */
+.prompt-box {
+  position: relative;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 2px solid var(--theme);
+  border-radius: 0 8px 8px 0;
+}
+.prompt-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--theme);
+  margin-bottom: 4px;
+}
+.prompt-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.prompt-text::before {
+  content: '> ';
+  color: var(--theme);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   14 · SKILL TAG (pill outlined small)
+   
+   Pequeño tag mono uppercase · útil para metadata.
+   Default gris · modificador .theme para color tema · modificador
+   .with-blur para overlays sobre imagen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.skill-tag {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  color: var(--text-mute);
+  display: inline-flex;
+  align-items: center;
+}
+.skill-tag.theme {
+  color: var(--theme);
+  border-color: rgba(var(--theme-rgb), 0.4);
+}
+.skill-tag.with-blur {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   15 · SITE HEADER (sticky)
+   
+   Header del portal con glassmorphism (blur 20px + saturate 180%).
+   Sticky en top: 0 · z-index 50.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(7, 7, 15, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+/* Variante para marketplace navbar centrado con max-width */
+.site-header-inner.centered {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+}
+
+/* Crumb text (DMX · ASESOR · Fecha) que va en el TopBar */
+.crumb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.crumb-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.crumb-separator {                          /* línea vertical fina entre crumbs */
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   16 · BRAND BLOCK (logo dot + texto)
+   
+   Aparece tanto en el sidebar como en el navbar del marketplace.
+   Dot pulsante usa el color tema.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.brand-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.18em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-text .sep {
+  color: var(--text-mute);
+}
+.brand-text .tag {
+  color: var(--theme);
+  font-size: 12px;
+}
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--theme);
+  box-shadow: 0 0 12px var(--theme);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 12px var(--theme); }
+  50%      { opacity: 0.5; box-shadow: 0 0 4px  var(--theme); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   17 · SIDEBAR
+   
+   Layout:
+     - width: 240px fijo · flex-shrink: 0
+     - background semi-opaco con backdrop-blur
+     - position: sticky · top: 64 (debajo del topbar)
+     - min-height: calc(100vh - 64px)
+   
+   Estructura interna:
+     a) Brand header (padding 24/20, border-bottom)
+     b) Nav (padding-top 20)
+        Por cada sección:
+          - Section label (mono 9px uppercase + dot glow)
+          - Items (nav-item)
+   
+   Comportamiento del color por sección:
+     - Section label: SIEMPRE coloreada del color de su sección
+                      con dot glow del mismo color
+     - Items inactivos: color gris (var(--text-dim))
+                        icon hereda (gris)
+                        count en var(--text-mute) (gris medio)
+     - Items en hover: background rgba(section-rgb, 0.06)
+                       texto var(--text) (blanco)
+     - Items activos:  background rgba(section-rgb, 0.12)
+                       border-left-color: color sección
+                       texto blanco bold
+                       icon en color sección
+                       count en color sección
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: rgba(7, 7, 15, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border);
+  min-height: calc(100vh - 64px);
+  position: sticky;
+  top: 64px;
+  align-self: flex-start;
+}
+.sidebar-brand {                            /* header del sidebar */
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-nav {                              /* contenedor de secciones */
+  padding: 20px 0;
+}
+.sidebar-section {                          /* cada bloque (Principal, Operación, etc) */
+  margin-bottom: 24px;
+}
+
+/* Section label · mono pequeño con dot glow */
+.sidebar-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 0 20px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* color se aplica inline: color del SIDEBAR_COLORS de la sección */
+}
+.sidebar-section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* background + box-shadow inline con el color de sección:
+     background: <section-color>;
+     box-shadow: 0 0 6px <section-color>; */
+}
+
+/* Nav item base · estados controlados por modifier clases o inline */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;            /* asimétrico · solo radius derecho */
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);                /* default: gris */
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease);
+  border-left: 3px solid transparent;    /* placeholder · active lo llena */
+  cursor: pointer;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.nav-item .label { flex: 1; }
+.nav-item .count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-mute);                /* inactivo: gris medio */
+}
+
+/* Active state · aplicar las 5 reglas siguientes inline con el color de sección:
+     background: rgba(<section-rgb>, 0.12);
+     border-left-color: <section-color>;
+     color: #ffffff;
+     font-weight: 600;
+     .count → color: <section-color>;
+     icon  → color: <section-color>;  (set via inline style en el SVG/Icon) */
+.nav-item.active {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Hover state · aplicar inline cuando !isActive:
+     onMouseEnter:
+       background: rgba(<section-rgb>, 0.06);
+       color: var(--text);
+     onMouseLeave (vuelve al default):
+       background: transparent;
+       color: var(--text-dim); */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   18 · TOPBAR (dentro de site-header)
+   
+   Layout horizontal: izquierda (crumb + fecha) · derecha (actions + avatar).
+   ═══════════════════════════════════════════════════════════════════════════ */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Icon buttons circulares (búsqueda, notificación) */
+.icon-btn {
+  padding: 9px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all var(--t-fast) var(--ease);
+}
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--theme);
+  background: var(--bg-card-2);
+}
+
+/* Notification dot · pequeño punto que aparece en el icon-btn de campana */
+.icon-btn-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--theme);
+  box-shadow: 0 0 6px var(--theme);
+}
+
+/* User chip · avatar gradient + nombre + role */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;            /* asimétrico: más espacio derecho del texto */
+  border-radius: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--theme-2), var(--theme-3));    /* diagonal */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  color: var(--theme-text);
+}
+.user-info {
+  line-height: 1.1;
+}
+.user-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+.user-role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   19 · TAB NAV (switcher pills)
+   
+   Tres usos en el sistema:
+     a) Tab switcher de portales (fixed top, centro, glass pill container)
+     b) Navbar marketplace (Comprar/Rentar/Vender/Zonas/Inteligencia)
+     c) Sub-tab dentro de un dashboard
+   
+   Cada tab pill puede tener un sub-label en mono.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.tab-nav {
+  display: flex;
+  gap: 4px;
+}
+.tab-nav button {
+  color: var(--text-dim);
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.tab-nav button:hover {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--bg-card);
+}
+.tab-nav button.active {
+  color: var(--theme);
+  border-color: rgba(var(--theme-rgb), 0.3);
+  background: rgba(var(--theme-rgb), 0.08);
+}
+.tab-nav button .tab-sub {                /* sub-label en mono pequeño */
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+/* Container del switcher flotante (fixed top center) */
+.tab-switcher-container {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+.tab-switcher-pill {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 100px;
+  background: rgba(7, 7, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   20 · PROPERTY CARD (marketplace)
+   
+   Card con imagen placeholder arriba + contenido abajo.
+   Border-left con glow (mismo patrón que resource).
+   Hover: translateY(-4px) + border tema + box-shadow doble (drop + glow).
+   
+   Imagen placeholder:
+     - height fijo 180px
+     - radial-gradient en color tema (30% 50%) + linear-gradient navy
+     - overlay diagonal con repeating-linear-gradient (líneas a 45deg
+       cada 11px con opacity 0.02) para textura sutil
+   
+   Sobre la imagen:
+     - Top-right: botón heart 36×36 circular con backdrop-blur
+     - Bottom-left: skill-tag con backdrop-blur ("HOT · 18 VISTAS", etc)
+   
+   Body:
+     - Precio en Bebas Neue 32px + sufijo "MXN" en mono 12px gris
+     - Zone con MapPin icon en color tema · delegación en gris
+     - Tags inferiores (m², rec) + DMX SCORE alineado a la derecha
+   ═══════════════════════════════════════════════════════════════════════════ */
+.property-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+  transition: all var(--t-fast) var(--ease);
+  cursor: pointer;
+}
+.property-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--theme);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(var(--theme-rgb), 0.15);
+}
+.property-card::before {                    /* border-left glow */
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--theme);
+  box-shadow: 0 0 12px var(--theme);
+  z-index: 2;
+}
+.property-card-image {
+  height: 180px;
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(var(--theme-rgb), 0.25) 0%, transparent 60%),
+    linear-gradient(135deg, #0a3a2a 0%, #07070f 80%);    /* navy-verde-oscuro */
+  overflow: hidden;
+}
+/* Overlay diagonal sutil sobre la imagen */
+.property-card-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0px,
+    transparent 10px,
+    rgba(255, 255, 255, 0.02) 10px,
+    rgba(255, 255, 255, 0.02) 11px
+  );
+}
+/* Heart button sobre la imagen */
+.property-card-heart {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+.property-card-tag {                        /* tag bottom-left sobre la imagen */
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  z-index: 3;
+}
+/* Cuerpo del card */
+.property-card-body {
+  padding: 18px 20px;
+}
+.property-price {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.property-price-currency {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-left: 6px;
+}
+.property-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+.property-location-zone {
+  font-weight: 600;
+}
+.property-location-delegation {
+  color: var(--text-mute);
+}
+.property-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+.property-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--theme);
+  margin-left: auto;
+  letter-spacing: 0.08em;
+}
+
+/* Grid de property cards (auto-fit) */
+.property-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   21 · FILTER BAR (marketplace)
+   
+   Pills horizontales: filter pills (.btn-filter) + un primary final.
+   Cada pill puede tener:
+     - icon a la izquierda
+     - label mono opcional (ej "PRECIO" en gris pequeño)
+     - texto principal
+     - chevron-down a la derecha
+   ═══════════════════════════════════════════════════════════════════════════ */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.filter-pill-label {                        /* "PRECIO" antes del valor */
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--text-mute);
+  margin-right: 4px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   22 · SECTION HEADER
+   
+   Patrón consistente arriba de cada bloque de contenido:
+     1) Eyebrow (uppercase mono pequeño)
+     2) H2 display con accent span
+     3) Lead subtítulo opcional
+   
+   Margin-top: 56px entre secciones · margin-bottom: 24px del título al contenido.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.section-header {
+  margin-top: 56px;
+  margin-bottom: 24px;
+}
+.section-header:first-child {
+  margin-top: 0;
+}
+
+/* Resultados count (debajo del title en marketplace property list) */
+.section-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   23 · FADE-UP (motion · reveal on scroll)
+   
+   Aplicado por IntersectionObserver: cuando el elemento entra al viewport
+   se le agrega .visible y hace el reveal.
+   Stagger se logra con setTimeout(delay) en el JS antes de agregar .visible.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 600ms var(--ease),
+              transform 600ms var(--ease);
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   24 · SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   25 · ACCESIBILIDAD · REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .fade-up { opacity: 1 !important; transform: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NOTAS PARA IMPLEMENTACIÓN
+   ════════════════════════════════════════════════════════════════════════════
+   
+   ─── Z-INDEX LAYERS ─────────────────────────────────────────────────
+     0   : backgrounds (aurora + grid)
+     1   : contenido principal del portal
+     2   : border-left glow de resource/property/kpi (::before)
+     3   : overlays sobre property image (heart, tag)
+     40  : marketplace navbar (sticky)
+     50  : site-header (sticky topbar)
+     100 : tab switcher flotante (fixed)
+   
+   ─── LAYOUT TÍPICO DE PORTAL CON SIDEBAR ────────────────────────────
+     <body class="portal-asesor">
+       <div class="dmx-bg-aurora"></div>
+       <div class="dmx-bg-grid"></div>
+       <div style="display: flex; position: relative; z-index: 1;">
+         <aside class="sidebar">...</aside>
+         <div style="flex: 1; min-width: 0;">
+           <header class="site-header">...</header>
+           <main style="padding: 48px 32px; max-width: 960px;">
+             <!-- contenido -->
+           </main>
+         </div>
+       </div>
+     </body>
+   
+   ─── LAYOUT TÍPICO DE PORTAL SIN SIDEBAR (marketplace) ──────────────
+     <body class="portal-marketplace">
+       <div class="dmx-bg-aurora"></div>
+       <div class="dmx-bg-grid"></div>
+       <header class="site-header" style="position: sticky; top: 0; z-index: 40;">
+         <div class="site-header-inner centered">...</div>
+       </header>
+       <main style="max-width: 1100px; margin: 0 auto; padding: 80px 32px 64px; position: relative; z-index: 1;">
+         <!-- contenido -->
+       </main>
+     </body>
+   
+   ─── GAPS Y ESPACIADO ───────────────────────────────────────────────
+     Entre secciones (.section-header)           : margin-top 56px
+     Entre header section y contenido            : margin-bottom 24px
+     Entre cards (resources, kpis)               : gap 12px
+     Entre property cards                        : gap 16px
+     Entre items dentro de un card               : gap 6-12px
+     Padding interno main (con sidebar)          : 48px 32px
+     Padding interno main (marketplace)          : 80px 32px 64px
+     Max-width main (con sidebar)                : 960px
+     Max-width main (marketplace)                : 1100px
+   
+   ─── CAMBIO DE TEMA DINÁMICO ────────────────────────────────────────
+     El tema completo cambia al cambiar la clase del root del portal.
+     Si quieres tintar dinámicamente según el item activo del sidebar
+     (ej: click en "Búsquedas" → todo morado), debes aplicar inline
+     las 5 CSS vars del tema sobre el wrapper del portal:
+       style="--theme: #7c2fff; --theme-rgb: 124, 47, 255;
+              --theme-2: #a463ff; --theme-3: #3b82f6;
+              --theme-text: #0a0014;"
+     Y refrescar el aurora aplicando inline el background correcto.
+   
+   ─── ICON LIBRARY ────────────────────────────────────────────────────
+     El diseño asume lucide-react (o lucide vanilla). Tamaños típicos:
+       - sidebar nav item: 16px stroke 2
+       - icon-btn topbar : 14px
+       - resource icon-box: 20px stroke 2
+       - inline accents  : 13-14px
+       - resource arrow  : 20px
+     Color de icon hereda del parent color por default.
+   
+   ─── FUENTES (estilo overview) ──────────────────────────────────────
+     Bebas Neue        → títulos display, números KPI/step, hero, precios
+     Rajdhani 400-700  → cuerpo, leads, botones, nav items, labels
+     JetBrains Mono    → counts, metas, fechas, code blocks, scores
+     
+     Reglas tipográficas no negociables:
+       - Mayúsculas + letter-spacing 0.14-0.22em para todo lo "técnico"
+         (eyebrows, labels, buttons, mono crumbs)
+       - Headings Bebas Neue siempre con letter-spacing leve negativo (-0.01em)
+         o sutil positivo (0.02em)
+       - Body Rajdhani con letter-spacing default
+       - Nunca usar Bebas Neue para cuerpo de texto > 32px no recomendado
+   
+   ════════════════════════════════════════════════════════════════════════════ */

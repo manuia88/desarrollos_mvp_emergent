@@ -124,7 +124,7 @@ function ActiveTab({ projectId, onToast }) {
               return (
                 <div key={v.label} data-testid={`variant-${exp.id}-${v.label}`} style={{
                   padding: 10, borderRadius: 8,
-                  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+                  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
                 }}>
                   <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>{v.label}</div>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'var(--cream-3)', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -163,7 +163,7 @@ function ResultsInline({ expId }) {
   }, [expId]);
   if (!r) return <div style={{ color: 'var(--cream-3)', fontSize: 11, fontFamily: 'DM Sans', marginTop: 10 }}>Cargando resultados…</div>;
   return (
-    <div data-testid={`results-inline-${expId}`} style={{ marginTop: 12, padding: 10, borderRadius: 8, background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+    <div data-testid={`results-inline-${expId}`} style={{ marginTop: 12, padding: 10, borderRadius: 8, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--cream)', marginBottom: 6 }}>
         Conversion funnel
       </div>
@@ -308,7 +308,7 @@ function EmptyState({ text }) {
 
 const inputStyle = {
   width: '100%', padding: '8px 10px', borderRadius: 6,
-  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+  background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
 };
 const labelStyle = {
@@ -317,7 +317,7 @@ const labelStyle = {
 };
 const btnPrimary = {
   padding: '10px 18px', borderRadius: 9999, cursor: 'pointer',
-  background: 'rgba(240,235,224,0.10)', border: '1px solid rgba(240,235,224,0.30)',
+  background: 'rgba(var(--cream-rgb),0.10)', border: '1px solid rgba(var(--cream-rgb),0.30)',
   color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
 };
 const btnSec = {

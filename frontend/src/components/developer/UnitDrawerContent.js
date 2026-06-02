@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getUnitPriceHistory, getUnitComparables, getUnitMarketComparables,
-  getUnitAIPrediction, patchUnit, getUnitEngagement,
+  getUnitAIPrediction, patchUnit, getUnitEngagement, getUnitAvm,
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
@@ -20,18 +20,18 @@ const fmtMXN = (v) => {
 const fmtMXNm2 = (v) => v ? `$${(v / 1_000).toFixed(0)}K/m²` : '—';
 
 const STATUS_CONFIG = {
-  disponible: { label: 'Disponible', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-  apartado:   { label: 'Apartado',   color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-  reservado:  { label: 'Reservado',  color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
-  vendido:    { label: 'Vendido',    color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-  bloqueado:  { label: 'Bloqueado',  color: 'rgba(240,235,224,0.3)', bg: 'rgba(240,235,224,0.06)' },
+  disponible: { label: 'Disponible', color: '#fff', bg: '#1FA06A' },
+  apartado:   { label: 'Apartado',   color: '#fff', bg: '#C77F12' },
+  reservado:  { label: 'Reservado',  color: '#fff', bg: '#3B82F6' },
+  vendido:    { label: 'Vendido',    color: '#fff', bg: '#E0463D' },
+  bloqueado:  { label: 'Bloqueado',  color: '#fff', bg: '#8A92A6' },
 };
 
 // ─── Collapsible Section ───────────────────────────────────────────────────
 function DrawerSection({ id, title, defaultOpen = false, loading, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ borderBottom: '1px solid rgba(240,235,224,0.08)' }}>
+    <div style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.08)' }}>
       <button
         data-testid={`drawer-section-${id}`}
         onClick={() => setOpen(o => !o)}
@@ -177,13 +177,13 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
                 <span>
                   {fmtMXN(h.price_before)} → <strong>{fmtMXN(h.price_after)}</strong>
                   {h.price_after > h.price_before && <span style={{ color: '#22c55e', marginLeft: 4 }}>↑</span>}
-                  {h.price_after < h.price_before && <span style={{ color: '#ef4444', marginLeft: 4 }}>↓</span>}
+                  {h.price_after < h.price_before && <span style={{ color: 'var(--red)', marginLeft: 4 }}>↓</span>}
                 </span>
               </div>
             ))}
           </div>
           {priceData.colonia_avg_price_m2 && priceM2 && (
-            <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>vs. promedio colonia</span>
               <span style={{
                 fontSize: 11, fontWeight: 700,
@@ -211,7 +211,7 @@ function EngagementSection({ unit, devId }) {
   if (!data) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Sin datos de engagement todavía.</div>;
 
   const MetricRow = ({ label, asesor, cliente }) => (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 12, padding: '5px 0', borderBottom: '1px solid rgba(240,235,224,0.05)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 12, padding: '5px 0', borderBottom: '1px solid rgba(var(--cream-rgb),0.05)' }}>
       <span style={{ color: 'var(--cream-3)' }}>{label}</span>
       <span style={{ color: 'var(--cream-2)', textAlign: 'center' }}>{asesor ?? '—'}</span>
       <span style={{ color: 'var(--cream-2)', textAlign: 'center' }}>{cliente ?? '—'}</span>
@@ -242,7 +242,7 @@ function EngagementSection({ unit, devId }) {
                 <span style={{ color: 'var(--cream-3)' }}>{f.stage}</span>
                 <span style={{ color: 'var(--cream-2)', fontWeight: 600 }}>{f.count}</span>
               </div>
-              <div style={{ height: 4, borderRadius: 2, background: 'rgba(240,235,224,0.08)' }}>
+              <div style={{ height: 4, borderRadius: 2, background: 'rgba(var(--cream-rgb),0.08)' }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
                   width: `${(f.count / (data.funnel[0]?.count || 1)) * 100}%`,
@@ -272,7 +272,7 @@ function ComparablesInternosSection({ unit, devId }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 14, marginBottom: 12 }}>
-        <div style={{ padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, flex: 1 }}>
+        <div style={{ padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, flex: 1 }}>
           <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Misma prototipo</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--cream)' }}>{data.total_count}</div>
         </div>
@@ -281,7 +281,7 @@ function ComparablesInternosSection({ unit, devId }) {
           <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>{data.sold_count}</div>
         </div>
         {data.avg_price_sold && (
-          <div style={{ padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, flex: 1 }}>
+          <div style={{ padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, flex: 1 }}>
             <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Precio prom. vendida</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>{fmtMXN(data.avg_price_sold)}</div>
           </div>
@@ -293,7 +293,7 @@ function ComparablesInternosSection({ unit, devId }) {
             <thead>
               <tr>
                 {['Unidad', 'Estado', 'Precio', 'Nivel'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--cream-3)', fontWeight: 600, borderBottom: '1px solid rgba(240,235,224,0.07)' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--cream-3)', fontWeight: 600, borderBottom: '1px solid rgba(var(--cream-rgb),0.07)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -301,7 +301,7 @@ function ComparablesInternosSection({ unit, devId }) {
               {others.map(u => {
                 const st = STATUS_CONFIG[u.status] || STATUS_CONFIG.disponible;
                 return (
-                  <tr key={u.unit_number} style={{ borderBottom: '1px solid rgba(240,235,224,0.04)' }}>
+                  <tr key={u.unit_number} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.04)' }}>
                     <td style={{ padding: '5px 8px', color: 'var(--cream)' }}>{u.unit_number}</td>
                     <td style={{ padding: '5px 8px' }}><span style={{ background: st.bg, color: st.color, fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>{st.label}</span></td>
                     <td style={{ padding: '5px 8px', color: 'var(--cream-2)' }}>{fmtMXN(u.price)}</td>
@@ -331,11 +331,11 @@ function ComparablesExternosSection({ unit, devId }) {
     <div>
       {data.market_avg_price_m2 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-          <div style={{ padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, flex: 1 }}>
+          <div style={{ padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, flex: 1 }}>
             <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Avg. colonia ($/m²)</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--cream)' }}>{fmtMXNm2(data.market_avg_price_m2)}</div>
           </div>
-          <div style={{ padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, flex: 1 }}>
+          <div style={{ padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, flex: 1 }}>
             <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Tu precio ($/m²)</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--cream)' }}>{fmtMXNm2(data.my_price_m2)}</div>
           </div>
@@ -352,7 +352,7 @@ function ComparablesExternosSection({ unit, devId }) {
       {data.comparables?.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           {data.comparables.slice(0, 5).map((c, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '4px 0', borderBottom: '1px solid rgba(240,235,224,0.04)' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '4px 0', borderBottom: '1px solid rgba(var(--cream-rgb),0.04)' }}>
               <span style={{ color: 'var(--cream-3)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.project_name}</span>
               <span style={{ color: 'var(--cream-2)' }}>{c.area_total}m² · {fmtMXN(c.price)}</span>
             </div>
@@ -362,6 +362,75 @@ function ComparablesExternosSection({ unit, devId }) {
       {!data.comparables?.length && (
         <p style={{ fontSize: 12, color: 'var(--cream-3)', margin: 0 }}>Sin comparables externos en la misma colonia.</p>
       )}
+    </div>
+  );
+}
+
+// ─── Section: Valor de mercado (AVM real) · cierra círculo Precio ───────────
+function AvmSection({ unit, devId }) {
+  const [avm, setAvm] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!unit) return;
+    setLoading(true);
+    getUnitAvm(devId, unit.id || unit.unit_number)
+      .then(setAvm).catch(() => setAvm(null)).finally(() => setLoading(false));
+  }, [devId, unit]);
+
+  if (loading) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Calculando valor de mercado…</div>;
+  if (!avm || !avm.available) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>{avm?.reason || 'Valuación no disponible para esta unidad.'}</div>;
+
+  const vsColor = avm.vs_market_pct > 3 ? '#E0463D' : avm.vs_market_pct < -3 ? '#1FA06A' : 'var(--cream-2)';
+  const CONF = { alta: '#1FA06A', media: '#C77F12', baja: 'var(--cream-3)' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: '14px 16px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)', borderRadius: 12 }}>
+        <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Valor estimado de mercado</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif', lineHeight: 1 }}>{fmtMXN(avm.value)}</div>
+        <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 5 }}>
+          Rango {fmtMXN(avm.range_low)} – {fmtMXN(avm.range_high)} · {fmtMXNm2(avm.per_m2)}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: CONF[avm.confidence] || 'var(--cream-3)', borderRadius: 999, padding: '3px 9px' }}>Confianza {avm.confidence}</span>
+          {avm.fsd_pct != null && <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>±{avm.fsd_pct}%</span>}
+          <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>{avm.pricing_model === 'hedonic_regression' ? 'Modelo hedónico' : 'Estimación heurística'}</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 10 }}>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>Tu precio listado</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>{fmtMXN(avm.listed_price)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: vsColor, fontFamily: 'Outfit,sans-serif' }}>{avm.vs_market_pct > 0 ? '+' : ''}{avm.vs_market_pct}%</div>
+          <div style={{ fontSize: 11, color: vsColor }}>{avm.vs_market_label}</div>
+        </div>
+      </div>
+
+      {Array.isArray(avm.explain?.contributions) && avm.explain.contributions.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Por qué este valor</div>
+          {avm.explain.contributions
+            .filter(c => (c.pct ?? 0) !== 0 || c.feature === 'intercept')
+            .slice(0, 5)
+            .map((c, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--cream-2)', marginBottom: 3 }}>
+                <span>{c.label || c.feature}</span>
+                <span style={{ color: c.sign === 'negative' ? '#E0463D' : 'var(--cream-3)' }}>
+                  {c.sign === 'negative' ? '−' : ''}{c.pct != null ? `${Math.abs(c.pct)}%` : ''}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      <div style={{ fontSize: 10.5, color: 'var(--cream-3)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <span>{avm.loop_closed ? '🔄' : 'ℹ️'}</span>
+        <span>{avm.loop_note}</span>
+      </div>
     </div>
   );
 }
@@ -386,7 +455,7 @@ function AIPredSection({ unit, devId, user }) {
   if (loading) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Generando predicción con IA…</div>;
   if (!pred) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Sin predicción disponible.</div>;
 
-  const CONF_COLOR = { alta: '#22c55e', media: '#f59e0b', baja: 'rgba(240,235,224,0.4)' };
+  const CONF_COLOR = { alta: '#22c55e', media: '#f59e0b', baja: 'rgba(var(--cream-rgb),0.4)' };
 
   return (
     <div>
@@ -410,7 +479,7 @@ function AIPredSection({ unit, devId, user }) {
           <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recomendaciones</div>
           {pred.recomendaciones.map((r, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 }}>
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(240,235,224,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(var(--cream-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                 <span style={{ fontSize: 9, color: 'var(--cream-3)' }}>{i + 1}</span>
               </div>
               <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>{r}</span>
@@ -418,7 +487,7 @@ function AIPredSection({ unit, devId, user }) {
           ))}
         </div>
       )}
-      <div style={{ fontSize: 10, color: 'var(--cream-3)', padding: '6px 8px', background: 'rgba(240,235,224,0.04)', borderRadius: 6 }}>
+      <div style={{ fontSize: 10, color: 'var(--cream-3)', padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 6 }}>
         Confianza:&nbsp;
         <span style={{ color: CONF_COLOR[pred.nivel_confianza] || 'var(--cream-3)', fontWeight: 600 }}>
           {pred.nivel_confianza}
@@ -427,10 +496,10 @@ function AIPredSection({ unit, devId, user }) {
       </div>
       <button
         onClick={load} disabled={loading}
-        style={{ marginTop: 8, background: 'none', border: '1px solid rgba(240,235,224,0.1)', color: 'var(--cream-3)', borderRadius: 6, padding: '4px 10px', fontSize: 10, cursor: loading ? 'default' : 'pointer' }}>
+        style={{ marginTop: 8, background: 'none', border: '1px solid rgba(var(--cream-rgb),0.1)', color: 'var(--cream-3)', borderRadius: 6, padding: '4px 10px', fontSize: 10, cursor: loading ? 'default' : 'pointer' }}>
         {loading ? 'Actualizando…' : 'Refrescar (1×/hora)'}
       </button>
-      {lastRefresh && <span style={{ fontSize: 9, color: 'rgba(240,235,224,0.3)', marginLeft: 8 }}>{lastRefresh.toLocaleTimeString('es-MX')}</span>}
+      {lastRefresh && <span style={{ fontSize: 9, color: 'rgba(var(--cream-rgb),0.3)', marginLeft: 8 }}>{lastRefresh.toLocaleTimeString('es-MX')}</span>}
     </div>
   );
 }
@@ -468,17 +537,17 @@ function DocumentosSection({ unit, devId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {unit.plan_url && (
-        <a href={unit.plan_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
+        <a href={unit.plan_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
           <FileText size={14} color="var(--cream-3)" /> Plano de unidad
         </a>
       )}
       {unit.render_url && (
-        <a href={unit.render_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
+        <a href={unit.render_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
           <Star size={14} color="var(--cream-3)" /> Render
         </a>
       )}
       {unit.tour_url && (
-        <a href={unit.tour_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(240,235,224,0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
+        <a href={unit.tour_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(var(--cream-rgb),0.05)', borderRadius: 8, color: 'var(--cream)', textDecoration: 'none', fontSize: 12 }}>
           <Building size={14} color="var(--cream-3)" /> Tour 360°
         </a>
       )}
@@ -502,10 +571,10 @@ function DrawerFooter({ unit, devId, user, onClose, onUnitUpdated }) {
 
   if (!unit || !isAdmin) return null;
   return (
-    <div style={{ padding: '14px 0 0', borderTop: '1px solid rgba(240,235,224,0.1)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div style={{ padding: '14px 0 0', borderTop: '1px solid rgba(var(--cream-rgb),0.1)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {unit.status === 'disponible' && (
         <button onClick={() => doAction('status', 'apartado')} disabled={saving}
-          style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: saving ? 'default' : 'pointer' }}>
+          style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--amber)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: saving ? 'default' : 'pointer' }}>
           Apartar (24h)
         </button>
       )}
@@ -523,7 +592,7 @@ function DrawerFooter({ unit, devId, user, onClose, onUnitUpdated }) {
       )}
       {unit.status !== 'vendido' && (
         <button onClick={() => doAction('status', 'vendido')} disabled={saving}
-          style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: saving ? 'default' : 'pointer' }}>
+          style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: saving ? 'default' : 'pointer' }}>
           Marcar vendido
         </button>
       )}
@@ -538,7 +607,7 @@ export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* Unit title */}
-      <div style={{ paddingBottom: 14, marginBottom: 4, borderBottom: '1px solid rgba(240,235,224,0.1)' }}>
+      <div style={{ paddingBottom: 14, marginBottom: 4, borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
           Unidad {unit.unit_number}
         </div>
@@ -549,6 +618,10 @@ export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) 
 
       <DrawerSection id="estado" title="Estado y precio" defaultOpen>
         <EstadoPrecioSection unit={unit} devId={devId} user={user} onUnitUpdated={onUnitUpdated} />
+      </DrawerSection>
+
+      <DrawerSection id="avm" title="Valor de mercado (AVM)" defaultOpen>
+        <AvmSection unit={unit} devId={devId} />
       </DrawerSection>
 
       <DrawerSection id="engagement" title="Engagement">

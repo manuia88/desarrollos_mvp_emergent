@@ -23,6 +23,7 @@ import NarrativeBlockLLM from '../components/NarrativeBlock';
 // W5.x F7 — Lead Capture (behavioral tracker + modal)
 import useBehavioralTracker from '../hooks/useBehavioralTracker';
 import LeadCaptureModal from '../components/leadCapture/LeadCaptureModal';
+import { resolvePricingExperiment, trackPricingEvent } from '../api/leads';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
@@ -56,10 +57,31 @@ const STAGE_COLORS = {
   exclusiva: '#8B5CF6',
 };
 
+// Pricing Lab · lado VISITANTE (A/B). visitor_id anónimo persistente + aplicación segura del modificador.
+function _getVisitorId() {
+  try {
+    let v = localStorage.getItem('dmx_visitor_id');
+    if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); }
+    return v;
+  } catch (_) { return 'v_anon'; }
+}
+function _applyPriceMod(base, mod) {
+  const n = Number(base);
+  if (!mod || mod.value == null || !Number.isFinite(n)) return base;
+  const v = Number(mod.value);
+  const out = mod.type === 'percent' ? n * (1 + v / 100)
+            : mod.type === 'absolute' ? n + v
+            : mod.type === 'fixed' ? v : n;
+  // Clamp de seguridad: nunca <=0 ni > 3x el base (jamás romper el embudo con un precio absurdo)
+  if (!Number.isFinite(out) || out <= 0 || out > n * 3) return base;
+  return Math.round(out);
+}
+
 export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const { t } = useTranslation();
   const { id } = useParams();
   const [dev, setDev] = useState(null);
+  const [pxExp, setPxExp] = useState(null); // experiment_id activo para rastrear el lead
   const [tab, setTab] = useState('descripcion');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
@@ -79,7 +101,22 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   useEffect(() => {
     let alive = true;
-    fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
+    fetchDevelopment(id).then(async (d) => {
+      if (!alive) return;
+      // Pricing Lab · lado VISITANTE: descubre experimento activo, registra la VISTA y aplica
+      // la variante de precio para este visitante. Fail-open: si falla, precio base intacto.
+      try {
+        const px = await resolvePricingExperiment({ visitor_id: _getVisitorId(), project_id: id });
+        if (px?.active && d) {
+          d = { ...d,
+            price_from: _applyPriceMod(d.price_from, px.price_modifier),
+            price_to: _applyPriceMod(d.price_to, px.price_modifier),
+          };
+          if (alive) setPxExp(px.experiment_id);
+        }
+      } catch (_) { /* fail-open */ }
+      if (alive) setDev(d);
+    }).catch(() => { if (alive) setDev(null); });
     // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
     trackPropertyView(id, 'marketplace');
     // Phase 7.6: superpone fotos reales de dev_assets si existen.
@@ -506,6 +543,10 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         propertyScope="project"
         propertyTitle={dev?.name}
         sourcePage={typeof window !== 'undefined' ? window.location.pathname : '/desarrollo'}
+        onCaptured={() => {
+          // Pricing Lab · cierra el loop: lead atribuido a la variante de este visitante
+          if (pxExp) trackPricingEvent(pxExp, { visitor_id: _getVisitorId(), event: 'lead' }).catch(() => {});
+        }}
       />
     </div>
   );

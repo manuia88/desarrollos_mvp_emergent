@@ -32,7 +32,7 @@ function Fallback({ hue = 231, seed = 0 }) {
       <rect x={70} y={50} width={260} height={170} fill={`hsl(${hue}, 45%, 12%)`} />
       {[0,1,2,3,4,5].map(row => [0,1,2,3,4].map(col => (
         <rect key={`${row}${col}`} x={90 + col*50} y={65 + row*28} width={26} height={16}
-          fill={((row*5+col+seed) % 3) > 0 ? `hsla(${hue},70%,65%,0.45)` : 'rgba(255,255,255,0.04)'} rx={2} />
+          fill={((row*5+col+seed) % 3) > 0 ? `hsla(${hue},70%,65%,0.45)` : 'rgba(var(--cream-rgb),0.04)'} rx={2} />
       )))}
     </svg>
   );
@@ -72,8 +72,8 @@ function IERankPill({ rank }) {
         <span style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0,
           padding: '6px 10px', borderRadius: 10,
-          background: 'rgba(6,8,15,0.95)',
-          border: '1px solid rgba(240,235,224,0.14)',
+          background: 'rgba(var(--bg-rgb),0.95)',
+          border: '1px solid rgba(var(--cream-rgb),0.14)',
           color: 'var(--cream-2)',
           fontFamily: 'DM Sans', fontWeight: 500, fontSize: 10.5,
           letterSpacing: '0.02em', textTransform: 'none',
@@ -200,7 +200,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             {photos.slice(0, Math.min(photos.length, 5)).map((_, i) => (
               <div key={i} style={{
                 width: i === slide ? 14 : 5, height: 5, borderRadius: 9999,
-                background: i === slide ? '#fff' : 'rgba(255,255,255,0.3)',
+                background: i === slide ? '#fff' : 'rgba(var(--cream-rgb),0.3)',
                 transition: 'width 0.2s',
               }} />
             ))}
@@ -247,7 +247,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             <div key={i} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               padding: '8px 4px',
-              background: 'rgba(255,255,255,0.04)',
+              background: 'rgba(var(--cream-rgb),0.04)',
               border: '1px solid var(--border)',
               borderRadius: 10,
             }}>

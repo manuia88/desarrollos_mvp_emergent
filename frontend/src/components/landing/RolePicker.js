@@ -15,7 +15,7 @@ const ROLES = [
   {
     k: 'advisor',
     label: 'Soy asesor inmobiliario',
-    sub: 'Quiero gestionar mis contactos, búsquedas y operaciones dentro del CRM Pulppo+.',
+    sub: 'Quiero gestionar mis contactos, búsquedas y operaciones dentro del CRM.',
   },
   {
     k: 'developer_admin',

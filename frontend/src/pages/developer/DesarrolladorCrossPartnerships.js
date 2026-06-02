@@ -12,10 +12,10 @@ import {
 import { Z } from '../../styles/zIndex';
 
 const STATUS_CFG = {
-  pending:  { label: 'Pendiente', color: '#FACC15', bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.32)' },
-  approved: { label: 'Aprobada',  color: '#4ADE80', bg: 'rgba(74,222,128,0.10)', bd: 'rgba(74,222,128,0.32)' },
-  rejected: { label: 'Rechazada', color: '#F87171', bg: 'rgba(239,68,68,0.08)', bd: 'rgba(239,68,68,0.28)' },
-  revoked:  { label: 'Revocada',  color: '#F87171', bg: 'rgba(239,68,68,0.08)', bd: 'rgba(239,68,68,0.28)' },
+  pending:  { label: 'Pendiente', color: '#fff', bg: '#C77F12', bd: '#C77F12' },
+  approved: { label: 'Aprobada',  color: '#fff', bg: '#1FA06A', bd: '#1FA06A' },
+  rejected: { label: 'Rechazada', color: '#fff', bg: '#E0463D', bd: '#E0463D' },
+  revoked:  { label: 'Revocada',  color: '#fff', bg: '#8A92A6', bd: '#8A92A6' },
 };
 
 function StatusBadge({ status }) {
@@ -32,8 +32,8 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const s = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const inp = { width: '100%', padding: '10px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
-  const lbl = { fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 };
+  const inp = { width: '100%', padding: '10px 13px', borderRadius: 9, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+  const lbl = { fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 };
 
   const submit = async () => {
     if (!form.target_org_id.trim()) { setErr('ID de la organización destino es requerido'); return; }
@@ -50,13 +50,13 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
   };
 
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
-      <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 18, width: '100%', maxWidth: 460, padding: '26px 26px 22px' }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
+      <div style={{ background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.10)', borderRadius: 18, width: '100%', maxWidth: 460, padding: '26px 26px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: 0 }}>Nueva alianza cross-org</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,235,224,0.45)' }}><X size={16} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--cream-rgb),0.45)' }}><X size={16} /></button>
         </div>
-        {err && <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.28)', color: '#F87171', fontFamily: 'DM Sans', fontSize: 12.5, marginBottom: 12 }}>{err}</div>}
+        {err && <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.28)', color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12.5, marginBottom: 12 }}>{err}</div>}
 
         <div style={{ marginBottom: 13 }}>
           <label style={lbl}>Tipo de organización destino *</label>
@@ -67,9 +67,9 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
                 style={{
                   flex: 1, padding: '8px 0', borderRadius: 9999, fontSize: 12,
                   fontFamily: 'DM Sans', fontWeight: 700, cursor: 'pointer',
-                  border: form.target_org_type === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                  border: form.target_org_type === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(var(--cream-rgb),0.10)',
                   background: form.target_org_type === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                  color: form.target_org_type === k ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                  color: form.target_org_type === k ? '#818CF8' : 'rgba(var(--cream-rgb),0.50)',
                 }}>
                 {l}
               </button>
@@ -89,7 +89,7 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
           <textarea data-testid="cp-notes" style={{ ...inp, minHeight: 70, resize: 'vertical', fontFamily: 'DM Sans' }} value={form.notes} onChange={e => s('notes', e.target.value)} placeholder="Detalles, exclusividad, zonas…" maxLength={500} />
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'rgba(var(--cream-rgb),0.55)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
           <button data-testid="cp-create-submit" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Enviando…' : 'Solicitar alianza'}
           </button>
@@ -102,15 +102,15 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
 function ReasonModal({ title, label, onClose, onConfirm, busy, confirmLabel }) {
   const [reason, setReason] = useState('');
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.80)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.DRAWER, padding: 16 }}>
-      <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 26 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.80)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.DRAWER, padding: 16 }}>
+      <div style={{ background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.10)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 26 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '0 0 14px' }}>{title}</h3>
-        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>{label} *</label>
+        <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--cream-rgb),0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>{label} *</label>
         <textarea data-testid="reason-textarea"
-          style={{ width: '100%', padding: '10px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', minHeight: 70, resize: 'vertical', boxSizing: 'border-box', marginBottom: 16 }}
+          style={{ width: '100%', padding: '10px 13px', borderRadius: 9, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', minHeight: 70, resize: 'vertical', boxSizing: 'border-box', marginBottom: 16 }}
           value={reason} onChange={e => setReason(e.target.value)} maxLength={500} />
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'rgba(var(--cream-rgb),0.55)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
           <button data-testid="reason-confirm" onClick={() => onConfirm(reason)} disabled={busy || reason.trim().length < 3}
             style={{ padding: '9px 18px', borderRadius: 9999, background: 'rgba(239,68,68,0.80)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy || reason.trim().length < 3 ? 'not-allowed' : 'pointer', opacity: busy || reason.trim().length < 3 ? 0.6 : 1 }}>
             {busy ? 'Procesando…' : (confirmLabel || 'Confirmar')}
@@ -179,7 +179,7 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="cross-partnerships" style={{ maxWidth: 1000 }}>
         {toast && (
-          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -197,7 +197,7 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
                 </span>
               )}
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(var(--cream-rgb),0.50)', margin: 0 }}>
               Gestiona acuerdos de colaboración con otras organizaciones ({portalName}).
             </p>
           </div>
@@ -218,9 +218,9 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
               style={{
                 padding: '7px 14px', borderRadius: 9999, fontSize: 12.5,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(var(--cream-rgb),0.10)',
                 background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                color: tab === k ? '#818CF8' : 'rgba(var(--cream-rgb),0.50)',
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
               {Ic && <Ic size={12} />} {l}
@@ -236,9 +236,9 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
               style={{
                 padding: '5px 11px', borderRadius: 9999, fontSize: 11.5,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: statusFilter === s ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                border: statusFilter === s ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(var(--cream-rgb),0.08)',
                 background: statusFilter === s ? 'rgba(99,102,241,0.10)' : 'transparent',
-                color: statusFilter === s ? '#818CF8' : 'rgba(240,235,224,0.45)',
+                color: statusFilter === s ? '#818CF8' : 'rgba(var(--cream-rgb),0.45)',
               }}>
               {s ? STATUS_CFG[s].label : 'Todas'}
             </button>
@@ -246,12 +246,12 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Cargando alianzas…
           </div>
         ) : items.length === 0 ? (
-          <div data-testid="cp-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
-            <Handshake size={40} color="rgba(240,235,224,0.20)" style={{ marginBottom: 12 }} />
+          <div data-testid="cp-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans' }}>
+            <Handshake size={40} color="rgba(var(--cream-rgb),0.20)" style={{ marginBottom: 12 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 5 }}>
               Sin alianzas
             </div>
@@ -269,8 +269,8 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
                 <div key={p.partnership_id} data-testid={`cp-row-${p.partnership_id}`}
                   style={{
                     padding: '15px 18px', borderRadius: 12,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${p.status === 'pending' && isIncoming ? 'rgba(250,204,21,0.20)' : 'rgba(255,255,255,0.08)'}`,
+                    background: 'rgba(var(--cream-rgb),0.03)',
+                    border: `1px solid ${p.status === 'pending' && isIncoming ? 'rgba(250,204,21,0.20)' : 'rgba(var(--cream-rgb),0.08)'}`,
                     display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap',
                   }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -281,26 +281,26 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
                       <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)' }}>
                         {partnerOrgId}
                       </span>
-                      <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(240,235,224,0.45)', fontFamily: 'DM Sans' }}>
+                      <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.10)', color: 'rgba(var(--cream-rgb),0.45)', fontFamily: 'DM Sans' }}>
                         {partnerOrgType === 'dev' ? 'Desarrolladora' : 'Inmobiliaria'}
                       </span>
                       <StatusBadge status={p.status} />
-                      <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(255,255,255,0.04)', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
+                      <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(var(--cream-rgb),0.04)', color: 'rgba(var(--cream-rgb),0.40)', fontFamily: 'DM Sans' }}>
                         {isIncoming ? 'Recibida' : 'Enviada'}
                       </span>
                     </div>
                     {p.commission_pct_default != null && (
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)', marginBottom: 4 }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.50)', marginBottom: 4 }}>
                         Comisión: {p.commission_pct_default}%
                       </div>
                     )}
                     {p.notes && (
-                      <div style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)', lineHeight: 1.45 }}>
+                      <div style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid rgba(var(--cream-rgb),0.07)', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.65)', lineHeight: 1.45 }}>
                         {p.notes}
                       </div>
                     )}
                     {p.revoke_reason && (
-                      <div style={{ marginTop: 5, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.40)', fontStyle: 'italic' }}>
+                      <div style={{ marginTop: 5, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(var(--cream-rgb),0.40)', fontStyle: 'italic' }}>
                         Revocado: {p.revoke_reason}
                       </div>
                     )}
@@ -313,14 +313,14 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
                           <CheckCircle2 size={12} /> Aprobar
                         </button>
                         <button data-testid={`cp-reject-${p.partnership_id}`} onClick={() => setRejectTarget(p.partnership_id)}
-                          style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: '#F87171', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: 'var(--red)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                           <XCircle size={12} /> Rechazar
                         </button>
                       </>
                     )}
                     {canRevoke && (
                       <button data-testid={`cp-revoke-${p.partnership_id}`} onClick={() => setRevokeTarget(p.partnership_id)}
-                        style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#F87171', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <RotateCcw size={12} /> Revocar
                       </button>
                     )}

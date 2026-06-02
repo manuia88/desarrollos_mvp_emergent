@@ -72,29 +72,29 @@ function ActivityItem({ item }) {
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: '8px 0',
-        borderBottom: '1px solid rgba(240,235,224,0.06)',
+        borderBottom: '1px solid rgba(var(--cream-rgb),0.06)',
       }}
     >
       <div style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(240,235,224,0.08)',
+        background: 'rgba(var(--cream-rgb),0.08)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginTop: 1,
       }}>
-        <Icon size={12} color="rgba(240,235,224,0.55)" />
+        <Icon size={12} color="rgba(var(--cream-rgb),0.55)" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, color: 'var(--cream)', fontWeight: 500, lineHeight: 1.4 }}>
           {label}
           {meta.entity_name && (
-            <span style={{ color: 'rgba(240,235,224,0.5)', fontWeight: 400 }}> · {meta.entity_name}</span>
+            <span style={{ color: 'rgba(var(--cream-rgb),0.5)', fontWeight: 400 }}> · {meta.entity_name}</span>
           )}
         </div>
         {meta.detail && (
-          <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.4)', marginTop: 1 }}>{meta.detail}</div>
+          <div style={{ fontSize: 11, color: 'rgba(var(--cream-rgb),0.4)', marginTop: 1 }}>{meta.detail}</div>
         )}
       </div>
-      <span style={{ fontSize: 10, color: 'rgba(240,235,224,0.3)', flexShrink: 0 }}>
+      <span style={{ fontSize: 10, color: 'rgba(var(--cream-rgb),0.3)', flexShrink: 0 }}>
         {timeAgo(item.timestamp)}
       </span>
     </div>
@@ -131,7 +131,7 @@ export function ActivityFeed({ actorId, inmobiliariaId, limit = 30, className = 
       <div className={className}>
         {[...Array(4)].map((_, i) => (
           <div key={i} style={{
-            height: 40, borderRadius: 6, background: 'rgba(240,235,224,0.05)',
+            height: 40, borderRadius: 6, background: 'rgba(var(--cream-rgb),0.05)',
             marginBottom: 8, animation: 'pulse 1.5s ease-in-out infinite',
           }} />
         ))}
@@ -142,8 +142,8 @@ export function ActivityFeed({ actorId, inmobiliariaId, limit = 30, className = 
   if (items.length === 0) {
     return (
       <div className={className} style={{ padding: '24px 0', textAlign: 'center' }}>
-        <Activity size={28} color="rgba(240,235,224,0.15)" style={{ marginBottom: 8 }} />
-        <p style={{ fontSize: 12, color: 'rgba(240,235,224,0.3)', margin: 0 }}>
+        <Activity size={28} color="rgba(var(--cream-rgb),0.15)" style={{ marginBottom: 8 }} />
+        <p style={{ fontSize: 12, color: 'rgba(var(--cream-rgb),0.3)', margin: 0 }}>
           Sin actividad reciente
         </p>
       </div>
@@ -158,7 +158,7 @@ export function ActivityFeed({ actorId, inmobiliariaId, limit = 30, className = 
           <div key={gk}>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: 'rgba(240,235,224,0.3)', padding: '8px 0 4px',
+              color: 'rgba(var(--cream-rgb),0.3)', padding: '8px 0 4px',
             }}>
               {GROUP_LABELS[gk]}
             </div>

@@ -84,7 +84,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.STICKY,
-      background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
+      background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} data-testid="bulk-upload-modal" style={{
@@ -123,7 +123,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                   border: `2px dashed ${dragOver ? 'var(--theme)' : 'var(--border)'}`,
                   borderRadius: 14, padding: '40px 24px', textAlign: 'center',
                   cursor: 'pointer', transition: 'border-color 0.18s, background 0.18s',
-                  background: dragOver ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(255,255,255,0.02)',
+                  background: dragOver ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(var(--cream-rgb),0.02)',
                 }}
               >
                 <Upload size={28} color={dragOver ? 'var(--theme)' : 'var(--cream-3)'} style={{ margin: '0 auto 12px' }} />
@@ -187,7 +187,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                   <tbody>
                     {preview.preview.map((row, i) => (
                       <tr key={i} data-testid={`preview-row-${i}`} style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderBottom: '1px solid rgba(var(--cream-rgb),0.04)',
                         background: !row.valid ? 'rgba(239,68,68,0.04)' : 'transparent',
                       }}>
                         <td style={tdStyle}>{row._row_index || i + 1}</td>
@@ -201,9 +201,9 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                         <td style={tdStyle}>
                           {row.valid
                             ? <span style={{ color: '#22c55e', fontSize: 11 }}>OK</span>
-                            : <span style={{ color: '#ef4444', fontSize: 11 }}>Error</span>}
+                            : <span style={{ color: 'var(--red)', fontSize: 11 }}>Error</span>}
                         </td>
-                        <td style={{ ...tdStyle, color: '#fca5a5', fontSize: 11 }}>
+                        <td style={{ ...tdStyle, color: 'var(--red)', fontSize: 11 }}>
                           {(row.errors || []).join(' · ') || '—'}
                         </td>
                       </tr>
@@ -240,7 +240,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
           {error && (
             <div data-testid="bulk-error" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 14, background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '12px 16px' }}>
               <AlertTriangle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5' }}>{error}</span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--red)' }}>{error}</span>
             </div>
           )}
         </div>
@@ -256,7 +256,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
               data-testid="bulk-commit-btn"
               style={{
                 padding: '9px 22px', borderRadius: 9999,
-                background: preview.valid_rows > 0 ? 'var(--grad)' : 'rgba(255,255,255,0.08)',
+                background: preview.valid_rows > 0 ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.08)',
                 border: 'none', color: preview.valid_rows > 0 ? '#fff' : 'var(--cream-3)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: preview.valid_rows > 0 ? 'pointer' : 'default',
                 opacity: step === 'committing' ? 0.6 : 1,
@@ -279,7 +279,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
 
 function StatPill({ label, value, color }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}28`, borderRadius: 8, padding: '8px 14px', textAlign: 'center', minWidth: 80 }}>
+    <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: `1px solid ${color}28`, borderRadius: 8, padding: '8px 14px', textAlign: 'center', minWidth: 80 }}>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color }}>{value}</div>
       <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-4)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 2 }}>{label}</div>
     </div>

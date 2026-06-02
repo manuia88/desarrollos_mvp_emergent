@@ -123,9 +123,9 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
           {[
             { k: t('dev.today'), v: fmt(today), color: 'var(--cream)' },
             { k: t('dev.at_delivery'), v: fmt(delivery), color: 'var(--cream)' },
-            { k: t('dev.gain'), v: fmt(plusvaliaDelta), color: '#86efac' },
+            { k: t('dev.gain'), v: fmt(plusvaliaDelta), color: 'var(--green)' },
           ].map(({ k, v, color }) => (
-            <div key={k} style={{ padding: '8px 6px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+            <div key={k} style={{ padding: '8px 6px', background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{k}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color, letterSpacing: '-0.02em' }}>{v}</div>
             </div>
@@ -149,7 +149,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
         <div style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{t('dev.plan_down')}</span>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: '#f472b6' }}>{down}%</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--rose)' }}>{down}%</span>
           </div>
           <input data-testid="plan-slider" type="range" min={10} max={50} step={1} value={down}
             onChange={e => setDown(+e.target.value)} style={slider} />
@@ -160,7 +160,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
             { k: t('dev.plan_monthly', { n: monthlyCount }), v: `${fmt(monthlyAmt)}/mes` },
             { k: t('dev.plan_final'), v: fmt(finalAmt) },
           ].map(({ k, v }) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 8 }}>
               <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{k}</span>
               <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--cream)' }}>{v}</span>
             </div>

@@ -67,7 +67,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(6,8,15,0.78)',
+        background: 'rgba(var(--bg-rgb),0.78)',
         backdropFilter: 'blur(8px)',
         zIndex: Z.A11Y,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -79,7 +79,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
         style={{
           width: '100%', maxWidth: 980, maxHeight: '92vh',
           background: '#0E1220',
-          border: '1px solid rgba(240,235,224,0.12)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 18,
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
@@ -88,7 +88,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
         {/* Header */}
         <div style={{
           padding: '16px 20px',
-          borderBottom: '1px solid rgba(240,235,224,0.08)',
+          borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           <div>
@@ -107,7 +107,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
             onClick={onClose}
             style={{
               background: 'transparent',
-              border: '1px solid rgba(240,235,224,0.25)',
+              border: '1px solid rgba(var(--cream-rgb),0.25)',
               borderRadius: 9999,
               color: 'var(--cream)',
               padding: '6px 14px',
@@ -164,8 +164,8 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
           {/* Regenerate panel (F0.2·Sub-C) */}
           {!isCustom && (
             <div style={{
-              background: 'rgba(15,18,28,0.55)',
-              border: '1px solid rgba(240,235,224,0.10)',
+              background: 'rgba(var(--bg-rgb),0.55)',
+              border: '1px solid rgba(var(--cream-rgb),0.10)',
               borderRadius: 14,
               padding: 14,
               marginBottom: 20,
@@ -185,7 +185,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
                   style={{
                     background: '#0E1220',
                     color: 'var(--cream)',
-                    border: '1px solid rgba(240,235,224,0.20)',
+                    border: '1px solid rgba(var(--cream-rgb),0.20)',
                     borderRadius: 9999,
                     padding: '8px 14px',
                     fontFamily: 'DM Sans', fontSize: 12,
@@ -217,7 +217,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
                 </button>
                 {regenError && (
                   <div data-testid="brochure-regen-error" style={{
-                    fontFamily: 'DM Sans', fontSize: 11, color: '#fca5a5',
+                    fontFamily: 'DM Sans', fontSize: 11, color: 'var(--red)',
                   }}>
                     {regenError}
                   </div>
@@ -252,8 +252,8 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
                       data-testid={`brochure-social-${k}`}
                       style={{
                         display: 'block',
-                        background: 'rgba(15,18,28,0.85)',
-                        border: '1px solid rgba(240,235,224,0.10)',
+                        background: 'rgba(var(--bg-rgb),0.85)',
+                        border: '1px solid rgba(var(--cream-rgb),0.10)',
                         borderRadius: 12,
                         overflow: 'hidden',
                         textDecoration: 'none',
@@ -287,7 +287,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
               border: '1px solid rgba(34,197,94,0.35)',
               borderRadius: 12,
               padding: 12,
-              fontFamily: 'DM Sans', fontSize: 12, color: '#86efac',
+              fontFamily: 'DM Sans', fontSize: 12, color: 'var(--green)',
             }}>
               Subida personalizada. Las variantes sociales y la opción de regenerar no aplican a PDFs cargados manualmente.
             </div>

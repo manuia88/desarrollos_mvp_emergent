@@ -43,7 +43,7 @@ function AlertChip({ alert }) {
         ? <AlertCircle size={10} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
         : <AlertCircle size={10} color="#60a5fa" style={{ flexShrink: 0, marginTop: 1 }} />
       }
-      <span style={{ fontSize: 10, color: 'rgba(240,235,224,0.6)', lineHeight: 1.4 }}>
+      <span style={{ fontSize: 10, color: 'rgba(var(--cream-rgb),0.6)', lineHeight: 1.4 }}>
         {alert.message}
       </span>
     </div>
@@ -98,7 +98,7 @@ export function HealthScoreWidget({
           width: size === 'sm' ? 48 : size === 'lg' ? 88 : 64,
           height: size === 'sm' ? 48 : size === 'lg' ? 88 : 64,
           borderRadius: '50%',
-          background: 'rgba(240,235,224,0.06)',
+          background: 'rgba(var(--cream-rgb),0.06)',
           animation: 'pulse 1.5s ease-in-out infinite',
         }} />
       ) : (

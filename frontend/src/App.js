@@ -222,6 +222,7 @@ const AsesorMetricas                 = lazy(() => import('./pages/asesor/AsesorM
 // AsesorLinks → ahora se importa dentro de LinksHubPage (pestaña 'Crear UTM') · B7 F5
 const AsesoresMetrics                = lazy(() => import('./pages/developer/AsesoresMetrics'));
 const CrmFunnel                      = lazy(() => import('./pages/developer/CrmFunnel'));
+const SalaDeControl                  = lazy(() => import('./pages/developer/SalaDeControl'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
@@ -790,6 +791,8 @@ function AppRouter() {
       <Route path="/desarrollador/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
       <Route path="/desarrollador/crm/asesores-metrics" element={<AdvisorRoute Page={AsesoresMetrics} />} />
       <Route path="/desarrollador/crm/funnel" element={<AdvisorRoute Page={CrmFunnel} />} />
+      {/* Cerebro DMX · Sala de Control (Etapa 3) — vive en el hub CRM */}
+      <Route path="/desarrollador/crm/sala-control" element={<AdvisorRoute Page={SalaDeControl} />} />
       <Route path="/asesor/metricas" element={<AdvisorRoute Page={AsesorMetricas} />} />
       {/* B7 Fase 5 · /asesor/links (constructor UTM) ahora vive como pestaña del hub */}
       <Route path="/asesor/links" element={<Navigate to="/asesor/links-tracking/crear" replace />} />
@@ -1314,7 +1317,7 @@ function AtlaxHomeHero() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <SkipToContent />
       <UndoProvider>
         <PresentationModeProvider>

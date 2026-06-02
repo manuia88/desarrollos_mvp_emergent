@@ -60,9 +60,9 @@ function CashFlowChart({ series }) {
       {/* Grid */}
       {[0.25, 0.5, 0.75].map(p => (
         <line key={p} x1={padX} y1={padY + (H - padY * 2) * p} x2={W - padX} y2={padY + (H - padY * 2) * p}
-              stroke="rgba(240,235,224,0.08)" strokeWidth="1" />
+              stroke="rgba(var(--cream-rgb),0.08)" strokeWidth="1" />
       ))}
-      <line x1={padX} y1={yFor(0)} x2={W - padX} y2={yFor(0)} stroke="rgba(240,235,224,0.18)" strokeWidth="1" strokeDasharray="3,3" />
+      <line x1={padX} y1={yFor(0)} x2={W - padX} y2={yFor(0)} stroke="rgba(var(--cream-rgb),0.18)" strokeWidth="1" strokeDasharray="3,3" />
       {/* Inflow line green */}
       <path d={pathFor('inflow_total')} fill="none" stroke="#22C55E" strokeWidth="1.6" />
       {/* Outflow red */}
@@ -72,7 +72,7 @@ function CashFlowChart({ series }) {
       {/* X-axis labels (every 3 months) */}
       {series.map((s, i) => i % 3 === 0 && (
         <text key={i} x={xs[i]} y={H - 4} textAnchor="middle" fontSize="9"
-              fill="rgba(240,235,224,0.6)" fontFamily="DM Sans">M{s.month}</text>
+              fill="rgba(var(--cream-rgb),0.6)" fontFamily="DM Sans">M{s.month}</text>
       ))}
       {/* Legend */}
       <g transform={`translate(${padX}, 4)`}>
@@ -102,7 +102,7 @@ function ScenarioMini({ scn, active }) {
   const s = scn.summary || {};
   return (
     <Card data-testid={`cf-scn-${scn.label}`} style={{
-      background: SCENARIO_TONE[scn.label] || 'rgba(240,235,224,0.04)',
+      background: SCENARIO_TONE[scn.label] || 'rgba(var(--cream-rgb),0.04)',
       border: `1px solid ${active ? SCENARIO_BORDER[scn.label] : 'var(--border)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -152,7 +152,7 @@ function RecommendationCard({ rec, idx, projectId, isApplied, onApplied }) {
   };
   return (
     <Card data-testid={`cf-rec-${idx}`} style={{
-      borderLeft: `3px solid ${rec.priority === 'critical' ? '#EF4444' : rec.priority === 'high' ? '#EC4899' : 'rgba(240,235,224,0.3)'}`,
+      borderLeft: `3px solid ${rec.priority === 'critical' ? '#EF4444' : rec.priority === 'high' ? '#EC4899' : 'rgba(var(--cream-rgb),0.3)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
         <Badge tone={PRIORITY_TONE[rec.priority] || 'neutral'}>{rec.priority}</Badge>
@@ -165,7 +165,7 @@ function RecommendationCard({ rec, idx, projectId, isApplied, onApplied }) {
         {rec.detail}
       </p>
       {rec.estimated_impact_mxn && (
-        <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11.5, color: '#86efac' }}>
+        <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--green)' }}>
           Impacto estimado: {formatM(rec.estimated_impact_mxn)}
         </div>
       )}
@@ -285,7 +285,7 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
         sub={`Horizonte ${doc.horizon_months}m · Actualizado hace ${hoursAgo}h · ${doc.scenarios?.length || 0} escenarios analizados`}
       />
 
-      {error && <Card style={{ marginBottom: 14, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#fca5a5' }}>{error}</Card>}
+      {error && <Card style={{ marginBottom: 14, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: 'var(--red)' }}>{error}</Card>}
 
       {/* Action bar */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 14 }}>
@@ -354,7 +354,7 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
       {/* Gap alerts */}
       {gaps.length > 0 && (
         <Card style={{ marginBottom: 14, background: 'rgba(239,68,68,0.04)' }}>
-          <div className="eyebrow" style={{ marginBottom: 10, color: '#fca5a5' }}>
+          <div className="eyebrow" style={{ marginBottom: 10, color: 'var(--red)' }}>
             <AlertTriangle size={11} style={{ verticalAlign: 'middle', marginRight: 5 }} />
             GAP ALERTS · {gaps.length} de {summary.gap_count || 0} mostrados
           </div>
@@ -369,7 +369,7 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
         <Card data-testid="cf-recommendations" style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(99,102,241,0.06), transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <Sparkle size={13} color="#f9a8d4" />
-            <div className="eyebrow" style={{ color: '#f9a8d4' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
+            <div className="eyebrow" style={{ color: 'var(--rose)' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
             {doc.ai_recommendations.map((r, i) => (
@@ -400,10 +400,10 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
                 {series.map(s => {
                   const tone = SEVERITY_TONE[s.gap_severity] || SEVERITY_TONE.none;
                   return (
-                    <tr key={s.month} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)', background: tone.bg }}>
+                    <tr key={s.month} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.06)', background: tone.bg }}>
                       <td style={{ padding: '6px', color: 'var(--cream)' }}>{s.label}</td>
-                      <td style={{ padding: '6px', color: '#86efac' }}>{formatM(s.inflow_total)}</td>
-                      <td style={{ padding: '6px', color: '#fca5a5' }}>{formatM(s.outflow_total)}</td>
+                      <td style={{ padding: '6px', color: 'var(--green)' }}>{formatM(s.inflow_total)}</td>
+                      <td style={{ padding: '6px', color: 'var(--red)' }}>{formatM(s.outflow_total)}</td>
                       <td style={{ padding: '6px', color: s.monthly_balance >= 0 ? 'var(--cream)' : '#fca5a5' }}>{formatM(s.monthly_balance)}</td>
                       <td style={{ padding: '6px', color: s.cumulative_balance >= 0 ? 'var(--cream)' : '#fca5a5', fontWeight: 600 }}>{formatM(s.cumulative_balance)}</td>
                       <td style={{ padding: '6px' }}>

@@ -82,7 +82,7 @@ export default function DesarrolladorPricing({ user, onLogout }) {
                 <span key={b.dev_id} data-testid={`pricing-cc-blocked-${b.dev_id}`} style={{
                   padding: '4px 12px', borderRadius: 9999,
                   background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.32)',
-                  color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+                  color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
                 }}>{b.dev_name} · {b.count} regla{b.count === 1 ? '' : 's'}</span>
               ))}
             </div>

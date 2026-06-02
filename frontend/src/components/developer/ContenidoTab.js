@@ -29,8 +29,8 @@ function AssetThumb({ asset, onDelete, onSetCover }) {
       data-testid={`asset-thumb-${asset.id}`}
       style={{
         position: 'relative', borderRadius: 10, overflow: 'hidden',
-        border: `1.5px solid ${hover ? 'rgba(240,235,224,0.3)' : 'rgba(240,235,224,0.1)'}`,
-        background: 'rgba(240,235,224,0.04)', cursor: 'pointer',
+        border: `1.5px solid ${hover ? 'rgba(var(--cream-rgb),0.3)' : 'rgba(var(--cream-rgb),0.1)'}`,
+        background: 'rgba(var(--cream-rgb),0.04)', cursor: 'pointer',
         transition: 'border-color 0.15s',
         aspectRatio: '4/3',
       }}
@@ -41,29 +41,29 @@ function AssetThumb({ asset, onDelete, onSetCover }) {
       {isImage && asset.url ? (
         <img src={asset.url} alt={asset.filename || 'asset'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
-        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(240,235,224,0.06)' }}>
-          <Upload size={24} color="rgba(240,235,224,0.2)" />
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(var(--cream-rgb),0.06)' }}>
+          <Upload size={24} color="rgba(var(--cream-rgb),0.2)" />
         </div>
       )}
       {/* Hover overlay */}
       {hover && (
         <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(6,8,15,0.7)',
+          position: 'absolute', inset: 0, background: 'rgba(var(--bg-rgb),0.7)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
           {asset.url && (
             <a href={asset.url} download target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(240,235,224,0.15)', color: 'var(--cream)', padding: '4px 10px', borderRadius: 6, fontSize: 11, textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', padding: '4px 10px', borderRadius: 6, fontSize: 11, textDecoration: 'none' }}
               onClick={e => e.stopPropagation()}>
               <Download size={12} /> Descargar
             </a>
           )}
           <button onClick={(e) => { e.stopPropagation(); onSetCover(asset.id); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(240,235,224,0.15)', color: 'var(--cream)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
             <Star size={12} /> Portada
           </button>
           <button onClick={(e) => { e.stopPropagation(); onDelete(asset.id); }}
-            style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+            style={{ background: 'rgba(239,68,68,0.2)', color: 'var(--red)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
             Eliminar
           </button>
         </div>
@@ -77,7 +77,7 @@ function AssetThumb({ asset, onDelete, onSetCover }) {
       {/* Filename */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(transparent, rgba(6,8,15,0.85))',
+        background: 'linear-gradient(transparent, rgba(var(--bg-rgb),0.85))',
         padding: '12px 8px 6px',
       }}>
         <div style={{ fontSize: 10, color: 'var(--cream-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -171,9 +171,9 @@ export default function ContenidoTab({ devId, user }) {
             data-testid={`content-sub-${s.key}`}
             onClick={() => setContentSub(s.key)}
             style={{
-              background: activeKey === s.key ? 'var(--cream)' : 'rgba(240,235,224,0.06)',
+              background: activeKey === s.key ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
               color: activeKey === s.key ? 'var(--navy)' : 'var(--cream-2)',
-              border: activeKey === s.key ? 'none' : '1px solid rgba(240,235,224,0.12)',
+              border: activeKey === s.key ? 'none' : '1px solid rgba(var(--cream-rgb),0.12)',
               borderRadius: 20, padding: '5px 14px', fontSize: 12,
               fontWeight: activeKey === s.key ? 700 : 400, cursor: 'pointer',
             }}
@@ -205,7 +205,7 @@ export default function ContenidoTab({ devId, user }) {
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
           {[...Array(6)].map((_, i) => (
-            <div key={i} style={{ aspectRatio: '4/3', borderRadius: 10, background: 'rgba(240,235,224,0.05)', animation: 'pulse 1.5s infinite' }} />
+            <div key={i} style={{ aspectRatio: '4/3', borderRadius: 10, background: 'rgba(var(--cream-rgb),0.05)', animation: 'pulse 1.5s infinite' }} />
           ))}
         </div>
       ) : assets.length === 0 ? (
@@ -231,12 +231,12 @@ export default function ContenidoTab({ devId, user }) {
         <div
           onClick={() => setPreviewAsset(null)}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.92)',
+            position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.92)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.TOAST,
           }}
         >
           <button onClick={() => setPreviewAsset(null)}
-            style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(240,235,224,0.15)', border: 'none', color: 'var(--cream)', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18 }}>
+            style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(var(--cream-rgb),0.15)', border: 'none', color: 'var(--cream)', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18 }}>
             <X size={16} />
           </button>
           <img src={previewAsset.url} alt={previewAsset.filename}

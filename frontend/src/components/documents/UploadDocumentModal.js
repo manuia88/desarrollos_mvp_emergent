@@ -82,7 +82,7 @@ export default function UploadDocumentModal({ open, devId, devName, scope = 'sup
   return (
     <div data-testid="upload-doc-modal" onClick={handleClose} style={{
       position: 'fixed', inset: 0, zIndex: Z.STICKY,
-      background: 'rgba(6,8,15,0.84)', backdropFilter: 'blur(18px)',
+      background: 'rgba(var(--bg-rgb),0.84)', backdropFilter: 'blur(18px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -116,7 +116,7 @@ export default function UploadDocumentModal({ open, devId, devName, scope = 'sup
           style={{
             padding: 26, marginBottom: 14, borderRadius: 14, cursor: 'pointer',
             border: `1.5px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.55)' : 'var(--border)'}`,
-            background: dragOver ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(255,255,255,0.02)',
+            background: dragOver ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(var(--cream-rgb),0.02)',
             textAlign: 'center', transition: 'all 0.15s',
           }}>
           <input ref={fileInputRef} type="file" accept={ACCEPTED} hidden
@@ -200,7 +200,7 @@ export default function UploadDocumentModal({ open, devId, devName, scope = 'sup
             padding: 12, marginBottom: 12, borderRadius: 12,
             background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.32)',
             display: 'flex', alignItems: 'flex-start', gap: 8,
-            color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5,
+            color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 12.5,
           }}>
             <AlertTriangle size={14} />
             <span>{err}</span>

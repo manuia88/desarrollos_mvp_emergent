@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 const GREEN  = '#10B981';
 const YELLOW = '#F59E0B';
 const RED    = '#EF4444';
-const BG     = 'rgba(255,255,255,0.05)';
+const BG     = 'rgba(var(--cream-rgb),0.05)';
 
 function _color(score) {
   if (score >= 75) return GREEN;
@@ -46,7 +46,7 @@ export function BattleCardScoreGauge({ score, delta_pp, week_iso }) {
           <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
           {/* Background arc */}
           <RadialBar
-            background={{ fill: 'rgba(255,255,255,0.07)' }}
+            background={{ fill: 'rgba(var(--cream-rgb),0.07)' }}
             dataKey="value"
             cornerRadius={8}
             angleAxisId={0}
@@ -68,7 +68,7 @@ export function BattleCardScoreGauge({ score, delta_pp, week_iso }) {
           </span>
           <span style={{
             fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
-            fontSize: 11, color: 'rgba(240,235,224,0.5)', marginTop: 1,
+            fontSize: 11, color: 'rgba(var(--cream-rgb),0.5)', marginTop: 1,
           }}>
             {t('battle_card.title.score_label', { defaultValue: '/ 100' })}
           </span>
@@ -79,7 +79,7 @@ export function BattleCardScoreGauge({ score, delta_pp, week_iso }) {
       {week_iso && (
         <span style={{
           fontFamily: 'DM Sans, sans-serif', fontSize: 11,
-          color: 'rgba(240,235,224,0.45)',
+          color: 'rgba(var(--cream-rgb),0.45)',
         }}>
           {t('battle_card.title.week_N', { n: week_iso, defaultValue: `Semana ${week_iso}` })}
         </span>

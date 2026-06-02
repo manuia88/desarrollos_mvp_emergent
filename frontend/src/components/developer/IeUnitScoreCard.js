@@ -24,7 +24,7 @@ const TIER_COLOR = {
   green: 'var(--theme)',
   amber: '#FCD34D',
   red: '#FB7185',
-  unknown: 'rgba(240,235,224,0.4)',
+  unknown: 'rgba(var(--cream-rgb),0.4)',
 };
 
 const tierGradient = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
@@ -43,7 +43,7 @@ function ScoreRow({ score }) {
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '10px 0',
-        borderBottom: '1px solid rgba(240,235,224,0.06)',
+        borderBottom: '1px solid rgba(var(--cream-rgb),0.06)',
         fontFamily: 'DM Sans, sans-serif',
       }}
     >
@@ -54,7 +54,7 @@ function ScoreRow({ score }) {
         flex: 1,
         height: 6,
         borderRadius: 9999,
-        background: 'rgba(240,235,224,0.08)',
+        background: 'rgba(var(--cream-rgb),0.08)',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -80,7 +80,7 @@ function ScoreRow({ score }) {
           padding: '2px 8px',
           borderRadius: 9999,
           color: tierColor,
-          background: 'rgba(240,235,224,0.06)',
+          background: 'rgba(var(--cream-rgb),0.06)',
           border: `1px solid ${tierColor}33`,
           textTransform: 'uppercase',
           letterSpacing: '0.04em',
@@ -111,10 +111,10 @@ export default function IeUnitScoreCard({ unitId }) {
 
   const containerStyle = {
     borderRadius: 16,
-    border: '1px solid rgba(240,235,224,0.10)',
+    border: '1px solid rgba(var(--cream-rgb),0.10)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    background: 'rgba(13,16,23,0.92)',
+    background: 'rgba(var(--bg-rgb),0.92)',
     padding: 20,
     marginBottom: 16,
   };

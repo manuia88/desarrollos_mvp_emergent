@@ -63,7 +63,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
       onClick={close}
       style={{
         position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-        background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(16px)',
+        background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >
@@ -71,8 +71,8 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
         data-testid="colonia-report-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'rgba(13,16,23,0.98)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'rgba(var(--bg-rgb),0.98)',
+          border: '1px solid rgba(var(--cream-rgb),0.12)',
           borderRadius: 20, padding: '24px',
           width: '100%', maxWidth: 460,
         }}
@@ -101,7 +101,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
             </div>
             <div style={{
               fontFamily: 'DM Sans', fontSize: 12,
-              color: 'rgba(240,235,224,0.5)', marginTop: 4,
+              color: 'rgba(var(--cream-rgb),0.5)', marginTop: 4,
             }}>
               PDF de 10 páginas con precios, scores IE, riesgos, climate twin y desarrollos.
             </div>
@@ -111,9 +111,9 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
             onClick={close}
             style={{
               width: 30, height: 30, borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(240,235,224,0.15)',
-              color: 'rgba(240,235,224,0.6)', cursor: 'pointer',
+              background: 'rgba(var(--cream-rgb),0.06)',
+              border: '1px solid rgba(var(--cream-rgb),0.15)',
+              color: 'rgba(var(--cream-rgb),0.6)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}
@@ -136,11 +136,11 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
               border: '1px solid rgba(34,197,94,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Download size={20} style={{ color: '#86EFAC' }} />
+              <Download size={20} style={{ color: 'var(--green)' }} />
             </div>
             <div style={{
               fontFamily: 'Outfit', fontWeight: 700, fontSize: 16,
-              color: '#86EFAC', marginBottom: 6,
+              color: 'var(--green)', marginBottom: 6,
             }}>
               ¡Reporte generado!
             </div>
@@ -159,7 +159,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
             <div style={{ marginBottom: 14 }}>
               <label style={{
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-                color: 'rgba(240,235,224,0.7)',
+                color: 'rgba(var(--cream-rgb),0.7)',
                 display: 'block', marginBottom: 7,
               }}>
                 ¿A qué email enviamos tu reporte?
@@ -172,8 +172,8 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
                 placeholder="tu@email.com"
                 style={{
                   width: '100%', padding: '11px 14px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(240,235,224,0.15)'}`,
+                  background: 'rgba(var(--cream-rgb),0.05)',
+                  border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(var(--cream-rgb),0.15)'}`,
                   borderRadius: 10, outline: 'none',
                   fontFamily: 'DM Sans', fontSize: 13,
                   color: 'var(--cream, #F0EBE0)',
@@ -193,7 +193,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
               />
               <label htmlFor="cr-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
-                color: 'rgba(240,235,224,0.55)', cursor: 'pointer', lineHeight: 1.5,
+                color: 'rgba(var(--cream-rgb),0.55)', cursor: 'pointer', lineHeight: 1.5,
               }}>
                 Acepto recibir información relevante sobre {coloniaNombre || 'esta colonia'} y desarrollos relacionados de DesarrollosMX.
               </label>
@@ -204,7 +204,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
                 padding: '9px 12px', borderRadius: 8, marginBottom: 14,
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.25)',
-                fontFamily: 'DM Sans', fontSize: 12, color: '#FCA5A5',
+                fontFamily: 'DM Sans', fontSize: 12, color: 'var(--red)',
               }}>
                 {error}
               </div>
@@ -232,7 +232,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
                 <>
                   <span style={{
                     width: 15, height: 15, borderRadius: '50%',
-                    border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                    border: '2px solid rgba(var(--cream-rgb),0.3)', borderTopColor: '#fff',
                     display: 'inline-block', animation: 'spin 0.7s linear infinite',
                   }} />
                   Generando reporte…
@@ -245,7 +245,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
             <div style={{
               marginTop: 12, textAlign: 'center',
               fontFamily: 'DM Sans', fontSize: 11,
-              color: 'rgba(240,235,224,0.4)',
+              color: 'rgba(var(--cream-rgb),0.4)',
             }}>
               Sin spam. Cancelas cuando quieras.
             </div>

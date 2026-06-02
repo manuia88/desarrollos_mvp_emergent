@@ -42,7 +42,7 @@ function ProjectItem({ project, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: '100%', background: hover ? 'rgba(240,235,224,0.06)' : 'transparent',
+        width: '100%', background: hover ? 'rgba(var(--cream-rgb),0.06)' : 'transparent',
         border: 'none', padding: '8px 12px', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 10,
         textAlign: 'left', transition: 'background 0.1s',
@@ -51,7 +51,7 @@ function ProjectItem({ project, onClick }) {
       {/* Thumbnail */}
       <div style={{
         width: 36, height: 36, borderRadius: 6, flexShrink: 0, overflow: 'hidden',
-        background: 'rgba(240,235,224,0.08)', border: '1px solid rgba(240,235,224,0.12)',
+        background: 'rgba(var(--cream-rgb),0.08)', border: '1px solid rgba(var(--cream-rgb),0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {project.cover_photo ? (
@@ -63,7 +63,7 @@ function ProjectItem({ project, onClick }) {
             onError={e => { e.target.style.display = 'none'; }}
           />
         ) : (
-          <Building size={15} color="rgba(240,235,224,0.25)" />
+          <Building size={15} color="rgba(var(--cream-rgb),0.25)" />
         )}
       </div>
 
@@ -124,10 +124,10 @@ function SwitcherDropdown({ projects, recentIds, onSelect, onClose, searchRef })
     <div data-testid="project-switcher-dropdown" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Search */}
       <div style={{
-        padding: '10px 12px', borderBottom: '1px solid rgba(240,235,224,0.08)',
+        padding: '10px 12px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <Search size={14} color="rgba(240,235,224,0.35)" style={{ flexShrink: 0 }} />
+        <Search size={14} color="rgba(var(--cream-rgb),0.35)" style={{ flexShrink: 0 }} />
         <input
           ref={searchRef}
           data-testid="switcher-search-input"
@@ -171,7 +171,7 @@ function SwitcherDropdown({ projects, recentIds, onSelect, onClose, searchRef })
                 {recentProjects.map(p => (
                   <ProjectItem key={`r-${p.id}`} project={p} onClick={onSelect} />
                 ))}
-                <div style={{ margin: '6px 12px', borderTop: '1px solid rgba(240,235,224,0.07)' }} />
+                <div style={{ margin: '6px 12px', borderTop: '1px solid rgba(var(--cream-rgb),0.07)' }} />
               </div>
             )}
 
@@ -300,15 +300,15 @@ export function ProjectSwitcher({ user }) {
       onClick={() => setOpen(o => !o)}
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        background: open ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(240,235,224,0.06)',
-        border: `1px solid ${open ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(240,235,224,0.12)'}`,
+        background: open ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(var(--cream-rgb),0.06)',
+        border: `1px solid ${open ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(var(--cream-rgb),0.12)'}`,
         borderRadius: 8, padding: '6px 10px',
         cursor: 'pointer', transition: 'all 0.15s',
         maxWidth: 220,
       }}
       title="Cambiar proyecto (Cmd+/)"
     >
-      <Building size={13} color={open ? 'var(--theme)' : 'rgba(240,235,224,0.5)'} style={{ flexShrink: 0 }} />
+      <Building size={13} color={open ? 'var(--theme)' : 'rgba(var(--cream-rgb),0.5)'} style={{ flexShrink: 0 }} />
       <span style={{
         fontSize: 12, fontWeight: 600, color: open ? 'var(--theme)' : 'var(--cream-2)',
         fontFamily: 'DM Sans, sans-serif',
@@ -319,7 +319,7 @@ export function ProjectSwitcher({ user }) {
       </span>
       <ChevronDown
         size={12}
-        color="rgba(240,235,224,0.35)"
+        color="rgba(var(--cream-rgb),0.35)"
         style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.15s' }}
       />
     </button>
@@ -332,8 +332,8 @@ export function ProjectSwitcher({ user }) {
       top: 'calc(100% + 6px)',
       left: 0,
       width: 360,
-      background: 'rgba(13,16,23,0.98)',
-      border: '1px solid rgba(240,235,224,0.14)',
+      background: 'rgba(var(--bg-rgb),0.98)',
+      border: '1px solid rgba(var(--cream-rgb),0.14)',
       borderRadius: 12,
       overflow: 'hidden',
       backdropFilter: 'blur(16px)',
@@ -364,7 +364,7 @@ export function ProjectSwitcher({ user }) {
         onClick={e => e.stopPropagation()}
         style={{
           flex: 1, background: '#0b0e18',
-          borderTop: '1px solid rgba(240,235,224,0.12)',
+          borderTop: '1px solid rgba(var(--cream-rgb),0.12)',
           display: 'flex', flexDirection: 'column',
           maxHeight: '90vh', overflowY: 'auto',
           marginTop: 'auto', borderRadius: '16px 16px 0 0',
@@ -372,7 +372,7 @@ export function ProjectSwitcher({ user }) {
       >
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '14px 16px', borderBottom: '1px solid rgba(240,235,224,0.08)',
+          padding: '14px 16px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
         }}>
           <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
             Cambiar proyecto

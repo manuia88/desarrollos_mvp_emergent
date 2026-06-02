@@ -64,7 +64,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
             'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.6, 12, 1.4],
             'heatmap-color': [
               'interpolate', ['linear'], ['heatmap-density'],
-              0,   'rgba(6,8,15,0)',
+              0,   'rgba(var(--bg-rgb),0)',
               0.15,'rgba(var(--theme-rgb),0.35)',
               0.4, 'rgba(139,92,246,0.55)',
               0.7, 'rgba(var(--theme-rgb),0.75)',
@@ -161,8 +161,8 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
         style={{
           position: 'absolute', top: 16, left: 16, zIndex: Z.DROPDOWN,
           display: 'flex', gap: 6, padding: 4,
-          background: 'rgba(6,8,15,0.90)',
-          border: '1px solid rgba(240,235,224,0.15)',
+          background: 'rgba(var(--bg-rgb),0.90)',
+          border: '1px solid rgba(var(--cream-rgb),0.15)',
           backdropFilter: 'blur(24px)',
           borderRadius: 9999,
           overflowX: 'auto',
@@ -183,7 +183,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
                 background: active
                   ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'transparent',
-                color: active ? '#fff' : 'rgba(240,235,224,0.65)',
+                color: active ? '#fff' : 'rgba(var(--cream-rgb),0.65)',
                 fontFamily: 'DM Sans',
                 fontWeight: 600,
                 fontSize: 12,
@@ -204,8 +204,8 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
         style={{
           position: 'absolute', bottom: 24, right: 16, zIndex: Z.DROPDOWN,
           padding: legendOpen ? '12px 14px' : '8px 12px',
-          background: 'rgba(6,8,15,0.90)',
-          border: '1px solid rgba(240,235,224,0.15)',
+          background: 'rgba(var(--bg-rgb),0.90)',
+          border: '1px solid rgba(var(--cream-rgb),0.15)',
           backdropFilter: 'blur(24px)',
           borderRadius: 14,
           minWidth: 160,
@@ -218,7 +218,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
         }}>
           <span style={{
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
-            color: 'rgba(240,235,224,0.85)', textTransform: 'uppercase',
+            color: 'rgba(var(--cream-rgb),0.85)', textTransform: 'uppercase',
             letterSpacing: '0.08em',
           }}>
             {LAYER_OPTIONS.find(l => l.key === activeLayer)?.label}
@@ -227,7 +227,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
             onClick={() => setLegendOpen(o => !o)}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: 'rgba(240,235,224,0.5)', fontSize: 10, padding: 0,
+              color: 'rgba(var(--cream-rgb),0.5)', fontSize: 10, padding: 0,
               marginLeft: 8,
             }}
           >
@@ -244,7 +244,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
             <div style={{
               display: 'flex', justifyContent: 'space-between',
               fontFamily: 'DM Sans', fontSize: 10,
-              color: 'rgba(240,235,224,0.55)',
+              color: 'rgba(var(--cream-rgb),0.55)',
             }}>
               <span>{formatValue(meta.value_min ?? 0)}</span>
               <span>{formatValue(((meta.value_min ?? 0) + (meta.value_max ?? 100)) / 2)}</span>
@@ -252,7 +252,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
             </div>
             <div style={{
               marginTop: 8, fontFamily: 'DM Sans', fontSize: 10,
-              color: 'rgba(240,235,224,0.4)',
+              color: 'rgba(var(--cream-rgb),0.4)',
             }}>
               Zoom nivel: Z{zoomLevel} · {meta.zoom_unit || 'colonia'}
             </div>
