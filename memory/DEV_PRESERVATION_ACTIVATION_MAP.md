@@ -116,7 +116,14 @@ MisProyectosV2 · DesarrolladorInventario (como pantalla aparte) · 3 alias kanb
 - **Visibilidad backend→frontend:** `getCerebroRecommendations` + `applyCerebroRecommendation` estaban huérfanos → ahora surfaceados en el panel. (Quedan 2 wrappers getter sin UI: getCerebroRun, dealClosed — plumbing, el endpoint deal-closed lo dispara el hook de advisor.)
 - Tab Inicio "Director AI" → renombrado **"Asistente · Chat"** (unifica el lenguaje; ambos = "Tu asistente", distintos lentes). Fusión profunda de los 2 backends (39 tools director + ejecutores Cerebro) = NO hecha (riesgo alto, valor bajo; el surfaceo ya da la unificación práctica).
 - Verificado en app real, 0 errores nuevos de consola.
-**Tanda 2 · CÍRCULO LEAD:** [FLAG] agentic_enabled + montar paneles agénticos en CRM dev (DISC·routing·nurture·argumentario·dossier) + atribución multi-touch + historial corridas.
+**Tanda 2 · CÍRCULO LEAD: 🔄 EN CURSO (la tanda más grande)**
+- ✅ [FLAG] `agentic_enabled` encendido para la org dev `constructora_ariel` (local, en `db.phase_y_settings`, simulation_mode=false, features del lead a T3). Mecanismo verificado: el flag es POR-ORG (PATCH `/api/superadmin/phase-y/{org}` es superadmin-only; en local se setea el doc). El flip en prod = decisión del founder.
+  - Repro local: `db.phase_y_settings.updateOne({org_id:"constructora_ariel"},{$set:{agentic_enabled:true,...tiers T3}},{upsert:true})`.
+- ⬜ [CABLE] Montar la suite en el CRM dev (12 paneles ya existen, hoy montados en asesor/superadmin, NO en dev):
+  - Per-lead (en el drawer de lead del CRM dev): `DiscProfileCard` · `ArgumentarioPanel` · `VisitPrepDossier`.
+  - Org-level (tab "Suite IA" en CRMShell): `RepliesInbox` (Bandeja IA) · `NurtureIntelligentPanel` · `SmartRoutingPanel` · `MatchWeightsPanel`.
+  - + atribución multi-touch (endpoints huérfanos b13) + historial de corridas de los 3 agentes.
+- NO marcar Tanda 2 done hasta montar la suite (sin cables sueltos).
 **Tanda 3 · CÍRCULO PRECIO completo:** lentes de motores (comparador, score inversión+simulador, tax, costo obra, live pulse) dentro de Inteligencia/Proyecto.
 **Tanda 4 · estructura/IA-UX:** rearmar las 6 casas, tarjetas vivas del proyecto, jerarquía del Puente de Mando, ActionBar/ViewToggle/Ficha360 reusados.
 **Tanda 5 · limpieza:** retirar deuda muerta + rescatar pantallas varadas restantes + CitasPolicies/AutoAssign al menú.
