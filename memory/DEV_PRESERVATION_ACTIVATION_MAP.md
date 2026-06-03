@@ -72,7 +72,8 @@ Cada pieza de hoy → **CASA** nueva (1 de 6) · **LOOP** que cierra · **ENCEND
 | score_inversion + simulator | ✅ **surfaceado**: sub-tab "Inversión" en Insights del proyecto (InvestmentSimulator). | Precio | hecho |
 | live_pulse | ✅ ya en Inicio (Pulso de tus zonas) | Proyecto | hecho |
 | comparator | cubierto por Battle Card (evita panel redundante) | Precio | — |
-| tax_projector · construction_cost · cross_sell | 🔴 sin FE dev → requieren panel nuevo (follow-on; cross_sell/construction = ESCALA) | Precio | follow-on |
+| tax_projector | ✅ **surfaceado**: TaxClosingPanel (ISAI+notario+avalúo+registro+IVA, total de cierre) en Insights→Inversión. | Precio | hecho |
+| construction_cost · cross_sell | 🔴 sin wrapper ni FE → builds nuevos (construction=pro-forma; cross_sell=ESCALA, monetiza base compradores). Follow-on. | Precio | follow-on |
 
 ═══════════════════════════════════════════════════════════════════
 ## CASA 5 · MARKETING / DISTRIBUCIÓN — llevar al mercado

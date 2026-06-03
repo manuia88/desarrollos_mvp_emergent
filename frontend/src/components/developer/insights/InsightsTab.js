@@ -8,8 +8,9 @@ import InsightsEngagement from './InsightsEngagement';
 import InsightsCashFlow from './InsightsCashFlow';
 import InsightsComparables from './InsightsComparables';
 import InsightsIA from './InsightsIA';
-// Motor de inversión (Tanda 3) — score AAA-B + ROI/TIR/stress 3 escenarios, antes sin UI dev
+// Motores (Tanda 3) — antes sin UI dev: inversión (score+ROI/TIR) + costos de cierre (impuestos)
 import InvestmentSimulator from '../../investment/InvestmentSimulator';
+import TaxClosingPanel from '../TaxClosingPanel';
 
 const SUBTABS = [
   { key: 'resumen',     label: 'Resumen' },
@@ -65,7 +66,12 @@ export default function InsightsTab({ projectId, user }) {
         {active === 'engagement'  && <InsightsEngagement projectId={projectId} />}
         {active === 'cashflow'    && <InsightsCashFlow projectId={projectId} />}
         {active === 'comparables' && <InsightsComparables projectId={projectId} />}
-        {active === 'inversion'   && <InvestmentSimulator />}
+        {active === 'inversion'   && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <InvestmentSimulator />
+            <TaxClosingPanel />
+          </div>
+        )}
         {active === 'ia'          && <InsightsIA projectId={projectId} />}
       </div>
     </div>
