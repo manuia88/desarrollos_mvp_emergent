@@ -407,6 +407,25 @@ async def amenity_ranker_route(request: Request, colonia: Optional[str] = Query(
     return await hed.fit_and_rank(_db(request), scope)
 
 
+# ─── Fase 2.2 · demand-gap por zona×tipología + prob. de venta (BEFORE /{tier}) ──
+@router.get(PREFIX + "/demand-gap")
+async def demand_gap_route(request: Request, top: int = Query(25, ge=1, le=200)):
+    """Cruza demanda de zona con oferta por (colonia × tipología). Rankea: dónde hay
+    demanda y poco/cero inventario de una tipología = oportunidad de construcción."""
+    await _require_superadmin(request)
+    import dmx_demand
+    return await dmx_demand.demand_gap(_db(request), top=top)
+
+
+@router.post(PREFIX + "/score-close-prob")
+async def score_close_prob_route(request: Request, development_id: Optional[str] = Query(None)):
+    """Calcula prob. de venta por unidad disponible y la escribe en el átomo
+    (demand.prob_venta). Heurística v1 · se reemplaza por ML al llegar cierres."""
+    await _require_superadmin(request)
+    import dmx_demand
+    return await dmx_demand.score_close_probabilities(_db(request), development_id)
+
+
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
 @router.get(PREFIX + "/{tier}")
 async def list_tier_route(
