@@ -52,7 +52,8 @@ async def _auth(req: Request):
 
 
 def _tenant(user) -> str:
-    return getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or "default"
+    from tenant_scope import tenant_of
+    return tenant_of(user)
 
 
 def _now() -> datetime:
@@ -64,12 +65,9 @@ def _uid(prefix: str = "b11") -> str:
 
 
 def _user_dev_ids(user) -> List[str]:
-    from data_developments import DEVELOPMENTS
-    if user.role == "superadmin":
-        return [d["id"] for d in DEVELOPMENTS]
-    tenant = _tenant(user)
-    ids = [d["id"] for d in DEVELOPMENTS if d.get("developer_id", "").startswith(tenant.split("_")[-1][:3])]
-    return ids or [DEVELOPMENTS[0]["id"], DEVELOPMENTS[1]["id"]]
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
+    from tenant_scope import user_dev_ids
+    return user_dev_ids(user)
 
 
 async def _safe_audit(db, user, action: str, entity_type: str, entity_id: str,

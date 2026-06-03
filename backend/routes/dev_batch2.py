@@ -50,20 +50,14 @@ async def _auth(request: Request):
 
 
 def _tenant(user) -> str:
-    return getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or "default"
+    from tenant_scope import tenant_of
+    return tenant_of(user)
 
 
 def _user_dev_ids(user) -> List[str]:
-    """Return list of development ids visible to this developer org."""
-    from data_developments import DEVELOPMENTS
-    # dev_org_id maps 1:1 to developer_id (in seed data tenant_id == developer slug).
-    tenant = _tenant(user)
-    if user.role == "superadmin":
-        return [d["id"] for d in DEVELOPMENTS]
-    # "constructora_ariel" tenant has 2 mock devs (altavista-polanco, lomas-signature for quattro).
-    # Map by developer_id substring match (demo behaviour).
-    ids = [d["id"] for d in DEVELOPMENTS if d["developer_id"].startswith(tenant.split("_")[-1][:3])]
-    return ids or [DEVELOPMENTS[0]["id"], DEVELOPMENTS[1]["id"]]
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
+    from tenant_scope import user_dev_ids
+    return user_dev_ids(user)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

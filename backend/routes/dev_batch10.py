@@ -33,16 +33,14 @@ async def _auth(req: Request):
 
 
 def _tenant(user) -> str:
-    return getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or "default"
+    from tenant_scope import tenant_of
+    return tenant_of(user)
 
 
 def _user_dev_ids(user) -> List[str]:
-    from data_developments import DEVELOPMENTS
-    tenant = _tenant(user)
-    if user.role == "superadmin":
-        return [d["id"] for d in DEVELOPMENTS]
-    ids = [d["id"] for d in DEVELOPMENTS if d["developer_id"].startswith(tenant.split("_")[-1][:3])]
-    return ids or [DEVELOPMENTS[0]["id"], DEVELOPMENTS[1]["id"]]
+    """Desarrollos visibles (multi-tenant · fuente única tenant_scope)."""
+    from tenant_scope import user_dev_ids
+    return user_dev_ids(user)
 
 
 def _generate_weekly_sales(project_id: str, sold_total: int, stage: str) -> List[int]:

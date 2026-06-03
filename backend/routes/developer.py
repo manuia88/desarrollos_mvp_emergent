@@ -43,9 +43,10 @@ async def require_dev_admin(request: Request):
 
 
 def _user_dev_ids(user) -> List[str]:
-    """Developers assigned to this user. For MVP: both superadmin and developer_admin see all."""
-    from data_developments import DEVELOPMENTS
-    return [d["id"] for d in DEVELOPMENTS]
+    """Desarrollos visibles para este usuario (multi-tenant · fuente única tenant_scope).
+    Antes: fuga — devolvía TODOS a cualquier dev. Ahora scope-a al slice del tenant."""
+    from tenant_scope import user_dev_ids
+    return user_dev_ids(user)
 
 
 # ─── Dashboard ────────────────────────────────────────────────────────────────
