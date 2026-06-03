@@ -1,12 +1,58 @@
 // Phase 14 · Batch 37 — DesarrolladorMiniMarket
 // Vista de inventario propio + cross-org partnerships (si allow_external_inventory)
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import {
-  Store, Building2, MapPin, DollarSign, ToggleLeft, ToggleRight, Layers,
+  Store, MapPin, DollarSign, ToggleLeft, ToggleRight, Layers,
+  Package, FolderOpen, FolderUp, Sparkles, Megaphone,
 } from 'lucide-react';
 import { getDevMiniMarket, setDevExternalInventory } from '../../api/internal_users';
 import { Z } from '../../styles/zIndex';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+const MKT_AREAS = [['mini', 'Mini Market'], ['studio', 'Studio']];
+// Herramientas de Studio (módulo aparte · deep-link). ia = genera contenido con IA.
+const STUDIO_TOOLS = [
+  { to: '/portal/studio/brand-kit',    label: 'Brand Kit',        sub: 'Tu marca: logo, colores, tono', Icon: Package },
+  { to: '/portal/studio/assets',       label: 'Assets',           sub: 'Tu biblioteca de medios',       Icon: FolderOpen },
+  { to: '/portal/studio/import',       label: 'Importar Listing', sub: 'Trae una propiedad externa',    Icon: FolderUp },
+  { to: '/portal/studio/carruseles',   label: 'Carruseles',       sub: 'Posts de redes',                Icon: Sparkles, ia: true },
+  { to: '/portal/studio/auto-content', label: 'Auto-Content',     sub: 'Contenido automático',          Icon: Megaphone, ia: true },
+  { to: '/portal/studio/landings',     label: 'Landings',         sub: 'Páginas de captación',          Icon: Layers, ia: true },
+];
+
+// Launcher de Studio (módulo aparte · grid de tarjetas, no embed).
+function StudioLauncher() {
+  const navigate = useNavigate();
+  return (
+    <div data-testid="mkt-studio-launcher" style={{ maxWidth: 1200 }}>
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)', margin: 0 }}>Studio</h1>
+        <p style={{ fontSize: 13, color: 'var(--cream-3)', margin: '4px 0 0' }}>Tu suite de contenido y difusión con IA. Elige una herramienta.</p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+        {STUDIO_TOOLS.map(t => (
+          <button key={t.to} data-testid={`mkt-studio-${t.to.split('/').pop()}`} onClick={() => navigate(t.to)}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; e.currentTarget.style.transform = 'none'; }}
+            style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '15px 16px', transition: 'transform .16s, border-color .16s', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, var(--theme, #6D4AFF), #EC4899)' }}>
+              <t.Icon size={18} color="#fff" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{t.label}</span>
+                {t.ia && <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--theme, #6D4AFF)', borderRadius: 5, padding: '1px 5px' }}>IA</span>}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{t.sub}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function fmtPrice(n) {
   if (!n) return '—';
@@ -84,6 +130,7 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
   const [externalEnabled, setExternalEnabled] = useState(false);
   const [busyToggle, setBusyToggle] = useState(false);
   const [filterSource, setFilterSource] = useState('');
+  const [area, setArea] = useState('mini');   // V2: mini | studio
   const [toast, setToast] = useState('');
 
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
@@ -124,6 +171,24 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
 
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
+      {/* Centro de Marketing (V2) — switch de áreas. Studio es módulo aparte (launcher). */}
+      {DEV_V2 && (
+        <div data-testid="mkt-area-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 20 }}>
+          {MKT_AREAS.map(([k, lbl]) => {
+            const on = area === k;
+            return (
+              <button key={k} data-testid={`mkt-area-${k}`} onClick={() => setArea(k)}
+                style={{ padding: '7px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: on ? 700 : 500 }}>
+                {lbl}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {DEV_V2 && area === 'studio' && <StudioLauncher />}
+
+      {(!DEV_V2 || area === 'mini') && (
       <div data-testid="desarrollador-mini-market" style={{ maxWidth: 1200 }}>
         {toast && (
           <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
@@ -216,6 +281,7 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
           </div>
         )}
       </div>
+      )}
     </DeveloperLayout>
   );
 }

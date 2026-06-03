@@ -31,7 +31,7 @@ import {
   Activity, Link, Bot, Bell, Radar, LineChart,
   // DEV_NAV_V2 (B7-dev F2 · sidebar reorg desarrollador)
   LayoutDashboard, Swords, Network, HeartHandshake,
-  Settings, Package, FolderOpen, FolderUp,
+  Settings,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -182,18 +182,14 @@ export const DEV_NAV_V2 = [
       { key: 'rc-alianzas', to: '/desarrollador/cross-partnerships', label: 'Alianzas', Icon: HeartHandshake },
     ],
   },
-  // 6 · Marketing (hub · ex-Studio + Mini Market fusionado)
+  // 6 · Marketing (hub · re-arquitectura V2: Centro de Marketing = Mini Market + Studio launcher.
+  //   Las 6 herramientas de Studio (módulo aparte) viven como launcher dentro del centro.)
   {
-    key: 'marketing', to: '/portal/studio/brand-kit', label: 'Marketing', Icon: Megaphone,
+    key: 'marketing', to: '/desarrollador/mini-market', label: 'Marketing', Icon: Megaphone,
     description: 'Mini Market + Studio: tu suite de difusión y contenido con IA',
     children: [
-      { key: 'mk-minimarket',   to: '/desarrollador/mini-market',  label: 'Mini Market',      Icon: Store },
-      { key: 'mk-brand-kit',    to: '/portal/studio/brand-kit',    label: 'Brand Kit',        Icon: Package },
-      { key: 'mk-assets',       to: '/portal/studio/assets',       label: 'Assets',           Icon: FolderOpen },
-      { key: 'mk-import',       to: '/portal/studio/import',       label: 'Importar Listing', Icon: FolderUp },
-      { key: 'mk-carruseles',   to: '/portal/studio/carruseles',   label: 'Carruseles',       Icon: Sparkles },
-      { key: 'mk-auto-content', to: '/portal/studio/auto-content', label: 'Auto-Content',     Icon: Megaphone },
-      { key: 'mk-landings',     to: '/portal/studio/landings',     label: 'Landings',         Icon: Layers },
+      { key: 'mk-centro', to: '/desarrollador/mini-market', label: 'Centro de Marketing', Icon: Store },
+      { key: 'mk-studio', to: '/portal/studio/brand-kit',   label: 'Studio',              Icon: Sparkles },
     ],
   },
   // 7 · Ajustes (hub · rescata Políticas de cita)
