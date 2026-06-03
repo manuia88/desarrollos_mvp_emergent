@@ -8,7 +8,6 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import LeadKanban from '../../components/shared/LeadKanban';
 import { MessageSquare } from 'lucide-react';
-import { Building } from '../../components/icons';
 // Suite IA agéntica (Tanda 2) — paneles org-level montados en el portal dev
 import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
@@ -18,36 +17,9 @@ import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 const TABS = [
   { key: 'pipeline',  label: 'Pipeline',          phase: null },
   { key: 'suite-ia',  label: 'Suite IA',          phase: null },
-  { key: 'leads',     label: 'Leads',             phase: null },
-  { key: 'citas',     label: 'Citas',             phase: null },
-  { key: 'slots',     label: 'Slots',             phase: 'B11' },
-  { key: 'brokers',   label: 'Brokers',           phase: 'B11' },
-  { key: 'metricas',  label: 'Métricas equipo',   phase: 'B11' },
 ];
-
-function PlaceholderContent({ label }) {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', padding: '64px 24px', gap: 12, textAlign: 'center',
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: 'rgba(var(--cream-rgb),0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 4,
-      }}>
-        <Building size={22} color="rgba(var(--cream-rgb),0.2)" />
-      </div>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-        {label}
-      </h3>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)', maxWidth: 300 }}>
-        Esta sección estará disponible en el próximo release.
-      </p>
-    </div>
-  );
-}
+// Nota: Leads, Citas, Métricas equipo y Brokers viven como páginas reales en el
+// menú (CRM & Leads / Red comercial) — antes eran placeholders "próximo release".
 
 function MensajesPlaceholder() {
   return (
@@ -175,21 +147,6 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
               <IASection title="Nurture inteligente"><NurtureIntelligentPanel orgId={orgId} /></IASection>
               <IASection title="Pesos de match · auto-ajuste"><MatchWeightsPanel orgId={orgId} /></IASection>
             </div>
-          )}
-          {activeTab === 'leads' && (
-            <PlaceholderContent label="Leads" />
-          )}
-          {activeTab === 'citas' && (
-            <PlaceholderContent label="Citas" />
-          )}
-          {activeTab === 'slots' && (
-            <PlaceholderContent label="Slots de disponibilidad" />
-          )}
-          {activeTab === 'brokers' && (
-            <PlaceholderContent label="Brokers externos" />
-          )}
-          {activeTab === 'metricas' && (
-            <PlaceholderContent label="Métricas de equipo" />
           )}
         </div>
       </div>

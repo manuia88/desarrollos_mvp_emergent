@@ -189,7 +189,6 @@ const SuperadminSocialCards = lazy(() => import('./pages/superadmin/SuperadminSo
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
-const DesarrolladorInventario        = lazy(() => import('./pages/developer/DesarrolladorInventario'));
 const DesarrolladorDemanda           = lazy(() => import('./pages/developer/DesarrolladorDemanda'));
 const DesarrolladorReportes          = lazy(() => import('./pages/developer/DesarrolladorReportes'));
 const DesarrolladorLegajo            = lazy(() => import('./pages/developer/DesarrolladorLegajo'));
@@ -788,7 +787,6 @@ function AppRouter() {
       <Route path="/desarrollador/proyectos" element={<AdvisorRoute Page={MisProyectos} />} />
       <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
       <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
-      <Route path="/desarrollador/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
       <Route path="/desarrollador/crm/asesores-metrics" element={<AdvisorRoute Page={AsesoresMetrics} />} />
       <Route path="/desarrollador/crm/funnel" element={<AdvisorRoute Page={CrmFunnel} />} />
       {/* Cerebro DMX · Sala de Control (Etapa 3) — vive en el hub CRM */}

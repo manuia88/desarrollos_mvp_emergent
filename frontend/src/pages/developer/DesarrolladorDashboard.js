@@ -427,7 +427,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                       {syncPending.items.slice(0, 4).map(s => (
-                        <Link key={s.development_id} to={`/desarrollador/inventario?dev=${s.development_id}`} style={{
+                        <Link key={s.development_id} to={`/desarrollador/proyectos/${s.development_id}`} style={{
                           padding: '4px 12px', borderRadius: 9999, textDecoration: 'none',
                           background: s.auto_sync_paused_reason ? 'rgba(245,158,11,0.10)' : 'rgba(99,102,241,0.10)',
                           border: `1px solid ${s.auto_sync_paused_reason ? 'rgba(245,158,11,0.32)' : 'rgba(99,102,241,0.28)'}`,
@@ -447,7 +447,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                 <div className="eyebrow" style={{ marginBottom: 12 }}>DESARROLLOS ACTIVOS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                   {data.developments.map(d => (
-                    <Link key={d.id} to={`/desarrollador/inventario?dev=${d.id}`} data-testid={`ddev-${d.id}`}
+                    <Link key={d.id} to={`/desarrollador/proyectos/${d.id}`} data-testid={`ddev-${d.id}`}
                       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; }}
                       style={{
