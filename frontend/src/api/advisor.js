@@ -20,6 +20,10 @@ export const updateProfile = (b) => patch('/api/asesor/profile', b);
 // Dashboard
 export const getDashboard = () => j('/api/asesor/dashboard');
 
+// Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
+export const getAsesorAmenityRanker = (colonia) => j(`/api/asesor/market/amenity-ranker${colonia ? `?colonia=${colonia}` : ''}`);
+export const getAsesorDemandGap = (top = 6) => j(`/api/asesor/market/demand-gap?top=${top}`);
+
 // P1 · Command Center — completar / descartar / archivar acciones (la queue viene en getDashboard)
 // payload opcional = la card (para persistir acciones sintéticas la 1ra vez)
 export const completeAction = (id, payload) => post(`/api/asesor/command-center/action/${id}/complete`, payload);

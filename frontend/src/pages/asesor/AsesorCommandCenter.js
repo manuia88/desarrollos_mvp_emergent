@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
+import AsesorMarketIntel from '../../components/asesor/AsesorMarketIntel';
 import ActionCard from '../../components/asesor/command_center/ActionCard';
 import KpiCard from '../../components/asesor/command_center/KpiCard';
 import LeadInlinePreview from '../../components/asesor/command_center/LeadInlinePreview';
@@ -572,6 +573,9 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                 {asideOrder.map((id) => renderAsidePanel(id))}
               </aside>
             </div>
+
+            {/* Fase 3.3 · inteligencia del cubo para el asesor (argumentos de valor + zonas calientes) */}
+            <div className="mt-6"><AsesorMarketIntel /></div>
           </>
         )}
       </div>
