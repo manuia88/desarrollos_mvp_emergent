@@ -2,7 +2,7 @@
  * W4.8 Y.5 — AIROIPanelDev
  * Developer portal · ROI dashboard de Phase Y · monetización transparente.
  * Renderiza:
- *   - Hero card: "Tu Phase Y te entregó $X MXN este mes" + ROI ratio
+ *   - Hero card: "Tu Tu IA te entregó $X MXN este mes" + ROI ratio
  *   - 4 metric cards: Pricing · Marketing · Lead conversion · Time saved
  *   - Sección breakdown desplegable (counts por feature)
  *   - CTA upgrade tier si <T3 (omitido si tier no se conoce)
@@ -143,7 +143,7 @@ export default function AIROIPanelDev({ user }) {
         fontFamily: 'DM Sans', fontSize: 13,
       }}>
         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 8 }} />
-        <div>Calculando tu ROI Phase Y…</div>
+        <div>Calculando tu ROI de IA…</div>
         <style>{'@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}'}</style>
       </div>
     );
@@ -160,7 +160,7 @@ export default function AIROIPanelDev({ user }) {
       }}>
         <AlertCircle size={14} />
         {error.includes('tier') || error.includes('master switch')
-          ? 'Activa Phase Y · Observability (T1+) en Configuración para ver tu ROI.'
+          ? 'Activa tu IA · Observabilidad (T1+) en Configuración para ver tu ROI.'
           : error}
       </div>
     );
@@ -184,12 +184,12 @@ export default function AIROIPanelDev({ user }) {
             fontFamily: 'DM Sans', fontSize: 11,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             color: 'rgba(var(--theme-rgb),0.85)', marginBottom: 6, fontWeight: 700,
-          }}>Tu ROI Phase Y · últimos {days} días</div>
+          }}>Tu ROI de IA · últimos {days} días</div>
           <div style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 32,
             color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1.1,
           }}>
-            Phase Y te entregó <span style={{
+            Tu IA te entregó <span style={{
               background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -270,7 +270,7 @@ export default function AIROIPanelDev({ user }) {
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BarChart2 size={13} color="var(--theme)" />
-          Desglose de actividad Phase Y
+          Desglose de actividad de IA
         </span>
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
@@ -331,7 +331,7 @@ export default function AIROIPanelDev({ user }) {
             fontFamily: 'DM Sans', fontSize: 13,
             color: 'var(--cream)', flex: 1, minWidth: 200,
           }}>
-            Tu ROI puede multiplicarse con tier T2/T3. Activa más features Phase Y.
+            Tu ROI puede multiplicarse con tier T2/T3. Activa más funciones de IA.
           </span>
         </div>
       )}

@@ -301,7 +301,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
       {/* Tab navigation */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.07))', paddingBottom: 4 }}>
-        {[['resumen', 'Resumen'], ['director', 'Asistente · Chat'], ['whatif', 'What-if'], ['roi', 'Tu ROI Phase Y']].map(([key, label]) => (
+        {[['resumen', 'Resumen'], ['director', 'Asistente · Chat'], ['whatif', 'What-if'], ['roi', 'Costo de mi IA']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
             style={{
               padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,

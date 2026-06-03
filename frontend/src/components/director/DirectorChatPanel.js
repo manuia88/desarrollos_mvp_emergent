@@ -356,7 +356,7 @@ export function DirectorChatPanel({ user }) {
             Director AI no disponible
           </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(var(--cream-rgb),0.55)', lineHeight: 1.5, marginBottom: 12 }}>
-            Phase Y está desactivado para tu organización. Contacta a tu administrador para activarlo.
+            Tu asistente IA está desactivado para tu organización. Contacta a tu administrador para activarlo.
           </div>
           <a href="mailto:hola@desarrollosmx.io" style={{
             display: 'inline-block', padding: '7px 18px', borderRadius: 9999,
