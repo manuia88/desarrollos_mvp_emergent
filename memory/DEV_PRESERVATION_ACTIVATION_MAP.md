@@ -127,7 +127,10 @@ MisProyectosV2 · DesarrolladorInventario (como pantalla aparte) · 3 alias kanb
 - ⬜ atribución multi-touch (endpoints huérfanos b13) + historial de corridas de los 3 agentes.
 - ✅ Per-lead (DiscProfileCard+ArgumentarioPanel) + atribución multi-touch montados en LeadDrawer. Run-history diferido (agentes en tier off). **Tanda 2 COMPLETA · checkpoint-tanda2.**
 **Tanda 3 · CÍRCULO PRECIO completo:** lentes de motores (comparador, score inversión+simulador, tax, costo obra, live pulse) dentro de Inteligencia/Proyecto.
-**Tanda 4 · estructura/IA-UX:** rearmar las 6 casas, tarjetas vivas del proyecto, jerarquía del Puente de Mando, ActionBar/ViewToggle/Ficha360 reusados.
+**Tanda 4 · ESTRUCTURA/IA-UX: 🔄 core hecho**
+- ✅ **Proyecto-como-hub de tarjetas vivas** (lo que pediste): ProyectoDetail ahora abre con hub agrupado **Operar** (Ventas %vendido · Comercialización #leads · Avance · Insights salud/100) y **Ficha** (Contenido/Ubicación/Amenidades/Legal), cada tarjeta con su estado real + clic navega. Verificado en app. (Barra de tabs se mantiene como nav secundaria.)
+- ✅ Puente de Mando ya jerarquizado en Tanda 1 (brief → asistente → jugadas → dinero/alertas).
+- ⬜ Nav 6 casas (fusionar Red comercial en Ventas & Clientes) = cambio estructural visible → **recomiendo revisión del founder** (historial de iteración en estructura). No lo hago a ciegas para evitar rework.
 **Tanda 5 · limpieza:** retirar deuda muerta + rescatar pantallas varadas restantes + CitasPolicies/AutoAssign al menú.
 
 Regla: nada se construye hasta que esta pieza tenga su CASA marcada arriba. Flags maestros (CEREBRO/agentic) = decisión de deploy del founder; nosotros dejamos el cableado, UX y seguridad listos.

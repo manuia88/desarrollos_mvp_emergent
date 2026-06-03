@@ -380,6 +380,46 @@ export default function ProyectoDetail({ user, onLogout }) {
         )}
 
         {/* Tabs bar */}
+        {/* Hub de tarjetas vivas (Tanda 4) — agrupado Operar / Ficha, cada una con su estado real */}
+        {summary && [
+          { group: 'Operar', cards: [
+            { key: 'ventas', label: 'Ventas', stat: `${summary.sold_pct ?? 0}% vendido`, accent: 'var(--ok, #1FA06A)' },
+            { key: 'comercializacion', label: 'Comercialización', stat: `${summary.leads_active ?? 0} leads activos`, accent: 'var(--theme, #6D4AFF)' },
+            { key: 'avance', label: 'Avance de obra', stat: 'Ver progreso', accent: 'var(--warm, #E2982E)' },
+            { key: 'insights', label: 'Insights', stat: `Salud ${summary.health_score ?? '—'}/100`, accent: 'var(--theme, #6D4AFF)' },
+          ] },
+          { group: 'Ficha del proyecto', cards: [
+            { key: 'contenido', label: 'Contenido', stat: 'Fotos y descripción', accent: 'var(--cream-3)' },
+            { key: 'ubicacion', label: 'Ubicación', stat: 'Mapa y entorno', accent: 'var(--cream-3)' },
+            { key: 'amenidades', label: 'Amenidades', stat: 'Equipamiento', accent: 'var(--cream-3)' },
+            { key: 'legal', label: 'Legal', stat: 'Documentos', accent: 'var(--cream-3)' },
+          ] },
+        ].map(grp => (
+          <div key={grp.group} style={{ marginBottom: 14 }}>
+            <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--cream-2)' }}>{grp.group.toUpperCase()}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              {grp.cards.map(c => {
+                const on = activeTab === c.key;
+                return (
+                  <button key={c.key} onClick={() => setTab(c.key)} data-testid={`hubcard-${c.key}`}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.35)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; }}
+                    style={{
+                      position: 'relative', overflow: 'hidden', textAlign: 'left', cursor: 'pointer',
+                      background: 'var(--surface, #fff)', border: `1px solid ${on ? 'rgba(109,74,255,0.5)' : 'var(--border-2, var(--border))'}`,
+                      borderRadius: 12, padding: '13px 14px 13px 16px', boxShadow: 'var(--asr-shadow, none)',
+                      transition: 'transform .15s, box-shadow .15s, border-color .15s', fontFamily: 'DM Sans,sans-serif',
+                    }}>
+                    <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: c.accent }} />
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{c.label}</div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 3 }}>{c.stat}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
         <div
           style={{
             display: 'flex', overflowX: 'auto', gap: 0,
