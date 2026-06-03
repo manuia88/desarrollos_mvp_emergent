@@ -2,6 +2,23 @@
 
 ---
 
+## 🏗️ RE-ARQUITECTURA TOTAL IA-FIRST · FASE 0 CIMIENTOS DEL MOLDE ✅ (2026-06-02)
+
+Re-arquitectura total (founder ruling): el moat NO son pantallas, es **el dato a nivel UNIDAD → cubo OLAP → lentes** (superadmin god-view, dev, asesor, API). Molde multi-tenant: N devs + N asesores idénticos, 1 superadmin = control plane estilo GoHighLevel (snapshots por plan). "Sin datos ≠ humo": todo construido y conectado, se activa al llegar el dato. Docs canónicos: `memory/DMX_SPINE_MASTER.md`, `DMX_BUILD_CHECKLIST.md`, `DEV_GRANULAR_DATA_SPINE.md`, `DEV_INICIO_BUILD_SCOPE.md`.
+
+**Hallazgo raíz:** el backend (~120 motores) cubre ~90% de la arquitectura pero está LATENTE. El trabajo es surfacear + orquestar + alimentar el átomo, no construir IA desde cero.
+
+**FASE 0 completa y verificada (tags dmx-fase0.*):**
+- **0.1** `backend/tenant_scope.py` = scoping multi-tenant fuente única · **fuga cross-tenant cerrada** (developer.py daba TODOS los desarrollos a cualquier dev → ahora su slice · superadmin=god) · dashboard 18→2 verificado en app.
+- **0.2** `backend/dmx_unit_schema.py` = contrato UNIDAD milimétrico (17 grupos A-Q · 12 tipologías · ENUM estacionamiento completo eleva-autos/batería · 77 amenidades · todo nullable).
+- **0.3** Zona + relaciones + Development/Prototype/Amenity/Security (IE composite fiel a zone_score_engine).
+- **0.4** `backend/dmx_snapshots.py` = snapshots append-only ("el histórico es el activo") · round-trip Mongo verificado.
+- **0.5** `backend/dmx_plans.py` + 3 endpoints superadmin = planes/snapshots GoHighLevel sobre W5.FF (apply_plan=snapshot, downgrade limpio, self-maintaining del catálogo) · ruta 401 guardada.
+
+**Siguiente:** Fase 1 (el cubo: alimentar cube_olap_engine con el átomo + agregaciones 6 jerarquías + auto-llenado NLP brochures + conectores stub) → Fase 2 IA → Fase 3 lentes → Fase 4 distribución/API → Fase 5 activación por plan.
+
+---
+
 ## 🔎 AUDITORÍA ARQUITECTURA ASESOR + PLAN CABLEADO (2026-06-01)
 
 Auditoría profunda end-to-end (6 agentes paralelos) del módulo asesor y sus conexiones cross-módulo (dev/comprador/superadmin). Doc canónico: `memory/ASESOR_ARCH_AUDIT.md` (auto-memory) — mapa de arquitectura, cables rotos/muertos/huérfanos, y áreas de oportunidad IA/ML/Seguridad/Diseño.
