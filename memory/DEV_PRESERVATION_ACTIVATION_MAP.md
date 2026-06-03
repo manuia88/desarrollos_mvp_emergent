@@ -73,7 +73,7 @@ Cada pieza de hoy → **CASA** nueva (1 de 6) · **LOOP** que cierra · **ENCEND
 | live_pulse | ✅ ya en Inicio (Pulso de tus zonas) | Proyecto | hecho |
 | comparator | cubierto por Battle Card (evita panel redundante) | Precio | — |
 | tax_projector | ✅ **surfaceado**: TaxClosingPanel (ISAI+notario+avalúo+registro+IVA, total de cierre) en Insights→Inversión. | Precio | hecho |
-| construction_cost | 🔴 endpoint existe pero **403 superadmin-only** (`/superadmin/phase5/...`) → requiere endpoint dev nuevo con auth. Follow-on. | Precio | follow-on |
+| construction_cost | ✅ **encendido**: nuevo endpoint dev `GET /api/dev/construction-cost` (auth dev) + panel existente (ConstructionCostPanel) reusado y montado en Insights→Inversión. Costo/m² + total de obra + forecast 12m. Verificado. | Precio | hecho |
 | cross_sell | 🔴 ESCALA (monetiza base de compradores · necesita volumen). Diferido. | Lead | ESCALA |
 
 ═══════════════════════════════════════════════════════════════════

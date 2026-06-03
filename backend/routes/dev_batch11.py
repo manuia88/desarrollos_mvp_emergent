@@ -746,6 +746,34 @@ async def get_unit_avm(dev_id: str, unit_id: str, request: Request):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COSTO DE CONSTRUCCIÓN (dev) — antes solo superadmin (403). Surfacea el motor
+# construction_cost_engine para pro-forma del dev: costo por m² por zona×tipo×tier
+# (BANXICO/INEGI) + total proyectado. Solo lectura de mercado → cualquier dev autenticado.
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/construction-cost")
+async def dev_construction_cost(
+    request: Request, zone_id: str, building_type: str = "vertical",
+    tier: str = "mid", m2: float = 0,
+):
+    await _auth(request)
+    db = _db(request)
+    try:
+        from construction_cost_engine import get_or_compute_cost, forecast_total
+        cost = await get_or_compute_cost(db, zone_id, building_type, tier)
+        out = {"zone_id": zone_id, "building_type": building_type, "tier": tier, **(cost or {})}
+        if m2 and m2 > 0:
+            try:
+                out["forecast"] = await forecast_total(db, zone_id, float(m2), tier, building_type)
+            except Exception as e:
+                logging.getLogger("dev_batch11").warning("construction forecast failed: %s", e)
+        return out
+    except Exception as e:
+        logging.getLogger("dev_batch11").warning("construction-cost failed: %s", e)
+        return {"available": False, "reason": "Motor de costo no disponible para esta zona."}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # UNIT ENGAGEMENT  (stub honesto enriquecido con IE scores si existen)
 # ══════════════════════════════════════════════════════════════════════════════
 

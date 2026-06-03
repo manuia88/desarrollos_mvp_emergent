@@ -11,6 +11,7 @@ import InsightsIA from './InsightsIA';
 // Motores (Tanda 3) — antes sin UI dev: inversión (score+ROI/TIR) + costos de cierre (impuestos)
 import InvestmentSimulator from '../../investment/InvestmentSimulator';
 import TaxClosingPanel from '../TaxClosingPanel';
+import ConstructionCostPanel from '../ConstructionCostPanel';
 
 const SUBTABS = [
   { key: 'resumen',     label: 'Resumen' },
@@ -69,6 +70,7 @@ export default function InsightsTab({ projectId, user }) {
         {active === 'inversion'   && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <InvestmentSimulator />
+            <ConstructionCostPanel zone_id={projectId} />
             <TaxClosingPanel />
           </div>
         )}

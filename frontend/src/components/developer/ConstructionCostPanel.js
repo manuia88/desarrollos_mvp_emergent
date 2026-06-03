@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, TrendingUp } from 'lucide-react';
 import { Card } from '../advisor/primitives';
-import { getConstructionCost, forecastConstructionCost } from '../../api/phase5Foundation';
+import { getDevConstructionCost } from '../../api/developer';
 
 const TIERS  = ['entry', 'mid', 'luxury'];
 const TYPES  = ['vertical', 'horizontal'];
@@ -48,12 +48,10 @@ export default function ConstructionCostPanel({ zone_id, zone_name }) {
     setLoading(true);
     setErr(null);
     try {
-      const [costData, fcstData] = await Promise.all([
-        getConstructionCost(zone_id, btype, tier),
-        forecastConstructionCost({ zone_id, m2: Number(m2), tier, building_type: btype }),
-      ]);
-      setData(costData);
-      setFcst(fcstData);
+      // Endpoint dev (1 call): devuelve costo + forecast juntos (antes 2 calls superadmin = 403)
+      const res = await getDevConstructionCost({ zone_id, building_type: btype, tier, m2: Number(m2) });
+      setData(res);
+      setFcst(res?.forecast || null);
     } catch (e) {
       setErr(e.message);
     } finally {

@@ -257,6 +257,9 @@ export const getUnitComparables = (devId, unitId) => j(`/api/dev/units/${devId}/
 export const getUnitMarketComparables = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/market-comparables`);
 export const getUnitAIPrediction = (devId, unitId) => post(`/api/dev/units/${devId}/${unitId}/ai-prediction`, {});
 export const getUnitAvm = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/avm`);
+// Costo de construcción por zona (pro-forma) — antes solo superadmin, ahora endpoint dev
+export const getDevConstructionCost = ({ zone_id, tier = 'mid', building_type = 'vertical', m2 = 0 }) =>
+  j(`/api/dev/construction-cost?zone_id=${encodeURIComponent(zone_id)}&tier=${tier}&building_type=${building_type}&m2=${m2}`);
 export const patchUnit = (devId, unitId, b) => patch(`/api/dev/units/${devId}/${unitId}`, b);
 export const getUnitEngagement = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/engagement`);
 export const listDevAssets = (devId, type) => j(`/api/developments/${devId}/assets${type ? `?asset_type=${type}` : ''}`);
