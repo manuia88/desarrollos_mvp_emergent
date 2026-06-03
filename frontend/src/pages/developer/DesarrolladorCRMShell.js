@@ -18,6 +18,7 @@ import { FunnelChart } from './CrmFunnel';
 import { getFunnel, getFunnelBreakdown, getFunnelSuggestion } from '../../api/metrics';
 import { listLeads, listProjectsWithStats } from '../../api/developer';
 import CrmAssistantStrip from '../../components/developer/CrmAssistantStrip';
+import CrmLearningPanel from '../../components/developer/CrmLearningPanel';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
@@ -172,6 +173,7 @@ function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
             <div style={{ fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
               <Sparkle size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Tu equipo de IA trabajando el pipeline: rutea leads, los nutre y afina el match. Tú apruebas lo delicado.
             </div>
+            <IASection title="Cómo aprende tu pipeline"><CrmLearningPanel /></IASection>
             <IASection title="Ruteo inteligente de leads"><SmartRoutingPanel orgId={orgId} /></IASection>
             <IASection title="Nurture inteligente"><NurtureIntelligentPanel orgId={orgId} /></IASection>
             <IASection title="Pesos de match · auto-ajuste"><MatchWeightsPanel orgId={orgId} /></IASection>

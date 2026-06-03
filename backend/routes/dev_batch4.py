@@ -387,6 +387,19 @@ async def patch_lead(lead_id: str, payload: LeadPatch, request: Request):
             "source": old.get("source"),
         })
 
+        # Loop 2 (aprendizaje · re-arquitectura CRM) — el cierre alimenta al coach del
+        # Cerebro: resuelve las predicciones del lead, re-afina y calibra. fail-open ·
+        # solo si CEREBRO_ENABLED. (Empareja el cable que ya tenía el lado asesor.)
+        try:
+            import os
+            if os.environ.get("CEREBRO_ENABLED") == "true":
+                import cerebro
+                _outcome = "won" if patch["status"] == "cerrado_ganado" else "lost"
+                await cerebro.on_deal_closed(db, user, ref=lead_id, outcome=_outcome,
+                                             level="lead", deal=ml_context)
+        except Exception:
+            pass
+
         # W3.2 Auto-ingestion hook: cerrado_ganado + closing_price → insert transaction
         if patch["status"] == "cerrado_ganado":
             closing_price = (
