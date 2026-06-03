@@ -10,8 +10,6 @@ import { ActivityFeed } from '../../components/shared/ActivityFeed';
 import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar } from '../../components/icons';
-import { usePresentationMode } from '../../hooks/usePresentationMode';
-import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
@@ -351,9 +349,10 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [syncPending, setSyncPending] = useState({ count: 0, items: [] });
   const [activeTab, setActiveTab] = useState('resumen');
-
-  // B19 Sub-C — Presentation mode
-  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+  // Re-arquitectura: en V2 el Inicio es UN solo flujo (sin tabs). El chat se abre desde
+  // el asistente (IA-first); What-if vive en Inteligencia y Costo de IA en Ajustes.
+  const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     api.getDashboard().then(setData).catch(() => setData(null));
@@ -381,33 +380,45 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         sub="Panorama operativo del portafolio en tiempo real."
       />
 
-      {/* Tab navigation */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.07))', paddingBottom: 4 }}>
-        {[['resumen', 'Resumen'], ['director', 'Asistente · Chat'], ['whatif', 'What-if'], ['roi', 'Costo de mi IA']].map(([key, label]) => (
-          <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
-            style={{
-              padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
-              fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: 'none',
-              background: activeTab === key ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'var(--surface-2, rgba(var(--cream-rgb),0.05))',
-              color: activeTab === key ? '#fff' : 'var(--cream-2)',
-              transition: 'background 0.18s, color 0.18s',
-            }}
-          >{label}</button>
-        ))}
-      </div>
+      {/* V1: barra de tabs (legacy, intacta). V2: un solo flujo, sin tabs. */}
+      {!DEV_V2 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.07))', paddingBottom: 4 }}>
+          {[['resumen', 'Resumen'], ['director', 'Asistente · Chat'], ['whatif', 'What-if'], ['roi', 'Costo de mi IA']].map(([key, label]) => (
+            <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
+              style={{
+                padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
+                fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: 'none',
+                background: activeTab === key ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'var(--surface-2, rgba(var(--cream-rgb),0.05))',
+                color: activeTab === key ? '#fff' : 'var(--cream-2)',
+                transition: 'background 0.18s, color 0.18s',
+              }}
+            >{label}</button>
+          ))}
+        </div>
+      )}
 
-      {/* Director AI tab */}
-      {activeTab === 'director' && (
+      {/* V2 · lanzador de chat con el asistente (IA-first, sin tab). */}
+      {DEV_V2 && (
+        <div style={{ marginBottom: 16 }}>
+          <button onClick={() => setChatOpen(o => !o)} data-testid="ddash-chat-launch"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: 'DM Sans,sans-serif', border: chatOpen ? 'none' : '1px solid rgba(109,74,255,0.4)', background: chatOpen ? 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))' : 'var(--surface, #fff)', color: chatOpen ? '#fff' : 'var(--theme, #6D4AFF)' }}>
+            <Sparkle size={14} /> {chatOpen ? 'Cerrar chat' : 'Hablar con tu asistente'}
+          </button>
+        </div>
+      )}
+
+      {/* Chat con el asistente — V1: tab "director" · V2: toggle del lanzador. */}
+      {((DEV_V2 && chatOpen) || (!DEV_V2 && activeTab === 'director')) && (
         <DirectorChatPanel user={user} />
       )}
 
-      {/* W4.8 Y.5 — AI ROI Phase Y per-Dev */}
-      {activeTab === 'roi' && (
+      {/* Costo de mi IA — V1: tab "roi". En V2 vive en Ajustes (re-ubicado). */}
+      {!DEV_V2 && activeTab === 'roi' && (
         <AIROIPanelDev user={user} />
       )}
 
-      {/* What-if tab */}
-      {activeTab === 'whatif' && (
+      {/* What-if — V1: tab "whatif". En V2 vive en Inteligencia (re-ubicado). */}
+      {!DEV_V2 && activeTab === 'whatif' && (
         <WhatIfPanel
           user={user}
           projects={(data?.developments || data?.projects || []).map(p => ({
@@ -420,8 +431,8 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         />
       )}
 
-      {/* Resumen tab (existing content) */}
-      {activeTab === 'resumen' && (
+      {/* Flujo principal — V1: tab "resumen" · V2: siempre (es la página). */}
+      {(DEV_V2 || activeTab === 'resumen') && (
         <>
       {/* TU NEGOCIO HOY — estado del negocio (hero IA) */}
       <WeeklyBriefWidget />

@@ -9,7 +9,10 @@ import { SetupChecklist } from '../../components/shared/SetupChecklist';
 import * as api from '../../api/developer';
 import { Settings, CheckCircle, AlertTriangle, RefreshCw } from '../../components/icons';
 import AutoApproveSettings from '../../components/developer/AutoApproveSettings';
+import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import { Z } from '../../styles/zIndex';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
 const ERP_PROVIDERS = [
   { id: 'easybroker', label: 'EasyBroker', color: '#22c55e', desc: 'Sincronización de listings y leads' },
@@ -232,6 +235,14 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Costo de mi IA — re-ubicado del Inicio (V2). Es un view de billing/uso, va en Ajustes. */}
+      {DEV_V2 && (
+        <div data-testid="config-costo-ia" style={{ marginTop: 18 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>COSTO DE MI IA</div>
+          <AIROIPanelDev user={user} />
         </div>
       )}
 

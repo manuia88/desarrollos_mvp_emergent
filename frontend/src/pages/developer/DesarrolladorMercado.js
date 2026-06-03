@@ -9,6 +9,9 @@ import { listProjectsWithStats } from '../../api/developer';
 import CubeIntelligence from '../../components/developer/CubeIntelligence';
 import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
 import MarketIntelligence from '../../components/developer/MarketIntelligence';
+import WhatIfPanel from '../../components/whatif/WhatIfPanel';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
 const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -90,6 +93,23 @@ export default function DesarrolladorMercado({ user, onLogout }) {
         <Eyebrow>COMPARATIVO · CDMX</Eyebrow>
         <MarketIntelligence user={user} />
       </div>
+
+      {/* 4 · Simulador What-if — re-ubicado del Inicio (V2). Herramienta de escenarios de precio/mezcla. */}
+      {DEV_V2 && (
+        <div data-testid="terminal-whatif" style={{ marginBottom: 26 }}>
+          <Eyebrow>SIMULADOR · ¿QUÉ PASA SI…?</Eyebrow>
+          <WhatIfPanel
+            user={user}
+            projects={(projects || []).map(p => ({
+              id: p.id || p.slug || p._id,
+              name: p.name,
+              price_from: p.price_from,
+              price_to: p.price_to,
+              m2_range: p.m2_range,
+            }))}
+          />
+        </div>
+      )}
     </DeveloperLayout>
   );
 }
