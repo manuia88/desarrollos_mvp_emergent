@@ -20,8 +20,21 @@ from dmx_unit_schema import COLLECTIONS
 import dmx_demand
 import dmx_hedonic_atom
 from cerebro import store
+from cerebro.contract import CEREBRO_TASKS
 
 UNITS = COLLECTIONS["units"]
+
+
+async def _already_open(db, user, action: str, titulo: Optional[str]) -> bool:
+    """Evita duplicar la misma jugada si ya está abierta (idempotente entre cargas)."""
+    try:
+        uid = store._uid_of(user)
+        doc = await db[CEREBRO_TASKS].find_one({
+            "user_id": uid, "action": action, "params.titulo": titulo,
+            "status": {"$in": ["proposed", "awaiting_approval"]}})
+        return doc is not None
+    except Exception:
+        return False
 
 
 async def _dev_unit_query(user) -> Dict[str, Any]:
@@ -82,6 +95,8 @@ async def detect_and_propose(db, user, *, max_proposals: int = 6) -> Dict[str, A
     proposed: List[Dict[str, Any]] = []
 
     async def _propose(action, params, reason):
+        if await _already_open(db, user, action, params.get("titulo")):
+            return  # ya está abierta esta misma jugada · no duplicar
         r = await store.propose_task(db, user, action=action, params=params,
                                      proposed_by="cerebro:market", reason=reason)
         if r.get("ok"):

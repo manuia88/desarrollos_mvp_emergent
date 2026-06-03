@@ -18,7 +18,7 @@ import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
 import MarketIntelligence from '../../components/developer/MarketIntelligence';
 import CubeIntelligence from '../../components/developer/CubeIntelligence';
-import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
+import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -162,15 +162,18 @@ function AsistentePanel() {
   const [d, setD] = useState(null);
   const [busyRec, setBusyRec] = useState(false);
   const [recDone, setRecDone] = useState(false);
+  const [busy, setBusy] = useState({});
   useEffect(() => {
     (async () => {
       try {
         const st = await getCerebroStatus();
         if (!st?.enabled) { setD({ enabled: false }); return; }
-        const [tk, lr, rc] = await Promise.allSettled([getCerebroTasks('awaiting_approval'), getCerebroLearning(), getCerebroRecommendations()]);
+        try { await detectCerebroMarket(); } catch (_) {}   // protagonista: lee el cubo y propone
+        const [tk, lr, rc] = await Promise.allSettled([getCerebroTasks(), getCerebroLearning(), getCerebroRecommendations()]);
+        const tasks = tk.status === 'fulfilled' ? (tk.value?.tasks || []) : [];
         setD({
           enabled: true,
-          pending: tk.status === 'fulfilled' ? (tk.value?.tasks || []) : [],
+          plays: tasks.filter(t => ['proposed', 'awaiting_approval'].includes(t.status)),
           learning: lr.status === 'fulfilled' ? lr.value : null,
           recs: rc.status === 'fulfilled' ? ((rc.value?.recommendations || []).filter(r => r.live)) : [],
         });
@@ -192,36 +195,56 @@ function AsistentePanel() {
     );
   }
 
-  const pend = d.pending || [];
+  const plays = d.plays || [];
   const lessons = (d.learning?.lessons || []).length;
   const retrains = (d.learning?.retrains || []).length;
   const aprende = lessons || retrains
     ? `He aprendido ${lessons} lección${lessons === 1 ? '' : 'es'}${retrains ? ` · ${retrains} reentreno${retrains === 1 ? '' : 's'}` : ''}.`
     : 'Aprendo de cada trato que cierras.';
-  const topRec = (!pend.length && !recDone) ? (d.recs || [])[0] : null;
+  const topRec = (!plays.length && !recDone) ? (d.recs || [])[0] : null;
   const applyRec = async () => {
     if (!topRec) return;
     setBusyRec(true);
     try { await applyCerebroRecommendation(topRec.apply); setRecDone(true); } catch (_) {}
     setBusyRec(false);
   };
+  const act = async (t, approve) => {
+    setBusy((b) => ({ ...b, [t.id]: true }));
+    try {
+      if (approve) await approveCerebroTask(t.id); else await rejectCerebroTask(t.id);
+      setD((prev) => ({ ...prev, plays: (prev.plays || []).filter((p) => p.id !== t.id) }));
+    } catch (_) {}
+    setBusy((b) => ({ ...b, [t.id]: false }));
+  };
 
   return (
     <Card data-testid="asistente-panel" style={{ marginBottom: 18, position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
-      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: pend.length ? 'var(--warm, #E2982E)' : 'var(--ok, #1FA06A)' }} />
+      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: plays.length ? 'var(--warm, #E2982E)' : 'var(--ok, #1FA06A)' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--theme)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Sparkle size={11} /> TU ASISTENTE
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok, #1FA06A)', boxShadow: '0 0 0 3px rgba(31,160,106,0.18)' }} />
           </div>
-          {pend.length > 0 ? (
+          {plays.length > 0 ? (
             <>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                {pend.length} {pend.length === 1 ? 'acción espera tu OK' : 'acciones esperan tu OK'}
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                Veo {plays.length} {plays.length === 1 ? 'jugada' : 'jugadas'} en tu mercado
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 5 }}>
-                Ya hice lo que podía solo. Tu turno: revisa y aprueba en un toque.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                {plays.slice(0, 3).map((t) => (
+                  <div key={t.id} data-testid="asistente-play" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 9, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.08)' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 5, flexShrink: 0, background: t.needs_approval ? 'var(--warm, #E2982E)' : 'var(--theme, #6D4AFF)' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream)', fontFamily: 'DM Sans,sans-serif' }}>{t.params?.titulo || t.action}</div>
+                      {t.params?.detalle && <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 1 }}>{t.params.detalle}</div>}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        <button onClick={() => act(t, true)} disabled={busy[t.id]} style={{ padding: '4px 11px', borderRadius: 7, fontSize: 11, fontWeight: 800, fontFamily: 'DM Sans,sans-serif', cursor: busy[t.id] ? 'wait' : 'pointer', background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', border: 'none', opacity: busy[t.id] ? 0.6 : 1 }}>{t.needs_approval ? 'Aprobar' : 'Hecho'}</button>
+                        <button onClick={() => act(t, false)} disabled={busy[t.id]} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', background: 'transparent', color: 'var(--cream-3)', border: '1px solid rgba(var(--cream-rgb),0.14)' }}>Descartar</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           ) : topRec ? (
@@ -249,11 +272,11 @@ function AsistentePanel() {
         <button onClick={goSala} data-testid="asistente-cta" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', alignSelf: 'center',
           padding: '10px 17px', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: 'DM Sans,sans-serif',
-          background: pend.length ? 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))' : 'var(--surface, #fff)',
-          color: pend.length ? '#fff' : 'var(--theme, #6D4AFF)',
-          border: pend.length ? 'none' : '1px solid rgba(109,74,255,0.4)',
+          background: plays.length ? 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))' : 'var(--surface, #fff)',
+          color: plays.length ? '#fff' : 'var(--theme, #6D4AFF)',
+          border: plays.length ? 'none' : '1px solid rgba(109,74,255,0.4)',
         }}>
-          {pend.length ? 'Revisar mi turno' : 'Abrir mi asistente'} <ArrowRight size={13} />
+          {plays.length ? 'Revisar mi turno' : 'Abrir mi asistente'} <ArrowRight size={13} />
         </button>
       </div>
     </Card>

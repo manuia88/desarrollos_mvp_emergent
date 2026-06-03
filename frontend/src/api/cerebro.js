@@ -18,6 +18,8 @@ export const getCerebroRun = (runId) => j(`/api/cerebro/runs/${runId}`);
 export const runCerebroGoal = (goal_id, context) => post('/api/cerebro/run', { goal_id, context: context || {} });
 export const approveCerebroTask = (taskId, edits) => post(`/api/cerebro/tasks/${taskId}/approve`, { edits: edits || null });
 export const rejectCerebroTask = (taskId) => post(`/api/cerebro/tasks/${taskId}/reject`, {});
+// Fase 3.2 · el Asistente lee el cubo y propone jugadas (detección → propuesta → tu OK)
+export const detectCerebroMarket = () => post('/api/cerebro/detect-market', {});
 
 // E2.5 · personalización
 export const getCerebroConfig = () => j('/api/cerebro/config');
