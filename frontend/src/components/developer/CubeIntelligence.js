@@ -3,6 +3,7 @@
 // ¿qué atributo sube el precio? (amenity ranker), dónde construir (demand-gap).
 import React, { useEffect, useState } from 'react';
 import { getDevBenchmark, getDevAmenityRanker, getDevDemandGap } from '../../api/developer';
+import useFeatureFlag from '../../hooks/useFeatureFlag';
 
 const onCardEnter = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; };
 const onCardLeave = (e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; };
@@ -110,6 +111,10 @@ function DemandGap() {
 }
 
 export default function CubeIntelligence() {
+  // Fase 5 · gated por plan (feature cube_market_intel). FAIL-OPEN: muestra mientras
+  // cargan los flags o si es superadmin; oculta solo si el plan del tenant no la incluye.
+  const gate = useFeatureFlag('cube_market_intel');
+  if (!gate.loading && !gate.enabled && !gate.isSuperadmin) return null;
   return (
     <div data-testid="cube-intelligence" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
       <Benchmark />

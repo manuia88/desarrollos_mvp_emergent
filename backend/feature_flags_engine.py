@@ -35,6 +35,9 @@ FEATURE_CATALOG: List[Dict[str, Any]] = [
     {"key": "bulk_drive_sync",    "name": "Sync masivo Drive",       "category": "data",         "default_plan_tier": "enterprise", "monthly_price_mxn": 399, "requires_features": []},
     {"key": "api_access",         "name": "Acceso API REST",         "category": "data",         "default_plan_tier": "enterprise", "monthly_price_mxn": 599, "requires_features": []},
     {"key": "advanced_analytics", "name": "Analytics avanzado",      "category": "intelligence", "default_plan_tier": "enterprise", "monthly_price_mxn": 449, "requires_features": []},
+    # Fase 5 · lentes del cubo (activables por plan)
+    {"key": "cube_market_intel", "name": "Inteligencia del cubo",    "category": "intelligence", "default_plan_tier": "pro",        "monthly_price_mxn": 349, "requires_features": []},
+    {"key": "ai_assistant",      "name": "Asistente IA proactivo",   "category": "ai",           "default_plan_tier": "pro",        "monthly_price_mxn": 399, "requires_features": []},
 ]
 _BY_KEY: Dict[str, Dict[str, Any]] = {f["key"]: f for f in FEATURE_CATALOG}
 
