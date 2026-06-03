@@ -13,6 +13,9 @@ import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
 import MatchWeightsPanel from '../../components/agentic_crm/MatchWeightsPanel';
 import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
+import { Sparkle, Settings as SettingsIcon } from 'lucide-react';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
 const TABS = [
   { key: 'pipeline',  label: 'Pipeline',          phase: null },
@@ -55,12 +58,79 @@ function IASection({ title, children }) {
   );
 }
 
+// ─── CRM Workspace V2 (re-arquitectura) ───────────────────────────────────────
+// Colapsa pipeline + suite-IA + auto-asignación + mensajes en UNA pantalla con
+// switch de vista. Bandeja como vista hermana (como el asesor). Auto-asignación +
+// agentic = "Automatizaciones IA" (ajuste, no pestaña). El asistente como capa
+// (Loop 1) se cablea en el siguiente checkpoint (Fase B). Embudo + Lista en A.2.
+function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
+  const [view, setView] = React.useState(initialView);
+  const [autoOpen, setAutoOpen] = React.useState(false);
+  const VIEWS = [['tablero', 'Tablero'], ['bandeja', 'Bandeja']];
+  return (
+    <DeveloperLayout user={user} onLogout={onLogout}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 4px 48px' }}>
+        {/* Header + acceso a Automatizaciones (auto-asignación re-ubicada como ajuste) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>CRM &amp; Leads</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--cream-3)' }}>Tu pipeline completo — leads directos y de asesores externos, en un solo lugar.</p>
+          </div>
+          <button onClick={() => setAutoOpen(o => !o)} data-testid="crm-automations-toggle"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', padding: '8px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: 'DM Sans,sans-serif', border: autoOpen ? 'none' : '1px solid rgba(109,74,255,0.35)', background: autoOpen ? 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))' : 'var(--surface, #fff)', color: autoOpen ? '#fff' : 'var(--theme, #6D4AFF)' }}>
+            <SettingsIcon size={14} /> Automatizaciones IA
+          </button>
+        </div>
+
+        {/* Switch de vista — un dataset, varias vistas (no sub-tabs) */}
+        <div data-testid="crm-view-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 18 }}>
+          {VIEWS.map(([k, lbl]) => {
+            const on = view === k;
+            return (
+              <button key={k} data-testid={`crm-view-${k}`} onClick={() => setView(k)}
+                style={{ padding: '7px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: on ? 700 : 500 }}>
+                {lbl}
+              </button>
+            );
+          })}
+          <span style={{ alignSelf: 'center', padding: '0 10px', fontSize: 11, color: 'var(--cream-3)' }}>Embudo · Lista — próximo</span>
+        </div>
+
+        {/* Automatizaciones IA (auto-asignación + ruteo/nurture/match) — ajuste, no pestaña */}
+        {autoOpen && (
+          <div data-testid="crm-automations" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 22 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+              <Sparkle size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Tu equipo de IA trabajando el pipeline: rutea leads, los nutre y afina el match. Tú apruebas lo delicado.
+            </div>
+            <IASection title="Ruteo inteligente de leads"><SmartRoutingPanel orgId={orgId} /></IASection>
+            <IASection title="Nurture inteligente"><NurtureIntelligentPanel orgId={orgId} /></IASection>
+            <IASection title="Pesos de match · auto-ajuste"><MatchWeightsPanel orgId={orgId} /></IASection>
+          </div>
+        )}
+
+        {/* Contenido de la vista */}
+        <div data-testid="crm-workspace-content">
+          {view === 'tablero' && <LeadKanban scope="all_org" />}
+          {view === 'bandeja' && <RepliesInbox asesorId={user?.user_id || user?.id || null} />}
+        </div>
+      </div>
+    </DeveloperLayout>
+  );
+}
+
 export default function DesarrolladorCRMShell({ user, onLogout }) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Detect if navigated to /mensajes
   const isMensajes = location.pathname === '/desarrollador/mensajes';
+
+  // V2: workspace unificado (Mensajes → vista Bandeja).
+  if (DEV_V2) {
+    return <CrmWorkspaceV2 user={user} onLogout={onLogout}
+      orgId={user?.tenant_id || user?.org_id || ''}
+      initialView={isMensajes ? 'bandeja' : 'tablero'} />;
+  }
 
   if (isMensajes) {
     return (
