@@ -19,6 +19,11 @@ const healthColor = (s) => (s >= 70 ? 'var(--ok, #1FA06A)' : s >= 45 ? 'var(--wa
 const speedColor = (m) => (m == null ? 'var(--cream-3)' : m <= 6 ? 'var(--ok, #1FA06A)' : m <= 18 ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
 const C_DISP = 'var(--theme, #6D4AFF)', C_RESV = 'var(--warm, #E2982E)', C_VEND = 'var(--ok, #1FA06A)';
 
+// Hover compartido para TODA tarjeta de la cabina (eleva + glow de marca discreto)
+const onCardEnter = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; };
+const onCardLeave = (e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; };
+const CARD_TRANSITION = 'transform .16s, box-shadow .16s, border-color .16s';
+
 const avgPrice = (p) => { const f = p.price_from || 0, t = p.price_to || 0; return t > f ? (f + t) / 2 : f; };
 const availOf = (p) => (p.units_by_status || {}).disponible || 0;
 const resvOf = (p) => (p.units_by_status || {}).reservado || 0;
@@ -29,22 +34,6 @@ const monthlyRate = (p) => norm8(p.weekly_sales).slice(-4).reduce((s, v) => s + 
 const fmtMonths = (m) => (m == null ? '—' : m >= 60 ? '60+ m' : `${m} m`);
 
 /* ───────────────────────── gráficas (SVG puro) ───────────────────────── */
-function AreaChart({ series = [], color = C_DISP, h = 84 }) {
-  const vals = series.map(Number).map(v => (isNaN(v) ? 0 : v));
-  if (vals.length < 2) return <div style={{ height: h, fontSize: 11, color: 'var(--cream-3)' }}>Sin datos suficientes</div>;
-  const W = 100, max = Math.max(...vals, 1), rng = max || 1;
-  const x = (i) => (i / (vals.length - 1)) * W;
-  const y = (v) => h - (v / rng) * (h - 12) - 6;
-  const line = vals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${W} ${h}`} preserveAspectRatio="none" width="100%" height={h} style={{ display: 'block', overflow: 'visible' }}>
-      <polygon points={`0,${h} ${line} ${W},${h}`} fill={color} opacity="0.13" />
-      <polyline points={line} fill="none" stroke={color} strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-      {vals.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="1.4" fill={color} vectorEffect="non-scaling-stroke" />)}
-    </svg>
-  );
-}
-
 function StackedBar({ disp, resv, vend }) {
   const total = disp + resv + vend || 1;
   const seg = [{ k: 'Disponibles', v: disp, c: C_DISP }, { k: 'Reservadas', v: resv, c: C_RESV }, { k: 'Vendidas', v: vend, c: C_VEND }];
@@ -87,7 +76,7 @@ function HBars({ items, fmt = (v) => v, color = C_DISP }) {
 
 function ChartCard({ title, sub, right, children }) {
   return (
-    <div style={{ background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '14px 16px', boxShadow: 'var(--asr-shadow, none)' }}>
+    <div onMouseEnter={onCardEnter} onMouseLeave={onCardLeave} style={{ background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '14px 16px', boxShadow: 'var(--asr-shadow, none)', transition: CARD_TRANSITION }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
         <div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{title}</div>
@@ -103,7 +92,7 @@ function ChartCard({ title, sub, right, children }) {
 /* ───────────────────────── vitales ───────────────────────── */
 function VitalTile({ label, value, sub, accent = C_DISP, valueColor }) {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 11, padding: '11px 12px 11px 13px', boxShadow: 'var(--asr-shadow, none)' }}>
+    <div onMouseEnter={onCardEnter} onMouseLeave={onCardLeave} style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 11, padding: '11px 12px 11px 13px', boxShadow: 'var(--asr-shadow, none)', transition: CARD_TRANSITION }}>
       <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: accent }} />
       <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: valueColor || 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.15, marginTop: 2 }}>{value}</div>
@@ -305,15 +294,7 @@ export default function PortfolioCockpit() {
 
       {/* 3) GRÁFICAS con data real */}
       <div className="eyebrow" style={{ margin: '20px 0 12px' }}>LECTURA DEL MERCADO</div>
-      <ChartCard
-        title="Ritmo de ventas · últimas 8 semanas"
-        sub="unidades cerradas por semana en el alcance elegido"
-        right={<span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: trendPct >= 0 ? C_VEND : 'var(--hot, #F2635B)' }}>{trendPct >= 0 ? '▲' : '▼'} {Math.abs(trendPct)}%</span>}
-      >
-        <AreaChart series={weekly} color={C_DISP} />
-      </ChartCard>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginTop: 14, marginBottom: 26 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginBottom: 26 }}>
         <ChartCard title="Mix de inventario" sub={`${a.total} unidades en total`}>
           <StackedBar disp={a.avail} resv={a.resv} vend={a.sold} />
         </ChartCard>

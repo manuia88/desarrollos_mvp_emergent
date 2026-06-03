@@ -21,6 +21,11 @@ import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// Hover compartido para tarjetas (eleva + glow de marca discreto)
+const cardEnter = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; };
+const cardLeave = (e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; };
+const CARD_TR = 'transform .16s, box-shadow .16s, border-color .16s';
+
 // ─── Weekly Brief Widget ──────────────────────────────────────────────────────
 function WeeklyBriefWidget() {
   const [brief, setBrief] = useState(null);
@@ -372,7 +377,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             })()}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
-              <Card style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+              <Card onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
                 <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--warm, #E2982E)' }} />
                 <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--cream-2)' }}>SUGERENCIAS DE PRECIO</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -383,7 +388,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6 }}>pendientes de aprobación del director comercial</div>
               </Card>
-              <Card style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+              <Card onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
                 <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: (data.competitor_alerts || 0) > 0 ? 'var(--hot, #F2635B)' : 'var(--theme, #6D4AFF)' }} />
                 <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--cream-2)' }}>ALERTAS DE COMPETIDORES</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -398,7 +403,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
             {/* Phase 7.5 — Auto-Sync widget */}
             {syncPending.count > 0 && (
-              <Card data-testid="dash-sync-card" style={{ marginBottom: 22, background: 'linear-gradient(140deg, rgba(99,102,241,0.1), transparent)' }}>
+              <Card data-testid="dash-sync-card" onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ marginBottom: 22, background: 'linear-gradient(140deg, rgba(99,102,241,0.1), transparent)', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div className="eyebrow" style={{ marginBottom: 6 }}>AUTO-SYNC · DOCUMENT INTELLIGENCE</div>
@@ -427,7 +432,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
             {/* Actividad reciente (los proyectos viven en el tablero central de arriba) */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>ACTIVIDAD RECIENTE</div>
-            <Card data-testid="activity-feed-card">
+            <Card data-testid="activity-feed-card" onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
               <ActivityFeed limit={20} />
             </Card>
           </>
