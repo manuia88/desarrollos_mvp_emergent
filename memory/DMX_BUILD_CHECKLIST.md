@@ -32,11 +32,11 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 1.3 `dmx_atom_autofill.py` brochure/'lp' → átomo fill-only + extract_lp_units (Claude, dormant-safe) + POST /atom/from-text.
 - [x] 1.4 `dmx_external_enrich.py` AirROI/GTFS/DENUE/catastro → Zona vía connectors_ie (is_stub dormido hasta key) + POST /enrich-zone. tag dmx-fase1.3-1.4 · dmx-fase1-complete.
 
-### FASE 2 · Capas IA sobre el cubo
-- [ ] 2.1 AVM hedónico por unidad (cada atributo explica precio/m²) + **amenity value ranker**.
-- [ ] 2.2 Demanda: absorción, demand-gap, lead scoring, prob. cierre por unidad.
-- [ ] 2.3 DL visión (auto-tag fotos) + self-improving loop (cada cierre recalibra).
-- [ ] 2.4 Cerebro agéntico lee el cubo → detecta → propone → ejecuta con OK (dev y superadmin).
+### FASE 2 · Capas IA sobre el cubo ✅ COMPLETA 2026-06-03
+- [x] 2.1 `dmx_hedonic_atom.py` hedónico (OLS, statsmodels) sobre el átomo + amenity value ranker (roof +6%, R²=0.95) + GET /amenity-ranker. tag dmx-fase2.1-hedonico.
+- [x] 2.2 `dmx_demand.py` demand-gap por zona×tipología (dónde construir) + prob_venta por unidad en el átomo + GET /demand-gap, POST /score-close-prob. tag dmx-fase2.2-demanda.
+- [x] 2.3 `dmx_self_improving.py` loop cierre→resuelve predicción→re-ajusta hedónico→calibración (coach E4) + visión photo_tagger dormant-ready + POST /unit-closed, /atom/from-photos. tag dmx-fase2.3-self-improving.
+- [x] 2.4 `dmx_cerebro_market.py` el Cerebro lee el cubo → propone tareas (dev.where_to_build/best_amenity/deal.change_price) con candados → Sala de Control + POST /cerebro/detect-market. tag dmx-fase2.4-cerebro-cubo · dmx-fase2-complete.
 
 ### FASE 3 · Las lentes (mismo cubo, distinto permiso)
 - [ ] 3.1 **Superadmin**: god-view (terminal Bloomberg, cubo crudo milimétrico) + control plane (provisionar tenants, asignar planes/snapshots).
