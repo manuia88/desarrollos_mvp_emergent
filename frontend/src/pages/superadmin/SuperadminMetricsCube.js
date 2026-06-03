@@ -6,6 +6,7 @@ import CubeBreadcrumb from '../../components/superadmin/CubeBreadcrumb';
 import CubeKpiStrip from '../../components/superadmin/CubeKpiStrip';
 import CubeHeatmap from '../../components/superadmin/CubeHeatmap';
 import CubeDrilldownTable from '../../components/superadmin/CubeDrilldownTable';
+import CubeIntelPanel from '../../components/superadmin/CubeIntelPanel';
 import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles } from 'lucide-react';
 import {
   getTierDetail, getTierChildren, getHeatmap, getComparables, getUnitDetail,
@@ -876,6 +877,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               }}>{label}</button>
           ))}
         </div>
+
+        {/* Fase 3.1 · capas IA sobre el cubo crudo (hedónico + demand-gap) */}
+        <CubeIntelPanel />
 
         <CubeBreadcrumb path={path} onNavigate={onBreadcrumb} />
 

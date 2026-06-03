@@ -118,3 +118,12 @@ export async function getBackfillStatus(jobId) {
 export async function getCacheStats() {
   return _j(await fetch(`${BASE}/cache-stats`, { headers: h(), credentials: 'include' }));
 }
+
+// Fase 3.1 · inteligencia del cubo (hedónico + demand-gap) para la god-view
+export async function getCubeAmenityRanker(colonia) {
+  const qs = colonia ? `?colonia=${encodeURIComponent(colonia)}` : '';
+  return _j(await fetch(`${BASE}/amenity-ranker${qs}`, { headers: h(), credentials: 'include' }));
+}
+export async function getCubeDemandGap(top = 10) {
+  return _j(await fetch(`${BASE}/demand-gap?top=${top}`, { headers: h(), credentials: 'include' }));
+}
