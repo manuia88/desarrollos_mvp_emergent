@@ -7,6 +7,7 @@ import { PageHeader, Card, Toast } from '../../components/advisor/primitives';
 import { RefreshCw, Search, Layers, Filter, FlaskConical, Upload } from 'lucide-react';
 import FeatureMatrixGrid from '../../components/superadmin/FeatureMatrixGrid';
 import FeatureTemplateModal from '../../components/superadmin/FeatureTemplateModal';
+import PlansPanel from '../../components/superadmin/PlansPanel';
 import ABExperimentsModal from '../../components/superadmin/ABExperimentsModal';
 import {
   fetchCatalog,
@@ -223,6 +224,9 @@ export default function SuperadminFeatureVisibility() {
         title="Feature Visibility"
         sub="Concede o revoca features por usuario · plantillas por tier · audit chain mandatorio"
       />
+
+      {/* Fase 3.1 · Control plane — asignar PLAN/snapshot a un tenant (GoHighLevel) */}
+      <PlansPanel />
 
       {/* W5.FF4 · Mini-widget usage analytics (oculto si fetch falla) */}
       {usageSummary && usageSummary.top && usageSummary.top.length > 0 && (

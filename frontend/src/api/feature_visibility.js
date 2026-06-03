@@ -51,6 +51,20 @@ export async function grantFeature({ user_id, tenant_id, feature_key, enabled })
   }));
 }
 
+// Fase 0.5/3.1 · Planes (snapshots GoHighLevel): asignar un bundle de features a un tenant.
+export async function listPlans() {
+  return _j(await fetch(`${BASE}/plans`, { headers: _h(), credentials: 'include' }));
+}
+export async function getTenantPlan(tenantId) {
+  return _j(await fetch(`${BASE}/plans/tenant/${encodeURIComponent(tenantId)}`, { headers: _h(), credentials: 'include' }));
+}
+export async function assignPlan({ tenant_id, plan_id, replace = true }) {
+  return _j(await fetch(`${BASE}/plans/assign`, {
+    method: 'POST', headers: _h(), credentials: 'include',
+    body: JSON.stringify({ tenant_id, plan_id, replace }),
+  }));
+}
+
 export async function applyTemplate({ user_id, tenant_id, template }) {
   return _j(await fetch(`${BASE}/apply-template`, {
     method: 'POST',

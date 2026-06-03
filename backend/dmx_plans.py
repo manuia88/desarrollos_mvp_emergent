@@ -61,7 +61,7 @@ def _features_up_to_tier(tier: str) -> List[str]:
     """Features del catálogo cuyo default_plan_tier <= tier dado."""
     cap = _TIER_ORDER.get((tier or "free").lower(), 0)
     keys = []
-    for f in ff.get_extended_catalog():
+    for f in ff.get_catalog():
         ft = _TIER_ORDER.get((f.get("default_plan_tier") or "free").lower(), 0)
         if ft <= cap:
             keys.append(f["key"])
@@ -70,7 +70,7 @@ def _features_up_to_tier(tier: str) -> List[str]:
 
 def _expand_dependencies(keys: List[str]) -> List[str]:
     """Agrega las requires_features (transitivo) de cada feature del plan."""
-    by_key = {f["key"]: f for f in ff.get_extended_catalog()}
+    by_key = {f["key"]: f for f in ff.get_catalog()}
     seen: Set[str] = set()
     stack = list(keys)
     while stack:
@@ -95,7 +95,7 @@ def plan_feature_keys(plan_id: str) -> List[str]:
 
 
 def _plan_price(keys: List[str]) -> int:
-    by_key = {f["key"]: f for f in ff.get_extended_catalog()}
+    by_key = {f["key"]: f for f in ff.get_catalog()}
     return int(sum((by_key.get(k) or {}).get("monthly_price_mxn", 0) or 0 for k in keys))
 
 
