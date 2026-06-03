@@ -41,7 +41,7 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 ### FASE 3 · Las lentes (mismo cubo, distinto permiso)
 - [x] 3.1 **Superadmin** ✅ 2026-06-03: god-view (`CubeIntelPanel` hedónico+demand-gap sobre el Cubo de métricas crudo) + control plane (`PlansPanel` asigna plan/snapshot a tenant, GoHighLevel, en /superadmin/feature-visibility). fix dmx_plans catálogo legacy (consistencia). verificado en app. tags dmx-fase3.1-*.
 - [x] 3.2 **Dev mold** ✅ 2026-06-03: `routes/dev_market.py` (benchmark anónimo + amenity ranker + demand-gap, scope-ado) · `CubeIntelligence.js` (3 tarjetas en el Inicio) · **Asistente protagonista** (lee el cubo vía detect-market → 'Veo N jugadas' + Aprobar/Descartar, dedup) · verificado en app. tags dmx-fase3.2-*.
-- [ ] 3.3 **Asesor mold**: su slice + Copilot. Idéntico para los millones de asesores.
+- [x] 3.3 **Asesor mold** ✅ 2026-06-03: `routes/asesor_market.py` (amenity-ranker + demand-gap, auth advisor) · `AsesorMarketIntel.js` 'INTELIGENCIA DE MERCADO · PARA VENDER' (argumentos de valor 'Destaca roof +6%' + zonas con compradores) en AsesorCommandCenter · verificado en app. tag dmx-fase3.3-asesor-mold.
 - [ ] 3.4 **Comprador**: lente pública (marketplace).
 
 ### FASE 4 · Distribución / monetización (del doc)
