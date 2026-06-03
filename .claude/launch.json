@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "frontend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd frontend && BROWSER=none npm start"],
+      "port": 3000
+    },
+    {
       "name": "dmx-mock",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8077"],
