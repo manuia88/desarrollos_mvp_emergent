@@ -354,6 +354,19 @@ async def cache_stats_route(request: Request):
     return cube_cache.cache_stats()
 
 
+# ─── Fase 1 · POST /backfill-atom — poblar el átomo dmx_units desde seed (BEFORE /{tier}) ──
+@router.post(PREFIX + "/backfill-atom")
+async def backfill_atom_route(request: Request):
+    """Puebla el átomo milimétrico (dmx_units) desde el seed. Idempotente. Es la
+    fuente de verdad del cubo (cube_olap lee el átomo primero). Se re-corre al
+    llegar dato nuevo o tras cambios de schema."""
+    await _require_superadmin(request)
+    import dmx_cube_feed
+    res = await dmx_cube_feed.backfill_atom(_db(request))
+    log.info(f"[metrics-cube] backfill-atom: {res}")
+    return {"ok": True, **res}
+
+
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
 @router.get(PREFIX + "/{tier}")
 async def list_tier_route(

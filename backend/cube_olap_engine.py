@@ -15,6 +15,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import cube_cache
+import dmx_cube_feed  # Fase 1: bridge cubo ↔ átomo milimétrico (dmx_units)
 
 log = logging.getLogger("dmx.cube_olap_engine")
 
@@ -65,7 +66,15 @@ def _decade_for(year: Optional[int]) -> str:
 # ─── Unit-level filtering ─────────────────────────────────────────────────────
 
 async def _list_units_for_zone(db, tier: str, tier_id: str) -> List[Dict[str, Any]]:
-    """Returns merged seed + mongo units for a zone (any tier)."""
+    """Returns merged seed + mongo units for a zone (any tier).
+    Fase 1: el ÁTOMO milimétrico (dmx_units) es la fuente de verdad si está poblado;
+    si no, cae al seed (backward-compat)."""
+    try:
+        atom_rows = await dmx_cube_feed.atom_units_for(db, tier, tier_id)
+        if atom_rows:
+            return atom_rows
+    except Exception as e:
+        log.warning(f"[olap] atom read failed · fallback seed: {e}")
     units: List[Dict[str, Any]] = []
     # Seed source first
     try:
@@ -95,7 +104,21 @@ async def _list_units_for_zone(db, tier: str, tier_id: str) -> List[Dict[str, An
                 units.append(u)
     except Exception:
         pass
-    return units
+    # Enriquecer al shape rico-plano (mismas claves que el átomo) para dimensiones ricas
+    # (tipología/recámaras/banda_m2/roof/parking) y geo denormalizado. Resiliente: si
+    # algo falla en una unidad, la deja como venía.
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        enriched: List[Dict[str, Any]] = []
+        for u in units:
+            dev = DEVELOPMENTS_BY_ID.get(u.get("development_id")) or {}
+            try:
+                enriched.append(dmx_cube_feed.flatten_atom(dmx_cube_feed.seed_to_atom(u, dev)))
+            except Exception:
+                enriched.append(u)
+        return enriched
+    except Exception:
+        return units
 
 
 def _unit_property_type(u: Dict[str, Any]) -> str:
@@ -148,6 +171,11 @@ def _aggregate_units(units: List[Dict[str, Any]]) -> Dict[str, Any]:
     avg_ppm2 = round(sum(ppm2_vals) / len(ppm2_vals), 2) if ppm2_vals else None
     denom = n_sold + n_available + n_reserved
     conv = round((n_sold / denom) * 100, 2) if denom > 0 else None
+    # Medidas ricas (Fase 1): absorción, inventario por cobrar, m² promedio
+    m2_only = [m2 for m2, _ in m2_vals if m2 and m2 > 0]
+    avg_m2 = round(sum(m2_only) / len(m2_only), 1) if m2_only else None
+    absorcion = round((n_sold / n_total) * 100, 1) if n_total else None
+    por_cobrar = round(n_available * avg_price) if avg_price else None
     return {
         "units_total": n_total,
         "units_sold": n_sold,
@@ -155,6 +183,9 @@ def _aggregate_units(units: List[Dict[str, Any]]) -> Dict[str, Any]:
         "units_reserved": n_reserved,
         "avg_price_mxn": avg_price,
         "avg_price_per_m2": avg_ppm2,
+        "avg_m2": avg_m2,
+        "absorcion_pct": absorcion,
+        "por_cobrar_mxn": por_cobrar,
         "conversion_rate": conv,
     }
 
@@ -235,7 +266,8 @@ async def query_cross_cut(
     """N-dim OLAP query. Max 3 dimensions. Returns flat matrix."""
     if not dimensions or len(dimensions) > MAX_DIMENSIONS:
         raise ValueError(f"dimensions debe tener 1-{MAX_DIMENSIONS} elementos")
-    valid_dims = ("zone", "property_type", "price_tier", "period", "year_built_decade")
+    valid_dims = ("zone", "property_type", "price_tier", "period", "year_built_decade",
+                  "tipologia", "recamaras", "banda_m2", "has_roof", "has_bodega", "parking_type")
     for d in dimensions:
         if d not in valid_dims:
             raise ValueError(f"dimension inválida: {d} (válidas: {valid_dims})")
@@ -270,6 +302,9 @@ async def query_cross_cut(
                 parts.append(period)
             elif d == "year_built_decade":
                 parts.append(_decade_for(_unit_year(u)))
+            else:
+                # dimensiones ricas del átomo (tipologia/recamaras/banda_m2/has_roof/...)
+                parts.append(str(u.get(d, "sin_dato")))
         return tuple(parts)
 
     groups: Dict[Tuple[str, ...], List[Dict[str, Any]]] = {}
