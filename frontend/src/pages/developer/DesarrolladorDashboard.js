@@ -7,7 +7,6 @@ import { PageHeader, Card } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import * as docsApi from '../../api/documents';
 import { ActivityFeed } from '../../components/shared/ActivityFeed';
-import { SetupChecklist } from '../../components/shared/SetupChecklist';
 import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar } from '../../components/icons';
@@ -431,9 +430,6 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             <Card data-testid="activity-feed-card">
               <ActivityFeed limit={20} />
             </Card>
-
-            {/* Configuración inicial (solo si falta algo) — al final, no estorba el cockpit */}
-            <SetupChecklist style={{ marginTop: 22 }} />
           </>
         )}
 

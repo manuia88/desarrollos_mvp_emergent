@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Toast } from '../../components/advisor/primitives';
+import { SetupChecklist } from '../../components/shared/SetupChecklist';
 import * as api from '../../api/developer';
 import { Settings, CheckCircle, AlertTriangle, RefreshCw } from '../../components/icons';
 import AutoApproveSettings from '../../components/developer/AutoApproveSettings';
@@ -98,6 +99,9 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
 
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+          {/* Configuración inicial (onboarding) — solo aparece si falta algún paso */}
+          <SetupChecklist />
 
           {/* Org settings */}
           <Card>
