@@ -109,6 +109,42 @@ NO cuenta: system auto-notes.
 
 ---
 
+## 3bis · Pantallas que ve el ASESOR (verbatim founder · recuperado 2026-06-03 · el resumen las botó)
+
+> Origen: sesión 25b3b744 (2026-05-02 L554/L561), reconfirmado 609a7747 (2026-06-03 L3667: "seguir forma A... mensaje y enlace a whatsapp que diga, ponte en contacto con el dev, para más información").
+
+**3 resultados al enviar el registro:**
+
+1. **ÉXITO (no había registro previo):** "Lead registrado con éxito" + **botón WhatsApp directo al dev** para confirmar la cita. WA al dev pre-llenado: *"Hola! Agendé la siguiente cita: [todo el form]. ¿Me puedes apoyar a confirmar?"*
+
+2. **DUPLICADO EXACTO mismo proyecto → FORMA A (bloquea, NO se crea):** se muestra la tarjeta ⏳ (la misma de "en revisión", reusada a propósito por el founder) con: **"Ponte en contacto con el dev, para más información"** + **botón WhatsApp con el dev.** (Hoy el código bloquea con 409 pero le falta esta pantalla amable → pendiente cablear.)
+
+3. **SOSPECHA (≥85% match o velocidad) → EN REVISIÓN** (`under_review`, SÍ se crea). Mockup textual founder:
+```
+⏳ Tu registro está en revisión
+Detectamos información similar a un lead ya registrado.
+El desarrollador validará en menos de 24h.
+Si tienes urgencia, contacta directo:
+[📱 WhatsApp con desarrollador]
+```
+
+## 3ter · Loop de confirmación al COMPRADOR (botado por el resumen)
+
+- Al lead se le envía confirmación (WhatsApp/mail · **desde el número del asesor**) **24h antes Y 2h antes** de la cita.
+- Botones: **confirmar / cancelar / reagendar** → el **CRM del asesor se actualiza en automático** (confirmar→confirmada · cancelar→cerrado_perdido · reagendar→nueva fecha). El asesor no mueve nada a mano.
+
+## 3quater · Permiso clave (botado por el resumen)
+
+- El **dev VE los datos reales del cliente** (el lead vive en su BD), pero **NUNCA la conversación asesor↔lead** — solo un **resumen IA + recomendaciones**. Asesor ve solo lo suyo; gerente/dev ven el agregado.
+
+## 3-5 · Dos sistemas de ACCESO ya construidos (distintos del registro por-lead)
+
+- **Autorización / whitelist (Phase 13 · Batch 36):** el asesor solicita acceso al **inventario de un dev** (por `dev_org_id`, no por proyecto). Dev aprueba/rechaza/revoca en `/desarrollador/solicitudes`. Datos exclusivos (comisión real, contacto dev) **scrubbed** hasta aprobar. **Auto-aprobación por Trust Score** (`auto_approve_engine`, 3 gates: enabled + trust ≥ umbral + deals en zona). Código: `advisor_whitelist.py`, `advisor_authorization.py`, `auto_approve_engine.py`, `data_scoping.py`.
+- **Disputas / arbitraje (W5.11 P3):** `/desarrollador/disputas`. Rechazo → **cooldown 90 días** server-side `(asesor_id, project_id)` (CHECK 0 en `POST /api/cita`, no bypasseable). Código: `disputes.py`, `dev_batch4_1.py`.
+- "se le autoriza" del founder (registro por-lead) = **primero-en-registrar** gana ese (lead+proyecto); 2°/3°/4° → arbitraje del dev. NO es la whitelist (esa es acceso a inventario).
+
+---
+
 ## 4 · Estados del lead
 
 ### 4.1 `leads.status`
