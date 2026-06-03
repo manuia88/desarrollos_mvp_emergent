@@ -73,7 +73,8 @@ Cada pieza de hoy → **CASA** nueva (1 de 6) · **LOOP** que cierra · **ENCEND
 | live_pulse | ✅ ya en Inicio (Pulso de tus zonas) | Proyecto | hecho |
 | comparator | cubierto por Battle Card (evita panel redundante) | Precio | — |
 | tax_projector | ✅ **surfaceado**: TaxClosingPanel (ISAI+notario+avalúo+registro+IVA, total de cierre) en Insights→Inversión. | Precio | hecho |
-| construction_cost · cross_sell | 🔴 sin wrapper ni FE → builds nuevos (construction=pro-forma; cross_sell=ESCALA, monetiza base compradores). Follow-on. | Precio | follow-on |
+| construction_cost | 🔴 endpoint existe pero **403 superadmin-only** (`/superadmin/phase5/...`) → requiere endpoint dev nuevo con auth. Follow-on. | Precio | follow-on |
+| cross_sell | 🔴 ESCALA (monetiza base de compradores · necesita volumen). Diferido. | Lead | ESCALA |
 
 ═══════════════════════════════════════════════════════════════════
 ## CASA 5 · MARKETING / DISTRIBUCIÓN — llevar al mercado
