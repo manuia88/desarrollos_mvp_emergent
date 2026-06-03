@@ -49,10 +49,10 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 4.2 IE as API / data marketplace: `GET /api/public/market/index` (+ amenity-ranker) — cubo ANÓNIMO consumible vía API, sin auth, rate-limited, k-anon (<5 omitido). tag dmx-fase4-data-marketplace.
 - [x] 4.3 Transparency Index público: `DMXMarketIndex.js` en /inteligencia (15 colonias · precio/m²/absorción/inv · 'DMX no opina, mide'). verificado en app.
 
-### FASE 5 · Activación por plan (GoHighLevel)
-- [ ] 5.1 Definir planes (qué features incluye cada uno).
-- [ ] 5.2 Snapshots: superadmin prende features por tenant/plan.
-- [ ] 5.3 Todo construido y conectado; se prende por plan + llegada de dato.
+### FASE 5 · Activación por plan (GoHighLevel) ✅ COMPLETA 2026-06-03
+- [x] 5.1 Features del cubo en FEATURE_CATALOG (cube_market_intel, ai_assistant · plan_tier pro) → entran en planes Pro/Enterprise + matriz Feature Visibility.
+- [x] 5.2 Snapshots: superadmin asigna plan a tenant (PlansPanel · /plans/assign) → prende las features de un jalón. Verificado (Enterprise→constructora_ariel, 21 features).
+- [x] 5.3 Activación end-to-end: CubeIntelligence gateado por useFeatureFlag (FAIL-OPEN) → plan asignado prende cube_market_intel en /api/me/feature-flags → la lente APARECE. tag dmx-fase5-complete.
 
 ## ARRANQUE
 Fase 0.1 (audit multi-tenant) + 0.2 (contrato de unidad milimétrico). Es el cimiento del que cuelgan superadmin, dev, asesor y la API.
