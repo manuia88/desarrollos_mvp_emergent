@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
-import { PageHeader, Card, Stat, Badge, fmtMXN } from '../../components/advisor/primitives';
+import { PageHeader, Card } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import * as docsApi from '../../api/documents';
 import { ActivityFeed } from '../../components/shared/ActivityFeed';
@@ -18,17 +18,9 @@ import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
+import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-
-// Dinero compacto para que no se desborde de las tarjetas ($778.7M · $1.09B).
-const fmtBig = (n) => {
-  if (!n) return '$0';
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${Math.round(n)}`;
-};
 
 // ─── Weekly Brief Widget ──────────────────────────────────────────────────────
 function WeeklyBriefWidget() {
@@ -262,18 +254,6 @@ function AsistentePanel() {
   );
 }
 
-// ─── MoneyTile — número grande + su LECTURA (cockpit: cada dato dice qué significa) ──
-function MoneyTile({ label, value, reading, accent = 'var(--theme, #6D4AFF)' }) {
-  return (
-    <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '15px 16px 15px 18px', boxShadow: 'var(--asr-shadow, none)' }}>
-      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: accent }} />
-      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4 }}>{value}</div>
-      {reading && <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 5 }}>{reading}</div>}
-    </div>
-  );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DesarrolladorDashboard({ user, onLogout }) {
   const location = useLocation();
@@ -359,22 +339,8 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {!data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
-            {/* TU DINERO — cada número con su lectura */}
-            <div className="eyebrow" style={{ marginBottom: 10 }}>TU DINERO</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 26 }}>
-              <MoneyTile label="Cobrado" accent="var(--ok, #1FA06A)"
-                value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_booked)}>{fmtBig(data.revenue_booked)}</span>}
-                reading={`${data.absorption_pct}% del inventario vendido`} />
-              <MoneyTile label="Por cobrar" accent="var(--warm, #E2982E)"
-                value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_pipeline)}>{fmtBig(data.revenue_pipeline)}</span>}
-                reading={`${data.units_reserved} unidades reservadas`} />
-              <MoneyTile label="Absorción" accent="var(--theme, #6D4AFF)"
-                value={`${data.absorption_pct}%`}
-                reading={`${data.units_sold} de ${data.units_total} vendidas`} />
-              <MoneyTile label="Disponibles" accent="var(--cream-3)"
-                value={data.units_available}
-                reading={`en ${data.developments_count} desarrollo${data.developments_count === 1 ? '' : 's'}`} />
-            </div>
+            {/* TABLERO CENTRAL — signos vitales + cada proyecto con todos sus instrumentos */}
+            <PortfolioCockpit />
 
             {/* HOY · LO QUE MUEVE LA AGUJA — zona de acción (jugadas + asistente lado a lado) */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>HOY · LO QUE MUEVE LA AGUJA</div>
@@ -460,41 +426,11 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
               </Card>
             )}
 
-            {/* Bottom grid: Proyectos + Activity Feed */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }} className="ddash-bottom">
-              <Card style={{ background: 'var(--surface-2, rgba(var(--cream-rgb),0.03))', borderColor: 'var(--border-2, var(--border))' }}>
-                <div className="eyebrow" style={{ marginBottom: 12 }}>DESARROLLOS ACTIVOS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                  {data.developments.map(d => (
-                    <Link key={d.id} to={`/desarrollador/proyectos/${d.id}`} data-testid={`ddev-${d.id}`}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; }}
-                      style={{
-                      padding: 14, background: 'var(--surface, rgba(var(--cream-rgb),0.03))', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, textDecoration: 'none',
-                      boxShadow: 'var(--asr-shadow, none)', transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s', display: 'block',
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', letterSpacing: '-0.01em' }}>{d.name}</div>
-                        <Badge tone={d.stage === 'preventa' ? 'pink' : d.stage === 'en_construccion' ? 'warn' : 'ok'}>{d.stage.replace('_', ' ')}</Badge>
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 8 }}>
-                        {d.colonia} · entrega {d.delivery_estimate}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>{d.units_available}/{d.units_total}</div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>desde {fmtMXN(d.price_from)}</div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Activity Feed */}
-              <Card data-testid="activity-feed-card">
-                <div className="eyebrow" style={{ marginBottom: 12 }}>ACTIVIDAD RECIENTE</div>
-                <ActivityFeed limit={20} />
-              </Card>
-            </div>
+            {/* Actividad reciente (los proyectos viven en el tablero central de arriba) */}
+            <div className="eyebrow" style={{ marginBottom: 10 }}>ACTIVIDAD RECIENTE</div>
+            <Card data-testid="activity-feed-card">
+              <ActivityFeed limit={20} />
+            </Card>
 
             {/* Configuración inicial (solo si falta algo) — al final, no estorba el cockpit */}
             <SetupChecklist style={{ marginTop: 22 }} />
