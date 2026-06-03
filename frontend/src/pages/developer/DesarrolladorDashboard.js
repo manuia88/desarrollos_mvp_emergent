@@ -17,6 +17,7 @@ import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
 import MarketIntelligence from '../../components/developer/MarketIntelligence';
+import CubeIntelligence from '../../components/developer/CubeIntelligence';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
@@ -356,6 +357,12 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
             {/* MERCADO — posición, alertas y pulso (ir a fondo en Inteligencia) */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>MERCADO</div>
+
+            {/* Fase 3.2 · Lente del cubo — tu slice vs mercado anónimo + hedónico + dónde construir */}
+            <div data-testid="dev-cube-intel" style={{ marginBottom: 22 }}>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>TU CUBO · DECISIONES DE MERCADO</div>
+              <CubeIntelligence />
+            </div>
 
             {/* Inteligencia de Zona — mercado (Live Pulse) × tu negocio + veredicto de acción */}
             <div data-testid="dev-zone-intel" style={{ marginBottom: 22 }}>

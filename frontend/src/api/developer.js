@@ -18,6 +18,11 @@ export const getDashboard = () => j('/api/desarrollador/dashboard');
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
 export const getDevPlays = () => j('/api/dev/projects/plays');
 
+// Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
+export const getDevBenchmark = () => j('/api/dev/market/benchmark');
+export const getDevAmenityRanker = (colonia) => j(`/api/dev/market/amenity-ranker${colonia ? `?colonia=${colonia}` : ''}`);
+export const getDevDemandGap = (top = 8) => j(`/api/dev/market/demand-gap?top=${top}`);
+
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);
 export const getProjectFloorDetail = (projectId, floor) => j(`/api/projects/${projectId}/floors/${floor}`);
