@@ -990,7 +990,7 @@ async def create_cita(payload: CitaBody, request: Request):
             asesor_name=getattr(user, "name", "Asesor") if user else "Público",
         )
         raise HTTPException(409, detail={
-            "error": "Lead duplicado: ya existe un registro activo para este contacto en el proyecto",
+            "error": "Este cliente ya está registrado en este proyecto. Ponte en contacto con el dev para más información.",
             "existing_lead_id": fraud_result.get("lead_id"),
             "wa_template_url": wa_url,
         })

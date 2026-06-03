@@ -150,31 +150,6 @@ const TABS = [
   { key: 'insights',        label: 'Insights',        phase: 'B22' },
 ];
 
-function PlaceholderTab({ tabLabel, phase }) {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: '64px 24px', gap: 12, textAlign: 'center',
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: 'rgba(var(--cream-rgb),0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 4,
-      }}>
-        <Building size={22} color="rgba(var(--cream-rgb),0.2)" />
-      </div>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-        {tabLabel}
-      </h3>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)', maxWidth: 320 }}>
-        Disponible en el próximo release
-        {phase ? ` (Batch ${phase})` : ''}.
-      </p>
-    </div>
-  );
-}
-
 // ─── Cmd+P Project Switcher ─────────────────────────────────────────────────
 function ProjectSwitcher({ currentSlug, onSwitch }) {
   const [open, setOpen] = useState(false);
@@ -331,7 +306,8 @@ export default function ProyectoDetail({ user, onLogout }) {
   useEffect(() => { load(); }, [load]);
 
   // Phase 4 Batch 17 — inline edit saver for project fields
-  const saveProject = useInlineSaver('project', slug, {
+  // Registra el contexto de edición inline del proyecto (efecto del hook; sin variable sin uso).
+  useInlineSaver('project', slug, {
     onUpdated: load,
     toastMessage: 'Proyecto actualizado',
   });
