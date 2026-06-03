@@ -1586,3 +1586,6 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Datos runtime de Mongo local — nunca versionar (binarios pesados)
+scripts/dev-data/mongo/
