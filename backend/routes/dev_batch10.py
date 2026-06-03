@@ -254,10 +254,14 @@ async def list_projects_with_stats(request: Request):
         colonia_id = dev.get("colonia_id", dev.get("colonia", ""))
         colonia_name = colonia_map.get(colonia_id, dev.get("colonia", colonia_id).replace("_", " ").title())
 
+        import dmx_margin
+        price_m2 = dmx_margin.project_price_m2(units_list)
+
         results.append({
             "id": dev["id"],
             "name": dev["name"],
             "colonia": colonia_name,
+            "colonia_id": colonia_id,
             "stage": stage,
             "price_from": price_from,
             "price_to": price_to,
@@ -274,6 +278,7 @@ async def list_projects_with_stats(request: Request):
             "cover_photo": cover_photos.get(dev["id"]),
             "developer_id": dev.get("developer_id"),
             "delivery_estimate": dev.get("delivery_estimate"),
+            "_price_m2": price_m2,
         })
 
     # Phase 4 Batch 12 — Include wizard-created projects (db.projects)
@@ -306,7 +311,27 @@ async def list_projects_with_stats(request: Request):
             "developer_id": p.get("developer_id"),
             "delivery_estimate": None,
             "created_via": "wizard",
+            "colonia_id": p.get("colonia_id") or p.get("colonia"),
+            "_price_m2": None,
         })
+
+    # Margen semáforo (upgrade Mis Proyectos · B02): costo INPP/m² vs precio/m² × ritmo de venta.
+    try:
+        import dmx_margin
+        meta = []
+        for r in results:
+            ws = r.get("weekly_sales") or []
+            tail = ws[-4:] if ws else []
+            absorption = (sum(tail) / len(tail)) if tail else 0
+            meta.append({"id": r["id"], "colonia_id": r.get("colonia_id"),
+                         "price_m2": r.get("_price_m2"), "absorption_rate": absorption})
+        margins = await dmx_margin.compute_margins(meta)
+        for r in results:
+            r["margin"] = margins.get(r["id"])
+            r.pop("_price_m2", None)
+    except Exception:
+        for r in results:
+            r.pop("_price_m2", None)
 
     return results
 

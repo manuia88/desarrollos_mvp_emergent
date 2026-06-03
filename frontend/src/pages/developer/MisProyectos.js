@@ -10,6 +10,10 @@ import { listProjectsWithStats } from '../../api/developer';
 import { Plus, Building, BarChart, Users, TrendUp, Copy } from '../../components/icons';
 import DuplicateProjectModal from '../../components/dev/DuplicateProjectModal';
 
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+// Margen semáforo (upgrade Mis Proyectos · B02) — color del estado de margen del proyecto.
+const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', gris: 'var(--cream-3)' };
+
 // ─── Mini Sparkline SVG ──────────────────────────────────────────────────────
 function MiniSparkline({ data = [], color = '#22c55e', width = 80, height = 28 }) {
   if (!data || data.length < 2) return null;
@@ -212,6 +216,18 @@ function ProjectCard({ project, onClick, onDuplicate }) {
           <StatPill icon={<TrendUp size={12} />} label="Conversión" value={`${Math.round(project.conversion_pct || 0)}%`} />
           <StatPill icon={<BarChart size={12} />} label="Días listado" value={project.days_listed || '—'} />
         </div>
+
+        {/* Margen semáforo (V2) — costo INPP vs precio × ritmo de venta */}
+        {DEV_V2 && project.margin && project.margin.color !== 'gris' && (
+          <div data-testid={`margin-${project.id}`} title={project.margin.verdict}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(var(--cream-rgb),0.08)', paddingTop: 10 }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: MARGIN_COLORS[project.margin.color], boxShadow: `0 0 0 3px ${MARGIN_COLORS[project.margin.color]}22` }} />
+            <span style={{ fontSize: 11, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>Margen <b style={{ color: 'var(--cream)' }}>{project.margin.margin_pct}%</b></span>
+            <span style={{ fontSize: 10.5, color: MARGIN_COLORS[project.margin.color], marginLeft: 'auto', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {project.margin.verdict.split(':')[0]}
+            </span>
+          </div>
+        )}
 
         {/* Weekly sales sparkline */}
         {project.weekly_sales && project.weekly_sales.some(v => v > 0) && (
