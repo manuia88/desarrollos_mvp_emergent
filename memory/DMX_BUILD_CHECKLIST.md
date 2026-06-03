@@ -40,7 +40,7 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 
 ### FASE 3 · Las lentes (mismo cubo, distinto permiso)
 - [ ] 3.1 **Superadmin**: god-view (terminal Bloomberg, cubo crudo milimétrico) + control plane (provisionar tenants, asignar planes/snapshots).
-- [ ] 3.2 **Dev mold**: su slice + benchmark anónimo + **Asistente protagonista**. Idéntico para los N devs.
+- [x] 3.2 **Dev mold** ✅ 2026-06-03: `routes/dev_market.py` (benchmark anónimo + amenity ranker + demand-gap, scope-ado) · `CubeIntelligence.js` (3 tarjetas en el Inicio) · **Asistente protagonista** (lee el cubo vía detect-market → 'Veo N jugadas' + Aprobar/Descartar, dedup) · verificado en app. tags dmx-fase3.2-*.
 - [ ] 3.3 **Asesor mold**: su slice + Copilot. Idéntico para los millones de asesores.
 - [ ] 3.4 **Comprador**: lente pública (marketplace).
 
