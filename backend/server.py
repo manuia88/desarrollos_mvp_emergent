@@ -570,6 +570,10 @@ app.include_router(dev_batch11_router)
 from routes.dev_batch10 import router as dev_batch10_router, ensure_batch10_indexes
 app.include_router(dev_batch10_router)
 
+# Fase 3.2 · lente del dev sobre el cubo (benchmark anónimo + amenity ranker + demand-gap)
+from routes.dev_market import router as dev_market_router
+app.include_router(dev_market_router)
+
 from routes.dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
                               daily_active_projects_recalc)
 app.include_router(dev_batch8_router)
