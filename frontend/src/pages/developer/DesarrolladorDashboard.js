@@ -262,6 +262,18 @@ function AsistentePanel() {
   );
 }
 
+// ─── MoneyTile — número grande + su LECTURA (cockpit: cada dato dice qué significa) ──
+function MoneyTile({ label, value, reading, accent = 'var(--theme, #6D4AFF)' }) {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '15px 16px 15px 18px', boxShadow: 'var(--asr-shadow, none)' }}>
+      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: accent }} />
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4 }}>{value}</div>
+      {reading && <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 5 }}>{reading}</div>}
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DesarrolladorDashboard({ user, onLogout }) {
   const location = useLocation();
@@ -341,31 +353,38 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* Resumen tab (existing content) */}
       {activeTab === 'resumen' && (
         <>
-      {/* Weekly Brief (hero) */}
+      {/* TU NEGOCIO HOY — estado del negocio (hero IA) */}
       <WeeklyBriefWidget />
-
-      {/* Tu asistente (Cerebro) — el cerebro agéntico en el centro de decisión */}
-      <AsistentePanel />
-
-      {/* Tus jugadas de hoy (valor: fusión dato + mercado) */}
-      <DevPlaysWidget />
-
-      {/* Setup Checklist (visible only if incomplete) */}
-      <SetupChecklist style={{ marginBottom: 18 }} />
 
       {!data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, marginBottom: 22 }}>
-              <Stat label="Desarrollos" value={data.developments_count} />
-              <Stat label="Unidades totales" value={data.units_total} />
-              <Stat label="Disponibles" value={data.units_available} />
-              <Stat label="Reservadas" value={data.units_reserved} accent="var(--warm,#fcd34d)" />
-              <Stat label="Vendidas" value={data.units_sold} accent="var(--ok,#86efac)" />
-              <Stat label="Absorción" value={`${data.absorption_pct}%`} />
-              <Stat label="Ingresos cerrados" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_booked)} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtBig(data.revenue_booked)}</span>} accent="var(--ok,#86efac)" />
-              <Stat label="Pipeline reservado" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_pipeline)} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtBig(data.revenue_pipeline)}</span>} accent="var(--warm,#fcd34d)" />
+            {/* TU DINERO — cada número con su lectura */}
+            <div className="eyebrow" style={{ marginBottom: 10 }}>TU DINERO</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 26 }}>
+              <MoneyTile label="Cobrado" accent="var(--ok, #1FA06A)"
+                value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_booked)}>{fmtBig(data.revenue_booked)}</span>}
+                reading={`${data.absorption_pct}% del inventario vendido`} />
+              <MoneyTile label="Por cobrar" accent="var(--warm, #E2982E)"
+                value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} title={fmtMXN(data.revenue_pipeline)}>{fmtBig(data.revenue_pipeline)}</span>}
+                reading={`${data.units_reserved} unidades reservadas`} />
+              <MoneyTile label="Absorción" accent="var(--theme, #6D4AFF)"
+                value={`${data.absorption_pct}%`}
+                reading={`${data.units_sold} de ${data.units_total} vendidas`} />
+              <MoneyTile label="Disponibles" accent="var(--cream-3)"
+                value={data.units_available}
+                reading={`en ${data.developments_count} desarrollo${data.developments_count === 1 ? '' : 's'}`} />
             </div>
+
+            {/* HOY · LO QUE MUEVE LA AGUJA — zona de acción (jugadas + asistente lado a lado) */}
+            <div className="eyebrow" style={{ marginBottom: 10 }}>HOY · LO QUE MUEVE LA AGUJA</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14, marginBottom: 26, alignItems: 'start' }} className="ddash-action">
+              <div><DevPlaysWidget /></div>
+              <div><AsistentePanel /></div>
+            </div>
+
+            {/* MERCADO — posición, alertas y pulso (ir a fondo en Inteligencia) */}
+            <div className="eyebrow" style={{ marginBottom: 10 }}>MERCADO</div>
 
             {/* W5.5 P2 — Pulso de tus zonas */}
             {(() => {
@@ -476,6 +495,9 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                 <ActivityFeed limit={20} />
               </Card>
             </div>
+
+            {/* Configuración inicial (solo si falta algo) — al final, no estorba el cockpit */}
+            <SetupChecklist style={{ marginTop: 22 }} />
           </>
         )}
 
@@ -489,6 +511,9 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       )}
 
       <style>{`
+        @media (max-width: 980px) {
+          .ddash-action { grid-template-columns: 1fr !important; }
+        }
         @media (max-width: 880px) {
           .ddash-grid { grid-template-columns: 1fr !important; }
           .ddash-bottom { grid-template-columns: 1fr !important; }
