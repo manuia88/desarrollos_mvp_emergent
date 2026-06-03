@@ -317,7 +317,7 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
   );
 }
 
-export default function CitasPolicies({ user, onLogout }) {
+export default function CitasPolicies({ user, onLogout, embedded }) {
   const [projects, setProjects] = useState([]);
   const [asesoresWithGoogle, setAsesoresWithGoogle] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -359,7 +359,7 @@ export default function CitasPolicies({ user, onLogout }) {
   }, []);
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="CONFIGURACIÓN"
         title="Políticas de citas"

@@ -192,14 +192,10 @@ export const DEV_NAV_V2 = [
       { key: 'mk-studio', to: '/portal/studio/brand-kit',   label: 'Studio',              Icon: Sparkles },
     ],
   },
-  // 7 · Ajustes (hub · rescata Políticas de cita)
+  // 7 · Ajustes (hub · V2: Políticas de cita es ahora un área del centro de Ajustes → sin hijos)
   {
     key: 'ajustes', to: '/desarrollador/configuracion', label: 'Ajustes', Icon: Settings,
-    description: 'Configuración general, integraciones y políticas',
-    children: [
-      { key: 'aj-config',  to: '/desarrollador/configuracion',                label: 'Configuración',     Icon: Settings },
-      { key: 'aj-citas',   to: '/desarrollador/configuracion/citas-policies', label: 'Políticas de cita', Icon: CalendarDays },
-    ],
+    description: 'Organización, integraciones, costo de IA y políticas de cita',
   },
 ];
 

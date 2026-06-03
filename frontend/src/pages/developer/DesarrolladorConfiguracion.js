@@ -10,9 +10,11 @@ import * as api from '../../api/developer';
 import { Settings, CheckCircle, AlertTriangle, RefreshCw } from '../../components/icons';
 import AutoApproveSettings from '../../components/developer/AutoApproveSettings';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
+import CitasPolicies from './CitasPolicies';
 import { Z } from '../../styles/zIndex';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+const AJ_AREAS = [['general', 'General'], ['citas', 'Políticas de cita']];
 
 const ERP_PROVIDERS = [
   { id: 'easybroker', label: 'EasyBroker', color: '#22c55e', desc: 'Sincronización de listings y leads' },
@@ -31,6 +33,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
   const [activeProvider, setActiveProvider] = useState(null);
   const [providerForm, setProviderForm] = useState({ api_key: '', endpoint: '', events: [] });
   const [savingErp, setSavingErp] = useState(false);
+  const [area, setArea] = useState('general');   // V2: general | citas
   const [erpEvents, setErpEvents] = useState({});
 
   const load = async () => {
@@ -95,11 +98,29 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="4.9 · CONFIGURACIÓN"
-        title="Configuración"
-        sub="Ajustes de organización, integraciones ERP y configuración global del portal."
+        eyebrow={DEV_V2 ? 'AJUSTES' : '4.9 · CONFIGURACIÓN'}
+        title="Ajustes"
+        sub="Ajustes de organización, integraciones ERP, costo de IA y políticas de cita."
       />
 
+      {/* Switch de áreas (V2) — fold de Políticas de cita como área del centro. */}
+      {DEV_V2 && (
+        <div data-testid="aj-area-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 20 }}>
+          {AJ_AREAS.map(([k, lbl]) => {
+            const on = area === k;
+            return (
+              <button key={k} data-testid={`aj-area-${k}`} onClick={() => setArea(k)}
+                style={{ padding: '7px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: on ? 700 : 500 }}>
+                {lbl}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {DEV_V2 && area === 'citas' && <CitasPolicies user={user} embedded />}
+
+      {(!DEV_V2 || area === 'general') && (<>
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
@@ -244,6 +265,8 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
           <div className="eyebrow" style={{ marginBottom: 8 }}>COSTO DE MI IA</div>
           <AIROIPanelDev user={user} />
         </div>
+      )}
+      </>
       )}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
