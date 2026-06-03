@@ -4,7 +4,7 @@
  *   1. KPIs        — events totales, cost, top orgs ROI
  *   2. Audit Replay— timeline cronológica por target (lead/project/asesor/org)
  *   3. ML Accuracy — features ML con MAPE, hit_rate, adoption
- *   4. Replay Debugger — re-ejecuta evento Phase Y en simulation_mode
+ *   4. Replay Debugger — re-ejecuta evento de IA en simulación_mode
  *   5. AI ROI Matrix — cross-org sorted por ratio
  *
  * Strict design system:
@@ -111,7 +111,7 @@ function KpisTab() {
   return (
     <div data-testid="obs-kpis-tab" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <PageEyebrow label="Phase Y · Vista global" />
+        <PageEyebrow label="IA agéntica · Vista global" />
         <select
           value={days} onChange={(e) => setDays(Number(e.target.value))}
           data-testid="obs-kpis-days"
@@ -133,7 +133,7 @@ function KpisTab() {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))',
         gap: 12,
       }}>
-        <KpiCard label="Orgs Phase Y activas" value={data?.orgs_phase_y_active || 0} />
+        <KpiCard label="Orgs con IA activa" value={data?.orgs_phase_y_active || 0} />
         <KpiCard label="Eventos totales" value={data?.total_events?.toLocaleString() || 0} />
         <KpiCard label="Sub-agent runs" value={(counts.subagent_runs || 0).toLocaleString()} />
         <KpiCard label="Lead routings" value={(counts.lead_routings || 0).toLocaleString()} />
@@ -553,7 +553,7 @@ function ReplayTab() {
 
   return (
     <div data-testid="obs-replay-tab" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <PageEyebrow label="Replay Debugger · re-ejecuta evento Phase Y en simulation" />
+      <PageEyebrow label="Replay Debugger · re-ejecuta evento de IA en simulación" />
 
       <div style={{ display: 'flex', gap: 8 }}>
         <input
@@ -787,14 +787,14 @@ export default function SuperadminObservability({ user, onLogout }) {
       <div data-testid="superadmin-observability" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
           <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240, 235, 224, 0.70)', fontWeight: 700, marginBottom: 6 }}>
-            Phase Y · Observability
+            IA agéntica · Observabilidad
           </div>
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.028em', margin: '4px 0 6px' }}>
             Visión global de inteligencia agentic
           </h1>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(240,235,224,0.55)', maxWidth: 700 }}>
             Auditoría · accuracy ML · replay debugger · ROI monetario por desarrollador.
-            Cierra el ciclo de transparencia y compliance Phase Y.
+            Cierra el ciclo de transparencia y compliance de la IA agéntica.
           </p>
         </div>
 

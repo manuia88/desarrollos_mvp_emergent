@@ -192,7 +192,7 @@ function TenantDrawer({ tenantId, onClose }) {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, flexWrap: 'wrap' }}>
-              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents'], ['atlax-persona', 'Atlax Persona'], ['match-weights', 'Match Weights']].map(([k, l]) => (
+              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing'], ['phase-y', 'IA agéntica'], ['sub-agents', 'Sub-Agents'], ['atlax-persona', 'Atlax Persona'], ['match-weights', 'Match Weights']].map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} data-testid={`drawer-tab-${k}`}
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
