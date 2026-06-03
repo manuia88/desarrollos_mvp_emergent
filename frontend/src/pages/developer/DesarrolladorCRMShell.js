@@ -17,6 +17,7 @@ import { Sparkle, Settings as SettingsIcon } from 'lucide-react';
 import { FunnelChart } from './CrmFunnel';
 import { getFunnel, getFunnelBreakdown, getFunnelSuggestion } from '../../api/metrics';
 import { listLeads, listProjectsWithStats } from '../../api/developer';
+import CrmAssistantStrip from '../../components/developer/CrmAssistantStrip';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
@@ -148,6 +149,9 @@ function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
             <SettingsIcon size={14} /> Automatizaciones IA
           </button>
         </div>
+
+        {/* Loop 1 (agentic) — el asistente como capa: lee el pipeline y surfacea lo que mueve la aguja. */}
+        <CrmAssistantStrip />
 
         {/* Switch de vista — un dataset, varias vistas (no sub-tabs) */}
         <div data-testid="crm-view-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 18 }}>
