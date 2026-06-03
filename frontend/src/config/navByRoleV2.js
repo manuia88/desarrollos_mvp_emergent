@@ -164,9 +164,10 @@ export const DEV_NAV_V2 = [
   },
   // 4 · Inteligencia (hub · cerebro de mercado)
   {
-    key: 'inteligencia', to: '/desarrollador/demanda', label: 'Inteligencia', Icon: Sparkles,
-    description: 'Demanda, precios, competidores y reportes — tu cerebro de mercado',
+    key: 'inteligencia', to: '/desarrollador/mercado', label: 'Inteligencia', Icon: Sparkles,
+    description: 'Tu mercado a fondo, demanda, precios, competidores y reportes — tu cerebro de mercado',
     children: [
+      { key: 'int-mercado',      to: '/desarrollador/mercado',        label: 'Inteligencia de Mercado', Icon: Activity },
       { key: 'int-demanda',      to: '/desarrollador/demanda',        label: 'Demanda',        Icon: BarChart3 },
       { key: 'int-pricing',      to: '/desarrollador/pricing',        label: 'Precios IA',     Icon: TrendingUp },
       { key: 'int-competidores', to: '/desarrollador/competidores',   label: 'Competidores',   Icon: Target },
