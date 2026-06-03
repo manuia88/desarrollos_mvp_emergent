@@ -38,11 +38,11 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 2.3 `dmx_self_improving.py` loop cierre→resuelve predicción→re-ajusta hedónico→calibración (coach E4) + visión photo_tagger dormant-ready + POST /unit-closed, /atom/from-photos. tag dmx-fase2.3-self-improving.
 - [x] 2.4 `dmx_cerebro_market.py` el Cerebro lee el cubo → propone tareas (dev.where_to_build/best_amenity/deal.change_price) con candados → Sala de Control + POST /cerebro/detect-market. tag dmx-fase2.4-cerebro-cubo · dmx-fase2-complete.
 
-### FASE 3 · Las lentes (mismo cubo, distinto permiso)
+### FASE 3 · Las lentes (mismo cubo, distinto permiso) ✅ COMPLETA 2026-06-03
 - [x] 3.1 **Superadmin** ✅ 2026-06-03: god-view (`CubeIntelPanel` hedónico+demand-gap sobre el Cubo de métricas crudo) + control plane (`PlansPanel` asigna plan/snapshot a tenant, GoHighLevel, en /superadmin/feature-visibility). fix dmx_plans catálogo legacy (consistencia). verificado en app. tags dmx-fase3.1-*.
 - [x] 3.2 **Dev mold** ✅ 2026-06-03: `routes/dev_market.py` (benchmark anónimo + amenity ranker + demand-gap, scope-ado) · `CubeIntelligence.js` (3 tarjetas en el Inicio) · **Asistente protagonista** (lee el cubo vía detect-market → 'Veo N jugadas' + Aprobar/Descartar, dedup) · verificado en app. tags dmx-fase3.2-*.
 - [x] 3.3 **Asesor mold** ✅ 2026-06-03: `routes/asesor_market.py` (amenity-ranker + demand-gap, auth advisor) · `AsesorMarketIntel.js` 'INTELIGENCIA DE MERCADO · PARA VENDER' (argumentos de valor 'Destaca roof +6%' + zonas con compradores) en AsesorCommandCenter · verificado en app. tag dmx-fase3.3-asesor-mold.
-- [ ] 3.4 **Comprador**: lente pública (marketplace).
+- [x] 3.4 **Comprador** ✅ 2026-06-03: `routes/public_market.py` (amenity-ranker público, sin auth, rate-limited) · `MarketValueCard.js` 'POR QUÉ VALE' (atributos que suman valor, 'no es opinión es dato') en la ficha pública DevelopmentDetail · verificado en app. tag dmx-fase3.4-comprador.
 
 ### FASE 4 · Distribución / monetización (del doc)
 - [ ] 4.1 SEO programático por AGEB (del cubo).
