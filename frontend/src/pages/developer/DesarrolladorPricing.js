@@ -8,7 +8,7 @@ import { Sparkle, AlertTriangle } from '../../components/icons';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
 
-export default function DesarrolladorPricing({ user, onLogout }) {
+export default function DesarrolladorPricing({ user, onLogout, embedded }) {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function DesarrolladorPricing({ user, onLogout }) {
   };
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="D4 · DYNAMIC PRICING AI"
         title="Sugerencias de precio"

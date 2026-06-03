@@ -10,8 +10,19 @@ import CubeIntelligence from '../../components/developer/CubeIntelligence';
 import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
 import MarketIntelligence from '../../components/developer/MarketIntelligence';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
+import DesarrolladorDemanda from './DesarrolladorDemanda';
+import DesarrolladorPricing from './DesarrolladorPricing';
+import DesarrolladorCompetidores from './DesarrolladorCompetidores';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+
+// Áreas del Centro de Inteligencia (re-arquitectura · consolida las hojas sueltas).
+const AREAS = [
+  ['mercado', 'Mercado'],
+  ['demanda', 'Demanda'],
+  ['precios', 'Precios'],
+  ['competencia', 'Competencia'],
+];
 
 const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -26,6 +37,7 @@ export default function DesarrolladorMercado({ user, onLogout }) {
   const [projects, setProjects] = useState(null);
   const [mode, setMode] = useState('all');       // all | zona
   const [zoneSel, setZoneSel] = useState('');
+  const [area, setArea] = useState('mercado');   // V2: mercado | demanda | precios | competencia
 
   useEffect(() => {
     listProjectsWithStats()
@@ -50,11 +62,35 @@ export default function DesarrolladorMercado({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="TERMINAL · INTELIGENCIA"
-        title="Inteligencia de Mercado"
+        eyebrow={DEV_V2 ? 'CENTRO DE INTELIGENCIA' : 'TERMINAL · INTELIGENCIA'}
+        title={DEV_V2 ? 'Centro de Inteligencia' : 'Inteligencia de Mercado'}
         sub="Tu mercado a fondo: tú vs el mercado, qué mueve el valor, dónde construir y tus zonas."
       />
 
+      {/* Switch de áreas (V2) — consolida las hojas sueltas en un solo centro, por trabajo. */}
+      {DEV_V2 && (
+        <div data-testid="intel-area-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 22, flexWrap: 'wrap' }}>
+          {AREAS.map(([k, lbl]) => {
+            const on = area === k;
+            return (
+              <button key={k} data-testid={`intel-area-${k}`} onClick={() => setArea(k)}
+                style={{ padding: '7px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: on ? 700 : 500 }}>
+                {lbl}
+              </button>
+            );
+          })}
+          <span style={{ alignSelf: 'center', padding: '0 10px', fontSize: 11, color: 'var(--cream-3)' }}>Reportes · Site Selection — próximo</span>
+        </div>
+      )}
+
+      {/* Áreas embebidas (V2) — reusan las hojas existentes sin doble layout (bare). */}
+      {DEV_V2 && area === 'demanda' && <DesarrolladorDemanda user={user} embedded />}
+      {DEV_V2 && area === 'precios' && <DesarrolladorPricing user={user} embedded />}
+      {DEV_V2 && area === 'competencia' && <DesarrolladorCompetidores user={user} embedded />}
+
+      {/* ÁREA MERCADO — el terminal (default · y único en V1) */}
+      {(!DEV_V2 || area === 'mercado') && (
+      <>
       {/* Selector de alcance (consistente con el cockpit) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
         <span style={{ fontSize: 11.5, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: '.03em' }}>ESTÁS VIENDO</span>
@@ -109,6 +145,8 @@ export default function DesarrolladorMercado({ user, onLogout }) {
             }))}
           />
         </div>
+      )}
+      </>
       )}
     </DeveloperLayout>
   );

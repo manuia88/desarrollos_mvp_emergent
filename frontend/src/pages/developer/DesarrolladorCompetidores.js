@@ -8,7 +8,7 @@ import { Check } from 'lucide-react';
 import { LineChart } from '../../components/developer/ChartPrimitives';
 import { Z } from '../../styles/zIndex';
 
-export default function DesarrolladorCompetidores({ user, onLogout }) {
+export default function DesarrolladorCompetidores({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
   const [radius, setRadius] = useState(2);
   const [toast, setToast] = useState(null);
@@ -89,7 +89,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
   };
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="D3 · COMPETITOR RADAR"
         title="Radar de competidores"

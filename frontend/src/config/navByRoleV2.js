@@ -30,7 +30,7 @@ import {
   Share2, BarChart3, DollarSign, FileText, MapPin,
   Activity, Link, Bot, Bell, Radar, LineChart,
   // DEV_NAV_V2 (B7-dev F2 · sidebar reorg desarrollador)
-  LayoutDashboard, TrendingUp, Target, Swords, Network, HeartHandshake,
+  LayoutDashboard, Swords, Network, HeartHandshake,
   Settings, Package, FolderOpen, FolderUp, BarChart2, AlertTriangle,
 } from 'lucide-react';
 
@@ -164,11 +164,10 @@ export const DEV_NAV_V2 = [
   {
     key: 'inteligencia', to: '/desarrollador/mercado', label: 'Inteligencia', Icon: Sparkles,
     description: 'Tu mercado a fondo, demanda, precios, competidores y reportes — tu cerebro de mercado',
+    // V2 re-arquitectura: Demanda/Precios/Competidores se fundieron como ÁREAS del
+    // Centro de Inteligencia (/mercado). Battle Card/Reportes/Site Selection entran en A.2.
     children: [
-      { key: 'int-mercado',      to: '/desarrollador/mercado',        label: 'Inteligencia de Mercado', Icon: Activity },
-      { key: 'int-demanda',      to: '/desarrollador/demanda',        label: 'Demanda',        Icon: BarChart3 },
-      { key: 'int-pricing',      to: '/desarrollador/pricing',        label: 'Precios IA',     Icon: TrendingUp },
-      { key: 'int-competidores', to: '/desarrollador/competidores',   label: 'Competidores',   Icon: Target },
+      { key: 'int-mercado',      to: '/desarrollador/mercado',        label: 'Centro de Inteligencia', Icon: Activity },
       { key: 'int-battle',       to: '/desarrollador/battle-card',    label: 'Battle Card',    Icon: Swords },
       { key: 'int-reportes',     to: '/desarrollador/reportes',       label: 'Reportes IA',    Icon: LineChart },
       { key: 'int-site',         to: '/desarrollador/site-selection', label: 'Site Selection', Icon: MapPin },

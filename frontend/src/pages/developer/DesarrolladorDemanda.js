@@ -5,7 +5,7 @@ import { PageHeader, Card, Badge, fmt0 } from '../../components/advisor/primitiv
 import DemandHeatmapMap from '../../components/developer/DemandHeatmapMap';
 import * as api from '../../api/developer';
 
-export default function DesarrolladorDemanda({ user, onLogout }) {
+export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
   const [legacy, setLegacy] = useState(null);
   const [heat, setHeat] = useState(null);
   const [period, setPeriod] = useState('30d');
@@ -20,7 +20,7 @@ export default function DesarrolladorDemanda({ user, onLogout }) {
   }, [period]);
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="D6 · DEMAND HEATMAP"
         title="Demanda de mercado"

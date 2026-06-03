@@ -8,8 +8,11 @@ import RecommendationBanner from './RecommendationBanner';
 
 const ROLES_OK = new Set(['developer_admin', 'developer_member', 'superadmin']);
 
-export default function DeveloperLayout({ user, onLogout, children }) {
+export default function DeveloperLayout({ user, onLogout, children, bare = false }) {
   const loc = useLocation();
+
+  // Embebido (re-arquitectura): el host ya provee sidebar + padding → solo el contenido.
+  if (bare) return <>{children}</>;
 
   if (!user) return <Navigate to="/?login=1" replace state={{ next: loc.pathname }} />;
   if (!ROLES_OK.has(user.role)) {
