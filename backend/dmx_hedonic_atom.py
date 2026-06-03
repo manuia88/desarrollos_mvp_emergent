@@ -15,6 +15,8 @@ Persiste el modelo en dmx_hedonic_models para reuso (AVM/Cerebro) e histórico.
 from __future__ import annotations
 
 import math
+import time
+import json as _json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +25,18 @@ from dmx_unit_schema import COLLECTIONS
 UNITS = COLLECTIONS["units"]
 MODELS = "dmx_hedonic_models"
 MIN_SAMPLE = 30
+
+# Caché TTL del ajuste OLS (caro) — se invalida al cerrar una venta (self-improving).
+_RANK_CACHE: Dict[str, tuple] = {}
+_RANK_TTL = 300.0
+
+
+def _ckey(scope: Optional[Dict[str, Any]]) -> str:
+    return _json.dumps(scope or {}, sort_keys=True)
+
+
+def invalidate_cache() -> None:
+    _RANK_CACHE.clear()
 
 # atributos cuyo impacto reportamos en el ranker (binarios → % sobre precio/m²)
 AMENITY_ATTRS = ["has_roof", "has_terraza", "has_balcon", "has_bodega", "parking_2plus"]
@@ -138,8 +152,14 @@ def _to_ranker(fit: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 async def fit_and_rank(db, scope: Optional[Dict[str, Any]] = None,
-                       persist: bool = True) -> Dict[str, Any]:
-    """Ajusta el hedónico sobre el átomo y devuelve el amenity value ranker."""
+                       persist: bool = True, fresh: bool = False) -> Dict[str, Any]:
+    """Ajusta el hedónico sobre el átomo y devuelve el amenity value ranker.
+    Cacheado (TTL) salvo fresh=True (self-improving tras un cierre real)."""
+    key = _ckey(scope)
+    if not fresh:
+        e = _RANK_CACHE.get(key)
+        if e and (time.time() - e[0]) < _RANK_TTL:
+            return {**e[1], "cache": "hit"}
     rows = await _load_rows(db, scope)
     fit = _fit(rows)
     ranker = _to_ranker(fit)
@@ -151,11 +171,14 @@ async def fit_and_rank(db, scope: Optional[Dict[str, Any]] = None,
         "amenity_ranker": ranker,
         "baseline_colonia": fit.get("baseline_colonia"),
         "computed_at": _iso(),
+        "cache": "miss",
     }
-    if persist and fit.get("available"):
-        try:
-            await db[MODELS].insert_one({**result, "coefficients": fit.get("coefficients"),
-                                         "scope": scope or {}})
-        except Exception:
-            pass
+    if fit.get("available"):
+        _RANK_CACHE[key] = (time.time(), {k: v for k, v in result.items() if k != "cache"})
+        if persist:
+            try:
+                await db[MODELS].insert_one({**result, "coefficients": fit.get("coefficients"),
+                                             "scope": scope or {}})
+            except Exception:
+                pass
     return result

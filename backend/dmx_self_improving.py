@@ -77,8 +77,10 @@ async def on_unit_closed(db, user, unit_id: str, precio_cierre_mxn: float,
         actuals["days_on_market"] = int(dias_en_mercado)
     resolved = await coach.resolve_predictions(db, user, unit_id, actuals)
 
-    # 3) RE-AJUSTAR el hedónico (ahora con precio de cierre real → mejor)
-    refit = await dmx_hedonic_atom.fit_and_rank(db, None, persist=True)
+    # 3) RE-AJUSTAR el hedónico (ahora con precio de cierre real → mejor).
+    #    Invalida el caché TTL y fuerza un ajuste fresco (self-improving).
+    dmx_hedonic_atom.invalidate_cache()
+    refit = await dmx_hedonic_atom.fit_and_rank(db, None, persist=True, fresh=True)
 
     # 4) marcador honesto
     calib = await coach.calibration(db, user)
