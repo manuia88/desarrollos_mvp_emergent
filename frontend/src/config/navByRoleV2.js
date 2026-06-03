@@ -169,8 +169,6 @@ export const DEV_NAV_V2 = [
     children: [
       { key: 'int-mercado',      to: '/desarrollador/mercado',        label: 'Centro de Inteligencia', Icon: Activity },
       { key: 'int-battle',       to: '/desarrollador/battle-card',    label: 'Battle Card',    Icon: Swords },
-      { key: 'int-reportes',     to: '/desarrollador/reportes',       label: 'Reportes IA',    Icon: LineChart },
-      { key: 'int-site',         to: '/desarrollador/site-selection', label: 'Site Selection', Icon: MapPin },
     ],
   },
   // 5 · Red comercial (hub · Asesores/Equipo/Métricas/Alianzas + Solicitudes/Disputas fusionados)

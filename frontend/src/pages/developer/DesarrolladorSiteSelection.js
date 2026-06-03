@@ -306,7 +306,7 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
   );
 }
 
-export default function DesarrolladorSiteSelection({ user, onLogout }) {
+export default function DesarrolladorSiteSelection({ user, onLogout, embedded }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const prefillColonia = searchParams.get('prefill_colonia');
   const prefillState = searchParams.get('prefill_state');
@@ -375,7 +375,7 @@ export default function DesarrolladorSiteSelection({ user, onLogout }) {
     : null;
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="4.22 · SITE SELECTION AI"
         title="Selección de zonas"

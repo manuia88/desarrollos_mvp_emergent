@@ -19,12 +19,12 @@ const TABS = [
   { k: 'branded',    label: 'Reportes branded',  Icon: Bookmark },
 ];
 
-export default function DesarrolladorReportes({ user, onLogout }) {
+export default function DesarrolladorReportes({ user, onLogout, embedded }) {
   const [tab, setTab] = useState('executive');
   const [toast, setToast] = useState(null);
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="D9 · REPORTES IA + ANÁLISIS AVANZADO"
         title="Reportes ejecutivos e insights"

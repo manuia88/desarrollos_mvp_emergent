@@ -13,6 +13,8 @@ import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import DesarrolladorDemanda from './DesarrolladorDemanda';
 import DesarrolladorPricing from './DesarrolladorPricing';
 import DesarrolladorCompetidores from './DesarrolladorCompetidores';
+import DesarrolladorReportes from './DesarrolladorReportes';
+import DesarrolladorSiteSelection from './DesarrolladorSiteSelection';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
@@ -22,6 +24,8 @@ const AREAS = [
   ['demanda', 'Demanda'],
   ['precios', 'Precios'],
   ['competencia', 'Competencia'],
+  ['reportes', 'Reportes'],
+  ['site', 'Dónde construir'],
 ];
 
 const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -79,7 +83,6 @@ export default function DesarrolladorMercado({ user, onLogout }) {
               </button>
             );
           })}
-          <span style={{ alignSelf: 'center', padding: '0 10px', fontSize: 11, color: 'var(--cream-3)' }}>Reportes · Site Selection — próximo</span>
         </div>
       )}
 
@@ -87,6 +90,8 @@ export default function DesarrolladorMercado({ user, onLogout }) {
       {DEV_V2 && area === 'demanda' && <DesarrolladorDemanda user={user} embedded />}
       {DEV_V2 && area === 'precios' && <DesarrolladorPricing user={user} embedded />}
       {DEV_V2 && area === 'competencia' && <DesarrolladorCompetidores user={user} embedded />}
+      {DEV_V2 && area === 'reportes' && <DesarrolladorReportes user={user} embedded />}
+      {DEV_V2 && area === 'site' && <DesarrolladorSiteSelection user={user} embedded />}
 
       {/* ÁREA MERCADO — el terminal (default · y único en V1) */}
       {(!DEV_V2 || area === 'mercado') && (
