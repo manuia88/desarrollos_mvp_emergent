@@ -16,6 +16,7 @@ import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
+import MarketIntelligence from '../../components/developer/MarketIntelligence';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
@@ -360,6 +361,12 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             <div data-testid="dev-zone-intel" style={{ marginBottom: 22 }}>
               <div className="eyebrow" style={{ marginBottom: 8 }}>INTELIGENCIA DE TUS ZONAS</div>
               <ZoneIntelligence user={user} />
+            </div>
+
+            {/* Inteligencia de Mercado — 4 viz reales: embudo, plusvalía, precio/m² vs CDMX, radar */}
+            <div data-testid="dev-market-intel" style={{ marginBottom: 22 }}>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>INTELIGENCIA DE MERCADO · CDMX</div>
+              <MarketIntelligence user={user} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
