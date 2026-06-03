@@ -148,18 +148,16 @@ export const DEV_NAV_V2 = [
     badge_source: 'projects_health_below_60',
     description: 'Tu centro · cada proyecto abre inventario, precios, demanda y leads',
   },
-  // 3 · CRM & Leads (hub · Embudo, Leads, Auto-asignación + Mensajes fusionado)
+  // 3 · CRM & Leads (hub · re-arquitectura V2: workspace unificado con switch de vista
+  //   Tablero/Embudo/Lista/Bandeja + Automatizaciones. Embudo/Leads/Auto-asignación/Mensajes
+  //   dejaron de ser hijos — viven como vistas dentro del workspace.)
   {
     key: 'crm', to: '/desarrollador/crm', label: 'CRM & Leads', Icon: ClipboardList,
     badge_source: 'crm_unread_leads',
-    description: 'Embudo, leads, auto-asignación y conversaciones — todo el pipeline',
+    description: 'Tu pipeline completo — tablero, embudo, lista y bandeja en un solo lugar',
     children: [
-      { key: 'crm-tablero',  to: '/desarrollador/crm',                  label: 'Tablero',         Icon: ClipboardList, badge_source: 'crm_unread_leads' },
-      { key: 'crm-embudo',   to: '/desarrollador/crm/funnel',           label: 'Embudo',          Icon: GitMerge },
-      { key: 'crm-leads',    to: '/desarrollador/leads',                label: 'Leads',           Icon: Users },
-      { key: 'crm-autoasig', to: '/desarrollador/crm/auto-assignments', label: 'Auto-asignación', Icon: Share2 },
-      { key: 'crm-mensajes', to: '/desarrollador/mensajes',             label: 'Mensajes',        Icon: MessageSquare },
-      { key: 'crm-cerebro',  to: '/desarrollador/crm/sala-control',     label: 'Tu asistente', Icon: Sparkles },
+      { key: 'crm-pipeline', to: '/desarrollador/crm',              label: 'Pipeline',     Icon: ClipboardList, badge_source: 'crm_unread_leads' },
+      { key: 'crm-cerebro',  to: '/desarrollador/crm/sala-control', label: 'Tu asistente', Icon: Sparkles },
     ],
   },
   // 4 · Inteligencia (hub · cerebro de mercado)

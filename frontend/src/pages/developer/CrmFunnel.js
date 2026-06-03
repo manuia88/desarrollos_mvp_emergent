@@ -168,7 +168,7 @@ export default function CrmFunnel({ user, onLogout }) {
 }
 
 /* ── Funnel custom SVG horizontal bars ───────────────────────────── */
-function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismissSuggestion }) {
+export function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismissSuggestion }) {
   const stages = funnel.stages || [];
   const max = Math.max(...stages.map(s => s.count)) || 1;
   return (

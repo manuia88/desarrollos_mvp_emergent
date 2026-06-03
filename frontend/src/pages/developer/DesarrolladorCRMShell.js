@@ -14,8 +14,75 @@ import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelli
 import MatchWeightsPanel from '../../components/agentic_crm/MatchWeightsPanel';
 import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 import { Sparkle, Settings as SettingsIcon } from 'lucide-react';
+import { FunnelChart } from './CrmFunnel';
+import { getFunnel, getFunnelBreakdown, getFunnelSuggestion } from '../../api/metrics';
+import { listLeads, listProjectsWithStats } from '../../api/developer';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+
+// Embudo (re-ubicado al workspace · vista) — selector de proyecto + funnel reusado.
+function EmbudoView() {
+  const [projects, setProjects] = React.useState([]);
+  const [pid, setPid] = React.useState('');
+  const [funnel, setFunnel] = React.useState(null);
+  const [breakdown, setBreakdown] = React.useState(null);
+  const [suggestion, setSuggestion] = React.useState(null);
+  React.useEffect(() => {
+    listProjectsWithStats().then(r => {
+      const arr = Array.isArray(r) ? r : (r.projects || r.items || []);
+      setProjects(arr); if (arr[0]) setPid(arr[0].id);
+    }).catch(() => {});
+  }, []);
+  React.useEffect(() => {
+    if (!pid) return;
+    Promise.all([
+      getFunnel(pid, { period: '30d' }),
+      getFunnelBreakdown(pid, { period: '30d', dimension: 'utm_source' }),
+      getFunnelSuggestion(pid, '30d').catch(() => null),
+    ]).then(([f, b, sg]) => { setFunnel(f); setBreakdown(b); setSuggestion(sg?.suggestion || null); }).catch(() => { });
+  }, [pid]);
+  return (
+    <div data-testid="crm-embudo">
+      <div style={{ marginBottom: 14 }}>
+        <select data-testid="crm-embudo-project" value={pid} onChange={e => setPid(e.target.value)}
+          style={{ padding: '7px 13px', borderRadius: 9, border: '1px solid var(--border, rgba(var(--cream-rgb),0.14))', background: 'var(--surface, #fff)', color: 'var(--cream)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+      {funnel ? <FunnelChart funnel={funnel} breakdown={breakdown} suggestion={suggestion} suggestDismissed={false} onDismissSuggestion={() => { }} />
+        : <div style={{ padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Cargando embudo…</div>}
+    </div>
+  );
+}
+
+// Lista (re-ubicado al workspace · vista) — tabla de leads del dev.
+const LEAD_STAGE_LABEL = { nuevo: 'Nuevo', under_review: 'En revisión', contactado: 'Contactado', calificado: 'Calificado', cita_agendada: 'Cita', cerrado_ganado: 'Ganado', cerrado_perdido: 'Perdido' };
+function ListaView() {
+  const [leads, setLeads] = React.useState(null);
+  React.useEffect(() => { listLeads({ limit: 100 }).then(r => setLeads(r.items || r.leads || [])).catch(() => setLeads([])); }, []);
+  if (!leads) return <div style={{ padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Cargando leads…</div>;
+  if (!leads.length) return <div data-testid="crm-lista" style={{ padding: 48, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Aún no hay leads. Llegan de tus landings, del marketplace o de tus asesores.</div>;
+  const th = { textAlign: 'left', padding: '9px 12px', fontSize: 10.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--cream-3)', borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.10))' };
+  const td = { padding: '10px 12px', fontSize: 12.5, color: 'var(--cream-2)', borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' };
+  return (
+    <div data-testid="crm-lista" style={{ overflowX: 'auto', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr><th style={th}>Cliente</th><th style={th}>Proyecto</th><th style={th}>Etapa</th><th style={th}>Fuente</th><th style={th}>Asesor</th></tr></thead>
+        <tbody>
+          {leads.map((l, i) => (
+            <tr key={l.id || i}>
+              <td style={{ ...td, color: 'var(--cream)', fontWeight: 700 }}>{l.name || l.nombre || '—'}</td>
+              <td style={td}>{l.project_id || '—'}</td>
+              <td style={td}>{LEAD_STAGE_LABEL[l.status] || l.status || '—'}</td>
+              <td style={td}>{l.source || '—'}</td>
+              <td style={td}>{l.asesor_id ? (l.asesor_name || l.asesor_id) : <span style={{ color: 'var(--theme)' }}>Directo</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 const TABS = [
   { key: 'pipeline',  label: 'Pipeline',          phase: null },
@@ -66,7 +133,7 @@ function IASection({ title, children }) {
 function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
   const [view, setView] = React.useState(initialView);
   const [autoOpen, setAutoOpen] = React.useState(false);
-  const VIEWS = [['tablero', 'Tablero'], ['bandeja', 'Bandeja']];
+  const VIEWS = [['tablero', 'Tablero'], ['embudo', 'Embudo'], ['lista', 'Lista'], ['bandeja', 'Bandeja']];
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 4px 48px' }}>
@@ -93,7 +160,6 @@ function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
               </button>
             );
           })}
-          <span style={{ alignSelf: 'center', padding: '0 10px', fontSize: 11, color: 'var(--cream-3)' }}>Embudo · Lista — próximo</span>
         </div>
 
         {/* Automatizaciones IA (auto-asignación + ruteo/nurture/match) — ajuste, no pestaña */}
@@ -111,6 +177,8 @@ function CrmWorkspaceV2({ user, onLogout, orgId, initialView = 'tablero' }) {
         {/* Contenido de la vista */}
         <div data-testid="crm-workspace-content">
           {view === 'tablero' && <LeadKanban scope="all_org" />}
+          {view === 'embudo' && <EmbudoView />}
+          {view === 'lista' && <ListaView />}
           {view === 'bandeja' && <RepliesInbox asesorId={user?.user_id || user?.id || null} />}
         </div>
       </div>
