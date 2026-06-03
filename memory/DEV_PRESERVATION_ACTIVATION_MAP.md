@@ -131,6 +131,8 @@ MisProyectosV2 · DesarrolladorInventario (como pantalla aparte) · 3 alias kanb
 - ✅ **Proyecto-como-hub de tarjetas vivas** (lo que pediste): ProyectoDetail ahora abre con hub agrupado **Operar** (Ventas %vendido · Comercialización #leads · Avance · Insights salud/100) y **Ficha** (Contenido/Ubicación/Amenidades/Legal), cada tarjeta con su estado real + clic navega. Verificado en app. (Barra de tabs se mantiene como nav secundaria.)
 - ✅ Puente de Mando ya jerarquizado en Tanda 1 (brief → asistente → jugadas → dinero/alertas).
 - ⬜ Nav 6 casas (fusionar Red comercial en Ventas & Clientes) = cambio estructural visible → **recomiendo revisión del founder** (historial de iteración en estructura). No lo hago a ciegas para evitar rework.
-**Tanda 5 · limpieza:** retirar deuda muerta + rescatar pantallas varadas restantes + CitasPolicies/AutoAssign al menú.
+**Tanda 5 · LIMPIEZA: 🔄 parcial**
+- ✅ Retirado MisProyectosV2 (orfanato muerto, 0 refs). Build sano.
+- Pendiente: `/inventario` import muerto (route ya = Navigate→/proyectos), placeholders CRMShell (leads/citas/metricas redundantes vs nav), ruta dup metricas-equipo, 7 endpoints muertos backend. Sweep completo = follow-on.
 
 Regla: nada se construye hasta que esta pieza tenga su CASA marcada arriba. Flags maestros (CEREBRO/agentic) = decisión de deploy del founder; nosotros dejamos el cableado, UX y seguridad listos.
