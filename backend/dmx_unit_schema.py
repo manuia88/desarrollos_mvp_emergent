@@ -461,6 +461,89 @@ class Development(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ZONA (agregación geográfica · contrato para zone_score_engine + cubo)
+# Relaciones: Development.colonia_id/zona_id → Zone.zone_id · Zone.parent_zone_id
+# encadena colonia→alcaldía→cdmx. La Zona NO es multi-tenant (es mercado compartido);
+# cada dev ve la zona donde tiene proyectos + benchmark anónimo.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ZoneTier(str, Enum):
+    colonia = "colonia"
+    alcaldia = "alcaldia"
+    ageb = "ageb"
+    zona = "zona"
+    cdmx = "cdmx"
+
+
+class ZoneQualityScores(BaseModel):
+    """Livability 0-100 (COLONIAS seed) + extensiones IA-first (catálogo maestro)."""
+    vida: Optional[float] = None
+    movilidad: Optional[float] = None
+    seguridad: Optional[float] = None
+    comercio: Optional[float] = None
+    plusvalia: Optional[float] = None
+    educacion: Optional[float] = None
+    riesgo: Optional[float] = None              # mayor = menos riesgo
+    # extensiones que se autollenan con los motores/fuentes
+    walkability: Optional[float] = None
+    nightlife: Optional[float] = None
+    gentrificacion: Optional[float] = None      # gentrification velocity (colonia_history)
+    sustentabilidad: Optional[float] = None
+
+
+class ZoneIEComposite(BaseModel):
+    """Score IE real (zone_score_engine · db.zone_scores · 6 componentes)."""
+    score_numeric: Optional[float] = None
+    score_letter: Optional[str] = None
+    liquidez: Optional[float] = None
+    supply: Optional[float] = None
+    demand: Optional[float] = None
+    risk: Optional[float] = None
+    yield_score: Optional[float] = None
+    denue_density: Optional[float] = None
+
+
+class ZoneRisk(BaseModel):
+    """Risk composite (Atlas Riesgos + FGJ + SACMEX)."""
+    inundacion: Optional[float] = None
+    sismo: Optional[float] = None
+    criminalidad: Optional[float] = None
+    seguridad_hidrica: Optional[float] = None
+
+
+class Zone(BaseModel):
+    zone_id: str
+    tier: Optional[ZoneTier] = None
+    nombre: Optional[str] = None
+    alcaldia: Optional[str] = None
+    ageb: Optional[str] = None
+    parent_zone_id: Optional[str] = None        # colonia → alcaldía → cdmx
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    polygon: Optional[List[List[float]]] = None
+    color: Optional[str] = None
+    tier_comercial: Optional[str] = None        # Premium / Luxury / Trendy / Emergente
+
+    # Mercado (medidas actuales; el histórico vive en snapshots)
+    price_m2_mxn: Optional[float] = None
+    momentum_pct: Optional[float] = None
+    inventario: Optional[int] = None
+    absorcion_pct: Optional[float] = None
+
+    # Inteligencia
+    quality: ZoneQualityScores = Field(default_factory=ZoneQualityScores)
+    ie: ZoneIEComposite = Field(default_factory=ZoneIEComposite)
+    risk: ZoneRisk = Field(default_factory=ZoneRisk)
+
+    # Demanda viva
+    live_pulse_score: Optional[float] = None    # live_pulse_snapshots
+    denue_negocios: Optional[int] = None        # densidad económica
+    distancia_metro_m: Optional[float] = None
+
+    updated_at: Optional[datetime] = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CUBO OLAP — dimensiones y medidas (contrato para cube_olap_engine)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -495,6 +578,7 @@ COLLECTIONS = {
     "units": "dmx_units",                    # el átomo (estado actual)
     "developments": "dmx_developments",
     "prototypes": "dmx_prototypes",
+    "zones": "dmx_zones",                    # agregación geográfica (estado actual)
     "snapshots": "dmx_market_snapshots",     # append-only, histórico = activo
 }
 
@@ -513,8 +597,11 @@ INDEX_SPECS = {
     "dmx_prototypes": [
         [("development_id", 1)],
     ],
+    "dmx_zones": [
+        [("tier", 1)], [("parent_zone_id", 1)], [("alcaldia", 1)],
+    ],
     "dmx_market_snapshots": [
-        [("tier", 1), ("tier_id", 1), ("period", 1)],
+        [("tier", 1), ("tier_id", 1), ("measure", 1), ("period", 1)],
         [("computed_at", -1)],
     ],
 }
