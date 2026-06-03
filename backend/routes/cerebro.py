@@ -61,6 +61,17 @@ async def status(request: Request):
     return {"enabled": cerebro.CEREBRO_ENABLED, "role": role, "goals": goals, "custom_goals": customs}
 
 
+@router.post("/detect-market")
+async def detect_market(request: Request):
+    """Fase 2.4 · El Cerebro lee el CUBO (hedónico + demand-gap + prob. de venta) →
+    detecta señales → PROPONE tareas (con tu OK donde aplica). Aparecen en la Sala de
+    Control. Multi-tenant: mercado compartido; precio/estancadas = tus desarrollos."""
+    _guard_enabled()
+    user = await _auth(request)
+    import dmx_cerebro_market as m
+    return await m.detect_and_propose(_db(request), user)
+
+
 @router.get("/tasks")
 async def tasks(request: Request, status: Optional[str] = None):
     """Feed de la Sala de Control: tareas visibles para este usuario (scopeadas)."""
