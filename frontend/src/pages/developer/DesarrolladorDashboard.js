@@ -368,15 +368,16 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {!data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
-            {/* TABLERO CENTRAL — signos vitales + cada proyecto con todos sus instrumentos */}
-            <PortfolioCockpit />
-
-            {/* HOY · LO QUE MUEVE LA AGUJA — zona de acción (jugadas + asistente lado a lado) */}
+            {/* HOY · LO QUE MUEVE LA AGUJA — el Asistente protagonista ARRIBA (sintetiza el día);
+                el resto es drill-down. (arquitectura founder: "Asistente arriba, secciones como drill-downs") */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>HOY · LO QUE MUEVE LA AGUJA</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14, marginBottom: 26, alignItems: 'start' }} className="ddash-action">
               <div><DevPlaysWidget /></div>
               <div><AsistentePanel /></div>
             </div>
+
+            {/* TABLERO CENTRAL — signos vitales + cada proyecto con todos sus instrumentos (drill-down) */}
+            <PortfolioCockpit />
 
             {/* MERCADO — posición, alertas y pulso (ir a fondo en Inteligencia) */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>MERCADO</div>
