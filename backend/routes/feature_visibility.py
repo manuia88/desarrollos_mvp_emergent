@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 import feature_flags_engine as ff
 from feature_legacy_adapter import TIER_TO_FEATURES, merge_legacy_with_flags
 import feature_gate_engine as fg
+import dmx_plans  # capa de planes/snapshots GoHighLevel (sobre el feature-gate)
 from permissions import require_superadmin
 from audit_immutable_engine import log as audit_log
 
@@ -626,3 +627,58 @@ async def ab_bulk_csv_upload(request: Request):
         "rows_succeeded": rows_succeeded,
         "errors": row_errors,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PLANES / SNAPSHOTS estilo GoHighLevel (capa sobre el feature-gate · dmx_plans)
+# Superadmin provisiona un tenant asignándole un PLAN; aplicar = snapshot que prende
+# todas las features del plan de un jalón. Reusa guard + rate-limit + auditoría.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AssignPlanBody(BaseModel):
+    tenant_id: str = Field(..., min_length=1)
+    plan_id: str = Field(..., pattern=r"^(starter|pro|enterprise)$")
+    replace: bool = True
+
+
+@router.get(PREFIX + "/plans")
+async def list_plans(request: Request):
+    """Catálogo de planes (bundles) con sus features resueltas + precio."""
+    _rate_limit(request)
+    await require_superadmin(request)
+    return {"plans": dmx_plans.get_plans()}
+
+
+@router.get(PREFIX + "/plans/tenant/{tenant_id}")
+async def tenant_plan(tenant_id: str, request: Request):
+    """Plan actual de un tenant + sus features activas."""
+    _rate_limit(request)
+    await require_superadmin(request)
+    return await dmx_plans.get_tenant_plan(_db(request), tenant_id)
+
+
+@router.post(PREFIX + "/plans/assign")
+async def assign_plan(body: AssignPlanBody, request: Request):
+    """Asigna (snapshot) un plan a un tenant: prende todas sus features de un jalón."""
+    _rate_limit(request)
+    actor = await require_superadmin(request)
+    db = _db(request)
+    try:
+        result = await dmx_plans.apply_plan(
+            db, body.tenant_id, body.plan_id,
+            actor_user_id=getattr(actor, "user_id", None), replace=body.replace,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    try:
+        await audit_log(
+            db,
+            actor={"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"},
+            action="plan_assign", entity_type="tenant", entity_id=body.tenant_id,
+            before=None,
+            after={"plan_id": body.plan_id, "tier": result.get("tier"),
+                   "enabled": len(result.get("enabled", [])), "disabled": result.get("disabled", [])},
+        )
+    except Exception:
+        pass  # auditoría best-effort · no bloquea la asignación
+    return {"ok": True, **result}
