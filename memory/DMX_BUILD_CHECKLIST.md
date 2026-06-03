@@ -26,11 +26,11 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 0.4 `backend/dmx_snapshots.py` snapshots append-only (write/read_timeseries/latest, dedup) · round-trip Mongo verificado · tag dmx-fase0.3-0.4.
 - [x] 0.5 `backend/dmx_plans.py` planes/snapshots GoHighLevel + 3 endpoints superadmin · apply_plan=snapshot, downgrade limpio, self-maintaining · tag dmx-fase0.5-plans-snapshots.
 
-### FASE 1 · El cubo (motor de inteligencia de mercado)
-- [ ] 1.1 Alimentar `cube_olap_engine` con el átomo rico (todas las dimensiones/medidas).
-- [ ] 1.2 Agregaciones por 6 jerarquías (geo/producto/tiempo/amenidad/comprador/banda).
-- [ ] 1.3 Auto-llenado NLP (extraction_engine): leer brochure/PDF → llenar el átomo.
-- [ ] 1.4 Conectores en stub de fuentes que aún no fluyen (AirROI, DENUE, GTFS, catastro…): listos y dormidos.
+### FASE 1 · El cubo (motor de inteligencia de mercado) ✅ COMPLETA 2026-06-03
+- [x] 1.1 `dmx_cube_feed.py` alimenta el cubo desde el ÁTOMO (backfill 496 unidades reales en dmx_units) · cube lee átomo-primero + seed enriquecido · tag dmx-fase1.1-1.2-cubo.
+- [x] 1.2 +6 dimensiones (tipologia/recamaras/banda_m2/has_roof/has_bodega/parking_type) + medidas (avg_m2/absorcion_pct/por_cobrar) · dim 'zone' arreglada · responde precio/m² y absorción por tipología/zona/roof.
+- [x] 1.3 `dmx_atom_autofill.py` brochure/'lp' → átomo fill-only + extract_lp_units (Claude, dormant-safe) + POST /atom/from-text.
+- [x] 1.4 `dmx_external_enrich.py` AirROI/GTFS/DENUE/catastro → Zona vía connectors_ie (is_stub dormido hasta key) + POST /enrich-zone. tag dmx-fase1.3-1.4 · dmx-fase1-complete.
 
 ### FASE 2 · Capas IA sobre el cubo
 - [ ] 2.1 AVM hedónico por unidad (cada atributo explica precio/m²) + **amenity value ranker**.
