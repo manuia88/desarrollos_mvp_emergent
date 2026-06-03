@@ -19,12 +19,12 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 ## CHECKLIST DE PASOS (foundation-first)
 ═══════════════════════════════════════════════
 
-### FASE 0 · Cimientos del molde (control plane + contrato de datos)
-- [ ] 0.1 Auditar y cerrar el modelo multi-tenant: un helper único de scoping (org/tenant), confirmar superadmin=god / dev=slice / asesor=slice. Cerrar fugas cross-tenant.
-- [ ] 0.2 **Contrato de datos: esquema UNIDAD milimétrico** (Pydantic + Mongo) — 17 grupos A-Q de DMX_SPINE_MASTER. Todo nullable (sin dato = null).
-- [ ] 0.3 Esquemas DESARROLLO · PROTOTIPO · AMENIDAD (taxonomía ~50 enum) · ZONA. Relaciones + índices.
-- [ ] 0.4 Snapshots temporales (colección append-only, nunca sobreescribir). El historial = activo.
-- [ ] 0.5 Entitlement/Snapshot engine (GoHighLevel): catálogo self-registering de features + definición de planes + asignación por tenant + check FAIL-OPEN. (sobre W5.FF.)
+### FASE 0 · Cimientos del molde (control plane + contrato de datos) ✅ COMPLETA 2026-06-02
+- [x] 0.1 Multi-tenant: `backend/tenant_scope.py` fuente única · FUGA cerrada (developer.py daba TODO a todos) · superadmin=god/dev=slice · tag dmx-fase0.1-multitenant.
+- [x] 0.2 `backend/dmx_unit_schema.py` — contrato UNIDAD milimétrico (17 grupos A-Q · 12 tipologías · ENUM estacionamiento completo · 77 amenidades · todo nullable) · tag dmx-fase0.2-unit-contract.
+- [x] 0.3 Zona + relaciones + Development/Prototype/Amenity/Security (en dmx_unit_schema) · IE composite fiel a zone_score_engine · tag dmx-fase0.3-0.4.
+- [x] 0.4 `backend/dmx_snapshots.py` snapshots append-only (write/read_timeseries/latest, dedup) · round-trip Mongo verificado · tag dmx-fase0.3-0.4.
+- [x] 0.5 `backend/dmx_plans.py` planes/snapshots GoHighLevel + 3 endpoints superadmin · apply_plan=snapshot, downgrade limpio, self-maintaining · tag dmx-fase0.5-plans-snapshots.
 
 ### FASE 1 · El cubo (motor de inteligencia de mercado)
 - [ ] 1.1 Alimentar `cube_olap_engine` con el átomo rico (todas las dimensiones/medidas).
