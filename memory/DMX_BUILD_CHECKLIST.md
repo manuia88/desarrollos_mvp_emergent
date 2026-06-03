@@ -44,10 +44,10 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 3.3 **Asesor mold** ✅ 2026-06-03: `routes/asesor_market.py` (amenity-ranker + demand-gap, auth advisor) · `AsesorMarketIntel.js` 'INTELIGENCIA DE MERCADO · PARA VENDER' (argumentos de valor 'Destaca roof +6%' + zonas con compradores) en AsesorCommandCenter · verificado en app. tag dmx-fase3.3-asesor-mold.
 - [x] 3.4 **Comprador** ✅ 2026-06-03: `routes/public_market.py` (amenity-ranker público, sin auth, rate-limited) · `MarketValueCard.js` 'POR QUÉ VALE' (atributos que suman valor, 'no es opinión es dato') en la ficha pública DevelopmentDetail · verificado en app. tag dmx-fase3.4-comprador.
 
-### FASE 4 · Distribución / monetización (del doc)
-- [ ] 4.1 SEO programático por AGEB (del cubo).
-- [ ] 4.2 IE as API / data marketplace (vender el cubo).
-- [ ] 4.3 Transparency Index público (cubo anónimo).
+### FASE 4 · Distribución / monetización (del doc) 🔵 4.2+4.3 ✅ 2026-06-03
+- [~] 4.1 SEO programático por AGEB — DATA LAYER listo (GET /api/public/market/index + /amenity-ranker por colonia). Las páginas SSR son infra (Next.js; el app es CRA) → diferido a infra.
+- [x] 4.2 IE as API / data marketplace: `GET /api/public/market/index` (+ amenity-ranker) — cubo ANÓNIMO consumible vía API, sin auth, rate-limited, k-anon (<5 omitido). tag dmx-fase4-data-marketplace.
+- [x] 4.3 Transparency Index público: `DMXMarketIndex.js` en /inteligencia (15 colonias · precio/m²/absorción/inv · 'DMX no opina, mide'). verificado en app.
 
 ### FASE 5 · Activación por plan (GoHighLevel)
 - [ ] 5.1 Definir planes (qué features incluye cada uno).
