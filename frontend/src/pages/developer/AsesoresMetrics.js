@@ -20,13 +20,13 @@ const PERIOD_FILTERS = [{
   ],
 }];
 
-export default function AsesoresMetrics({ user, onLogout }) {
+export default function AsesoresMetrics({ user, onLogout, embedded }) {
   const [period, setPeriod] = useState('30d');
   const handle = useCallback((k, v) => {
     if (k === 'period') setPeriod(v || '30d');
   }, []);
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
         eyebrow="CRM · ASESORES"
         title="Métricas del equipo"

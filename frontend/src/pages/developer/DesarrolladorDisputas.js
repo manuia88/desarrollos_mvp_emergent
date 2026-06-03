@@ -395,7 +395,7 @@ const textareaStyle = {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function DesarrolladorDisputas({ user, onLogout }) {
+export default function DesarrolladorDisputas({ user, onLogout, embedded }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -479,7 +479,7 @@ export default function DesarrolladorDisputas({ user, onLogout }) {
   };
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="disputes-page" style={{ padding: '8px 4px 60px 4px', maxWidth: 1280, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>

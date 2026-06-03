@@ -31,7 +31,7 @@ import {
   Activity, Link, Bot, Bell, Radar, LineChart,
   // DEV_NAV_V2 (B7-dev F2 · sidebar reorg desarrollador)
   LayoutDashboard, Swords, Network, HeartHandshake,
-  Settings, Package, FolderOpen, FolderUp, BarChart2, AlertTriangle,
+  Settings, Package, FolderOpen, FolderUp,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -174,15 +174,12 @@ export const DEV_NAV_V2 = [
   // 5 · Red comercial (hub · Asesores/Equipo/Métricas/Alianzas + Solicitudes/Disputas fusionados)
   {
     key: 'red-comercial', to: '/desarrollador/red-comercial', label: 'Red comercial', Icon: Network,
-    description: 'Asesores, equipo, métricas, alianzas y bandeja de solicitudes/disputas',
+    description: 'Tu red completa — asesores, equipo, métricas y operación (solicitudes/disputas)',
+    // V2 re-arquitectura: Equipo/Métricas/Solicitudes/Disputas son ÁREAS del centro "Tu red"
+    // (/red-comercial). Alianzas queda aparte (usa componente compartido con layout propio).
     children: [
-      { key: 'rc-red',         to: '/desarrollador/red-comercial',        label: 'Red comercial',     Icon: Network },
-      { key: 'rc-equipo',      to: '/desarrollador/usuarios',             label: 'Equipo',            Icon: Users },
-      { key: 'rc-met-eq',      to: '/desarrollador/crm/metricas-equipo',  label: 'Métricas equipo',   Icon: BarChart2 },
-      { key: 'rc-met-ase',     to: '/desarrollador/crm/asesores-metrics', label: 'Métricas asesores', Icon: BarChart2 },
-      { key: 'rc-alianzas',    to: '/desarrollador/cross-partnerships',   label: 'Alianzas',          Icon: HeartHandshake },
-      { key: 'rc-solicitudes', to: '/desarrollador/solicitudes',          label: 'Solicitudes',       Icon: Users,         badge_source: 'whitelist_pending_count' },
-      { key: 'rc-disputas',    to: '/desarrollador/disputas',             label: 'Disputas leads',    Icon: AlertTriangle, badge_source: 'disputes_pending_count' },
+      { key: 'rc-red',      to: '/desarrollador/red-comercial',      label: 'Tu red',   Icon: Network, badge_source: 'whitelist_pending_count' },
+      { key: 'rc-alianzas', to: '/desarrollador/cross-partnerships', label: 'Alianzas', Icon: HeartHandshake },
     ],
   },
   // 6 · Marketing (hub · ex-Studio + Mini Market fusionado)

@@ -8,6 +8,23 @@ import {
 } from 'lucide-react';
 import { getDevRedComercial } from '../../api/directories';
 import { Z } from '../../styles/zIndex';
+import DesarrolladorUsuarios from './DesarrolladorUsuarios';
+import MetricasEquipo from './MetricasEquipo';
+import AsesoresMetrics from './AsesoresMetrics';
+import DesarrolladorSolicitudes from './DesarrolladorSolicitudes';
+import DesarrolladorDisputas from './DesarrolladorDisputas';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+const API = process.env.REACT_APP_BACKEND_URL;
+// Áreas del centro "Tu red" (re-arquitectura · consolida las hojas sueltas).
+const RED_AREAS = [
+  ['red', 'Mi red'],
+  ['equipo', 'Equipo'],
+  ['met-equipo', 'Métricas equipo'],
+  ['met-asesores', 'Métricas asesores'],
+  ['solicitudes', 'Solicitudes'],
+  ['disputas', 'Disputas'],
+];
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -198,6 +215,17 @@ export default function DesarrolladorRedComercial({ user, onLogout }) {
   const [tab, setTab] = useState('inmobiliarias');
   const [search, setSearch] = useState('');
   const [drawer, setDrawer] = useState(null);
+  const [area, setArea] = useState('red');                 // V2: red | equipo | met-* | solicitudes | disputas
+  const [ops, setOps] = useState({ solicitudes: 0, disputas: 0 });
+
+  // IA-first · señales reales de operación de la red (acceso pendiente + disputas a arbitrar).
+  useEffect(() => {
+    if (!DEV_V2) return;
+    Promise.allSettled([
+      fetch(`${API}/api/dev/whitelist/pending`, { credentials: 'include' }).then(r => r.json()).then(d => d?.pending?.length ?? d?.count ?? 0).catch(() => 0),
+      fetch(`${API}/api/dev/disputes/pending`, { credentials: 'include' }).then(r => r.json()).then(d => (typeof d?.count === 'number' ? d.count : (d?.pending?.length ?? 0))).catch(() => 0),
+    ]).then(([s, d]) => setOps({ solicitudes: s.status === 'fulfilled' ? s.value : 0, disputas: d.status === 'fulfilled' ? d.value : 0 }));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -215,6 +243,50 @@ export default function DesarrolladorRedComercial({ user, onLogout }) {
 
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
+      {/* IA-first · asistente de red: lo que requiere TU turno (acceso pendiente + arbitraje). */}
+      {DEV_V2 && (ops.solicitudes > 0 || ops.disputas > 0) && (
+        <div data-testid="red-assistant-strip" style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderLeft: '4px solid var(--warm, #E2982E)', borderRadius: 14, padding: '13px 16px', marginBottom: 16 }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--theme)' }}>TU RED · TU TURNO</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {ops.solicitudes > 0 && (
+              <button onClick={() => setArea('solicitudes')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '7px 12px', borderRadius: 9, border: '1px solid rgba(226,152,46,0.25)', background: 'rgba(226,152,46,0.08)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>
+                🔓 {ops.solicitudes} solicitud{ops.solicitudes === 1 ? '' : 'es'} de acceso → revisar
+              </button>
+            )}
+            {ops.disputas > 0 && (
+              <button onClick={() => setArea('disputas')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '7px 12px', borderRadius: 9, border: '1px solid rgba(226,152,46,0.25)', background: 'rgba(226,152,46,0.08)', fontFamily: 'DM Sans,sans-serif', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>
+                ⚖️ {ops.disputas} disputa{ops.disputas === 1 ? '' : 's'} por arbitrar → revisar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Switch de áreas (V2) — consolida las hojas de la red en un solo centro. */}
+      {DEV_V2 && (
+        <div data-testid="red-area-switcher" style={{ display: 'inline-flex', gap: 3, background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 9999, padding: 3, marginBottom: 20, flexWrap: 'wrap' }}>
+          {RED_AREAS.map(([k, lbl]) => {
+            const on = area === k;
+            return (
+              <button key={k} data-testid={`red-area-${k}`} onClick={() => setArea(k)}
+                style={{ padding: '7px 14px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif', fontSize: 12, fontWeight: on ? 700 : 500 }}>
+                {lbl}
+              </button>
+            );
+          })}
+          <span style={{ alignSelf: 'center', padding: '0 10px', fontSize: 11, color: 'var(--cream-3)' }}>Alianzas — en menú</span>
+        </div>
+      )}
+
+      {/* Áreas embebidas (reusan las hojas sin doble layout · bare). */}
+      {DEV_V2 && area === 'equipo' && <DesarrolladorUsuarios user={user} embedded />}
+      {DEV_V2 && area === 'met-equipo' && <MetricasEquipo user={user} embedded />}
+      {DEV_V2 && area === 'met-asesores' && <AsesoresMetrics user={user} embedded />}
+      {DEV_V2 && area === 'solicitudes' && <DesarrolladorSolicitudes user={user} embedded />}
+      {DEV_V2 && area === 'disputas' && <DesarrolladorDisputas user={user} embedded />}
+
+      {/* ÁREA MI RED — el directorio (default · y único en V1) */}
+      {(!DEV_V2 || area === 'red') && (
       <div data-testid="dev-red-comercial" style={{ maxWidth: 1100 }}>
         <div style={{ marginBottom: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -271,6 +343,7 @@ export default function DesarrolladorRedComercial({ user, onLogout }) {
           </div>
         )}
       </div>
+      )}
       <Drawer entity={drawer} onClose={() => setDrawer(null)} />
     </DeveloperLayout>
   );

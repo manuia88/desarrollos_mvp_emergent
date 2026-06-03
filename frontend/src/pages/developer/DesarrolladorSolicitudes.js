@@ -202,7 +202,7 @@ function RevokeModal({ onClose, onConfirm, busy }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function DesarrolladorSolicitudes({ user, onLogout }) {
+export default function DesarrolladorSolicitudes({ user, onLogout, embedded }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('pending');
@@ -309,7 +309,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
   };
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="desarrollador-solicitudes" style={{ maxWidth: 980 }}>
 
         {/* Toast */}

@@ -26,7 +26,7 @@ const PERIOD_FILTER_CONFIG = [{
   ],
 }];
 
-export default function MetricasEquipo({ user, onLogout }) {
+export default function MetricasEquipo({ user, onLogout, embedded }) {
   const [period, setPeriod] = useState('30d');
   const handleFilterChange = useCallback((key, value) => {
     if (key === 'period') {
@@ -35,7 +35,7 @@ export default function MetricasEquipo({ user, onLogout }) {
   }, []);
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <div
         data-testid="metricas-equipo-page"
         style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 24px', fontFamily: 'DM Sans' }}

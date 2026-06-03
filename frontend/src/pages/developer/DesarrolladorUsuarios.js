@@ -87,7 +87,7 @@ function InviteModal({ onClose, onSuccess }) {
   );
 }
 
-export default function DesarrolladorUsuarios({ user, onLogout }) {
+export default function DesarrolladorUsuarios({ user, onLogout, embedded }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
@@ -116,7 +116,7 @@ export default function DesarrolladorUsuarios({ user, onLogout }) {
   };
 
   return (
-    <DeveloperLayout user={user} onLogout={onLogout}>
+    <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <div data-testid="desarrollador-usuarios" style={{ maxWidth: 880 }}>
         {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: 'var(--blue)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>{toast}</div>}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
