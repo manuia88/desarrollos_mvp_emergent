@@ -395,6 +395,18 @@ async def atom_from_text_route(body: AtomFromTextBody, request: Request):
     return await af.extract_and_autofill(_db(request), body.development_id, body.text, dev)
 
 
+# ─── Fase 2.1 · GET /amenity-ranker — hedónico sobre el átomo (BEFORE /{tier}) ──
+@router.get(PREFIX + "/amenity-ranker")
+async def amenity_ranker_route(request: Request, colonia: Optional[str] = Query(None)):
+    """Regresión hedónica sobre el átomo: cuánto suma cada atributo (roof/bodega/2º
+    cajón/terraza/balcón) al precio/m², controlando por colonia. Responde la pregunta
+    estrella del founder. Opcional ?colonia= para acotar la zona."""
+    await _require_superadmin(request)
+    import dmx_hedonic_atom as hed
+    scope = {"geo.colonia_id": colonia} if colonia else None
+    return await hed.fit_and_rank(_db(request), scope)
+
+
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
 @router.get(PREFIX + "/{tier}")
 async def list_tier_route(
