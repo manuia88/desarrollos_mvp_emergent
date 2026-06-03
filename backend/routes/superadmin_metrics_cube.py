@@ -367,6 +367,34 @@ async def backfill_atom_route(request: Request):
     return {"ok": True, **res}
 
 
+# ─── Fase 1.4 · POST /enrich-zone — fuentes externas → zona (dormant-safe, BEFORE /{tier}) ──
+@router.post(PREFIX + "/enrich-zone")
+async def enrich_zone_route(request: Request, zone_id: str = Query(...)):
+    """Enriquece una zona con AirROI/GTFS/DENUE/catastro. Conectado pero dormido:
+    valores estimados (is_stub) hasta configurar la key → luego autofill real."""
+    await _require_superadmin(request)
+    import dmx_external_enrich as enr
+    res = await enr.enrich_zone(_db(request), zone_id)
+    return {"ok": True, "external": res}
+
+
+# ─── Fase 1.3 · POST /atom/from-text — extracción NLP → autollenar átomo (BEFORE /{tier}) ──
+class AtomFromTextBody(BaseModel):
+    development_id: str
+    text: str
+
+
+@router.post(PREFIX + "/atom/from-text")
+async def atom_from_text_route(body: AtomFromTextBody, request: Request):
+    """Extrae unidades de texto (brochure/lista de precios) y autollena el átomo
+    (fill-only). Dormant-safe: sin LLM key → no rompe, marca dormant."""
+    await _require_superadmin(request)
+    import dmx_atom_autofill as af
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(body.development_id)
+    return await af.extract_and_autofill(_db(request), body.development_id, body.text, dev)
+
+
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
 @router.get(PREFIX + "/{tier}")
 async def list_tier_route(
