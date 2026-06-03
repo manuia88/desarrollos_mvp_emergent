@@ -15,7 +15,7 @@ import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
-import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
+import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
@@ -356,25 +356,11 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             {/* MERCADO — posición, alertas y pulso (ir a fondo en Inteligencia) */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>MERCADO</div>
 
-            {/* W5.5 P2 — Pulso de tus zonas */}
-            {(() => {
-              const slugs = Array.from(new Set(
-                (data?.developments || data?.projects || [])
-                  .map((p) => p.zone_slug || p.colonia_slug || p.zone || p.colonia)
-                  .filter(Boolean)
-              )).slice(0, 5);
-              if (slugs.length === 0) return null;
-              return (
-                <div data-testid="dev-pulse-widgets" style={{ marginBottom: 22 }}>
-                  <div className="eyebrow" style={{ marginBottom: 8 }}>PULSO DE TUS ZONAS</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-                    {slugs.map((s) => (
-                      <LivePulseZoneWidget key={s} zone_slug={s} user={user} compact />
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Inteligencia de Zona — mercado (Live Pulse) × tu negocio + veredicto de acción */}
+            <div data-testid="dev-zone-intel" style={{ marginBottom: 22 }}>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>INTELIGENCIA DE TUS ZONAS</div>
+              <ZoneIntelligence user={user} />
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
               <Card onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
