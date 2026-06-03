@@ -25,13 +25,97 @@ import Tour3DUploader from '../../components/tour3d/Tour3DUploader';
 import Tour3DOnboardingWizard from '../../components/tour3d/Tour3DOnboardingWizard';
 import Tour3DViewer from '../../components/tour3d/Tour3DViewer';
 import { EntityDrawer } from '../../components/shared/EntityDrawer';
-import { getProjectSummary } from '../../api/developer';
+import { getProjectSummary, listProjectsWithStats, getDevAmenityRanker } from '../../api/developer';
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
-import InlineEditField from '../../components/shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import { Z } from '../../styles/zIndex';
+
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', gris: 'var(--cream-3)' };
+
+// ─── Operación del activo (IA-first · upgrade Mis Proyectos) ──────────────────
+// Surfacea motores vivos que no tenían UI en la ficha: margen semáforo, absorción
+// (meses para agotar) y qué atributo sube el valor en la zona. Lee, no edita.
+function AssetOpCockpit({ slug, summary }) {
+  const [margin, setMargin] = useState(null);
+  const [absorption, setAbsorption] = useState(null);
+  const [driver, setDriver] = useState(null);
+  useEffect(() => {
+    listProjectsWithStats()
+      .then(r => {
+        const arr = Array.isArray(r) ? r : (r.projects || r.items || []);
+        const p = arr.find(x => x.id === slug) || arr.find(x => (x.name || '') === (summary?.name || ''));
+        if (p) {
+          setMargin(p.margin || null);
+          const by = p.units_by_status || {};
+          const avail = by.disponible || 0;
+          const ws = p.weekly_sales || [];
+          const rate = ws.length ? ws.slice(-4).reduce((a, b) => a + b, 0) / Math.min(4, ws.slice(-4).length) : 0;
+          setAbsorption(rate > 0 ? { months: Math.round(avail / (rate * 4.33)), avail, rate: rate.toFixed(1) } : { months: null, avail, rate: '0' });
+        }
+      })
+      .catch(() => {});
+    // Modelo hedónico es cross-zona: global (sano), no por colonia (muestra chica = ruido).
+    // "Qué SUBE el valor" → top atributo POSITIVO significativo (no el de mayor impacto absoluto).
+    getDevAmenityRanker()
+      .then(d => {
+        const pos = (d.amenity_ranker || []).filter(a => a.significativo && a.impacto_pct_precio_m2 > 0)
+          .sort((a, b) => b.impacto_pct_precio_m2 - a.impacto_pct_precio_m2);
+        setDriver(pos[0] || null);
+      })
+      .catch(() => {});
+  }, [slug, summary]);
+
+  const Card = ({ children, accent }) => (
+    <div style={{ background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 13, padding: '13px 15px', borderLeft: `3px solid ${accent}` }}>{children}</div>
+  );
+  return (
+    <div data-testid="asset-op-cockpit" style={{ marginBottom: 20 }}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>OPERACIÓN DEL ACTIVO</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+        {/* Margen */}
+        <Card accent={margin ? MARGIN_COLORS[margin.color] : 'var(--cream-3)'}>
+          <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 3 }}>Margen estimado</div>
+          {margin && margin.margin_pct != null ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: MARGIN_COLORS[margin.color] }} />
+                <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>{margin.margin_pct}%</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: MARGIN_COLORS[margin.color], marginTop: 3 }}>{margin.verdict}</div>
+            </>
+          ) : <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>—</div>}
+        </Card>
+        {/* Absorción */}
+        <Card accent="var(--theme, #6D4AFF)">
+          <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 3 }}>Se agota en</div>
+          {absorption ? (
+            <>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
+                {absorption.months != null ? `${absorption.months} meses` : 'sin ritmo'}
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 3 }}>{absorption.avail} uds · ritmo {absorption.rate}/sem</div>
+            </>
+          ) : <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>—</div>}
+        </Card>
+        {/* Qué sube el valor en la zona */}
+        <Card accent="var(--ok, #1FA06A)">
+          <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 3 }}>Qué sube el valor · tu mercado</div>
+          {driver ? (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>{driver.atributo}</div>
+              <div style={{ fontSize: 10.5, color: driver.impacto_pct_precio_m2 >= 0 ? 'var(--ok, #1FA06A)' : 'var(--hot, #F2635B)', marginTop: 3 }}>
+                {driver.impacto_pct_precio_m2 >= 0 ? '+' : ''}{driver.impacto_pct_precio_m2}% en precio/m² · tu mercado
+              </div>
+            </>
+          ) : <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Aún sin muestra suficiente</div>}
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 const STAGE_LABELS = {
   preventa: 'Preventa',
@@ -370,6 +454,11 @@ export default function ProyectoDetail({ user, onLogout }) {
           <div style={{ marginBottom: 20 }}>
             <KPIStrip items={kpiItems} />
           </div>
+        )}
+
+        {/* V2 · Operación del activo (IA-first): margen, absorción, qué sube el valor. */}
+        {DEV_V2 && !loading && summary && (
+          <AssetOpCockpit slug={slug} summary={summary} />
         )}
 
         {/* Phase 4 Batch 16 — AI Suggestions Inline */}
