@@ -38,10 +38,12 @@ const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E29
 // ─── Operación del activo (IA-first · upgrade Mis Proyectos) ──────────────────
 // Surfacea motores vivos que no tenían UI en la ficha: margen semáforo, absorción
 // (meses para agotar) y qué atributo sube el valor en la zona. Lee, no edita.
+const SCORE_COLOR = (g) => (['AAA', 'AA'].includes(g) ? 'var(--ok, #1FA06A)' : ['A', 'B'].includes(g) ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
 function AssetOpCockpit({ slug, summary }) {
   const [margin, setMargin] = useState(null);
   const [absorption, setAbsorption] = useState(null);
   const [driver, setDriver] = useState(null);
+  const [score, setScore] = useState(null);
   useEffect(() => {
     listProjectsWithStats()
       .then(r => {
@@ -49,6 +51,7 @@ function AssetOpCockpit({ slug, summary }) {
         const p = arr.find(x => x.id === slug) || arr.find(x => (x.name || '') === (summary?.name || ''));
         if (p) {
           setMargin(p.margin || null);
+          setScore(p.full_score || null);
           const by = p.units_by_status || {};
           const avail = by.disponible || 0;
           const ws = p.weekly_sales || [];
@@ -74,6 +77,29 @@ function AssetOpCockpit({ slug, summary }) {
   return (
     <div data-testid="asset-op-cockpit" style={{ marginBottom: 20 }}>
       <div className="eyebrow" style={{ marginBottom: 8 }}>OPERACIÓN DEL ACTIVO</div>
+
+      {/* "1 número" — Full Project Score (titular · funde las 5 señales en uno comparable) */}
+      {score && score.score != null && (
+        <div data-testid="full-score" style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderLeft: `4px solid ${SCORE_COLOR(score.grade)}`, borderRadius: 14, padding: '14px 18px', marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 34, color: 'var(--cream)', lineHeight: 1 }}>{score.score}</span>
+            <span style={{ fontSize: 13, color: 'var(--cream-3)' }}>/100</span>
+            <span style={{ marginLeft: 4, fontSize: 13, fontWeight: 800, color: '#fff', background: SCORE_COLOR(score.grade), borderRadius: 7, padding: '3px 9px' }}>{score.grade}</span>
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--cream)', fontFamily: 'DM Sans,sans-serif' }}>Score del proyecto · 1 número</div>
+            <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2 }}>
+              Funde salud + margen + absorción + ritmo + demanda. Comparable entre proyectos.
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 5 }}>
+              {(score.breakdown || []).map((b, i) => (
+                <span key={i} style={{ fontSize: 10, color: 'var(--cream-2)' }}>{b.dim} <b style={{ color: 'var(--cream)' }}>{b.value}</b></span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {/* Margen */}
         <Card accent={margin ? MARGIN_COLORS[margin.color] : 'var(--cream-3)'}>

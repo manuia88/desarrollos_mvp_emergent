@@ -13,6 +13,8 @@ import DuplicateProjectModal from '../../components/dev/DuplicateProjectModal';
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 // Margen semáforo (upgrade Mis Proyectos · B02) — color del estado de margen del proyecto.
 const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', gris: 'var(--cream-3)' };
+// "1 número" — color por grado del Full Project Score.
+const SCORE_COLOR = (g) => (['AAA', 'AA'].includes(g) ? 'var(--ok, #1FA06A)' : ['A', 'B'].includes(g) ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
 
 // ─── Mini Sparkline SVG ──────────────────────────────────────────────────────
 function MiniSparkline({ data = [], color = '#22c55e', width = 80, height = 28 }) {
@@ -192,6 +194,16 @@ function ProjectCard({ project, onClick, onDuplicate }) {
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--cream-3)' }}>
             {project.colonia}
           </p>
+          {/* "1 número" — Full Project Score (V2) · comparable entre proyectos */}
+          {DEV_V2 && project.full_score && project.full_score.score != null && (
+            <div data-testid={`score-${project.id}`} title="Score del proyecto: funde salud, margen, absorción, ritmo y demanda"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{project.full_score.score}</span>
+              <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>/100</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: SCORE_COLOR(project.full_score.grade), borderRadius: 6, padding: '2px 7px' }}>{project.full_score.grade}</span>
+              <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>score</span>
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}

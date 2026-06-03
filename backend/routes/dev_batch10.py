@@ -333,6 +333,15 @@ async def list_projects_with_stats(request: Request):
         for r in results:
             r.pop("_price_m2", None)
 
+    # "1 número" — Full Project Score (upgrade Inteligencia · E01): funde salud + margen +
+    # absorción + ritmo + demanda en un score 0-100 comparable. fail-open.
+    try:
+        import dmx_project_score
+        for r in results:
+            r["full_score"] = dmx_project_score.compute(r)
+    except Exception:
+        pass
+
     return results
 
 
