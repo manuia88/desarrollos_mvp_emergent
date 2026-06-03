@@ -47,6 +47,7 @@ import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard'
 // W6.MOV.5 — Construction Quality Badge
 import ConstructionQualityBadge from '../components/property/ConstructionQualityBadge';
 import { getQualityIndex } from '../api/constructionQuality';
+import MarketValueCard from '../components/marketplace/MarketValueCard';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -324,6 +325,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
             />
           </section>
+
+          {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
+          <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
 
           {/* Narrativa AI — N5 (Phase C2) */}
           <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>

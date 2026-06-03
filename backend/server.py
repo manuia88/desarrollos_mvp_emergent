@@ -936,6 +936,10 @@ app.include_router(maps_cross_router)
 from routes.avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
+# Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
+from routes.public_market import router as public_market_router
+app.include_router(public_market_router)
+
 # W5.1 — AVM accuracy superadmin dashboard
 from routes.avm_accuracy import router as avm_accuracy_router
 app.include_router(avm_accuracy_router)
