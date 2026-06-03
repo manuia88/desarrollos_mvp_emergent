@@ -8,6 +8,7 @@ import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import ScoreBadge from '../components/investment/ScoreBadge';
+import DMXMarketIndex from '../components/marketplace/DMXMarketIndex';
 import { useAuth } from '../App';
 
 const CATEGORIES = [
@@ -51,6 +52,9 @@ export default function Inteligencia() {
           es una lectura verificable del territorio — el mismo motor que alimenta los
           dashboards del portal del desarrollador y el argumentario del asesor.
         </p>
+
+        {/* Fase 4 · Índice DMX de Mercado (público · cubo anónimo · data marketplace) */}
+        <DMXMarketIndex />
 
         {/* LIVE: scores reales calculados por el IE Engine */}
         <div style={{

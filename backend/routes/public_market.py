@@ -33,6 +33,36 @@ def _rate(req: Request, limit: int = 30) -> None:
     b.append(now)
 
 
+@router.get("/api/public/market/index")
+async def market_index(request: Request):
+    """DMX ÍNDICE DE MERCADO — agregados ANÓNIMOS por colonia (precio/m², absorción,
+    inventario) desde el cubo. El 'Transparency Index' / data marketplace: dato público,
+    consumible vía API, sin exponer ningún proyecto/dev. Privacidad: celdas con <5
+    unidades se omiten. 'DMX no opina, mide.'"""
+    _rate(request)
+    import cube_olap_engine as olap
+    db = request.app.state.db
+    cc = await olap.query_cross_cut(db, dimensions=["zone"], filters={})
+    rows = []
+    for c in cc.get("matrix", []):
+        k = c.get("kpis") or {}
+        if (k.get("units_total") or 0) < 5:            # privacidad k-anon
+            continue
+        rows.append({
+            "colonia": c.get("zone"),
+            "precio_m2": k.get("avg_price_per_m2"),
+            "absorcion_pct": k.get("absorcion_pct"),
+            "inventario": k.get("units_available"),
+            "unidades": k.get("units_total"),
+        })
+    rows.sort(key=lambda r: (r.get("precio_m2") or 0), reverse=True)
+    return {
+        "index": rows, "count": len(rows),
+        "fuente": "DMX · cubo de mercado (anónimo)",
+        "metodologia": "agregado por colonia · celdas <5 unidades omitidas (privacidad)",
+    }
+
+
 @router.get("/api/public/market/amenity-ranker")
 async def amenity_ranker(request: Request, colonia: Optional[str] = Query(None)):
     """Qué atributo sube el precio/m² en el mercado (anónimo). Para que el comprador
