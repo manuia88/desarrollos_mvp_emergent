@@ -301,47 +301,66 @@ async def list_pricing_suggestions(request: Request):
     db = get_db(request)
     dev_ids = _user_dev_ids(user)
 
-    # Generate deterministic suggestions if we don't have them yet for this user
-    existing = await db.developer_pricing_suggestions.count_documents({"owner_id": user.user_id})
-    if existing == 0:
-        rng = random.Random(sum(ord(c) for c in user.user_id))
+    # UPGRADE Pricing real (re-arquitectura Inteligencia): de sintético → mercado real.
+    # Ancla = mediana $/m² de la zona (átomo real, dmx_demand). Si la unidad está debajo
+    # del mercado → sube; si está arriba → baja. Movimiento medido (cap ±8%), razón real.
+    # Migración: si las sugerencias guardadas son las viejas sintéticas (sin `source`),
+    # se purgan y se regeneran reales (una sola vez · las reales sí llevan `source`).
+    existing_real = await db.developer_pricing_suggestions.count_documents(
+        {"owner_id": user.user_id, "source": {"$exists": True}})
+    if existing_real == 0:
+        await db.developer_pricing_suggestions.delete_many(
+            {"owner_id": user.user_id, "source": {"$exists": False}, "status": "pending"})
+        import dmx_demand
+        from data_seed import COLONIAS
+        medians = await dmx_demand._colonia_median_pm2(db)
+        colonia_name = {c["id"]: c["name"] for c in COLONIAS}
+        dev_colonia = {d["id"]: d.get("colonia_id", d.get("colonia", "")) for d in DEVELOPMENTS}
         suggestions = []
-        candidate_units = [u for u in ALL_UNITS if u.get("development_id") in dev_ids and u["status"] == "disponible"][:40]
+        candidate_units = [u for u in ALL_UNITS if u.get("development_id") in dev_ids and u.get("status") == "disponible"][:60]
         for u in candidate_units:
-            # Simulate demand/supply signals
-            days_on_market = rng.randint(15, 180)
-            visits = rng.randint(0, 22)
-            direction = "up" if visits > 14 else "down" if days_on_market > 120 else "hold"
-            pct = rng.choice([1.5, 2.0, 3.0, 4.0, 5.0]) * (1 if direction == "up" else -1 if direction == "down" else 0)
-            new_price = int(u["price"] * (1 + pct / 100)) if pct else u["price"]
-            if pct == 0:
+            m2 = u.get("m2_privative") or u.get("m2_total")
+            price = u.get("price")
+            zid = dev_colonia.get(u.get("development_id"))
+            market_pm2 = medians.get(zid)
+            if not m2 or not price or m2 <= 0 or not market_pm2:
                 continue
-            reasons = []
+            current_pm2 = price / m2
+            pct = round((market_pm2 - current_pm2) / current_pm2 * 100, 1)  # >0 = debajo del mercado
+            if abs(pct) < 2:   # dentro de mercado → mantener, sin sugerencia
+                continue
+            direction = "up" if pct > 0 else "down"
+            move = round(max(-8.0, min(8.0, pct)), 1)   # movimiento medido, cap ±8%
+            new_price = int(price * (1 + move / 100))
+            zname = colonia_name.get(zid, str(zid or "").replace("_", " ").title())
             if direction == "up":
-                reasons.append(f"{visits} visitas en {days_on_market} días — demanda sobre benchmark")
-                reasons.append(f"Absorción de prototipo {u.get('prototype')} top 25%")
+                reasons = [
+                    f"Tu ${current_pm2:,.0f}/m² está debajo de la mediana de {zname} (${market_pm2:,.0f}/m²).",
+                    f"Hay espacio para subir ~{abs(move)}% sin salir de mercado.",
+                ]
             else:
-                reasons.append(f"{days_on_market} días sin cierre — sobre ventana objetivo (90d)")
-                reasons.append(f"Competidor en la zona pricing 5-8% menor")
-
-            doc = {
+                reasons = [
+                    f"Tu ${current_pm2:,.0f}/m² está arriba de la mediana de {zname} (${market_pm2:,.0f}/m²).",
+                    f"Bajar ~{abs(move)}% acelera la venta manteniéndote competitivo.",
+                ]
+            suggestions.append({
                 "id": _uid("pricesug"),
                 "owner_id": user.user_id,
                 "dev_id": u["development_id"],
                 "unit_id": u["id"],
                 "unit_number": u.get("unit_number", "—"),
                 "prototype": u.get("prototype", "—"),
-                "current_price": u["price"],
+                "current_price": price,
                 "suggested_price": new_price,
-                "delta_pct": pct,
+                "delta_pct": move,
                 "direction": direction,
-                "days_on_market": days_on_market,
-                "visits_last_30d": visits,
+                "current_pm2": round(current_pm2),
+                "market_pm2": round(market_pm2),
                 "reasons": reasons,
+                "source": "mercado real · mediana $/m² de zona",
                 "status": "pending",  # pending|approved|rejected|applied
                 "created_at": _now(),
-            }
-            suggestions.append(doc)
+            })
         if suggestions:
             await db.developer_pricing_suggestions.insert_many(suggestions)
 
