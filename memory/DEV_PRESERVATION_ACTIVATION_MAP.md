@@ -69,7 +69,10 @@ Cada pieza de hoy → **CASA** nueva (1 de 6) · **LOOP** que cierra · **ENCEND
 | Battle Card | 🟢 (ya con sidebar) | — | Precio | — |
 | Reportes IA | 🟢 | [CABLE] ajuste manual de forecast (endpoint huérfano) | Proyecto | YA |
 | Site Selection | 🟢 (usa studio) | — | — | — |
-| score_inversion + simulator · comparator · live_pulse · tax_projector · construction_cost · cross_sell | 🔴 motores sin UI dev | [CABLE] lentes nuevos aquí (algunos públicos hoy) | Precio/Proyecto | YA / ESCALA |
+| score_inversion + simulator | ✅ **surfaceado**: sub-tab "Inversión" en Insights del proyecto (InvestmentSimulator). | Precio | hecho |
+| live_pulse | ✅ ya en Inicio (Pulso de tus zonas) | Proyecto | hecho |
+| comparator | cubierto por Battle Card (evita panel redundante) | Precio | — |
+| tax_projector · construction_cost · cross_sell | 🔴 sin FE dev → requieren panel nuevo (follow-on; cross_sell/construction = ESCALA) | Precio | follow-on |
 
 ═══════════════════════════════════════════════════════════════════
 ## CASA 5 · MARKETING / DISTRIBUCIÓN — llevar al mercado
@@ -122,7 +125,7 @@ MisProyectosV2 · DesarrolladorInventario (como pantalla aparte) · 3 alias kanb
 - ✅ [CABLE] **Org-level montado**: nuevo tab **"Suite IA"** en `DesarrolladorCRMShell` con `RepliesInbox` (Bandeja IA) · `SmartRoutingPanel` · `NurtureIntelligentPanel` · `MatchWeightsPanel` (orgId = tenant del dev). Verificado en app: los 4 renderizan REAL y trabajando (no vacíos, no 503). 0 errores nuevos de consola.
 - ⬜ [CABLE] Per-lead (drawer de lead del CRM dev): `DiscProfileCard` · `ArgumentarioPanel` · `VisitPrepDossier`.
 - ⬜ atribución multi-touch (endpoints huérfanos b13) + historial de corridas de los 3 agentes.
-- Tanda 2: ~60% (org-level suite + flag listos; faltan per-lead + atribución + run-history).
+- ✅ Per-lead (DiscProfileCard+ArgumentarioPanel) + atribución multi-touch montados en LeadDrawer. Run-history diferido (agentes en tier off). **Tanda 2 COMPLETA · checkpoint-tanda2.**
 **Tanda 3 · CÍRCULO PRECIO completo:** lentes de motores (comparador, score inversión+simulador, tax, costo obra, live pulse) dentro de Inteligencia/Proyecto.
 **Tanda 4 · estructura/IA-UX:** rearmar las 6 casas, tarjetas vivas del proyecto, jerarquía del Puente de Mando, ActionBar/ViewToggle/Ficha360 reusados.
 **Tanda 5 · limpieza:** retirar deuda muerta + rescatar pantallas varadas restantes + CitasPolicies/AutoAssign al menú.
