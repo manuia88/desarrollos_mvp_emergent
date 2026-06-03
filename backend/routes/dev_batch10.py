@@ -382,6 +382,12 @@ async def dev_plays(request: Request):
                 "impact_value": avail * pf * gap,
                 "action_label": "Ver y ajustar precio", "action_route": route,
                 "sources": "tu precio + valor de zona (DRPI) + valuación (AVM · estimado)",
+                "evidence": [
+                    {"k": "Tu precio (desde)", "v": _mm(pf)},
+                    {"k": f"Valor de zona ({p.get('colonia') or '—'})", "v": _mm(mk)},
+                    {"k": "Estás arriba", "v": f"+{round(gap*100)}%"},
+                    {"k": "Unidades disponibles", "v": f"{avail}"},
+                ],
             })
 
         # 2) AGOTAMIENTO vs ENTREGA (riesgo de inventario parado)
@@ -397,6 +403,12 @@ async def dev_plays(request: Request):
                     "impact_value": leftover * pf,
                     "action_label": "Ver plan", "action_route": route,
                     "sources": "tu ritmo de venta + pronóstico + fecha de entrega",
+                    "evidence": [
+                        {"k": "Tu ritmo de venta", "v": f"{ritmo:.1f}/sem"},
+                        {"k": "Meses a la entrega", "v": f"{md}"},
+                        {"k": "Disponible hoy", "v": f"{avail} uds"},
+                        {"k": "Quedarían sin vender", "v": f"{leftover} uds"},
+                    ],
                 })
 
         # 3) CIERRE A LA MANO (leads activos + demanda)
@@ -410,6 +422,12 @@ async def dev_plays(request: Request):
                 "impact_value": leads * pf,
                 "action_label": "Ver leads", "action_route": route,
                 "sources": "scoring de leads + pulso de demanda (Live Pulse)",
+                "evidence": [
+                    {"k": "Clientes activos", "v": f"{leads}"},
+                    {"k": "Conversión actual", "v": f"{p.get('conversion_pct', 0)}%"},
+                    {"k": "Precio por unidad (desde)", "v": _mm(pf)},
+                    {"k": "$ en juego", "v": _mm(leads * pf)},
+                ],
             })
 
         # 4) PROYECTO QUE FRENA (salud baja · siempre surfacea lo que estanca dinero)
@@ -422,6 +440,12 @@ async def dev_plays(request: Request):
                 "impact_value": avail * pf * 0.4,   # ponderado: no todo está en riesgo, pero pesa
                 "action_label": "Ver qué lo frena", "action_route": route,
                 "sources": "diagnóstico de salud del proyecto (35 señales)",
+                "evidence": [
+                    {"k": "Salud del proyecto", "v": f"{health}/100"},
+                    {"k": "Unidades disponibles", "v": f"{avail}"},
+                    {"k": "Por destrabar", "v": _mm(avail * pf)},
+                    {"k": "Ritmo reciente", "v": f"{ritmo:.1f}/sem"},
+                ],
             })
 
     plays.sort(key=lambda x: x["impact_value"], reverse=True)

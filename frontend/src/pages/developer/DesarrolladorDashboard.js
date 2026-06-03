@@ -15,9 +15,6 @@ import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
-import ZoneIntelligence from '../../components/developer/ZoneIntelligence';
-import MarketIntelligence from '../../components/developer/MarketIntelligence';
-import CubeIntelligence from '../../components/developer/CubeIntelligence';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 
@@ -119,6 +116,7 @@ function WeeklyBriefWidget() {
 function DevPlaysWidget() {
   const navigate = useNavigate();
   const [plays, setPlays] = useState(null);
+  const [open, setOpen] = useState({});   // disclosure progresivo: el dato detrás de cada jugada
   useEffect(() => { api.getDevPlays().then(d => setPlays(d.plays || [])).catch(() => setPlays([])); }, []);
   if (!plays || !plays.length) return null;
   const TONE = { alta: '242,99,91', media: '226,152,46', oportunidad: '31,160,106' };
@@ -143,6 +141,28 @@ function DevPlaysWidget() {
               </div>
               <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif', lineHeight: 1.3 }}>{pl.title}</div>
               <div style={{ fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>{pl.detail}</div>
+
+              {/* Disclosure progresivo: el dev que quiere los números, los abre */}
+              {Array.isArray(pl.evidence) && pl.evidence.length > 0 && (
+                <div>
+                  <button onClick={() => setOpen(o => ({ ...o, [i]: !o[i] }))} data-testid={`play-evidence-toggle-${i}`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11.5, fontWeight: 700, color: `rgb(${tone})`, fontFamily: 'DM Sans,sans-serif' }}>
+                    {open[i] ? 'Ocultar el dato' : 'Ver el dato'}
+                    <span style={{ transform: open[i] ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 9 }}>▾</span>
+                  </button>
+                  {open[i] && (
+                    <div data-testid={`play-evidence-${i}`} style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: '5px 12px', padding: '10px 12px', borderRadius: 9, background: `rgba(${tone},0.06)`, border: `1px solid rgba(${tone},0.16)` }}>
+                      {pl.evidence.map((e, k) => (
+                        <React.Fragment key={k}>
+                          <span style={{ fontSize: 11.5, color: 'var(--cream-2)', fontFamily: 'DM Sans,sans-serif' }}>{e.k}</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--cream)', textAlign: 'right', fontFamily: 'Outfit,sans-serif' }}>{e.v}</span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>Fuente: {pl.sources}</div>
               <button onClick={() => navigate(pl.action_route)} data-testid={`play-cta-${i}`}
                 style={{ alignSelf: 'flex-start', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
@@ -283,6 +303,47 @@ function AsistentePanel() {
   );
 }
 
+// ─── Puerta al terminal de Inteligencia ───────────────────────────────────────
+// El Inicio queda ligero (cockpit + asistente). El análisis profundo vive en el
+// terminal /desarrollador/mercado. Esta tira da un dato real + lleva al terminal.
+function MarketDoorway() {
+  const navigate = useNavigate();
+  const [head, setHead] = useState(null);
+  useEffect(() => {
+    api.getDevBenchmark()
+      .then(r => {
+        const cells = (r.cells || []).filter(c => c && c.tu && c.mercado);
+        const top = cells.slice().sort((a, b) => Math.abs(b.abs_delta_pts || 0) - Math.abs(a.abs_delta_pts || 0))[0];
+        setHead(top || false);
+      })
+      .catch(() => setHead(false));
+  }, []);
+  const go = () => navigate('/desarrollador/mercado');
+  const cap = (s) => String(s || '').replace(/(^|\s|-)([a-záéíóúñ])/g, (m, p, c) => p + c.toUpperCase());
+  const sub = head
+    ? `En ${cap(head.colonia)}: tu absorción ${head.tu.absorcion_pct}% vs ${head.mercado.absorcion_pct}% del mercado. Y 4 análisis más.`
+    : 'Tú vs el mercado, qué sube el valor de tus unidades, dónde construir y el pulso de tus zonas.';
+  return (
+    <div data-testid="market-doorway" onClick={go}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 28px -14px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--asr-shadow, none)'; e.currentTarget.style.borderColor = 'var(--border-2, var(--border))'; }}
+      style={{ cursor: 'pointer', marginBottom: 22, background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: '15px 18px', boxShadow: 'var(--asr-shadow, none)', transition: 'transform .16s, box-shadow .16s, border-color .16s', display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, var(--theme, #6D4AFF), #EC4899)' }}>
+          <Activity size={19} color="#fff" />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>Inteligencia de mercado</div>
+          <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 1 }}>{sub}</div>
+        </div>
+      </div>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0, background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 800, fontFamily: 'DM Sans,sans-serif' }}>
+        Ver a fondo <ArrowRight size={13} />
+      </span>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DesarrolladorDashboard({ user, onLogout }) {
   const location = useLocation();
@@ -379,26 +440,10 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             {/* TABLERO CENTRAL — signos vitales + cada proyecto con todos sus instrumentos (drill-down) */}
             <PortfolioCockpit />
 
-            {/* MERCADO — posición, alertas y pulso (ir a fondo en Inteligencia) */}
+            {/* MERCADO — Inicio ligero: una puerta con un dato real al terminal de Inteligencia.
+                El análisis profundo (cubo, zonas, CDMX) vive en /desarrollador/mercado (sin duplicar). */}
             <div className="eyebrow" style={{ marginBottom: 10 }}>MERCADO</div>
-
-            {/* Fase 3.2 · Lente del cubo — tu slice vs mercado anónimo + hedónico + dónde construir */}
-            <div data-testid="dev-cube-intel" style={{ marginBottom: 22 }}>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>TU CUBO · DECISIONES DE MERCADO</div>
-              <CubeIntelligence />
-            </div>
-
-            {/* Inteligencia de Zona — mercado (Live Pulse) × tu negocio + veredicto de acción */}
-            <div data-testid="dev-zone-intel" style={{ marginBottom: 22 }}>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>INTELIGENCIA DE TUS ZONAS</div>
-              <ZoneIntelligence user={user} />
-            </div>
-
-            {/* Inteligencia de Mercado — 4 viz reales: embudo, plusvalía, precio/m² vs CDMX, radar */}
-            <div data-testid="dev-market-intel" style={{ marginBottom: 22 }}>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>INTELIGENCIA DE MERCADO · CDMX</div>
-              <MarketIntelligence user={user} />
-            </div>
+            <MarketDoorway />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
               <Card onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
