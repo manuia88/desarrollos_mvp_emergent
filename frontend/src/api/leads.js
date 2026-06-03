@@ -76,6 +76,8 @@ export const pricingResults = (id) => j(`/api/dev/pricing-experiments/${id}/resu
 // Lado VISITANTE (público) — cierra el loop del A/B: descubre experimento activo + asigna + rastrea
 export const resolvePricingExperiment = (body) => post('/api/dev/pricing-experiments/resolve', body);
 export const trackPricingEvent = (id, body) => post(`/api/dev/pricing-experiments/${id}/track-event`, body);
+// Atribución multi-touch por lead (de dónde vino · cadena de touchpoints)
+export const getLeadAttribution = (leadId) => j(`/api/leads/${leadId}/attribution`);
 
 export const listReportTemplates = () => j('/api/dev/reports/templates');
 export const createReportTemplate = (body) => post('/api/dev/reports/templates', body);

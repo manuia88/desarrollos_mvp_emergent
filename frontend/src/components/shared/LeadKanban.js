@@ -18,6 +18,9 @@ import { anonymizeKanbanCard, piiCSS } from '../../lib/anonymize';
 import { Z } from '../../styles/zIndex';
 import PipelineParallelChips from '../asesor/PipelineParallelChips';
 import SourceBadge from '../asesor/SourceBadge';
+// Suite IA agéntica per-lead (Tanda 2) — auto-gated por el flag agentic del org
+import DiscProfileCard from '../agentic_crm/DiscProfileCard';
+import ArgumentarioPanel from '../agentic_crm/ArgumentarioPanel';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -478,6 +481,31 @@ function EnrichedSection({ card }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // LeadDrawer — full lead detail with conditional sections
 // ═════════════════════════════════════════════════════════════════════════════
+// Atribución multi-touch — surfacea el endpoint huérfano b13 (de dónde vino el lead).
+function AttributionMini({ leadId }) {
+  const [att, setAtt] = useState(null);
+  useEffect(() => { leadsApi.getLeadAttribution(leadId).then(setAtt).catch(() => setAtt(null)); }, [leadId]);
+  if (!att) return null;
+  const tps = att.touchpoints || [];
+  return (
+    <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)' }} data-testid="lead-drawer-attribution">
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 8 }}>Atribución · de dónde vino</div>
+      {tps.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>Sin touchpoints registrados aún.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {tps.map((tp, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: 'var(--cream-2)' }}>
+              <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme)', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+              <span><strong style={{ color: 'var(--cream)' }}>{tp.source || tp.channel || tp.medium || 'directo'}</strong>{tp.campaign ? ` · ${tp.campaign}` : ''}{tp.timestamp ? ` · ${new Date(tp.timestamp).toLocaleDateString('es-MX')}` : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChanged }) {
   const [lead, setLead] = useState(null);
   const [conv, setConv] = useState(null);
@@ -608,6 +636,16 @@ function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChange
               <PermBadge active={lead._permissions?.can_view_ai_summary} label="Resumen IA" />
               <PermBadge active={lead._permissions?.can_move} label="Mover columna" />
             </div>
+
+            {/* Suite IA per-lead: DISC (personalidad) + Argumentario adaptativo. Auto-gated por flag agentic. */}
+            {lead._permissions?.can_view_ai_summary && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} data-testid="lead-drawer-ia-suite">
+                <DiscProfileCard leadId={leadId} leadName={lead.name} />
+                <ArgumentarioPanel leadId={leadId} asesorId={lead.asesor_id || null} leadName={lead.name} />
+              </div>
+            )}
+
+            <AttributionMini leadId={leadId} />
 
             {pipelineVersion === 'v2' && (
               <Section title="Pipeline V2" icon={<Sparkle size={13} />} testid="lead-drawer-pipeline-v2">
