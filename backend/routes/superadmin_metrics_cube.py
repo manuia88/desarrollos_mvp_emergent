@@ -426,6 +426,32 @@ async def score_close_prob_route(request: Request, development_id: Optional[str]
     return await dmx_demand.score_close_probabilities(_db(request), development_id)
 
 
+# ─── Fase 2.3 · self-improving loop + visión (BEFORE /{tier}) ──────────────────
+class UnitClosedBody(BaseModel):
+    unit_id: str
+    precio_cierre_mxn: float
+    dias_en_mercado: Optional[int] = None
+
+
+@router.post(PREFIX + "/unit-closed")
+async def unit_closed_route(body: UnitClosedBody, request: Request):
+    """Llega un CIERRE real → escribe en el átomo, resuelve las predicciones del cubo
+    (predicho vs real), re-ajusta el hedónico y devuelve calibración. Self-improving."""
+    user = await _require_superadmin(request)
+    import dmx_self_improving as si
+    return await si.on_unit_closed(_db(request), user, body.unit_id,
+                                   body.precio_cierre_mxn, body.dias_en_mercado)
+
+
+@router.post(PREFIX + "/atom/from-photos")
+async def atom_from_photos_route(request: Request, development_id: str = Query(...)):
+    """Auto-tag de fotos (DL visión) → llena amenidades del átomo. Dormant-safe:
+    sin modelo/fotos → marca dormant, listo para activarse con fotos reales."""
+    await _require_superadmin(request)
+    import dmx_self_improving as si
+    return await si.enrich_atom_from_photos(_db(request), development_id)
+
+
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
 @router.get(PREFIX + "/{tier}")
 async def list_tier_route(
