@@ -80,7 +80,7 @@ function KStat({ label, value, color }) {
   );
 }
 
-export default function ZoneIntelligence({ user }) {
+export default function ZoneIntelligence({ user, colonia }) {
   const [projects, setProjects] = useState(null);
   const [pulseMap, setPulseMap] = useState({});
 
@@ -104,8 +104,10 @@ export default function ZoneIntelligence({ user }) {
       g.porCobrar += (s.disponible || 0) * avgPrice(p);
       g.rate += norm8(p.weekly_sales).slice(-4).reduce((x, v) => x + v, 0);
     });
-    return Object.values(m).sort((a, b) => b.porCobrar - a.porCobrar);
-  }, [projects]);
+    let arr = Object.values(m).sort((a, b) => b.porCobrar - a.porCobrar);
+    if (colonia) arr = arr.filter(z => z.slug === colonia || z.name === colonia);  // filtro de alcance
+    return arr;
+  }, [projects, colonia]);
 
   if (!projects) return null;
   if (zones.length === 0) return null;

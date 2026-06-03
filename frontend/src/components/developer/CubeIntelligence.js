@@ -10,6 +10,7 @@ const onCardLeave = (e) => { e.currentTarget.style.transform = 'none'; e.current
 
 const C_OK = 'var(--ok, #1FA06A)', C_WARM = 'var(--warm, #E2982E)', C_HOT = 'var(--hot, #F2635B)', C_THEME = 'var(--theme, #6D4AFF)';
 const fmtTipo = (t) => String(t || '').replace(/_/g, ' ').replace('recamaras', 'rec').replace('recamara', 'rec');
+const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
 function Card({ title, sub, children }) {
   return (
@@ -29,15 +30,16 @@ const fmtBig = (n) => {
   return `$${Math.round(n)}`;
 };
 
-function Benchmark() {
+function Benchmark({ colonia }) {
   const [cells, setCells] = useState(null);
   useEffect(() => { getDevBenchmark().then(r => setCells(r.cells || [])).catch(() => setCells([])); }, []);
   if (!cells) return null;
+  const shown = colonia ? cells.filter(c => slug(c.colonia) === colonia) : cells;
   return (
     <Card title="Tú vs el mercado" sub="tu absorción y $/m² vs el mercado anónimo de tu zona">
-      {cells.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin datos de tu inventario aún.</div> : (
+      {shown.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin datos de tu inventario aún.</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-          {cells.slice(0, 5).map((c, i) => {
+          {shown.slice(0, 5).map((c, i) => {
             const tone = c.abs_delta_pts >= 5 ? C_OK : c.abs_delta_pts <= -5 ? C_HOT : C_THEME;
             return (
               <div key={i} style={{ borderLeft: `3px solid ${tone}`, paddingLeft: 10 }}>
@@ -57,6 +59,9 @@ function Benchmark() {
   );
 }
 
+// Modelo hedónico CROSS-zona: controla por colonia usando TODAS las zonas a la vez.
+// Por eso es siempre global — filtrarlo a una sola zona destruye el control y la muestra
+// (produce coeficientes absurdos). El alcance lo aplican Benchmark, DemandGap y Zonas.
 function AmenityRanker() {
   const [d, setD] = useState(null);
   useEffect(() => { getDevAmenityRanker().then(setD).catch(() => setD({ amenity_ranker: [] })); }, []);
@@ -64,7 +69,7 @@ function AmenityRanker() {
   const rk = d.amenity_ranker || [];
   const max = Math.max(1, ...rk.map(a => Math.abs(a.impacto_pct_precio_m2)));
   return (
-    <Card title="¿Qué atributo sube el precio?" sub={d.r_squared ? `regresión sobre tu mercado · R² ${d.r_squared}` : 'inteligencia de mercado'}>
+    <Card title="¿Qué atributo sube el precio?" sub={d.r_squared ? `todo tu mercado · ${d.sample_size || ''} unidades · R² ${d.r_squared}` : 'inteligencia de mercado'}>
       {rk.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Aún sin muestra suficiente.</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {rk.map((a, i) => {
@@ -87,12 +92,13 @@ function AmenityRanker() {
   );
 }
 
-function DemandGap() {
+function DemandGap({ colonia }) {
   const [d, setD] = useState(null);
   useEffect(() => { getDevDemandGap(6).then(setD).catch(() => setD({ cells: [] })); }, []);
   if (!d) return null;
-  const cells = (d.cells || []).filter(c => c.verdict && (c.verdict.includes('construir') || c.verdict.includes('ventana')));
-  const show = cells.length ? cells : (d.cells || []);
+  const base = colonia ? (d.cells || []).filter(c => slug(c.colonia) === colonia) : (d.cells || []);
+  const cells = base.filter(c => c.verdict && (c.verdict.includes('construir') || c.verdict.includes('ventana')));
+  const show = cells.length ? cells : base;
   return (
     <Card title="Dónde construir" sub="demanda alta y poco inventario · por zona y tipología">
       {show.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin oportunidades claras ahora.</div> : (
@@ -110,16 +116,16 @@ function DemandGap() {
   );
 }
 
-export default function CubeIntelligence() {
+export default function CubeIntelligence({ colonia }) {
   // Fase 5 · gated por plan (feature cube_market_intel). FAIL-OPEN: muestra mientras
   // cargan los flags o si es superadmin; oculta solo si el plan del tenant no la incluye.
   const gate = useFeatureFlag('cube_market_intel');
   if (!gate.loading && !gate.enabled && !gate.isSuperadmin) return null;
   return (
     <div data-testid="cube-intelligence" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-      <Benchmark />
+      <Benchmark colonia={colonia} />
       <AmenityRanker />
-      <DemandGap />
+      <DemandGap colonia={colonia} />
     </div>
   );
 }

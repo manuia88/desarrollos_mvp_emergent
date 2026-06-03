@@ -46,6 +46,7 @@ const DEV_NAV = [
     tier: 2,
     label: 'Inteligencia',
     items: [
+      { key: 'mercado',      to: '/desarrollador/mercado',           label: 'Inteligencia de Mercado', Icon: Activity },
       { key: 'reportes',     to: '/desarrollador/reportes',          label: 'Reportes IA',    Icon: LineChart },
       { key: 'demanda',      to: '/desarrollador/demanda',           label: 'Demanda',        Icon: BarChart3 },
       { key: 'site',         to: '/desarrollador/site-selection',    label: 'Site Selection', Icon: MapPin },

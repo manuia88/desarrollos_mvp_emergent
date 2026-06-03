@@ -190,6 +190,7 @@ const SuperadminSocialCards = lazy(() => import('./pages/superadmin/SuperadminSo
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
 const DesarrolladorDemanda           = lazy(() => import('./pages/developer/DesarrolladorDemanda'));
+const DesarrolladorMercado           = lazy(() => import('./pages/developer/DesarrolladorMercado'));
 const DesarrolladorReportes          = lazy(() => import('./pages/developer/DesarrolladorReportes'));
 const DesarrolladorLegajo            = lazy(() => import('./pages/developer/DesarrolladorLegajo'));
 const DesarrolladorPricing           = lazy(() => import('./pages/developer/DesarrolladorPricing'));
@@ -832,6 +833,7 @@ function AppRouter() {
       <Route path="/comprador/wrapped" element={<CompradorWrapped />} />
       <Route path="/comprador/wrapped/:yearMonth" element={<CompradorWrapped />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
+      <Route path="/desarrollador/mercado" element={<AdvisorRoute Page={DesarrolladorMercado} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
