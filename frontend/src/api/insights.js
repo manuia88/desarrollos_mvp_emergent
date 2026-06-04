@@ -19,6 +19,9 @@ async function j(path, opts = {}) {
 export const getInsightsResumen = (projectId) =>
   j(`/api/dev/projects/${projectId}/insights/resumen`);
 
+export const getInsightsMarketValue = (projectId) =>
+  j(`/api/dev/projects/${projectId}/insights/market-value`);
+
 export const getInsightsEngagement = (projectId, period = '30d') =>
   j(`/api/dev/projects/${projectId}/insights/engagement?period=${period}`);
 

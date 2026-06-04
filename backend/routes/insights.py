@@ -165,6 +165,69 @@ async def get_comparables(project_id: str, request: Request,
     return await find_comparables(db, project_id, top_n=top_n)
 
 
+# ─── Valor de mercado del PROYECTO (AVM agregado, lo "espectacular" del +Info) ──
+def _market_verdict(vs_pct):
+    if vs_pct is None:
+        return ("Sin comparables en la colonia todavía", "Cuando haya más proyectos en la zona, lo comparamos.", "neutral")
+    if vs_pct > 8:
+        return ("Caro vs la zona", "Tu precio está bastante arriba de la zona. Asegúrate de que el premium (ubicación, amenidades, acabados) lo justifique, o ajusta.", "alto")
+    if vs_pct > 3:
+        return ("Algo arriba de la zona", "Estás un poco arriba del mercado. Vendible si el producto lo respalda.", "medio")
+    if vs_pct < -8:
+        return ("Por debajo del mercado", "Estás vendiendo barato para la zona. Hay margen para subir precio o vas a vender rápido.", "bajo")
+    if vs_pct < -3:
+        return ("Ligeramente abajo del mercado", "Buen precio para la zona, competitivo.", "bajo")
+    return ("En precio de mercado", "Tu precio está alineado con la zona.", "ok")
+
+
+@router.get("/api/dev/projects/{project_id}/insights/market-value")
+async def get_market_value(project_id: str, request: Request):
+    """Valor de mercado a nivel proyecto: tu precio/m² vs la mediana de la colonia."""
+    await _auth_dev(request)
+    db = _db(request)
+    proj = await _project_or_404(db, project_id)
+
+    import dmx_margin
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+    units = dev.get("units", [])
+    proj_pm2 = dmx_margin.project_price_m2(units)
+    colonia = (proj.get("colonia") or dev.get("colonia") or "").strip()
+
+    # Mercado = mediana del precio/m² promedio de OTROS proyectos en la misma colonia.
+    peer_pm2 = []
+    for d in DEVELOPMENTS:
+        if d.get("id") == project_id:
+            continue
+        if (d.get("colonia") or "").strip().lower() != colonia.lower():
+            continue
+        pm2 = dmx_margin.project_price_m2(d.get("units", []))
+        if pm2:
+            peer_pm2.append(pm2)
+    market_pm2 = None
+    if peer_pm2:
+        peer_pm2.sort()
+        market_pm2 = peer_pm2[len(peer_pm2) // 2]
+
+    vs_pct = None
+    if proj_pm2 and market_pm2:
+        vs_pct = round((proj_pm2 - market_pm2) / market_pm2 * 100, 1)
+
+    headline, action, tone = _market_verdict(vs_pct)
+    return {
+        "project_id": project_id,
+        "colonia": colonia,
+        "project_price_m2": round(proj_pm2) if proj_pm2 else None,
+        "market_price_m2": round(market_pm2) if market_pm2 else None,
+        "vs_market_pct": vs_pct,
+        "verdict": headline,
+        "action": action,
+        "tone": tone,
+        "peers_count": len(peer_pm2),
+        "units_priced": len([u for u in units if u.get("price")]),
+    }
+
+
 # ─── Comparables export (CSV / PDF) ──────────────────────────────────────────
 
 def _fmt_pct(v):

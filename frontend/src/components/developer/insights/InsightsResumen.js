@@ -3,9 +3,53 @@
  * KPIs · Health score · Trend 30d · Narrativa Haiku.
  */
 import React, { useEffect, useState } from 'react';
-import { getInsightsResumen } from '../../../api/insights';
+import { getInsightsResumen, getInsightsMarketValue } from '../../../api/insights';
 import HealthScore from '../../shared/HealthScore';
 import { Activity, TrendUp, TrendDown } from '../../icons';
+
+const fmtM2 = (v) => (v || v === 0) ? `$${Number(v).toLocaleString('es-MX')}/m²` : '—';
+
+// Valor de mercado a nivel proyecto (lo "espectacular" del +Info, agregado).
+function MarketValueCard({ mv }) {
+  if (!mv) return null;
+  const toneColor = mv.tone === 'alto' ? '#f59e0b' : mv.tone === 'medio' ? '#eab308'
+    : mv.tone === 'bajo' ? '#22c55e' : mv.tone === 'ok' ? 'var(--theme-3)' : 'var(--cream-3)';
+  return (
+    <div data-testid="market-value-card" style={{
+      background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.22)',
+      borderRadius: 14, padding: 16,
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 8 }}>
+        Valor de mercado{mv.colonia ? ` · ${mv.colonia}` : ''}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 21, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>{mv.verdict}</span>
+        {mv.vs_market_pct != null && (
+          <span style={{ fontSize: 16, fontWeight: 800, color: toneColor }}>
+            {mv.vs_market_pct > 0 ? '+' : ''}{mv.vs_market_pct}% vs la zona
+          </span>
+        )}
+      </div>
+      <p style={{ margin: '6px 0 12px', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, maxWidth: 640 }}>{mv.action}</p>
+      {mv.market_price_m2 ? (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 10, padding: '10px 14px' }}>
+            <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Tu precio/m² promedio</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>{fmtM2(mv.project_price_m2)}</div>
+          </div>
+          <div style={{ background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 10, padding: '10px 14px' }}>
+            <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>Mercado de la zona ({mv.peers_count} proyecto{mv.peers_count === 1 ? '' : 's'})</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>{fmtM2(mv.market_price_m2)}</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>
+          {mv.project_price_m2 ? `Tu precio/m² promedio: ${fmtM2(mv.project_price_m2)}.` : ''} Sin otros proyectos en la colonia para comparar todavía.
+        </div>
+      )}
+    </div>
+  );
+}
 
 const fmtMXN = (v) => {
   if (!v || v === 0) return '$0';
@@ -65,6 +109,7 @@ export default function InsightsResumen({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [mv, setMv] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +118,9 @@ export default function InsightsResumen({ projectId }) {
       .then(d => { if (!cancelled) setData(d); })
       .catch(e => { if (!cancelled) setErr(e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
+    getInsightsMarketValue(projectId)
+      .then(d => { if (!cancelled) setMv(d); })
+      .catch(() => { if (!cancelled) setMv(null); });
     return () => { cancelled = true; };
   }, [projectId]);
 
@@ -95,6 +143,9 @@ export default function InsightsResumen({ projectId }) {
 
   return (
     <div data-testid="resumen-tab" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Valor de mercado del proyecto — lo primero (founder) */}
+      <MarketValueCard mv={mv} />
+
       {/* KPIs grid */}
       <div style={{
         display: 'grid', gap: 10,
