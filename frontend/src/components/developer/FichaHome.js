@@ -8,7 +8,24 @@
 import React, { useEffect, useState } from 'react';
 import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress } from '../../api/developer';
 import { getInsightsMarketValue } from '../../api/insights';
+import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import { Z } from '../../styles/zIndex';
+
+// La dimensión más débil del score → la meta del asistente que la ataca.
+const DIM_GOAL = {
+  'Demanda y leads': 'attract_buyers',
+  'Salud comercial': 'project_health',
+  'Absorción': 'attract_buyers',
+  'Ritmo de venta': 'attract_buyers',
+  'Margen': 'price_project',
+};
+// Etiqueta humana del paso delicado que pausa esperando tu OK.
+const ACTION_LABEL = {
+  'content.publish_public': 'publicar la landing mejorada',
+  'deal.change_price': 'aplicar el nuevo precio',
+  'comm.send_external': 'enviar el mensaje al cliente',
+  'dev.update_landing': 'actualizar la landing del proyecto',
+};
 
 const fmtMXN = (v) => {
   if (v == null || v === 0) return '—';
@@ -78,6 +95,9 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
   const [avm, setAvm] = useState(null);
   const [obra, setObra] = useState(null);
   const [toast, setToast] = useState(null);
+  const [cerebro, setCerebro] = useState({ enabled: false, goals: {} });
+  const [run, setRun] = useState(null);     // {status:'done'|'paused', results, awaiting}
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     listProjectsWithStats().then(r => {
@@ -90,10 +110,12 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
     }).catch(() => {});
     getInsightsMarketValue(slug).then(setAvm).catch(() => {});
     getConstructionProgress(slug).then(setObra).catch(() => {});
+    getCerebroStatus().then(s => setCerebro({ enabled: !!s.enabled, goals: s.goals || {} })).catch(() => {});
+    setRun(null);
   }, [slug, summary]);
 
   if (!summary) return null;
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   // ── Derivados ──────────────────────────────────────────────────────────────
   const score = stats?.full_score || (summary.health_score != null ? { score: summary.health_score, breakdown: [] } : null);
@@ -150,6 +172,37 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
 
   const bold = (s) => s.split('**').map((p, i) => i % 2 ? <b key={i} style={{ color: 'var(--theme)' }}>{p}</b> : p);
 
+  // Meta del asistente para esta jugada (solo metas runnable para el rol).
+  const goalId = (() => {
+    const g = cerebro.goals || {};
+    const want = (low && low.value < 60) ? (DIM_GOAL[low.dim] || 'project_health') : 'price_timing';
+    if (g[want]) return want;
+    return ['attract_buyers', 'project_health', 'price_project', 'make_marketing', 'price_timing', 'what_if'].find(k => g[k]) || Object.keys(g)[0] || null;
+  })();
+
+  const ejecutar = async () => {
+    if (onOpenDiagnostic && !cerebro.enabled) { /* fallback fuera */ }
+    if (!cerebro.enabled) { flash('Tu asistente se activa al prender el Cerebro (un paso de deploy). Por ahora abre el diagnóstico para actuar a mano.'); onOpenDiagnostic && onOpenDiagnostic(); return; }
+    if (!goalId) { flash('No hay una jugada ejecutable ahora mismo.'); return; }
+    setBusy(true);
+    try {
+      const r = await runCerebroGoal(goalId, { project_id: slug });
+      setRun(r);
+      if (r.status === 'done') flash(`✓ Hecho · el asistente corrió ${(r.results || []).length} pasos.`);
+    } catch (e) { flash('No se pudo ejecutar la jugada ahora.'); } finally { setBusy(false); }
+  };
+  const aprobarPaso = async () => {
+    const tid = run?.awaiting?.task_id; if (!tid) return;
+    setBusy(true);
+    try { await approveCerebroTask(tid); setRun({ status: 'done', approved: true, results: run.results || [] }); flash('✓ Ejecutado. El asistente medirá el resultado y aprende para la próxima.'); }
+    catch (e) { flash('No se pudo aprobar el paso.'); } finally { setBusy(false); }
+  };
+  const rechazarPaso = async () => {
+    const tid = run?.awaiting?.task_id;
+    if (tid) { try { await rejectCerebroTask(tid); } catch (e) { /* noop */ } }
+    setRun(null); flash('Listo, el asistente no la ejecuta y aprende de esto.');
+  };
+
   return (
     <div data-testid="ficha-home" style={{ marginBottom: 8 }}>
       {/* 👑 CORONA: Salud + la jugada de hoy */}
@@ -168,13 +221,30 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
           <div style={{ fontFamily: 'Outfit,sans-serif', fontSize: 16.5, fontWeight: 800, color: 'var(--cream)', marginBottom: 5 }}>{jugada.title}</div>
           <p style={{ fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, margin: '0 0 11px' }}>{bold(jugada.body)}</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.28)', color: '#15803d', fontSize: 12, fontWeight: 700, padding: '7px 12px', borderRadius: 10, marginBottom: 12 }}>⚡ {jugada.whatif}</div>
-          <div style={{ display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button data-testid="jugada-aprobar" onClick={() => onOpenDiagnostic ? onOpenDiagnostic() : flash('El asistente prepara la jugada (ejecución se conecta en la siguiente fase).')}
-              style={{ background: 'var(--grad)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Aprobar y ejecutar</button>
-            <button onClick={() => flash('Aquí podrás ajustar la jugada antes de ejecutarla.')} style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Editar</button>
-            <button onClick={() => flash('Listo, el asistente no te la propondrá de nuevo y aprende de esto.')} style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Rechazar</button>
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--cream-3)' }}>Acción delicada · espera tu OK</span>
-          </div>
+          {run?.status === 'paused' ? (
+            // Tu turno: el asistente preparó un paso delicado y espera tu OK.
+            <div style={{ background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.25)', borderRadius: 10, padding: '11px 13px' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--cream)', fontWeight: 600, marginBottom: 9 }}>
+                ⏸ Tu turno · el asistente preparó <b>{ACTION_LABEL[run.awaiting?.action] || 'el paso delicado'}</b>. ¿Lo ejecuto?
+              </div>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <button data-testid="jugada-aprobar-paso" onClick={aprobarPaso} disabled={busy} style={{ background: 'var(--grad)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer' }}>Sí, ejecutar</button>
+                <button onClick={rechazarPaso} disabled={busy} style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>No, ahora no</button>
+              </div>
+            </div>
+          ) : run?.status === 'done' ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.28)', color: '#15803d', fontSize: 12.5, fontWeight: 700, padding: '9px 14px', borderRadius: 10 }}>
+              ✓ El asistente ejecutó la jugada{run.results?.length ? ` · ${run.results.length} pasos` : ''}. Medirá el resultado y aprende.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button data-testid="jugada-aprobar" onClick={ejecutar} disabled={busy}
+                style={{ background: 'var(--grad)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Trabajando…' : 'Aprobar y ejecutar'}</button>
+              <button onClick={() => onOpenDiagnostic && onOpenDiagnostic()} style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Ver / editar</button>
+              <button onClick={rechazarPaso} style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Rechazar</button>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--cream-3)' }}>{cerebro.enabled ? 'Lo seguro lo hace solo · lo delicado espera tu OK' : 'Acción delicada · espera tu OK'}</span>
+            </div>
+          )}
         </div>
       </div>
 
