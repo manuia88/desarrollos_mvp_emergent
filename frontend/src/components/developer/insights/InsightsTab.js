@@ -3,6 +3,7 @@
  * Sub-tabs: Resumen · Engagement · Cash Flow · Comparables · IA
  */
 import React, { useState } from 'react';
+import InsightsProyecto from './InsightsProyecto';
 import InsightsResumen from './InsightsResumen';
 import InsightsEngagement from './InsightsEngagement';
 import InsightsCashFlow from './InsightsCashFlow';
@@ -14,6 +15,7 @@ import TaxClosingPanel from '../TaxClosingPanel';
 import ConstructionCostPanel from '../ConstructionCostPanel';
 
 const SUBTABS = [
+  { key: 'completa',    label: '★ Vista completa' },
   { key: 'resumen',     label: 'Resumen' },
   { key: 'engagement',  label: 'Engagement' },
   { key: 'cashflow',    label: 'Cash Flow' },
@@ -23,7 +25,7 @@ const SUBTABS = [
 ];
 
 export default function InsightsTab({ projectId, user }) {
-  const [active, setActive] = useState('resumen');
+  const [active, setActive] = useState('completa');
 
   return (
     <div data-testid="insights-tab" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -63,6 +65,7 @@ export default function InsightsTab({ projectId, user }) {
 
       {/* Sub-tab content */}
       <div data-testid="insights-subtab-content">
+        {active === 'completa'    && <InsightsProyecto projectId={projectId} user={user} />}
         {active === 'resumen'     && <InsightsResumen projectId={projectId} />}
         {active === 'engagement'  && <InsightsEngagement projectId={projectId} />}
         {active === 'cashflow'    && <InsightsCashFlow projectId={projectId} />}
