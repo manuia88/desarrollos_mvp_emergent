@@ -220,8 +220,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [spotsFil, setSpotsFil] = useState('');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
-  const [m2Min, setM2Min] = useState('');
-  const [m2Max, setM2Max] = useState('');
+  const [m2Fil, setM2Fil] = useState('');
   const [vistaFil, setVistaFil] = useState('');
   const [cajonFil, setCajonFil] = useState('');
   const [incompleteOnly, setIncompleteOnly] = useState(false);
@@ -255,6 +254,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const allRecs = [...new Set(units.map(u => u.bedrooms).filter(v => v != null))].sort((a, b) => a - b);
   const allBanos = [...new Set(units.map(u => u.bathrooms).filter(v => v != null))].sort((a, b) => a - b);
   const allSpots = [...new Set(units.map(u => u.parking_spots).filter(v => v != null))].sort((a, b) => a - b);
+  const allM2 = [...new Set(units.map(u => m2tot(u)).filter(v => v != null))].sort((a, b) => a - b);
   const unitIncompleta = (u) => !u.parking_type || u.bodega == null || !u.vista || !m2priv(u);
 
   // Filtros (sirven para acotar y editar inventario)
@@ -269,20 +269,18 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
     const price = u.price || 0;
     const matchPriceMin = priceMin === '' || price >= +priceMin;
     const matchPriceMax = priceMax === '' || price <= +priceMax;
-    const mt = m2tot(u) || 0;
-    const matchM2Min = m2Min === '' || mt >= +m2Min;
-    const matchM2Max = m2Max === '' || mt <= +m2Max;
+    const matchM2 = !m2Fil || String(m2tot(u)) === String(m2Fil);
     const matchVista = !vistaFil || u.vista === vistaFil;
     const matchCajon = !cajonFil || u.parking_type === cajonFil;
     const matchIncomplete = !incompleteOnly || unitIncompleta(u);
     return matchSearch && matchStatus && matchProto && matchLevel && matchRec && matchBanos && matchSpots
-      && matchPriceMin && matchPriceMax && matchM2Min && matchM2Max && matchVista && matchCajon && matchIncomplete;
+      && matchPriceMin && matchPriceMax && matchM2 && matchVista && matchCajon && matchIncomplete;
   });
-  const anyFilter = protoFil || levelFil || recFil || banosFil || spotsFil || priceMin || priceMax || m2Min || m2Max || vistaFil || cajonFil || incompleteOnly || statusFilter || search;
+  const anyFilter = protoFil || levelFil || recFil || banosFil || spotsFil || priceMin || priceMax || m2Fil || vistaFil || cajonFil || incompleteOnly || statusFilter || search;
 
   // Controles de filtro combinables (se usan arriba para navegar y dentro del panel
   // de edición para acotar a qué unidades se aplica el llenado masivo).
-  const clearFilters = () => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Min(''); setM2Max(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); };
+  const clearFilters = () => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Fil(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); };
   const renderFilters = () => (
     <>
       <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtl}>
@@ -305,8 +303,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         <option value="" style={cellOptStyle}>Cajones: todos</option>
         {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
       </select>
-      <input type="number" value={m2Min} onChange={e => { setM2Min(e.target.value); setPage(1); }} placeholder="m² min" style={{ ...bulkCtl, width: 84 }} />
-      <input type="number" value={m2Max} onChange={e => { setM2Max(e.target.value); setPage(1); }} placeholder="m² max" style={{ ...bulkCtl, width: 84 }} />
+      <select value={m2Fil} onChange={e => { setM2Fil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>m²: todos</option>
+        {allM2.map(m => <option key={m} value={m} style={cellOptStyle}>{m} m²</option>)}
+      </select>
       <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtl}>
         <option value="" style={cellOptStyle}>Vista: todas</option>
         <option value="interior" style={cellOptStyle}>Interior</option>
