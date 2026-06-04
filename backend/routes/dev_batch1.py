@@ -561,6 +561,180 @@ async def payment_quote(project_id: str, payload: PaymentQuoteBody, request: Req
     return {"ok": True, "mode": "esquema", "scheme_id": scheme.get("id"), "breakdown": bd}
 
 
+# ── Cotización exportable: PDF (link público para WhatsApp) + resumen de texto ──
+class QuotePdfBody(BaseModel):
+    scope: str = "unidad"               # 'proyecto' | 'unidad'
+    unit_id: Optional[str] = None
+    unit_number: Optional[str] = None
+    precio_base: Optional[float] = None  # precio de la unidad o de referencia
+    mode: str = "forms"                  # 'forms' (formas configuradas) | 'custom' (a la medida)
+    scheme_id: Optional[str] = None      # una sola forma (opcional)
+    enganche_pct: Optional[float] = None
+    escritura_pct: Optional[float] = None
+    meses: Optional[int] = None
+    cliente: Optional[str] = None
+    text_only: bool = False              # solo resumen de texto (no genera PDF)
+
+
+def _money(v) -> str:
+    try:
+        return f"${float(v):,.0f}"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _quote_rows(payload: "QuotePdfBody", schemes, base, fi, fe):
+    """Devuelve [(label, breakdown)] según modo."""
+    import payment_schemes as ps
+    if payload.mode == "custom":
+        bd = ps.compute_custom(base or 0, payload.enganche_pct or 0, schemes,
+                               escritura_pct=payload.escritura_pct, meses=payload.meses,
+                               fecha_inicio=fi, fecha_entrega=fe)
+        return [(f"A la medida (enganche {bd.get('firma_pct')}%)", bd)]
+    sel = [s for s in schemes if (not payload.scheme_id or s.get("id") == payload.scheme_id)]
+    return [(s.get("nombre") or "Forma", ps.compute_breakdown(base or 0, s, fecha_inicio=fi, fecha_entrega=fe)) for s in sel]
+
+
+def _render_quote_pdf(dev, payload, rows, base, meses_auto) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from datetime import datetime as _dt
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm,
+                            leftMargin=16 * mm, rightMargin=16 * mm, title="Cotización")
+    styles = getSampleStyleSheet()
+    INK = colors.HexColor("#1E2230"); MUTE = colors.HexColor("#6B7385")
+    THEME = colors.HexColor("#6D4AFF"); LINE = colors.HexColor("#E6E8EE")
+    h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=INK, fontSize=20, spaceAfter=2, alignment=0)
+    sub = ParagraphStyle("sub", parent=styles["Normal"], textColor=MUTE, fontSize=10, spaceAfter=2)
+    lbl = ParagraphStyle("lbl", parent=styles["Normal"], textColor=THEME, fontSize=9, spaceBefore=10, spaceAfter=4)
+    small = ParagraphStyle("small", parent=styles["Normal"], textColor=MUTE, fontSize=8, leading=11)
+
+    el = []
+    el.append(Paragraph(dev.get("name", "Proyecto"), h1))
+    titulo = "Cotización por unidad" if payload.scope == "unidad" else "Formas de pago del proyecto"
+    bits = [titulo]
+    if payload.scope == "unidad" and payload.unit_number:
+        bits.append(f"Unidad {payload.unit_number}")
+    if base:
+        bits.append(f"Precio de lista {_money(base)}")
+    el.append(Paragraph(" · ".join(bits), sub))
+    meta_line = _dt.now().strftime("%d/%m/%Y")
+    if payload.cliente:
+        meta_line = f"Cliente: {payload.cliente}  ·  {meta_line}"
+    if meses_auto:
+        meta_line += f"  ·  Plazo: {meses_auto} meses"
+    el.append(Paragraph(meta_line, sub))
+    el.append(Spacer(1, 8))
+
+    header = ["Forma", "Enganche", "Mensualidad", "Al escriturar", "Precio final", "Ahorro"]
+    data = [header]
+    for label, bd in rows:
+        firma = f"{bd.get('firma_pct',0):.0f}% · {_money(bd.get('firma'))}" if base else f"{bd.get('firma_pct',0):.0f}%"
+        if bd.get("mensualidades_total"):
+            mens = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if base else f"{bd.get('mensualidades_pct',0):.0f}%"
+        else:
+            mens = "—"
+        escr = f"{bd.get('escritura_pct',0):.0f}% · {_money(bd.get('escrituracion'))}" if base else f"{bd.get('escritura_pct',0):.0f}%"
+        precio = _money(bd.get("precio_aplicado")) if base else "—"
+        ahorro = _money(bd.get("ahorro")) if (base and bd.get("ahorro", 0) > 0) else "—"
+        data.append([label, firma, mens, escr, precio, ahorro])
+
+    tbl = Table(data, colWidths=[40 * mm, 28 * mm, 30 * mm, 30 * mm, 26 * mm, 24 * mm])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F2F6")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), INK),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("TEXTCOLOR", (0, 1), (0, -1), INK),
+        ("TEXTCOLOR", (1, 1), (-1, -1), colors.HexColor("#434A5C")),
+        ("TEXTCOLOR", (4, 1), (4, -1), INK),
+        ("TEXTCOLOR", (5, 1), (5, -1), colors.HexColor("#15803d")),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, LINE),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    el.append(tbl)
+    el.append(Spacer(1, 10))
+    el.append(Paragraph("Esta cotización es informativa y no constituye una oferta vinculante. "
+                        "Precios sujetos a cambio y a disponibilidad. Las mensualidades aplican durante la "
+                        "construcción (del inicio de obra a la entrega).", small))
+    doc.build(el)
+    return buf.getvalue()
+
+
+def _quote_wa_text(dev, payload, rows, base) -> str:
+    """Resumen en texto plano para enviar por WhatsApp."""
+    name = dev.get("name", "el proyecto")
+    head = (f"Cotización · {name}"
+            + (f" · Unidad {payload.unit_number}" if (payload.scope == "unidad" and payload.unit_number) else "")
+            + (f" · Lista {_money(base)}" if base else ""))
+    lines = [head, ""]
+    for label, bd in rows:
+        if base:
+            mens = (f"{_money(bd.get('mensualidad'))}/mes × {bd.get('meses')}" if bd.get("meses") and bd.get("mensualidades_total")
+                    else (_money(bd.get("mensualidades_total")) if bd.get("mensualidades_total") else "—"))
+            seg = (f"• {label}: precio {_money(bd.get('precio_aplicado'))}"
+                   f" | enganche {bd.get('firma_pct',0):.0f}% ({_money(bd.get('firma'))})"
+                   f" | mensualidad {mens}"
+                   f" | escritura {_money(bd.get('escrituracion'))}")
+            if bd.get("ahorro", 0) > 0:
+                seg += f" | ahorro {_money(bd.get('ahorro'))}"
+        else:
+            seg = (f"• {label}: enganche {bd.get('firma_pct',0):.0f}%"
+                   f" / mensualidades {bd.get('mensualidades_pct',0):.0f}%"
+                   f" / escritura {bd.get('escritura_pct',0):.0f}%")
+        lines.append(seg)
+    return "\n".join(lines)
+
+
+@router.post("/projects/{project_id}/quote-pdf")
+async def quote_pdf(project_id: str, payload: QuotePdfBody, request: Request):
+    """Genera un PDF de cotización (link público para WhatsApp) + resumen de texto."""
+    user = await _auth(request)
+    db = _db(request)
+    import payment_schemes as ps
+    import dev_assets
+    from data_developments import DEVELOPMENTS_BY_ID
+
+    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:
+        raise HTTPException(404, "Proyecto no encontrado")
+
+    doc = await db.dev_payment_schemes.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    ) or {}
+    schemes = doc.get("schemes") or ps.default_schemes()
+    meta = await db.dev_project_meta.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    ) or {}
+    fi = doc.get("fecha_inicio") or _project_dates(dev, meta)[0]
+    fe = doc.get("fecha_entrega") or _project_dates(dev, meta)[1]
+    meses_auto = ps.auto_months(fi, fe)
+
+    base = float(payload.precio_base or 0)
+    rows = _quote_rows(payload, schemes, base, fi, fe)
+    if not rows:
+        raise HTTPException(400, "No hay formas de pago para cotizar")
+
+    wa_text = _quote_wa_text(dev, payload, rows, base)
+    if payload.text_only:
+        return {"ok": True, "wa_text": wa_text}
+
+    pdf_bytes = _render_quote_pdf(dev, payload, rows, base, meses_auto)
+    fname = f"cotizacion_{project_id}_{_uid('q')}.pdf"
+    (dev_assets.ASSET_UPLOAD_DIR / fname).write_bytes(pdf_bytes)
+    pdf_url = f"/api/assets-static/{fname}"
+
+    return {"ok": True, "pdf_url": pdf_url, "filename": fname, "wa_text": wa_text}
+
+
 @router.get("/projects")
 async def list_projects(request: Request):
     """List projects with their location metadata."""

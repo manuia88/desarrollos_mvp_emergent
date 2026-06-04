@@ -931,15 +931,25 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                         options={STATUS_OPTIONS} display={uu => <StatusChip status={uu.status} />} />
                     : <StatusChip status={u.status} />}
                 </td>
-                {/* + Info */}
+                {/* Acciones: Cotizar + Info */}
                 <td style={{ padding: '8px 12px' }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); setDrawerUnit(u); }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.16)', color: 'var(--cream-2)', borderRadius: 9999, padding: '3px 11px', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    title="Ver detalle"
-                  >
-                    + Info
-                  </button>
+                  <div style={{ display: 'inline-flex', gap: 6 }}>
+                    <button
+                      data-testid={`row-cotizar-${u.id}`}
+                      onClick={e => { e.stopPropagation(); onOpenQuoter(u.id); }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--grad)', border: 'none', color: '#fff', borderRadius: 9999, padding: '3px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      title="Cotizar esta unidad"
+                    >
+                      💲 Cotizar
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDrawerUnit(u); }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.16)', color: 'var(--cream-2)', borderRadius: 9999, padding: '3px 11px', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      title="Ver detalle"
+                    >
+                      + Info
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1207,6 +1217,13 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
   const [schemes, setSchemes] = useState([]);
   const [selScheme, setSelScheme] = useState('lista');
   const [quoterOpen, setQuoterOpen] = useState(false);
+  const [quoterScope, setQuoterScope] = useState('proyecto');
+  const [quoterUnitId, setQuoterUnitId] = useState(null);
+  const openQuoter = (unitId) => {
+    setQuoterUnitId(unitId || null);
+    setQuoterScope(unitId ? 'unidad' : 'proyecto');
+    setQuoterOpen(true);
+  };
 
   const activeSubTab = searchParams.get('subtab') || 'inventario';
 
@@ -1307,7 +1324,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         <>
           {activeSubTab === 'inventario' && (
             <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} priceAdjustPct={activeDescuento}
-              schemes={schemes} selScheme={selScheme} setSelScheme={setSelScheme} onOpenQuoter={() => setQuoterOpen(true)} />
+              schemes={schemes} selScheme={selScheme} setSelScheme={setSelScheme} onOpenQuoter={openQuoter} />
           )}
           {activeSubTab === 'prototipos' && (
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
@@ -1320,6 +1337,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
 
       {quoterOpen && (
         <PaymentQuoter devId={devId} schemes={schemes} units={units}
+          initialScope={quoterScope} initialUnitId={quoterUnitId}
           onSchemesSaved={() => getPaymentSchemes(devId).then(d => setSchemes(d.schemes || [])).catch(() => {})}
           onClose={() => setQuoterOpen(false)} />
       )}

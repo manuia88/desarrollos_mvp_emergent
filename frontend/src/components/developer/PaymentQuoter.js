@@ -8,12 +8,13 @@
  * - Meses: se calculan solos del calendario de obra (inicio → entrega).
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { paymentQuote, getPaymentSchemes, putPaymentSchemes } from '../../api/developer';
-import { X, Plus, Trash, Check } from '../../components/icons';
+import { paymentQuote, getPaymentSchemes, putPaymentSchemes, quotePdf, ASSET_BASE } from '../../api/developer';
+import { X, Plus, Trash, Check, Download, MessageCircle, FileText } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
 const MAX_SCHEMES = 5;
 const fmtMXN = (v) => v == null ? '—' : `$${Number(v).toLocaleString('es-MX')}`;
+const waOpen = (text) => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 
 // Meses entre inicio de obra y entrega (yyyy-mm), espejo de auto_months del backend.
 function computeMonths(fi, fe) {
@@ -39,11 +40,15 @@ function localBreakdown(base, s, meses) {
   return { mensPct: mens, precio, firmaM, mensM, escrM, mensualidad, ahorro: Math.round(base) - precio };
 }
 
-export default function PaymentQuoter({ devId, schemes: initialSchemes, units, onClose, onSchemesSaved }) {
+export default function PaymentQuoter({ devId, schemes: initialSchemes, units, onClose, onSchemesSaved, initialScope = 'proyecto', initialUnitId = null }) {
   const withPrice = (units || []).filter(u => u.price > 0);
-  const [unitId, setUnitId] = useState(withPrice[0]?.id || '');
+  const [scope, setScope] = useState(initialScope);         // 'proyecto' | 'unidad'
+  const [unitId, setUnitId] = useState(initialUnitId || withPrice[0]?.id || '');
+  const [precioRef, setPrecioRef] = useState('');           // precio de referencia (modo proyecto)
+  const [cliente, setCliente] = useState('');
   const unit = withPrice.find(u => u.id === unitId) || withPrice[0];
-  const base = unit?.price || 0;
+  // Base: en 'unidad' el precio de la unidad; en 'proyecto' el precio de referencia (opcional).
+  const base = scope === 'unidad' ? (unit?.price || 0) : (precioRef !== '' ? +precioRef : 0);
 
   const [schemes, setSchemes] = useState(initialSchemes || []);
   const [fechaInicio, setFechaInicio] = useState(null);
@@ -127,7 +132,7 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
 
   // Cotizador: enganche/escritura/meses libres → desglose (debounced).
   const runQuote = useCallback((eng, escr, mss) => {
-    if (!base) return;
+    if (!base) { setQuote(null); return; }
     const body = { precio_base: base, enganche_pct: eng, escritura_pct: escr };
     if (mss !== '' && mss != null) body.meses = +mss;
     paymentQuote(devId, body).then(r => setQuote(r.breakdown)).catch(() => setQuote(null));
@@ -137,6 +142,17 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
     const t = setTimeout(() => runQuote(enganche, escritura, meses), 220);
     return () => clearTimeout(t);
   }, [enganche, escritura, meses, runQuote]);
+
+  // Cuerpos para el PDF/WhatsApp (proyecto general o por unidad).
+  const baseBody = () => ({
+    scope,
+    unit_id: scope === 'unidad' ? unitId : null,
+    unit_number: scope === 'unidad' ? (unit?.unit_number || null) : null,
+    precio_base: base || null,
+    cliente: cliente || null,
+  });
+  const formsBody = () => ({ ...baseBody(), mode: 'forms' });
+  const customBody = () => ({ ...baseBody(), mode: 'custom', enganche_pct: enganche, escritura_pct: Math.min(escritura, 100 - enganche), meses: meses !== '' ? +meses : null });
 
   return (
     <div onClick={onClose} style={{
@@ -157,22 +173,45 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
           </button>
         </div>
 
-        {/* Unidad + calendario de obra */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-2)' }}>Unidad:</span>
-          <select value={unitId} onChange={e => setUnitId(e.target.value)}
-            style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }}>
-            {withPrice.map(u => <option key={u.id} value={u.id} style={{ background: '#fff', color: 'var(--cream)' }}>{u.unit_number} · {fmtMXN(u.price)}</option>)}
-          </select>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--cream-2)', background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.2)', borderRadius: 9999, padding: '4px 11px' }}>
-            📅 Obra:
-            <input type="month" value={fechaInicio || ''} onChange={e => saveDates(e.target.value, fechaEntrega)} style={dateInp} title="Inicio de obra" />
-            →
-            <input type="month" value={fechaEntrega || ''} onChange={e => saveDates(fechaInicio, e.target.value)} style={dateInp} title="Entrega estimada" />
-            {mesesAuto != null
-              ? <strong style={{ color: 'var(--theme)' }}>= {mesesAuto} meses (auto)</strong>
-              : <span style={{ color: 'var(--cream-3)' }}>pon ambas fechas para meses auto</span>}
-          </span>
+        {/* Alcance + cliente + calendario de obra */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9999, padding: 3 }}>
+            {[['proyecto', 'Proyecto general'], ['unidad', 'Por unidad']].map(([k, lbl]) => (
+              <button key={k} data-testid={`scope-${k}`} onClick={() => setScope(k)}
+                style={{ background: scope === k ? 'var(--grad)' : 'transparent', color: scope === k ? '#fff' : 'var(--cream-2)', border: 'none', borderRadius: 9999, padding: '6px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{lbl}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            {scope === 'unidad' ? (
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                Unidad:
+                <select value={unitId} onChange={e => setUnitId(e.target.value)}
+                  style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }}>
+                  {withPrice.map(u => <option key={u.id} value={u.id} style={{ background: '#fff', color: 'var(--cream)' }}>{u.unit_number} · {fmtMXN(u.price)}</option>)}
+                </select>
+              </label>
+            ) : (
+              <label style={{ fontSize: 12, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                Precio de referencia:
+                <input type="number" value={precioRef} placeholder="opcional · ej. 14800000" onChange={e => setPrecioRef(e.target.value)}
+                  style={{ width: 170, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }} />
+              </label>
+            )}
+            <label style={{ fontSize: 12, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              Cliente:
+              <input value={cliente} placeholder="opcional" onChange={e => setCliente(e.target.value)}
+                style={{ width: 150, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }} />
+            </label>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--cream-2)', background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.2)', borderRadius: 9999, padding: '4px 11px' }}>
+              📅 Obra:
+              <input type="month" value={fechaInicio || ''} onChange={e => saveDates(e.target.value, fechaEntrega)} style={dateInp} title="Inicio de obra" />
+              →
+              <input type="month" value={fechaEntrega || ''} onChange={e => saveDates(fechaInicio, e.target.value)} style={dateInp} title="Entrega estimada" />
+              {mesesAuto != null
+                ? <strong style={{ color: 'var(--theme)' }}>= {mesesAuto} meses (auto)</strong>
+                : <span style={{ color: 'var(--cream-3)' }}>pon ambas fechas para meses auto</span>}
+            </span>
+          </div>
         </div>
 
         {err && (
@@ -181,10 +220,15 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
           </div>
         )}
 
-        {!base ? (
+        {(scope === 'unidad' && !unit) ? (
           <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>No hay unidades con precio para cotizar.</div>
         ) : (
           <>
+            {scope === 'proyecto' && !base && (
+              <div style={{ color: 'var(--cream-3)', fontSize: 11.5, marginBottom: 10 }}>
+                Mostrando las formas como porcentajes. Pon un precio de referencia para ver montos en pesos.
+              </div>
+            )}
             {/* Comparador EDITABLE */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)' }}>
@@ -219,8 +263,8 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                         <td style={{ padding: '6px 6px', textAlign: 'center' }}><EditCell value={s.escritura_pct} suffix="%" onSave={v => editScheme(s.id, 'escritura_pct', v)} /></td>
                         <td style={{ padding: '6px 6px', textAlign: 'center' }}><EditCell value={s.descuento_pct} suffix="%" accent="#15803d" onSave={v => editScheme(s.id, 'descuento_pct', v)} /></td>
                         <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--cream)', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                          {fmtMXN(bd.precio)}
-                          {bd.ahorro > 0 && <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>ahorra {fmtMXN(bd.ahorro)}</div>}
+                          {base ? fmtMXN(bd.precio) : '—'}
+                          {base > 0 && bd.ahorro > 0 && <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>ahorra {fmtMXN(bd.ahorro)}</div>}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>
                           {bd.mensM > 0 ? (mesesAuto ? `${fmtMXN(bd.mensualidad)}` : fmtMXN(bd.mensM)) : '—'}
@@ -237,6 +281,7 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                 </tbody>
               </table>
             </div>
+            <ExportBar devId={devId} getBody={formsBody} idp="forms" disabled={schemes.length === 0} />
 
             {/* Cotizador no-fijo */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -292,6 +337,7 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                   <QField label="Al escriturar" value={fmtMXN(quote.escrituracion)} hint={`${quote.escritura_pct}%`} />
                 </div>
               )}
+              <ExportBar devId={devId} getBody={customBody} idp="custom" disabled={!quote} />
             </div>
           </>
         )}
@@ -323,6 +369,33 @@ function EditCell({ value, suffix = '', onSave, w = 54, type = 'num', align = 'c
       style={{ display: 'inline-block', minWidth: type === 'num' ? 36 : w, textAlign: align, cursor: 'pointer', padding: '3px 6px', borderRadius: 6, borderBottom: '1px dashed rgba(var(--theme-rgb),0.45)', color: accent || 'var(--cream)', fontWeight: bold ? 700 : 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
       {value}{suffix}
     </span>
+  );
+}
+
+// Barra de exportar: Descargar PDF · WhatsApp PDF (link) · WhatsApp texto.
+function ExportBar({ devId, getBody, idp, disabled }) {
+  const [busy, setBusy] = useState(false);
+  const run = async (mode) => {
+    setBusy(true);
+    try {
+      if (mode === 'text') {
+        const r = await quotePdf(devId, { ...getBody(), text_only: true });
+        if (r.wa_text) waOpen(r.wa_text);
+      } else {
+        const r = await quotePdf(devId, getBody());
+        const url = (ASSET_BASE || '') + r.pdf_url;
+        if (mode === 'wapdf') waOpen(`${r.wa_text}\n\nVer cotización (PDF): ${url}`);
+        else window.open(url, '_blank');
+      }
+    } catch (e) { /* noop */ } finally { setBusy(false); }
+  };
+  const btnStyle = { display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.22)', color: 'var(--cream)', borderRadius: 9999, padding: '7px 13px', fontSize: 11.5, fontWeight: 700, cursor: (disabled || busy) ? 'not-allowed' : 'pointer', opacity: (disabled || busy) ? 0.55 : 1 };
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+      <button data-testid={`exp-pdf-${idp}`} onClick={() => run('pdf')} disabled={disabled || busy} style={btnStyle}><Download size={13} /> Descargar PDF</button>
+      <button data-testid={`exp-wapdf-${idp}`} onClick={() => run('wapdf')} disabled={disabled || busy} style={{ ...btnStyle, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.4)', color: '#15803d' }}><FileText size={13} /> WhatsApp PDF</button>
+      <button data-testid={`exp-text-${idp}`} onClick={() => run('text')} disabled={disabled || busy} style={{ ...btnStyle, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.4)', color: '#15803d' }}><MessageCircle size={13} /> WhatsApp texto</button>
+    </div>
   );
 }
 

@@ -18,6 +18,8 @@ const del = (url) => j(url, { method: 'DELETE' });
 export const getPaymentSchemes = (projectId) => j(`/api/dev/projects/${projectId}/payment-schemes`);
 export const putPaymentSchemes = (projectId, body) => put(`/api/dev/projects/${projectId}/payment-schemes`, body);
 export const paymentQuote = (projectId, body) => post(`/api/dev/projects/${projectId}/payment-quote`, body);
+export const quotePdf = (projectId, body) => post(`/api/dev/projects/${projectId}/quote-pdf`, body);
+export const ASSET_BASE = API; // para armar URL pública del PDF
 
 // Phase 4 Batch 14 — Developer dashboard
 export const getDashboard = () => j('/api/desarrollador/dashboard');
