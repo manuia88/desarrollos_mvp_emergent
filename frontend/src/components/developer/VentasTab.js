@@ -1317,7 +1317,9 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
       )}
 
       {quoterOpen && (
-        <PaymentQuoter devId={devId} schemes={schemes} units={units} onClose={() => setQuoterOpen(false)} />
+        <PaymentQuoter devId={devId} schemes={schemes} units={units}
+          onSchemesSaved={() => getPaymentSchemes(devId).then(d => setSchemes(d.schemes || [])).catch(() => {})}
+          onClose={() => setQuoterOpen(false)} />
       )}
     </div>
   );
