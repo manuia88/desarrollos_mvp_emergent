@@ -5,8 +5,6 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FilterChipsBar } from '../shared/FilterChipsBar';
-import FilterPresetsBar from '../shared/FilterPresetsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import VistaPlantaInteractiva from './VistaPlantaInteractiva';
@@ -79,6 +77,46 @@ function FilterGroup({ title, children }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--theme)' }}>{title}</span>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>{children}</div>
+    </div>
+  );
+}
+
+// Botón-dropdown cohesivo (degradado inline cuando está activo/abierto).
+function DropdownButton({ id, label, value, openId, setOpenId, active, children, width = 360, testid }) {
+  const open = openId === id;
+  const filled = active || open;
+  return (
+    <div data-dd-root style={{ position: 'relative', display: 'inline-block' }}>
+      <button data-testid={testid} onClick={() => setOpenId(open ? null : id)}
+        onMouseEnter={e => { if (!filled) e.currentTarget.style.boxShadow = '0 4px 16px rgba(var(--theme-rgb),0.22)'; }}
+        onMouseLeave={e => { if (!filled) e.currentTarget.style.boxShadow = '0 1px 4px rgba(var(--theme-rgb),0.10)'; }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          // Degradado inline siempre: suave en reposo · full al activar/abrir.
+          background: filled ? 'var(--grad)' : 'linear-gradient(135deg, rgba(var(--theme-rgb),0.16), rgba(var(--theme-rgb),0.05))',
+          color: filled ? '#fff' : 'var(--cream)',
+          border: filled ? 'none' : '1px solid rgba(var(--theme-rgb),0.28)',
+          borderRadius: 9999, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+          cursor: 'pointer', whiteSpace: 'nowrap',
+          boxShadow: filled ? '0 4px 16px rgba(var(--theme-rgb),0.32)' : '0 1px 4px rgba(var(--theme-rgb),0.10)',
+          transition: 'all 0.14s',
+        }}>
+        <span>{label}</span>
+        {value != null && value !== '' && (
+          <span style={{ opacity: filled ? 0.95 : 0.78, fontWeight: 600, paddingLeft: 8, marginLeft: 1, borderLeft: `1px solid ${filled ? 'rgba(255,255,255,0.4)' : 'rgba(var(--theme-rgb),0.3)'}` }}>{value}</span>
+        )}
+        <span style={{ fontSize: 9, opacity: 0.85 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: Z.DROPDOWN + 1,
+          width, maxWidth: '90vw', maxHeight: '72vh', overflowY: 'auto',
+          background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 14,
+          padding: '14px 16px', boxShadow: '0 20px 54px rgba(0,0,0,0.2)',
+        }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -222,7 +260,7 @@ function StatusChip({ status }) {
 }
 
 // ─── Inventario Completo ────────────────────────────────────────────────────
-function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, priceAdjustPct = 0 }) {
+function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, priceAdjustPct = 0, schemes = [], selScheme = 'lista', setSelScheme = () => {}, onOpenQuoter = () => {} }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
@@ -244,7 +282,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [vistaFil, setVistaFil] = useState('');
   const [cajonFil, setCajonFil] = useState('');
   const [incompleteOnly, setIncompleteOnly] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);  // 'scheme' | 'status' | 'filtros' | null
   const { pref } = usePreferences();
   const density_mode = pref('density_mode', 'compacto');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -254,6 +292,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
     const urlStatus = searchParams.get('status_filter');
     if (urlStatus && urlStatus !== statusFilter) setStatusFilter(urlStatus);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cierra los dropdowns al hacer click fuera; clic en otro dropdown cambia directo (sin backdrop).
+  useEffect(() => {
+    if (!openDropdown) return undefined;
+    const onDown = (e) => { if (!e.target.closest('[data-dd-root]')) setOpenDropdown(null); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [openDropdown]);
 
   const handleFilterChange = (key, value) => {
     if (key === 'status') {
@@ -405,39 +451,80 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   // Cuántos filtros están activos (para el badge del botón).
   const activeFilterCount = [protoFil, levelFil, recFil, banosFil, spotsFil, m2Fil, vistaFil, cajonFil, statusFilter, priceMin, priceMax].filter(Boolean).length + (incompleteOnly ? 1 : 0);
 
-  // Botón "Filtros" que abre un dropdown con todos los filtros (vista limpia).
-  const renderFiltersDropdown = () => (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        data-testid="filters-toggle"
-        onClick={() => setFiltersOpen(o => !o)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          background: activeFilterCount > 0 ? 'rgba(var(--theme-rgb),0.12)' : '#fff',
-          border: `1px solid ${activeFilterCount > 0 ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(var(--cream-rgb),0.26)'}`,
-          color: activeFilterCount > 0 ? 'var(--theme)' : 'var(--cream-2)',
-          borderRadius: 9999, padding: '7px 15px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-        }}>
-        ⚙ Filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''} {filtersOpen ? '▲' : '▼'}
-      </button>
-      {filtersOpen && (
-        <>
-          <div onClick={() => setFiltersOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.DROPDOWN }} />
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: Z.DROPDOWN + 1,
-            width: 'min(840px, 88vw)', maxHeight: '72vh', overflowY: 'auto',
-            background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.18)', borderRadius: 14,
-            padding: '16px 18px', boxShadow: '0 18px 50px rgba(0,0,0,0.18)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--cream)' }}>Filtrar inventario</span>
-              <button onClick={() => setFiltersOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>✕</button>
-            </div>
-            {renderFilters()}
-          </div>
-        </>
-      )}
-    </div>
+  // Etiqueta corta de la forma de pago seleccionada (para el botón).
+  const selSchemeLabel = selScheme === 'lista'
+    ? 'Lista'
+    : (() => { const s = schemes.find(x => x.id === selScheme); return s ? `Eng ${s.firma_pct}%${s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}` : 'Lista'; })();
+  const statusLabel = statusFilter ? (STATUS_CONFIG[statusFilter]?.label || statusFilter) : 'Todos';
+
+  // ── Botones-dropdown del control bar ──────────────────────────────────────
+  const formaPagoDropdown = () => (
+    <DropdownButton id="scheme" testid="dd-scheme" label="Forma de pago" value={selSchemeLabel}
+      openId={openDropdown} setOpenId={setOpenDropdown} active={selScheme !== 'lista'} width={420}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {[{ id: 'lista', nombre: 'Lista', descuento_pct: 0 }, ...schemes].map(s => {
+          const on = selScheme === s.id;
+          return (
+            <button key={s.id} onClick={() => { setSelScheme(s.id); setOpenDropdown(null); }}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, textAlign: 'left',
+                background: on ? 'rgba(var(--theme-rgb),0.10)' : 'transparent',
+                border: `1px solid ${on ? 'rgba(var(--theme-rgb),0.35)' : 'rgba(var(--cream-rgb),0.12)'}`,
+                borderRadius: 9, padding: '9px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--cream)',
+              }}>
+              <span style={{ fontWeight: on ? 800 : 600 }}>
+                {s.id === 'lista' ? 'Lista (precio base)' : `Eng: ${s.firma_pct}% / Mens: ${s.mensualidades_pct}% / Escritura: ${s.escritura_pct}%`}
+              </span>
+              {s.descuento_pct > 0 && <span style={{ color: '#15803d', fontWeight: 800 }}>−{s.descuento_pct}%</span>}
+            </button>
+          );
+        })}
+        <button onClick={() => { setOpenDropdown(null); onOpenQuoter(); }}
+          style={{ marginTop: 4, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.3)', color: 'var(--theme)', borderRadius: 9, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+          🧮 Cotizador a la medida…
+        </button>
+      </div>
+    </DropdownButton>
+  );
+
+  const estadoDropdown = () => (
+    <DropdownButton id="status" testid="dd-status" label="Estado" width={240}
+      value={statusFilter ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_CONFIG[statusFilter]?.color || '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.5)' }} />
+          {statusLabel}
+        </span>
+      ) : 'Todos'}
+      openId={openDropdown} setOpenId={setOpenDropdown} active={!!statusFilter}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {[{ value: '', label: 'Todos' }, ...STATUS_OPTIONS].map(o => {
+          const on = (statusFilter || '') === o.value;
+          const cfg = o.value ? STATUS_CONFIG[o.value] : null;
+          return (
+            <button key={o.value || 'all'} onClick={() => { handleFilterChange('status', o.value || null); setOpenDropdown(null); }}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: on ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12.5, fontWeight: on ? 800 : 500, color: cfg ? cfg.color : 'var(--cream)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg ? cfg.color : 'rgba(var(--cream-rgb),0.3)' }} />
+                {o.label}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{o.value ? (counts[o.value] || 0) : filtered.length}</span>
+            </button>
+          );
+        })}
+      </div>
+    </DropdownButton>
+  );
+
+  const filtrosDropdown = () => (
+    <DropdownButton id="filtros" testid="filters-toggle" label="⚙ Filtros"
+      value={activeFilterCount > 0 ? activeFilterCount : ''} openId={openDropdown} setOpenId={setOpenDropdown}
+      active={activeFilterCount > 0} width={'min(840px, 90vw)'}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--cream)' }}>Filtrar inventario</span>
+        <button onClick={() => setOpenDropdown(null)} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+      </div>
+      {renderFilters()}
+    </DropdownButton>
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -602,9 +689,19 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         </button>
       </div>
 
-      {/* Filtros para navegar (cuando NO estás editando) — botón + dropdown */}
+      {/* Control bar — Forma de pago · Estado · Filtros (botones-dropdown con degradado) */}
       {!editMode && (
-        <div>{renderFiltersDropdown()}</div>
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
+          {schemes.length > 0 && formaPagoDropdown()}
+          {estadoDropdown()}
+          {filtrosDropdown()}
+          {(anyFilter || statusFilter) && (
+            <button onClick={() => { clearFilters(); handleFilterChange('status', null); }}
+              style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline', padding: '4px 2px' }}>
+              Limpiar todo
+            </button>
+          )}
+        </div>
       )}
 
       {/* Panel de edición en bloque: 1) ¿a cuáles? (combina filtros) → 2) qué llenar → aplicar */}
@@ -616,7 +713,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
               1 · ¿A Cuáles? — Combina los Criterios que Quieras
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              {renderFiltersDropdown()}
+              {filtrosDropdown()}
               <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>
                 Quedan <strong style={{ color: 'var(--theme)' }}>{filtered.length}</strong> unidades
                 {activeFilterCount > 0 ? ' con tus filtros.' : ' (sin filtro = todas).'}
@@ -693,29 +790,6 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           </div>
         </div>
       )}
-
-      {/* Status filter chips */}
-      <FilterChipsBar
-        filters_config={[{
-          key: 'status',
-          label: 'Estado',
-          options: STATUS_OPTIONS.map(o => ({
-            value: o.value, label: o.label, count: counts[o.value] || 0,
-          })),
-        }]}
-        current_state={{ status: statusFilter }}
-        on_change={handleFilterChange}
-        sync_url={true}
-      />
-
-      {/* Batch 17 — filter presets */}
-      <div style={{ marginTop: 6 }}>
-        <FilterPresetsBar
-          route="/desarrollador/proyectos/ventas"
-          currentFilters={{ status: statusFilter }}
-          onLoadPreset={(f) => handleFilterChange('status', f.status || null)}
-        />
-      </div>
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
@@ -1225,41 +1299,13 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         </div>
       )}
 
-      {/* Selector de forma de pago — refleja las formas que configuró el dev */}
-      {schemes.length > 0 && activeSubTab === 'inventario' && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-          <span style={{ fontSize: 11, color: 'var(--cream-3)', marginRight: 2 }}>Precio según forma de pago:</span>
-          {[{ id: 'lista', nombre: 'Lista', descuento_pct: 0 }, ...schemes].map(s => {
-            const on = selScheme === s.id;
-            return (
-              <button key={s.id} data-testid={`price-scheme-${s.id}`} onClick={() => setSelScheme(s.id)}
-                style={{
-                  background: on ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.10)',
-                  color: on ? '#fff' : 'var(--cream)',
-                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.24)',
-                  borderRadius: 9999, padding: '5px 13px', fontSize: 11.5, fontWeight: on ? 700 : 600, cursor: 'pointer',
-                }}>
-                {s.id === 'lista'
-                  ? 'Lista'
-                  : `Eng: ${s.firma_pct ?? 0}% / Mens: ${s.mensualidades_pct ?? 0}% / Escritura: ${s.escritura_pct ?? 0}%`}
-                {s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
-              </button>
-            );
-          })}
-          <div style={{ flex: 1 }} />
-          <button data-testid="open-quoter" onClick={() => setQuoterOpen(true)}
-            style={{ background: 'rgba(var(--theme-rgb),0.16)', color: '#f9a8d4', border: '1px solid rgba(var(--theme-rgb),0.34)', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
-            Cotizador a la medida
-          </button>
-        </div>
-      )}
-
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Cargando unidades…</div>
       ) : (
         <>
           {activeSubTab === 'inventario' && (
-            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} priceAdjustPct={activeDescuento} />
+            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} priceAdjustPct={activeDescuento}
+              schemes={schemes} selScheme={selScheme} setSelScheme={setSelScheme} onOpenQuoter={() => setQuoterOpen(true)} />
           )}
           {activeSubTab === 'prototipos' && (
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
