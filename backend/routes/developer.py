@@ -114,7 +114,7 @@ async def list_inventory(request: Request, dev_id: Optional[str] = None):
                 # status (legacy) + campos granulares editables desde el portal
                 for fld in ("status", "bodega", "parking_type", "parking_spots", "vista",
                             "m2_privative", "m2_balcony", "m2_terrace", "m2_roof_garden",
-                            "m2_total", "bedrooms", "bathrooms", "price"):
+                            "m2_total", "bedrooms", "bathrooms", "price", "prototype", "level"):
                     if ov.get(fld) is not None:
                         merged[fld] = ov[fld]
             merged["overridden"] = bool(ov)
@@ -224,6 +224,8 @@ class UnitEditableFields(BaseModel):
     bathrooms: Optional[int] = None
     price: Optional[float] = None
     status: Optional[str] = None
+    prototype: Optional[str] = None
+    level: Optional[int] = None
 
 
 class UnitFieldsPatch(UnitEditableFields):
@@ -255,6 +257,10 @@ def _build_unit_fields(p: UnitEditableFields) -> dict:
         fields["bodega"] = bool(p.bodega)
     if p.price is not None:
         fields["price"] = max(0, int(round(p.price)))
+    if p.prototype is not None:
+        fields["prototype"] = str(p.prototype).strip()[:40]
+    if p.level is not None:
+        fields["level"] = int(p.level)
     for f in _INT_FIELDS:
         v = getattr(p, f, None)
         if v is not None:

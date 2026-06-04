@@ -19,6 +19,8 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
   const [compare, setCompare] = useState([]);
   const [loadingCmp, setLoadingCmp] = useState(false);
   const [enganche, setEnganche] = useState(20);
+  const [escritura, setEscritura] = useState(70);
+  const [meses, setMeses] = useState('');
   const [quote, setQuote] = useState(null);
 
   // Comparador: una llamada por esquema (al abrir / cambiar unidad).
@@ -34,17 +36,18 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
     return () => { cancel = true; };
   }, [devId, base, schemes]);
 
-  // Cotizador: enganche libre → desglose (debounced).
-  const runQuote = useCallback((eng) => {
+  // Cotizador: enganche/escritura/meses libres → desglose (debounced).
+  const runQuote = useCallback((eng, escr, mss) => {
     if (!base) return;
-    paymentQuote(devId, { precio_base: base, enganche_pct: eng })
-      .then(r => setQuote(r.breakdown)).catch(() => setQuote(null));
+    const body = { precio_base: base, enganche_pct: eng, escritura_pct: escr };
+    if (mss !== '' && mss != null) body.meses = +mss;
+    paymentQuote(devId, body).then(r => setQuote(r.breakdown)).catch(() => setQuote(null));
   }, [devId, base]);
 
   useEffect(() => {
-    const t = setTimeout(() => runQuote(enganche), 220);
+    const t = setTimeout(() => runQuote(enganche, escritura, meses), 220);
     return () => clearTimeout(t);
-  }, [enganche, runQuote]);
+  }, [enganche, escritura, meses, runQuote]);
 
   return (
     <div onClick={onClose} style={{
@@ -67,10 +70,10 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
 
         {/* Unidad */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>Unidad:</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-2)' }}>Unidad:</span>
           <select value={unitId} onChange={e => setUnitId(e.target.value)}
-            style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }}>
-            {withPrice.map(u => <option key={u.id} value={u.id}>{u.unit_number} · {fmtMXN(u.price)}</option>)}
+            style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }}>
+            {withPrice.map(u => <option key={u.id} value={u.id} style={{ background: '#fff', color: 'var(--cream)' }}>{u.unit_number} · {fmtMXN(u.price)}</option>)}
           </select>
         </div>
 
@@ -79,7 +82,7 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
         ) : (
           <>
             {/* Comparador */}
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 8 }}>
               Comparar formas configuradas
             </div>
             <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 20 }}>
@@ -87,7 +90,7 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
                 <thead>
                   <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
                     {['Forma', 'Enganche', 'Precio final', 'Mensualidad', 'Ahorro'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', fontWeight: 600 }}>{h}</th>
+                      <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: 'var(--cream-2)', textTransform: 'uppercase', fontWeight: 700 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -111,18 +114,39 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
             </div>
 
             {/* Cotizador no-fijo */}
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme-3)', marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 8 }}>
               Cotizador a la medida
             </div>
             <div style={{ background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.2)', borderRadius: 12, padding: 16 }}>
+              {/* Enganche */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: 'var(--cream-2)' }}>Enganche</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>Enganche</span>
                 <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>{enganche}%</span>
               </div>
-              <input type="range" min={5} max={50} step={5} value={enganche}
+              <input type="range" min={5} max={50} step={1} value={enganche}
                 onChange={e => setEnganche(+e.target.value)}
                 data-testid="quoter-enganche"
-                style={{ width: '100%', accentColor: 'var(--theme)' }} />
+                style={{ width: '100%', accentColor: 'var(--theme)', colorScheme: 'light' }} />
+
+              {/* Al escriturar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0 6px' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>Al escriturar</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>{escritura}%</span>
+              </div>
+              <input type="range" min={0} max={Math.max(0, 100 - enganche)} step={1} value={Math.min(escritura, 100 - enganche)}
+                onChange={e => setEscritura(+e.target.value)}
+                style={{ width: '100%', accentColor: 'var(--theme)', colorScheme: 'light' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>
+                  Mensualidades: <strong style={{ color: 'var(--cream)' }}>{Math.max(0, 100 - enganche - Math.min(escritura, 100 - enganche))}%</strong>
+                </span>
+                <label style={{ fontSize: 12, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  Meses
+                  <input type="number" min={1} value={meses} placeholder="auto"
+                    onChange={e => setMeses(e.target.value)}
+                    style={{ width: 70, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.28)', borderRadius: 6, color: 'var(--cream)', fontSize: 12, padding: '3px 6px' }} />
+                </label>
+              </div>
 
               {quote && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10, marginTop: 14 }}>
@@ -147,10 +171,10 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
 
 function QField({ label, value, hint, strong }) {
   return (
-    <div>
-      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>{label}</div>
+    <div style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, padding: '8px 10px' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--cream-2)', marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: strong ? 17 : 14, fontWeight: strong ? 800 : 600, color: 'var(--cream)', fontFamily: 'Outfit' }}>{value}</div>
-      {hint && <div style={{ fontSize: 10.5, color: strong ? '#22c55e' : 'var(--cream-3)', marginTop: 1 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 10.5, color: strong ? '#15803d' : 'var(--cream-2)', marginTop: 1 }}>{hint}</div>}
     </div>
   );
 }
