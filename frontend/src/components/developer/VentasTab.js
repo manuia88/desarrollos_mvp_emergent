@@ -182,10 +182,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [bulkField, setBulkField] = useState('parking_spots');
   const [bulkValue, setBulkValue] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkScope, setBulkScope] = useState('todas');   // todas | prototipo | nivel | metraje
-  const [bulkScopeVal, setBulkScopeVal] = useState('');   // valor para prototipo/nivel
-  const [bulkM2Min, setBulkM2Min] = useState('');
-  const [bulkM2Max, setBulkM2Max] = useState('');
+  const [bulkScope, setBulkScope] = useState('filtradas');  // seleccionadas | filtradas | vacias
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [protoFil, setProtoFil] = useState('');
   const [levelFil, setLevelFil] = useState('');
   const [recFil, setRecFil] = useState('');
@@ -254,26 +252,40 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
     { key: 'parking_spots', label: 'Cajones (número)', type: 'num' },
     { key: 'parking_type', label: 'Tipo de cajón', type: 'parking' },
     { key: 'bodega', label: 'Bodega', type: 'bodega' },
-    { key: 'vista', label: 'Ubicación', type: 'vista' },
+    { key: 'vista', label: 'Vista', type: 'vista' },
     { key: 'price', label: 'Precio', type: 'num' },
     { key: 'status', label: 'Estado', type: 'status' },
   ];
   const bulkFieldDef = BULK_FIELDS.find(f => f.key === bulkField) || BULK_FIELDS[0];
 
-  // Ámbito: filtradas ∩ (todas | prototipo | nivel | metraje).
-  const protoOptions = [...new Set(filtered.map(u => u.prototype).filter(Boolean))];
-  const levelOptions = [...new Set(filtered.map(u => u.level).filter(v => v != null))].sort((a, b) => a - b);
-  const scopedUnits = filtered.filter(u => {
-    if (bulkScope === 'prototipo') return !bulkScopeVal || u.prototype === bulkScopeVal;
-    if (bulkScope === 'nivel') return !bulkScopeVal || String(u.level) === String(bulkScopeVal);
-    if (bulkScope === 'metraje') {
-      const m = m2tot(u) || 0;
-      const min = bulkM2Min === '' ? -Infinity : +bulkM2Min;
-      const max = bulkM2Max === '' ? Infinity : +bulkM2Max;
-      return m >= min && m <= max;
-    }
-    return true;
+  // ¿Está vacío este campo en la unidad? (para "solo las vacías")
+  const fieldIsEmpty = (u, key) => {
+    if (key === 'parking_type') return !u.parking_type;
+    if (key === 'bodega') return u.bodega == null;
+    if (key === 'vista') return !u.vista;
+    if (key === 'status') return !u.status;
+    return u[key] == null;  // numéricos
+  };
+
+  // Selección con casillas
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
+  const allFilteredSelected = filtered.length > 0 && filtered.every(u => selectedIds.has(u.id));
+  const toggleSelectAll = () => setSelectedIds(prev => {
+    const n = new Set(prev);
+    if (allFilteredSelected) filtered.forEach(u => n.delete(u.id));
+    else filtered.forEach(u => n.add(u.id));
+    return n;
+  });
+  const selectedCount = filtered.filter(u => selectedIds.has(u.id)).length;
+
+  // Ámbito del llenado masivo
+  const scopedUnits = bulkScope === 'seleccionadas'
+    ? filtered.filter(u => selectedIds.has(u.id))
+    : bulkScope === 'vacias'
+      ? filtered.filter(u => fieldIsEmpty(u, bulkField))
+      : filtered;  // filtradas
 
   // Llenado masivo: aplica el campo+valor a las unidades del ámbito de un click.
   const applyBulk = async () => {
@@ -464,35 +476,23 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           {/* Fila 2: a qué unidades (ámbito) + aplicar */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Aplicar a:</span>
-            <select value={bulkScope} onChange={e => { setBulkScope(e.target.value); setBulkScopeVal(''); }} style={bulkCtl}>
-              <option value="todas" style={cellOptStyle}>Todas las filtradas</option>
-              <option value="prototipo" style={cellOptStyle}>Por prototipo</option>
-              <option value="nivel" style={cellOptStyle}>Por nivel</option>
-              <option value="metraje" style={cellOptStyle}>Por metraje (m²)</option>
+            <select value={bulkScope} onChange={e => setBulkScope(e.target.value)} style={bulkCtl}>
+              <option value="seleccionadas" style={cellOptStyle}>Las seleccionadas ({selectedCount})</option>
+              <option value="filtradas" style={cellOptStyle}>Todas las filtradas ({filtered.length})</option>
+              <option value="vacias" style={cellOptStyle}>Solo las que les falta este dato</option>
             </select>
-            {bulkScope === 'prototipo' && (
-              <select value={bulkScopeVal} onChange={e => setBulkScopeVal(e.target.value)} style={bulkCtl}>
-                <option value="" style={cellOptStyle}>Todos</option>
-                {protoOptions.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
-              </select>
-            )}
-            {bulkScope === 'nivel' && (
-              <select value={bulkScopeVal} onChange={e => setBulkScopeVal(e.target.value)} style={bulkCtl}>
-                <option value="" style={cellOptStyle}>Todos</option>
-                {levelOptions.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
-              </select>
-            )}
-            {bulkScope === 'metraje' && (
-              <>
-                <input type="number" min={0} value={bulkM2Min} onChange={e => setBulkM2Min(e.target.value)} placeholder="m² min" style={{ ...bulkCtl, width: 90 }} />
-                <span style={{ color: 'var(--cream-3)' }}>–</span>
-                <input type="number" min={0} value={bulkM2Max} onChange={e => setBulkM2Max(e.target.value)} placeholder="m² max" style={{ ...bulkCtl, width: 90 }} />
-              </>
+            {bulkScope === 'seleccionadas' && selectedCount === 0 && (
+              <span style={{ fontSize: 11, color: 'var(--amber)' }}>Marca casillas en la tabla ✓</span>
             )}
             <button data-testid="bulk-apply" onClick={applyBulk} disabled={bulkValue === '' || bulkBusy || !scopedUnits.length}
               style={{ background: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'rgba(148,163,184,0.25)' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'not-allowed' : 'pointer' }}>
               {bulkBusy ? 'Aplicando…' : `Aplicar a ${scopedUnits.length} unidades`}
             </button>
+            {selectedCount > 0 && (
+              <button onClick={() => setSelectedIds(new Set())} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+                Quitar selección ({selectedCount})
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -565,7 +565,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                           whiteSpace: 'nowrap',
                           borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none',
                         }}>
-                          {h}
+                          {idx === 0 && editMode ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                              <input type="checkbox" data-testid="select-all" checked={allFilteredSelected}
+                                onChange={toggleSelectAll} title="Seleccionar todas las filtradas"
+                                style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
+                              {h}
+                            </span>
+                          ) : h}
                         </th>
                       );
                     })}
@@ -596,7 +603,16 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
               >
                 {/* UNIDAD */}
                 <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 700, color: 'var(--cream)', whiteSpace: 'nowrap' }}>
-                  {u.unit_number}
+                  {editMode ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <input type="checkbox" data-testid={`select-${u.unit_number}`}
+                        checked={selectedIds.has(u.id)}
+                        onClick={e => e.stopPropagation()}
+                        onChange={() => toggleSelect(u.id)}
+                        style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
+                      {u.unit_number}
+                    </span>
+                  ) : u.unit_number}
                 </td>
                 <td style={{ padding: '8px 12px' }}>
                   <span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>
