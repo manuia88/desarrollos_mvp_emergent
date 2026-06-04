@@ -39,6 +39,20 @@ const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E29
 // Surfacea motores vivos que no tenían UI en la ficha: margen semáforo, absorción
 // (meses para agotar) y qué atributo sube el valor en la zona. Lee, no edita.
 const SCORE_COLOR = (g) => (['AAA', 'AA'].includes(g) ? 'var(--ok, #1FA06A)' : ['A', 'B'].includes(g) ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
+// Traduce el "1 número" a lenguaje de persona: titular + qué hacer (lo que más lo frena).
+const SCORE_ACTION = {
+  'Salud comercial': 'revisa qué lo frena (fotos, precio o seguimiento)',
+  'Absorción': 'acelera ventas: empuja marketing o ajusta el precio',
+  'Margen': 'cuida costos o reposiciona el precio',
+  'Ritmo de venta': 'reactiva la demanda con campañas y seguimiento a leads',
+  'Demanda y leads': 'genera más leads: difusión y landing pública',
+};
+function scoreVerdict(fs) {
+  const headline = fs.score >= 75 ? 'Va muy bien' : fs.score >= 60 ? 'Va bien' : fs.score >= 45 ? 'Va con problemas' : 'Necesita tu atención';
+  const low = [...(fs.breakdown || [])].sort((a, b) => a.value - b.value)[0];
+  const action = low ? `Lo que más lo frena ahora: ${low.dim.toLowerCase()} → ${SCORE_ACTION[low.dim] || 'revísalo'}.` : '';
+  return { headline, action };
+}
 function AssetOpCockpit({ slug, summary }) {
   const [margin, setMargin] = useState(null);
   const [absorption, setAbsorption] = useState(null);
@@ -78,27 +92,28 @@ function AssetOpCockpit({ slug, summary }) {
     <div data-testid="asset-op-cockpit" style={{ marginBottom: 20 }}>
       <div className="eyebrow" style={{ marginBottom: 8 }}>OPERACIÓN DEL ACTIVO</div>
 
-      {/* "1 número" — Full Project Score (titular · funde las 5 señales en uno comparable) */}
-      {score && score.score != null && (
-        <div data-testid="full-score" style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderLeft: `4px solid ${SCORE_COLOR(score.grade)}`, borderRadius: 14, padding: '14px 18px', marginBottom: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 34, color: 'var(--cream)', lineHeight: 1 }}>{score.score}</span>
-            <span style={{ fontSize: 13, color: 'var(--cream-3)' }}>/100</span>
-            <span style={{ marginLeft: 4, fontSize: 13, fontWeight: 800, color: '#fff', background: SCORE_COLOR(score.grade), borderRadius: 7, padding: '3px 9px' }}>{score.grade}</span>
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--cream)', fontFamily: 'DM Sans,sans-serif' }}>Score del proyecto · 1 número</div>
-            <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2 }}>
-              Funde salud + margen + absorción + ritmo + demanda. Comparable entre proyectos.
+      {/* "1 número" en lenguaje de persona: el VEREDICTO + qué hacer primero; el número, secundario. */}
+      {score && score.score != null && (() => {
+        const v = scoreVerdict(score);
+        return (
+          <div data-testid="full-score" style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderLeft: `4px solid ${SCORE_COLOR(score.grade)}`, borderRadius: 14, padding: '15px 18px', marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.01em' }}>{v.headline}</div>
+              {v.action && <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{v.action}</div>}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 7 }}>
+                {(score.breakdown || []).map((b, i) => (
+                  <span key={i} style={{ fontSize: 10, color: b.value < 45 ? 'var(--hot, #F2635B)' : 'var(--cream-3)' }}>{b.dim} <b style={{ color: 'var(--cream)' }}>{b.value}</b></span>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 5 }}>
-              {(score.breakdown || []).map((b, i) => (
-                <span key={i} style={{ fontSize: 10, color: 'var(--cream-2)' }}>{b.dim} <b style={{ color: 'var(--cream)' }}>{b.value}</b></span>
-              ))}
+            {/* el número, como referencia secundaria (comparar entre proyectos) */}
+            <div title="Score del proyecto · funde salud, margen, absorción, ritmo y demanda" style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 30, color: SCORE_COLOR(score.grade), lineHeight: 1 }}>{score.score}</span>
+              <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>/100</span>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {/* Margen */}
@@ -165,7 +180,17 @@ const fmtMXN = (v) => {
   return `$${(v / 1_000).toFixed(0)}K`;
 };
 
-const TABS = [
+// V2: Insights primero (es lo que más mueve la aguja); el resto = gestión de la ficha.
+const TABS = DEV_V2 ? [
+  { key: 'insights',        label: 'Insights',        phase: null },
+  { key: 'ventas',          label: 'Ventas',          phase: null },
+  { key: 'comercializacion',label: 'Comercialización',phase: null },
+  { key: 'avance',          label: 'Avance de obra',  phase: null },
+  { key: 'contenido',       label: 'Contenido',       phase: null },
+  { key: 'ubicacion',       label: 'Ubicación',       phase: null },
+  { key: 'amenidades',      label: 'Amenidades',      phase: null },
+  { key: 'legal',           label: 'Legal',           phase: null },
+] : [
   { key: 'ventas',          label: 'Ventas',          phase: null },
   { key: 'contenido',       label: 'Contenido',       phase: null },
   { key: 'avance',          label: 'Avance de obra',  phase: null },
@@ -281,7 +306,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBrochure, setShowBrochure] = useState(false);
 
-  const activeTab = searchParams.get('tab') || 'ventas';
+  const activeTab = searchParams.get('tab') || (DEV_V2 ? 'insights' : 'ventas');
   const diagnosticOpen = searchParams.get('diagnostic') === 'open';
   const [diagBadge, setDiagBadge] = useState(null);
 
@@ -471,8 +496,8 @@ export default function ProyectoDetail({ user, onLogout }) {
         )}
 
         {/* Tabs bar */}
-        {/* Hub de tarjetas vivas (Tanda 4) — agrupado Operar / Ficha, cada una con su estado real */}
-        {summary && [
+        {/* Hub de tarjetas (Operar/Ficha) — V1 only. En V2 sobra: la barra de tabs ya navega. */}
+        {!DEV_V2 && summary && [
           { group: 'Operar', cards: [
             { key: 'ventas', label: 'Ventas', stat: `${summary.sold_pct ?? 0}% vendido`, accent: 'var(--ok, #1FA06A)' },
             { key: 'comercializacion', label: 'Comercialización', stat: `${summary.leads_active ?? 0} leads activos`, accent: 'var(--theme, #6D4AFF)' },
