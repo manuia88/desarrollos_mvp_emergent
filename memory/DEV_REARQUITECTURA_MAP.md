@@ -4,6 +4,28 @@
 > Regla: pantallas simples sin tabs internas · un producto por pantalla · cero features perdidas · detrás del flag V2 · IA-first.
 > Leyenda estado motor: ✅ LIVE (datos reales) · 🟡 PARCIAL (existe pero stub/sin ruta/nivel-proyecto) · 🔴 FALTA (construir) · 🔌 existe pero hay que cablear al front.
 
+## 🎉 ESTADO 2026-06-03 — MÓDULO DEV RE-ARQUITECTADO COMPLETO (7/7)
+Las 7 pantallas hechas + verificadas en app real + commiteadas + tag por pantalla. Todo detrás del flag `REACT_APP_DEV_V2` (producción/V1 intacta). Prender = deploy con el flag en true.
+
+**Patrón aplicado:** cada pantalla = un CENTRO con switch de áreas (no sub-tabs anidadas). Embed sin doble-layout vía prop `bare` en `DeveloperLayout` + prop `embedded` en cada hoja. Menú DEV_NAV_V2 colapsado (~30 entradas → ~11).
+
+| Pantalla | Re-arquitectura | Upgrade(s) | Tag |
+|---|---|---|---|
+| Inicio | 4 tabs → 1 flujo; chat→asistente, what-if→Inteligencia, costo-IA→Ajustes | asistente protagonista + disclosure de dato por jugada | `dmx-rearq-inicio-v2`, `dmx-rearq-misproyectos-*` |
+| Mis Proyectos | lista + ficha con cockpit IA-first | **Margen semáforo** (motor `dmx_margin`, INPP) + **"1 número"** (`dmx_project_score`) | `dmx-rearq-misproyectos-margen/ficha`, `dmx-rearq-intel-1numero` |
+| CRM & Leads | 6 sub-tabs → workspace (Tablero·Embudo·Lista·Bandeja) + Automatizaciones | **Loop 1** asistente agéntico (CrmAssistantStrip, pipeline-scoped) + **Loop 2** cada cierre entrena (cable `on_deal_closed` + CrmLearningPanel) | `dmx-rearq-crm-A1/A2/B/C` |
+| Inteligencia | 7 hojas → 1 Centro (6 áreas: Mercado·Demanda·Precios·Competencia·Reportes·Dónde construir) | **Pricing real** (sintético→mediana $/m² zona) + **"1 número"** | `dmx-rearq-intel-pricing/A1/A2/1numero` |
+| Red comercial | 7 hojas → Centro "Tu red" (6 áreas) | tira IA "Tu turno" (solicitudes + disputas) | `dmx-rearq-redcomercial` |
+| Marketing | 7 hojas → Centro (Mini Market + Studio launcher) | badges IA en herramientas generativas | `dmx-rearq-marketing` |
+| Ajustes | 2 rutas → Centro (General + Políticas de cita área) | costo IA re-ubicado | `dmx-rearq-ajustes` |
+
+**Motores nuevos:** `backend/dmx_margin.py` (margen semáforo), `backend/dmx_project_score.py` ("1 número" E01), cable `on_deal_closed` en PATCH dev/leads (Loop 2).
+**Componentes nuevos front:** CrmAssistantStrip, CrmLearningPanel, MarketDoorway, AssetOpCockpit (en ProyectoDetail).
+**Pricing real:** `routes/developer.py` list_pricing_suggestions ahora ancla a `dmx_demand._colonia_median_pm2`.
+**Pendiente menor:** Battle Card / Alianzas quedaron como hijos aparte (layout doble / componente compartido). Diferido por datos: forecast/tarjeta enriquecida del CRM, ruteo ML (afinan con volumen). Warnings pre-existentes en hojas embebidas (no rediseñadas): se limpian si se rediseñan.
+Tag global: **`dmx-rearq-dev-complete`**.
+─────────────────────────────────────────────────────────────────────
+
 ## HALLAZGO CLAVE — arquitectura V1/V2 actual
 Las PÁGINAS del dev son COMPARTIDAS V1/V2. El flag `REACT_APP_DEV_V2` solo cambia el **sidebar** (DevSidebarV2 lee DEV_NAV_V2) + el tema claro. NO hay páginas V2 separadas.
 → **Decisión:** la re-arquitectura se construye como **páginas V2 nuevas, ruteadas por el flag** en App.js (V2 on → página nueva; V2 off → página actual intacta). Prod (V2=false) sigue viendo V1 sin tocar. El founder prende el flag al final = todo el dev nuevo de un switch.
