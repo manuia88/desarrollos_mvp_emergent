@@ -266,14 +266,18 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
           stub={vsMkt == null} assistant={vsMkt != null && vsMkt > 12 ? 'Hay una jugada de precio' : null} onClick={onOpenInsights} />
         <Metric label="Qué sube el valor" value={driver ? driver.atributo : '—'} tone={driver ? 'green' : 'flat'}
           cmp={driver ? `+${driver.impacto_pct_precio_m2}% en precio/m² · tu mercado` : 'sin muestra suficiente'} onClick={onOpenInsights} />
-        <Metric label="Demanda de la zona" value="Estable" tone="flat" cmp="tendencia de búsquedas" stub assistant="El asistente lo vigila" onClick={onOpenInsights} />
+        <Metric label="Interés en tu proyecto" value={summary.views_cliente ?? 0} unit=" vistas" tone={(summary.views_cliente ?? 0) > 0 ? 'green' : 'flat'}
+          cmp={(summary.views_cliente ?? 0) > 0 ? 'visitas de clientes a la ficha' : 'aún sin tráfico medido'} assistant="El asistente lo vigila" onClick={onOpenInsights} />
       </Section>
 
       {/* 3 · Demanda y leads */}
       <Section n="3" title="Demanda y leads">
         <Metric label="Leads activos" value={summary.leads_active ?? 0} tone={(summary.leads_active ?? 0) > 0 ? 'green' : 'amber'} cmp={(summary.leads_active ?? 0) > 0 ? 'en seguimiento' : 'genera más leads'} onClick={onOpenInsights} />
-        <Metric label="Leads calientes" value="—" tone="flat" cmp="a punto de cerrar" stub assistant="El asistente prioriza el seguimiento" onClick={onOpenInsights} />
-        <Metric label="Conversión del embudo" value="—" tone="flat" cmp="vista → lead → cita → cierre" stub onClick={onOpenInsights} />
+        <Metric label="Conversión del embudo" value={`${summary.conversion_pct ?? 0}`} unit="%"
+          tone={(summary.conversion_pct ?? 0) >= 12 ? 'green' : (summary.conversion_pct ?? 0) >= 5 ? 'amber' : 'red'}
+          cmp={`de lead a cierre · ${summary.leads_total ?? 0} leads`} onClick={onOpenInsights} />
+        <Metric label="Leads ganados" value={summary.leads_won ?? 0} tone={(summary.leads_won ?? 0) > 0 ? 'green' : 'flat'}
+          cmp={`cerrados · de ${summary.leads_total ?? 0} totales`} onClick={onOpenInsights} />
       </Section>
 
       {/* 4 · Dinero */}

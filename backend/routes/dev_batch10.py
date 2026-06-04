@@ -554,6 +554,19 @@ async def get_project_summary(project_id: str, request: Request):
         "development_id": project_id,
         "status": {"$nin": ["cerrado_ganado", "cerrado_perdido", "archivado"]}
     })
+    # Embudo real (sin filtros de fecha → robusto): total, ganados, conversión.
+    leads_total = await db.leads.count_documents({"development_id": project_id})
+    leads_won = await db.leads.count_documents({
+        "development_id": project_id, "status": {"$in": ["cerrado_ganado", "ganado", "won"]}
+    })
+    conversion_pct = round(leads_won / leads_total * 100, 1) if leads_total else 0.0
+    # Interés / demanda: vistas de cliente registradas (engagement); 0 si aún no hay tráfico.
+    try:
+        views_cliente = await db.engagement_events.count_documents({
+            "project_id": project_id, "actor_type": "cliente"
+        })
+    except Exception:
+        views_cliente = 0
 
     ie_score_doc = await db.ie_scores.find_one(
         {"zone_id": project_id, "code": "IE_PROY_SCORE_VS_COLONIA", "is_stub": False},
@@ -587,6 +600,10 @@ async def get_project_summary(project_id: str, request: Request):
         "reserved_units": by_status.get("reservado", 0),
         "revenue_mtd_est": revenue_mtd_est,
         "leads_active": leads_active,
+        "leads_total": leads_total,
+        "leads_won": leads_won,
+        "conversion_pct": conversion_pct,
+        "views_cliente": views_cliente,
         "health_score": health,
         "price_from": price_from,
         "price_to": price_to,
