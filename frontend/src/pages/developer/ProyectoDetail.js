@@ -29,7 +29,7 @@ import { getProjectSummary, listProjectsWithStats, getDevAmenityRanker } from '.
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
-import FichaHome from '../../components/developer/FichaHome';
+import FichaHome, { AreaInsights } from '../../components/developer/FichaHome';
 import { titleCase } from '../../utils/titleCase';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import { Z } from '../../styles/zIndex';
@@ -483,20 +483,19 @@ export default function ProyectoDetail({ user, onLogout }) {
           </div>
         </div>
 
-        {/* KPI Strip — en V2 el Inicio (FichaHome) ya lo trae; se mantiene en las demás pestañas. */}
-        {!loading && activeTab !== 'inicio' && (
+        {/* Layout antiguo (sin V2): KPI strip + Operación + Sugerencias arriba.
+            En V2 la plantilla es: botones arriba → insights del área → desglose (AreaInsights). */}
+        {!DEV_V2 && !loading && (
           <div style={{ marginBottom: 20 }}>
             <KPIStrip items={kpiItems} />
           </div>
         )}
 
-        {/* V2 · Operación del activo: se mantiene como contexto en las demás pestañas (no en Inicio). */}
-        {DEV_V2 && activeTab !== 'inicio' && !loading && summary && (
+        {!DEV_V2 && !loading && summary && (
           <AssetOpCockpit slug={slug} summary={summary} />
         )}
 
-        {/* Sugerencias IA — colapsadas; en Inicio las reemplaza "la jugada de hoy" del asistente */}
-        {!loading && slug && activeTab !== 'inicio' && (
+        {!DEV_V2 && !loading && slug && (
           <div style={{ marginBottom: 16 }} data-testid="proyecto-ai-suggestions">
             <button
               data-testid="ai-suggest-toggle"
@@ -600,6 +599,11 @@ export default function ProyectoDetail({ user, onLogout }) {
             );
           })}
         </div>
+
+        {/* Insights del área (plantilla del home): botones arriba → estos insights → desglose */}
+        {DEV_V2 && !loading && summary && activeTab !== 'inicio' && (
+          <AreaInsights slug={slug} summary={summary} area={activeTab} />
+        )}
 
         {/* Tab content */}
         <div data-testid="tab-content">

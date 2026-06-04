@@ -316,3 +316,106 @@ function Ring({ value }) {
     </div>
   );
 }
+
+// ── Insights del área (mini-cockpit por pestaña): mismos botones arriba → estos → desglose ──
+export function AreaInsights({ slug, summary, area }) {
+  const [stats, setStats] = useState(null);
+  const [obra, setObra] = useState(null);
+  const [driver, setDriver] = useState(null);
+  const [avm, setAvm] = useState(null);
+
+  useEffect(() => {
+    listProjectsWithStats().then(r => {
+      const arr = Array.isArray(r) ? r : (r.projects || r.items || []);
+      setStats(arr.find(x => x.id === slug) || arr.find(x => (x.name || '') === (summary?.name || '')) || null);
+    }).catch(() => {});
+    if (area === 'avance') getConstructionProgress(slug).then(setObra).catch(() => {});
+    if (area === 'amenidades' || area === 'ubicacion') getDevAmenityRanker().then(d => {
+      const pos = (d.amenity_ranker || []).filter(a => a.significativo && a.impacto_pct_precio_m2 > 0).sort((a, b) => b.impacto_pct_precio_m2 - a.impacto_pct_precio_m2);
+      setDriver(pos[0] || null);
+    }).catch(() => {});
+    if (area === 'ubicacion' || area === 'insights') getInsightsMarketValue(slug).then(setAvm).catch(() => {});
+  }, [slug, area, summary]);
+
+  if (!summary) return null;
+  const by = stats?.units_by_status || summary.units_by_status || {};
+  const avail = by.disponible ?? Math.max(0, (summary.units_total || 0) - (summary.sold_units || 0) - (summary.reserved_units || 0));
+  const reserved = by.reservado ?? summary.reserved_units ?? 0;
+  const ws = stats?.weekly_sales || [];
+  const rate = ws.length ? ws.slice(-4).reduce((a, b) => a + b, 0) / Math.min(4, ws.slice(-4).length) : 0;
+  const prevRate = ws.length >= 8 ? ws.slice(-8, -4).reduce((a, b) => a + b, 0) / 4 : rate;
+  const months = rate > 0 ? Math.round(avail / (rate * 4.33)) : null;
+  const avgPrice = stats?.avg_price || (((summary.price_from || 0) + (summary.price_to || 0)) / 2) || 0;
+  const vsMkt = avm ? (avm.vs_market_pct ?? avm.vs_pct ?? null) : null;
+  const cv = summary.conversion_pct ?? 0;
+  const cvTone = cv >= 12 ? 'green' : cv >= 5 ? 'amber' : 'red';
+  const mesesEntrega = (() => {
+    if (!summary.delivery_estimate) return null;
+    const [y, m] = String(summary.delivery_estimate).split('-').map(Number);
+    if (!y) return null;
+    const n = new Date();
+    return Math.max(0, (y - n.getFullYear()) * 12 + ((m || 1) - (n.getMonth() + 1)));
+  })();
+  const vsCmp = vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}% vs la zona` : 'sin comparativo';
+
+  const C = {
+    ventas: { title: 'Lo clave de ventas', cards: [
+      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
+      { label: 'Ritmo', value: rate.toFixed(1), unit: ' uds/sem', tone: rate > prevRate ? 'green' : rate < prevRate ? 'amber' : 'flat', cmp: rate > prevRate ? '↑ subiendo' : rate < prevRate ? '↓ bajando' : '→ estable', spark: ws.length ? ws.slice(-8) : null },
+      { label: 'Se agota en', value: months ?? '—', unit: months != null ? ' meses' : '', tone: (months != null && mesesEntrega != null) ? (months <= mesesEntrega ? 'green' : 'red') : 'flat', cmp: months != null ? `${avail} uds al ritmo actual` : 'sin ritmo aún' },
+      { label: 'Disponibles', value: avail, unit: ' uds', tone: avail > 0 ? 'amber' : 'green', cmp: 'por colocar' },
+      { label: 'Reservadas', value: reserved, unit: ' uds', tone: 'flat', cmp: 'apartadas' },
+      { label: 'Precio desde', value: fmtMXN(summary.price_from), tone: 'flat', cmp: vsMkt != null ? vsCmp : `hasta ${fmtMXN(summary.price_to)}` },
+    ] },
+    insights: { title: 'Veredicto rápido', cards: [
+      { label: 'Salud', value: summary.health_score ?? 0, unit: '/100', tone: (summary.health_score ?? 0) >= 60 ? 'green' : (summary.health_score ?? 0) >= 45 ? 'amber' : 'red', cmp: 'del activo' },
+      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: `${summary.leads_total ?? 0} leads` },
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes' },
+      { label: 'Vs mercado', value: vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—', tone: vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green', cmp: 'tu precio vs la zona' },
+      { label: 'Ritmo', value: rate.toFixed(1), unit: ' uds/sem', tone: 'flat', cmp: 'absorción' },
+    ] },
+    comercializacion: { title: 'Comercial', cards: [
+      { label: 'Leads activos', value: summary.leads_active ?? 0, tone: (summary.leads_active ?? 0) > 0 ? 'green' : 'amber', cmp: 'en seguimiento' },
+      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: 'de lead a cierre' },
+      { label: 'Leads ganados', value: summary.leads_won ?? 0, tone: (summary.leads_won ?? 0) > 0 ? 'green' : 'flat', cmp: `de ${summary.leads_total ?? 0}` },
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes' },
+      { label: 'Vendido (valor)', value: fmtMXN((summary.sold_units || 0) * avgPrice), tone: 'green', cmp: 'ingresado' },
+    ] },
+    avance: { title: 'Obra', cards: [
+      { label: 'Avance', value: obra?.overall_percent ?? summary.construction_pct ?? 0, unit: '%', tone: (obra?.overall_percent ?? summary.construction_pct ?? 0) > 0 ? 'green' : 'flat', cmp: 'completado' },
+      { label: 'Etapa actual', value: obra?.current_stage ? String(obra.current_stage).replace(/_/g, ' ') : '—', tone: 'flat', cmp: 'en curso' },
+      { label: 'A la entrega', value: mesesEntrega != null ? mesesEntrega : '—', unit: mesesEntrega != null ? ' meses' : '', tone: 'flat', cmp: summary.delivery_estimate ? `entrega ${summary.delivery_estimate}` : 'sin fecha' },
+      { label: 'Última act.', value: obra?.updated_at ? new Date(obra.updated_at).toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }) : '—', tone: 'flat', cmp: 'registro de avance' },
+    ] },
+    contenido: { title: 'Cómo jala tu contenido', cards: [
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes a la ficha' },
+      { label: 'Leads', value: summary.leads_total ?? 0, tone: (summary.leads_total ?? 0) > 0 ? 'green' : 'flat', cmp: 'generados' },
+      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
+    ] },
+    amenidades: { title: 'Qué vende tu producto', cards: [
+      { label: 'Qué sube el valor', value: driver ? driver.atributo : '—', tone: driver ? 'green' : 'flat', cmp: driver ? 'en tu mercado' : 'sin muestra suficiente' },
+      { label: 'Impacto', value: driver ? `+${driver.impacto_pct_precio_m2}` : '—', unit: driver ? '%' : '', tone: driver ? 'green' : 'flat', cmp: 'en precio/m²' },
+      { label: 'Tu precio vs zona', value: vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—', tone: vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green', cmp: '¿lo justifican las amenidades?' },
+    ] },
+    ubicacion: { title: 'Tu zona', cards: [
+      { label: 'Tu precio vs zona', value: vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—', tone: vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green', cmp: vsMkt != null ? (vsMkt > 12 ? 'caro' : vsMkt < -8 ? 'barato' : 'en línea') : 'sin comparativo' },
+      { label: 'Qué sube el valor', value: driver ? driver.atributo : '—', tone: driver ? 'green' : 'flat', cmp: driver ? `+${driver.impacto_pct_precio_m2}% precio/m²` : 'tu mercado' },
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes' },
+    ] },
+    legal: { title: 'Estado del proyecto', cards: [
+      { label: 'Etapa', value: (summary.stage || '—'), tone: 'flat', cmp: 'del proyecto' },
+      { label: 'A la entrega', value: mesesEntrega != null ? mesesEntrega : '—', unit: mesesEntrega != null ? ' meses' : '', tone: 'flat', cmp: summary.delivery_estimate ? `entrega ${summary.delivery_estimate}` : 'sin fecha' },
+      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
+    ] },
+  };
+  const cfg = C[area];
+  if (!cfg) return null;
+  return (
+    <div data-testid={`area-insights-${area}`} style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 10 }}>{cfg.title}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 12 }}>
+        {cfg.cards.map((c, i) => <Metric key={i} {...c} />)}
+      </div>
+    </div>
+  );
+}
