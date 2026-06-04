@@ -120,12 +120,12 @@ export default function InsightsResumen({ projectId }) {
         }}>
           <HealthScore score={data.health_score || 0} size="md" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Health Score</span>
-            <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit' }}>
-              {data.health_score || 0}/100
+            <span style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>¿Cómo va el proyecto?</span>
+            <span style={{ fontSize: 19, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit' }}>
+              {(data.health_score || 0) >= 75 ? 'Va muy bien' : (data.health_score || 0) >= 60 ? 'Va bien' : (data.health_score || 0) >= 45 ? 'Va con problemas' : 'Necesita tu atención'}
             </span>
             <span style={{ fontSize: 11, color: trendColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <TrendIcon size={11} /> {trend7 > 0 ? '+' : ''}{trend7} en 7 días
+              <TrendIcon size={11} /> {trend7 > 0 ? 'mejorando' : trend7 < 0 ? 'bajando' : 'estable'} ({trend7 > 0 ? '+' : ''}{trend7} en 7 días)
             </span>
           </div>
         </div>

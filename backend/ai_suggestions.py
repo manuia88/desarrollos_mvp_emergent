@@ -358,9 +358,9 @@ async def _deterministic_fallback(ctx: Dict[str, Any], entity_type: str) -> List
             if hs is not None and hs < 60:
                 out.append({
                     "suggestion_type": "risk",
-                    "title": f"Salud del proyecto en {hs}/100",
-                    "body": "La puntuación de salud está por debajo del umbral saludable. Revisa documentos pendientes, unidades sin foto y leads sin atender.",
-                    "cta_label": "Ver diagnóstico",
+                    "title": "Este proyecto necesita tu atención" if hs < 45 else "Este proyecto va con problemas",
+                    "body": "Va más lento de lo sano. Revisa lo más probable: documentos pendientes, unidades sin foto y leads sin atender.",
+                    "cta_label": "Ver qué lo frena",
                     "cta_action": f"open_url:/desarrollador/proyectos/{slug}?diagnostic=open",
                 })
             if leads_hot > 0:

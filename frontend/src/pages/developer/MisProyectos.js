@@ -15,6 +15,7 @@ const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 const MARGIN_COLORS = { verde: 'var(--ok, #1FA06A)', amarillo: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', gris: 'var(--cream-3)' };
 // "1 número" — color por grado del Full Project Score.
 const SCORE_COLOR = (g) => (['AAA', 'AA'].includes(g) ? 'var(--ok, #1FA06A)' : ['A', 'B'].includes(g) ? 'var(--warm, #E2982E)' : 'var(--hot, #F2635B)');
+const SCORE_WORD = (s) => (s >= 75 ? 'Va muy bien' : s >= 60 ? 'Va bien' : s >= 45 ? 'Va con problemas' : 'Necesita atención');
 
 // ─── Mini Sparkline SVG ──────────────────────────────────────────────────────
 function MiniSparkline({ data = [], color = '#22c55e', width = 80, height = 28 }) {
@@ -163,10 +164,12 @@ function ProjectCard({ project, onClick, onDuplicate }) {
             ATENCIÓN
           </span>
         )}
-        {/* Health Score */}
-        <div style={{ position: 'absolute', top: 8, right: 8 }}>
-          <HealthScore score={project.health_score || 0} size="sm" />
-        </div>
+        {/* Salud — V1 only. En V2 el chip "1 número" ya da el veredicto (sin duplicar). */}
+        {!DEV_V2 && (
+          <div style={{ position: 'absolute', top: 8, right: 8 }}>
+            <HealthScore score={project.health_score || 0} size="sm" />
+          </div>
+        )}
         {onDuplicate && (
           <button
             data-testid={`duplicate-project-btn-${project.id}`}
@@ -196,12 +199,11 @@ function ProjectCard({ project, onClick, onDuplicate }) {
           </p>
           {/* "1 número" — Full Project Score (V2) · comparable entre proyectos */}
           {DEV_V2 && project.full_score && project.full_score.score != null && (
-            <div data-testid={`score-${project.id}`} title="Score del proyecto: funde salud, margen, absorción, ritmo y demanda"
+            <div data-testid={`score-${project.id}`} title={`Score del proyecto ${project.full_score.score}/100 · funde salud, margen, absorción, ritmo y demanda`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{project.full_score.score}</span>
-              <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>/100</span>
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: SCORE_COLOR(project.full_score.grade), borderRadius: 6, padding: '2px 7px' }}>{project.full_score.grade}</span>
-              <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>score</span>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: SCORE_COLOR(project.full_score.grade), flexShrink: 0 }} />
+              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 13.5, color: SCORE_COLOR(project.full_score.grade) }}>{SCORE_WORD(project.full_score.score)}</span>
+              <span style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>· {project.full_score.score}/100</span>
             </div>
           )}
         </div>
@@ -556,7 +558,7 @@ function ListaView({ projects, onSelect, onDuplicate }) {
                 <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--cream-2)' }}>{p.leads_active || 0}</td>
                 <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>{fmtMXN(p.revenue_mtd_est)}</td>
                 <td style={{ padding: '10px 14px' }}>
-                  <HealthScore score={p.health_score || 0} size="sm" />
+                  <HealthScore score={p.health_score || 0} size="sm" verdict={DEV_V2} />
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   {onDuplicate && (

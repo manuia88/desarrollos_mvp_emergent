@@ -35,12 +35,16 @@ const VARIANT_LABELS = {
   client:  { prefix: 'Cliente' },
 };
 
+// Veredicto en lenguaje de persona (no "X/100"). Aditivo: solo si verdict=true.
+const scoreWord = (s) => (s >= 75 ? 'Va muy bien' : s >= 60 ? 'Va bien' : s >= 45 ? 'Va con problemas' : 'Necesita atención');
+
 export function HealthScore({
   score = 0,
   size = 'md',
   breakdown = [],
   variant = 'project',
   className = '',
+  verdict = false,
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -90,6 +94,13 @@ export function HealthScore({
           <span style={{ fontSize: numSize * 0.55, color: 'rgba(var(--cream-rgb),0.35)', lineHeight: 1 }}>/100</span>
         </div>
       </button>
+
+      {/* Veredicto plano (lenguaje de persona) — opcional */}
+      {verdict && (
+        <span className="mt-1 font-bold tracking-tight" style={{ fontSize: 11, color, lineHeight: 1.1 }}>
+          {scoreWord(score)}
+        </span>
+      )}
 
       {/* Breakdown popover */}
       {open && (

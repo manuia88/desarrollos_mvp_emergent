@@ -417,9 +417,12 @@ export default function ProyectoDetail({ user, onLogout }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ textAlign: 'center' }}>
-              <HealthScore score={summary?.health_score || 0} size="md" />
-            </div>
+            {/* V2: el anillo de salud sobra — el "1 número" del cockpit ya da el veredicto. */}
+            {!DEV_V2 && (
+              <div style={{ textAlign: 'center' }}>
+                <HealthScore score={summary?.health_score || 0} size="md" />
+              </div>
+            )}
             <button
               data-testid="diagnostic-btn"
               onClick={() => setDiagnosticOpen(true)}
