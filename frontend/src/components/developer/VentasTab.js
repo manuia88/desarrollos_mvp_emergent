@@ -51,11 +51,6 @@ const totalBreakdown = (u) => {
   return s;
 };
 
-const cellSelectStyle = {
-  background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.22)',
-  borderRadius: 6, color: 'var(--cream)', fontSize: 11, padding: '3px 6px',
-  fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', maxWidth: 130,
-};
 // Opciones legibles en TEMA CLARO (fondo blanco + texto oscuro).
 const cellOptStyle = { background: '#fff', color: 'var(--cream)' };
 // Editor inline (input/select) en celdas — tema claro.
@@ -75,125 +70,114 @@ function savePatch(devId, u, fields, onPatched) {
     window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } })));
 }
 
-// Editor numérico inline (commit al salir del campo).
-function NumEdit({ u, field, devId, onPatched, width = 64 }) {
-  const [v, setV] = useState(u[field] ?? '');
-  useEffect(() => { setV(u[field] ?? ''); }, [u, field]);
-  const commit = () => {
-    if (v === '' || v === null) return;
-    const num = Math.max(0, +v);
-    if (num === (u[field] ?? null)) return;
-    savePatch(devId, u, { [field]: num }, onPatched);
-  };
-  return (
-    <input type="number" min={0} value={v}
-      onClick={e => e.stopPropagation()} onChange={e => setV(e.target.value)}
-      onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-      style={{ ...editInp, width }} />
-  );
-}
+// Celda EDITABLE click-to-edit: muestra el valor; al hacer click se vuelve campo;
+// al terminar guarda y parpadea un ✓ verde. types: num | text | select | bodega.
+function EditableCell({ u, field, type = 'num', devId, onPatched, options, display, width = 70 }) {
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [v, setV] = useState('');
+  const cur = type === 'bodega' ? (u.bodega ? 'si' : (u.bodega === false ? 'no' : '')) : (u[field] ?? '');
 
-// Editor de texto inline (prototipo).
-function TextEdit({ u, field, devId, onPatched, width = 56 }) {
-  const [v, setV] = useState(u[field] ?? '');
-  useEffect(() => { setV(u[field] ?? ''); }, [u, field]);
-  const commit = () => {
-    const val = (v || '').trim();
-    if (val === (u[field] ?? '')) return;
-    savePatch(devId, u, { [field]: val }, onPatched);
-  };
-  return (
-    <input value={v} onClick={e => e.stopPropagation()} onChange={e => setV(e.target.value)}
-      onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-      style={{ ...editInp, width }} />
-  );
-}
-
-// Celdas "Adicionales": Tipo de cajón (a color) · Bodega · Ubicación.
-// editMode=false → solo lectura (evita cambios accidentales).
-function ExtraCells({ u, devId, onPatched, editMode }) {
-  const stop = (e) => e.stopPropagation();
-  const patch = async (fields) => {
-    onPatched(u.id, fields); // optimista
-    try {
-      await patchUnitFields({ dev_id: devId, unit_id: u.id, ...fields });
-    } catch (e) {
-      window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
+  const start = (e) => { e.stopPropagation(); setV(cur); setEditing(true); };
+  const finish = (val) => {
+    setEditing(false);
+    let fieldVal, changed;
+    if (type === 'num') {
+      if (val === '' || val == null) return;
+      fieldVal = Math.max(0, +val); changed = fieldVal !== (u[field] ?? null);
+    } else if (type === 'bodega') {
+      if (val === '') return;
+      fieldVal = val === 'si'; changed = fieldVal !== !!u.bodega;
+    } else { // text / select
+      fieldVal = type === 'text' ? (val || '').trim() : val;
+      if (type === 'select' && fieldVal === '') return;
+      changed = fieldVal !== (u[field] ?? (type === 'text' ? '' : null));
     }
+    if (!changed) return;
+    savePatch(devId, u, { [field]: fieldVal }, onPatched);
+    setSaved(true); setTimeout(() => setSaved(false), 1400);
   };
+
+  if (!editing) {
+    return (
+      <span data-testid={`edit-${field}-${u.unit_number}`} onClick={start}
+        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 5px', borderRadius: 5, minWidth: 22, transition: 'background 0.1s' }}
+        title="Click para editar"
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        {display ? display(u) : (u[field] ?? '—')}
+        {saved && <span style={{ color: '#16a34a', fontWeight: 900 }}>✓</span>}
+      </span>
+    );
+  }
+  if (type === 'select' || type === 'bodega') {
+    const opts = type === 'bodega' ? [{ value: 'si', label: 'Sí (incluida)' }, { value: 'no', label: 'No' }] : options;
+    return (
+      <select autoFocus value={v} onClick={e => e.stopPropagation()}
+        onChange={e => { setV(e.target.value); finish(e.target.value); }}
+        onBlur={() => setEditing(false)} style={{ ...editInp, width: 'auto' }}>
+        <option value="" style={cellOptStyle}>—</option>
+        {opts.map(o => <option key={o.value} value={o.value} style={cellOptStyle}>{o.label}</option>)}
+      </select>
+    );
+  }
+  return (
+    <input autoFocus type={type === 'num' ? 'number' : 'text'} min={0} value={v}
+      onClick={e => e.stopPropagation()} onChange={e => setV(e.target.value)}
+      onBlur={() => finish(v)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      style={{ ...editInp, width }} />
+  );
+}
+
+// Celdas "Adicionales": Tipo de cajón (a color) · Bodega · Vista. Click-to-edit.
+function ExtraCells({ u, devId, onPatched, editMode }) {
   const ptColor = PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-2)';
-  const vistaLabel = u.vista === 'interior' ? 'Interior' : u.vista === 'exterior' ? 'Exterior' : '—';
+  const tipoDisplay = (uu) => <span style={{ color: PARKING_TYPE_COLOR[uu.parking_type] || 'var(--cream-2)', fontWeight: 700, fontSize: 12 }}>{PARKING_TYPE_LABELS[uu.parking_type] || '—'}</span>;
+  const bodegaDisplay = (uu) => <span style={{ color: uu.bodega ? '#16a34a' : 'var(--cream-3)', fontSize: 12, fontWeight: 700 }}>{uu.bodega ? '✓ Incl.' : '—'}</span>;
+  const vistaDisplay = (uu) => <span style={{ color: 'var(--cream-2)', fontSize: 12 }}>{uu.vista === 'interior' ? 'Interior' : uu.vista === 'exterior' ? 'Exterior' : '—'}</span>;
+  const PARKING_OPTS = Object.entries(PARKING_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
   if (!editMode) {
-    // Solo lectura
     return (
       <>
         <td style={{ padding: '8px 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
-          <span style={{ color: ptColor, fontWeight: 700, fontSize: 12 }}>
-            {PARKING_TYPE_LABELS[u.parking_type] || '—'}
-          </span>
+          <span style={{ color: ptColor, fontWeight: 700, fontSize: 12 }}>{PARKING_TYPE_LABELS[u.parking_type] || '—'}</span>
         </td>
-        <td style={{ padding: '8px 12px', color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 12, fontWeight: 700 }}>
-          {u.bodega ? '✓ Incl.' : '—'}
-        </td>
-        <td style={{ padding: '8px 12px', color: 'var(--cream-2)', fontSize: 12 }}>{vistaLabel}</td>
+        <td style={{ padding: '8px 12px' }}>{bodegaDisplay(u)}</td>
+        <td style={{ padding: '8px 12px' }}>{vistaDisplay(u)}</td>
       </>
     );
   }
-
   return (
     <>
-      {/* Tipo de cajón — a color, editable */}
-      <td style={{ padding: '0 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }} onClick={stop}>
-        <select
-          data-testid={`unit-parking-${u.unit_number}`}
-          value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
-          onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
-          style={{ ...cellSelectStyle, color: ptColor, fontWeight: 700, borderColor: 'rgba(var(--cream-rgb),0.14)' }}>
-          <option value="" style={cellOptStyle}>—</option>
-          {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
-            <option key={k} value={k} style={cellOptStyle}>{v}</option>
-          ))}
-        </select>
+      <td style={{ padding: '8px 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
+        <EditableCell u={u} field="parking_type" type="select" devId={devId} onPatched={onPatched} options={PARKING_OPTS} display={tipoDisplay} />
       </td>
-      {/* Bodega — ✓ Incl. / — */}
-      <td style={{ padding: '0 12px' }} onClick={stop}>
-        <button
-          data-testid={`unit-bodega-${u.unit_number}`}
-          onClick={() => patch({ bodega: !u.bodega })}
-          title={u.bodega ? 'Incluye bodega' : 'Sin bodega'}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-            border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 7, padding: '3px 8px',
-            background: 'rgba(var(--cream-rgb),0.04)',
-            color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 12, fontWeight: 700,
-          }}>
-          {u.bodega ? '✓ Incl.' : '— Agregar'}
-        </button>
+      <td style={{ padding: '8px 12px' }}>
+        <EditableCell u={u} field="bodega" type="bodega" devId={devId} onPatched={onPatched} display={bodegaDisplay} />
       </td>
-      {/* Ubicación interior/exterior */}
-      <td style={{ padding: '0 12px' }} onClick={stop}>
-        <select
-          data-testid={`unit-vista-${u.unit_number}`}
-          value={u.vista || ''}
-          onChange={(e) => { if (e.target.value) patch({ vista: e.target.value }); }}
-          style={cellSelectStyle}>
-          <option value="" style={cellOptStyle}>—</option>
-          <option value="interior" style={cellOptStyle}>Interior</option>
-          <option value="exterior" style={cellOptStyle}>Exterior</option>
-        </select>
+      <td style={{ padding: '8px 12px' }}>
+        <EditableCell u={u} field="vista" type="select" devId={devId} onPatched={onPatched}
+          options={[{ value: 'interior', label: 'Interior' }, { value: 'exterior', label: 'Exterior' }]} display={vistaDisplay} />
       </td>
     </>
   );
 }
 
+// Estados (4) con colores DISCRETOS (tinte claro + texto oscuro · tema claro).
 const STATUS_CONFIG = {
-  disponible:  { label: 'Disponible',  color: '#fff', bg: '#1FA06A' },
-  apartado:    { label: 'Apartado',    color: '#fff', bg: '#C77F12' },
-  reservado:   { label: 'Reservado',   color: '#fff', bg: '#3B82F6' },
-  vendido:     { label: 'Vendido',     color: '#fff', bg: '#E0463D' },
-  bloqueado:   { label: 'Bloqueado',   color: '#fff', bg: '#8A92A6' },
+  disponible: { label: 'Disponible', color: '#15803d', bg: 'rgba(34,197,94,0.15)', bd: 'rgba(34,197,94,0.4)' },
+  reservado:  { label: 'Reservado',  color: '#1d4ed8', bg: 'rgba(59,130,246,0.15)', bd: 'rgba(59,130,246,0.4)' },
+  vendido:    { label: 'Vendido',    color: '#b91c1c', bg: 'rgba(224,70,61,0.15)', bd: 'rgba(224,70,61,0.4)' },
+  bloqueado:  { label: 'Bloqueado',  color: '#475569', bg: 'rgba(100,116,139,0.18)', bd: 'rgba(100,116,139,0.45)' },
+  apartado:   { label: 'Reservado',  color: '#1d4ed8', bg: 'rgba(59,130,246,0.15)', bd: 'rgba(59,130,246,0.4)' }, // legacy → reservado
 };
+const STATUS_OPTIONS = [
+  { value: 'disponible', label: 'Disponible' },
+  { value: 'reservado', label: 'Reservado' },
+  { value: 'vendido', label: 'Vendido' },
+  { value: 'bloqueado', label: 'Bloqueado' },
+];
 
 const fmtMXN = (v) => v == null ? '—' : `$${(v / 1_000_000).toFixed(2)}M`;
 const PAGE_SIZE = 30;
@@ -208,10 +192,9 @@ function StatusChip({ status }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.disponible;
   return (
     <span style={{
-      background: cfg.bg, color: cfg.color,
-      fontSize: 10, fontWeight: 800, padding: '3px 9px',
-      borderRadius: 7, letterSpacing: '0.03em',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+      background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.bd}`,
+      fontSize: 10.5, fontWeight: 800, padding: '3px 10px',
+      borderRadius: 7, letterSpacing: '0.02em',
     }}>
       {cfg.label}
     </span>
@@ -233,6 +216,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [protoFil, setProtoFil] = useState('');
   const [levelFil, setLevelFil] = useState('');
   const [recFil, setRecFil] = useState('');
+  const [banosFil, setBanosFil] = useState('');
+  const [spotsFil, setSpotsFil] = useState('');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [m2Min, setM2Min] = useState('');
@@ -268,6 +253,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const allProtos = [...new Set(units.map(u => u.prototype).filter(Boolean))].sort();
   const allLevels = [...new Set(units.map(u => u.level).filter(v => v != null))].sort((a, b) => a - b);
   const allRecs = [...new Set(units.map(u => u.bedrooms).filter(v => v != null))].sort((a, b) => a - b);
+  const allBanos = [...new Set(units.map(u => u.bathrooms).filter(v => v != null))].sort((a, b) => a - b);
+  const allSpots = [...new Set(units.map(u => u.parking_spots).filter(v => v != null))].sort((a, b) => a - b);
   const unitIncompleta = (u) => !u.parking_type || u.bodega == null || !u.vista || !m2priv(u);
 
   // Filtros (sirven para acotar y editar inventario)
@@ -277,6 +264,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
     const matchProto = !protoFil || u.prototype === protoFil;
     const matchLevel = !levelFil || String(u.level) === String(levelFil);
     const matchRec = !recFil || String(u.bedrooms) === String(recFil);
+    const matchBanos = !banosFil || String(u.bathrooms) === String(banosFil);
+    const matchSpots = !spotsFil || String(u.parking_spots) === String(spotsFil);
     const price = u.price || 0;
     const matchPriceMin = priceMin === '' || price >= +priceMin;
     const matchPriceMax = priceMax === '' || price <= +priceMax;
@@ -286,10 +275,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
     const matchVista = !vistaFil || u.vista === vistaFil;
     const matchCajon = !cajonFil || u.parking_type === cajonFil;
     const matchIncomplete = !incompleteOnly || unitIncompleta(u);
-    return matchSearch && matchStatus && matchProto && matchLevel && matchRec
+    return matchSearch && matchStatus && matchProto && matchLevel && matchRec && matchBanos && matchSpots
       && matchPriceMin && matchPriceMax && matchM2Min && matchM2Max && matchVista && matchCajon && matchIncomplete;
   });
-  const anyFilter = protoFil || levelFil || recFil || priceMin || priceMax || m2Min || m2Max || vistaFil || cajonFil || incompleteOnly || statusFilter || search;
+  const anyFilter = protoFil || levelFil || recFil || banosFil || spotsFil || priceMin || priceMax || m2Min || m2Max || vistaFil || cajonFil || incompleteOnly || statusFilter || search;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -468,6 +457,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           <option value="" style={cellOptStyle}>Recámaras: todas</option>
           {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
         </select>
+        <select value={banosFil} onChange={e => { setBanosFil(e.target.value); setPage(1); }} style={bulkCtl}>
+          <option value="" style={cellOptStyle}>Baños: todos</option>
+          {allBanos.map(b => <option key={b} value={b} style={cellOptStyle}>{b} baños</option>)}
+        </select>
+        <select value={spotsFil} onChange={e => { setSpotsFil(e.target.value); setPage(1); }} style={bulkCtl}>
+          <option value="" style={cellOptStyle}>Cajones: todos</option>
+          {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
+        </select>
         <input type="number" value={m2Min} onChange={e => { setM2Min(e.target.value); setPage(1); }} placeholder="m² min" style={{ ...bulkCtl, width: 84 }} />
         <input type="number" value={m2Max} onChange={e => { setM2Max(e.target.value); setPage(1); }} placeholder="m² max" style={{ ...bulkCtl, width: 84 }} />
         <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtl}>
@@ -490,7 +487,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           ⚠ Solo incompletas
         </button>
         {anyFilter && (
-          <button onClick={() => { setProtoFil(''); setLevelFil(''); setRecFil(''); setPriceMin(''); setPriceMax(''); setM2Min(''); setM2Max(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); }}
+          <button onClick={() => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Min(''); setM2Max(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); }}
             style={{ background: 'none', border: 'none', color: 'var(--theme)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
             Limpiar filtros
           </button>
@@ -533,7 +530,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
             {bulkFieldDef.type === 'status' && (
               <select value={bulkValue} onChange={e => setBulkValue(e.target.value)} style={bulkCtl}>
                 <option value="" style={cellOptStyle}>Elige…</option>
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v.label}</option>)}
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value} style={cellOptStyle}>{o.label}</option>)}
               </select>
             )}
           </div>
@@ -567,8 +564,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         filters_config={[{
           key: 'status',
           label: 'Estado',
-          options: Object.entries(STATUS_CONFIG).map(([k, v]) => ({
-            value: k, label: v.label, count: counts[k] || 0,
+          options: STATUS_OPTIONS.map(o => ({
+            value: o.value, label: o.label, count: counts[o.value] || 0,
           })),
         }]}
         current_state={{ status: statusFilter }}
@@ -587,7 +584,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
-        <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: editMode ? 1560 : 1180 }}>
+        <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
           <thead>
             {(() => {
               // TEMA CLARO (.portal-asesor): bandas pastel + texto OSCURO saturado = legible.
@@ -680,54 +677,50 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                     </span>
                   ) : u.unit_number}
                 </td>
-                <td style={{ padding: '8px 12px' }} onClick={editMode ? (e => e.stopPropagation()) : undefined}>
-                  {editMode ? <TextEdit u={u} field="prototype" devId={devId} onPatched={onUnitPatched} /> : (
-                    <span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>
-                      {u.prototype || '—'}
-                    </span>
-                  )}
+                <td style={{ padding: '8px 12px' }}>
+                  {editMode
+                    ? <EditableCell u={u} field="prototype" type="text" devId={devId} onPatched={onUnitPatched} width={52}
+                        display={uu => <span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{uu.prototype || '—'}</span>} />
+                    : <span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{u.prototype || '—'}</span>}
                 </td>
                 <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>
-                  {editMode ? <NumEdit u={u} field="level" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.level ?? '—')}
+                  {editMode ? <EditableCell u={u} field="level" type="num" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.level ?? '—')}
                 </td>
                 {/* M² DESGLOSADOS */}
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{editMode ? <NumEdit u={u} field="m2_privative" devId={devId} onPatched={onUnitPatched} /> : fm2(m2priv(u))}</td>
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <NumEdit u={u} field="m2_balcony" devId={devId} onPatched={onUnitPatched} /> : fm2(m2balc(u))}</td>
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <NumEdit u={u} field="m2_terrace" devId={devId} onPatched={onUnitPatched} /> : fm2(m2terr(u))}</td>
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <NumEdit u={u} field="m2_roof_garden" devId={devId} onPatched={onUnitPatched} /> : fm2(m2roof(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{editMode ? <EditableCell u={u} field="m2_privative" type="num" devId={devId} onPatched={onUnitPatched} display={uu => fm2(m2priv(uu))} /> : fm2(m2priv(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <EditableCell u={u} field="m2_balcony" type="num" devId={devId} onPatched={onUnitPatched} display={uu => fm2(m2balc(uu))} /> : fm2(m2balc(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <EditableCell u={u} field="m2_terrace" type="num" devId={devId} onPatched={onUnitPatched} display={uu => fm2(m2terr(uu))} /> : fm2(m2terr(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{editMode ? <EditableCell u={u} field="m2_roof_garden" type="num" devId={devId} onPatched={onUnitPatched} display={uu => fm2(m2roof(uu))} /> : fm2(m2roof(u))}</td>
                 <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                  {editMode ? <NumEdit u={u} field="m2_total" devId={devId} onPatched={onUnitPatched} /> : (
-                    <>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{fm2(m2tot(u))}</div>
-                      {totalBreakdown(u) && <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{totalBreakdown(u)}</div>}
-                    </>
-                  )}
+                  {editMode
+                    ? <EditableCell u={u} field="m2_total" type="num" devId={devId} onPatched={onUnitPatched} display={uu => <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{fm2(m2tot(uu))}</span>} />
+                    : (<>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{fm2(m2tot(u))}</div>
+                        {totalBreakdown(u) && <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{totalBreakdown(u)}</div>}
+                      </>)}
                 </td>
                 {/* CARACTERÍSTICAS */}
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{editMode ? <NumEdit u={u} field="bedrooms" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.bedrooms ?? '—')}</td>
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{editMode ? <NumEdit u={u} field="bathrooms" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.bathrooms ?? '—')}</td>
-                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{editMode ? <NumEdit u={u} field="parking_spots" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.parking_spots ?? '—')}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{editMode ? <EditableCell u={u} field="bedrooms" type="num" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.bedrooms ?? '—')}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{editMode ? <EditableCell u={u} field="bathrooms" type="num" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.bathrooms ?? '—')}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{editMode ? <EditableCell u={u} field="parking_spots" type="num" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.parking_spots ?? '—')}</td>
                 {/* ADICIONALES (tipo cajón · bodega · vista) */}
                 <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} editMode={editMode} />
                 {/* PRECIO */}
                 <td style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--cream)', fontWeight: 700, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
-                  {editMode ? <NumEdit u={u} field="price" devId={devId} onPatched={onUnitPatched} width={110} /> : (
-                    priceAdjustPct > 0 ? (
-                      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
-                        <span style={{ color: 'var(--theme-3)' }}>{fmtFull(appliedPrice(u.price, priceAdjustPct))}</span>
-                        <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtFull(u.price)}</span>
-                      </span>
-                    ) : fmtFull(u.price)
-                  )}
+                  {editMode
+                    ? <EditableCell u={u} field="price" type="num" devId={devId} onPatched={onUnitPatched} width={110} display={uu => <span style={{ fontWeight: 700 }}>{fmtFull(uu.price)}</span>} />
+                    : (priceAdjustPct > 0 ? (
+                        <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                          <span style={{ color: 'var(--theme-3)' }}>{fmtFull(appliedPrice(u.price, priceAdjustPct))}</span>
+                          <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtFull(u.price)}</span>
+                        </span>
+                      ) : fmtFull(u.price))}
                 </td>
-                <td style={{ padding: '8px 12px' }} onClick={editMode ? (e => e.stopPropagation()) : undefined}>
-                  {editMode ? (
-                    <select value={u.status || 'disponible'} onClick={e => e.stopPropagation()}
-                      onChange={e => savePatch(devId, u, { status: e.target.value }, onUnitPatched)}
-                      style={{ ...editInp, width: 'auto' }}>
-                      {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v.label}</option>)}
-                    </select>
-                  ) : <StatusChip status={u.status} />}
+                <td style={{ padding: '8px 12px' }}>
+                  {editMode
+                    ? <EditableCell u={u} field="status" type="select" devId={devId} onPatched={onUnitPatched}
+                        options={STATUS_OPTIONS} display={uu => <StatusChip status={uu.status} />} />
+                    : <StatusChip status={u.status} />}
                 </td>
                 {/* + Info */}
                 <td style={{ padding: '8px 12px' }}>
@@ -949,12 +942,12 @@ function VistaDePlanta({ units, user, devId }) {
         padding: '10px 14px', background: 'rgba(var(--cream-rgb),0.04)',
         borderRadius: 8, border: '1px solid rgba(var(--cream-rgb),0.08)',
       }}>
-        {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: v.bg, border: `1.5px solid ${v.color}` }} />
-            <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{v.label}</span>
+        {STATUS_OPTIONS.map(o => { const v = STATUS_CONFIG[o.value]; return (
+          <div key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: v.bg, border: `1.5px solid ${v.bd}` }} />
+            <span style={{ fontSize: 11, color: 'var(--cream-2)' }}>{v.label}</span>
           </div>
-        ))}
+        ); })}
       </div>
 
       {/* Tooltip */}
@@ -1111,7 +1104,10 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
                   border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.24)',
                   borderRadius: 9999, padding: '5px 13px', fontSize: 11.5, fontWeight: on ? 700 : 600, cursor: 'pointer',
                 }}>
-                {s.nombre}{s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
+                {s.id === 'lista'
+                  ? 'Lista'
+                  : `Eng: ${s.firma_pct ?? 0}% / Mens: ${s.mensualidades_pct ?? 0}% / Escritura: ${s.escritura_pct ?? 0}%`}
+                {s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
               </button>
             );
           })}
