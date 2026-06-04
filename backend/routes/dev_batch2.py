@@ -108,64 +108,66 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
         dev_ids = [project_id]
 
     from data_developments import DEVELOPMENTS_BY_ID
+    from collections import Counter
     my_devs = [DEVELOPMENTS_BY_ID[d] for d in dev_ids if d in DEVELOPMENTS_BY_ID]
 
-    rng = random.Random(hash(tuple(dev_ids)) % 2**32)
-
-    # ── Cohort matrix: captación month × cierre month (last 12 months)
-    months = []
+    db = _db(request)
     today = _now()
+
+    # 12 meses
+    months = []
     for i in range(12):
         m = (today.replace(day=1) - timedelta(days=30 * (11 - i)))
         months.append(m.strftime("%Y-%m"))
-    cohort = []
-    for i, capt_m in enumerate(months):
-        row = {"captacion_month": capt_m, "closes": {}}
-        for j, close_m in enumerate(months):
-            if j >= i:
-                base = max(0, int(rng.gauss(6 - abs(j - i - 2) * 1.5, 2)))
-                row["closes"][close_m] = base
-        cohort.append(row)
 
-    # ── Heatmap calendario YTD: ventas per day (GitHub style)
-    year = today.year
-    jan1 = datetime(year, 1, 1, tzinfo=timezone.utc)
-    days = (today - jan1).days + 1
-    heatmap = []
-    for d in range(days):
-        date = jan1 + timedelta(days=d)
-        weekend = date.weekday() >= 5
-        # Realistic: fewer sales weekends, ramp mid-month, more toward year end
-        base = rng.gauss(1.2 if not weekend else 0.3, 0.7)
-        count = max(0, int(base + (d / 90)))
-        heatmap.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "count": count,
-            "level": 0 if count == 0 else 1 if count <= 1 else 2 if count <= 2 else 3 if count <= 4 else 4,
-        })
+    # ── Cargar leads REALES del dev (antes era random.Random — datos inventados).
+    q: Dict[str, Any] = {"dev_org_id": _tenant(user)}
+    if project_id:
+        q["$or"] = [{"project_id": project_id}, {"development_id": project_id}]
+    leads = await db.leads.find(
+        q, {"_id": 0, "status": 1, "lost_reason": 1, "created_at": 1, "updated_at": 1}
+    ).to_list(5000)
 
-    # ── Win/Loss reasons breakdown
-    total_lost = 87
+    def _parse(dt):
+        if not dt:
+            return None
+        if isinstance(dt, datetime):
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        try:
+            d = datetime.fromisoformat(str(dt).replace("Z", "+00:00"))
+            return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+
+    counts = Counter(l.get("status") for l in leads)
+    won = counts.get("cerrado_ganado", 0)
+    lost_leads = [l for l in leads if l.get("status") == "cerrado_perdido"]
+    lost_total = len(lost_leads)
+
+    # ── Win/Loss REAL (motivos desde lost_reason)
+    REASON_COLOR = {"precio": "#ef4444", "timing": "#f59e0b", "financiamiento": "#EC4899",
+                    "ubicacion": "#6366F1", "competencia": "#10b981"}
+    reason_ct = Counter((l.get("lost_reason") or "otro") for l in lost_leads)
+    lost_reasons = [
+        {"reason": str(r).replace("_", " ").title(), "count": c,
+         "color": REASON_COLOR.get(str(r).lower(), "#94a3b8"),
+         "pct": round(100 * c / lost_total) if lost_total else 0}
+        for r, c in reason_ct.most_common()
+    ]
     win_loss = {
-        "won": 142,
-        "lost_total": total_lost,
-        "lost_reasons": [
-            {"reason": "Precio", "count": int(total_lost * 0.38), "color": "#ef4444", "pct": 38},
-            {"reason": "Timing (entrega)", "count": int(total_lost * 0.24), "color": "#f59e0b", "pct": 24},
-            {"reason": "Financiamiento", "count": int(total_lost * 0.19), "color": "#EC4899", "pct": 19},
-            {"reason": "Ubicación", "count": int(total_lost * 0.11), "color": "#6366F1", "pct": 11},
-            {"reason": "Otro", "count": int(total_lost * 0.08), "color": "#94a3b8", "pct": 8},
-        ],
-        "win_rate_pct": round(100 * 142 / (142 + total_lost), 1),
+        "won": won, "lost_total": lost_total, "lost_reasons": lost_reasons,
+        "win_rate_pct": round(100 * won / (won + lost_total), 1) if (won + lost_total) else 0,
     }
 
-    # ── Funnel multi-step
+    # ── Funnel REAL por etapa (acumulado hacia el cierre)
+    n_total = len(leads)
+    n_calif = sum(counts.get(s, 0) for s in ("calificado", "cita_agendada", "cerrado_ganado", "cerrado_perdido"))
+    n_visita = sum(counts.get(s, 0) for s in ("cita_agendada", "cerrado_ganado", "cerrado_perdido"))
     funnel_steps = [
-        {"k": "lead", "label": "Leads capturados", "count": 2850},
-        {"k": "visita", "label": "Visitas agendadas", "count": 1240},
-        {"k": "propuesta", "label": "Propuesta enviada", "count": 432},
-        {"k": "aceptada", "label": "Propuesta aceptada", "count": 186},
-        {"k": "cerrada", "label": "Venta cerrada", "count": 142},
+        {"k": "lead",       "label": "Leads capturados", "count": n_total},
+        {"k": "calificado", "label": "Calificados",      "count": n_calif},
+        {"k": "visita",     "label": "Cita agendada",    "count": n_visita},
+        {"k": "cerrada",    "label": "Venta cerrada",    "count": won},
     ]
     for i, s in enumerate(funnel_steps):
         if i == 0:
@@ -176,6 +178,37 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
             s["dropoff_pct"] = round(100 * (prev - s["count"]) / prev, 1) if prev else 0
             s["conversion_from_prev"] = round(100 * s["count"] / prev, 1) if prev else 0
 
+    # ── Cohort REAL: mes de captación × mes de cierre (leads ganados)
+    midx = {m: i for i, m in enumerate(months)}
+    cohort = [{"captacion_month": m, "closes": {}} for m in months]
+    for l in leads:
+        if l.get("status") != "cerrado_ganado":
+            continue
+        c, cl = _parse(l.get("created_at")), _parse(l.get("updated_at"))
+        if not c or not cl:
+            continue
+        cm, clm = c.strftime("%Y-%m"), cl.strftime("%Y-%m")
+        if cm in midx and clm in midx:
+            cohort[midx[cm]]["closes"][clm] = cohort[midx[cm]]["closes"].get(clm, 0) + 1
+
+    # ── Heatmap REAL: cierres por día YTD (fecha de cierre = updated_at del lead ganado)
+    year = today.year
+    jan1 = datetime(year, 1, 1, tzinfo=timezone.utc)
+    day_ct: Counter = Counter()
+    for l in leads:
+        if l.get("status") != "cerrado_ganado":
+            continue
+        cl = _parse(l.get("updated_at"))
+        if cl and cl >= jan1:
+            day_ct[cl.strftime("%Y-%m-%d")] += 1
+    days = (today - jan1).days + 1
+    heatmap = []
+    for d in range(days):
+        ds = (jan1 + timedelta(days=d)).strftime("%Y-%m-%d")
+        count = day_ct.get(ds, 0)
+        heatmap.append({"date": ds, "count": count,
+                        "level": 0 if count == 0 else 1 if count <= 1 else 2 if count <= 2 else 3 if count <= 4 else 4})
+
     return {
         "months": months,
         "cohort": cohort,
@@ -184,6 +217,7 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
         "funnel": funnel_steps,
         "project_id": project_id,
         "project_count": len(my_devs),
+        "source": "real · db.leads",
     }
 
 
