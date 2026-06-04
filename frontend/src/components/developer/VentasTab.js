@@ -280,6 +280,65 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   });
   const anyFilter = protoFil || levelFil || recFil || banosFil || spotsFil || priceMin || priceMax || m2Min || m2Max || vistaFil || cajonFil || incompleteOnly || statusFilter || search;
 
+  // Controles de filtro combinables (se usan arriba para navegar y dentro del panel
+  // de edición para acotar a qué unidades se aplica el llenado masivo).
+  const clearFilters = () => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Min(''); setM2Max(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); };
+  const renderFilters = () => (
+    <>
+      <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Prototipo: todos</option>
+        {allProtos.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
+      </select>
+      <select value={levelFil} onChange={e => { setLevelFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Nivel: todos</option>
+        {allLevels.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
+      </select>
+      <select value={recFil} onChange={e => { setRecFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Recámaras: todas</option>
+        {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
+      </select>
+      <select value={banosFil} onChange={e => { setBanosFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Baños: todos</option>
+        {allBanos.map(b => <option key={b} value={b} style={cellOptStyle}>{b} baños</option>)}
+      </select>
+      <select value={spotsFil} onChange={e => { setSpotsFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Cajones: todos</option>
+        {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
+      </select>
+      <input type="number" value={m2Min} onChange={e => { setM2Min(e.target.value); setPage(1); }} placeholder="m² min" style={{ ...bulkCtl, width: 84 }} />
+      <input type="number" value={m2Max} onChange={e => { setM2Max(e.target.value); setPage(1); }} placeholder="m² max" style={{ ...bulkCtl, width: 84 }} />
+      <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Vista: todas</option>
+        <option value="interior" style={cellOptStyle}>Interior</option>
+        <option value="exterior" style={cellOptStyle}>Exterior</option>
+      </select>
+      <select value={cajonFil} onChange={e => { setCajonFil(e.target.value); setPage(1); }} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Tipo cajón: todos</option>
+        {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
+      </select>
+      <select value={statusFilter || ''} onChange={e => handleFilterChange('status', e.target.value || null)} style={bulkCtl}>
+        <option value="" style={cellOptStyle}>Estado: todos</option>
+        {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value} style={cellOptStyle}>{o.label}</option>)}
+      </select>
+      <input type="number" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1); }} placeholder="precio min" style={{ ...bulkCtl, width: 100 }} />
+      <input type="number" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1); }} placeholder="precio max" style={{ ...bulkCtl, width: 100 }} />
+      <button onClick={() => { setIncompleteOnly(v => !v); setPage(1); }}
+        title="Unidades a las que les falta tipo de cajón, bodega, vista o m²"
+        style={{ ...bulkCtl, cursor: 'pointer',
+          background: incompleteOnly ? 'rgba(245,158,11,0.2)' : '#fff',
+          color: incompleteOnly ? '#b45309' : 'var(--cream-2)',
+          border: incompleteOnly ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(var(--cream-rgb),0.26)' }}>
+        ⚠ Solo incompletas
+      </button>
+      {anyFilter && (
+        <button onClick={clearFilters}
+          style={{ background: 'none', border: 'none', color: 'var(--theme)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+          Limpiar
+        </button>
+      )}
+    </>
+  );
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -442,64 +501,37 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         </button>
       </div>
 
-      {/* Filtros para acotar y editar el inventario (founder) */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Filtrar:</span>
-        <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Prototipo: todos</option>
-          {allProtos.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
-        </select>
-        <select value={levelFil} onChange={e => { setLevelFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Nivel: todos</option>
-          {allLevels.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
-        </select>
-        <select value={recFil} onChange={e => { setRecFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Recámaras: todas</option>
-          {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
-        </select>
-        <select value={banosFil} onChange={e => { setBanosFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Baños: todos</option>
-          {allBanos.map(b => <option key={b} value={b} style={cellOptStyle}>{b} baños</option>)}
-        </select>
-        <select value={spotsFil} onChange={e => { setSpotsFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Cajones: todos</option>
-          {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
-        </select>
-        <input type="number" value={m2Min} onChange={e => { setM2Min(e.target.value); setPage(1); }} placeholder="m² min" style={{ ...bulkCtl, width: 84 }} />
-        <input type="number" value={m2Max} onChange={e => { setM2Max(e.target.value); setPage(1); }} placeholder="m² max" style={{ ...bulkCtl, width: 84 }} />
-        <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Vista: todas</option>
-          <option value="interior" style={cellOptStyle}>Interior</option>
-          <option value="exterior" style={cellOptStyle}>Exterior</option>
-        </select>
-        <select value={cajonFil} onChange={e => { setCajonFil(e.target.value); setPage(1); }} style={bulkCtl}>
-          <option value="" style={cellOptStyle}>Cajón: todos</option>
-          {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
-        </select>
-        <input type="number" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1); }} placeholder="precio min" style={{ ...bulkCtl, width: 100 }} />
-        <input type="number" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1); }} placeholder="precio max" style={{ ...bulkCtl, width: 100 }} />
-        <button onClick={() => { setIncompleteOnly(v => !v); setPage(1); }}
-          title="Unidades a las que les falta tipo de cajón, bodega, vista o m²"
-          style={{ ...bulkCtl, cursor: 'pointer',
-            background: incompleteOnly ? 'rgba(245,158,11,0.2)' : '#fff',
-            color: incompleteOnly ? '#b45309' : 'var(--cream-2)',
-            border: incompleteOnly ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(var(--cream-rgb),0.26)' }}>
-          ⚠ Solo incompletas
-        </button>
-        {anyFilter && (
-          <button onClick={() => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Min(''); setM2Max(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); }}
-            style={{ background: 'none', border: 'none', color: 'var(--theme)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-            Limpiar filtros
-          </button>
-        )}
-      </div>
+      {/* Filtros para navegar (cuando NO estás editando) */}
+      {!editMode && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Filtrar:</span>
+          {renderFilters()}
+        </div>
+      )}
 
-      {/* Llenado masivo (upgrade): cualquier campo + ámbito (todas/prototipo/nivel/metraje) */}
+      {/* Panel de edición en bloque: 1) ¿a cuáles? (combina filtros) → 2) qué llenar → aplicar */}
       {editMode && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 10 }}>
-          {/* Fila 1: qué llenar + con qué valor */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Llenar:</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 10 }}>
+          {/* Paso 1: a cuáles (criterios combinables) */}
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--theme)', marginBottom: 7 }}>
+              1 · ¿A cuáles? — combina los criterios que quieras
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              {renderFilters()}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 6 }}>
+              Ej: Prototipo A + 3 recámaras + 100–100 m² → modificas exacto ese grupo (sin tocar los de 150 m²). Quedan <strong style={{ color: 'var(--theme)' }}>{filtered.length}</strong> unidades.
+            </div>
+          </div>
+
+          {/* Paso 2: qué llenar */}
+          <div style={{ borderTop: '1px solid rgba(var(--theme-rgb),0.18)', paddingTop: 12 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--theme)', marginBottom: 7 }}>
+              2 · Llena en bloque (o edita celda por celda con click)
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Llenar:</span>
             <select value={bulkField} onChange={e => { setBulkField(e.target.value); setBulkValue(''); }} style={bulkCtl}>
               {BULK_FIELDS.map(f => <option key={f.key} value={f.key} style={cellOptStyle}>{f.label}</option>)}
             </select>
@@ -550,11 +582,12 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 ? `${selectedCount} marcadas.`
                 : 'Marca las casillas (columna ID) para elegir unidades; sin marcar, se aplica a todas las filtradas.'}
             </span>
-            {selectedCount > 0 && (
-              <button onClick={() => setSelectedIds(new Set())} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
-                Quitar selección
-              </button>
-            )}
+              {selectedCount > 0 && (
+                <button onClick={() => setSelectedIds(new Set())} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+                  Quitar selección
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
