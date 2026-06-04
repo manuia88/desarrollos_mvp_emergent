@@ -182,7 +182,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [bulkField, setBulkField] = useState('parking_spots');
   const [bulkValue, setBulkValue] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkScope, setBulkScope] = useState('filtradas');  // seleccionadas | filtradas | vacias
+  const [onlyEmpty, setOnlyEmpty] = useState(false);        // aplicar solo a las que les falta el dato
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [protoFil, setProtoFil] = useState('');
   const [levelFil, setLevelFil] = useState('');
@@ -280,12 +280,9 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   });
   const selectedCount = filtered.filter(u => selectedIds.has(u.id)).length;
 
-  // Ámbito del llenado masivo
-  const scopedUnits = bulkScope === 'seleccionadas'
-    ? filtered.filter(u => selectedIds.has(u.id))
-    : bulkScope === 'vacias'
-      ? filtered.filter(u => fieldIsEmpty(u, bulkField))
-      : filtered;  // filtradas
+  // Ámbito = (las marcadas si hay, si no, todas las filtradas) → opcionalmente solo las vacías.
+  const baseSet = selectedCount > 0 ? filtered.filter(u => selectedIds.has(u.id)) : filtered;
+  const scopedUnits = onlyEmpty ? baseSet.filter(u => fieldIsEmpty(u, bulkField)) : baseSet;
 
   // Llenado masivo: aplica el campo+valor a las unidades del ámbito de un click.
   const applyBulk = async () => {
@@ -473,24 +470,25 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
               </select>
             )}
           </div>
-          {/* Fila 2: a qué unidades (ámbito) + aplicar */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Aplicar a:</span>
-            <select value={bulkScope} onChange={e => setBulkScope(e.target.value)} style={bulkCtl}>
-              <option value="seleccionadas" style={cellOptStyle}>Las seleccionadas ({selectedCount})</option>
-              <option value="filtradas" style={cellOptStyle}>Todas las filtradas ({filtered.length})</option>
-              <option value="vacias" style={cellOptStyle}>Solo las que les falta este dato</option>
-            </select>
-            {bulkScope === 'seleccionadas' && selectedCount === 0 && (
-              <span style={{ fontSize: 11, color: 'var(--amber)' }}>Marca casillas en la tabla ✓</span>
-            )}
+          {/* Fila 2: a qué unidades + aplicar (lógica simple y clara) */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--cream-2)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={onlyEmpty} onChange={e => setOnlyEmpty(e.target.checked)}
+                style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
+              Solo a las que les falta el dato
+            </label>
             <button data-testid="bulk-apply" onClick={applyBulk} disabled={bulkValue === '' || bulkBusy || !scopedUnits.length}
               style={{ background: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'rgba(148,163,184,0.25)' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'not-allowed' : 'pointer' }}>
-              {bulkBusy ? 'Aplicando…' : `Aplicar a ${scopedUnits.length} unidades`}
+              {bulkBusy ? 'Aplicando…' : `Aplicar a ${scopedUnits.length} ${selectedCount > 0 ? 'seleccionadas' : 'filtradas'}`}
             </button>
+            <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>
+              {selectedCount > 0
+                ? `${selectedCount} marcadas.`
+                : 'Marca las casillas (columna ID) para elegir unidades; sin marcar, se aplica a todas las filtradas.'}
+            </span>
             {selectedCount > 0 && (
               <button onClick={() => setSelectedIds(new Set())} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
-                Quitar selección ({selectedCount})
+                Quitar selección
               </button>
             )}
           </div>
@@ -525,13 +523,15 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
           <thead>
             {(() => {
-              // Cada categoría su color; los sub-headers el mismo color degradado.
+              // Paleta cohesiva (no arcoíris): datos de referencia en familia fría
+              // calmada; color con SIGNIFICADO solo en Adicionales (editable) y Precio (dinero).
+              const SLATE = '148,163,184';
               const CATS = [
-                { label: 'Unidad', span: 3, rgb: '45,212,191', fg: '#5eead4' },
-                { label: 'M² desglosados', span: 5, rgb: '96,165,250', fg: '#93c5fd' },
-                { label: 'Características', span: 3, rgb: '167,139,250', fg: '#c4b5fd' },
-                { label: 'Adicionales', span: 3, rgb: '212,167,44', fg: '#e3c04e' },
-                { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#4ade80' },
+                { label: 'Unidad', span: 3, rgb: SLATE, fg: '#cbd5e1' },
+                { label: 'M² desglosados', span: 5, rgb: '129,160,205', fg: '#bcd0f0' },
+                { label: 'Características', span: 3, rgb: SLATE, fg: '#cbd5e1' },
+                { label: 'Adicionales', span: 3, rgb: 'var(--theme-rgb)', fg: '#f0abfc' },  // editable
+                { label: 'Precio', span: 2, rgb: '52,200,120', fg: '#86efac' },              // dinero
                 { label: '', span: 1, rgb: null, fg: 'transparent' },
               ];
               const labels = ['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'VISTA', 'PRECIO', 'ESTADO', ''];
