@@ -187,7 +187,7 @@ const TABS = DEV_V2 ? [
   { key: 'inicio',          label: 'Inicio',          phase: null },  // home: ¿cómo va y qué hago hoy?
   { key: 'ventas',          label: 'Ventas',          phase: null },  // workhorse diario
   { key: 'insights',        label: 'Insights',        phase: null },  // cómo va / decisiones
-  { key: 'comercializacion',label: 'Comercialización',phase: null },  // pagos, políticas, brokers
+  { key: 'comercializacion',label: 'Pagos y brokers',phase: null },  // pagos, políticas, brokers
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'contenido',       label: 'Contenido',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
@@ -200,7 +200,7 @@ const TABS = DEV_V2 ? [
   { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
-  { key: 'comercializacion',label: 'Comercialización',phase: null },
+  { key: 'comercializacion',label: 'Pagos y brokers',phase: null },
   { key: 'insights',        label: 'Insights',        phase: 'B22' },
 ];
 
@@ -521,7 +521,7 @@ export default function ProyectoDetail({ user, onLogout }) {
         {!DEV_V2 && summary && [
           { group: 'Operar', cards: [
             { key: 'ventas', label: 'Ventas', stat: `${summary.sold_pct ?? 0}% vendido`, accent: 'var(--ok, #1FA06A)' },
-            { key: 'comercializacion', label: 'Comercialización', stat: `${summary.leads_active ?? 0} leads activos`, accent: 'var(--theme, #6D4AFF)' },
+            { key: 'comercializacion', label: 'Pagos y brokers', stat: `${summary.leads_active ?? 0} leads activos`, accent: 'var(--theme, #6D4AFF)' },
             { key: 'avance', label: 'Avance de obra', stat: 'Ver progreso', accent: 'var(--warm, #E2982E)' },
             { key: 'insights', label: 'Insights', stat: `Salud ${summary.health_score ?? '—'}/100`, accent: 'var(--theme, #6D4AFF)' },
           ] },
@@ -616,7 +616,14 @@ export default function ProyectoDetail({ user, onLogout }) {
             <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />
           )}
           {activeTab === 'contenido' && (
-            <ContenidoTab devId={slug} user={user} />
+            <>
+              <ContenidoTab devId={slug} user={user} />
+              <Tours3DSection
+                projectSlug={slug}
+                devId={summary?.dev_org_id || summary?.developer_id || (user?.dev_org_id || user?.tenant_id)}
+                user={user}
+              />
+            </>
           )}
           {activeTab === 'avance' && (
             <AvanceObraTab devId={slug} />
@@ -631,14 +638,7 @@ export default function ProyectoDetail({ user, onLogout }) {
             <LegalTab devId={slug} user={user} />
           )}
           {activeTab === 'comercializacion' && (
-            <>
-              <ComercializacionTab devId={slug} user={user} projectName={summary?.name || slug} />
-              <Tours3DSection
-                projectSlug={slug}
-                devId={summary?.dev_org_id || summary?.developer_id || (user?.dev_org_id || user?.tenant_id)}
-                user={user}
-              />
-            </>
+            <ComercializacionTab devId={slug} user={user} projectName={summary?.name || slug} />
           )}
           {activeTab === 'insights' && (
             <InsightsTab projectId={slug} user={user} />

@@ -164,25 +164,25 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           </div>
         )}
 
-        {/* Sugerencias — elige la dirección correcta */}
+        {/* Sugerencias — elige la dirección correcta (estilo Google Maps, tema claro) */}
         {!readOnly && suggestions.length > 0 && (
           <div data-testid="geoloc-suggestions" style={{
-            marginBottom: 14, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
-            background: '#161b27',
+            marginBottom: 14, border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 12, overflow: 'hidden',
+            background: '#fff', boxShadow: '0 14px 40px rgba(0,0,0,0.14)',
           }}>
             {suggestions.map((f, i) => (
               <button
                 key={f.id || i}
                 onClick={() => pickSuggestion(f)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
-                  padding: '9px 12px', background: 'transparent', border: 'none',
-                  borderBottom: i < suggestions.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
-                  color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
+                  padding: '10px 13px', background: '#fff', border: 'none',
+                  borderBottom: i < suggestions.length - 1 ? '1px solid rgba(var(--cream-rgb),0.1)' : 'none',
+                  color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, cursor: 'pointer',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <MapPin size={12} style={{ flexShrink: 0, color: 'var(--theme-3)' }} />
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.07)'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                <MapPin size={13} style={{ flexShrink: 0, color: 'var(--theme)' }} />
                 <span>{f.place_name}</span>
               </button>
             ))}
