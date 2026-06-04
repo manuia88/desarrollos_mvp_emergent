@@ -29,6 +29,7 @@ import { getProjectSummary, listProjectsWithStats, getDevAmenityRanker } from '.
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
+import FichaHome from '../../components/developer/FichaHome';
 import { titleCase } from '../../utils/titleCase';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import { Z } from '../../styles/zIndex';
@@ -183,6 +184,7 @@ const fmtMXN = (v) => {
 
 // V2: Insights primero (es lo que más mueve la aguja); el resto = gestión de la ficha.
 const TABS = DEV_V2 ? [
+  { key: 'inicio',          label: 'Inicio',          phase: null },  // home: ¿cómo va y qué hago hoy?
   { key: 'ventas',          label: 'Ventas',          phase: null },  // workhorse diario
   { key: 'insights',        label: 'Insights',        phase: null },  // cómo va / decisiones
   { key: 'comercializacion',label: 'Comercialización',phase: null },  // pagos, políticas, brokers
@@ -308,7 +310,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [showBrochure, setShowBrochure] = useState(false);
   const [showAiSuggest, setShowAiSuggest] = useState(false);  // colapsado: no estorba
 
-  const activeTab = searchParams.get('tab') || 'ventas';
+  const activeTab = searchParams.get('tab') || (DEV_V2 ? 'inicio' : 'ventas');
   const diagnosticOpen = searchParams.get('diagnostic') === 'open';
   const [diagBadge, setDiagBadge] = useState(null);
 
@@ -481,20 +483,20 @@ export default function ProyectoDetail({ user, onLogout }) {
           </div>
         </div>
 
-        {/* KPI Strip */}
-        {!loading && (
+        {/* KPI Strip — en V2 el Inicio (FichaHome) ya lo trae; se mantiene en las demás pestañas. */}
+        {!loading && activeTab !== 'inicio' && (
           <div style={{ marginBottom: 20 }}>
             <KPIStrip items={kpiItems} />
           </div>
         )}
 
-        {/* V2 · Operación del activo (IA-first): margen, absorción, qué sube el valor. */}
-        {DEV_V2 && !loading && summary && (
+        {/* V2 · Operación del activo: se mantiene como contexto en las demás pestañas (no en Inicio). */}
+        {DEV_V2 && activeTab !== 'inicio' && !loading && summary && (
           <AssetOpCockpit slug={slug} summary={summary} />
         )}
 
-        {/* Sugerencias IA — colapsadas tras un botón (founder: estorban si están abiertas) */}
-        {!loading && slug && (
+        {/* Sugerencias IA — colapsadas; en Inicio las reemplaza "la jugada de hoy" del asistente */}
+        {!loading && slug && activeTab !== 'inicio' && (
           <div style={{ marginBottom: 16 }} data-testid="proyecto-ai-suggestions">
             <button
               data-testid="ai-suggest-toggle"
@@ -601,6 +603,11 @@ export default function ProyectoDetail({ user, onLogout }) {
 
         {/* Tab content */}
         <div data-testid="tab-content">
+          {activeTab === 'inicio' && (
+            <FichaHome slug={slug} summary={summary}
+              onOpenInsights={() => setTab('insights')}
+              onOpenDiagnostic={() => setDiagnosticOpen(true)} />
+          )}
           {activeTab === 'ventas' && (
             <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />
           )}
