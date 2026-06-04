@@ -595,76 +595,322 @@ def _quote_rows(payload: "QuotePdfBody", schemes, base, fi, fe):
     return [(s.get("nombre") or "Forma", ps.compute_breakdown(base or 0, s, fecha_inicio=fi, fecha_entrega=fe)) for s in sel]
 
 
-def _render_quote_pdf(dev, payload, rows, base, meses_auto) -> bytes:
+AMENITY_LABELS = {
+    "gym": "Gimnasio", "alberca": "Alberca", "concierge": "Concierge", "roof": "Roof garden",
+    "spa": "Spa", "sky_lounge": "Sky lounge", "cava": "Cava", "seguridad": "Seguridad 24/7",
+    "salon_eventos": "Salón de eventos", "pet_friendly": "Pet friendly", "coworking": "Coworking",
+    "cine": "Cine", "asadores": "Asadores", "ludoteca": "Ludoteca", "jardin": "Jardín",
+    "elevador": "Elevador", "terraza": "Terraza", "business_center": "Business center",
+    "rooftop": "Rooftop", "lobby": "Lobby", "estacionamiento_visitas": "Estac. visitas",
+}
+
+
+async def _fetch_quote_images(db, project_id, dev, limit=2):
+    """Hasta `limit` imágenes para el PDF (BytesIO RGB JPEG). Assets locales primero,
+    luego fotos seed (httpx). Normaliza a RGB para evitar el 'rojo' de los JPEG en CMYK."""
+    from pathlib import Path
+    import dev_assets
+    cand = limit + 3  # candidatas de más (algunas se descartan)
+    raw = []
+    try:
+        cur = db.dev_assets.find(
+            {"development_id": project_id, "asset_type": {"$in": ["foto_render", "foto_avance"]}},
+            {"_id": 0, "public_url": 1},
+        ).sort("position", 1).limit(cand)
+        async for a in cur:
+            pu = a.get("public_url") or ""
+            p = dev_assets.ASSET_UPLOAD_DIR / Path(pu).name
+            if pu and p.exists():
+                raw.append(p.read_bytes())
+    except Exception:
+        pass
+    if not raw:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as c:
+                for u in (dev.get("photos") or [])[:cand]:
+                    try:
+                        r = await c.get(u)
+                        if r.status_code == 200 and r.content:
+                            raw.append(r.content)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+    # Normaliza a RGB y guarda a archivo (ReportLab con rutas es confiable; BytesIO da bugs de render).
+    out = []
+    for idx, b in enumerate(raw):
+        if len(out) >= limit:
+            break
+        try:
+            from PIL import Image as PILImage
+            im = PILImage.open(io.BytesIO(b))
+            if im.mode != "RGB":
+                im = im.convert("RGB")
+            # Descarta placeholders rojos sólidos (loremflickr a veces los manda en el demo).
+            r, g, bl = im.resize((1, 1)).getpixel((0, 0))
+            if r > 175 and g < 70 and bl < 70:
+                continue
+            fn = dev_assets.ASSET_UPLOAD_DIR / f"_qimg_{project_id}_{len(out)}.jpg"
+            im.save(str(fn), format="JPEG", quality=82)
+            out.append(str(fn))
+        except Exception:
+            pass
+    return out
+
+
+def _render_quote_pdf(dev, unit, prog, images, payload, rows, base, meses_auto) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.utils import ImageReader
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from datetime import datetime as _dt
 
+    INK = colors.HexColor("#1E2230"); MUTE = colors.HexColor("#6B7385"); SUB = colors.HexColor("#434A5C")
+    THEME = colors.HexColor("#6D4AFF"); AMBER = colors.HexColor("#C77F12"); GREEN = colors.HexColor("#15803d")
+    LINE = colors.HexColor("#E6E8EE"); BG2 = colors.HexColor("#F4F5F8"); WHITE = colors.white
+
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm,
-                            leftMargin=16 * mm, rightMargin=16 * mm, title="Cotización")
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=12 * mm, bottomMargin=10 * mm,
+                            leftMargin=13 * mm, rightMargin=13 * mm, title="Cotización")
+    W = doc.width
     styles = getSampleStyleSheet()
-    INK = colors.HexColor("#1E2230"); MUTE = colors.HexColor("#6B7385")
-    THEME = colors.HexColor("#6D4AFF"); LINE = colors.HexColor("#E6E8EE")
-    h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=INK, fontSize=20, spaceAfter=2, alignment=0)
-    sub = ParagraphStyle("sub", parent=styles["Normal"], textColor=MUTE, fontSize=10, spaceAfter=2)
-    lbl = ParagraphStyle("lbl", parent=styles["Normal"], textColor=THEME, fontSize=9, spaceBefore=10, spaceAfter=4)
-    small = ParagraphStyle("small", parent=styles["Normal"], textColor=MUTE, fontSize=8, leading=11)
+    stH1 = ParagraphStyle("h1", parent=styles["Title"], textColor=INK, fontSize=21, leading=23, alignment=0, spaceAfter=1)
+    stSub = ParagraphStyle("sub", parent=styles["Normal"], textColor=MUTE, fontSize=9.5, leading=12)
+    stSec = ParagraphStyle("sec", parent=styles["Normal"], textColor=THEME, fontSize=8.5, leading=11, fontName="Helvetica-Bold", spaceAfter=3)
+    stSmall = ParagraphStyle("sm", parent=styles["Normal"], textColor=MUTE, fontSize=7.5, leading=10)
+    stCardV = ParagraphStyle("cv", parent=styles["Normal"], fontSize=12.5, leading=14, textColor=INK, fontName="Helvetica-Bold")
+    stCardS = ParagraphStyle("cs", parent=styles["Normal"], fontSize=6.5, leading=8, textColor=MUTE)
+    stChipV = ParagraphStyle("chv", parent=styles["Normal"], fontSize=11, leading=13, textColor=INK, fontName="Helvetica-Bold", alignment=TA_CENTER)
+    stChipL = ParagraphStyle("chl", parent=styles["Normal"], fontSize=6.3, leading=8, textColor=MUTE, alignment=TA_CENTER)
+    stBody = ParagraphStyle("bd", parent=styles["Normal"], fontSize=8.5, leading=12, textColor=SUB)
+
+    def card(label, value, accent, subtxt=None):
+        lblS = ParagraphStyle("cl", parent=styles["Normal"], fontSize=6.5, leading=8, fontName="Helvetica-Bold", textColor=accent)
+        inner = [[Paragraph(label.upper(), lblS)], [Paragraph(value, stCardV)]]
+        if subtxt:
+            inner.append([Paragraph(subtxt, stCardS)])
+        t = Table(inner)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), WHITE), ("BOX", (0, 0), (-1, -1), 0.7, LINE),
+            ("LINEABOVE", (0, 0), (-1, 0), 2, accent),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("TOPPADDING", (0, 0), (0, 0), 6), ("BOTTOMPADDING", (0, -1), (-1, -1), 6),
+        ]))
+        return t
+
+    def chip(label, value):
+        t = Table([[Paragraph(value, stChipV)], [Paragraph(label.upper(), stChipL)]])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), BG2), ("BOX", (0, 0), (-1, -1), 0.6, LINE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (0, 0), 6), ("BOTTOMPADDING", (0, 0), (0, 0), 1),
+            ("TOPPADDING", (0, 1), (-1, 1), 0), ("BOTTOMPADDING", (0, 1), (-1, 1), 6),
+        ]))
+        return t
+
+    def row_of(flowables, gap=6):
+        n = len(flowables)
+        if not n:
+            return Spacer(1, 0)
+        cw = (W - gap * (n - 1)) / n
+        t = Table([flowables], colWidths=[cw] * n)
+        sty = [("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]
+        sty += [("LEFTPADDING", (i, 0), (i, 0), gap / 2 if i else 0) for i in range(n)]
+        sty += [("RIGHTPADDING", (i, 0), (i, 0), gap / 2 if i < n - 1 else 0) for i in range(n)]
+        t.setStyle(TableStyle(sty))
+        return t
+
+    def prop_bar(eng, mens, escr, h=11):
+        eng, mens, escr = max(0, eng), max(0, mens), max(0, escr)
+        tot = eng + mens + escr or 100
+        cw = [W * eng / tot, W * mens / tot, W * escr / tot]
+        # evita celdas de ancho 0 (ReportLab no las pinta)
+        cw = [max(0.1, x) for x in cw]
+        t = Table([["", "", ""]], colWidths=cw, rowHeights=[h])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, 0), THEME), ("BACKGROUND", (1, 0), (1, 0), AMBER), ("BACKGROUND", (2, 0), (2, 0), GREEN),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return t
+
+    def img_flowable(src, box_w, box_h):
+        try:
+            if hasattr(src, "seek"):
+                src.seek(0)
+            iw, ih = ImageReader(src).getSize()
+            if hasattr(src, "seek"):
+                src.seek(0)
+            r = (iw / ih) if ih else 1.5
+            w, h = box_w, box_w / r
+            if h > box_h:
+                h, w = box_h, box_h * r
+            return Image(src, width=w, height=h)
+        except Exception:
+            return None
 
     el = []
-    el.append(Paragraph(dev.get("name", "Proyecto"), h1))
+    # — Encabezado —
+    el.append(Paragraph(dev.get("name", "Proyecto"), stH1))
     titulo = "Cotización por unidad" if payload.scope == "unidad" else "Formas de pago del proyecto"
     bits = [titulo]
     if payload.scope == "unidad" and payload.unit_number:
         bits.append(f"Unidad {payload.unit_number}")
     if base:
-        bits.append(f"Precio de lista {_money(base)}")
-    el.append(Paragraph(" · ".join(bits), sub))
-    meta_line = _dt.now().strftime("%d/%m/%Y")
+        bits.append(f"Precio de lista <b>{_money(base)}</b>")
+    el.append(Paragraph(" · ".join(bits), stSub))
+    meta = _dt.now().strftime("%d/%m/%Y")
     if payload.cliente:
-        meta_line = f"Cliente: {payload.cliente}  ·  {meta_line}"
+        meta = f"Cliente: <b>{payload.cliente}</b>  ·  {meta}"
     if meses_auto:
-        meta_line += f"  ·  Plazo: {meses_auto} meses"
-    el.append(Paragraph(meta_line, sub))
+        meta += f"  ·  Plazo {meses_auto} meses"
+    el.append(Paragraph(meta, stSub))
     el.append(Spacer(1, 8))
 
-    header = ["Forma", "Enganche", "Mensualidad", "Al escriturar", "Precio final", "Ahorro"]
-    data = [header]
-    for label, bd in rows:
-        firma = f"{bd.get('firma_pct',0):.0f}% · {_money(bd.get('firma'))}" if base else f"{bd.get('firma_pct',0):.0f}%"
-        if bd.get("mensualidades_total"):
-            mens = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if base else f"{bd.get('mensualidades_pct',0):.0f}%"
-        else:
-            mens = "—"
-        escr = f"{bd.get('escritura_pct',0):.0f}% · {_money(bd.get('escrituracion'))}" if base else f"{bd.get('escritura_pct',0):.0f}%"
-        precio = _money(bd.get("precio_aplicado")) if base else "—"
-        ahorro = _money(bd.get("ahorro")) if (base and bd.get("ahorro", 0) > 0) else "—"
-        data.append([label, firma, mens, escr, precio, ahorro])
+    # — Imágenes —
+    imgs = [f for f in (img_flowable(s, (W - 6) / max(1, len(images)), 105) for s in (images or [])) if f]
+    if imgs:
+        ir = Table([imgs], colWidths=[W / len(imgs)] * len(imgs))
+        ir.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                ("LEFTPADDING", (0, 0), (-1, -1), 2), ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+                                ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        el.append(ir)
+        el.append(Spacer(1, 10))
 
-    tbl = Table(data, colWidths=[40 * mm, 28 * mm, 30 * mm, 30 * mm, 26 * mm, 24 * mm])
-    tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F2F6")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), INK),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-        ("TEXTCOLOR", (0, 1), (0, -1), INK),
-        ("TEXTCOLOR", (1, 1), (-1, -1), colors.HexColor("#434A5C")),
-        ("TEXTCOLOR", (4, 1), (4, -1), INK),
-        ("TEXTCOLOR", (5, 1), (5, -1), colors.HexColor("#15803d")),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.5, LINE),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    el.append(tbl)
-    el.append(Spacer(1, 10))
-    el.append(Paragraph("Esta cotización es informativa y no constituye una oferta vinculante. "
-                        "Precios sujetos a cambio y a disponibilidad. Las mensualidades aplican durante la "
-                        "construcción (del inicio de obra a la entrega).", small))
+    # — Características (unidad o rangos del proyecto) —
+    chips = []
+    if payload.scope == "unidad" and unit:
+        chips = [
+            chip("Recámaras", str(unit.get("bedrooms", "—"))),
+            chip("Baños", str(unit.get("bathrooms", "—"))),
+            chip("Estac.", str(unit.get("parking_spots", "—"))),
+            chip("m² total", str(unit.get("m2_total", "—"))),
+            chip("Nivel", str(unit.get("level", "—"))),
+            chip("Prototipo", str(unit.get("prototype", "—"))),
+        ]
+        if unit.get("orientation"):
+            chips.append(chip("Orientación", str(unit.get("orientation"))))
+    else:
+        def _rng(v):
+            if isinstance(v, (list, tuple)) and len(v) >= 2:
+                a, b = v[0], v[1]
+                return str(a) if a == b else f"{a}–{b}"
+            return str(v)
+        if dev.get("bedrooms_range"):
+            chips.append(chip("Recámaras", _rng(dev.get("bedrooms_range"))))
+        if dev.get("bathrooms_range"):
+            chips.append(chip("Baños", _rng(dev.get("bathrooms_range"))))
+        if dev.get("parking_range"):
+            chips.append(chip("Estac.", _rng(dev.get("parking_range"))))
+        if dev.get("m2_range"):
+            chips.append(chip("m²", _rng(dev.get("m2_range"))))
+        if dev.get("units_total"):
+            chips.append(chip("Unidades", str(dev.get("units_total"))))
+        if dev.get("stage"):
+            chips.append(chip("Etapa", str(dev.get("stage")).capitalize()))
+    if chips:
+        el.append(row_of(chips, gap=5))
+        el.append(Spacer(1, 12))
+
+    # — Plan de pago —
+    el.append(Paragraph("PLAN DE PAGO", stSec))
+    if payload.mode == "custom" and rows:
+        bd = rows[0][1]
+        eng, mens, escr = bd.get("firma_pct", 0), bd.get("mensualidades_pct", 0), bd.get("escritura_pct", 0)
+        el.append(prop_bar(eng, mens, escr))
+        el.append(Spacer(1, 6))
+        el.append(row_of([
+            card("Enganche", f"{eng:.0f}%", THEME, _money(bd.get("firma")) if base else None),
+            card("Mensualidades", f"{mens:.0f}%", AMBER, _money(bd.get("mensualidades_total")) if base else None),
+            card("Al escriturar", f"{escr:.0f}%", GREEN, _money(bd.get("escrituracion")) if base else None),
+        ]))
+        if base:
+            el.append(Spacer(1, 6))
+            mens_val = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if bd.get("mensualidades_total") else "—"
+            mens_sub = (f"× {bd.get('meses')} meses" if bd.get("meses") else None)
+            el.append(row_of([
+                card("Precio final", _money(bd.get("precio_aplicado")), INK, (f"ahorra {_money(bd.get('ahorro'))}" if bd.get("ahorro", 0) > 0 else None)),
+                card("Al firmar", _money(bd.get("firma")), INK, f"{eng:.0f}%"),
+                card("Mensualidad", mens_val, INK, mens_sub),
+                card("Al escriturar", _money(bd.get("escrituracion")), INK, f"{escr:.0f}%"),
+            ]))
+    else:
+        header = ["Forma", "Enganche", "Mensualidad", "Al escriturar", "Precio final", "Ahorro"]
+        data = [header]
+        for label, bd in rows:
+            firma = f"{bd.get('firma_pct',0):.0f}% · {_money(bd.get('firma'))}" if base else f"{bd.get('firma_pct',0):.0f}%"
+            if bd.get("mensualidades_total"):
+                mens = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if base else f"{bd.get('mensualidades_pct',0):.0f}%"
+            else:
+                mens = "—"
+            escr = f"{bd.get('escritura_pct',0):.0f}% · {_money(bd.get('escrituracion'))}" if base else f"{bd.get('escritura_pct',0):.0f}%"
+            precio = _money(bd.get("precio_aplicado")) if base else "—"
+            ahorro = _money(bd.get("ahorro")) if (base and bd.get("ahorro", 0) > 0) else "—"
+            data.append([label, firma, mens, escr, precio, ahorro])
+        tbl = Table(data, colWidths=[W * 0.22, W * 0.17, W * 0.18, W * 0.18, W * 0.14, W * 0.11])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BG2), ("TEXTCOLOR", (0, 0), (-1, 0), INK), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8), ("TEXTCOLOR", (0, 1), (0, -1), INK), ("TEXTCOLOR", (1, 1), (-1, -1), SUB),
+            ("TEXTCOLOR", (4, 1), (4, -1), INK), ("TEXTCOLOR", (5, 1), (5, -1), GREEN),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.5, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6), ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        el.append(tbl)
+    el.append(Spacer(1, 13))
+
+    # — Amenidades · Avance · Ubicación (2 columnas) —
+    left = []
+    ams = [AMENITY_LABELS.get(a, str(a).replace("_", " ").capitalize()) for a in (dev.get("amenities") or [])]
+    if ams:
+        left.append(Paragraph("AMENIDADES", stSec))
+        left.append(Paragraph("  ·  ".join(ams), stBody))
+        left.append(Spacer(1, 8))
+    if prog and prog.get("overall_percent") is not None:
+        pct = prog.get("overall_percent", 0)
+        etapa = (prog.get("current_stage") or "").replace("_", " ").capitalize()
+        left.append(Paragraph("AVANCE DE OBRA", stSec))
+        bar = Table([["", ""]], colWidths=[max(0.1, W * 0.46 * pct / 100), max(0.1, W * 0.46 * (100 - pct) / 100)], rowHeights=[8])
+        bar.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), THEME), ("BACKGROUND", (1, 0), (1, 0), LINE),
+                                 ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                 ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        left.append(bar)
+        left.append(Spacer(1, 3))
+        left.append(Paragraph(f"<b>{pct}%</b> completado" + (f" · {etapa}" if etapa else ""), stBody))
+
+    right = []
+    full_addr = dev.get("address_full")
+    cp = dev.get("postal_code")
+    if not full_addr:
+        parts = [x for x in [dev.get("street"), dev.get("colonia"), dev.get("alcaldia")] if x]
+        full_addr = ", ".join(parts)
+        if cp and f"CP {cp}" not in full_addr:
+            full_addr += f", CP {cp}"
+    if full_addr:
+        right.append(Paragraph("UBICACIÓN", stSec))
+        full = full_addr
+        if dev.get("city") and dev.get("city") not in full:
+            full += f", {dev.get('city')}"
+        right.append(Paragraph(full, stBody))
+        if dev.get("delivery_estimate"):
+            right.append(Spacer(1, 6))
+            right.append(Paragraph(f"<b>Entrega estimada:</b> {dev.get('delivery_estimate')}", stBody))
+
+    if left or right:
+        two = Table([[left or [Spacer(1, 0)], right or [Spacer(1, 0)]]], colWidths=[W * 0.52, W * 0.48])
+        two.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (0, 0), 0),
+                                 ("LEFTPADDING", (1, 0), (1, 0), 14), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                 ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        el.append(two)
+        el.append(Spacer(1, 12))
+
+    el.append(Paragraph("Esta cotización es informativa y no constituye una oferta vinculante. Precios sujetos a "
+                        "cambio y a disponibilidad. Las mensualidades aplican durante la construcción (del inicio de "
+                        "obra a la entrega).", stSmall))
     doc.build(el)
     return buf.getvalue()
 
@@ -727,7 +973,21 @@ async def quote_pdf(project_id: str, payload: QuotePdfBody, request: Request):
     if payload.text_only:
         return {"ok": True, "wa_text": wa_text}
 
-    pdf_bytes = _render_quote_pdf(dev, payload, rows, base, meses_auto)
+    # Datos extra para el PDF: unidad (specs), avance de obra e imágenes.
+    unit = None
+    if payload.scope == "unidad" and (payload.unit_id or payload.unit_number):
+        unit = next((u for u in (dev.get("units") or [])
+                     if u.get("id") == payload.unit_id or u.get("unit_number") == payload.unit_number), None)
+        if unit and payload.unit_id:
+            ov = await db.developer_unit_overrides.find_one({"unit_id": payload.unit_id}, {"_id": 0})
+            if ov:
+                unit = {**unit, **{k: v for k, v in ov.items() if v is not None and k not in ("unit_id", "dev_id", "dev_org_id")}}
+    prog = await db.project_construction_progress.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0, "overall_percent": 1, "current_stage": 1}
+    )
+    images = await _fetch_quote_images(db, project_id, dev)
+
+    pdf_bytes = _render_quote_pdf(dev, unit, prog, images, payload, rows, base, meses_auto)
     fname = f"cotizacion_{project_id}_{_uid('q')}.pdf"
     (dev_assets.ASSET_UPLOAD_DIR / fname).write_bytes(pdf_bytes)
     pdf_url = f"/api/assets-static/{fname}"
