@@ -59,8 +59,8 @@ const cellSelectStyle = {
 // Opciones legibles (evita el menú negro nativo del navegador).
 const cellOptStyle = { background: '#161b27', color: 'var(--cream)' };
 const bulkCtl = {
-  background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)',
-  borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px',
+  background: 'rgba(var(--cream-rgb),0.10)', border: '1px solid rgba(var(--cream-rgb),0.22)',
+  borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 9px', fontWeight: 500,
 };
 
 // Celdas "Adicionales": Tipo de cajón (a color) · Bodega · Ubicación.
@@ -357,8 +357,8 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Buscar unidad…"
             style={{
-              width: '100%', background: 'rgba(var(--cream-rgb),0.06)',
-              border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
+              width: '100%', background: 'rgba(var(--cream-rgb),0.09)',
+              border: '1px solid rgba(var(--cream-rgb),0.2)', borderRadius: 8,
               padding: '6px 10px 6px 30px', color: 'var(--cream)', fontSize: 13,
               outline: 'none', boxSizing: 'border-box',
             }}
@@ -371,9 +371,9 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           onClick={onBulkUpload}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
-            border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
-            padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+            background: 'rgba(var(--cream-rgb),0.10)', color: 'var(--cream)',
+            border: '1px solid rgba(var(--cream-rgb),0.22)', borderRadius: 8,
+            padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}
         >
           <Upload size={13} /> Bulk Upload
@@ -558,12 +558,12 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                       return (
                         <th key={idx} style={{
                           padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
-                          textAlign: 'left', fontSize: 10, fontWeight: 700,
-                          color: c.rgb ? c.fg : 'var(--cream-3)',
-                          background: c.rgb ? `rgba(${c.rgb},0.16)` : 'rgba(var(--cream-rgb),0.04)',
-                          borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
+                          textAlign: 'left', fontSize: 10.5, fontWeight: 700,
+                          color: 'var(--cream)',                       // texto claro = legible
+                          background: c.rgb ? `rgba(${c.rgb},0.13)` : 'rgba(var(--cream-rgb),0.04)',
+                          borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.55)` : '1px solid rgba(var(--cream-rgb),0.1)',
                           whiteSpace: 'nowrap',
-                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none',
+                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.35)` : 'none',
                         }}>
                           {idx === 0 && editMode ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -1026,10 +1026,10 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             return (
               <button key={s.id} data-testid={`price-scheme-${s.id}`} onClick={() => setSelScheme(s.id)}
                 style={{
-                  background: on ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.06)',
-                  color: on ? '#fff' : 'var(--cream-2)',
-                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.16)',
-                  borderRadius: 9999, padding: '5px 13px', fontSize: 11.5, fontWeight: on ? 700 : 500, cursor: 'pointer',
+                  background: on ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.10)',
+                  color: on ? '#fff' : 'var(--cream)',
+                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.24)',
+                  borderRadius: 9999, padding: '5px 13px', fontSize: 11.5, fontWeight: on ? 700 : 600, cursor: 'pointer',
                 }}>
                 {s.nombre}{s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
               </button>
