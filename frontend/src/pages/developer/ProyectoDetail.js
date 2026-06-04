@@ -29,6 +29,7 @@ import { getProjectSummary, listProjectsWithStats, getDevAmenityRanker } from '.
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
+import { titleCase } from '../../utils/titleCase';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import { Z } from '../../styles/zIndex';
 
@@ -584,7 +585,7 @@ export default function ProyectoDetail({ user, onLogout }) {
                 onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.boxShadow = 'inset 0 -2px 0 rgba(var(--theme-rgb),0.5)'; } }}
                 onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-3)'; e.currentTarget.style.boxShadow = 'none'; } }}
               >
-                {t.label}
+                {titleCase(t.label)}
                 {t.phase && (
                   <span style={{
                     position: 'absolute', top: 4, right: 4,
