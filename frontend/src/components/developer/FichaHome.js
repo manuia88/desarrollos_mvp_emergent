@@ -6,13 +6,13 @@
  * semáforo + puerta a Insights. Fase 1: dato real donde existe; conectores que faltan = stub honesto.
  */
 import React, { useEffect, useState } from 'react';
-import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getProjectAmenities } from '../../api/developer';
+import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getProjectAmenities, getPaymentSchemes } from '../../api/developer';
 import { getInsightsMarketValue } from '../../api/insights';
 import { getZoneScores, getDevelopmentScores } from '../../api/ie_scores';
 import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import { Z } from '../../styles/zIndex';
 
-// Lee un score IE por código de un arreglo {code,value,tier} → {value, tone}.
+// Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
 function ieScore(arr, code) {
   const list = Array.isArray(arr) ? arr : (arr?.scores || []);
@@ -20,6 +20,15 @@ function ieScore(arr, code) {
   return s ? { value: s.value, tone: TIER_TONE[s.tier] || 'flat' } : null;
 }
 const slugZone = (name) => (name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-');
+
+// Traduce un score 0-100 a PALABRA humana + semáforo. words=[bajo, medio, alto].
+// invert=true cuando un valor BAJO es BUENO (ej. presión de competencia).
+function band(v, words, invert = false) {
+  if (v == null) return { word: '—', tone: 'flat' };
+  if (v >= 67) return { word: words[2], tone: invert ? 'red' : 'green' };
+  if (v >= 40) return { word: words[1], tone: 'amber' };
+  return { word: words[0], tone: invert ? 'green' : 'red' };
+}
 
 // La dimensión más débil del score → la meta del asistente que la ataca.
 const DIM_GOAL = {
@@ -334,32 +343,31 @@ export function AreaInsights({ slug, summary, area }) {
   const [driver, setDriver] = useState(null);
   const [avm, setAvm] = useState(null);
   const [zone, setZone] = useState(null);     // scores IE de la colonia
-  const [proy, setProy] = useState(null);     // scores IE del proyecto
+  const [proy, setProy] = useState(null);     // scores IE del proyecto (precio, absorción, marca, docs…)
   const [amen, setAmen] = useState(null);     // amenidades del proyecto
+  const [pay, setPay] = useState(null);       // esquemas de pago
 
   useEffect(() => {
     listProjectsWithStats().then(r => {
       const arr = Array.isArray(r) ? r : (r.projects || r.items || []);
       setStats(arr.find(x => x.id === slug) || arr.find(x => (x.name || '') === (summary?.name || '')) || null);
     }).catch(() => {});
+    // Scores IE del proyecto: ricos y útiles en casi todas las pestañas (precio, absorción, marca, docs).
+    getDevelopmentScores(slug).then(setProy).catch(() => {});
     if (area === 'avance') getConstructionProgress(slug).then(setObra).catch(() => {});
-    // Global ranker (lo que sube el valor) — global da señal limpia (por-colonia es ruidoso con muestra chica).
     if (area === 'amenidades' || area === 'ubicacion') getDevAmenityRanker().then(d => {
       const pos = (d.amenity_ranker || []).filter(a => a.significativo && a.impacto_pct_precio_m2 > 0).sort((a, b) => b.impacto_pct_precio_m2 - a.impacto_pct_precio_m2);
       setDriver(pos[0] || null);
     }).catch(() => {});
-    if (area === 'ubicacion' || area === 'insights') getInsightsMarketValue(slug).then(setAvm).catch(() => {});
+    if (['ubicacion', 'insights', 'ventas', 'amenidades'].includes(area)) getInsightsMarketValue(slug).then(setAvm).catch(() => {});
     if (area === 'ubicacion') getZoneScores(slugZone(summary?.colonia)).then(setZone).catch(() => {});
-    if (area === 'amenidades') {
-      getDevelopmentScores(slug).then(setProy).catch(() => {});
-      getProjectAmenities(slug).then(setAmen).catch(() => {});
-    }
+    if (area === 'amenidades') getProjectAmenities(slug).then(setAmen).catch(() => {});
+    if (area === 'comercializacion') getPaymentSchemes(slug).then(setPay).catch(() => {});
   }, [slug, area, summary]);
 
   if (!summary) return null;
   const by = stats?.units_by_status || summary.units_by_status || {};
   const avail = by.disponible ?? Math.max(0, (summary.units_total || 0) - (summary.sold_units || 0) - (summary.reserved_units || 0));
-  const reserved = by.reservado ?? summary.reserved_units ?? 0;
   const ws = stats?.weekly_sales || [];
   const rate = ws.length ? ws.slice(-4).reduce((a, b) => a + b, 0) / Math.min(4, ws.slice(-4).length) : 0;
   const prevRate = ws.length >= 8 ? ws.slice(-8, -4).reduce((a, b) => a + b, 0) / 4 : rate;
@@ -375,69 +383,81 @@ export function AreaInsights({ slug, summary, area }) {
     const n = new Date();
     return Math.max(0, (y - n.getFullYear()) * 12 + ((m || 1) - (n.getMonth() + 1)));
   })();
-  const vsCmp = vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}% vs la zona` : 'sin comparativo';
 
-  // Scores IE de zona / proyecto + amenidades del proyecto.
+  // Scores IE traducidos a palabra humana + acción (no "/100" crudo).
   const zs = (code) => ieScore(zone, code);
   const ps = (code) => ieScore(proy, code);
+  const zv = (code) => zs(code)?.value;
+  const pv = (code) => ps(code)?.value;
   const amenCount = (amen?.amenities || []).length;
-  const sv = (s, suffix = '/100') => s ? `${Math.round(s.value)}${suffix}` : '—';
+  // Tarjeta a partir de un score: lo vuelve palabra + semáforo + acción.
+  const sb = (label, v, words, cmp, invert = false) => { const b = band(v, words, invert); return { label, value: b.word, tone: b.tone, cmp }; };
+  // Esquemas de pago.
+  const schemes = pay?.schemes || [];
+  const engMin = schemes.length ? Math.min(...schemes.map(s => +s.firma_pct || 0)) : null;
+  const descMax = schemes.length ? Math.max(...schemes.map(s => +s.descuento_pct || 0)) : null;
+  const mesesPlan = pay?.meses_auto ?? null;
+  const priceVerdict = vsMkt == null ? '—' : (vsMkt > 12 ? 'arriba · justifica el premium' : vsMkt < -8 ? 'barato · puedes subir precio' : 'alineado con la zona');
+  const priceTone = vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green';
+  const priceVal = vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—';
 
   const C = {
     ventas: { title: 'Lo clave de ventas', cards: [
-      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
-      { label: 'Ritmo', value: rate.toFixed(1), unit: ' uds/sem', tone: rate > prevRate ? 'green' : rate < prevRate ? 'amber' : 'flat', cmp: rate > prevRate ? '↑ subiendo' : rate < prevRate ? '↓ bajando' : '→ estable', spark: ws.length ? ws.slice(-8) : null },
-      { label: 'Se agota en', value: months ?? '—', unit: months != null ? ' meses' : '', tone: (months != null && mesesEntrega != null) ? (months <= mesesEntrega ? 'green' : 'red') : 'flat', cmp: months != null ? `${avail} uds al ritmo actual` : 'sin ritmo aún' },
-      { label: 'Disponibles', value: avail, unit: ' uds', tone: avail > 0 ? 'amber' : 'green', cmp: 'por colocar' },
-      { label: 'Reservadas', value: reserved, unit: ' uds', tone: 'flat', cmp: 'apartadas' },
-      { label: 'Precio desde', value: fmtMXN(summary.price_from), tone: 'flat', cmp: vsMkt != null ? vsCmp : `hasta ${fmtMXN(summary.price_to)}` },
+      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total} unidades` },
+      { label: 'Ritmo', value: rate.toFixed(1), unit: ' uds/sem', tone: rate > prevRate ? 'green' : rate < prevRate ? 'amber' : 'flat', cmp: rate > prevRate ? '↑ subiendo' : rate < prevRate ? '↓ bajando, empuja' : '→ estable', spark: ws.length ? ws.slice(-8) : null },
+      { label: 'Se agota en', value: months ?? '—', unit: months != null ? ' meses' : '', tone: (months != null && mesesEntrega != null) ? (months <= mesesEntrega ? 'green' : 'red') : 'flat', cmp: (months != null && mesesEntrega != null && months <= mesesEntrega) ? 'antes de la entrega ✓' : (months != null ? `${avail} uds al ritmo actual` : 'sin ritmo aún') },
+      { label: 'Disponibles', value: avail, unit: ' uds', tone: avail > 0 ? 'amber' : 'green', cmp: `${fmtMXN(avail * avgPrice)} por colocar` },
+      { label: 'Precio', value: fmtMXN(summary.price_from), tone: priceTone, cmp: vsMkt != null ? `${priceVal} vs zona · ${vsMkt > 12 ? 'caro' : vsMkt < -8 ? 'barato' : 'justo'}` : `hasta ${fmtMXN(summary.price_to)}` },
+      sb('Posición de precio', pv('IE_PROY_PRECIO_RANK_PERCENTIL'), ['Económico', 'Medio', 'Premium'], 'percentil entre proyectos de la zona'),
     ] },
     insights: { title: 'Veredicto rápido', cards: [
-      { label: 'Salud', value: summary.health_score ?? 0, unit: '/100', tone: (summary.health_score ?? 0) >= 60 ? 'green' : (summary.health_score ?? 0) >= 45 ? 'amber' : 'red', cmp: 'del activo' },
-      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: `${summary.leads_total ?? 0} leads` },
-      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes' },
-      { label: 'Vs mercado', value: vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—', tone: vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green', cmp: 'tu precio vs la zona' },
-      { label: 'Ritmo', value: rate.toFixed(1), unit: ' uds/sem', tone: 'flat', cmp: 'absorción' },
+      { ...sb('Salud del activo', summary.health_score, ['Necesita atención', 'Estable', 'Sano']), cmp: `${summary.health_score ?? 0}/100 · funde todo` },
+      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: `${summary.leads_won ?? 0} cierres de ${summary.leads_total ?? 0} leads` },
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'clientes viendo tu ficha' },
+      sb('Posición en la zona', pv('IE_PROY_SCORE_VS_COLONIA'), ['Debajo', 'En el promedio', 'Arriba'], 'vs otros proyectos de la colonia'),
+      { label: 'Precio vs mercado', value: priceVal, tone: priceTone, cmp: priceVerdict },
     ] },
     comercializacion: { title: 'Pagos y brokers', cards: [
-      { label: 'Leads activos', value: summary.leads_active ?? 0, tone: (summary.leads_active ?? 0) > 0 ? 'green' : 'amber', cmp: 'en seguimiento' },
-      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: 'de lead a cierre' },
-      { label: 'Leads ganados', value: summary.leads_won ?? 0, tone: (summary.leads_won ?? 0) > 0 ? 'green' : 'flat', cmp: `de ${summary.leads_total ?? 0}` },
-      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes' },
-      { label: 'Vendido (valor)', value: fmtMXN((summary.sold_units || 0) * avgPrice), tone: 'green', cmp: 'ingresado' },
+      { label: 'Formas de pago', value: schemes.length || '—', tone: schemes.length ? 'green' : 'flat', cmp: 'planes para tu comprador' },
+      { label: 'Enganche desde', value: engMin != null ? `${engMin}` : '—', unit: engMin != null ? '%' : '', tone: 'green', cmp: 'la entrada más accesible' },
+      { label: 'Descuento máx', value: descMax != null ? `${descMax}` : '—', unit: descMax != null ? '%' : '', tone: descMax > 0 ? 'green' : 'flat', cmp: descMax > 0 ? 'por pronto pago / contado' : 'sin descuento configurado' },
+      { label: 'Financiamiento', value: mesesPlan != null ? mesesPlan : '—', unit: mesesPlan != null ? ' meses' : '', tone: 'flat', cmp: 'a la entrega, sin banco' },
+      sb('Confianza de tu marca', pv('IE_PROY_MARCA_TRUST'), ['Por construir', 'Buena', 'Alta'], 'lo que perciben brokers y clientes'),
+      sb('Cumples entregas', pv('IE_PROY_DEVELOPER_DELIVERY_HIST'), ['Irregular', 'Bueno', 'Impecable'], 'tu historial de entregas a tiempo'),
     ] },
     avance: { title: 'Obra', cards: [
       { label: 'Avance', value: obra?.overall_percent ?? summary.construction_pct ?? 0, unit: '%', tone: (obra?.overall_percent ?? summary.construction_pct ?? 0) > 0 ? 'green' : 'flat', cmp: 'completado' },
       { label: 'Etapa actual', value: obra?.current_stage ? String(obra.current_stage).replace(/_/g, ' ') : '—', tone: 'flat', cmp: 'en curso' },
       { label: 'A la entrega', value: mesesEntrega != null ? mesesEntrega : '—', unit: mesesEntrega != null ? ' meses' : '', tone: 'flat', cmp: summary.delivery_estimate ? `entrega ${summary.delivery_estimate}` : 'sin fecha' },
-      { label: 'Última act.', value: obra?.updated_at ? new Date(obra.updated_at).toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }) : '—', tone: 'flat', cmp: 'registro de avance' },
+      { label: 'Última actualización', value: obra?.updated_at ? new Date(obra.updated_at).toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }) : '—', tone: 'flat', cmp: 'del registro de avance' },
     ] },
     contenido: { title: 'Cómo jala tu contenido', cards: [
-      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'de clientes a la ficha' },
-      { label: 'Leads', value: summary.leads_total ?? 0, tone: (summary.leads_total ?? 0) > 0 ? 'green' : 'flat', cmp: 'generados' },
+      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'clientes viendo tu ficha' },
+      sb('Calidad del anuncio', pv('IE_PROY_LISTING_HEALTH'), ['Incompleto', 'Bueno', 'Excelente'], 'fotos, descripción y datos completos'),
+      { label: 'Genera leads', value: summary.leads_total ?? 0, tone: (summary.leads_total ?? 0) > 0 ? 'green' : 'flat', cmp: `${cv}% convierte a cierre` },
       { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
     ] },
     amenidades: { title: 'Tu producto vs la zona', cards: [
-      { label: 'Amenidades', value: amenCount || '—', unit: amenCount ? ' servicios' : '', tone: amenCount > 0 ? 'green' : 'flat', cmp: 'incluidos en el proyecto' },
-      { label: 'Nivel de amenidades', value: sv(ps('IE_PROY_AMENIDADES')), tone: ps('IE_PROY_AMENIDADES')?.tone || 'flat', cmp: 'vs la zona' },
-      { label: 'Qué más sube el valor', value: driver ? driver.atributo : '—', tone: driver ? 'green' : 'flat', cmp: driver ? `+${driver.impacto_pct_precio_m2}% en precio/m²` : 'sin muestra' },
-      { label: 'Presión de competencia', value: sv(ps('IE_PROY_COMPETITION_PRESSURE')), tone: ps('IE_PROY_COMPETITION_PRESSURE')?.tone || 'flat', cmp: 'bajo = tienes ventaja' },
-      { label: 'Precio vs mercado', value: sv(ps('IE_PROY_PRECIO_VS_MERCADO')), tone: ps('IE_PROY_PRECIO_VS_MERCADO')?.tone || 'flat', cmp: 'percentil de precio' },
+      { label: 'Servicios incluidos', value: amenCount || '—', tone: amenCount > 0 ? 'green' : 'flat', cmp: 'amenidades del proyecto' },
+      sb('Nivel vs la zona', pv('IE_PROY_AMENIDADES'), ['Por debajo', 'En línea', 'Líder'], 'más amenidades = tu ventaja'),
+      { label: 'Lo que más vende aquí', value: driver ? driver.atributo : '—', tone: driver ? 'green' : 'flat', cmp: driver ? `+${driver.impacto_pct_precio_m2}% en precio/m² · destácalo` : 'sin muestra suficiente' },
+      sb('Competencia', pv('IE_PROY_COMPETITION_PRESSURE'), ['Baja · ventaja', 'Media', 'Alta'], 'presión de proyectos rivales', true),
+      { label: 'Precio vs mercado', value: priceVal, tone: priceTone, cmp: vsMkt != null ? (vsMkt > 12 ? '¿lo justifican las amenidades?' : 'alineado') : 'sin comparativo' },
     ] },
     ubicacion: { title: 'Inteligencia de tu zona', cards: [
-      { label: 'Plusvalía proyectada', value: zs('IE_COL_PLUSVALIA_PROYECTADA') ? `+${zs('IE_COL_PLUSVALIA_PROYECTADA').value.toFixed(1)}` : '—', unit: zs('IE_COL_PLUSVALIA_PROYECTADA') ? '%' : '', tone: zs('IE_COL_PLUSVALIA_PROYECTADA')?.tone || 'flat', cmp: 'a futuro en la colonia' },
-      { label: 'Nivel de ingreso', value: sv(zs('IE_COL_DEMOGRAFIA_INGRESO')), tone: zs('IE_COL_DEMOGRAFIA_INGRESO')?.tone || 'flat', cmp: 'de la zona' },
-      { label: 'Zona familiar', value: sv(zs('IE_COL_DEMOGRAFIA_FAMILIA')), tone: zs('IE_COL_DEMOGRAFIA_FAMILIA')?.tone || 'flat', cmp: 'hogares con familia' },
-      { label: 'Movilidad', value: sv(zs('IE_COL_CONECTIVIDAD_VIALIDAD')), tone: zs('IE_COL_CONECTIVIDAD_VIALIDAD')?.tone || 'flat', cmp: 'conectividad y vialidad' },
-      { label: 'Parques y verde', value: sv(zs('IE_COL_CULTURAL_PARQUES')), tone: zs('IE_COL_CULTURAL_PARQUES')?.tone || 'flat', cmp: 'áreas verdes cercanas' },
-      { label: 'Vida y cultura', value: sv(zs('IE_COL_CULTURAL_VIDA_NOCTURNA')), tone: zs('IE_COL_CULTURAL_VIDA_NOCTURNA')?.tone || 'flat', cmp: 'restaurantes, museos, ocio' },
-      { label: 'ROI en renta', value: sv(zs('IE_COL_ROI_RENTA_TRADICIONAL')), tone: zs('IE_COL_ROI_RENTA_TRADICIONAL')?.tone || 'flat', cmp: 'potencial de renta' },
-      { label: 'Tu precio vs zona', value: vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—', tone: vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green', cmp: vsMkt != null ? (vsMkt > 12 ? 'caro' : vsMkt < -8 ? 'barato' : 'en línea') : 'sin comparativo' },
+      sb('Tu comprador', zv('IE_COL_DEMOGRAFIA_INGRESO'), ['Medio', 'Acomodado', 'Alto poder'], 'nivel de ingreso · enfoca tu pitch'),
+      sb('Perfil de la zona', zv('IE_COL_DEMOGRAFIA_FAMILIA'), ['Joven/soltera', 'Mixta', 'Familiar'], 'a quién le hablas en tu marketing'),
+      { label: 'Plusvalía a futuro', value: zv('IE_COL_PLUSVALIA_PROYECTADA') != null ? `+${zv('IE_COL_PLUSVALIA_PROYECTADA').toFixed(1)}` : '—', unit: zv('IE_COL_PLUSVALIA_PROYECTADA') != null ? '%' : '', tone: zs('IE_COL_PLUSVALIA_PROYECTADA')?.tone || 'flat', cmp: 'la zona se aprecia · véndelo como inversión' },
+      sb('Conectividad', zv('IE_COL_CONECTIVIDAD_VIALIDAD'), ['Limitada', 'Media', 'Buena'], 'vialidad y transporte'),
+      sb('Áreas verdes', zv('IE_COL_CULTURAL_PARQUES'), ['Pocas', 'Algunas', 'Muchas'], 'parques cercanos'),
+      sb('Vida y restaurantes', zv('IE_COL_CULTURAL_VIDA_NOCTURNA'), ['Tranquila', 'Animada', 'Muy animada'], 'gastronomía y ocio'),
+      { label: 'Tu precio vs zona', value: priceVal, tone: priceTone, cmp: priceVerdict },
     ] },
-    legal: { title: 'Estado del proyecto', cards: [
+    legal: { title: 'Estado legal y confianza', cards: [
+      sb('Documentos', pv('IE_PROY_QUALITY_DOCS'), ['Pendientes', 'Parciales', 'Completos'], 'súbelos · dan confianza al broker'),
+      sb('Confianza de tu marca', pv('IE_PROY_MARCA_TRUST'), ['Por construir', 'Buena', 'Alta'], 'lo que percibe el comprador'),
       { label: 'Etapa', value: (summary.stage || '—'), tone: 'flat', cmp: 'del proyecto' },
       { label: 'A la entrega', value: mesesEntrega != null ? mesesEntrega : '—', unit: mesesEntrega != null ? ' meses' : '', tone: 'flat', cmp: summary.delivery_estimate ? `entrega ${summary.delivery_estimate}` : 'sin fecha' },
-      { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
     ] },
   };
   const cfg = C[area];
