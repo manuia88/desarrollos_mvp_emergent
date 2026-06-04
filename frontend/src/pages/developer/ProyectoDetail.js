@@ -305,6 +305,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBrochure, setShowBrochure] = useState(false);
+  const [showAiSuggest, setShowAiSuggest] = useState(false);  // colapsado: no estorba
 
   const activeTab = searchParams.get('tab') || (DEV_V2 ? 'insights' : 'ventas');
   const diagnosticOpen = searchParams.get('diagnostic') === 'open';
@@ -491,10 +492,25 @@ export default function ProyectoDetail({ user, onLogout }) {
           <AssetOpCockpit slug={slug} summary={summary} />
         )}
 
-        {/* Phase 4 Batch 16 — AI Suggestions Inline */}
+        {/* Sugerencias IA — colapsadas tras un botón (founder: estorban si están abiertas) */}
         {!loading && slug && (
-          <div style={{ marginBottom: 20 }} data-testid="proyecto-ai-suggestions">
-            <AISuggestionCard entityType="project" entityId={slug} onNavigate={(p) => navigate(p)} />
+          <div style={{ marginBottom: 16 }} data-testid="proyecto-ai-suggestions">
+            <button
+              data-testid="ai-suggest-toggle"
+              onClick={() => setShowAiSuggest(v => !v)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)',
+                color: 'var(--theme-3)', borderRadius: 9999, padding: '6px 14px',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}>
+              💡 Sugerencias IA {showAiSuggest ? '▲' : '▼'}
+            </button>
+            {showAiSuggest && (
+              <div style={{ marginTop: 10 }}>
+                <AISuggestionCard entityType="project" entityId={slug} onNavigate={(p) => navigate(p)} />
+              </div>
+            )}
           </div>
         )}
 

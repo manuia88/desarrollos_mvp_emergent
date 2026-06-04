@@ -112,7 +112,9 @@ async def list_inventory(request: Request, dev_id: Optional[str] = None):
             merged = {**u}
             if ov:
                 # status (legacy) + campos granulares editables desde el portal
-                for fld in ("status", "bodega", "parking_type", "parking_spots", "vista"):
+                for fld in ("status", "bodega", "parking_type", "parking_spots", "vista",
+                            "m2_privative", "m2_balcony", "m2_terrace", "m2_roof_garden",
+                            "m2_total", "bedrooms", "bathrooms", "price"):
                     if ov.get(fld) is not None:
                         merged[fld] = ov[fld]
             merged["overridden"] = bool(ov)
@@ -202,86 +204,97 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
 # ─── Campos granulares de la unidad (bodega · ubicación · tipo de cajón) ──────
 PARKING_TYPES = {"individual", "bateria_propia", "bateria_vecino", "eleva_autos"}
 VISTAS = {"interior", "exterior"}
+UNIT_STATUSES = {"disponible", "apartado", "reservado", "vendido", "bloqueado"}
+_INT_FIELDS = ("parking_spots", "bedrooms", "bathrooms")
+_FLOAT_FIELDS = ("m2_privative", "m2_balcony", "m2_terrace", "m2_roof_garden", "m2_total")
 
 
-class UnitFieldsPatch(BaseModel):
-    dev_id: str
-    unit_id: str
+class UnitEditableFields(BaseModel):
+    """Todos los campos editables de una unidad (inline o masivo)."""
     bodega: Optional[bool] = None
     parking_type: Optional[str] = None
     parking_spots: Optional[int] = None
     vista: Optional[str] = None
+    m2_privative: Optional[float] = None
+    m2_balcony: Optional[float] = None
+    m2_terrace: Optional[float] = None
+    m2_roof_garden: Optional[float] = None
+    m2_total: Optional[float] = None
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    price: Optional[float] = None
+    status: Optional[str] = None
+
+
+class UnitFieldsPatch(UnitEditableFields):
+    dev_id: str
+    unit_id: str
+
+
+class UnitFieldsBulk(UnitEditableFields):
+    dev_id: str
+    unit_ids: List[str]
+
+
+def _build_unit_fields(p: UnitEditableFields) -> dict:
+    """Valida y arma el dict de campos a setear (solo los provistos)."""
+    fields = {}
+    if p.parking_type is not None:
+        if p.parking_type not in PARKING_TYPES:
+            raise HTTPException(400, "tipo de cajón inválido")
+        fields["parking_type"] = p.parking_type
+    if p.vista is not None:
+        if p.vista not in VISTAS:
+            raise HTTPException(400, "ubicación inválida — usa 'interior' o 'exterior'")
+        fields["vista"] = p.vista
+    if p.status is not None:
+        if p.status not in UNIT_STATUSES:
+            raise HTTPException(400, "estado inválido")
+        fields["status"] = p.status
+    if p.bodega is not None:
+        fields["bodega"] = bool(p.bodega)
+    if p.price is not None:
+        fields["price"] = max(0, int(round(p.price)))
+    for f in _INT_FIELDS:
+        v = getattr(p, f, None)
+        if v is not None:
+            fields[f] = max(0, int(v))
+    for f in _FLOAT_FIELDS:
+        v = getattr(p, f, None)
+        if v is not None:
+            fields[f] = max(0.0, float(v))
+    return fields
 
 
 @router.patch("/inventario/unit-fields")
 async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
-    """Edita los 'Adicionales' de una unidad y los persiste como override.
-    Se mezclan en list_inventory para que la lista de precios los muestre."""
+    """Edita campos de una unidad y los persiste como override (se mezclan en list_inventory)."""
     user = await require_dev_admin(request)
     db = get_db(request)
-
-    set_doc = {
-        "unit_id": payload.unit_id, "dev_id": payload.dev_id,
-        "updated_by": user.user_id, "updated_at": _now(),
-    }
-    if payload.parking_type is not None:
-        if payload.parking_type not in PARKING_TYPES:
-            raise HTTPException(400, f"tipo de cajón inválido — válidos: {', '.join(sorted(PARKING_TYPES))}")
-        set_doc["parking_type"] = payload.parking_type
-    if payload.vista is not None:
-        if payload.vista not in VISTAS:
-            raise HTTPException(400, "ubicación inválida — usa 'interior' o 'exterior'")
-        set_doc["vista"] = payload.vista
-    if payload.bodega is not None:
-        set_doc["bodega"] = bool(payload.bodega)
-    if payload.parking_spots is not None:
-        set_doc["parking_spots"] = max(0, int(payload.parking_spots))
-
+    fields = _build_unit_fields(payload)
+    if not fields:
+        raise HTTPException(400, "Nada que actualizar")
+    set_doc = {"unit_id": payload.unit_id, "dev_id": payload.dev_id,
+               "updated_by": user.user_id, "updated_at": _now(), **fields}
     await db.developer_unit_overrides.update_one(
-        {"unit_id": payload.unit_id},
-        {"$set": set_doc},
-        upsert=True,
+        {"unit_id": payload.unit_id}, {"$set": set_doc}, upsert=True,
     )
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
         "user_id": user.user_id, "action": "unit_fields_change",
-        "payload": payload.model_dump(exclude_none=True), "ts": _now(),
+        "payload": fields, "ts": _now(),
     })
-    return {"ok": True, "unit_id": payload.unit_id,
-            **{k: v for k, v in set_doc.items() if k in ("bodega", "parking_type", "parking_spots", "vista")}}
-
-
-class UnitFieldsBulk(BaseModel):
-    dev_id: str
-    unit_ids: List[str]
-    bodega: Optional[bool] = None
-    parking_type: Optional[str] = None
-    parking_spots: Optional[int] = None
-    vista: Optional[str] = None
+    return {"ok": True, "unit_id": payload.unit_id, **fields}
 
 
 @router.patch("/inventario/unit-fields-bulk")
 async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
-    """Llenado masivo: aplica un campo a muchas unidades de un solo click
-    (founder: '300 depas con 2 cajones, 1 click')."""
+    """Llenado masivo: aplica campos a muchas unidades de un solo click."""
     user = await require_dev_admin(request)
     db = get_db(request)
     if not payload.unit_ids:
         raise HTTPException(400, "Sin unidades seleccionadas")
-
-    fields = {}
-    if payload.parking_type is not None:
-        if payload.parking_type not in PARKING_TYPES:
-            raise HTTPException(400, "tipo de cajón inválido")
-        fields["parking_type"] = payload.parking_type
-    if payload.vista is not None:
-        if payload.vista not in VISTAS:
-            raise HTTPException(400, "ubicación inválida")
-        fields["vista"] = payload.vista
-    if payload.bodega is not None:
-        fields["bodega"] = bool(payload.bodega)
-    if payload.parking_spots is not None:
-        fields["parking_spots"] = max(0, int(payload.parking_spots))
+    fields = _build_unit_fields(payload)
     if not fields:
         raise HTTPException(400, "Nada que actualizar")
 

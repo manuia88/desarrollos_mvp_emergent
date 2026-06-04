@@ -58,6 +58,10 @@ const cellSelectStyle = {
 };
 // Opciones legibles (evita el menú negro nativo del navegador).
 const cellOptStyle = { background: '#161b27', color: 'var(--cream)' };
+const bulkCtl = {
+  background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)',
+  borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px',
+};
 
 // Celdas "Adicionales": Tipo de cajón (a color) · Bodega · Ubicación.
 // editMode=false → solo lectura (evita cambios accidentales).
@@ -178,6 +182,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [bulkField, setBulkField] = useState('parking_spots');
   const [bulkValue, setBulkValue] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkScope, setBulkScope] = useState('todas');   // todas | prototipo | nivel | metraje
+  const [bulkScopeVal, setBulkScopeVal] = useState('');   // valor para prototipo/nivel
+  const [bulkM2Min, setBulkM2Min] = useState('');
+  const [bulkM2Max, setBulkM2Max] = useState('');
   const { pref, setPref } = usePreferences();
   const density_mode = pref('density_mode', 'compacto');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -214,15 +222,47 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
 
   const rowHeight = density_mode === 'compacto' ? 40 : 56;
 
-  // Llenado masivo: aplica un valor a TODAS las unidades filtradas de un click.
+  // Todos los campos que se pueden llenar masivamente.
+  const BULK_FIELDS = [
+    { key: 'm2_privative', label: 'M² privativos', type: 'num' },
+    { key: 'm2_balcony', label: 'M² balcón', type: 'num' },
+    { key: 'm2_terrace', label: 'M² terraza', type: 'num' },
+    { key: 'm2_roof_garden', label: 'M² roof garden', type: 'num' },
+    { key: 'm2_total', label: 'M² totales', type: 'num' },
+    { key: 'bedrooms', label: 'Recámaras', type: 'num' },
+    { key: 'bathrooms', label: 'Baños', type: 'num' },
+    { key: 'parking_spots', label: 'Cajones (número)', type: 'num' },
+    { key: 'parking_type', label: 'Tipo de cajón', type: 'parking' },
+    { key: 'bodega', label: 'Bodega', type: 'bodega' },
+    { key: 'vista', label: 'Ubicación', type: 'vista' },
+    { key: 'price', label: 'Precio', type: 'num' },
+    { key: 'status', label: 'Estado', type: 'status' },
+  ];
+  const bulkFieldDef = BULK_FIELDS.find(f => f.key === bulkField) || BULK_FIELDS[0];
+
+  // Ámbito: filtradas ∩ (todas | prototipo | nivel | metraje).
+  const protoOptions = [...new Set(filtered.map(u => u.prototype).filter(Boolean))];
+  const levelOptions = [...new Set(filtered.map(u => u.level).filter(v => v != null))].sort((a, b) => a - b);
+  const scopedUnits = filtered.filter(u => {
+    if (bulkScope === 'prototipo') return !bulkScopeVal || u.prototype === bulkScopeVal;
+    if (bulkScope === 'nivel') return !bulkScopeVal || String(u.level) === String(bulkScopeVal);
+    if (bulkScope === 'metraje') {
+      const m = m2tot(u) || 0;
+      const min = bulkM2Min === '' ? -Infinity : +bulkM2Min;
+      const max = bulkM2Max === '' ? Infinity : +bulkM2Max;
+      return m >= min && m <= max;
+    }
+    return true;
+  });
+
+  // Llenado masivo: aplica el campo+valor a las unidades del ámbito de un click.
   const applyBulk = async () => {
-    if (bulkValue === '' || !filtered.length) return;
-    const ids = filtered.map(u => u.id);
+    if (bulkValue === '' || !scopedUnits.length) return;
+    const ids = scopedUnits.map(u => u.id);
     const fields = {};
-    if (bulkField === 'parking_spots') fields.parking_spots = Math.max(0, +bulkValue);
-    else if (bulkField === 'parking_type') fields.parking_type = bulkValue;
-    else if (bulkField === 'bodega') fields.bodega = bulkValue === 'si';
-    else if (bulkField === 'vista') fields.vista = bulkValue;
+    if (bulkFieldDef.type === 'bodega') fields.bodega = bulkValue === 'si';
+    else if (bulkFieldDef.type === 'num') fields[bulkField] = Math.max(0, +bulkValue);
+    else fields[bulkField] = bulkValue;  // parking_type / vista / status
     setBulkBusy(true);
     try {
       await patchUnitFieldsBulk({ dev_id: devId, unit_ids: ids, ...fields });
@@ -232,13 +272,6 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
       window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
     } finally { setBulkBusy(false); }
   };
-
-  const BULK_FIELDS = [
-    { key: 'parking_spots', label: 'Cajones (número)' },
-    { key: 'parking_type', label: 'Tipo de cajón' },
-    { key: 'bodega', label: 'Bodega' },
-    { key: 'vista', label: 'Ubicación' },
-  ];
 
   // Reload inventory on unit update callback
   const handleUnitUpdated = () => {
@@ -355,46 +388,79 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         </span>
       </div>
 
-      {/* Llenado masivo — 1 click para todas las unidades del filtro (founder) */}
+      {/* Llenado masivo (upgrade): cualquier campo + ámbito (todas/prototipo/nivel/metraje) */}
       {editMode && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '10px 12px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Llenado masivo:</span>
-          <select value={bulkField} onChange={e => { setBulkField(e.target.value); setBulkValue(''); }}
-            style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
-            {BULK_FIELDS.map(f => <option key={f.key} value={f.key} style={cellOptStyle}>{f.label}</option>)}
-          </select>
-          {bulkField === 'parking_spots' && (
-            <input type="number" min={0} value={bulkValue} onChange={e => setBulkValue(e.target.value)} placeholder="ej. 2"
-              style={{ width: 90, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }} />
-          )}
-          {bulkField === 'parking_type' && (
-            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
-              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
-              <option value="" style={cellOptStyle}>Elige…</option>
-              {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 10 }}>
+          {/* Fila 1: qué llenar + con qué valor */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Llenar:</span>
+            <select value={bulkField} onChange={e => { setBulkField(e.target.value); setBulkValue(''); }} style={bulkCtl}>
+              {BULK_FIELDS.map(f => <option key={f.key} value={f.key} style={cellOptStyle}>{f.label}</option>)}
             </select>
-          )}
-          {bulkField === 'bodega' && (
-            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
-              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
-              <option value="" style={cellOptStyle}>Elige…</option>
-              <option value="si" style={cellOptStyle}>Sí (incluida)</option>
-              <option value="no" style={cellOptStyle}>No</option>
+            <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>con</span>
+            {bulkFieldDef.type === 'num' && (
+              <input type="number" min={0} value={bulkValue} onChange={e => setBulkValue(e.target.value)} placeholder="valor" style={{ ...bulkCtl, width: 120 }} />
+            )}
+            {bulkFieldDef.type === 'parking' && (
+              <select value={bulkValue} onChange={e => setBulkValue(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Elige…</option>
+                {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
+              </select>
+            )}
+            {bulkFieldDef.type === 'bodega' && (
+              <select value={bulkValue} onChange={e => setBulkValue(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Elige…</option>
+                <option value="si" style={cellOptStyle}>Sí (incluida)</option>
+                <option value="no" style={cellOptStyle}>No</option>
+              </select>
+            )}
+            {bulkFieldDef.type === 'vista' && (
+              <select value={bulkValue} onChange={e => setBulkValue(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Elige…</option>
+                <option value="interior" style={cellOptStyle}>Interior</option>
+                <option value="exterior" style={cellOptStyle}>Exterior</option>
+              </select>
+            )}
+            {bulkFieldDef.type === 'status' && (
+              <select value={bulkValue} onChange={e => setBulkValue(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Elige…</option>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v.label}</option>)}
+              </select>
+            )}
+          </div>
+          {/* Fila 2: a qué unidades (ámbito) + aplicar */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Aplicar a:</span>
+            <select value={bulkScope} onChange={e => { setBulkScope(e.target.value); setBulkScopeVal(''); }} style={bulkCtl}>
+              <option value="todas" style={cellOptStyle}>Todas las filtradas</option>
+              <option value="prototipo" style={cellOptStyle}>Por prototipo</option>
+              <option value="nivel" style={cellOptStyle}>Por nivel</option>
+              <option value="metraje" style={cellOptStyle}>Por metraje (m²)</option>
             </select>
-          )}
-          {bulkField === 'vista' && (
-            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
-              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
-              <option value="" style={cellOptStyle}>Elige…</option>
-              <option value="interior" style={cellOptStyle}>Interior</option>
-              <option value="exterior" style={cellOptStyle}>Exterior</option>
-            </select>
-          )}
-          <button data-testid="bulk-apply" onClick={applyBulk} disabled={bulkValue === '' || bulkBusy}
-            style={{ background: (bulkValue === '' || bulkBusy) ? 'rgba(148,163,184,0.25)' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: (bulkValue === '' || bulkBusy) ? 'not-allowed' : 'pointer' }}>
-            {bulkBusy ? 'Aplicando…' : `Aplicar a ${filtered.length} unidades`}
-          </button>
-          <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Usa los filtros de arriba para acotar.</span>
+            {bulkScope === 'prototipo' && (
+              <select value={bulkScopeVal} onChange={e => setBulkScopeVal(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Todos</option>
+                {protoOptions.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
+              </select>
+            )}
+            {bulkScope === 'nivel' && (
+              <select value={bulkScopeVal} onChange={e => setBulkScopeVal(e.target.value)} style={bulkCtl}>
+                <option value="" style={cellOptStyle}>Todos</option>
+                {levelOptions.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
+              </select>
+            )}
+            {bulkScope === 'metraje' && (
+              <>
+                <input type="number" min={0} value={bulkM2Min} onChange={e => setBulkM2Min(e.target.value)} placeholder="m² min" style={{ ...bulkCtl, width: 90 }} />
+                <span style={{ color: 'var(--cream-3)' }}>–</span>
+                <input type="number" min={0} value={bulkM2Max} onChange={e => setBulkM2Max(e.target.value)} placeholder="m² max" style={{ ...bulkCtl, width: 90 }} />
+              </>
+            )}
+            <button data-testid="bulk-apply" onClick={applyBulk} disabled={bulkValue === '' || bulkBusy || !scopedUnits.length}
+              style={{ background: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'rgba(148,163,184,0.25)' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: (bulkValue === '' || bulkBusy || !scopedUnits.length) ? 'not-allowed' : 'pointer' }}>
+              {bulkBusy ? 'Aplicando…' : `Aplicar a ${scopedUnits.length} unidades`}
+            </button>
+          </div>
         </div>
       )}
 
@@ -425,40 +491,55 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
           <thead>
-            {/* Categorías (como la imagen del founder) */}
-            <tr>
-              {[
-                { label: 'Unidad', span: 3, bg: 'rgba(45,212,191,0.12)', fg: '#5eead4' },
-                { label: 'M² desglosados', span: 5, bg: 'rgba(45,212,191,0.09)', fg: '#5eead4' },
-                { label: 'Características', span: 3, bg: 'rgba(45,212,191,0.12)', fg: '#5eead4' },
-                { label: 'Adicionales', span: 3, bg: 'rgba(212,167,44,0.16)', fg: '#e3c04e' },
-                { label: 'Precio', span: 2, bg: 'rgba(34,197,94,0.13)', fg: '#4ade80' },
-                { label: '', span: 1, bg: 'transparent', fg: 'transparent' },
-              ].map((g, i) => (
-                <th key={i} colSpan={g.span} style={{
-                  padding: g.label ? '6px 12px' : 0, textAlign: 'center',
-                  fontSize: 9.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
-                  color: g.fg, background: g.bg,
-                  borderBottom: '1px solid rgba(var(--cream-rgb),0.12)',
-                  borderLeft: (i > 0 && i < 5) ? '1px solid rgba(var(--cream-rgb),0.1)' : 'none',
-                }}>
-                  {g.label}
-                </th>
-              ))}
-            </tr>
-            <tr style={{ background: 'rgba(var(--cream-rgb),0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
-              {['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'UBICACIÓN', 'PRECIO', 'ESTADO', ''].map((h, idx) => (
-                <th key={idx} style={{
-                  padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
-                  textAlign: 'left', fontSize: 10, fontWeight: 600,
-                  color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
-                  whiteSpace: 'nowrap',
-                  borderLeft: [3, 8, 11, 14].includes(idx) ? '1px solid rgba(var(--cream-rgb),0.10)' : 'none',
-                }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
+            {(() => {
+              // Cada categoría su color; los sub-headers el mismo color degradado.
+              const CATS = [
+                { label: 'Unidad', span: 3, rgb: '45,212,191', fg: '#5eead4' },
+                { label: 'M² desglosados', span: 5, rgb: '96,165,250', fg: '#93c5fd' },
+                { label: 'Características', span: 3, rgb: '167,139,250', fg: '#c4b5fd' },
+                { label: 'Adicionales', span: 3, rgb: '212,167,44', fg: '#e3c04e' },
+                { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#4ade80' },
+                { label: '', span: 1, rgb: null, fg: 'transparent' },
+              ];
+              const labels = ['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'UBICACIÓN', 'PRECIO', 'ESTADO', ''];
+              const colCats = [];
+              CATS.forEach((c, ci) => { for (let k = 0; k < c.span; k++) colCats.push({ ...c, first: k === 0, ci }); });
+              return (
+                <>
+                  <tr>
+                    {CATS.map((g, i) => (
+                      <th key={i} colSpan={g.span} style={{
+                        padding: g.label ? '6px 12px' : 0, textAlign: 'center',
+                        fontSize: 9.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
+                        color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.18)` : 'transparent',
+                        borderBottom: g.rgb ? `1px solid rgba(${g.rgb},0.45)` : '1px solid rgba(var(--cream-rgb),0.12)',
+                        borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(var(--cream-rgb),0.12)' : 'none',
+                      }}>
+                        {g.label}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr style={{ position: 'sticky', top: 0, zIndex: Z.BASE }}>
+                    {labels.map((h, idx) => {
+                      const c = colCats[idx] || {};
+                      return (
+                        <th key={idx} style={{
+                          padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
+                          textAlign: 'left', fontSize: 10, fontWeight: 700,
+                          color: c.rgb ? c.fg : 'var(--cream-3)',
+                          background: c.rgb ? `rgba(${c.rgb},0.07)` : 'rgba(var(--cream-rgb),0.04)',
+                          borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
+                          whiteSpace: 'nowrap',
+                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? '1px solid rgba(var(--cream-rgb),0.1)' : 'none',
+                        }}>
+                          {h}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </>
+              );
+            })()}
           </thead>
           <tbody>
             {paged.map((u, i) => (
