@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { paymentQuote, getPaymentSchemes, putPaymentSchemes, quotePdf, ASSET_BASE } from '../../api/developer';
-import { X, Plus, Trash, Check, Download } from '../../components/icons';
+import { X, Plus, Download } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
 const MAX_SCHEMES = 5;
@@ -35,7 +35,7 @@ function PctField({ label, value, color, onSave, testid }) {
       {editing ? (
         <input autoFocus type="number" data-testid={testid} value={v} onChange={e => setV(e.target.value)} onBlur={finish}
           onKeyDown={e => { if (e.key === 'Enter') finish(); if (e.key === 'Escape') setEditing(false); }}
-          style={{ width: 74, fontSize: 18, fontWeight: 800, fontFamily: 'Outfit', color: 'var(--cream)', border: `1px solid ${color}`, borderRadius: 6, padding: '2px 6px' }} />
+          style={{ width: 74, fontSize: 18, fontWeight: 800, fontFamily: 'Outfit', color: 'var(--cream)', background: '#fff', colorScheme: 'light', border: `1px solid ${color}`, borderRadius: 6, padding: '2px 6px' }} />
       ) : (
         <div data-testid={testid} onClick={start} title="Toca para editar"
           style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Outfit', color: 'var(--cream)', cursor: 'pointer', borderBottom: `1px dashed ${color}99`, display: 'inline-block', lineHeight: 1.15 }}>{value}%</div>
@@ -96,7 +96,6 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaEntrega, setFechaEntrega] = useState(null);
   const [mesesAuto, setMesesAuto] = useState(null);
-  const [savedId, setSavedId] = useState(null);   // flash ✓ en la fila recién guardada
   const [err, setErr] = useState('');
 
   // Cotizador a la medida: 3 porcentajes que suman 100. `recent` = los 2 últimos editados;
@@ -105,8 +104,10 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
   const [recent, setRecent] = useState(['eng', 'escr']);
   const enganche = pp.eng;
   const escritura = pp.escr;
-  const [meses, setMeses] = useState('');
   const [quote, setQuote] = useState(null);
+  // Por unidad: forma elegida (filtro) + modo prediseñada (fija) | manual (editable).
+  const [selFormId, setSelFormId] = useState('');
+  const [cotMode, setCotMode] = useState('pred');
 
   // Carga formas + calendario de obra (meses auto) al abrir.
   useEffect(() => {
@@ -121,8 +122,17 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
     return () => { cancel = true; };
   }, [devId]);
 
+  // Fija la forma seleccionada cuando cargan las formas y siembra los % del manual desde ella.
+  useEffect(() => {
+    if (!schemes.length) return;
+    const f = schemes.find(s => s.id === selFormId) || schemes[0];
+    if (f.id !== selFormId) setSelFormId(f.id);
+    setPp({ eng: +f.firma_pct || 0, mens: Math.max(0, 100 - (+f.firma_pct || 0) - (+f.escritura_pct || 0)), escr: +f.escritura_pct || 0 });
+    setRecent(['eng', 'escr']);
+  }, [schemes, selFormId]);
+
   // Persiste TODO el arreglo (el endpoint reemplaza). mens se deriva para sumar 100.
-  const persist = useCallback(async (next, flashId) => {
+  const persist = useCallback(async (next) => {
     const clean = next.map(s => {
       const firma = Math.max(0, Math.min(100, +s.firma_pct || 0));
       const escr = Math.max(0, Math.min(100 - firma, +s.escritura_pct || 0));
@@ -132,18 +142,11 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
     setErr('');
     try {
       await putPaymentSchemes(devId, { schemes: clean, fecha_inicio: fechaInicio, fecha_entrega: fechaEntrega });
-      if (flashId) { setSavedId(flashId); setTimeout(() => setSavedId(null), 1100); }
       onSchemesSaved && onSchemesSaved();
     } catch (e) {
       setErr(e.body?.detail || 'No se pudo guardar. Revisa que los nombres no se repitan.');
     }
   }, [devId, fechaInicio, fechaEntrega, onSchemesSaved]);
-
-  const editScheme = (id, field, value) => {
-    const next = schemes.map(s => s.id === id ? { ...s, [field]: value } : s);
-    persist(next, id);
-  };
-  const removeScheme = (id) => persist(schemes.filter(s => s.id !== id), null);
 
   // Guarda las fechas de obra → recalcula meses al instante (sin tocar las formas).
   const saveDates = (fi, fe) => {
@@ -152,42 +155,33 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
     putPaymentSchemes(devId, { schemes, fecha_inicio: fi || null, fecha_entrega: fe || null })
       .then(() => onSchemesSaved && onSchemesSaved()).catch(() => {});
   };
-  const addScheme = () => {
-    if (schemes.length >= MAX_SCHEMES) return;
-    const n = schemes.length + 1;
-    const nuevo = { id: `tmp_${n}_${schemes.length}`, nombre: `Forma ${n}`, firma_pct: 20, escritura_pct: 70, mensualidades_pct: 10, descuento_pct: 0, apartado_mxn: 0, meses_override: null };
-    persist([...schemes, nuevo], nuevo.id);
-  };
-
-  // Guarda la cotización a la medida actual como una forma configurada.
+  // Guarda la cotización manual actual como una forma configurada nueva.
   const saveCustomAsScheme = () => {
     if (schemes.length >= MAX_SCHEMES || !quote) return;
-    const mensPct = Math.max(0, 100 - enganche - Math.min(escritura, 100 - enganche));
     const nuevo = {
       id: `tmp_custom_${schemes.length}`,
       nombre: `Personalizada (${enganche}%)`,
       firma_pct: enganche,
       escritura_pct: Math.min(escritura, 100 - enganche),
-      mensualidades_pct: mensPct,
+      mensualidades_pct: Math.max(0, 100 - enganche - Math.min(escritura, 100 - enganche)),
       descuento_pct: quote.descuento_pct || 0,
       apartado_mxn: 0,
-      meses_override: meses !== '' ? +meses : null,
+      meses_override: null,
     };
     persist([...schemes, nuevo], nuevo.id);
   };
 
-  // Cotizador: enganche/escritura/meses libres → desglose (debounced).
-  const runQuote = useCallback((eng, escr, mss) => {
+  // Cotizador manual: enganche/escritura libres → desglose (meses fijos según fechas). Debounced.
+  const runQuote = useCallback((eng, escr) => {
     if (!base) { setQuote(null); return; }
-    const body = { precio_base: base, enganche_pct: eng, escritura_pct: escr };
-    if (mss !== '' && mss != null) body.meses = +mss;
-    paymentQuote(devId, body).then(r => setQuote(r.breakdown)).catch(() => setQuote(null));
+    paymentQuote(devId, { precio_base: base, enganche_pct: eng, escritura_pct: escr })
+      .then(r => setQuote(r.breakdown)).catch(() => setQuote(null));
   }, [devId, base]);
 
   useEffect(() => {
-    const t = setTimeout(() => runQuote(enganche, escritura, meses), 220);
+    const t = setTimeout(() => runQuote(enganche, escritura), 220);
     return () => clearTimeout(t);
-  }, [enganche, escritura, meses, runQuote]);
+  }, [enganche, escritura, runQuote]);
 
   // Cuerpos para el PDF/WhatsApp (proyecto general o por unidad).
   const baseBody = () => ({
@@ -198,7 +192,7 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
     cliente: cliente || null,
   });
   const formsBody = () => ({ ...baseBody(), mode: 'forms' });
-  const customBody = () => ({ ...baseBody(), mode: 'custom', enganche_pct: enganche, escritura_pct: Math.min(escritura, 100 - enganche), meses: meses !== '' ? +meses : null });
+  const customBody = () => ({ ...baseBody(), mode: 'custom', enganche_pct: enganche, escritura_pct: Math.min(escritura, 100 - enganche) });
 
   // Edita cualquier porcentaje: se conserva el otro más reciente y el tercero (no-reciente) se ajusta.
   const mensPct = pp.mens;
@@ -217,6 +211,21 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
   // Meses que faltan de hoy a la entrega → "N mensualidades de $X".
   const restantes = mesesRestantes(fechaEntrega);
   const entregaTxt = fmtEntrega(fechaEntrega);
+
+  // Desglose a mostrar (por unidad): manual = del servidor (descuento por curva); prediseñada = la forma elegida.
+  const selForm = schemes.find(s => s.id === selFormId) || schemes[0];
+  let dEng, dMens, dEscr, displayBd;
+  if (cotMode === 'manual') {
+    dEng = enganche; dMens = mensPct; dEscr = escritura;
+    displayBd = quote ? { precio: quote.precio_aplicado, firma: quote.firma, mensTotal: quote.mensualidades_total, escr: quote.escrituracion, ahorro: quote.ahorro } : null;
+  } else if (selForm) {
+    const b = localBreakdown(base, selForm, null);
+    dEng = +selForm.firma_pct || 0; dMens = b.mensPct; dEscr = +selForm.escritura_pct || 0;
+    displayBd = base ? { precio: b.precio, firma: b.firmaM, mensTotal: b.mensM, escr: b.escrM, ahorro: b.ahorro } : null;
+  } else {
+    dEng = dMens = dEscr = 0; displayBd = null;
+  }
+  const exportBody = () => cotMode === 'manual' ? customBody() : { ...baseBody(), mode: 'forms', scheme_id: selFormId };
 
   // Sección 1: catálogo persuasivo de los planes oficiales (read-only, sin precio, sin editar).
   const renderOficiales = () => (
@@ -313,105 +322,73 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
           <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>No hay unidades con precio para cotizar.</div>
         ) : (
           <>
-            {/* Comparador EDITABLE (por unidad) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)' }}>
-                Formas configuradas · toca un valor para editarlo
+            {/* Filtro de forma de pago + toggle prediseñada/manual */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                Forma de pago:
+                <select data-testid="form-filter" value={selFormId} onChange={e => setSelFormId(e.target.value)}
+                  style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px', colorScheme: 'light' }}>
+                  {schemes.map(s => <option key={s.id} value={s.id} style={{ background: '#fff', color: 'var(--cream)' }}>{s.nombre}</option>)}
+                </select>
+              </label>
+              <div style={{ display: 'inline-flex', background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9999, padding: 3 }}>
+                {[['pred', 'Prediseñada'], ['manual', 'Manual']].map(([k, lbl]) => (
+                  <button key={k} data-testid={`cotmode-${k}`} onClick={() => setCotMode(k)}
+                    style={{ background: cotMode === k ? 'var(--grad)' : 'transparent', color: cotMode === k ? '#fff' : 'var(--cream-2)', border: 'none', borderRadius: 9999, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{lbl}</button>
+                ))}
               </div>
-              <button data-testid="add-scheme" onClick={addScheme} disabled={schemes.length >= MAX_SCHEMES}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: schemes.length >= MAX_SCHEMES ? 'rgba(var(--cream-rgb),0.08)' : 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.3)', color: schemes.length >= MAX_SCHEMES ? 'var(--cream-3)' : 'var(--theme)', borderRadius: 9999, padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: schemes.length >= MAX_SCHEMES ? 'not-allowed' : 'pointer' }}>
-                <Plus size={13} /> Agregar forma
-              </button>
+              {cotMode === 'manual' && (
+                <button data-testid="save-custom-scheme" onClick={saveCustomAsScheme} disabled={schemes.length >= MAX_SCHEMES || !displayBd}
+                  style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, background: (schemes.length >= MAX_SCHEMES || !displayBd) ? 'rgba(var(--cream-rgb),0.08)' : 'var(--grad)', border: 'none', color: (schemes.length >= MAX_SCHEMES || !displayBd) ? 'var(--cream-3)' : '#fff', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: (schemes.length >= MAX_SCHEMES || !displayBd) ? 'not-allowed' : 'pointer' }}>
+                  <Plus size={13} /> Guardar como forma de pago
+                </button>
+              )}
             </div>
-            <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 22 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 660 }}>
-                <thead>
-                  <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
-                    {['Forma', 'Enganche', 'Mensual.', 'Escritura', 'Descuento', 'Precio final', '$/mes', ''].map(h => (
-                      <th key={h} style={{ textAlign: h === 'Forma' ? 'left' : 'center', padding: '8px 10px', fontSize: 9.5, color: 'var(--cream-2)', textTransform: 'uppercase', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {schemes.length === 0 && <tr><td colSpan={8} style={{ padding: 16, color: 'var(--cream-3)', textAlign: 'center' }}>Sin formas. Agrega una con “+ Agregar forma”.</td></tr>}
-                  {schemes.map(s => {
-                    const bd = localBreakdown(base, s, mesesAuto);
-                    const flash = savedId === s.id;
-                    return (
-                      <tr key={s.id} style={{ borderTop: '1px solid var(--border)', background: flash ? 'rgba(34,197,94,0.08)' : 'transparent', transition: 'background 0.4s' }}>
-                        <td style={{ padding: '6px 10px' }}>
-                          <EditCell value={s.nombre} type="text" w={130} align="left" bold onSave={v => editScheme(s.id, 'nombre', v)} />
-                        </td>
-                        <td style={{ padding: '6px 6px', textAlign: 'center' }}><EditCell value={s.firma_pct} suffix="%" onSave={v => editScheme(s.id, 'firma_pct', v)} /></td>
-                        <td style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--cream-3)', fontVariantNumeric: 'tabular-nums' }}>{bd.mensPct}%</td>
-                        <td style={{ padding: '6px 6px', textAlign: 'center' }}><EditCell value={s.escritura_pct} suffix="%" onSave={v => editScheme(s.id, 'escritura_pct', v)} /></td>
-                        <td style={{ padding: '6px 6px', textAlign: 'center' }}><EditCell value={s.descuento_pct} suffix="%" accent="#15803d" onSave={v => editScheme(s.id, 'descuento_pct', v)} /></td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--cream)', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                          {base ? fmtMXN(bd.precio) : '—'}
-                          {base > 0 && bd.ahorro > 0 && <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>ahorra {fmtMXN(bd.ahorro)}</div>}
-                        </td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>
-                          {bd.mensM > 0 ? (restantes ? fmtMXN(Math.round(bd.mensM / restantes)) : fmtMXN(bd.mensM)) : '—'}
-                          {bd.mensM > 0 && restantes ? <div style={{ fontSize: 9.5, color: 'var(--cream-3)' }}>{restantes} mensualidades</div> : null}
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                          {flash
-                            ? <Check size={15} style={{ color: '#15803d' }} />
-                            : <button onClick={() => removeScheme(s.id)} title="Eliminar forma" style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer', display: 'inline-flex' }}><Trash size={14} /></button>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <ExportBar devId={devId} getBody={formsBody} idp="forms" disabled={schemes.length === 0} />
 
-            {/* Cotizador no-fijo */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)' }}>
-                Cotizador a la medida
-              </div>
-              <button data-testid="save-custom-scheme" onClick={saveCustomAsScheme} disabled={schemes.length >= MAX_SCHEMES || !quote}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: (schemes.length >= MAX_SCHEMES || !quote) ? 'rgba(var(--cream-rgb),0.08)' : 'var(--grad)', border: 'none', color: (schemes.length >= MAX_SCHEMES || !quote) ? 'var(--cream-3)' : '#fff', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: (schemes.length >= MAX_SCHEMES || !quote) ? 'not-allowed' : 'pointer' }}>
-                <Plus size={13} /> Guardar como forma de pago
-              </button>
-            </div>
             <div style={{ background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.2)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10 }}>Toca un porcentaje para editarlo · los tres siempre suman 100%.</div>
-              {/* Barra de proporción enganche / mensualidades / escritura */}
-              <div style={{ display: 'flex', height: 12, borderRadius: 9999, overflow: 'hidden', marginBottom: 14, border: '1px solid rgba(var(--cream-rgb),0.14)' }}>
-                <div style={{ width: `${enganche}%`, background: 'var(--theme)', transition: 'width 0.2s' }} title={`Enganche ${enganche}%`} />
-                <div style={{ width: `${mensPct}%`, background: '#C77F12', transition: 'width 0.2s' }} title={`Mensualidades ${mensPct}%`} />
-                <div style={{ width: `${escritura}%`, background: '#15803d', transition: 'width 0.2s' }} title={`Al escriturar ${escritura}%`} />
+              <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10 }}>
+                {cotMode === 'manual' ? 'Toca un porcentaje para editarlo · los tres siempre suman 100%.' : 'Plan oficial · valores fijos.'}
               </div>
-              {/* 3 valores click-to-edit + meses */}
+              {/* Barra de proporción */}
+              <div style={{ display: 'flex', height: 12, borderRadius: 9999, overflow: 'hidden', marginBottom: 14, border: '1px solid rgba(var(--cream-rgb),0.14)' }}>
+                <div style={{ width: `${dEng}%`, background: 'var(--theme)', transition: 'width 0.2s' }} title={`Enganche ${dEng}%`} />
+                <div style={{ width: `${dMens}%`, background: '#C77F12', transition: 'width 0.2s' }} title={`Mensualidades ${dMens}%`} />
+                <div style={{ width: `${dEscr}%`, background: '#15803d', transition: 'width 0.2s' }} title={`Al escriturar ${dEscr}%`} />
+              </div>
+              {/* 3 valores (editables en manual, fijos en prediseñada) + meses fijo */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch' }}>
-                <PctField label="Enganche" value={enganche} color="var(--theme)" onSave={onEng} testid="cust-enganche" />
-                <PctField label="Mensualidades" value={mensPct} color="#C77F12" onSave={onMens} testid="cust-mens" />
-                <PctField label="Al escriturar" value={escritura} color="#15803d" onSave={onEscr} testid="cust-escr" />
+                {cotMode === 'manual' ? (
+                  <>
+                    <PctField label="Enganche" value={enganche} color="var(--theme)" onSave={onEng} testid="cust-enganche" />
+                    <PctField label="Mensualidades" value={mensPct} color="#C77F12" onSave={onMens} testid="cust-mens" />
+                    <PctField label="Al escriturar" value={escritura} color="#15803d" onSave={onEscr} testid="cust-escr" />
+                  </>
+                ) : (
+                  <>
+                    <RoPct label="Enganche" value={`${dEng}%`} color="var(--theme)" />
+                    <RoPct label="Mensualidades" value={`${dMens}%`} color="#C77F12" />
+                    <RoPct label="Al escriturar" value={`${dEscr}%`} color="#15803d" />
+                  </>
+                )}
                 <div className="dmx-card" style={{ flex: 1, minWidth: 110, background: '#fff', padding: '9px 12px' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>Meses</div>
-                  <input type="number" min={1} value={meses} placeholder={mesesAuto ? `${mesesAuto} (auto)` : 'auto'}
-                    onChange={e => setMeses(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.2)', borderRadius: 6, color: 'var(--cream)', fontSize: 16, fontWeight: 700, fontFamily: 'Outfit', padding: '2px 6px' }} />
+                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Outfit', color: 'var(--cream)' }}>{mesesAuto || '—'}</div>
+                  <div style={{ fontSize: 9.5, color: 'var(--cream-3)' }}>según fechas</div>
                 </div>
               </div>
 
-              {quote && (
+              {displayBd && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10, marginTop: 14 }}>
-                  <QField label="Precio final" value={fmtMXN(quote.precio_aplicado)} strong
-                    hint={quote.ahorro > 0 ? `ahorra ${fmtMXN(quote.ahorro)}` : null} />
-                  <QField label="Al firmar" value={fmtMXN(quote.firma)} hint={`${quote.firma_pct}%`} />
+                  <QField label="Precio final" value={fmtMXN(displayBd.precio)} strong
+                    hint={displayBd.ahorro > 0 ? `ahorra ${fmtMXN(displayBd.ahorro)}` : null} />
+                  <QField label="Al firmar" value={fmtMXN(displayBd.firma)} hint={`${dEng}%`} />
                   <QField label="Mensualidad"
-                    value={quote.mensualidades_total > 0 ? (quote.meses_restantes ? `${fmtMXN(quote.mensualidad_restante)}/mes` : fmtMXN(quote.mensualidades_total)) : '—'}
-                    hint={quote.meses_restantes && quote.mensualidades_total > 0
-                      ? `${quote.meses_restantes} mensualidades${entregaTxt ? ` · entrega ${entregaTxt}` : ''}`
-                      : null} />
-                  <QField label="Al escriturar" value={fmtMXN(quote.escrituracion)} hint={`${quote.escritura_pct}%`} />
+                    value={displayBd.mensTotal > 0 ? (restantes ? `${fmtMXN(Math.round(displayBd.mensTotal / restantes))}/mes` : fmtMXN(displayBd.mensTotal)) : '—'}
+                    hint={displayBd.mensTotal > 0 && restantes ? `${restantes} mensualidades${entregaTxt ? ` · entrega ${entregaTxt}` : ''}` : null} />
+                  <QField label="Al escriturar" value={fmtMXN(displayBd.escr)} hint={`${dEscr}%`} />
                 </div>
               )}
-              <ExportBar devId={devId} getBody={customBody} idp="custom" disabled={!quote} />
+              <ExportBar devId={devId} getBody={exportBody} idp="unidad" disabled={!displayBd} />
             </div>
           </>
         )}
@@ -421,28 +398,13 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
 }
 
 // Celda click-to-edit compacta para el comparador.
-function EditCell({ value, suffix = '', onSave, w = 54, type = 'num', align = 'center', bold = false, accent }) {
-  const [editing, setEditing] = useState(false);
-  const [v, setV] = useState(value);
-  const start = () => { setV(value); setEditing(true); };
-  const finish = () => {
-    setEditing(false);
-    const nv = type === 'num' ? (v === '' ? 0 : Math.max(0, Math.min(100, +v))) : String(v).trim();
-    if (nv !== value && !(type === 'text' && !nv)) onSave(nv);
-  };
-  if (editing) {
-    return (
-      <input autoFocus type={type === 'num' ? 'number' : 'text'} value={v}
-        onChange={e => setV(e.target.value)} onBlur={finish}
-        onKeyDown={e => { if (e.key === 'Enter') finish(); if (e.key === 'Escape') setEditing(false); }}
-        style={{ width: type === 'text' ? w : w, textAlign: align, background: '#fff', border: '1px solid var(--theme)', borderRadius: 6, color: 'var(--cream)', fontSize: 12.5, padding: '4px 6px', fontWeight: bold ? 700 : 500 }} />
-    );
-  }
+// Tarjeta de porcentaje SOLO lectura (prediseñada).
+function RoPct({ label, value, color }) {
   return (
-    <span onClick={start} title="Toca para editar"
-      style={{ display: 'inline-block', minWidth: type === 'num' ? 36 : w, textAlign: align, cursor: 'pointer', padding: '3px 6px', borderRadius: 6, borderBottom: '1px dashed rgba(var(--theme-rgb),0.45)', color: accent || 'var(--cream)', fontWeight: bold ? 700 : 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-      {value}{suffix}
-    </span>
+    <div className="dmx-card" style={{ flex: 1, minWidth: 110, background: '#fff', padding: '9px 12px' }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Outfit', color: 'var(--cream)' }}>{value}</div>
+    </div>
   );
 }
 
