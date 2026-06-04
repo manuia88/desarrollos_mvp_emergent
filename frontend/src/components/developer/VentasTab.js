@@ -523,15 +523,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
           <thead>
             {(() => {
-              // Paleta cohesiva (no arcoíris): datos de referencia en familia fría
-              // calmada; color con SIGNIFICADO solo en Adicionales (editable) y Precio (dinero).
-              const SLATE = '148,163,184';
+              // TEMA CLARO (.portal-asesor): bandas pastel + texto OSCURO saturado = legible.
+              // Cohesivo: datos en familia fría; color con significado en Adicionales (editable) y Precio (dinero).
               const CATS = [
-                { label: 'Unidad', span: 3, rgb: SLATE, fg: '#cbd5e1' },
-                { label: 'M² desglosados', span: 5, rgb: '129,160,205', fg: '#bcd0f0' },
-                { label: 'Características', span: 3, rgb: SLATE, fg: '#cbd5e1' },
-                { label: 'Adicionales', span: 3, rgb: 'var(--theme-rgb)', fg: '#f0abfc' },  // editable
-                { label: 'Precio', span: 2, rgb: '52,200,120', fg: '#86efac' },              // dinero
+                { label: 'Unidad', span: 3, rgb: '100,116,139', fg: '#334155' },        // slate
+                { label: 'M² desglosados', span: 5, rgb: '56,150,230', fg: '#1e40af' },  // azul
+                { label: 'Características', span: 3, rgb: '139,92,246', fg: '#5b21b6' },   // violeta
+                { label: 'Adicionales', span: 3, rgb: '99,102,241', fg: '#3730a3' },      // índigo (editable)
+                { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#15803d' },            // verde (dinero)
                 { label: '', span: 1, rgb: null, fg: 'transparent' },
               ];
               const labels = ['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'VISTA', 'PRECIO', 'ESTADO', ''];
@@ -559,11 +558,11 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                         <th key={idx} style={{
                           padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                           textAlign: 'left', fontSize: 10.5, fontWeight: 700,
-                          color: 'var(--cream)',                       // texto claro = legible
-                          background: c.rgb ? `rgba(${c.rgb},0.13)` : 'rgba(var(--cream-rgb),0.04)',
-                          borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.55)` : '1px solid rgba(var(--cream-rgb),0.1)',
+                          color: c.rgb ? c.fg : 'var(--cream-2)',      // oscuro saturado = legible en claro
+                          background: c.rgb ? `rgba(${c.rgb},0.11)` : 'rgba(var(--cream-rgb),0.04)',
+                          borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.45)` : '1px solid rgba(var(--cream-rgb),0.1)',
                           whiteSpace: 'nowrap',
-                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.35)` : 'none',
+                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none',
                         }}>
                           {idx === 0 && editMode ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
