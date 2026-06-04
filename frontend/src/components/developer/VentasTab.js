@@ -244,6 +244,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [vistaFil, setVistaFil] = useState('');
   const [cajonFil, setCajonFil] = useState('');
   const [incompleteOnly, setIncompleteOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { pref } = usePreferences();
   const density_mode = pref('density_mode', 'compacto');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -302,7 +303,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   // de edición para acotar a qué unidades se aplica el llenado masivo).
   const clearFilters = () => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Fil(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); };
   const renderFilters = () => (
-    <div style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 12, padding: '14px 16px' }}>
+    <div>
       <div style={{ display: 'flex', gap: 28, rowGap: 16, flexWrap: 'wrap' }}>
         <FilterGroup title="Tipología">
           <FilterField label="Prototipo" w={120}>
@@ -397,6 +398,44 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
             Limpiar filtros
           </button>
         </div>
+      )}
+    </div>
+  );
+
+  // Cuántos filtros están activos (para el badge del botón).
+  const activeFilterCount = [protoFil, levelFil, recFil, banosFil, spotsFil, m2Fil, vistaFil, cajonFil, statusFilter, priceMin, priceMax].filter(Boolean).length + (incompleteOnly ? 1 : 0);
+
+  // Botón "Filtros" que abre un dropdown con todos los filtros (vista limpia).
+  const renderFiltersDropdown = () => (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        data-testid="filters-toggle"
+        onClick={() => setFiltersOpen(o => !o)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          background: activeFilterCount > 0 ? 'rgba(var(--theme-rgb),0.12)' : '#fff',
+          border: `1px solid ${activeFilterCount > 0 ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(var(--cream-rgb),0.26)'}`,
+          color: activeFilterCount > 0 ? 'var(--theme)' : 'var(--cream-2)',
+          borderRadius: 9999, padding: '7px 15px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+        }}>
+        ⚙ Filtros{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''} {filtersOpen ? '▲' : '▼'}
+      </button>
+      {filtersOpen && (
+        <>
+          <div onClick={() => setFiltersOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.DROPDOWN }} />
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: Z.DROPDOWN + 1,
+            width: 'min(840px, 88vw)', maxHeight: '72vh', overflowY: 'auto',
+            background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.18)', borderRadius: 14,
+            padding: '16px 18px', boxShadow: '0 18px 50px rgba(0,0,0,0.18)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--cream)' }}>Filtrar inventario</span>
+              <button onClick={() => setFiltersOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            {renderFilters()}
+          </div>
+        </>
       )}
     </div>
   );
@@ -563,25 +602,28 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         </button>
       </div>
 
-      {/* Filtros para navegar (cuando NO estás editando) */}
+      {/* Filtros para navegar (cuando NO estás editando) — botón + dropdown */}
       {!editMode && (
-        <div>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cream-3)', marginBottom: 7 }}>FILTRAR</div>
-          {renderFilters()}
-        </div>
+        <div>{renderFiltersDropdown()}</div>
       )}
 
       {/* Panel de edición en bloque: 1) ¿a cuáles? (combina filtros) → 2) qué llenar → aplicar */}
       {editMode && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '16px 18px', background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 12 }}>
-          {/* Paso 1: a cuáles (criterios combinables) */}
+          {/* Paso 1: a cuáles (criterios combinables, dentro de un dropdown) */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--theme)', marginBottom: 10 }}>
               1 · ¿A Cuáles? — Combina los Criterios que Quieras
             </div>
-            {renderFilters()}
-            <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>
-              Ej: Prototipo A + 3 recámaras + 100 m² → modificas exacto ese grupo (sin tocar los de 150 m²). Quedan <strong style={{ color: 'var(--theme)' }}>{filtered.length}</strong> unidades.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {renderFiltersDropdown()}
+              <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>
+                Quedan <strong style={{ color: 'var(--theme)' }}>{filtered.length}</strong> unidades
+                {activeFilterCount > 0 ? ' con tus filtros.' : ' (sin filtro = todas).'}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 6 }}>
+              Ej: Prototipo A + 3 recámaras + 100 m² → modificas exacto ese grupo (sin tocar los de 150 m²).
             </div>
           </div>
 
