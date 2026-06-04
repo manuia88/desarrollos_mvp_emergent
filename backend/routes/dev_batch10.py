@@ -468,7 +468,7 @@ async def dev_plays(request: Request):
         if 0 < health < 70 and avail:
             plays.append({
                 "type": "salud", "severity": "media", "project_id": pid, "project_name": name,
-                "emoji": "🩺", "title": f"{name} va lento — salud {health}/100",
+                "emoji": "🩺", "title": f"{name} va lento — necesita tu atención",
                 "detail": "Hay 2-3 cosas frenando sus ventas (fotos, precio o seguimiento). Arréglalas y se mueve.",
                 "impact_label": f"{avail} uds · {_mm(avail*pf)} por destrabar",
                 "impact_value": avail * pf * 0.4,   # ponderado: no todo está en riesgo, pero pesa
