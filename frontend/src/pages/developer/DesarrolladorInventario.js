@@ -274,7 +274,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
       {/* Status edit modal */}
       {editing && (
         <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="status-modal" style={{ width: 380, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 22 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="status-modal" style={{ width: 380, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 22 }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>UNIDAD {editing.unit.unit_number}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 14 }}>
               {editing.unit.prototype} · {fmtMXN(editing.unit.price)}
@@ -295,7 +295,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
       {/* Hold modal */}
       {holdModal && (
         <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 400, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 400, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Clock size={16} color="#f59e0b" />
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', letterSpacing: '-0.01em' }}>

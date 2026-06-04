@@ -327,7 +327,7 @@ function Tour360Tab({ devId }) {
       </p>
 
       {tours.length === 0 && (
-        <div style={{ padding: 26, textAlign: 'center', background: '#0A0D16', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <div style={{ padding: 26, textAlign: 'center', background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 12 }}>
           <Camera size={26} color="var(--cream-3)" />
           <div style={{ fontFamily: 'Outfit', fontWeight: 600, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 8 }}>
             Aún no hay tours 360° generados.

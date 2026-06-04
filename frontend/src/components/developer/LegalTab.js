@@ -179,7 +179,7 @@ export default function LegalTab({ devId, user }) {
             }}
           >
             {DOC_CATEGORIES.map(c => (
-              <option key={c} value={c} style={{ background: 'var(--navy)' }}>{c}</option>
+              <option key={c} value={c} style={{ background: '#161b27', color: 'var(--cream)' }}>{c}</option>
             ))}
           </select>
           <span style={{ fontSize: 11, color: 'var(--cream-3)', alignSelf: 'center' }}>
