@@ -11,6 +11,7 @@ import {
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import PaymentSchemesConfig from './PaymentSchemesConfig';
+import PoliciesConfig from './PoliciesConfig';
 import { Users, Check } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
@@ -143,7 +144,7 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
   );
 }
 
-export default function ComercializacionTab({ devId, user }) {
+export default function ComercializacionTab({ devId, user, projectName }) {
   const [config, setConfig] = useState(null);
   const [brokers, setBrokers] = useState([]);
   const [preassigns, setPreassigns] = useState([]);
@@ -217,6 +218,11 @@ export default function ComercializacionTab({ devId, user }) {
       {/* Section 0: Formas de pago (esquemas R3) */}
       <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
         <PaymentSchemesConfig devId={devId} />
+      </div>
+
+      {/* Section 0.5: Políticas (brokers + venta), editable y descargable */}
+      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
+        <PoliciesConfig devId={devId} projectName={projectName} />
       </div>
 
       {/* Section 1: Política comercial */}

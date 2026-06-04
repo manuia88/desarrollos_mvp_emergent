@@ -221,6 +221,35 @@ class CommercializationPatch(BaseModel):
     broker_terms: Optional[str] = None
     in_house_only: Optional[bool] = None
     approved_inmobiliarias: Optional[List[str]] = None
+    # Políticas editables (se guardan tal cual; el front define la estructura)
+    broker_policy: Optional[Dict[str, Any]] = None
+    sales_policy: Optional[Dict[str, Any]] = None
+
+
+# Plantilla por defecto de las políticas (el dev las edita en el front).
+def _default_broker_policy() -> Dict[str, Any]:
+    return {
+        "comision_pct": 3.0,
+        "comision_pago_esquema": "50% al firmar contrato, 50% al escriturar",
+        "comision_pago_dias": 15,
+        "registro_leads": ("1 asesor por lead por proyecto. Si el cliente ya está registrado "
+                           "por otro asesor, el segundo pasa a arbitraje del desarrollador."),
+        "descuento_max_pct": 3.0,
+        "comision_escalonada": "Bono +0.5% si la unidad se vende en menos de 60 días.",
+        "cobrokering_reparto": "50% captador / 50% cerrador",
+        "exclusividad": "",
+    }
+
+
+def _default_sales_policy() -> Dict[str, Any]:
+    return {
+        "apartado_mxn": 50000,
+        "apartado_condiciones": "El apartado se acredita a la firma. No reembolsable tras 5 días.",
+        "precio_vigencia_fecha": "",
+        "cancelacion_politica": "Cancelación antes de firma: reembolso del apartado menos gastos.",
+        "incluye": "Precio incluye un cajón de estacionamiento. Bodega y cajones extra se cotizan aparte.",
+        "tiempos": "Apartado → firma de contrato (15 días) → escrituración (a la entrega).",
+    }
 
 
 @router.get("/projects/{project_id}/commercialization")
@@ -236,7 +265,14 @@ async def get_commercialization(project_id: str, request: Request):
             "default_commission_pct": 3.0, "iva_included": False,
             "broker_terms": "", "in_house_only": True,
             "approved_inmobiliarias": [],
+            "broker_policy": _default_broker_policy(),
+            "sales_policy": _default_sales_policy(),
         }
+    # Rellena políticas faltantes con la plantilla (proyectos viejos sin estos campos)
+    if not doc.get("broker_policy"):
+        doc["broker_policy"] = _default_broker_policy()
+    if not doc.get("sales_policy"):
+        doc["sales_policy"] = _default_sales_policy()
     return doc
 
 

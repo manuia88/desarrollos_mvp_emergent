@@ -598,7 +598,7 @@ export default function ProyectoDetail({ user, onLogout }) {
           )}
           {activeTab === 'comercializacion' && (
             <>
-              <ComercializacionTab devId={slug} user={user} />
+              <ComercializacionTab devId={slug} user={user} projectName={summary?.name || slug} />
               <Tours3DSection
                 projectSlug={slug}
                 devId={summary?.dev_org_id || summary?.developer_id || (user?.dev_org_id || user?.tenant_id)}
