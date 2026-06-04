@@ -186,7 +186,13 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [bulkScopeVal, setBulkScopeVal] = useState('');   // valor para prototipo/nivel
   const [bulkM2Min, setBulkM2Min] = useState('');
   const [bulkM2Max, setBulkM2Max] = useState('');
-  const { pref, setPref } = usePreferences();
+  const [protoFil, setProtoFil] = useState('');
+  const [levelFil, setLevelFil] = useState('');
+  const [recFil, setRecFil] = useState('');
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [incompleteOnly, setIncompleteOnly] = useState(false);
+  const { pref } = usePreferences();
   const density_mode = pref('density_mode', 'compacto');
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -210,12 +216,26 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const counts = {};
   units.forEach(u => { const s = u.status || 'disponible'; counts[s] = (counts[s] || 0) + 1; });
 
-  // Filter
+  // Opciones de filtro (de todo el inventario)
+  const allProtos = [...new Set(units.map(u => u.prototype).filter(Boolean))].sort();
+  const allLevels = [...new Set(units.map(u => u.level).filter(v => v != null))].sort((a, b) => a - b);
+  const allRecs = [...new Set(units.map(u => u.bedrooms).filter(v => v != null))].sort((a, b) => a - b);
+  const unitIncompleta = (u) => !u.parking_type || u.bodega == null || !u.vista || !m2priv(u);
+
+  // Filtros (sirven para acotar y editar inventario)
   const filtered = units.filter(u => {
     const matchSearch = !search || u.unit_number?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || u.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchProto = !protoFil || u.prototype === protoFil;
+    const matchLevel = !levelFil || String(u.level) === String(levelFil);
+    const matchRec = !recFil || String(u.bedrooms) === String(recFil);
+    const price = u.price || 0;
+    const matchPriceMin = priceMin === '' || price >= +priceMin;
+    const matchPriceMax = priceMax === '' || price <= +priceMax;
+    const matchIncomplete = !incompleteOnly || unitIncompleta(u);
+    return matchSearch && matchStatus && matchProto && matchLevel && matchRec && matchPriceMin && matchPriceMax && matchIncomplete;
   });
+  const anyFilter = protoFil || levelFil || recFil || priceMin || priceMax || incompleteOnly || statusFilter || search;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -347,45 +367,58 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           <Upload size={13} /> Bulk Upload
         </button>
 
-        {/* Editar (global) — fija la tabla cuando está apagado */}
-        <button
-          data-testid="edit-mode-toggle"
-          onClick={() => setEditMode(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            background: editMode ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.08)',
-            color: editMode ? '#fff' : 'var(--cream)',
-            border: editMode ? 'none' : '1px solid rgba(var(--cream-rgb),0.16)',
-            borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          {editMode ? '✓ Editando' : '✎ Editar'}
-        </button>
-
-        {/* Density */}
-        <div style={{ display: 'flex', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
-          {['compacto', 'expandido'].map(m => (
-            <button
-              key={m}
-              data-testid={`density-${m}`}
-              onClick={() => setPref('density_mode', m)}
-              style={{
-                background: density_mode === m ? 'rgba(var(--cream-rgb),0.14)' : 'transparent',
-                color: density_mode === m ? 'var(--cream)' : 'var(--cream-3)',
-                border: 'none', padding: '5px 10px', fontSize: 11, cursor: 'pointer',
-                textTransform: 'capitalize',
-              }}
-            >
-              {m === 'compacto' ? 'Compacto' : 'Expandido'}
-            </button>
-          ))}
-        </div>
-
         <span style={{ fontSize: 12, color: 'var(--cream-3)', marginLeft: 'auto' }}>
           {filtered.length > PAGE_SIZE
             ? `Mostrando ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} de ${filtered.length}`
             : `${filtered.length} unidades`}
         </span>
+
+        {/* Editar — prominente, arriba a la derecha de la tabla (founder) */}
+        <button
+          data-testid="edit-mode-toggle"
+          onClick={() => setEditMode(v => !v)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'var(--grad)', color: '#fff', border: 'none',
+            borderRadius: 9999, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            boxShadow: editMode ? '0 0 0 3px rgba(var(--theme-rgb),0.25)' : '0 4px 14px rgba(var(--theme-rgb),0.3)',
+          }}
+        >
+          {editMode ? '✓ Editando inventario' : '✎ Editar inventario'}
+        </button>
+      </div>
+
+      {/* Filtros para acotar y editar el inventario (founder) */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Filtrar:</span>
+        <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtl}>
+          <option value="" style={cellOptStyle}>Prototipo: todos</option>
+          {allProtos.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
+        </select>
+        <select value={levelFil} onChange={e => { setLevelFil(e.target.value); setPage(1); }} style={bulkCtl}>
+          <option value="" style={cellOptStyle}>Nivel: todos</option>
+          {allLevels.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
+        </select>
+        <select value={recFil} onChange={e => { setRecFil(e.target.value); setPage(1); }} style={bulkCtl}>
+          <option value="" style={cellOptStyle}>Recámaras: todas</option>
+          {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
+        </select>
+        <input type="number" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1); }} placeholder="precio min" style={{ ...bulkCtl, width: 110 }} />
+        <input type="number" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1); }} placeholder="precio max" style={{ ...bulkCtl, width: 110 }} />
+        <button onClick={() => { setIncompleteOnly(v => !v); setPage(1); }}
+          title="Unidades a las que les falta tipo de cajón, bodega, ubicación o m²"
+          style={{ ...bulkCtl, cursor: 'pointer',
+            background: incompleteOnly ? 'rgba(245,158,11,0.2)' : 'rgba(var(--cream-rgb),0.06)',
+            color: incompleteOnly ? '#fbbf24' : 'var(--cream-2)',
+            border: incompleteOnly ? '1px solid rgba(245,158,11,0.45)' : '1px solid rgba(var(--cream-rgb),0.14)' }}>
+          ⚠ Solo incompletas
+        </button>
+        {anyFilter && (
+          <button onClick={() => { setProtoFil(''); setLevelFil(''); setRecFil(''); setPriceMin(''); setPriceMax(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); }}
+            style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       {/* Llenado masivo (upgrade): cualquier campo + ámbito (todas/prototipo/nivel/metraje) */}
@@ -509,11 +542,11 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                   <tr>
                     {CATS.map((g, i) => (
                       <th key={i} colSpan={g.span} style={{
-                        padding: g.label ? '6px 12px' : 0, textAlign: 'center',
-                        fontSize: 9.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
-                        color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.18)` : 'transparent',
-                        borderBottom: g.rgb ? `1px solid rgba(${g.rgb},0.45)` : '1px solid rgba(var(--cream-rgb),0.12)',
-                        borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(var(--cream-rgb),0.12)' : 'none',
+                        padding: g.label ? '7px 12px' : 0, textAlign: 'center',
+                        fontSize: 10, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
+                        color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.34)` : 'transparent',
+                        borderBottom: g.rgb ? `2px solid rgba(${g.rgb},0.8)` : '1px solid rgba(var(--cream-rgb),0.12)',
+                        borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(var(--cream-rgb),0.18)' : 'none',
                       }}>
                         {g.label}
                       </th>
@@ -527,10 +560,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                           padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                           textAlign: 'left', fontSize: 10, fontWeight: 700,
                           color: c.rgb ? c.fg : 'var(--cream-3)',
-                          background: c.rgb ? `rgba(${c.rgb},0.07)` : 'rgba(var(--cream-rgb),0.04)',
+                          background: c.rgb ? `rgba(${c.rgb},0.16)` : 'rgba(var(--cream-rgb),0.04)',
                           borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
                           whiteSpace: 'nowrap',
-                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? '1px solid rgba(var(--cream-rgb),0.1)' : 'none',
+                          borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none',
                         }}>
                           {h}
                         </th>
@@ -956,7 +989,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         </div>
       )}
 
-      {/* Selector de forma de pago — recalcula los precios de la lista en vivo */}
+      {/* Selector de forma de pago — refleja las formas que configuró el dev */}
       {schemes.length > 0 && activeSubTab === 'inventario' && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
           <span style={{ fontSize: 11, color: 'var(--cream-3)', marginRight: 2 }}>Precio según forma de pago:</span>
@@ -965,10 +998,10 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             return (
               <button key={s.id} data-testid={`price-scheme-${s.id}`} onClick={() => setSelScheme(s.id)}
                 style={{
-                  background: on ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
-                  color: on ? 'var(--navy)' : 'var(--cream-2)',
-                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.14)',
-                  borderRadius: 9999, padding: '5px 12px', fontSize: 11.5, fontWeight: on ? 700 : 500, cursor: 'pointer',
+                  background: on ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.06)',
+                  color: on ? '#fff' : 'var(--cream-2)',
+                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.16)',
+                  borderRadius: 9999, padding: '5px 13px', fontSize: 11.5, fontWeight: on ? 700 : 500, cursor: 'pointer',
                 }}>
                 {s.nombre}{s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
               </button>
@@ -976,7 +1009,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
           })}
           <div style={{ flex: 1 }} />
           <button data-testid="open-quoter" onClick={() => setQuoterOpen(true)}
-            style={{ background: 'rgba(var(--theme-rgb),0.14)', color: '#f9a8d4', border: '1px solid rgba(var(--theme-rgb),0.3)', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ background: 'rgba(var(--theme-rgb),0.16)', color: '#f9a8d4', border: '1px solid rgba(var(--theme-rgb),0.34)', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
             Cotizador a la medida
           </button>
         </div>
