@@ -153,7 +153,7 @@ export default function PaymentSchemesConfig({ devId }) {
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 9999,
-                  background: ok ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)',
+                  background: ok ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
                   color: ok ? '#22c55e' : 'var(--red)',
                 }}>
                   Suma {sum}% {ok ? '✓' : '· debe ser 100%'}
@@ -198,7 +198,7 @@ export default function PaymentSchemesConfig({ devId }) {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
-          background: toast.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
+          background: toast.type === 'ok' ? 'rgba(21,128,61,0.97)' : 'rgba(185,28,28,0.97)',
           border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,
           color: toast.type === 'ok' ? '#86efac' : '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500,
         }}>

@@ -10,7 +10,7 @@ import DiagnosticPanel from '../../components/developer/DiagnosticPanel';
 import { Z } from '../../styles/zIndex';
 
 const TIER_COLORS = {
-  excellent: { fg: '#86efac', bg: 'rgba(34,197,94,0.14)', bd: 'rgba(34,197,94,0.35)' },
+  excellent: { fg: '#86efac', bg: 'rgba(21,128,61,0.97)', bd: 'rgba(34,197,94,0.35)' },
   good:      { fg: '#fef08a', bg: 'rgba(234,179,8,0.14)', bd: 'rgba(234,179,8,0.35)' },
   fair:      { fg: '#fdba74', bg: 'rgba(249,115,22,0.14)', bd: 'rgba(249,115,22,0.35)' },
   poor:      { fg: '#fca5a5', bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.35)' },
@@ -287,7 +287,7 @@ function ColoniaBenchmarkCard({ myData, benchmark }) {
         </div>
         <div style={{
           padding: '8px 14px', borderRadius: 10,
-          background: overallDelta >= 0 ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)',
+          background: overallDelta >= 0 ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
           border: `1px solid ${overallDelta >= 0 ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
           color: overallDelta >= 0 ? '#86efac' : '#fca5a5',
           fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
@@ -317,7 +317,7 @@ function ColoniaBenchmarkCard({ myData, benchmark }) {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '2px 8px', borderRadius: 9999,
-                background: positive ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)',
+                background: positive ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
                 color: positive ? '#86efac' : '#fca5a5',
                 fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
               }}>

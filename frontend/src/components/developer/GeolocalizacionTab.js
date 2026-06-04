@@ -193,7 +193,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10,
             padding: '5px 10px', borderRadius: 9999,
-            background: loc.source === 'manual' ? 'rgba(34,197,94,0.14)' : 'rgba(251,191,36,0.14)',
+            background: loc.source === 'manual' ? 'rgba(21,128,61,0.97)' : 'rgba(251,191,36,0.14)',
             border: `1px solid ${loc.source === 'manual' ? 'rgba(34,197,94,0.35)' : 'rgba(251,191,36,0.35)'}`,
             color: loc.source === 'manual' ? '#86efac' : '#fcd34d',
             fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
@@ -271,7 +271,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
-          background: toast.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
+          background: toast.type === 'ok' ? 'rgba(21,128,61,0.97)' : 'rgba(185,28,28,0.97)',
           border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,
           color: toast.type === 'ok' ? '#86efac' : '#fca5a5',
           fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500,

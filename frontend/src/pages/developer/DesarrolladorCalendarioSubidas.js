@@ -71,7 +71,7 @@ function ContentCard({ item, onApprove, onReject, onPublish }) {
                   style={{ width: '100%', background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => onApprove(item.id, comment)} data-testid={`approve-${item.id}`}
-                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '7px', borderRadius: 7, background: 'rgba(21,128,61,0.97)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
                     <CheckCircle size={11} style={{ marginRight: 4 }} />Aprobar
                   </button>
                   <button onClick={() => onReject(item.id, comment)} data-testid={`reject-${item.id}`}

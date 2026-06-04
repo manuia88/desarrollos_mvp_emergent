@@ -11,7 +11,7 @@ const STAGE_COLORS = {
   cimentacion:   { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
   estructura:    { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: '#C63FAE' },
   instalaciones: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.35)', fg: '#C77F12' },
-  acabados:      { bg: 'rgba(34,197,94,0.14)',  bd: 'rgba(34,197,94,0.35)',  fg: '#1FA06A' },
+  acabados:      { bg: 'rgba(21,128,61,0.97)',  bd: 'rgba(34,197,94,0.35)',  fg: '#1FA06A' },
   entrega:       { bg: 'rgba(139,92,246,0.14)', bd: 'rgba(139,92,246,0.35)', fg: '#6D4AFF' },
 };
 
@@ -344,7 +344,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
-          background: toast.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
+          background: toast.type === 'ok' ? 'rgba(21,128,61,0.97)' : 'rgba(185,28,28,0.97)',
           border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,
           color: toast.type === 'ok' ? '#86efac' : '#fca5a5',
           fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500, maxWidth: 360,

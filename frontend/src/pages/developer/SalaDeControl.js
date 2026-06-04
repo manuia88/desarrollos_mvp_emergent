@@ -647,7 +647,7 @@ export default function SalaDeControl({ user, onLogout }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.04em' }}>Lo que ya hice por ti</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {done.map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.14)' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(21,128,61,0.97)' }}>
                       <Check size={15} color="var(--green)" /><span style={{ fontSize: 13.5, color: 'var(--cream)' }}>{phraseDone(t.action)}</span>
                     </div>
                   ))}

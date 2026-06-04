@@ -294,7 +294,7 @@ function PlanosTab({ devId }) {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
-          background: toast.ok ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
+          background: toast.ok ? 'rgba(21,128,61,0.97)' : 'rgba(185,28,28,0.97)',
           border: `1px solid ${toast.ok ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,
           color: toast.ok ? '#86efac' : '#fca5a5',
           fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500, maxWidth: 360,
