@@ -10,6 +10,12 @@ import { MapPin, CheckCircle } from '../icons';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
+// Estilos de mapa bonitos (reemplaza el viejo dark-v11 que "se veía negro").
+const MAP_STYLES = {
+  satelite: 'mapbox://styles/mapbox/satellite-streets-v12',
+  calles:   'mapbox://styles/mapbox/streets-v12',
+};
+
 export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = false, height = 340 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -17,6 +23,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
   const [coords, setCoords] = useState({ lat: lat || 19.4326, lng: lng || -99.1332 });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [styleKey, setStyleKey] = useState('satelite');
 
   useEffect(() => {
     if (!TOKEN || !containerRef.current || mapRef.current) return;
@@ -24,7 +31,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: MAP_STYLES.satelite,
       center: [coords.lng, coords.lat],
       zoom: zoom,
     });
@@ -73,6 +80,13 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
     // eslint-disable-next-line
   }, [lat, lng]);
 
+  // Cambiar el estilo del mapa (Calles / Satélite) sin recrear el mapa.
+  useEffect(() => {
+    if (mapRef.current && MAP_STYLES[styleKey]) {
+      mapRef.current.setStyle(MAP_STYLES[styleKey]);
+    }
+  }, [styleKey]);
+
   const handleSave = async () => {
     if (!onSave || saving) return;
     setSaving(true);
@@ -101,6 +115,29 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
   return (
     <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <div ref={containerRef} style={{ height, width: '100%' }} />
+
+      {/* Toggle Calles / Satélite */}
+      <div style={{
+        position: 'absolute', top: 12, right: 52,
+        display: 'flex', gap: 2, padding: 3, borderRadius: 9999,
+        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(8px)',
+        border: '1px solid var(--border)',
+      }}>
+        {[['satelite', 'Satélite'], ['calles', 'Calles']].map(([k, label]) => (
+          <button
+            key={k}
+            data-testid={`map-style-${k}`}
+            onClick={() => setStyleKey(k)}
+            style={{
+              padding: '4px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+              background: styleKey === k ? 'var(--cream)' : 'transparent',
+              color: styleKey === k ? 'var(--navy)' : 'var(--cream-2)',
+              fontFamily: 'DM Sans', fontSize: 11, fontWeight: styleKey === k ? 700 : 500,
+            }}>
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Coords overlay */}
       <div style={{

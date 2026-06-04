@@ -1,9 +1,11 @@
 // AvanceObraTab — Phase 4.25 · Construction progress timeline for /desarrollador/desarrollos/:slug/legajo
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, Badge } from '../advisor/primitives';
 import * as api from '../../api/developer';
-import { CheckCircle, Clock, MessageCircle, Image, Camera, Sparkle } from '../icons';
+import { CheckCircle, Clock, Camera, Upload, X } from '../icons';
 import { Z } from '../../styles/zIndex';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const STAGE_COLORS = {
   cimentacion:   { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
@@ -21,6 +23,36 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
   const [comment, setComment] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
+
+  // Sube una foto de obra y la deja lista para adjuntar al comentario.
+  const handlePhotoFile = async (files) => {
+    const file = files && files[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('files', file);
+      fd.append('asset_type', 'foto_avance');
+      const r = await fetch(`${API}/api/desarrollador/developments/${devId}/assets/upload`, {
+        method: 'POST', credentials: 'include', body: fd,
+      });
+      const data = await r.json();
+      const created = (data.created && data.created[0]) || null;
+      const rel = created && (created.public_url || created.url);
+      if (rel) {
+        setPhotoUrl(rel.startsWith('http') ? rel : `${API}${rel}`);
+        setToast({ type: 'ok', msg: 'Foto lista. Escribe el comentario y publica.' });
+      } else {
+        setToast({ type: 'error', msg: 'No se pudo subir la foto (revisa que sea jpg/png).' });
+      }
+    } catch (e) {
+      setToast({ type: 'error', msg: 'Error al subir la foto' });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const load = async () => {
     try {
@@ -223,16 +255,39 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
             }}
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              data-testid="avance-photo-url"
-              type="url" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)}
-              placeholder="URL de foto (opcional)"
+            {/* Botón subir foto (reemplaza el viejo campo de URL) */}
+            <button
+              data-testid="avance-photo-upload"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
               style={{
-                flex: 1, minWidth: 240, padding: '8px 10px',
-                background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
-                borderRadius: 8, color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12,
-              }}
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '9px 16px', borderRadius: 9999,
+                background: 'rgba(var(--cream-rgb),0.05)', border: '1px solid var(--border)',
+                color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
+                cursor: uploadingPhoto ? 'wait' : 'pointer',
+              }}>
+              {uploadingPhoto ? <><Camera size={14} /> Subiendo…</> : <><Upload size={14} /> Subir foto</>}
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => { handlePhotoFile(e.target.files); e.target.value = ''; }}
             />
+            {photoUrl && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <img src={photoUrl} alt="foto" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                <button
+                  onClick={() => setPhotoUrl('')}
+                  title="Quitar foto"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', cursor: 'pointer', display: 'inline-flex' }}>
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
             <button
               data-testid="avance-comment-save"
               onClick={submitComment}

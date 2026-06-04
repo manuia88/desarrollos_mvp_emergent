@@ -7,12 +7,15 @@ import { MapPin, CheckCircle, Layers } from '../icons';
 import { Z } from '../../styles/zIndex';
 
 const GEOJSON_ALLOWED = new Set(['developer_admin', 'superadmin']);
+const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp = false }) {
   const [loc, setLoc] = useState(null);
   const [err, setErr] = useState(null);
   const [toast, setToast] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [addr, setAddr] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
   // Batch 2.1 role guard — only developer_admin or superadmin can move the marker.
   const canEdit = !readOnlyProp && (user?.role === 'developer_admin' || user?.role === 'superadmin');
   const readOnly = !canEdit;
@@ -23,18 +26,41 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
   useEffect(() => {
     if (!devId) return;
     api.getProjectLocation(devId)
-      .then(setLoc)
+      .then(d => { setLoc(d); setAddr(d?.address || ''); })
       .catch(e => setErr(e.body?.detail || 'Error al cargar ubicación'));
   }, [devId]);
 
   const handleSave = async (lat, lng, zoom) => {
     try {
-      await api.saveProjectLocation(devId, { lat, lng, zoom, address: loc?.address });
-      setToast({ type: 'ok', msg: 'Ubicación guardada y auditada' });
-      setLoc(prev => ({ ...prev, lat, lng, zoom, source: 'manual' }));
+      const address = (addr || '').trim() || loc?.address || null;
+      await api.saveProjectLocation(devId, { lat, lng, zoom, address });
+      setToast({ type: 'ok', msg: 'Ubicación guardada' });
+      setLoc(prev => ({ ...prev, lat, lng, zoom, address, source: 'manual' }));
       setTimeout(() => setToast(null), 3200);
     } catch (e) {
       setToast({ type: 'error', msg: e.body?.detail || 'Error al guardar' });
+    }
+  };
+
+  // Buscar la dirección escrita y mover el pin a ese punto (geocoding Mapbox).
+  const handleFindAddress = async () => {
+    if (!addr.trim() || geocoding) return;
+    if (!MAPBOX_TOKEN) { setToast({ type: 'error', msg: 'Mapa no configurado' }); return; }
+    setGeocoding(true);
+    try {
+      const q = encodeURIComponent(addr.trim());
+      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=mx&limit=1&language=es`);
+      const data = await r.json();
+      const feat = data.features && data.features[0];
+      if (!feat) { setToast({ type: 'error', msg: 'No encontré esa dirección. Revisa o ajusta el pin a mano.' }); return; }
+      const [lng, lat] = feat.center;
+      setLoc(prev => ({ ...prev, lat, lng, address: addr.trim(), source: 'manual' }));
+      setToast({ type: 'ok', msg: 'Dirección encontrada. Revisa el pin y pulsa "Guardar ubicación".' });
+      setTimeout(() => setToast(null), 4000);
+    } catch (e) {
+      setToast({ type: 'error', msg: 'Error al buscar la dirección' });
+    } finally {
+      setGeocoding(false);
     }
   };
 
@@ -79,9 +105,40 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           Ubicación precisa del proyecto
         </h3>
         <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.55, maxWidth: 620, marginBottom: 14 }}>
-          Haz clic en el mapa o arrastra el marcador para ajustar la ubicación exacta. La posición se guarda con audit log
-          y se usa para el pin del marketplace y análisis de demanda por radio.
+          Escribe la dirección y pulsa “Buscar”, o haz clic en el mapa para mover el pin a mano.
+          La ubicación se usa para el pin del proyecto y el análisis de la zona.
         </p>
+
+        {/* Dirección manual */}
+        {!readOnly && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <input
+              data-testid="geoloc-address-input"
+              value={addr}
+              onChange={e => setAddr(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleFindAddress(); }}
+              placeholder="Ej: Av. Insurgentes Sur 1234, Del Valle, CDMX"
+              style={{
+                flex: 1, minWidth: 260, padding: '10px 14px',
+                background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)',
+                borderRadius: 10, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
+              }}
+            />
+            <button
+              data-testid="geoloc-find-btn"
+              onClick={handleFindAddress}
+              disabled={!addr.trim() || geocoding}
+              style={{
+                padding: '10px 18px', borderRadius: 10,
+                background: (!addr.trim() || geocoding) ? 'rgba(148,163,184,0.2)' : 'var(--grad)',
+                border: 'none', color: '#fff', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
+                cursor: (!addr.trim() || geocoding) ? 'not-allowed' : 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+              }}>
+              <MapPin size={13} /> {geocoding ? 'Buscando…' : 'Buscar'}
+            </button>
+          </div>
+        )}
 
         {loc.source && (
           <div style={{
@@ -118,17 +175,17 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>EXPORTAR</div>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>DESCARGAR · OPCIONAL</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, maxWidth: 480 }}>
-                  Descarga una FeatureCollection GeoJSON estándar con el punto del proyecto y cada unidad.
-                  Compatible con QGIS, Mapbox Studio y ArcGIS.
+                  Baja un archivo con la ubicación del proyecto y sus unidades, por si lo necesitas
+                  en otro programa de mapas. Si no, puedes ignorarlo.
                 </div>
               </div>
               <button
                 data-testid="geojson-export-btn"
                 onClick={handleExportGeoJSON}
                 disabled={!hasLocation || exporting}
-                title={!hasLocation ? 'Configura y guarda la ubicación antes de exportar' : 'Descargar .geojson'}
+                title={!hasLocation ? 'Guarda la ubicación antes de descargar' : 'Descargar archivo de ubicación'}
                 style={{
                   padding: '10px 16px', borderRadius: 9999,
                   background: (!hasLocation || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(var(--theme-rgb),0.14)',
@@ -139,7 +196,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
                   display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
                 }}>
                 <Layers size={13} />
-                {exporting ? 'Exportando…' : 'Exportar GeoJSON'}
+                {exporting ? 'Descargando…' : 'Descargar archivo de ubicación'}
               </button>
             </div>
             {!hasLocation && (

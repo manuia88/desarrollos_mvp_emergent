@@ -2,7 +2,7 @@
  * Phase 4 Batch 11 — Sub-chunk A
  * ContenidoTab — 6 sub-tabs de assets multimedia
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DragDropZone from '../shared/DragDropZone';
 import { listDevAssets } from '../../api/developer';
@@ -45,26 +45,29 @@ function AssetThumb({ asset, onDelete, onSetCover }) {
           <Upload size={24} color="rgba(var(--cream-rgb),0.2)" />
         </div>
       )}
-      {/* Hover overlay */}
+      {/* Hover overlay — suave con degradado + blur (antes era negro sólido) */}
       {hover && (
         <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(var(--bg-rgb),0.7)',
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to top, rgba(var(--bg-rgb),0.86), rgba(var(--bg-rgb),0.28))',
+          backdropFilter: 'blur(2px)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+          transition: 'opacity 0.15s',
         }}>
           {asset.url && (
             <a href={asset.url} download target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', padding: '4px 10px', borderRadius: 6, fontSize: 11, textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(var(--cream-rgb),0.18)', color: 'var(--cream)', padding: '5px 12px', borderRadius: 9999, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}
               onClick={e => e.stopPropagation()}>
               <Download size={12} /> Descargar
             </a>
           )}
           <button onClick={(e) => { e.stopPropagation(); onSetCover(asset.id); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(var(--cream-rgb),0.15)', color: 'var(--cream)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
-            <Star size={12} /> Portada
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,158,11,0.22)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.4)', padding: '5px 12px', borderRadius: 9999, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+            <Star size={12} /> Usar de portada
           </button>
           <button onClick={(e) => { e.stopPropagation(); onDelete(asset.id); }}
-            style={{ background: 'rgba(239,68,68,0.2)', color: 'var(--red)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
-            Eliminar
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.2)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.4)', padding: '5px 12px', borderRadius: 9999, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+            <X size={11} /> Eliminar
           </button>
         </div>
       )}
@@ -94,6 +97,7 @@ export default function ContenidoTab({ devId, user }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewAsset, setPreviewAsset] = useState(null);
+  const fileInputRef = useRef(null);
 
   const activeKey = searchParams.get('content_sub') || 'fotos';
   const activeConfig = CONTENT_SUBS.find(s => s.key === activeKey) || CONTENT_SUBS[0];
@@ -163,27 +167,50 @@ export default function ContenidoTab({ devId, user }) {
 
   return (
     <div>
-      {/* Sub-tab bar */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, flexWrap: 'wrap' }}>
-        {CONTENT_SUBS.map(s => (
-          <button
-            key={s.key}
-            data-testid={`content-sub-${s.key}`}
-            onClick={() => setContentSub(s.key)}
-            style={{
-              background: activeKey === s.key ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
-              color: activeKey === s.key ? 'var(--navy)' : 'var(--cream-2)',
-              border: activeKey === s.key ? 'none' : '1px solid rgba(var(--cream-rgb),0.12)',
-              borderRadius: 20, padding: '5px 14px', fontSize: 12,
-              fontWeight: activeKey === s.key ? 700 : 400, cursor: 'pointer',
-            }}
-          >
-            {s.label}
-            <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
-              {activeKey === s.key ? assets.length : ''}
-            </span>
-          </button>
-        ))}
+      {/* Sub-tab bar + botón subir */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {CONTENT_SUBS.map(s => (
+            <button
+              key={s.key}
+              data-testid={`content-sub-${s.key}`}
+              onClick={() => setContentSub(s.key)}
+              style={{
+                background: activeKey === s.key ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
+                color: activeKey === s.key ? 'var(--navy)' : 'var(--cream-2)',
+                border: activeKey === s.key ? 'none' : '1px solid rgba(var(--cream-rgb),0.12)',
+                borderRadius: 20, padding: '5px 14px', fontSize: 12,
+                fontWeight: activeKey === s.key ? 700 : 400, cursor: 'pointer',
+              }}
+            >
+              {s.label}
+              <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
+                {activeKey === s.key ? assets.length : ''}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          data-testid="content-upload-btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            background: uploading ? 'rgba(148,163,184,0.25)' : 'var(--grad)',
+            color: '#fff', border: 'none', borderRadius: 9999,
+            padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+            cursor: uploading ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+          }}>
+          <Upload size={14} /> {uploading ? 'Subiendo…' : `Subir ${activeConfig.label.toLowerCase()}`}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,video/*,.pdf"
+          style={{ display: 'none' }}
+          onChange={(e) => { handleUpload(e.target.files); e.target.value = ''; }}
+        />
       </div>
 
       {/* Upload zone */}
