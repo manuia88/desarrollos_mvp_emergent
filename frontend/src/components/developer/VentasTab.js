@@ -3,7 +3,7 @@
  * VentasTab — 3 sub-tabs: Inventario completo | Por prototipo | Vista de planta
  * URL sync: ?subtab=inventario|prototipos|planta
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FilterChipsBar } from '../shared/FilterChipsBar';
 import FilterPresetsBar from '../shared/FilterPresetsBar';
@@ -11,9 +11,80 @@ import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
-import { listInventory } from '../../api/developer';
-import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icons';
+import { listInventory, patchUnitFields } from '../../api/developer';
+import { Search, Upload, Eye, Building } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
+
+// Nomenclatura del founder (imagen 2): tipos de cajón.
+const PARKING_TYPE_LABELS = {
+  individual: 'Individual',
+  bateria_propia: 'Batería propia',
+  bateria_vecino: 'Batería vecino',
+  eleva_autos: 'Eleva-autos',
+};
+
+const cellSelectStyle = {
+  background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)',
+  borderRadius: 6, color: 'var(--cream-2)', fontSize: 11, padding: '3px 6px',
+  fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', maxWidth: 120,
+};
+
+// Celdas "Adicionales" editables en línea (bodega · ubicación · cajón).
+function ExtraCells({ u, devId, onPatched }) {
+  const stop = (e) => e.stopPropagation();
+  const patch = async (fields) => {
+    onPatched(u.id, fields); // optimista
+    try {
+      await patchUnitFields({ dev_id: devId, unit_id: u.id, ...fields });
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
+    }
+  };
+  return (
+    <>
+      {/* Bodega ✓/✗ */}
+      <td style={{ padding: '0 12px' }} onClick={stop}>
+        <button
+          data-testid={`unit-bodega-${u.unit_number}`}
+          onClick={() => patch({ bodega: !u.bodega })}
+          title={u.bodega ? 'Tiene bodega' : 'Sin bodega'}
+          style={{
+            width: 26, height: 26, borderRadius: 7, cursor: 'pointer',
+            border: `1px solid ${u.bodega ? 'rgba(34,197,94,0.45)' : 'rgba(var(--cream-rgb),0.18)'}`,
+            background: u.bodega ? 'rgba(34,197,94,0.16)' : 'transparent',
+            color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 13, fontWeight: 800,
+          }}>
+          {u.bodega ? '✓' : '–'}
+        </button>
+      </td>
+      {/* Ubicación interior/exterior */}
+      <td style={{ padding: '0 12px' }} onClick={stop}>
+        <select
+          data-testid={`unit-vista-${u.unit_number}`}
+          value={u.vista || ''}
+          onChange={(e) => { if (e.target.value) patch({ vista: e.target.value }); }}
+          style={cellSelectStyle}>
+          <option value="">—</option>
+          <option value="interior">Interior</option>
+          <option value="exterior">Exterior</option>
+        </select>
+      </td>
+      {/* Tipo de cajón */}
+      <td style={{ padding: '0 12px' }} onClick={stop}>
+        <select
+          data-testid={`unit-parking-${u.unit_number}`}
+          value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
+          onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
+          style={cellSelectStyle}>
+          <option value="">—</option>
+          {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </td>
+    </>
+  );
+}
 
 const STATUS_CONFIG = {
   disponible:  { label: 'Disponible',  color: '#fff', bg: '#1FA06A' },
@@ -47,7 +118,7 @@ function StatusChip({ status }) {
 }
 
 // ─── Inventario Completo ────────────────────────────────────────────────────
-function InventarioCompleto({ units, devId, user, onBulkUpload }) {
+function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
@@ -215,8 +286,21 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
           <thead>
+            {/* Grupo de columnas "Adicionales" (granularidad por unidad) */}
+            <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
+              <th colSpan={6} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }} />
+              <th colSpan={3} style={{
+                padding: '5px 12px', textAlign: 'center', fontSize: 9.5, fontWeight: 800,
+                letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--theme-3)',
+                borderBottom: '1px solid rgba(var(--theme-rgb),0.3)',
+                background: 'rgba(var(--theme-rgb),0.06)',
+              }}>
+                Adicionales
+              </th>
+              <th colSpan={2} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }} />
+            </tr>
             <tr style={{ background: 'rgba(var(--cream-rgb),0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
-              {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Estado', 'Acciones'].map(h => (
+              {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Bodega', 'Ubicación', 'Cajón', 'Estado', 'Acciones'].map(h => (
                 <th key={h} style={{
                   padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                   textAlign: 'left', fontSize: 10, fontWeight: 600,
@@ -260,6 +344,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
                 <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   {fmtMXN(u.price)}
                 </td>
+                <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
                 <td style={{ padding: '0 12px' }}>
                   <StatusChip status={u.status} />
                 </td>
@@ -276,7 +361,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
             ))}
             {paged.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: '32px 12px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
+                <td colSpan={11} style={{ padding: '32px 12px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
                   No hay unidades con los filtros actuales.
                 </td>
               </tr>
@@ -560,6 +645,11 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Edición optimista de los "Adicionales" sin recargar toda la tabla.
+  const applyUnitPatch = useCallback((unitId, fields) => {
+    setUnits(prev => prev.map(u => (u.id === unitId ? { ...u, ...fields } : u)));
+  }, []);
+
   const handleFilterInventario = (protoName) => {
     setProtoFilter(protoName);
     const next = new URLSearchParams(searchParams);
@@ -614,7 +704,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
       ) : (
         <>
           {activeSubTab === 'inventario' && (
-            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} />
+            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} />
           )}
           {activeSubTab === 'prototipos' && (
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />

@@ -11,6 +11,7 @@ const COL_LABELS = {
   unit_number: 'Unidad', prototype: 'Prototipo', level: 'Nivel',
   bedrooms: 'Rec.', bathrooms: 'Baños', m2_total: 'm² total',
   price: 'Precio', status: 'Estado', parking_spots: 'Est.', notes: 'Notas',
+  vista: 'Ubicación', parking_type: 'Tipo cajón', bodega: 'Bodega',
 };
 
 const STATUS_COLORS = {

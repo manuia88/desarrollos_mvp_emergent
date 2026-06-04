@@ -109,8 +109,14 @@ async def list_inventory(request: Request, dev_id: Optional[str] = None):
         units = []
         for u in d.get("units", []):
             ov = overrides.get(u["id"])
-            units.append({**u, "status": ov["status"] if ov else u["status"],
-                          "overridden": bool(ov)})
+            merged = {**u}
+            if ov:
+                # status (legacy) + campos granulares editables desde el portal
+                for fld in ("status", "bodega", "parking_type", "parking_spots", "vista"):
+                    if ov.get(fld) is not None:
+                        merged[fld] = ov[fld]
+            merged["overridden"] = bool(ov)
+            units.append(merged)
         result.append({
             "id": d["id"], "name": d["name"], "colonia": d["colonia"], "stage": d["stage"],
             "delivery_estimate": d["delivery_estimate"], "construction_progress": d.get("construction_progress", 0),
@@ -191,6 +197,58 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
                             context={"entity_type": "unit", "action": "update"}, ai_decision={}, user_action={})
     except Exception: pass
     return {"ok": True, "status": payload.status}
+
+
+# ─── Campos granulares de la unidad (bodega · ubicación · tipo de cajón) ──────
+PARKING_TYPES = {"individual", "bateria_propia", "bateria_vecino", "eleva_autos"}
+VISTAS = {"interior", "exterior"}
+
+
+class UnitFieldsPatch(BaseModel):
+    dev_id: str
+    unit_id: str
+    bodega: Optional[bool] = None
+    parking_type: Optional[str] = None
+    parking_spots: Optional[int] = None
+    vista: Optional[str] = None
+
+
+@router.patch("/inventario/unit-fields")
+async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
+    """Edita los 'Adicionales' de una unidad y los persiste como override.
+    Se mezclan en list_inventory para que la lista de precios los muestre."""
+    user = await require_dev_admin(request)
+    db = get_db(request)
+
+    set_doc = {
+        "unit_id": payload.unit_id, "dev_id": payload.dev_id,
+        "updated_by": user.user_id, "updated_at": _now(),
+    }
+    if payload.parking_type is not None:
+        if payload.parking_type not in PARKING_TYPES:
+            raise HTTPException(400, f"tipo de cajón inválido — válidos: {', '.join(sorted(PARKING_TYPES))}")
+        set_doc["parking_type"] = payload.parking_type
+    if payload.vista is not None:
+        if payload.vista not in VISTAS:
+            raise HTTPException(400, "ubicación inválida — usa 'interior' o 'exterior'")
+        set_doc["vista"] = payload.vista
+    if payload.bodega is not None:
+        set_doc["bodega"] = bool(payload.bodega)
+    if payload.parking_spots is not None:
+        set_doc["parking_spots"] = max(0, int(payload.parking_spots))
+
+    await db.developer_unit_overrides.update_one(
+        {"unit_id": payload.unit_id},
+        {"$set": set_doc},
+        upsert=True,
+    )
+    await db.developer_audit.insert_one({
+        "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
+        "user_id": user.user_id, "action": "unit_fields_change",
+        "payload": payload.model_dump(exclude_none=True), "ts": _now(),
+    })
+    return {"ok": True, "unit_id": payload.unit_id,
+            **{k: v for k, v in set_doc.items() if k in ("bodega", "parking_type", "parking_spots", "vista")}}
 
 
 # ─── D6: Demand Heatmap ───────────────────────────────────────────────────────

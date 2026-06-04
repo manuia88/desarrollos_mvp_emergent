@@ -104,7 +104,18 @@ def _decrypt(val: str) -> str:
 BULK_COLS_REQUIRED = ["unit_number"]
 BULK_COLS_ALL = ["unit_number", "prototype", "level", "bedrooms", "bathrooms",
                  "m2_total", "m2_private", "m2_terrace", "price", "status",
-                 "parking_spots", "storage_room", "orientation", "notes"]
+                 "parking_spots", "storage_room", "orientation", "notes",
+                 "vista", "parking_type", "bodega"]
+
+_BULK_PARKING_TYPES = {"individual", "bateria_propia", "bateria_vecino", "eleva_autos"}
+
+
+def _parse_bool_cell(v):
+    """Sí/no, x, 1/0, true/false → bool (None si vacío)."""
+    s = str(v or "").strip().lower()
+    if not s:
+        return None
+    return s in ("si", "sí", "yes", "y", "x", "1", "true", "verdadero", "✓")
 
 
 def _norm_header(h: str) -> str:
@@ -299,6 +310,9 @@ async def bulk_commit(payload: BulkCommitPayload, request: Request):
             "storage_room": row.get("storage_room") or None,
             "orientation": row.get("orientation") or None,
             "notes": row.get("notes") or None,
+            "vista": (row.get("vista") or "").strip().lower() if (row.get("vista") or "").strip().lower() in ("interior", "exterior") else None,
+            "parking_type": (row.get("parking_type") or "").strip().lower() if (row.get("parking_type") or "").strip().lower() in _BULK_PARKING_TYPES else None,
+            "bodega": _parse_bool_cell(row.get("bodega")),
             "updated_by": user.user_id,
             "updated_at": _now().isoformat(),
             "source": "bulk_upload",
