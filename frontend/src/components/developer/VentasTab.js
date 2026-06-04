@@ -979,6 +979,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
         entity_type="unit_detail_b11"
         user={user}
         width={560}
+        portalClassName="theme-light-scope"
         body={drawerUnit ? (
           <UnitDrawerContent
             unit={drawerUnit}
@@ -1183,6 +1184,7 @@ function VistaDePlanta({ units, user, devId }) {
         entity_type="unit_detail_b11"
         user={user}
         width={560}
+        portalClassName="theme-light-scope"
         body={drawerUnit ? (
           <UnitDrawerContent
             unit={drawerUnit}

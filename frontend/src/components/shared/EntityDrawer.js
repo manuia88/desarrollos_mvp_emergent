@@ -62,6 +62,7 @@ export function EntityDrawer({
   sections = [], entity_type = 'default', entity_id = null, user,
   width = 520,
   body = null,  // Phase 4 B11: custom body (bypasses sections)
+  portalClassName = '',  // ej. 'portal-asesor' → el portal hereda el tema claro (vive fuera del wrapper)
 }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 840);
   const [sectionState, setSectionState] = useState(() => loadSectionState(entity_type));
@@ -148,7 +149,7 @@ export function EntityDrawer({
     : panelSections;
 
   const drawer = (
-    <div className="fixed inset-0 z-[100]" data-testid="entity-drawer">
+    <div className={`fixed inset-0 z-[100] ${portalClassName}`} data-testid="entity-drawer">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={onClose} />
 

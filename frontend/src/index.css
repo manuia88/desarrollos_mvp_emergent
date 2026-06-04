@@ -52,6 +52,33 @@
   --frame-primary: var(--cream);     /* texto principal del marco */
 }
 
+/* Scope de tema CLARO solo-variables (para portales/drawers que viven fuera de
+ * `.portal-asesor` vía createPortal). NO toca position/isolation/::before/`> *`,
+ * así un overlay `fixed` sigue siendo fixed; solo voltea las variables a claro. */
+.theme-light-scope {
+  --bg: #FAFAFB;
+  --bg-2: #FFFFFF;
+  --bg-3: #F1F2F6;
+  --bg-rgb: 241, 242, 246;
+  --surface: #FFFFFF;
+  --surface-2: #F1F2F6;
+  --cream: #1E2230;
+  --cream-rgb: 30, 34, 48;
+  --cream-2: #434A5C;
+  --cream-3: #6B7385;
+  --border: #E6E8EE;
+  --border-2: #D5D8E2;
+  --theme: #6D4AFF;
+  --theme-rgb: 109, 74, 255;
+  --theme-2: #5B37E0;
+  --theme-3: #C63FAE;
+  --grad: linear-gradient(120deg, #6D4AFF, #C63FAE);
+  --hot: #F2635B;
+  --warm: #E2982E;
+  --cold: #3B82F6;
+  --ok: #1FA06A;
+}
+
 /* Marco CLARO · solo asesor. Repinta el caparazón al tema del mockup
  * (superficie blanca, tinta #1E2230) sin tocar el contenido (.portal-asesor
  * trae sus propios tokens) ni los demás portales. */
