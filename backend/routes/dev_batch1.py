@@ -831,8 +831,12 @@ def _render_quote_pdf(dev, unit, prog, images, payload, rows, base, meses_auto) 
         ]))
         if base:
             el.append(Spacer(1, 6))
-            mens_val = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if bd.get("mensualidades_total") else "—"
-            mens_sub = (f"× {bd.get('meses')} meses" if bd.get("meses") else None)
+            rest = bd.get("meses_restantes")
+            if bd.get("mensualidades_total"):
+                mens_val = (f"{_money(bd.get('mensualidad_restante'))}/mes" if rest else _money(bd.get("mensualidades_total")))
+                mens_sub = (f"{rest} mensualidades" + (f" · entrega {dev.get('delivery_estimate')}" if dev.get("delivery_estimate") else "")) if rest else None
+            else:
+                mens_val, mens_sub = "—", None
             el.append(row_of([
                 card("Precio final", _money(bd.get("precio_aplicado")), INK, (f"ahorra {_money(bd.get('ahorro'))}" if bd.get("ahorro", 0) > 0 else None)),
                 card("Al firmar", _money(bd.get("firma")), INK, f"{eng:.0f}%"),
@@ -845,7 +849,8 @@ def _render_quote_pdf(dev, unit, prog, images, payload, rows, base, meses_auto) 
         for label, bd in rows:
             firma = f"{bd.get('firma_pct',0):.0f}% · {_money(bd.get('firma'))}" if base else f"{bd.get('firma_pct',0):.0f}%"
             if bd.get("mensualidades_total"):
-                mens = (f"{_money(bd.get('mensualidad'))}/mes" if bd.get("meses") else _money(bd.get("mensualidades_total"))) if base else f"{bd.get('mensualidades_pct',0):.0f}%"
+                rest = bd.get("meses_restantes")
+                mens = (f"{_money(bd.get('mensualidad_restante'))}/mes" if rest else _money(bd.get("mensualidades_total"))) if base else f"{bd.get('mensualidades_pct',0):.0f}%"
             else:
                 mens = "—"
             escr = f"{bd.get('escritura_pct',0):.0f}% · {_money(bd.get('escrituracion'))}" if base else f"{bd.get('escritura_pct',0):.0f}%"
@@ -924,7 +929,8 @@ def _quote_wa_text(dev, payload, rows, base) -> str:
     lines = [head, ""]
     for label, bd in rows:
         if base:
-            mens = (f"{_money(bd.get('mensualidad'))}/mes × {bd.get('meses')}" if bd.get("meses") and bd.get("mensualidades_total")
+            rest = bd.get("meses_restantes")
+            mens = (f"{rest} mensualidades de {_money(bd.get('mensualidad_restante'))}" if rest and bd.get("mensualidades_total")
                     else (_money(bd.get("mensualidades_total")) if bd.get("mensualidades_total") else "—"))
             seg = (f"• {label}: precio {_money(bd.get('precio_aplicado'))}"
                    f" | enganche {bd.get('firma_pct',0):.0f}% ({_money(bd.get('firma'))})"

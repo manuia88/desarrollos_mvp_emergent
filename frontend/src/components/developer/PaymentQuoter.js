@@ -30,7 +30,7 @@ function PctField({ label, value, color, onSave, testid }) {
   const start = () => { setV(value); setEditing(true); };
   const finish = () => { setEditing(false); const nv = Math.max(0, Math.min(100, +v || 0)); if (nv !== value) onSave(nv); };
   return (
-    <div style={{ flex: 1, minWidth: 110, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 10, padding: '9px 12px' }}>
+    <div className="dmx-card" style={{ flex: 1, minWidth: 110, background: '#fff', padding: '9px 12px' }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
       {editing ? (
         <input autoFocus type="number" data-testid={testid} value={v} onChange={e => setV(e.target.value)} onBlur={finish}
@@ -54,6 +54,21 @@ function computeMonths(fi, fe) {
 }
 const dateInp = { background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 6, color: 'var(--cream)', fontSize: 11.5, padding: '2px 6px', colorScheme: 'light' };
 
+// Meses que faltan de HOY a la entrega (para "N mensualidades de $X").
+const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function mesesRestantes(fe) {
+  if (!fe) return null;
+  const [y, m] = String(fe).split('-').map(Number);
+  if (!y || !m) return null;
+  const n = new Date();
+  return Math.max(1, (y - n.getFullYear()) * 12 + (m - (n.getMonth() + 1)));
+}
+function fmtEntrega(fe) {
+  if (!fe) return '';
+  const [y, m] = String(fe).split('-').map(Number);
+  return m ? `${MONTHS_ES[m - 1]} ${y}` : `${y}`;
+}
+
 // Desglose local instantáneo (espejo de compute_breakdown del backend, para feedback inmediato).
 function localBreakdown(base, s, meses) {
   const desc = Math.max(0, Math.min(100, +s.descuento_pct || 0));
@@ -70,13 +85,12 @@ function localBreakdown(base, s, meses) {
 
 export default function PaymentQuoter({ devId, schemes: initialSchemes, units, onClose, onSchemesSaved, initialScope = 'proyecto', initialUnitId = null }) {
   const withPrice = (units || []).filter(u => u.price > 0);
-  const [scope, setScope] = useState(initialScope);         // 'proyecto' | 'unidad'
+  const [scope, setScope] = useState(initialScope);         // 'proyecto' (planes oficiales) | 'unidad'
   const [unitId, setUnitId] = useState(initialUnitId || withPrice[0]?.id || '');
-  const [precioRef, setPrecioRef] = useState('');           // precio de referencia (modo proyecto)
   const [cliente, setCliente] = useState('');
   const unit = withPrice.find(u => u.id === unitId) || withPrice[0];
-  // Base: en 'unidad' el precio de la unidad; en 'proyecto' el precio de referencia (opcional).
-  const base = scope === 'unidad' ? (unit?.price || 0) : (precioRef !== '' ? +precioRef : 0);
+  // Base: en 'unidad' el precio de la unidad; en 'planes oficiales' no hay precio (solo términos).
+  const base = scope === 'unidad' ? (unit?.price || 0) : 0;
 
   const [schemes, setSchemes] = useState(initialSchemes || []);
   const [fechaInicio, setFechaInicio] = useState(null);
@@ -85,8 +99,12 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
   const [savedId, setSavedId] = useState(null);   // flash ✓ en la fila recién guardada
   const [err, setErr] = useState('');
 
-  const [enganche, setEnganche] = useState(20);
-  const [escritura, setEscritura] = useState(70);
+  // Cotizador a la medida: 3 porcentajes que suman 100. `recent` = los 2 últimos editados;
+  // al editar cualquiera, el tercero (no-reciente) se ajusta solo.
+  const [pp, setPp] = useState({ eng: 20, mens: 10, escr: 70 });
+  const [recent, setRecent] = useState(['eng', 'escr']);
+  const enganche = pp.eng;
+  const escritura = pp.escr;
   const [meses, setMeses] = useState('');
   const [quote, setQuote] = useState(null);
 
@@ -182,11 +200,54 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
   const formsBody = () => ({ ...baseBody(), mode: 'forms' });
   const customBody = () => ({ ...baseBody(), mode: 'custom', enganche_pct: enganche, escritura_pct: Math.min(escritura, 100 - enganche), meses: meses !== '' ? +meses : null });
 
-  // Cotizador a la medida click-to-edit: enganche + mensualidades + escritura = 100.
-  const mensPct = Math.max(0, 100 - enganche - escritura);
-  const onEng = (v) => { const e = Math.max(0, Math.min(100, v)); setEnganche(e); if (e + escritura > 100) setEscritura(100 - e); };
-  const onEscr = (v) => { setEscritura(Math.max(0, Math.min(100 - enganche, v))); };
-  const onMens = (v) => { const m = Math.max(0, Math.min(100 - enganche, v)); setEscritura(100 - enganche - m); };
+  // Edita cualquier porcentaje: se conserva el otro más reciente y el tercero (no-reciente) se ajusta.
+  const mensPct = pp.mens;
+  const editPp = (field, v) => {
+    v = Math.max(0, Math.min(100, +v || 0));
+    const other = recent.find(k => k !== field) || (field === 'eng' ? 'escr' : 'eng');
+    v = Math.min(v, 100 - pp[other]);
+    const auto = ['eng', 'mens', 'escr'].find(k => k !== field && k !== other);
+    setPp({ ...pp, [field]: v, [auto]: Math.max(0, 100 - v - pp[other]) });
+    setRecent([field, other]);
+  };
+  const onEng = (v) => editPp('eng', v);
+  const onEscr = (v) => editPp('escr', v);
+  const onMens = (v) => editPp('mens', v);
+
+  // Meses que faltan de hoy a la entrega → "N mensualidades de $X".
+  const restantes = mesesRestantes(fechaEntrega);
+  const entregaTxt = fmtEntrega(fechaEntrega);
+
+  // Sección 1: catálogo persuasivo de los planes oficiales (read-only, sin precio, sin editar).
+  const renderOficiales = () => (
+    <>
+      <div style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 800, color: 'var(--cream)', marginBottom: 2 }}>Planes de pago oficiales</div>
+      <div style={{ fontSize: 12, color: 'var(--cream-3)', marginBottom: 14 }}>Los esquemas que ofrece el desarrollo. Compártelos con tu cliente.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 14 }}>
+        {schemes.map(s => {
+          const mens = Math.max(0, 100 - (+s.firma_pct || 0) - (+s.escritura_pct || 0));
+          const hasDesc = (+s.descuento_pct || 0) > 0;
+          return (
+            <div key={s.id} className="dmx-card" style={{ background: '#fff', padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 8 }}>{s.nombre}</div>
+              <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, marginBottom: 12, background: hasDesc ? 'rgba(34,197,94,0.12)' : 'rgba(var(--theme-rgb),0.10)', color: hasDesc ? '#15803d' : 'var(--theme)' }}>
+                {hasDesc ? `Ahorra ${s.descuento_pct}%` : 'Precio de lista'}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[['Enganche', s.firma_pct], ['Mensualidades', mens], ['Al escriturar', s.escritura_pct]].map(([l, v]) => (
+                  <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: 'var(--cream-2)' }}>{l}</span>
+                    <strong style={{ color: 'var(--cream)' }}>{v}%</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <ExportBar devId={devId} getBody={formsBody} idp="oficiales" disabled={schemes.length === 0} showDownload={false} />
+    </>
+  );
 
   return (
     <div onClick={onClose} style={{
@@ -210,25 +271,19 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
         {/* Alcance + cliente + calendario de obra */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           <div style={{ display: 'inline-flex', alignSelf: 'flex-start', background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9999, padding: 3 }}>
-            {[['proyecto', 'Proyecto general'], ['unidad', 'Por unidad']].map(([k, lbl]) => (
+            {[['proyecto', 'Planes oficiales'], ['unidad', 'Cotizar por unidad']].map(([k, lbl]) => (
               <button key={k} data-testid={`scope-${k}`} onClick={() => setScope(k)}
                 style={{ background: scope === k ? 'var(--grad)' : 'transparent', color: scope === k ? '#fff' : 'var(--cream-2)', border: 'none', borderRadius: 9999, padding: '6px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{lbl}</button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            {scope === 'unidad' ? (
+            {scope === 'unidad' && (
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 Unidad:
                 <select value={unitId} onChange={e => setUnitId(e.target.value)}
                   style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }}>
                   {withPrice.map(u => <option key={u.id} value={u.id} style={{ background: '#fff', color: 'var(--cream)' }}>{u.unit_number} · {fmtMXN(u.price)}</option>)}
                 </select>
-              </label>
-            ) : (
-              <label style={{ fontSize: 12, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                Precio de referencia:
-                <input type="number" value={precioRef} placeholder="opcional · ej. 14800000" onChange={e => setPrecioRef(e.target.value)}
-                  style={{ width: 170, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.26)', borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 10px' }} />
               </label>
             )}
             <label style={{ fontSize: 12, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -254,16 +309,11 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
           </div>
         )}
 
-        {(scope === 'unidad' && !unit) ? (
+        {scope === 'proyecto' ? renderOficiales() : !unit ? (
           <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>No hay unidades con precio para cotizar.</div>
         ) : (
           <>
-            {scope === 'proyecto' && !base && (
-              <div style={{ color: 'var(--cream-3)', fontSize: 11.5, marginBottom: 10 }}>
-                Mostrando las formas como porcentajes. Pon un precio de referencia para ver montos en pesos.
-              </div>
-            )}
-            {/* Comparador EDITABLE */}
+            {/* Comparador EDITABLE (por unidad) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--theme)' }}>
                 Formas configuradas · toca un valor para editarlo
@@ -301,8 +351,8 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                           {base > 0 && bd.ahorro > 0 && <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>ahorra {fmtMXN(bd.ahorro)}</div>}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>
-                          {bd.mensM > 0 ? (mesesAuto ? `${fmtMXN(bd.mensualidad)}` : fmtMXN(bd.mensM)) : '—'}
-                          {bd.mensM > 0 && mesesAuto ? <div style={{ fontSize: 9.5, color: 'var(--cream-3)' }}>× {mesesAuto} meses</div> : null}
+                          {bd.mensM > 0 ? (restantes ? fmtMXN(Math.round(bd.mensM / restantes)) : fmtMXN(bd.mensM)) : '—'}
+                          {bd.mensM > 0 && restantes ? <div style={{ fontSize: 9.5, color: 'var(--cream-3)' }}>{restantes} mensualidades</div> : null}
                         </td>
                         <td style={{ padding: '6px 8px', textAlign: 'center' }}>
                           {flash
@@ -340,7 +390,7 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                 <PctField label="Enganche" value={enganche} color="var(--theme)" onSave={onEng} testid="cust-enganche" />
                 <PctField label="Mensualidades" value={mensPct} color="#C77F12" onSave={onMens} testid="cust-mens" />
                 <PctField label="Al escriturar" value={escritura} color="#15803d" onSave={onEscr} testid="cust-escr" />
-                <div style={{ flex: 1, minWidth: 110, background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 10, padding: '9px 12px' }}>
+                <div className="dmx-card" style={{ flex: 1, minWidth: 110, background: '#fff', padding: '9px 12px' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>Meses</div>
                   <input type="number" min={1} value={meses} placeholder={mesesAuto ? `${mesesAuto} (auto)` : 'auto'}
                     onChange={e => setMeses(e.target.value)}
@@ -354,9 +404,9 @@ export default function PaymentQuoter({ devId, schemes: initialSchemes, units, o
                     hint={quote.ahorro > 0 ? `ahorra ${fmtMXN(quote.ahorro)}` : null} />
                   <QField label="Al firmar" value={fmtMXN(quote.firma)} hint={`${quote.firma_pct}%`} />
                   <QField label="Mensualidad"
-                    value={quote.mensualidades_total > 0 ? (quote.meses ? `${fmtMXN(quote.mensualidad)}/mes` : fmtMXN(quote.mensualidades_total)) : '—'}
-                    hint={quote.meses && quote.mensualidades_total > 0
-                      ? `× ${quote.meses} meses${quote.meses_transcurridos != null ? ` · restan ${quote.meses_restantes}` : ''}`
+                    value={quote.mensualidades_total > 0 ? (quote.meses_restantes ? `${fmtMXN(quote.mensualidad_restante)}/mes` : fmtMXN(quote.mensualidades_total)) : '—'}
+                    hint={quote.meses_restantes && quote.mensualidades_total > 0
+                      ? `${quote.meses_restantes} mensualidades${entregaTxt ? ` · entrega ${entregaTxt}` : ''}`
                       : null} />
                   <QField label="Al escriturar" value={fmtMXN(quote.escrituracion)} hint={`${quote.escritura_pct}%`} />
                 </div>
@@ -397,7 +447,7 @@ function EditCell({ value, suffix = '', onSave, w = 54, type = 'num', align = 'c
 }
 
 // Barra de exportar: Descargar PDF · WhatsApp PDF (link) · WhatsApp texto.
-function ExportBar({ devId, getBody, idp, disabled }) {
+function ExportBar({ devId, getBody, idp, disabled, showDownload = true }) {
   const [busy, setBusy] = useState(false);
   const run = async (mode) => {
     setBusy(true);
@@ -417,7 +467,7 @@ function ExportBar({ devId, getBody, idp, disabled }) {
   const waStyle = { ...btnStyle, background: '#25D366', borderColor: '#25D366', color: '#fff' };
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-      <button data-testid={`exp-pdf-${idp}`} onClick={() => run('pdf')} disabled={disabled || busy} style={btnStyle}><Download size={13} /> Descargar PDF</button>
+      {showDownload && <button data-testid={`exp-pdf-${idp}`} onClick={() => run('pdf')} disabled={disabled || busy} style={btnStyle}><Download size={13} /> Descargar PDF</button>}
       <button data-testid={`exp-wapdf-${idp}`} onClick={() => run('wapdf')} disabled={disabled || busy} style={waStyle}><WaLogo size={14} /> WhatsApp PDF</button>
       <button data-testid={`exp-text-${idp}`} onClick={() => run('text')} disabled={disabled || busy} style={waStyle}><WaLogo size={14} /> WhatsApp texto</button>
     </div>
@@ -426,7 +476,7 @@ function ExportBar({ devId, getBody, idp, disabled }) {
 
 function QField({ label, value, hint, strong }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, padding: '8px 10px' }}>
+    <div className="dmx-card" style={{ background: '#fff', padding: '8px 10px' }}>
       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--cream-2)', marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: strong ? 17 : 14, fontWeight: strong ? 800 : 600, color: 'var(--cream)', fontFamily: 'Outfit' }}>{value}</div>
       {hint && <div style={{ fontSize: 10.5, color: strong ? '#15803d' : 'var(--cream-2)', marginTop: 1 }}>{hint}</div>}

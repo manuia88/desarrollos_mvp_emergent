@@ -154,7 +154,10 @@ def compute_breakdown(precio_base: float, scheme: Dict[str, Any],
             now = datetime.now(timezone.utc)
             elapsed = (now.year - a[0]) * 12 + (now.month - a[1])
             transcurridos = max(0, min(meses, elapsed))
-            restantes = meses - transcurridos
+            restantes = max(0, meses - transcurridos)
+
+    # Mensualidad para quien entra HOY: total de mensualidades ÷ meses restantes a la entrega.
+    mensualidad_restante = round(mens_total / restantes) if (restantes and mens_total) else mensualidad
 
     return {
         "precio_base": round(base),
@@ -168,6 +171,7 @@ def compute_breakdown(precio_base: float, scheme: Dict[str, Any],
         "mensualidades_total": mens_total,
         "meses": meses,
         "mensualidad": mensualidad,
+        "mensualidad_restante": mensualidad_restante,
         "meses_transcurridos": transcurridos,
         "meses_restantes": restantes,
         "mensualidades_pagadas": (transcurridos * mensualidad) if transcurridos else 0,
@@ -238,12 +242,12 @@ def compute_custom(precio_base: float, enganche_pct: float, schemes: List[Dict[s
 
 # ─── Esquema por defecto (semilla para onboarding) ──────────────────────────────
 def default_schemes() -> List[Dict[str, Any]]:
-    """3 esquemas base del doc R3 (el dev los edita)."""
+    """3 esquemas base (nombres persuasivos · el dev los edita)."""
     return [
-        {"id": "esq_a", "nombre": "Enganche alto (30%)", "firma_pct": 30, "mensualidades_pct": 0,
-         "escritura_pct": 70, "descuento_pct": 5, "apartado_mxn": 50000, "meses_override": None},
-        {"id": "esq_b", "nombre": "Mixto (20%)", "firma_pct": 20, "mensualidades_pct": 10,
-         "escritura_pct": 70, "descuento_pct": 3, "apartado_mxn": 50000, "meses_override": None},
-        {"id": "esq_c", "nombre": "Enganche bajo (10%)", "firma_pct": 10, "mensualidades_pct": 20,
+        {"id": "esq_lista", "nombre": "Precio de lista", "firma_pct": 10, "mensualidades_pct": 20,
          "escritura_pct": 70, "descuento_pct": 0, "apartado_mxn": 50000, "meses_override": None},
+        {"id": "esq_pref", "nombre": "Plan Preferente", "firma_pct": 20, "mensualidades_pct": 10,
+         "escritura_pct": 70, "descuento_pct": 3, "apartado_mxn": 50000, "meses_override": None},
+        {"id": "esq_patrim", "nombre": "Plan Patrimonio", "firma_pct": 30, "mensualidades_pct": 0,
+         "escritura_pct": 70, "descuento_pct": 5, "apartado_mxn": 50000, "meses_override": None},
     ]

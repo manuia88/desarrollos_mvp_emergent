@@ -52,6 +52,19 @@
   --frame-primary: var(--cream);     /* texto principal del marco */
 }
 
+/* Tarjeta estándar de la plataforma: borde + hover (eleva) + glow muy discreto.
+ * Regla global (founder): toda tarjeta lleva borde y hover. Usa className="dmx-card". */
+.dmx-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease;
+}
+.dmx-card:hover {
+  border-color: rgba(var(--theme-rgb), 0.45);
+  box-shadow: 0 6px 20px rgba(var(--theme-rgb), 0.12);
+  transform: translateY(-1px);
+}
+
 /* Scope de tema CLARO solo-variables (para portales/drawers que viven fuera de
  * `.portal-asesor` vía createPortal). NO toca position/isolation/::before/`> *`,
  * así un overlay `fixed` sigue siendo fixed; solo voltea las variables a claro. */
