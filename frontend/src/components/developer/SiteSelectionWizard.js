@@ -204,7 +204,8 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
     }}>
       <Card style={{
         width: 'min(720px, 100%)', maxHeight: '92vh', overflowY: 'auto', padding: 0,
-        background: '#0b0e18', border: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.14)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
       }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

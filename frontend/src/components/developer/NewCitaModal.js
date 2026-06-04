@@ -168,7 +168,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
     const isSuccess = result.status === 'created';
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
-        <div style={{ background: 'var(--surface, linear-gradient(135deg, #0D1118, #111827))', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 20, boxShadow: '0 20px 56px rgba(0,0,0,0.5)', width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
           {isConflict ? (
             <>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
@@ -243,7 +243,7 @@ export default function NewCitaModal({ user, prefilledProject, prefilledContact,
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: Z.MODAL, padding: '24px 16px', overflowY: 'auto' }}>
-      <div style={{ background: 'var(--surface, linear-gradient(135deg, #0D1118, #111827))', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 540, padding: '28px 28px 24px' }}>
+      <div style={{ background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 20, boxShadow: '0 20px 56px rgba(0,0,0,0.5)', width: '100%', maxWidth: 540, padding: '28px 28px 24px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -245,7 +245,7 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
     <div data-testid="lead-drawer" onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#0D1118', borderLeft: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, #1c2233, #11151f)', borderLeft: '1px solid var(--border)',
         width: 'min(480px, 100%)', height: '100%', overflowY: 'auto', padding: 22,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -640,6 +640,6 @@ const modalStyle = {
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {
-  background: '#0D1118', border: '1px solid var(--border)',
+  background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)',
   borderRadius: 16, padding: 22, maxWidth: 520, width: '100%', maxHeight: '92vh', overflowY: 'auto',
 };

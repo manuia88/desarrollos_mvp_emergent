@@ -223,7 +223,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
           <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }} data-testid="avance-units-table">
             <div style={{ maxHeight: 360, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
-                <thead style={{ position: 'sticky', top: 0, background: '#0D1118', zIndex: Z.BASE }}>
+                <thead style={{ position: 'sticky', top: 0, background: '#1d2331', zIndex: Z.BASE }}>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     {['Unidad', 'Prototipo', 'Etapa actual', '% Avance', 'Última act.', ''].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10.5, fontWeight: 500, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
@@ -393,10 +393,10 @@ function UnitRow({ u, onSave, readOnly }) {
             data-testid={`unit-stage-${u.unit_id}`}
             value={stage} onChange={e => setStage(e.target.value)}
             style={{
-              padding: '4px 8px', background: '#0D1118', border: '1px solid var(--border)', borderRadius: 6,
+              padding: '4px 8px', background: '#1d2331', border: '1px solid var(--border)', borderRadius: 6,
               color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
             }}>
-            {STAGE_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+            {STAGE_OPTIONS.map(s => <option key={s.key} value={s.key} style={{ background: '#1d2331', color: 'var(--cream)' }}>{s.label}</option>)}
           </select>
         ) : (
           <span style={{
@@ -416,7 +416,7 @@ function UnitRow({ u, onSave, readOnly }) {
             value={pct} onChange={e => setPct(+e.target.value)}
             style={{
               width: 80, padding: '4px 8px',
-              background: '#0D1118', border: '1px solid var(--border)', borderRadius: 6,
+              background: '#1d2331', border: '1px solid var(--border)', borderRadius: 6,
               color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12,
             }}
           />

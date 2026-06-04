@@ -493,6 +493,6 @@ const modalStyle = {
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {
-  background: '#0D1118', border: '1px solid var(--border)',
+  background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)',
   borderRadius: 16, padding: 22, maxWidth: 500, width: '100%', maxHeight: '92vh', overflowY: 'auto',
 };

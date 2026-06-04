@@ -90,7 +90,8 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
     }}>
       <div onClick={e => e.stopPropagation()} data-testid="bulk-upload-modal" style={{
         width: '100%', maxWidth: 820, maxHeight: '90vh',
-        background: '#0D1118', border: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.14)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
         borderRadius: 20, display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
@@ -178,7 +179,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
               <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto', maxHeight: 320 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12 }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: '#0D1118' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: '#1d2331' }}>
                       <th style={thStyle}>#</th>
                       {displayCols.map(c => <th key={c} style={thStyle}>{COL_LABELS[c] || c}</th>)}
                       <th style={thStyle}>Estado</th>

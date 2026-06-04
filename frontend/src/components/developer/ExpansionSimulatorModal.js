@@ -152,7 +152,8 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
     }}>
       <Card style={{
         width: 'min(960px, 100%)', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
-        padding: 0, background: '#0b0e18', border: '1px solid var(--border)', marginTop: 20,
+        padding: 0, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.14)', marginTop: 20,
+        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
       }}>
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

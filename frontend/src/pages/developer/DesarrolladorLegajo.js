@@ -340,7 +340,7 @@ function Tour360Tab({ devId }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
         {tours.map(a => (
-          <div key={a.id} data-testid="tour-card" style={{ background: '#0D1118', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div key={a.id} data-testid="tour-card" style={{ background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
             <iframe title={a.filename} src={a.tour_url}
                     style={{ width: '100%', height: 320, border: 'none', display: 'block' }} />
             <div style={{ padding: 12 }}>

@@ -878,7 +878,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             data-testid="floor-unit-bottom-sheet"
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: Z.TOAST,
-              background: '#0b0e18',
+              background: 'linear-gradient(180deg, #1c2233, #11151f)',
               borderTop: '1px solid rgba(var(--cream-rgb),0.15)',
               borderRadius: '14px 14px 0 0',
               maxHeight: '85vh', overflowY: 'auto',

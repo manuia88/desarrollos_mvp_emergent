@@ -179,7 +179,7 @@ function DrillDownModal({ score, data, onClose }) {
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#0D1118', border: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)',
         borderRadius: 16, padding: 22, maxWidth: 640, width: '100%', maxHeight: '88vh', overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>

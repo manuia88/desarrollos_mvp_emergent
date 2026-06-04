@@ -230,7 +230,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
       {/* Upload modal */}
       {showUpload && (
         <div onClick={() => setShowUpload(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="upload-modal" style={{ width: '100%', maxWidth: 480, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="upload-modal" style={{ width: '100%', maxWidth: 480, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Subir contenido</div>
               <button onClick={() => setShowUpload(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--cream-3)' }}><X size={16} /></button>
@@ -284,7 +284,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
       {/* Map modal */}
       {showMap && (
         <div onClick={() => setShowMap(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="map-modal" style={{ width: '100%', maxWidth: 700, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="map-modal" style={{ width: '100%', maxWidth: 700, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Ubicación de proyectos</div>
               <button onClick={() => setShowMap(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--cream-3)' }}><X size={16} /></button>

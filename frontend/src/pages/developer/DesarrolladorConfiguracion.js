@@ -224,7 +224,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
       {/* ERP Config modal */}
       {activeProvider && (
         <div onClick={() => setActiveProvider(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="erp-config-modal" style={{ width: '100%', maxWidth: 460, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="erp-config-modal" style={{ width: '100%', maxWidth: 460, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', marginBottom: 20 }}>
               Configurar {ERP_PROVIDERS.find(p => p.id === activeProvider)?.label}
             </div>

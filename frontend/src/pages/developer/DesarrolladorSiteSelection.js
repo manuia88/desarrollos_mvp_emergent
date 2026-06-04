@@ -46,7 +46,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
   return (
     <div data-testid="site-zone-drawer" style={{
       position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(480px, 100vw)',
-      background: '#0b0e18', borderLeft: '1px solid var(--border)', zIndex: Z.DRAWER,
+      background: 'linear-gradient(180deg, #1c2233, #11151f)', borderLeft: '1px solid var(--border)', zIndex: Z.DRAWER,
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       boxShadow: '-12px 0 32px rgba(0,0,0,0.42)',
     }}>
