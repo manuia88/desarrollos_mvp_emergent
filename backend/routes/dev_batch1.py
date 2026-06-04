@@ -381,6 +381,10 @@ class LocationPayload(BaseModel):
     lng: float = Field(..., ge=-180.0, le=180.0)
     address: Optional[str] = None
     zoom: Optional[float] = 14.0
+    calle: Optional[str] = None
+    colonia: Optional[str] = None
+    alcaldia: Optional[str] = None
+    cp: Optional[str] = None
 
 
 @router.patch("/projects/{project_id}/location")
@@ -404,6 +408,10 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
             "lng": payload.lng,
             "address": payload.address,
             "zoom": payload.zoom,
+            "calle": payload.calle,
+            "colonia": payload.colonia,
+            "alcaldia": payload.alcaldia,
+            "cp": payload.cp,
             "updated_at": _now().isoformat(),
             "updated_by": user.user_id,
         }},

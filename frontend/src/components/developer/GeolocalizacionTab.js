@@ -1,44 +1,63 @@
-// GeolocalizacionTab — Phase 4.5 · Mapbox picker integrated into legajo (+4.18 GeoJSON export)
+// GeolocalizacionTab — Phase 4.5 · Mapbox picker con dirección estructurada
 import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '../advisor/primitives';
 import MapboxPicker from './MapboxPicker';
 import * as api from '../../api/developer';
-import { MapPin, CheckCircle, Layers } from '../icons';
+import { MapPin, CheckCircle } from '../icons';
 import { Z } from '../../styles/zIndex';
 
-const GEOJSON_ALLOWED = new Set(['developer_admin', 'superadmin']);
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
+
+const partLbl = { fontSize: 10.5, color: 'var(--cream-3)', fontWeight: 600, display: 'block', marginBottom: 4 };
+const partInp = {
+  width: '100%', padding: '9px 12px', background: 'rgba(var(--bg-rgb),0.6)',
+  border: '1px solid var(--border)', borderRadius: 9, color: 'var(--cream)',
+  fontFamily: 'DM Sans', fontSize: 13, boxSizing: 'border-box',
+};
 
 export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp = false }) {
   const [loc, setLoc] = useState(null);
   const [err, setErr] = useState(null);
   const [toast, setToast] = useState(null);
-  const [exporting, setExporting] = useState(false);
   const [addr, setAddr] = useState('');
   const [geocoding, setGeocoding] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [pinCoords, setPinCoords] = useState(null);   // coords actuales del pin (del mapa)
+  const [parts, setParts] = useState({ calle: '', colonia: '', alcaldia: '', cp: '' });
   const skipNextSearch = useRef(false);               // evita re-buscar al elegir opción
   // Batch 2.1 role guard — only developer_admin or superadmin can move the marker.
   const canEdit = !readOnlyProp && (user?.role === 'developer_admin' || user?.role === 'superadmin');
   const readOnly = !canEdit;
-  // Batch 3 · 4.18 role guard for GeoJSON export
-  const canExport = GEOJSON_ALLOWED.has(user?.role) || user?.internal_role === 'commercial_director';
-  const canDownloadLoc = !!(loc && loc.lat != null && loc.lng != null);
 
   useEffect(() => {
     if (!devId) return;
     api.getProjectLocation(devId)
-      .then(d => { setLoc(d); setAddr(d?.address || ''); })
+      .then(d => {
+        setLoc(d); setAddr(d?.address || '');
+        setParts({ calle: d?.calle || '', colonia: d?.colonia || '', alcaldia: d?.alcaldia || '', cp: d?.cp || '' });
+      })
       .catch(e => setErr(e.body?.detail || 'Error al cargar ubicación'));
   }, [devId]);
+
+  // Extrae calle, colonia, alcaldía y CP de un resultado de Mapbox.
+  const parseAddress = (feat) => {
+    const ctx = feat.context || [];
+    const get = (pfx) => { const c = ctx.find(x => (x.id || '').startsWith(pfx)); return c ? c.text : ''; };
+    const calle = `${feat.text || ''}${feat.address ? ' ' + feat.address : ''}`.trim();
+    return {
+      calle: calle || (feat.place_name || '').split(',')[0] || '',
+      colonia: get('neighborhood') || '',
+      alcaldia: get('locality') || '',     // editable si Mapbox no la da exacta
+      cp: get('postcode') || '',
+    };
+  };
 
   const handleSave = async (lat, lng, zoom) => {
     try {
       const address = (addr || '').trim() || loc?.address || null;
-      await api.saveProjectLocation(devId, { lat, lng, zoom, address });
+      await api.saveProjectLocation(devId, { lat, lng, zoom, address, ...parts });
       setToast({ type: 'ok', msg: 'Ubicación guardada' });
-      setLoc(prev => ({ ...prev, lat, lng, zoom, address, source: 'manual' }));
+      setLoc(prev => ({ ...prev, lat, lng, zoom, address, ...parts, source: 'manual' }));
       setTimeout(() => setToast(null), 3200);
     } catch (e) {
       setToast({ type: 'error', msg: e.body?.detail || 'Error al guardar' });
@@ -86,6 +105,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
     setAddr(placeName);
     setSuggestions([]);
     setPinCoords({ lat, lng });
+    setParts(parseAddress(feat));
     setLoc(prev => ({ ...prev, lat, lng, address: placeName, source: 'manual' }));
     setToast({ type: 'ok', msg: 'Listo. Revisa el pin y pulsa "Guardar ubicación".' });
     setTimeout(() => setToast(null), 4000);
@@ -96,36 +116,6 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
     const c = pinCoords || (loc ? { lat: loc.lat, lng: loc.lng } : null);
     if (!c) return;
     handleSave(c.lat, c.lng, loc?.zoom || 14);
-  };
-
-  const handleExportGeoJSON = async () => {
-    if (exporting || !canExport) return;
-    if (!canDownloadLoc) {
-      setToast({ type: 'error', msg: 'Configura y guarda la ubicación antes de exportar' });
-      return;
-    }
-    setExporting(true);
-    try {
-      const r = await fetch(api.getProjectGeoJsonUrl(devId), { credentials: 'include' });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({}));
-        throw new Error(body.detail || `HTTP ${r.status}`);
-      }
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `project-${devId}.geojson`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setToast({ type: 'ok', msg: 'Archivo descargado correctamente' });
-    } catch (e) {
-      setToast({ type: 'error', msg: e.message || 'Error al exportar GeoJSON' });
-    } finally {
-      setExporting(false);
-    }
   };
 
   if (err) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>{err}</Card>;
@@ -225,67 +215,56 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           onCoordsChange={setPinCoords}
         />
 
-        {/* Botón Guardar FUERA del mapa (founder) */}
-        {!readOnly && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-            <button
-              data-testid="geoloc-save-external"
-              onClick={handleSaveExternal}
-              style={{
-                padding: '10px 20px', borderRadius: 10, background: 'var(--grad)', border: 'none',
-                color: '#fff', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 7,
-              }}>
-              <CheckCircle size={14} /> Guardar ubicación
-            </button>
-            <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>
-              Mueve el pin o elige una dirección, luego guarda.
-            </span>
-          </div>
-        )}
-
-        {loc.address && (
-          <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }} data-testid="geoloc-address">
-            <strong style={{ color: 'var(--cream-2)' }}>Dirección:</strong> {loc.address}
-          </div>
-        )}
-
-        {/* Batch 3 · 4.18 GeoJSON export */}
-        {canExport && (
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>DESCARGAR · OPCIONAL</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, maxWidth: 480 }}>
-                  Baja un archivo con la ubicación del proyecto y sus unidades, por si lo necesitas
-                  en otro programa de mapas. Si no, puedes ignorarlo.
-                </div>
-              </div>
-              <button
-                data-testid="geojson-export-btn"
-                onClick={handleExportGeoJSON}
-                disabled={!canDownloadLoc || exporting}
-                title={!canDownloadLoc ? 'Guarda la ubicación antes de descargar' : 'Descargar archivo de ubicación'}
-                style={{
-                  padding: '10px 16px', borderRadius: 9999,
-                  background: (!canDownloadLoc || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(var(--theme-rgb),0.14)',
-                  border: `1px solid ${(!canDownloadLoc || exporting) ? 'var(--border)' : 'rgba(var(--theme-rgb),0.32)'}`,
-                  color: (!canDownloadLoc || exporting) ? 'var(--cream-3)' : '#f9a8d4',
-                  fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
-                  cursor: (!canDownloadLoc || exporting) ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
-                }}>
-                <Layers size={13} />
-                {exporting ? 'Descargando…' : 'Descargar archivo de ubicación'}
-              </button>
+        {/* Dirección estructurada — auto-llenada al elegir, editable */}
+        {!readOnly ? (
+          <div style={{ marginTop: 16 }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>DIRECCIÓN</div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={partLbl}>Calle y número</label>
+              <input data-testid="addr-calle" value={parts.calle}
+                onChange={e => setParts(p => ({ ...p, calle: e.target.value }))}
+                placeholder="Ej: Calle Campeche 322" style={partInp} />
             </div>
-            {!canDownloadLoc && (
-              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9999, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.28)', color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid="geojson-no-loc-hint">
-                <MapPin size={11} /> Guarda la ubicación primero
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+              <div>
+                <label style={partLbl}>Colonia</label>
+                <input data-testid="addr-colonia" value={parts.colonia}
+                  onChange={e => setParts(p => ({ ...p, colonia: e.target.value }))} placeholder="Ej: Hipódromo" style={partInp} />
               </div>
-            )}
+              <div>
+                <label style={partLbl}>Alcaldía</label>
+                <input data-testid="addr-alcaldia" value={parts.alcaldia}
+                  onChange={e => setParts(p => ({ ...p, alcaldia: e.target.value }))} placeholder="Ej: Cuauhtémoc" style={partInp} />
+              </div>
+              <div>
+                <label style={partLbl}>CP</label>
+                <input data-testid="addr-cp" value={parts.cp}
+                  onChange={e => setParts(p => ({ ...p, cp: e.target.value }))} placeholder="Ej: 06100" style={partInp} />
+              </div>
+            </div>
+
+            {/* Guardar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+              <button
+                data-testid="geoloc-save-external"
+                onClick={handleSaveExternal}
+                style={{
+                  padding: '11px 22px', borderRadius: 10, background: 'var(--grad)', border: 'none',
+                  color: '#fff', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                }}>
+                <CheckCircle size={15} /> Guardar ubicación
+              </button>
+              <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>
+                Revisa los datos y guarda.
+              </span>
+            </div>
           </div>
-        )}
+        ) : (loc.address && (
+          <div style={{ marginTop: 12, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }} data-testid="geoloc-address">
+            <strong>Dirección:</strong> {[parts.calle, parts.colonia, parts.alcaldia, parts.cp].filter(Boolean).join(', ') || loc.address}
+          </div>
+        ))}
       </Card>
 
       {toast && (

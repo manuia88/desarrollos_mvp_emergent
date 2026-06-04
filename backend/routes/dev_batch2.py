@@ -77,6 +77,10 @@ async def get_project_location(project_id: str, request: Request):
             "lat": meta["lat"], "lng": meta["lng"],
             "zoom": meta.get("zoom", 14),
             "address": meta.get("address", ""),
+            "calle": meta.get("calle", ""),
+            "colonia": meta.get("colonia", ""),
+            "alcaldia": meta.get("alcaldia", ""),
+            "cp": meta.get("cp", ""),
             "source": "manual",
         }
     # Fallback to colonia center from seed
