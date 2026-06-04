@@ -16,6 +16,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
   const [exporting, setExporting] = useState(false);
   const [addr, setAddr] = useState('');
   const [geocoding, setGeocoding] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
   // Batch 2.1 role guard — only developer_admin or superadmin can move the marker.
   const canEdit = !readOnlyProp && (user?.role === 'developer_admin' || user?.role === 'superadmin');
   const readOnly = !canEdit;
@@ -42,26 +43,52 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
     }
   };
 
-  // Buscar la dirección escrita y mover el pin a ese punto (geocoding Mapbox).
+  // Buscar la dirección: trae VARIAS opciones (sesgadas a CDMX) para que el dev
+  // elija la correcta. Resuelve "me manda a un lugar que no es" (ej. Campeche).
   const handleFindAddress = async () => {
     if (!addr.trim() || geocoding) return;
     if (!MAPBOX_TOKEN) { setToast({ type: 'error', msg: 'Mapa no configurado' }); return; }
     setGeocoding(true);
+    setSuggestions([]);
     try {
-      const q = encodeURIComponent(addr.trim());
-      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=mx&limit=1&language=es`);
+      const raw = addr.trim();
+      // Si no menciona ciudad/estado, lo anclamos a CDMX.
+      const q = /m[eé]xico|cdmx|\bdf\b|ciudad de mexico/i.test(raw) ? raw : `${raw}, Ciudad de México`;
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json`
+        + `?access_token=${MAPBOX_TOKEN}&country=mx&limit=5&language=es`
+        + `&proximity=-99.1654,19.4096`                 // centro CDMX (sesgo fuerte)
+        + `&bbox=-99.365,19.12,-98.94,19.59`            // caja CDMX
+        + `&types=address,poi`;
+      const r = await fetch(url);
       const data = await r.json();
-      const feat = data.features && data.features[0];
-      if (!feat) { setToast({ type: 'error', msg: 'No encontré esa dirección. Revisa o ajusta el pin a mano.' }); return; }
-      const [lng, lat] = feat.center;
-      setLoc(prev => ({ ...prev, lat, lng, address: addr.trim(), source: 'manual' }));
-      setToast({ type: 'ok', msg: 'Dirección encontrada. Revisa el pin y pulsa "Guardar ubicación".' });
-      setTimeout(() => setToast(null), 4000);
+      const feats = (data.features || []).filter(f => Array.isArray(f.center));
+      if (!feats.length) {
+        setToast({ type: 'error', msg: 'No encontré esa dirección. Ajusta el pin a mano en el mapa.' });
+        return;
+      }
+      if (feats.length === 1) {
+        pickSuggestion(feats[0]);
+      } else {
+        setSuggestions(feats);
+        setToast({ type: 'ok', msg: 'Elige la dirección correcta de la lista.' });
+        setTimeout(() => setToast(null), 3000);
+      }
     } catch (e) {
       setToast({ type: 'error', msg: 'Error al buscar la dirección' });
     } finally {
       setGeocoding(false);
     }
+  };
+
+  // El dev elige una de las opciones → mueve el pin y fija la dirección.
+  const pickSuggestion = (feat) => {
+    const [lng, lat] = feat.center;
+    const placeName = feat.place_name || addr.trim();
+    setAddr(placeName);
+    setSuggestions([]);
+    setLoc(prev => ({ ...prev, lat, lng, address: placeName, source: 'manual' }));
+    setToast({ type: 'ok', msg: 'Listo. Revisa el pin y pulsa "Guardar ubicación".' });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const handleExportGeoJSON = async () => {
@@ -137,6 +164,31 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
               }}>
               <MapPin size={13} /> {geocoding ? 'Buscando…' : 'Buscar'}
             </button>
+          </div>
+        )}
+
+        {/* Sugerencias — elige la dirección correcta */}
+        {!readOnly && suggestions.length > 0 && (
+          <div data-testid="geoloc-suggestions" style={{
+            marginBottom: 14, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
+            background: '#161b27',
+          }}>
+            {suggestions.map((f, i) => (
+              <button
+                key={f.id || i}
+                onClick={() => pickSuggestion(f)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+                  padding: '9px 12px', background: 'transparent', border: 'none',
+                  borderBottom: i < suggestions.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
+                  color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, cursor: 'pointer',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <MapPin size={12} style={{ flexShrink: 0, color: 'var(--theme-3)' }} />
+                <span>{f.place_name}</span>
+              </button>
+            ))}
           </div>
         )}
 

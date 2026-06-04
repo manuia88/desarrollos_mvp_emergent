@@ -14,26 +14,52 @@ import usePreferences from '../../hooks/usePreferences';
 import { listInventory, patchUnitFields, getPaymentSchemes } from '../../api/developer';
 import { appliedPrice } from '../../utils/paymentSchemes';
 import PaymentQuoter from './PaymentQuoter';
-import { Search, Upload, Eye, Building } from '../../components/icons';
+import { Search, Upload, Building } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
-// Nomenclatura del founder (imagen 2): tipos de cajón.
+// Nomenclatura del founder (imagen): tipos de cajón + color por tipo.
 const PARKING_TYPE_LABELS = {
   individual: 'Individual',
   bateria_propia: 'Batería propia',
   bateria_vecino: 'Batería vecino',
   eleva_autos: 'Eleva-autos',
 };
+const PARKING_TYPE_COLOR = {
+  individual: '#22c55e',
+  bateria_propia: '#d4a72c',
+  bateria_vecino: '#e0463d',
+  eleva_autos: 'var(--theme-3)',
+};
+
+// Precio completo, sin abreviar (founder: "deben ser $5,454,290").
+const fmtFull = (v) => (v || v === 0) ? `$${Number(v).toLocaleString('es-MX')}` : '—';
+// m² con fallbacks de nombre de campo.
+const m2priv = (u) => u.m2_privative ?? u.m2_priv ?? u.area_privative ?? null;
+const m2balc = (u) => u.m2_balcony ?? u.m2_balcon ?? null;
+const m2terr = (u) => u.m2_terrace ?? null;
+const m2roof = (u) => u.m2_roof_garden ?? u.m2_roof ?? null;
+const m2tot = (u) => u.m2_total ?? u.area_total ?? null;
+const fm2 = (v) => (v || v === 0) ? `${v} m²` : '—';
+// Desglose tipo "80+6bal" / "105+12ter".
+const totalBreakdown = (u) => {
+  const p = m2priv(u);
+  if (!p) return null;
+  let s = `${p}`;
+  if (m2balc(u) > 0) s += `+${m2balc(u)}bal`;
+  if (m2terr(u) > 0) s += `+${m2terr(u)}ter`;
+  if (m2roof(u) > 0) s += `+${m2roof(u)}rg`;
+  return s;
+};
 
 const cellSelectStyle = {
   background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)',
   borderRadius: 6, color: 'var(--cream-2)', fontSize: 11, padding: '3px 6px',
-  fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', maxWidth: 120,
+  fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', maxWidth: 130,
 };
 // Opciones legibles (evita el menú negro nativo del navegador).
 const cellOptStyle = { background: '#161b27', color: 'var(--cream)' };
 
-// Celdas "Adicionales" editables en línea (bodega · ubicación · cajón).
+// Celdas "Adicionales" editables: Tipo de cajón (a color) · Bodega · Ubicación.
 function ExtraCells({ u, devId, onPatched }) {
   const stop = (e) => e.stopPropagation();
   const patch = async (fields) => {
@@ -44,21 +70,34 @@ function ExtraCells({ u, devId, onPatched }) {
       window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
     }
   };
+  const ptColor = PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-2)';
   return (
     <>
-      {/* Bodega ✓/✗ */}
+      {/* Tipo de cajón — a color, editable */}
       <td style={{ padding: '0 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }} onClick={stop}>
+        <select
+          data-testid={`unit-parking-${u.unit_number}`}
+          value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
+          onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
+          style={{ ...cellSelectStyle, color: ptColor, fontWeight: 700, borderColor: 'transparent', background: 'transparent' }}>
+          <option value="" style={cellOptStyle}>—</option>
+          {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
+            <option key={k} value={k} style={cellOptStyle}>{v}</option>
+          ))}
+        </select>
+      </td>
+      {/* Bodega — ✓ Incl. / — */}
+      <td style={{ padding: '0 12px' }} onClick={stop}>
         <button
           data-testid={`unit-bodega-${u.unit_number}`}
           onClick={() => patch({ bodega: !u.bodega })}
-          title={u.bodega ? 'Tiene bodega' : 'Sin bodega'}
+          title={u.bodega ? 'Incluye bodega' : 'Sin bodega'}
           style={{
-            width: 26, height: 26, borderRadius: 7, cursor: 'pointer',
-            border: `1px solid ${u.bodega ? 'rgba(34,197,94,0.45)' : 'rgba(var(--cream-rgb),0.18)'}`,
-            background: u.bodega ? 'rgba(34,197,94,0.16)' : 'transparent',
-            color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 13, fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+            border: 'none', background: 'transparent',
+            color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 12, fontWeight: 700,
           }}>
-          {u.bodega ? '✓' : '–'}
+          {u.bodega ? '✓ Incl.' : '—'}
         </button>
       </td>
       {/* Ubicación interior/exterior */}
@@ -71,19 +110,6 @@ function ExtraCells({ u, devId, onPatched }) {
           <option value="" style={cellOptStyle}>—</option>
           <option value="interior" style={cellOptStyle}>Interior</option>
           <option value="exterior" style={cellOptStyle}>Exterior</option>
-        </select>
-      </td>
-      {/* Tipo de cajón */}
-      <td style={{ padding: '0 12px' }} onClick={stop}>
-        <select
-          data-testid={`unit-parking-${u.unit_number}`}
-          value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
-          onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
-          style={cellSelectStyle}>
-          <option value="" style={cellOptStyle}>—</option>
-          {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
-            <option key={k} value={k} style={cellOptStyle}>{v}</option>
-          ))}
         </select>
       </td>
     </>
@@ -288,37 +314,37 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
-        <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+        <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1180 }}>
           <thead>
-            {/* Categorías delimitadas (founder: marcar los límites de cada grupo) */}
-            <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
+            {/* Categorías (como la imagen del founder) */}
+            <tr>
               {[
-                { label: 'Identificación', span: 3, theme: false },
-                { label: 'Características', span: 2, theme: false },
-                { label: 'Adicionales', span: 3, theme: true },
-                { label: 'Comercial', span: 2, theme: false },
-                { label: '', span: 1, theme: false },
+                { label: 'Unidad', span: 3, bg: 'rgba(45,212,191,0.12)', fg: '#5eead4' },
+                { label: 'M² desglosados', span: 5, bg: 'rgba(45,212,191,0.09)', fg: '#5eead4' },
+                { label: 'Características', span: 3, bg: 'rgba(45,212,191,0.12)', fg: '#5eead4' },
+                { label: 'Adicionales', span: 3, bg: 'rgba(212,167,44,0.16)', fg: '#e3c04e' },
+                { label: 'Precio', span: 2, bg: 'rgba(34,197,94,0.13)', fg: '#4ade80' },
+                { label: '', span: 1, bg: 'transparent', fg: 'transparent' },
               ].map((g, i) => (
                 <th key={i} colSpan={g.span} style={{
-                  padding: g.label ? '5px 12px' : 0, textAlign: 'center',
-                  fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: g.theme ? 'var(--theme-3)' : 'var(--cream-3)',
-                  background: g.theme ? 'rgba(var(--theme-rgb),0.06)' : 'transparent',
-                  borderBottom: `1px solid ${g.theme ? 'rgba(var(--theme-rgb),0.3)' : 'rgba(var(--cream-rgb),0.12)'}`,
-                  borderLeft: i > 0 ? '1px solid rgba(var(--cream-rgb),0.12)' : 'none',
+                  padding: g.label ? '6px 12px' : 0, textAlign: 'center',
+                  fontSize: 9.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
+                  color: g.fg, background: g.bg,
+                  borderBottom: '1px solid rgba(var(--cream-rgb),0.12)',
+                  borderLeft: (i > 0 && i < 5) ? '1px solid rgba(var(--cream-rgb),0.1)' : 'none',
                 }}>
                   {g.label}
                 </th>
               ))}
             </tr>
             <tr style={{ background: 'rgba(var(--cream-rgb),0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
-              {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Bodega', 'Ubicación', 'Cajón', 'Precio', 'Estado', 'Acciones'].map((h, idx) => (
-                <th key={h} style={{
+              {['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'UBICACIÓN', 'PRECIO', 'ESTADO', ''].map((h, idx) => (
+                <th key={idx} style={{
                   padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                   textAlign: 'left', fontSize: 10, fontWeight: 600,
                   color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
                   whiteSpace: 'nowrap',
-                  borderLeft: [3, 5, 8, 10].includes(idx) ? '1px solid rgba(var(--cream-rgb),0.10)' : 'none',
+                  borderLeft: [3, 8, 11, 14].includes(idx) ? '1px solid rgba(var(--cream-rgb),0.10)' : 'none',
                 }}>
                   {h}
                 </th>
@@ -331,7 +357,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 key={u.id || i}
                 data-testid={`unit-row-${u.unit_number}`}
                 style={{
-                  height: rowHeight,
+                  minHeight: rowHeight,
                   borderBottom: i < paged.length - 1 ? '1px solid rgba(var(--cream-rgb),0.06)' : 'none',
                   cursor: 'pointer', transition: 'background 0.1s',
                 }}
@@ -339,47 +365,60 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 onClick={() => setDrawerUnit(u)}
               >
-                <td style={{ padding: '0 12px', fontSize: 13, fontWeight: 600, color: 'var(--cream)', whiteSpace: 'nowrap' }}>
+                {/* UNIDAD */}
+                <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 700, color: 'var(--cream)', whiteSpace: 'nowrap' }}>
                   {u.unit_number}
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>
-                  {u.prototype}
+                <td style={{ padding: '8px 12px' }}>
+                  <span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>
+                    {u.prototype || '—'}
+                  </span>
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)' }}>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>
                   {u.level ?? '—'}
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
-                  {u.area_total ? `${u.area_total}m²` : '—'}
+                {/* M² DESGLOSADOS */}
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{fm2(m2priv(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{fm2(m2balc(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{fm2(m2terr(u))}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{fm2(m2roof(u))}</td>
+                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{fm2(m2tot(u))}</div>
+                  {totalBreakdown(u) && <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{totalBreakdown(u)}</div>}
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)' }}>
-                  {u.bedrooms ?? '—'}
-                </td>
+                {/* CARACTERÍSTICAS */}
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>{u.bedrooms ?? '—'}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{u.bathrooms ?? '—'}</td>
+                <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{u.parking_spots ?? '—'}</td>
+                {/* ADICIONALES (tipo cajón · bodega · ubicación) */}
                 <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream)', fontWeight: 600, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
+                {/* PRECIO */}
+                <td style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--cream)', fontWeight: 700, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   {priceAdjustPct > 0 ? (
                     <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
-                      <span style={{ color: 'var(--theme-3)' }}>{fmtMXN(appliedPrice(u.price, priceAdjustPct))}</span>
-                      <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtMXN(u.price)}</span>
+                      <span style={{ color: 'var(--theme-3)' }}>{fmtFull(appliedPrice(u.price, priceAdjustPct))}</span>
+                      <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtFull(u.price)}</span>
                     </span>
-                  ) : fmtMXN(u.price)}
+                  ) : fmtFull(u.price)}
                 </td>
-                <td style={{ padding: '0 12px' }}>
+                <td style={{ padding: '8px 12px' }}>
                   <StatusChip status={u.status} />
                 </td>
-                <td style={{ padding: '0 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
+                {/* + Info */}
+                <td style={{ padding: '8px 12px' }}>
                   <button
                     onClick={e => { e.stopPropagation(); setDrawerUnit(u); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer', padding: 4 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.16)', color: 'var(--cream-2)', borderRadius: 9999, padding: '3px 11px', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     title="Ver detalle"
                   >
-                    <Eye size={14} />
+                    + Info
                   </button>
                 </td>
               </tr>
             ))}
             {paged.length === 0 && (
               <tr>
-                <td colSpan={11} style={{ padding: '32px 12px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
+                <td colSpan={17} style={{ padding: '32px 12px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
                   No hay unidades con los filtros actuales.
                 </td>
               </tr>
