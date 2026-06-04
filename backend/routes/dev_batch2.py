@@ -829,11 +829,17 @@ class ConstructionComment(BaseModel):
 async def add_construction_comment(project_id: str, payload: ConstructionComment, request: Request):
     user = await _auth(request)
     db = _db(request)
+    # Snapshot del avance al momento del comentario → el Registro muestra "fecha · % — nota".
+    prev = await db.project_construction_progress.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)},
+        {"_id": 0, "overall_percent": 1, "current_stage": 1},
+    ) or {}
     entry = {
         "id": _uid("c"),
         "text": payload.text,
         "photo_url": payload.photo_url,
-        "stage_key": payload.stage_key,
+        "stage_key": payload.stage_key or prev.get("current_stage"),
+        "overall_percent": prev.get("overall_percent", 0),
         "author_id": user.user_id,
         "author_name": getattr(user, "name", "Usuario"),
         "ts": _now().isoformat(),
