@@ -64,12 +64,21 @@ const bulkCtl = {
   borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 9px', fontWeight: 500,
 };
 const bulkCtlFull = { ...bulkCtl, width: '100%', boxSizing: 'border-box' };
-// Campo de filtro con etiqueta arriba (para el grid ordenado).
-function FilterField({ label, children }) {
+// Campo de filtro con etiqueta arriba.
+function FilterField({ label, children, w = 120 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: w }}>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</span>
       {children}
+    </div>
+  );
+}
+// Grupo de filtros (sección con título) — para que NO se vea encimado.
+function FilterGroup({ title, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--theme)' }}>{title}</span>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>{children}</div>
     </div>
   );
 }
@@ -293,82 +302,96 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   // de edición para acotar a qué unidades se aplica el llenado masivo).
   const clearFilters = () => { setProtoFil(''); setLevelFil(''); setRecFil(''); setBanosFil(''); setSpotsFil(''); setPriceMin(''); setPriceMax(''); setM2Fil(''); setVistaFil(''); setCajonFil(''); setIncompleteOnly(false); setSearch(''); handleFilterChange('status', null); setPage(1); };
   const renderFilters = () => (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: 10, alignItems: 'end' }}>
-        <FilterField label="Prototipo">
-          <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {allProtos.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Nivel">
-          <select value={levelFil} onChange={e => { setLevelFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {allLevels.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Recámaras">
-          <select value={recFil} onChange={e => { setRecFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todas</option>
-            {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Baños">
-          <select value={banosFil} onChange={e => { setBanosFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {allBanos.map(b => <option key={b} value={b} style={cellOptStyle}>{b} baños</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Cajones">
-          <select value={spotsFil} onChange={e => { setSpotsFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="m² totales">
-          <select value={m2Fil} onChange={e => { setM2Fil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {allM2.map(m => <option key={m} value={m} style={cellOptStyle}>{m} m²</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Vista">
-          <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todas</option>
-            <option value="interior" style={cellOptStyle}>Interior</option>
-            <option value="exterior" style={cellOptStyle}>Exterior</option>
-          </select>
-        </FilterField>
-        <FilterField label="Tipo de cajón">
-          <select value={cajonFil} onChange={e => { setCajonFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Estado">
-          <select value={statusFilter || ''} onChange={e => handleFilterChange('status', e.target.value || null)} style={bulkCtlFull}>
-            <option value="" style={cellOptStyle}>Todos</option>
-            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value} style={cellOptStyle}>{o.label}</option>)}
-          </select>
-        </FilterField>
-        <FilterField label="Precio (rango)">
-          <div style={{ display: 'flex', gap: 5 }}>
-            <input type="number" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1); }} placeholder="mín" style={{ ...bulkCtlFull }} />
-            <input type="number" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1); }} placeholder="máx" style={{ ...bulkCtlFull }} />
-          </div>
-        </FilterField>
-        <FilterField label="Datos">
-          <button onClick={() => { setIncompleteOnly(v => !v); setPage(1); }}
-            title="Unidades a las que les falta tipo de cajón, bodega, vista o m²"
-            style={{ ...bulkCtlFull, cursor: 'pointer', textAlign: 'left',
-              background: incompleteOnly ? 'rgba(245,158,11,0.2)' : '#fff',
-              color: incompleteOnly ? '#b45309' : 'var(--cream-2)',
-              border: incompleteOnly ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(var(--cream-rgb),0.26)' }}>
-            ⚠ Solo incompletas
-          </button>
-        </FilterField>
+    <div style={{ background: '#fff', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', gap: 28, rowGap: 16, flexWrap: 'wrap' }}>
+        <FilterGroup title="Tipología">
+          <FilterField label="Prototipo" w={120}>
+            <select value={protoFil} onChange={e => { setProtoFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {allProtos.map(p => <option key={p} value={p} style={cellOptStyle}>Tipo {p}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Nivel" w={100}>
+            <select value={levelFil} onChange={e => { setLevelFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {allLevels.map(l => <option key={l} value={l} style={cellOptStyle}>Nivel {l}</option>)}
+            </select>
+          </FilterField>
+        </FilterGroup>
+
+        <FilterGroup title="Distribución">
+          <FilterField label="Recámaras" w={110}>
+            <select value={recFil} onChange={e => { setRecFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todas</option>
+              {allRecs.map(r => <option key={r} value={r} style={cellOptStyle}>{r} rec</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Baños" w={100}>
+            <select value={banosFil} onChange={e => { setBanosFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {allBanos.map(b => <option key={b} value={b} style={cellOptStyle}>{b} baños</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Cajones" w={110}>
+            <select value={spotsFil} onChange={e => { setSpotsFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {allSpots.map(s => <option key={s} value={s} style={cellOptStyle}>{s} cajones</option>)}
+            </select>
+          </FilterField>
+        </FilterGroup>
+
+        <FilterGroup title="Áreas y atributos">
+          <FilterField label="m² totales" w={110}>
+            <select value={m2Fil} onChange={e => { setM2Fil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {allM2.map(m => <option key={m} value={m} style={cellOptStyle}>{m} m²</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Vista" w={110}>
+            <select value={vistaFil} onChange={e => { setVistaFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todas</option>
+              <option value="interior" style={cellOptStyle}>Interior</option>
+              <option value="exterior" style={cellOptStyle}>Exterior</option>
+            </select>
+          </FilterField>
+          <FilterField label="Tipo de cajón" w={130}>
+            <select value={cajonFil} onChange={e => { setCajonFil(e.target.value); setPage(1); }} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
+            </select>
+          </FilterField>
+        </FilterGroup>
+
+        <FilterGroup title="Comercial">
+          <FilterField label="Estado" w={120}>
+            <select value={statusFilter || ''} onChange={e => handleFilterChange('status', e.target.value || null)} style={bulkCtlFull}>
+              <option value="" style={cellOptStyle}>Todos</option>
+              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value} style={cellOptStyle}>{o.label}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Precio (rango)" w={170}>
+            <div style={{ display: 'flex', gap: 5 }}>
+              <input type="number" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1); }} placeholder="mín" style={{ ...bulkCtlFull }} />
+              <input type="number" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1); }} placeholder="máx" style={{ ...bulkCtlFull }} />
+            </div>
+          </FilterField>
+        </FilterGroup>
+
+        <FilterGroup title="Datos">
+          <FilterField label="Completitud" w={150}>
+            <button onClick={() => { setIncompleteOnly(v => !v); setPage(1); }}
+              title="Unidades a las que les falta tipo de cajón, bodega, vista o m²"
+              style={{ ...bulkCtlFull, cursor: 'pointer', textAlign: 'left',
+                background: incompleteOnly ? 'rgba(245,158,11,0.2)' : '#fff',
+                color: incompleteOnly ? '#b45309' : 'var(--cream-2)',
+                border: incompleteOnly ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(var(--cream-rgb),0.26)' }}>
+              ⚠ Solo incompletas
+            </button>
+          </FilterField>
+        </FilterGroup>
       </div>
       {anyFilter && (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(var(--cream-rgb),0.1)' }}>
           <button onClick={clearFilters}
             style={{ background: 'none', border: 'none', color: 'var(--theme)', fontSize: 11, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
             Limpiar filtros
