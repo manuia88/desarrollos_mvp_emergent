@@ -11,7 +11,9 @@ import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
-import { listInventory, patchUnitFields } from '../../api/developer';
+import { listInventory, patchUnitFields, getPaymentSchemes } from '../../api/developer';
+import { appliedPrice } from '../../utils/paymentSchemes';
+import PaymentQuoter from './PaymentQuoter';
 import { Search, Upload, Eye, Building } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
@@ -118,7 +120,7 @@ function StatusChip({ status }) {
 }
 
 // ─── Inventario Completo ────────────────────────────────────────────────────
-function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched }) {
+function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, priceAdjustPct = 0 }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
@@ -342,7 +344,12 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched })
                   {u.bedrooms ?? '—'}
                 </td>
                 <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  {fmtMXN(u.price)}
+                  {priceAdjustPct > 0 ? (
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                      <span style={{ color: 'var(--theme-3)' }}>{fmtMXN(appliedPrice(u.price, priceAdjustPct))}</span>
+                      <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtMXN(u.price)}</span>
+                    </span>
+                  ) : fmtMXN(u.price)}
                 </td>
                 <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
                 <td style={{ padding: '0 12px' }}>
@@ -618,8 +625,18 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [protoFilter, setProtoFilter] = useState(null);
+  const [schemes, setSchemes] = useState([]);
+  const [selScheme, setSelScheme] = useState('lista');
+  const [quoterOpen, setQuoterOpen] = useState(false);
 
   const activeSubTab = searchParams.get('subtab') || 'inventario';
+
+  useEffect(() => {
+    getPaymentSchemes(devId).then(d => setSchemes(d.schemes || [])).catch(() => setSchemes([]));
+  }, [devId]);
+
+  const activeDescuento = (selScheme === 'lista' || selScheme === 'cotizador')
+    ? 0 : (schemes.find(s => s.id === selScheme)?.descuento_pct || 0);
 
   const setSubTab = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -699,12 +716,38 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         </div>
       )}
 
+      {/* Selector de forma de pago — recalcula los precios de la lista en vivo */}
+      {schemes.length > 0 && activeSubTab === 'inventario' && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ fontSize: 11, color: 'var(--cream-3)', marginRight: 2 }}>Precio según forma de pago:</span>
+          {[{ id: 'lista', nombre: 'Lista', descuento_pct: 0 }, ...schemes].map(s => {
+            const on = selScheme === s.id;
+            return (
+              <button key={s.id} data-testid={`price-scheme-${s.id}`} onClick={() => setSelScheme(s.id)}
+                style={{
+                  background: on ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.06)',
+                  color: on ? 'var(--navy)' : 'var(--cream-2)',
+                  border: on ? 'none' : '1px solid rgba(var(--cream-rgb),0.14)',
+                  borderRadius: 9999, padding: '5px 12px', fontSize: 11.5, fontWeight: on ? 700 : 500, cursor: 'pointer',
+                }}>
+                {s.nombre}{s.descuento_pct > 0 ? ` · −${s.descuento_pct}%` : ''}
+              </button>
+            );
+          })}
+          <div style={{ flex: 1 }} />
+          <button data-testid="open-quoter" onClick={() => setQuoterOpen(true)}
+            style={{ background: 'rgba(var(--theme-rgb),0.14)', color: '#f9a8d4', border: '1px solid rgba(var(--theme-rgb),0.3)', borderRadius: 9999, padding: '6px 14px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            Cotizador a la medida
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Cargando unidades…</div>
       ) : (
         <>
           {activeSubTab === 'inventario' && (
-            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} />
+            <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} priceAdjustPct={activeDescuento} />
           )}
           {activeSubTab === 'prototipos' && (
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
@@ -713,6 +756,10 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             <VistaPlantaInteractiva units={units} user={user} devId={devId} />
           )}
         </>
+      )}
+
+      {quoterOpen && (
+        <PaymentQuoter devId={devId} schemes={schemes} units={units} onClose={() => setQuoterOpen(false)} />
       )}
     </div>
   );

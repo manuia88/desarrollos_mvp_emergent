@@ -11,7 +11,13 @@ const j = async (url, opts = {}) => {
 };
 const post = (url, body) => j(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const patch = (url, body) => j(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+const put = (url, body) => j(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const del = (url) => j(url, { method: 'DELETE' });
+
+// Formas de pago (esquemas R3) por proyecto
+export const getPaymentSchemes = (projectId) => j(`/api/dev/projects/${projectId}/payment-schemes`);
+export const putPaymentSchemes = (projectId, body) => put(`/api/dev/projects/${projectId}/payment-schemes`, body);
+export const paymentQuote = (projectId, body) => post(`/api/dev/projects/${projectId}/payment-quote`, body);
 
 // Phase 4 Batch 14 — Developer dashboard
 export const getDashboard = () => j('/api/desarrollador/dashboard');

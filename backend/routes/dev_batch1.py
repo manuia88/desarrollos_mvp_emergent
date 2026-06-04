@@ -429,6 +429,130 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
     return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# FORMAS DE PAGO (esquemas R3) — hasta 5 por proyecto, ajustan precio + plan
+# ═══════════════════════════════════════════════════════════════════════════════
+class PaymentSchemesPut(BaseModel):
+    schemes: List[Dict[str, Any]] = Field(default_factory=list)
+    fecha_inicio: Optional[str] = None     # inicio de obra (para meses)
+    fecha_entrega: Optional[str] = None     # entrega estimada
+
+
+class PaymentQuoteBody(BaseModel):
+    precio_base: float = Field(..., gt=0)
+    scheme_id: Optional[str] = None         # esquema configurado
+    enganche_pct: Optional[float] = None    # cotizador no-fijo
+    escritura_pct: Optional[float] = None
+    meses: Optional[int] = None
+
+
+def _project_dates(dev: Dict[str, Any], meta: Dict[str, Any]) -> tuple:
+    """Resuelve (fecha_inicio, fecha_entrega) de meta del dev o del proyecto."""
+    meta = meta or {}
+    dev = dev or {}
+    inicio = (meta.get("fecha_inicio") or dev.get("construction_start_date")
+              or dev.get("fecha_inicio_construccion"))
+    entrega = (meta.get("fecha_entrega") or dev.get("expected_delivery_date")
+               or dev.get("delivery_date") or dev.get("delivery_estimate"))
+    return inicio, entrega
+
+
+@router.get("/projects/{project_id}/payment-schemes")
+async def get_payment_schemes(project_id: str, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    import payment_schemes as ps
+    from data_developments import DEVELOPMENTS_BY_ID
+
+    doc = await db.dev_payment_schemes.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    )
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+    meta = await db.dev_project_meta.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    ) or {}
+
+    schemes = (doc or {}).get("schemes") or ps.default_schemes()
+    fecha_inicio = (doc or {}).get("fecha_inicio")
+    fecha_entrega = (doc or {}).get("fecha_entrega")
+    if not fecha_inicio or not fecha_entrega:
+        di, de = _project_dates(dev, meta)
+        fecha_inicio = fecha_inicio or di
+        fecha_entrega = fecha_entrega or de
+
+    return {
+        "project_id": project_id,
+        "schemes": schemes,
+        "fecha_inicio": fecha_inicio,
+        "fecha_entrega": fecha_entrega,
+        "meses_auto": ps.auto_months(fecha_inicio, fecha_entrega),
+        "configured": bool(doc),
+    }
+
+
+@router.put("/projects/{project_id}/payment-schemes")
+async def put_payment_schemes(project_id: str, payload: PaymentSchemesPut, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    import payment_schemes as ps
+
+    errors = ps.validate_schemes(payload.schemes)
+    if errors:
+        raise HTTPException(400, "; ".join(errors[:6]))
+
+    # Asegura un id por esquema
+    for i, s in enumerate(payload.schemes):
+        if not s.get("id"):
+            s["id"] = _uid("esq")
+
+    await db.dev_payment_schemes.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)},
+        {"$set": {
+            "project_id": project_id,
+            "dev_org_id": _tenant(user),
+            "schemes": payload.schemes,
+            "fecha_inicio": payload.fecha_inicio,
+            "fecha_entrega": payload.fecha_entrega,
+            "updated_at": _now().isoformat(),
+            "updated_by": user.user_id,
+        }},
+        upsert=True,
+    )
+    return {"ok": True, "project_id": project_id, "count": len(payload.schemes)}
+
+
+@router.post("/projects/{project_id}/payment-quote")
+async def payment_quote(project_id: str, payload: PaymentQuoteBody, request: Request):
+    """Desglosa el precio bajo un esquema configurado o un enganche libre (cotizador)."""
+    user = await _auth(request)
+    db = _db(request)
+    import payment_schemes as ps
+    from data_developments import DEVELOPMENTS_BY_ID
+
+    doc = await db.dev_payment_schemes.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    ) or {}
+    schemes = doc.get("schemes") or ps.default_schemes()
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+    meta = await db.dev_project_meta.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    ) or {}
+    fi = doc.get("fecha_inicio") or _project_dates(dev, meta)[0]
+    fe = doc.get("fecha_entrega") or _project_dates(dev, meta)[1]
+
+    if payload.enganche_pct is not None:
+        bd = ps.compute_custom(payload.precio_base, payload.enganche_pct, schemes,
+                               escritura_pct=payload.escritura_pct, meses=payload.meses,
+                               fecha_inicio=fi, fecha_entrega=fe)
+        return {"ok": True, "mode": "cotizador", "breakdown": bd}
+
+    scheme = next((s for s in schemes if s.get("id") == payload.scheme_id), None)
+    if not scheme:
+        raise HTTPException(404, "Esquema no encontrado")
+    bd = ps.compute_breakdown(payload.precio_base, scheme, fecha_inicio=fi, fecha_entrega=fe)
+    return {"ok": True, "mode": "esquema", "scheme_id": scheme.get("id"), "breakdown": bd}
+
+
 @router.get("/projects")
 async def list_projects(request: Request):
     """List projects with their location metadata."""

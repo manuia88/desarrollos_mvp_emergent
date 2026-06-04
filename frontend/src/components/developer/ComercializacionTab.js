@@ -10,6 +10,7 @@ import {
   listInternalUsers, listProjectsWithStats,
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
+import PaymentSchemesConfig from './PaymentSchemesConfig';
 import { Users, Check } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
@@ -212,6 +213,11 @@ export default function ComercializacionTab({ devId, user }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Section 0: Formas de pago (esquemas R3) */}
+      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
+        <PaymentSchemesConfig devId={devId} />
+      </div>
+
       {/* Section 1: Política comercial */}
       <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
