@@ -16,14 +16,20 @@ const MAP_STYLES = {
   calles:   'mapbox://styles/mapbox/streets-v12',
 };
 
-export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = false, height = 340 }) {
+export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = false, height = 340,
+                                      hideSaveButton = false, onCoordsChange }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const [coords, setCoords] = useState({ lat: lat || 19.4326, lng: lng || -99.1332 });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [styleKey, setStyleKey] = useState('satelite');
+  const [styleKey, setStyleKey] = useState('calles');   // default Calles (founder)
+
+  // Reporta coords al padre sin causar bucles.
+  const coordsCbRef = useRef(onCoordsChange);
+  coordsCbRef.current = onCoordsChange;
+  useEffect(() => { coordsCbRef.current?.(coords); }, [coords]);
 
   useEffect(() => {
     if (!TOKEN || !containerRef.current || mapRef.current) return;
@@ -31,7 +37,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: MAP_STYLES.satelite,
+      style: MAP_STYLES.calles,
       center: [coords.lng, coords.lat],
       zoom: zoom,
     });
@@ -116,22 +122,22 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
     <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <div ref={containerRef} style={{ height, width: '100%' }} />
 
-      {/* Toggle Calles / Satélite */}
+      {/* Toggle Calles / Satélite — claro, estilo Google Maps (ya no negro) */}
       <div style={{
         position: 'absolute', top: 12, right: 52,
         display: 'flex', gap: 2, padding: 3, borderRadius: 9999,
-        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(8px)',
-        border: '1px solid var(--border)',
+        background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       }}>
-        {[['satelite', 'Satélite'], ['calles', 'Calles']].map(([k, label]) => (
+        {[['calles', 'Calles'], ['satelite', 'Satélite']].map(([k, label]) => (
           <button
             key={k}
             data-testid={`map-style-${k}`}
             onClick={() => setStyleKey(k)}
             style={{
               padding: '4px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer',
-              background: styleKey === k ? 'var(--cream)' : 'transparent',
-              color: styleKey === k ? 'var(--navy)' : 'var(--cream-2)',
+              background: styleKey === k ? '#111827' : 'transparent',
+              color: styleKey === k ? '#fff' : '#374151',
               fontFamily: 'DM Sans', fontSize: 11, fontWeight: styleKey === k ? 700 : 500,
             }}>
             {label}
@@ -141,16 +147,16 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
 
       {/* Coords overlay */}
       <div style={{
-        position: 'absolute', bottom: 12, left: 12, right: readOnly ? 12 : 160,
-        background: 'rgba(var(--bg-rgb),0.86)', backdropFilter: 'blur(8px)',
+        position: 'absolute', bottom: 12, left: 12, right: (readOnly || hideSaveButton) ? 12 : 160,
+        background: 'rgba(17,24,39,0.82)', backdropFilter: 'blur(8px)',
         borderRadius: 8, padding: '6px 12px',
-        fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--cream-2)',
+        fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: '#e5e7eb',
       }}>
         {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
       </div>
 
-      {/* Save button (only in edit mode) */}
-      {!readOnly && (
+      {/* Save button interno (se oculta cuando el padre pone su propio botón) */}
+      {!readOnly && !hideSaveButton && (
         <button
           onClick={handleSave}
           disabled={saving}
@@ -172,9 +178,9 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
       {!readOnly && (
         <div style={{
           position: 'absolute', top: 12, left: 12,
-          background: 'rgba(var(--bg-rgb),0.82)', backdropFilter: 'blur(6px)',
-          borderRadius: 8, padding: '5px 10px',
-          fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)',
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)',
+          borderRadius: 8, padding: '5px 10px', border: '1px solid rgba(0,0,0,0.1)',
+          fontFamily: 'DM Sans', fontSize: 11, color: '#374151',
         }}>
           Haz clic en el mapa o arrastra el marcador para posicionar
         </div>

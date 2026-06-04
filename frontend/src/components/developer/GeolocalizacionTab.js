@@ -1,5 +1,5 @@
 // GeolocalizacionTab — Phase 4.5 · Mapbox picker integrated into legajo (+4.18 GeoJSON export)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '../advisor/primitives';
 import MapboxPicker from './MapboxPicker';
 import * as api from '../../api/developer';
@@ -17,12 +17,14 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
   const [addr, setAddr] = useState('');
   const [geocoding, setGeocoding] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [pinCoords, setPinCoords] = useState(null);   // coords actuales del pin (del mapa)
+  const skipNextSearch = useRef(false);               // evita re-buscar al elegir opción
   // Batch 2.1 role guard — only developer_admin or superadmin can move the marker.
   const canEdit = !readOnlyProp && (user?.role === 'developer_admin' || user?.role === 'superadmin');
   const readOnly = !canEdit;
   // Batch 3 · 4.18 role guard for GeoJSON export
   const canExport = GEOJSON_ALLOWED.has(user?.role) || user?.internal_role === 'commercial_director';
-  const hasLocation = loc && loc.source === 'manual';
+  const canDownloadLoc = !!(loc && loc.lat != null && loc.lng != null);
 
   useEffect(() => {
     if (!devId) return;
@@ -43,57 +45,62 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
     }
   };
 
-  // Buscar la dirección: trae VARIAS opciones (sesgadas a CDMX) para que el dev
-  // elija la correcta. Resuelve "me manda a un lugar que no es" (ej. Campeche).
-  const handleFindAddress = async () => {
-    if (!addr.trim() || geocoding) return;
-    if (!MAPBOX_TOKEN) { setToast({ type: 'error', msg: 'Mapa no configurado' }); return; }
+  // Geocoding: trae opciones (sesgadas a CDMX) para elegir con un click.
+  const runGeocode = async (raw) => {
+    if (!MAPBOX_TOKEN || !raw.trim()) return;
     setGeocoding(true);
-    setSuggestions([]);
     try {
-      const raw = addr.trim();
       // Si no menciona ciudad/estado, lo anclamos a CDMX.
       const q = /m[eé]xico|cdmx|\bdf\b|ciudad de mexico/i.test(raw) ? raw : `${raw}, Ciudad de México`;
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json`
-        + `?access_token=${MAPBOX_TOKEN}&country=mx&limit=5&language=es`
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json`
+        + `?access_token=${MAPBOX_TOKEN}&country=mx&limit=6&language=es&autocomplete=true`
         + `&proximity=-99.1654,19.4096`                 // centro CDMX (sesgo fuerte)
-        + `&bbox=-99.365,19.12,-98.94,19.59`            // caja CDMX
-        + `&types=address,poi`;
+        + `&types=address,poi,place,neighborhood`;
       const r = await fetch(url);
       const data = await r.json();
       const feats = (data.features || []).filter(f => Array.isArray(f.center));
-      if (!feats.length) {
-        setToast({ type: 'error', msg: 'No encontré esa dirección. Ajusta el pin a mano en el mapa.' });
-        return;
-      }
-      if (feats.length === 1) {
-        pickSuggestion(feats[0]);
-      } else {
-        setSuggestions(feats);
-        setToast({ type: 'ok', msg: 'Elige la dirección correcta de la lista.' });
-        setTimeout(() => setToast(null), 3000);
-      }
+      setSuggestions(feats);
     } catch (e) {
-      setToast({ type: 'error', msg: 'Error al buscar la dirección' });
+      setSuggestions([]);
     } finally {
       setGeocoding(false);
     }
   };
 
+  // Autocompletar al escribir (debounce), como Google Maps.
+  useEffect(() => {
+    if (skipNextSearch.current) { skipNextSearch.current = false; return; }
+    if (readOnly || !addr || addr.trim().length < 4) { setSuggestions([]); return; }
+    const t = setTimeout(() => runGeocode(addr), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addr]);
+
+  const handleFindAddress = () => { if (addr.trim()) runGeocode(addr); };
+
   // El dev elige una de las opciones → mueve el pin y fija la dirección.
   const pickSuggestion = (feat) => {
     const [lng, lat] = feat.center;
     const placeName = feat.place_name || addr.trim();
+    skipNextSearch.current = true;          // no re-buscar por el cambio de texto
     setAddr(placeName);
     setSuggestions([]);
+    setPinCoords({ lat, lng });
     setLoc(prev => ({ ...prev, lat, lng, address: placeName, source: 'manual' }));
     setToast({ type: 'ok', msg: 'Listo. Revisa el pin y pulsa "Guardar ubicación".' });
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Guardar desde el botón externo (usa el pin actual del mapa).
+  const handleSaveExternal = () => {
+    const c = pinCoords || (loc ? { lat: loc.lat, lng: loc.lng } : null);
+    if (!c) return;
+    handleSave(c.lat, c.lng, loc?.zoom || 14);
+  };
+
   const handleExportGeoJSON = async () => {
     if (exporting || !canExport) return;
-    if (!hasLocation) {
+    if (!canDownloadLoc) {
       setToast({ type: 'error', msg: 'Configura y guarda la ubicación antes de exportar' });
       return;
     }
@@ -214,7 +221,28 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
           onSave={handleSave}
           readOnly={readOnly}
           height={400}
+          hideSaveButton
+          onCoordsChange={setPinCoords}
         />
+
+        {/* Botón Guardar FUERA del mapa (founder) */}
+        {!readOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+            <button
+              data-testid="geoloc-save-external"
+              onClick={handleSaveExternal}
+              style={{
+                padding: '10px 20px', borderRadius: 10, background: 'var(--grad)', border: 'none',
+                color: '#fff', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+              }}>
+              <CheckCircle size={14} /> Guardar ubicación
+            </button>
+            <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>
+              Mueve el pin o elige una dirección, luego guarda.
+            </span>
+          </div>
+        )}
 
         {loc.address && (
           <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }} data-testid="geoloc-address">
@@ -236,22 +264,22 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
               <button
                 data-testid="geojson-export-btn"
                 onClick={handleExportGeoJSON}
-                disabled={!hasLocation || exporting}
-                title={!hasLocation ? 'Guarda la ubicación antes de descargar' : 'Descargar archivo de ubicación'}
+                disabled={!canDownloadLoc || exporting}
+                title={!canDownloadLoc ? 'Guarda la ubicación antes de descargar' : 'Descargar archivo de ubicación'}
                 style={{
                   padding: '10px 16px', borderRadius: 9999,
-                  background: (!hasLocation || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(var(--theme-rgb),0.14)',
-                  border: `1px solid ${(!hasLocation || exporting) ? 'var(--border)' : 'rgba(var(--theme-rgb),0.32)'}`,
-                  color: (!hasLocation || exporting) ? 'var(--cream-3)' : '#f9a8d4',
+                  background: (!canDownloadLoc || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(var(--theme-rgb),0.14)',
+                  border: `1px solid ${(!canDownloadLoc || exporting) ? 'var(--border)' : 'rgba(var(--theme-rgb),0.32)'}`,
+                  color: (!canDownloadLoc || exporting) ? 'var(--cream-3)' : '#f9a8d4',
                   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
-                  cursor: (!hasLocation || exporting) ? 'not-allowed' : 'pointer',
+                  cursor: (!canDownloadLoc || exporting) ? 'not-allowed' : 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
                 }}>
                 <Layers size={13} />
                 {exporting ? 'Descargando…' : 'Descargar archivo de ubicación'}
               </button>
             </div>
-            {!hasLocation && (
+            {!canDownloadLoc && (
               <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9999, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.28)', color: 'var(--amber)', fontFamily: 'DM Sans', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid="geojson-no-loc-hint">
                 <MapPin size={11} /> Guarda la ubicación primero
               </div>
