@@ -131,7 +131,9 @@ export default function PaymentQuoter({ devId, schemes, units, onClose }) {
                   <QField label="Al firmar" value={fmtMXN(quote.firma)} hint={`${quote.firma_pct}%`} />
                   <QField label="Mensualidad"
                     value={quote.mensualidades_total > 0 ? (quote.meses ? `${fmtMXN(quote.mensualidad)}/mes` : fmtMXN(quote.mensualidades_total)) : '—'}
-                    hint={quote.meses && quote.mensualidades_total > 0 ? `× ${quote.meses} meses` : null} />
+                    hint={quote.meses && quote.mensualidades_total > 0
+                      ? `× ${quote.meses} meses${quote.meses_transcurridos != null ? ` · restan ${quote.meses_restantes}` : ''}`
+                      : null} />
                   <QField label="Al escriturar" value={fmtMXN(quote.escrituracion)} hint={`${quote.escritura_pct}%`} />
                 </div>
               )}

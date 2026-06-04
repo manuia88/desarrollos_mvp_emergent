@@ -46,12 +46,26 @@ export function breakdown(base, s, fIni, fEnt) {
   const escritura = aplicado - firma - mensTotal;     // absorbe redondeo
   const meses = resolveMonths(s, fIni, fEnt);
   const mensualidad = (meses && mensTotal) ? Math.round(mensTotal / meses) : 0;
+  // En vivo: meses transcurridos/restantes según la fecha de hoy.
+  let transcurridos = null, restantes = meses;
+  if (meses && fIni) {
+    const a = parseYM(fIni);
+    if (a) {
+      const now = new Date();
+      const elapsed = (now.getFullYear() - a.y) * 12 + (now.getMonth() + 1 - a.m);
+      transcurridos = Math.max(0, Math.min(meses, elapsed));
+      restantes = meses - transcurridos;
+    }
+  }
   return {
     precio_base: Math.round(b), descuento_pct: desc, precio_aplicado: aplicado,
     ahorro: Math.round(b) - aplicado, apartado: Math.round(f(s.apartado_mxn)),
     firma_pct: f(s.firma_pct), firma,
     mensualidades_pct: f(s.mensualidades_pct), mensualidades_total: mensTotal,
     meses, mensualidad,
+    meses_transcurridos: transcurridos, meses_restantes: restantes,
+    mensualidades_pagadas: transcurridos ? transcurridos * mensualidad : 0,
+    mensualidades_restantes_monto: (restantes && mensualidad) ? restantes * mensualidad : 0,
     escritura_pct: f(s.escritura_pct), escrituracion: escritura,
   };
 }

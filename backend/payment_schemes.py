@@ -16,6 +16,7 @@ asesor/comprador/marketplace.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 TOL = 0.5  # tolerancia en la suma de porcentajes (puntos)
@@ -144,6 +145,17 @@ def compute_breakdown(precio_base: float, scheme: Dict[str, Any],
     meses = resolve_months(scheme, fecha_inicio, fecha_entrega)
     mensualidad = round(mens_total / meses) if (meses and mens_total) else 0
 
+    # En vivo: conforme pasan los meses desde el inicio de obra, las mensualidades
+    # ya pagadas suben y las restantes bajan (se recalcula con la fecha de hoy).
+    transcurridos, restantes = None, meses
+    if meses and fecha_inicio:
+        a = _parse_date(fecha_inicio)
+        if a:
+            now = datetime.now(timezone.utc)
+            elapsed = (now.year - a[0]) * 12 + (now.month - a[1])
+            transcurridos = max(0, min(meses, elapsed))
+            restantes = meses - transcurridos
+
     return {
         "precio_base": round(base),
         "descuento_pct": desc,
@@ -156,6 +168,10 @@ def compute_breakdown(precio_base: float, scheme: Dict[str, Any],
         "mensualidades_total": mens_total,
         "meses": meses,
         "mensualidad": mensualidad,
+        "meses_transcurridos": transcurridos,
+        "meses_restantes": restantes,
+        "mensualidades_pagadas": (transcurridos * mensualidad) if transcurridos else 0,
+        "mensualidades_restantes_monto": (restantes * mensualidad) if (restantes and mensualidad) else 0,
         "escritura_pct": escr_pct,
         "escrituracion": escrituracion,
     }

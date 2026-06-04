@@ -36,7 +36,7 @@ export default function PaymentSchemesConfig({ devId }) {
   const [schemes, setSchemes] = useState([]);
   const [fIni, setFIni] = useState('');
   const [fEnt, setFEnt] = useState('');
-  const [sample, setSample] = useState(5000000);
+  const [sample, setSample] = useState(1000000);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
@@ -164,7 +164,9 @@ export default function PaymentSchemesConfig({ devId }) {
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>
                   Firma {fmtMXN(bd.firma)} · {bd.mensualidades_total > 0
-                    ? <>{bd.meses ? `${fmtMXN(bd.mensualidad)}/mes × ${bd.meses}` : `${fmtMXN(bd.mensualidades_total)} (define meses)`}</>
+                    ? <>{bd.meses
+                        ? `${fmtMXN(bd.mensualidad)}/mes × ${bd.meses}${bd.meses_transcurridos != null ? ` (restan ${bd.meses_restantes})` : ''}`
+                        : `${fmtMXN(bd.mensualidades_total)} (define meses)`}</>
                     : 'sin mensualidades'} · Escritura {fmtMXN(bd.escrituracion)}
                 </span>
               </div>

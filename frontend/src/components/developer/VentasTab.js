@@ -30,6 +30,8 @@ const cellSelectStyle = {
   borderRadius: 6, color: 'var(--cream-2)', fontSize: 11, padding: '3px 6px',
   fontFamily: 'DM Sans,sans-serif', cursor: 'pointer', maxWidth: 120,
 };
+// Opciones legibles (evita el menú negro nativo del navegador).
+const cellOptStyle = { background: '#161b27', color: 'var(--cream)' };
 
 // Celdas "Adicionales" editables en línea (bodega · ubicación · cajón).
 function ExtraCells({ u, devId, onPatched }) {
@@ -45,7 +47,7 @@ function ExtraCells({ u, devId, onPatched }) {
   return (
     <>
       {/* Bodega ✓/✗ */}
-      <td style={{ padding: '0 12px' }} onClick={stop}>
+      <td style={{ padding: '0 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }} onClick={stop}>
         <button
           data-testid={`unit-bodega-${u.unit_number}`}
           onClick={() => patch({ bodega: !u.bodega })}
@@ -66,9 +68,9 @@ function ExtraCells({ u, devId, onPatched }) {
           value={u.vista || ''}
           onChange={(e) => { if (e.target.value) patch({ vista: e.target.value }); }}
           style={cellSelectStyle}>
-          <option value="">—</option>
-          <option value="interior">Interior</option>
-          <option value="exterior">Exterior</option>
+          <option value="" style={cellOptStyle}>—</option>
+          <option value="interior" style={cellOptStyle}>Interior</option>
+          <option value="exterior" style={cellOptStyle}>Exterior</option>
         </select>
       </td>
       {/* Tipo de cajón */}
@@ -78,9 +80,9 @@ function ExtraCells({ u, devId, onPatched }) {
           value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
           onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
           style={cellSelectStyle}>
-          <option value="">—</option>
+          <option value="" style={cellOptStyle}>—</option>
           {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+            <option key={k} value={k} style={cellOptStyle}>{v}</option>
           ))}
         </select>
       </td>
@@ -288,26 +290,35 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
           <thead>
-            {/* Grupo de columnas "Adicionales" (granularidad por unidad) */}
+            {/* Categorías delimitadas (founder: marcar los límites de cada grupo) */}
             <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
-              <th colSpan={6} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }} />
-              <th colSpan={3} style={{
-                padding: '5px 12px', textAlign: 'center', fontSize: 9.5, fontWeight: 800,
-                letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--theme-3)',
-                borderBottom: '1px solid rgba(var(--theme-rgb),0.3)',
-                background: 'rgba(var(--theme-rgb),0.06)',
-              }}>
-                Adicionales
-              </th>
-              <th colSpan={2} style={{ borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }} />
+              {[
+                { label: 'Identificación', span: 3, theme: false },
+                { label: 'Características', span: 2, theme: false },
+                { label: 'Adicionales', span: 3, theme: true },
+                { label: 'Comercial', span: 2, theme: false },
+                { label: '', span: 1, theme: false },
+              ].map((g, i) => (
+                <th key={i} colSpan={g.span} style={{
+                  padding: g.label ? '5px 12px' : 0, textAlign: 'center',
+                  fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: g.theme ? 'var(--theme-3)' : 'var(--cream-3)',
+                  background: g.theme ? 'rgba(var(--theme-rgb),0.06)' : 'transparent',
+                  borderBottom: `1px solid ${g.theme ? 'rgba(var(--theme-rgb),0.3)' : 'rgba(var(--cream-rgb),0.12)'}`,
+                  borderLeft: i > 0 ? '1px solid rgba(var(--cream-rgb),0.12)' : 'none',
+                }}>
+                  {g.label}
+                </th>
+              ))}
             </tr>
             <tr style={{ background: 'rgba(var(--cream-rgb),0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
-              {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Bodega', 'Ubicación', 'Cajón', 'Estado', 'Acciones'].map(h => (
+              {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Bodega', 'Ubicación', 'Cajón', 'Precio', 'Estado', 'Acciones'].map((h, idx) => (
                 <th key={h} style={{
                   padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
                   textAlign: 'left', fontSize: 10, fontWeight: 600,
                   color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)',
                   whiteSpace: 'nowrap',
+                  borderLeft: [3, 5, 8, 10].includes(idx) ? '1px solid rgba(var(--cream-rgb),0.10)' : 'none',
                 }}>
                   {h}
                 </th>
@@ -337,13 +348,14 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)' }}>
                   {u.level ?? '—'}
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   {u.area_total ? `${u.area_total}m²` : '—'}
                 </td>
                 <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream-2)' }}>
                   {u.bedrooms ?? '—'}
                 </td>
-                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
+                <td style={{ padding: '0 12px', fontSize: 12, color: 'var(--cream)', fontWeight: 600, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   {priceAdjustPct > 0 ? (
                     <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
                       <span style={{ color: 'var(--theme-3)' }}>{fmtMXN(appliedPrice(u.price, priceAdjustPct))}</span>
@@ -351,11 +363,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                     </span>
                   ) : fmtMXN(u.price)}
                 </td>
-                <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
                 <td style={{ padding: '0 12px' }}>
                   <StatusChip status={u.status} />
                 </td>
-                <td style={{ padding: '0 12px' }}>
+                <td style={{ padding: '0 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   <button
                     onClick={e => { e.stopPropagation(); setDrawerUnit(u); }}
                     style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer', padding: 4 }}

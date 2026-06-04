@@ -82,8 +82,9 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
-        background: 'var(--navy)', border: '1px solid rgba(var(--cream-rgb),0.18)',
+        background: 'linear-gradient(180deg, #161b27, #0e121b)', border: '1px solid rgba(var(--cream-rgb),0.18)',
         borderRadius: 14, padding: 28, width: 400, maxWidth: '90vw',
+        boxShadow: '0 18px 48px rgba(0,0,0,0.5)',
       }}>
         <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
           Asignar asesor/broker
@@ -100,9 +101,9 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
                 padding: '8px 10px', fontSize: 13,
               }}
             >
-              <option value="" style={{ background: 'var(--navy)' }}>Selecciona asesor…</option>
+              <option value="" style={{ background: '#161b27', color: 'var(--cream)' }}>Selecciona asesor…</option>
               {users.map(u => (
-                <option key={u.user_id || u.id} value={u.user_id || u.id} style={{ background: 'var(--navy)' }}>
+                <option key={u.user_id || u.id} value={u.user_id || u.id} style={{ background: '#161b27', color: 'var(--cream)' }}>
                   {u.name || u.email}
                 </option>
               ))}
@@ -234,7 +235,7 @@ export default function ComercializacionTab({ devId, user }) {
                 Aplicar desde otro proyecto ↓
               </button>
               {showDefaults && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: 'rgba(var(--bg-rgb),0.97)', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: '#161b27', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
                   {otherProjects.map(p => (
                     <button key={p.id} onClick={() => applyFrom(p.id)}
                       style={{ width: '100%', background: 'none', border: 'none', padding: '8px 14px', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontSize: 12 }}

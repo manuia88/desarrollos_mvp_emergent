@@ -399,7 +399,7 @@ function MisProyectosV1({ user, onLogout }) {
               padding: '5px 10px', fontSize: 12, cursor: 'pointer',
             }}
           >
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: 'var(--navy)' }}>{o.label}</option>)}
+            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: '#161b27', color: 'var(--cream)' }}>{o.label}</option>)}
           </select>
 
           {/* View toggle */}
