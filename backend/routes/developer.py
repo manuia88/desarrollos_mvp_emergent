@@ -251,6 +251,60 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
             **{k: v for k, v in set_doc.items() if k in ("bodega", "parking_type", "parking_spots", "vista")}}
 
 
+class UnitFieldsBulk(BaseModel):
+    dev_id: str
+    unit_ids: List[str]
+    bodega: Optional[bool] = None
+    parking_type: Optional[str] = None
+    parking_spots: Optional[int] = None
+    vista: Optional[str] = None
+
+
+@router.patch("/inventario/unit-fields-bulk")
+async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
+    """Llenado masivo: aplica un campo a muchas unidades de un solo click
+    (founder: '300 depas con 2 cajones, 1 click')."""
+    user = await require_dev_admin(request)
+    db = get_db(request)
+    if not payload.unit_ids:
+        raise HTTPException(400, "Sin unidades seleccionadas")
+
+    fields = {}
+    if payload.parking_type is not None:
+        if payload.parking_type not in PARKING_TYPES:
+            raise HTTPException(400, "tipo de cajón inválido")
+        fields["parking_type"] = payload.parking_type
+    if payload.vista is not None:
+        if payload.vista not in VISTAS:
+            raise HTTPException(400, "ubicación inválida")
+        fields["vista"] = payload.vista
+    if payload.bodega is not None:
+        fields["bodega"] = bool(payload.bodega)
+    if payload.parking_spots is not None:
+        fields["parking_spots"] = max(0, int(payload.parking_spots))
+    if not fields:
+        raise HTTPException(400, "Nada que actualizar")
+
+    from pymongo import UpdateOne
+    ops = [
+        UpdateOne(
+            {"unit_id": uid},
+            {"$set": {"unit_id": uid, "dev_id": payload.dev_id,
+                      "updated_by": user.user_id, "updated_at": _now(), **fields}},
+            upsert=True,
+        )
+        for uid in payload.unit_ids
+    ]
+    if ops:
+        await db.developer_unit_overrides.bulk_write(ops, ordered=False)
+    await db.developer_audit.insert_one({
+        "id": _uid("audit"), "dev_id": payload.dev_id,
+        "user_id": user.user_id, "action": "unit_fields_bulk",
+        "payload": {"count": len(payload.unit_ids), "fields": fields}, "ts": _now(),
+    })
+    return {"ok": True, "count": len(payload.unit_ids), "fields": fields}
+
+
 # ─── D6: Demand Heatmap ───────────────────────────────────────────────────────
 @router.get("/demanda")
 async def demand_heatmap(request: Request):

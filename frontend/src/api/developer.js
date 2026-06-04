@@ -38,6 +38,7 @@ export const patchUnitPosition = (unitId, body) => patch(`/api/units/${unitId}/p
 export const listInventory = (devId) => j(`/api/desarrollador/inventario${devId ? `?dev_id=${devId}` : ''}`);
 export const patchUnitStatus = (b) => patch('/api/desarrollador/inventario/unit-status', b);
 export const patchUnitFields = (b) => patch('/api/desarrollador/inventario/unit-fields', b);
+export const patchUnitFieldsBulk = (b) => patch('/api/desarrollador/inventario/unit-fields-bulk', b);
 export const getDemand = () => j('/api/desarrollador/demanda');
 export const generateReport = (month) => post(`/api/desarrollador/reportes/generar${month ? `?month=${month}` : ''}`);
 export const listReports = () => j('/api/desarrollador/reportes');

@@ -11,7 +11,7 @@ import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
-import { listInventory, patchUnitFields, getPaymentSchemes } from '../../api/developer';
+import { listInventory, patchUnitFields, patchUnitFieldsBulk, getPaymentSchemes } from '../../api/developer';
 import { appliedPrice } from '../../utils/paymentSchemes';
 import PaymentQuoter from './PaymentQuoter';
 import { Search, Upload, Building } from '../../components/icons';
@@ -59,8 +59,9 @@ const cellSelectStyle = {
 // Opciones legibles (evita el menú negro nativo del navegador).
 const cellOptStyle = { background: '#161b27', color: 'var(--cream)' };
 
-// Celdas "Adicionales" editables: Tipo de cajón (a color) · Bodega · Ubicación.
-function ExtraCells({ u, devId, onPatched }) {
+// Celdas "Adicionales": Tipo de cajón (a color) · Bodega · Ubicación.
+// editMode=false → solo lectura (evita cambios accidentales).
+function ExtraCells({ u, devId, onPatched, editMode }) {
   const stop = (e) => e.stopPropagation();
   const patch = async (fields) => {
     onPatched(u.id, fields); // optimista
@@ -71,6 +72,25 @@ function ExtraCells({ u, devId, onPatched }) {
     }
   };
   const ptColor = PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-2)';
+  const vistaLabel = u.vista === 'interior' ? 'Interior' : u.vista === 'exterior' ? 'Exterior' : '—';
+
+  if (!editMode) {
+    // Solo lectura
+    return (
+      <>
+        <td style={{ padding: '8px 12px', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
+          <span style={{ color: ptColor, fontWeight: 700, fontSize: 12 }}>
+            {PARKING_TYPE_LABELS[u.parking_type] || '—'}
+          </span>
+        </td>
+        <td style={{ padding: '8px 12px', color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 12, fontWeight: 700 }}>
+          {u.bodega ? '✓ Incl.' : '—'}
+        </td>
+        <td style={{ padding: '8px 12px', color: 'var(--cream-2)', fontSize: 12 }}>{vistaLabel}</td>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Tipo de cajón — a color, editable */}
@@ -79,7 +99,7 @@ function ExtraCells({ u, devId, onPatched }) {
           data-testid={`unit-parking-${u.unit_number}`}
           value={PARKING_TYPE_LABELS[u.parking_type] ? u.parking_type : ''}
           onChange={(e) => { if (e.target.value) patch({ parking_type: e.target.value }); }}
-          style={{ ...cellSelectStyle, color: ptColor, fontWeight: 700, borderColor: 'transparent', background: 'transparent' }}>
+          style={{ ...cellSelectStyle, color: ptColor, fontWeight: 700, borderColor: 'rgba(var(--cream-rgb),0.14)' }}>
           <option value="" style={cellOptStyle}>—</option>
           {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => (
             <option key={k} value={k} style={cellOptStyle}>{v}</option>
@@ -94,10 +114,11 @@ function ExtraCells({ u, devId, onPatched }) {
           title={u.bodega ? 'Incluye bodega' : 'Sin bodega'}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-            border: 'none', background: 'transparent',
+            border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 7, padding: '3px 8px',
+            background: 'rgba(var(--cream-rgb),0.04)',
             color: u.bodega ? '#22c55e' : 'var(--cream-3)', fontSize: 12, fontWeight: 700,
           }}>
-          {u.bodega ? '✓ Incl.' : '—'}
+          {u.bodega ? '✓ Incl.' : '— Agregar'}
         </button>
       </td>
       {/* Ubicación interior/exterior */}
@@ -153,6 +174,10 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
   const [drawerUnit, setDrawerUnit] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [bulkField, setBulkField] = useState('parking_spots');
+  const [bulkValue, setBulkValue] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
   const { pref, setPref } = usePreferences();
   const density_mode = pref('density_mode', 'compacto');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -188,6 +213,32 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const rowHeight = density_mode === 'compacto' ? 40 : 56;
+
+  // Llenado masivo: aplica un valor a TODAS las unidades filtradas de un click.
+  const applyBulk = async () => {
+    if (bulkValue === '' || !filtered.length) return;
+    const ids = filtered.map(u => u.id);
+    const fields = {};
+    if (bulkField === 'parking_spots') fields.parking_spots = Math.max(0, +bulkValue);
+    else if (bulkField === 'parking_type') fields.parking_type = bulkValue;
+    else if (bulkField === 'bodega') fields.bodega = bulkValue === 'si';
+    else if (bulkField === 'vista') fields.vista = bulkValue;
+    setBulkBusy(true);
+    try {
+      await patchUnitFieldsBulk({ dev_id: devId, unit_ids: ids, ...fields });
+      ids.forEach(id => onUnitPatched(id, fields));  // optimista
+      setBulkValue('');
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
+    } finally { setBulkBusy(false); }
+  };
+
+  const BULK_FIELDS = [
+    { key: 'parking_spots', label: 'Cajones (número)' },
+    { key: 'parking_type', label: 'Tipo de cajón' },
+    { key: 'bodega', label: 'Bodega' },
+    { key: 'vista', label: 'Ubicación' },
+  ];
 
   // Reload inventory on unit update callback
   const handleUnitUpdated = () => {
@@ -263,6 +314,21 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
           <Upload size={13} /> Bulk Upload
         </button>
 
+        {/* Editar (global) — fija la tabla cuando está apagado */}
+        <button
+          data-testid="edit-mode-toggle"
+          onClick={() => setEditMode(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: editMode ? 'var(--grad)' : 'rgba(var(--cream-rgb),0.08)',
+            color: editMode ? '#fff' : 'var(--cream)',
+            border: editMode ? 'none' : '1px solid rgba(var(--cream-rgb),0.16)',
+            borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          {editMode ? '✓ Editando' : '✎ Editar'}
+        </button>
+
         {/* Density */}
         <div style={{ display: 'flex', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(var(--cream-rgb),0.1)' }}>
           {['compacto', 'expandido'].map(m => (
@@ -288,6 +354,49 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
             : `${filtered.length} unidades`}
         </span>
       </div>
+
+      {/* Llenado masivo — 1 click para todas las unidades del filtro (founder) */}
+      {editMode && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '10px 12px', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream)' }}>Llenado masivo:</span>
+          <select value={bulkField} onChange={e => { setBulkField(e.target.value); setBulkValue(''); }}
+            style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
+            {BULK_FIELDS.map(f => <option key={f.key} value={f.key} style={cellOptStyle}>{f.label}</option>)}
+          </select>
+          {bulkField === 'parking_spots' && (
+            <input type="number" min={0} value={bulkValue} onChange={e => setBulkValue(e.target.value)} placeholder="ej. 2"
+              style={{ width: 90, background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }} />
+          )}
+          {bulkField === 'parking_type' && (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
+              <option value="" style={cellOptStyle}>Elige…</option>
+              {Object.entries(PARKING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k} style={cellOptStyle}>{v}</option>)}
+            </select>
+          )}
+          {bulkField === 'bodega' && (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
+              <option value="" style={cellOptStyle}>Elige…</option>
+              <option value="si" style={cellOptStyle}>Sí (incluida)</option>
+              <option value="no" style={cellOptStyle}>No</option>
+            </select>
+          )}
+          {bulkField === 'vista' && (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8, color: 'var(--cream)', fontSize: 12, padding: '6px 8px' }}>
+              <option value="" style={cellOptStyle}>Elige…</option>
+              <option value="interior" style={cellOptStyle}>Interior</option>
+              <option value="exterior" style={cellOptStyle}>Exterior</option>
+            </select>
+          )}
+          <button data-testid="bulk-apply" onClick={applyBulk} disabled={bulkValue === '' || bulkBusy}
+            style={{ background: (bulkValue === '' || bulkBusy) ? 'rgba(148,163,184,0.25)' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: (bulkValue === '' || bulkBusy) ? 'not-allowed' : 'pointer' }}>
+            {bulkBusy ? 'Aplicando…' : `Aplicar a ${filtered.length} unidades`}
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>Usa los filtros de arriba para acotar.</span>
+        </div>
+      )}
 
       {/* Status filter chips */}
       <FilterChipsBar
@@ -391,7 +500,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{u.bathrooms ?? '—'}</td>
                 <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{u.parking_spots ?? '—'}</td>
                 {/* ADICIONALES (tipo cajón · bodega · ubicación) */}
-                <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} />
+                <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} editMode={editMode} />
                 {/* PRECIO */}
                 <td style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--cream)', fontWeight: 700, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
                   {priceAdjustPct > 0 ? (
