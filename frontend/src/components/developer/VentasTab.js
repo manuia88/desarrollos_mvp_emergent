@@ -534,7 +534,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#4ade80' },
                 { label: '', span: 1, rgb: null, fg: 'transparent' },
               ];
-              const labels = ['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'UBICACIÓN', 'PRECIO', 'ESTADO', ''];
+              const labels = ['ID', 'PROTO.', 'NIVEL', 'M² PRIV.', 'BALCÓN', 'TERRAZA', 'RG PRIV.', 'M² TOTALES', 'REC.', 'BAÑOS', 'CAJONES', 'TIPO CAJÓN', 'BODEGA', 'VISTA', 'PRECIO', 'ESTADO', ''];
               const colCats = [];
               CATS.forEach((c, ci) => { for (let k = 0; k < c.span; k++) colCats.push({ ...c, first: k === 0, ci }); });
               return (
@@ -582,10 +582,16 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 style={{
                   minHeight: rowHeight,
                   borderBottom: i < paged.length - 1 ? '1px solid rgba(var(--cream-rgb),0.06)' : 'none',
-                  cursor: 'pointer', transition: 'background 0.1s',
+                  cursor: 'pointer', transition: 'background 0.14s, box-shadow 0.14s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)';
+                  e.currentTarget.style.boxShadow = 'inset 3px 0 0 var(--theme-3), 0 1px 14px rgba(var(--theme-rgb),0.18)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
                 onClick={() => setDrawerUnit(u)}
               >
                 {/* UNIDAD */}
@@ -958,23 +964,29 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         display: 'flex', gap: 0, marginBottom: 20,
         border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, overflow: 'hidden',
       }}>
-        {SUB_TABS.map(st => (
-          <button
-            key={st.key}
-            data-testid={`subtab-${st.key}`}
-            onClick={() => setSubTab(st.key)}
-            style={{
-              flex: 1, padding: '9px 14px',
-              background: activeSubTab === st.key ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
-              color: activeSubTab === st.key ? 'var(--cream)' : 'var(--cream-3)',
-              border: 'none', borderRight: '1px solid rgba(var(--cream-rgb),0.1)',
-              fontSize: 12, fontWeight: activeSubTab === st.key ? 700 : 400,
-              cursor: 'pointer', transition: 'all 0.12s', fontFamily: 'DM Sans,sans-serif',
-            }}
-          >
-            {st.label}
-          </button>
-        ))}
+        {SUB_TABS.map(st => {
+          const on = activeSubTab === st.key;
+          return (
+            <button
+              key={st.key}
+              data-testid={`subtab-${st.key}`}
+              onClick={() => setSubTab(st.key)}
+              style={{
+                flex: 1, padding: '9px 14px',
+                background: on ? 'var(--grad)' : 'transparent',
+                color: on ? '#fff' : 'var(--cream-3)',
+                border: 'none', borderRight: '1px solid rgba(var(--cream-rgb),0.1)',
+                fontSize: 12, fontWeight: on ? 700 : 500,
+                cursor: 'pointer', transition: 'all 0.14s', fontFamily: 'DM Sans,sans-serif',
+                boxShadow: on ? 'inset 0 -2px 0 rgba(255,255,255,0.25)' : 'none',
+              }}
+              onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; e.currentTarget.style.color = 'var(--cream)'; } }}
+              onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-3)'; } }}
+            >
+              {st.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Proto filter active badge */}

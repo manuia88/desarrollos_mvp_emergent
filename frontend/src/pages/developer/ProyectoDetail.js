@@ -182,13 +182,13 @@ const fmtMXN = (v) => {
 
 // V2: Insights primero (es lo que más mueve la aguja); el resto = gestión de la ficha.
 const TABS = DEV_V2 ? [
-  { key: 'insights',        label: 'Insights',        phase: null },
-  { key: 'ventas',          label: 'Ventas',          phase: null },
-  { key: 'comercializacion',label: 'Comercialización',phase: null },
+  { key: 'ventas',          label: 'Ventas',          phase: null },  // workhorse diario
+  { key: 'insights',        label: 'Insights',        phase: null },  // cómo va / decisiones
+  { key: 'comercializacion',label: 'Comercialización',phase: null },  // pagos, políticas, brokers
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'contenido',       label: 'Contenido',       phase: null },
-  { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
+  { key: 'ubicacion',       label: 'Ubicación',       phase: null },
   { key: 'legal',           label: 'Legal',           phase: null },
 ] : [
   { key: 'ventas',          label: 'Ventas',          phase: null },
@@ -307,7 +307,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [showBrochure, setShowBrochure] = useState(false);
   const [showAiSuggest, setShowAiSuggest] = useState(false);  // colapsado: no estorba
 
-  const activeTab = searchParams.get('tab') || (DEV_V2 ? 'insights' : 'ventas');
+  const activeTab = searchParams.get('tab') || 'ventas';
   const diagnosticOpen = searchParams.get('diagnostic') === 'open';
   const [diagBadge, setDiagBadge] = useState(null);
 
@@ -563,33 +563,39 @@ export default function ProyectoDetail({ user, onLogout }) {
           }}
           data-testid="proyecto-tabs"
         >
-          {TABS.map((t, i) => (
-            <button
-              key={t.key}
-              data-testid={`tab-${t.key}`}
-              onClick={() => setTab(t.key)}
-              style={{
-                whiteSpace: 'nowrap', padding: '10px 16px',
-                background: activeTab === t.key ? 'rgba(var(--cream-rgb),0.10)' : 'transparent',
-                color: activeTab === t.key ? 'var(--cream)' : 'var(--cream-3)',
-                border: 'none',
-                borderRight: i < TABS.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
-                fontSize: 12, fontWeight: activeTab === t.key ? 700 : 400,
-                cursor: 'pointer', transition: 'all 0.12s', fontFamily: 'DM Sans,sans-serif',
-                position: 'relative',
-              }}
-            >
-              {t.label}
-              {t.phase && (
-                <span style={{
-                  position: 'absolute', top: 4, right: 4,
-                  fontSize: 7, color: 'rgba(var(--cream-rgb),0.25)',
-                }}>
-                  {t.phase}
-                </span>
-              )}
-            </button>
-          ))}
+          {TABS.map((t, i) => {
+            const on = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                data-testid={`tab-${t.key}`}
+                onClick={() => setTab(t.key)}
+                style={{
+                  whiteSpace: 'nowrap', padding: '10px 18px',
+                  background: on ? 'var(--grad)' : 'transparent',
+                  color: on ? '#fff' : 'var(--cream-3)',
+                  border: 'none',
+                  borderRight: i < TABS.length - 1 ? '1px solid rgba(var(--cream-rgb),0.08)' : 'none',
+                  fontSize: 12, fontWeight: on ? 700 : 500,
+                  cursor: 'pointer', transition: 'all 0.14s', fontFamily: 'DM Sans,sans-serif',
+                  position: 'relative',
+                  boxShadow: on ? 'inset 0 -2px 0 rgba(255,255,255,0.3), 0 2px 14px rgba(var(--theme-rgb),0.3)' : 'none',
+                }}
+                onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.boxShadow = 'inset 0 -2px 0 rgba(var(--theme-rgb),0.5)'; } }}
+                onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-3)'; e.currentTarget.style.boxShadow = 'none'; } }}
+              >
+                {t.label}
+                {t.phase && (
+                  <span style={{
+                    position: 'absolute', top: 4, right: 4,
+                    fontSize: 7, color: 'rgba(var(--cream-rgb),0.25)',
+                  }}>
+                    {t.phase}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content */}
