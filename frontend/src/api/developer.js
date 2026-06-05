@@ -272,6 +272,9 @@ export const getAmenityIntel = (projectId) => j(`/api/dev/projects/${projectId}/
 // Pagos y brokers — formas de pago, canal/comisión, conversión, confianza
 export const getBrokerIntel = (projectId) => j(`/api/dev/projects/${projectId}/broker-intel`);
 
+// Historial de precios / plusvalía — serie en el tiempo + % desde lanzamiento + por prototipo
+export const getPriceHistory = (projectId) => j(`/api/dev/projects/${projectId}/price-history`);
+
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
 export const getAmenitiesCatalog = () => j('/api/dev/amenities-catalog');

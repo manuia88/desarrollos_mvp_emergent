@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { getInsightsIntel } from '../../api/developer';
 import { fmtMXN, fmtFull, grid, Block, Stat, BigCard } from './cockpitUI';
+import PriceHistory from './PriceHistory';
 
 export default function InsightsIntel({ slug }) {
   const [d, setD] = useState(null);
@@ -26,7 +27,6 @@ export default function InsightsIntel({ slug }) {
   const comps = d.comparables || [];
   const e = d.embudo || {};
   const sc = d.score || {};
-  const fcst = d.forecast || {};
   const vs = a.list_vs_avm_pct;
   const fortaleza = (sc.breakdown || []).reduce((b, x) => (!b || x.value > b.value ? x : b), null);
 
@@ -93,22 +93,8 @@ export default function InsightsIntel({ slug }) {
         </Block>
       )}
 
-      {/* 5 · Apreciación proyectada */}
-      <Block title="Apreciación proyectada" hint="cuánto subiría de valor la zona">
-        <div style={grid(190)}>
-          {fcst.available && fcst.horizons?.['12m'] ? (
-            <>
-              <Stat label="A 12 meses" value={`+${(fcst.horizons['12m'].delta_pct ?? 0).toFixed(1)}`} unit="%" tone="green"
-                framing="proyección del modelo de la zona" />
-              <Stat label="A 24 meses" value={fcst.horizons['24m'] ? `+${(fcst.horizons['24m'].delta_pct ?? 0).toFixed(1)}` : '—'} unit="%" tone="green"
-                framing="horizonte de mediano plazo" />
-            </>
-          ) : (
-            <Stat label="Apreciación 12m" value="—" tone="flat" stub
-              framing="se conecta al acumular histórico de precios de la zona" />
-          )}
-        </div>
-      </Block>
+      {/* 5 · Historial de precios / plusvalía (curva real) */}
+      <PriceHistory slug={slug} />
     </div>
   );
 }

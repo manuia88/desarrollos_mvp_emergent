@@ -669,6 +669,16 @@ async def patch_unit(dev_id: str, unit_id: str, payload: UnitPatch, request: Req
                       before=existing, after=update, request=request,
                       ml_event="unit_price_changed" if payload.price else "unit_status_changed",
                       ml_context={"dev_id": dev_id, "unit_id": unit_id, "changes": list(changes.keys())})
+    # Captura del historial de precios (flywheel) — append-only, fail-open.
+    if payload.price:
+        try:
+            from routes.dev_price_history import record_price_event
+            old_price = (existing or {}).get("price") or unit.get("price")
+            await record_price_event(db, dev_id, unit, old_price, payload.price,
+                                     user_id=user.user_id, source="inventory_edit",
+                                     label=payload.price_change_reason or "Ajuste de lista")
+        except Exception:
+            pass
     return {"ok": True, **update}
 
 
