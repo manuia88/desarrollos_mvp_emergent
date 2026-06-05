@@ -142,18 +142,19 @@ ALL_AMENIDADES = {
         "roof_garden_privado": "Roof garden privado", "calefaccion": "Calefacción",
         "amueblado": "Amueblado", "doble_altura": "Doble altura",
     },
-    "comunes": {  # Áreas comunes del edificio (lo más común primero)
-        "roof": "Roof garden común", "alberca": "Alberca", "salon_eventos": "Salón de eventos",
+    "comunes": {  # Las imprescindibles — lo más común y esperado (incluye las universales)
+        "roof": "Roof garden común", "alberca": "Alberca", "gym": "Gimnasio",
+        "estacionamiento": "Estacionamiento", "seguridad": "Seguridad 24/7",
+        "elevador": "Elevador", "pet": "Pet friendly", "salon_eventos": "Salón de eventos",
         "terraza_comun": "Terraza común", "asadores": "Asadores / Grill",
         "lobby": "Lobby doble altura", "sky_lounge": "Sky lounge",
         "business_center": "Business center", "cowork": "Coworking",
-        "bar_lounge": "Bar / Lounge", "cava": "Cava", "cine": "Sala de cine",
-        "game_room": "Salón de juegos", "ludoteca": "Ludoteca", "casa_club": "Casa club",
-        "salon_usos": "Salón de usos múltiples", "alberca_techada": "Alberca techada",
-        "jacuzzi": "Jacuzzi", "fire_pit": "Fire pit", "sala_juntas": "Sala de juntas",
+        "cine": "Sala de cine", "game_room": "Salón de juegos", "ludoteca": "Ludoteca",
+        "casa_club": "Casa club", "salon_usos": "Salón de usos múltiples",
+        "alberca_techada": "Alberca techada", "fire_pit": "Fire pit", "sala_juntas": "Sala de juntas",
     },
     "deportivas": {  # Deporte y bienestar (lo más común primero)
-        "gym": "Gimnasio", "spa": "Spa", "jogging": "Pista de jogging", "sauna": "Sauna",
+        "spa": "Spa", "jogging": "Pista de jogging", "sauna": "Sauna",
         "yoga": "Salón de yoga", "vapor": "Vapor", "cancha_padel": "Cancha de pádel",
         "cancha_tenis": "Cancha de tenis", "cancha_basquet": "Cancha de básquet",
         "cancha_futbol": "Cancha de fútbol", "spinning": "Spinning", "squash": "Squash",
@@ -161,27 +162,26 @@ ALL_AMENIDADES = {
     },
     "familiares": {  # Familia y niños (lo más común primero)
         "area_juegos": "Juegos infantiles", "area_pets": "Área de mascotas",
-        "pet": "Pet friendly", "chapoteadero": "Chapoteadero",
-        "kids_club": "Kids club", "teens_room": "Teens room",
+        "chapoteadero": "Chapoteadero", "kids_club": "Kids club", "teens_room": "Teens room",
     },
     "seguridad": {  # Seguridad y acceso (lo más común primero)
-        "seguridad": "Seguridad 24h", "control_acceso": "Control de acceso",
-        "cctv": "CCTV / Circuito cerrado", "caseta": "Caseta de vigilancia",
-        "fraccionamiento_privado": "Fraccionamiento privado", "acceso_biometrico": "Acceso biométrico",
+        "control_acceso": "Control de acceso", "cctv": "CCTV / Circuito cerrado",
+        "caseta": "Caseta de vigilancia", "fraccionamiento_privado": "Fraccionamiento privado",
+        "acceso_biometrico": "Acceso biométrico",
     },
     "exteriores": {  # Exteriores y naturaleza (lo más común primero)
         "jardines": "Jardines", "areas_verdes": "Áreas verdes", "andadores": "Andadores",
         "lago": "Lago / Espejo de agua", "huertos": "Huertos urbanos",
     },
     "tecnologicas": {  # Tecnología (lo más común primero)
-        "elevador": "Elevador", "fibra_optica": "Fibra óptica", "domotica": "Domótica",
+        "fibra_optica": "Fibra óptica", "domotica": "Domótica",
         "cargador_ev": "Cargador para auto eléctrico", "smart_locks": "Cerraduras inteligentes",
     },
     "sustentabilidad": {  # Sustentabilidad (lo más común primero)
-        "estacionamiento": "Estacionamiento incluido", "paneles_solares": "Paneles solares",
-        "captacion_pluvial": "Captación pluvial", "planta_tratadora": "Planta tratadora de agua",
-        "concierge": "Concierge", "valet": "Valet parking",
-        "bicicletas": "Estacionamiento de bicis", "separacion_basura": "Separación de basura",
+        "paneles_solares": "Paneles solares", "captacion_pluvial": "Captación pluvial",
+        "planta_tratadora": "Planta tratadora de agua", "concierge": "Concierge",
+        "valet": "Valet parking", "bicicletas": "Estacionamiento de bicis",
+        "separacion_basura": "Separación de basura",
     },
 }
 
@@ -219,6 +219,17 @@ ALL_SERVICIOS = {
         {"value": "cable", "label": "Cable / DSL"},
         {"value": "preinstalado", "label": "Preinstalación"}]},
 }
+
+
+@router.get("/amenities-catalog")
+async def get_amenities_catalog(request: Request):
+    """Catálogo de amenidades/servicios (sin proyecto) — lo usa el wizard de alta."""
+    await _auth(request)
+    return {
+        "all_categories": ALL_AMENIDADES,
+        "all_servicios": ALL_SERVICIOS,
+        "variable_amenities": VARIABLE_AMENITIES,
+    }
 
 
 @router.get("/projects/{project_id}/amenities")

@@ -268,6 +268,7 @@ export const getInsightsIntel = (projectId) => j(`/api/dev/projects/${projectId}
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
+export const getAmenitiesCatalog = () => j('/api/dev/amenities-catalog');
 export const patchProjectAmenities = (pid, b) => patch(`/api/dev/projects/${pid}/amenities`, b);
 export const getCommercialization = (pid) => j(`/api/dev/projects/${pid}/commercialization`);
 export const patchCommercialization = (pid, b) => patch(`/api/dev/projects/${pid}/commercialization`, b);

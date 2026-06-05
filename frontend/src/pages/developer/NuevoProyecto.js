@@ -13,6 +13,8 @@ import {
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
+import { getAmenitiesCatalog } from '../../api/developer';
+import { SECTION_LABELS, AmenitySection } from '../../components/developer/amenitiesUI';
 
 // ═══ STEP 1 — Categoría ═══════════════════════════════════════════════════
 function Step1Categoria({ data = {}, onChange, ia_prefill }) {
@@ -121,44 +123,28 @@ function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
   );
 }
 
-// ═══ STEP 4 — Amenidades ══════════════════════════════════════════════════
-const AMENITY_CATS = {
-  comunes:        ['gym', 'alberca', 'spa', 'sauna', 'jacuzzi', 'terraza', 'salon_eventos'],
-  internas:       ['lobby', 'cowork', 'biblioteca', 'cine', 'game_room', 'bar'],
-  exteriores:     ['jardin', 'parque', 'cancha_padel', 'cancha_tenis', 'pista_jogging', 'area_mascotas'],
-  premium:        ['valet_parking', 'concierge_24h', 'helipuerto', 'wine_cellar', 'private_dining'],
-};
-function Step4Amenidades({ data = [], onChange, ia_prefill }) {
-  const selected = new Set(data || []);
-  const iaSet = new Set((ia_prefill?.amenidades_sugeridas || []).map(a => typeof a === 'string' ? a : a.value));
+// ═══ STEP 4 — Amenidades (mismo diseño que la ficha: tarjetas con ícono) ════
+function Step4Amenidades({ data = [], onChange }) {
+  const [catalog, setCatalog] = useState(null);
+  useEffect(() => { getAmenitiesCatalog().then(setCatalog).catch(() => {}); }, []);
+  const selected = data || [];
   const toggle = (a) => {
-    const next = new Set(selected);
-    next.has(a) ? next.delete(a) : next.add(a);
-    onChange([...next]);
+    const set = new Set(selected);
+    set.has(a) ? set.delete(a) : set.add(a);
+    onChange([...set]);
   };
+  if (!catalog) return <div className="text-xs text-[rgba(var(--cream-rgb),0.55)]">Cargando amenidades…</div>;
+  const cats = catalog.all_categories || {};
+  const variableSet = new Set(catalog.variable_amenities || []);
+  // Panel CLARO (mismo look que la ficha) dentro del wizard oscuro.
   return (
-    <div className="space-y-5">
-      <div className="text-xs text-[rgba(var(--cream-rgb),0.55)]">
-        Selecciona amenidades disponibles. <strong className="text-[var(--cream)]">{selected.size}</strong> activas.
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', borderRadius: 14, padding: 16 }}>
+      <div style={{ fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>
+        Toca para activar · <strong style={{ color: 'var(--theme)' }}>{selected.length}</strong> seleccionadas
       </div>
-      {Object.entries(AMENITY_CATS).map(([cat, list]) => (
-        <div key={cat}>
-          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(var(--cream-rgb),0.5)] mb-2">{cat}</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {list.map(a => (
-              <label key={a} data-testid={`amenity-${a}`}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors
-                  ${selected.has(a)
-                    ? 'bg-[rgba(var(--cream-rgb),0.12)] border-[rgba(var(--cream-rgb),0.3)] text-[var(--cream)]'
-                    : 'bg-[rgba(var(--cream-rgb),0.03)] border-[rgba(var(--cream-rgb),0.08)] text-[rgba(var(--cream-rgb),0.65)]'}`}>
-                <input type="checkbox" checked={selected.has(a)} onChange={() => toggle(a)}
-                  className="accent-[var(--cream)]" />
-                <span className="text-xs capitalize">{a.replace('_', ' ')}</span>
-                {iaSet.has(a) && <Sparkles size={10} className="text-amber-400 ml-auto" />}
-              </label>
-            ))}
-          </div>
-        </div>
+      {Object.entries(cats).map(([sk, opts]) => (
+        <AmenitySection key={sk} sectionKey={sk} sectionLabel={SECTION_LABELS[sk] || sk}
+          allOptions={opts} selected={selected} isEditing={true} onToggle={toggle} variableSet={variableSet} />
       ))}
     </div>
   );
