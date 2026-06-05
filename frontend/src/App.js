@@ -251,6 +251,7 @@ const PerfilAsesor                   = lazy(() => import('./pages/public/PerfilA
 // Phase 13 Batch 36 — Marketplace Asesor + Whitelist Developer
 const AsesorMiniMarket               = lazy(() => import('./pages/asesor/AsesorMiniMarket'));
 const AsesorInventario               = lazy(() => import('./pages/asesor/AsesorInventario'));
+const PlaybookProyecto               = lazy(() => import('./pages/asesor/PlaybookProyecto'));
 const DesarrolladorSolicitudes       = lazy(() => import('./pages/developer/DesarrolladorSolicitudes'));
 
 // Phase 14 Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships
@@ -762,6 +763,7 @@ function AppRouter() {
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/busquedas" element={<AdvisorRoute Page={AsesorBusquedas} />} />
+      <Route path="/asesor/proyecto/:id" element={<AdvisorRoute Page={PlaybookProyecto} />} />
       <Route path="/asesor/captaciones" element={<AdvisorRoute Page={AsesorCaptaciones} />} />
       {/* B7 Fase 3 · Hub Mis Leads (Pipeline + Búsquedas + Captaciones en pestañas) */}
       <Route path="/asesor/mis-leads" element={<AdvisorRoute Page={MisLeadsPage} />} />

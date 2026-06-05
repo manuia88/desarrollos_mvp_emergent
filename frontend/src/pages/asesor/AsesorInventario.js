@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import {
   Building2, MapPin, DollarSign, Phone, Mail, MessageSquare, ChevronRight, X,
-  CheckCircle2, Store, ExternalLink,
+  CheckCircle2, Store, ExternalLink, ScrollText,
 } from 'lucide-react';
 import { fetchDevelopments } from '../../api/marketplace';
 import { getAuthorizedDevOrgs } from '../../api/advisor_whitelist';
@@ -34,6 +34,7 @@ function CommissionBadge({ pct }) {
 }
 
 function ProjectDrawer({ project, onClose }) {
+  const navigate = useNavigate();
   if (!project) return null;
   const devId = project.developer_id || project.dev_org_id;
 
@@ -185,6 +186,20 @@ function ProjectDrawer({ project, onClose }) {
             </div>
           </div>
         )}
+
+        {/* Ficha para vender (playbook B3.1) */}
+        <button
+          data-testid="ver-playbook-btn"
+          onClick={() => navigate(`/asesor/proyecto/${project.id}`)}
+          style={{
+            width: '100%', padding: '11px 0', borderRadius: 9999, marginBottom: 10,
+            background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.30)',
+            color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          }}
+        >
+          <ScrollText size={14} /> Ver ficha para vender (comisión, política, qué ofrecer)
+        </button>
 
         {/* Share CTA */}
         <button

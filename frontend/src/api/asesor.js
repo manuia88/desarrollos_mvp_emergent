@@ -85,3 +85,10 @@ export async function fetchArgumentarioKB({ category = null, limit = 50 } = {}) 
   if (!r.ok) throw new Error('Error al cargar base de conocimiento');
   return r.json();
 }
+
+// ─── Playbook del proyecto (B3.1) — qué configuró el dev: acceso, comisión, política, qué ofrecer ──
+export async function fetchAsesorPlaybook(projectId) {
+  const r = await fetch(`${API}/api/asesor/proyecto/${projectId}/playbook`, { credentials: 'include' });
+  if (!r.ok) throw new Error('Error al cargar el playbook del proyecto');
+  return r.json();
+}
