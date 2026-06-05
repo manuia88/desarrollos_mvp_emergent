@@ -20,6 +20,14 @@ Origen: B1.5 (`construction_seal` en dev_batch2.py). Hoy traduce {cimentacion, e
 
 ---
 
+## 📸 CONTENIDO DEL WIZARD — video/brochure/tour + galería comprador (2026-06-05 · B1.2)
+
+Origen: B1.2 (fotos reales en wizard). El endpoint de assets es **solo imágenes** (ALLOWED_IMG_EXT). Hoy el wizard sube fotos (foto_render) que llegan al comprador.
+- **Diferido (necesita infra distinta, no bloquea):** (1) video/brochure/tour-360 en el wizard — el video/brochure necesitan storage de no-imagen; el tour-360 usa `pedra_generate_360` (stub honesto si falta PEDRA_API_KEY). (2) Selector de portada explícito en el wizard (hoy la 1ª foto = portada por order_index; falta UI "marcar portada"). (3) Auto-tag IA: `ai_categorize` (Claude vision) corre en background pero stub sin EMERGENT_LLM_KEY → activar y SURFACEAR la categoría detectada (sala/cocina/fachada) en la galería. Destino: cuando haya keys + B2. 
+- **Galería en marketplace del comprador = B2.1** (renderizar las fotos dev_assets en la ficha pública; el dato ya fluye vía GET /api/developments/{id}/assets con public_url).
+
+---
+
 ## 🔧 OPORTUNIDADES ASESOR — IA/ML/Seguridad/Diseño (2026-06-01 · de la auditoría)
 
 Origen: auditoría arquitectura asesor (`memory/ASESOR_ARCH_AUDIT.md`). Destino: Etapa 0-6 (ver `06_ROADMAP.md`). **Insight: casi todo = cablear/surfacear motor existente, no construir ML de cero.**

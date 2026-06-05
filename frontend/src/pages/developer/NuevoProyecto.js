@@ -13,7 +13,7 @@ import {
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
-import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal } from '../../api/developer';
+import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal, uploadProjectAssets } from '../../api/developer';
 import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
 import { SchemeCard } from '../../components/developer/paymentSchemesUI';
 import { SistemaPicker, SelloConfianza } from '../../components/developer/sistemaConstructivoUI';
@@ -278,32 +278,32 @@ function StepSistema({ data = {}, onChange, allData = {} }) {
   );
 }
 
-// ═══ STEP 7 — Contenido y Fotos ═══════════════════════════════════════════
+// ═══ STEP 7 — Fotos del proyecto (subida REAL al crear · B1.2) ════════════════
+const _fileKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
 function Step5Contenido({ data = {}, onChange }) {
-  const [uploaded, setUploaded] = useState(data.files || []);
-  const handleDrop = (files) => {
-    const newList = [...uploaded, ...files.map(f => ({
-      name: f.name, size: f.size, type: f.type,
-      ext: f.name.split('.').pop().toLowerCase(),
-    }))];
-    setUploaded(newList);
-    onChange({ ...data, files: newList });
+  const files = data.files || [];
+  // DragDropZone entrega la lista completa; merge con dedupe → no se pierden fotos al volver al paso.
+  const handleDrop = (incoming) => {
+    const map = new Map(files.map(f => [_fileKey(f), f]));
+    (incoming || []).forEach(f => map.set(_fileKey(f), f));
+    onChange({ ...data, files: [...map.values()] });
   };
   return (
     <div>
       <p className="text-xs text-[rgba(var(--cream-rgb),0.55)] mb-3">
-        Fotos cover, planos, renders, brochure, video y tour 360°. Mínimo <strong>1 foto cover</strong>.
+        Fotos del desarrollo (fachada, áreas comunes, depa muestra). La <strong>primera será la portada</strong>.
+        Se suben al crear el proyecto y <strong>las verá el comprador</strong>.
       </p>
       <DragDropZone
-        accept="image/*,.pdf,.mp4,.mov"
-        maxSizeMB={50}
+        accept="image/*"
+        maxSizeMB={12}
         maxFiles={20}
         onUpload={handleDrop}
-        label="Arrastra fotos, planos o videos"
+        label="Arrastra las fotos del proyecto"
       />
-      {uploaded.length > 0 && (
+      {files.length > 0 && (
         <div className="mt-3 text-xs text-[var(--cream-2)]" data-testid="content-uploaded-count">
-          {uploaded.length} archivo(s) preparados (se subirán al crear el proyecto).
+          📸 {files.length} foto(s) listas · se suben al crear · el asistente las clasifica solo (sala, cocina, fachada…)
         </div>
       )}
     </div>
@@ -668,6 +668,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
   const [smartDefaults, setSmartDefaults] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingFotos, setUploadingFotos] = useState(0);
 
   useEffect(() => {
     getWizardSmartDefaults().then(setSmartDefaults).catch(() => {});
@@ -706,6 +707,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
     try {
       const am = allData.amenidades;
       const amObj = Array.isArray(am) ? { amenities: am } : (am || {});
+      const fotos = (allData.contenido && allData.contenido.files) || [];   // File[] reales
       const payload = {
         categoria: allData.categoria || {},
         operacion: allData.operacion || {},
@@ -715,13 +717,18 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         amenity_scope: amObj.amenity_scope || {},
         pagos: allData.pagos || {},
         construccion: allData.construccion || {},
-        contenido: allData.contenido || {},
+        contenido: { count: fotos.length },   // los archivos NO van en el JSON; se suben aparte
         legal: allData.legal || {},
         comercializacion: allData.comercializacion || {},
         ia_source: iaPrefill ? 'ia_upload' : (mode === 'drive' ? 'drive' : 'manual'),
         ia_extraction_id: iaPrefill?.run_id || null,
       };
       const r = await createWizardProject(payload);
+      // Subida REAL de fotos al proyecto recién creado (no bloquea: el proyecto ya existe)
+      if (fotos.length && r.project_id) {
+        setUploadingFotos(fotos.length);
+        try { await uploadProjectAssets(r.project_id, fotos); } catch (e) { /* el proyecto ya existe; se reintenta en la ficha */ }
+      }
       navigate(r.redirect || `/desarrollador/proyectos/${r.project_id}`);
     } catch (e) {
       setSubmitError(e.message || 'Error al crear el proyecto');
@@ -789,7 +796,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         {submitting && (
           <div className="fixed inset-0 bg-black/60 z-[1500] flex items-center justify-center">
             <div className="bg-[var(--surface-2,rgba(var(--cream-rgb),0.04))] border border-[var(--border,rgba(var(--cream-rgb),0.2))] rounded-xl p-6 text-[var(--cream)]">
-              Creando proyecto…
+              {uploadingFotos > 0 ? `Subiendo ${uploadingFotos} foto(s)…` : 'Creando proyecto…'}
             </div>
           </div>
         )}

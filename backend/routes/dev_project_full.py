@@ -141,7 +141,7 @@ def project_readiness(full: Dict[str, Any]) -> Dict[str, Any]:
         ("Sistema constructivo", bool((con.get("sistema_constructivo") or {}).get("cimentacion")), "avance"),
         ("Formas de pago", len(pay.get("schemes") or []) >= 1, "comercializacion"),
         ("Política comercial", bool(comm.get("configured")), "comercializacion"),
-        ("Fotos del proyecto", (cont.get("photos") or 0) >= 3, "contenido"),
+        ("Fotos del proyecto", ((cont.get("photos") or 0) + (cont.get("assets") or 0)) >= 3, "contenido"),
         ("Avance de obra", (con.get("overall_percent") or 0) > 0, "avance"),
     ]
     passed = sum(1 for _, ok, _ in checks if ok)
@@ -263,7 +263,11 @@ async def portal_preview(db, pid: str) -> Dict[str, Any]:
     n_amen = len((ov.get("amenidades") or []))
     n_pago = len((ov.get("formas_pago") or []))
     tiene_sistema = bool(ov.get("sistema_constructivo"))
+    cont = full.get("contenido") or {}
+    n_fotos = (cont.get("photos") or 0) + (cont.get("assets") or 0)
     comprador_items = []
+    if n_fotos:
+        comprador_items.append(f"{n_fotos} fotos del proyecto")
     if n_amen:
         comprador_items.append(f"{n_amen} amenidades")
     if n_serv:

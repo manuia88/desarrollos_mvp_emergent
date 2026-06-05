@@ -289,6 +289,15 @@ export const suggestSchemes = (body) => post('/api/dev/wizard/suggest-schemes', 
 // Sistema constructivo en el wizard: catálogo + smart-default por tipo + sello de confianza preview
 export const getConstructionMeta = (tipo) => j(`/api/dev/wizard/construction-meta${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ''}`);
 export const getConstructionSeal = (sistema_constructivo) => post('/api/dev/wizard/construction-seal', { sistema_constructivo });
+// Sube fotos REALES (multipart) a un proyecto → db.dev_assets (watermark + auto-tag IA) → comprador (B1.2)
+export const uploadProjectAssets = async (projectId, files, assetType = 'foto_render') => {
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  fd.append('asset_type', assetType);
+  const r = await fetch(`${API}/api/desarrollador/developments/${projectId}/assets/upload`, { method: 'POST', credentials: 'include', body: fd });
+  if (!r.ok) { const b = await r.json().catch(() => ({})); throw Object.assign(new Error(b.detail || r.statusText), { status: r.status, body: b }); }
+  return r.json();
+};
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);

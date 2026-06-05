@@ -109,6 +109,26 @@ def _check_dev_access(user, dev_id: str) -> None:
         raise HTTPException(403, "Acceso restringido: este desarrollo no pertenece a tu tenant.")
 
 
+async def _assert_dev_access(db, user, dev_id: str) -> None:
+    """Acceso a un desarrollo para ops de assets: seed (allow-list del tenant) O proyecto creado por
+    el dev en el wizard (pertenencia por dev_org_id en Mongo). Cierra el ciclo crear→subir fotos (B1.2).
+    Valida también existencia (si es propio, existe) → reemplaza _check_dev_access + _dev_exists."""
+    allowed = _allowed_dev_ids(user)
+    if allowed == "*":
+        return
+    if isinstance(allowed, list) and dev_id in allowed:
+        return
+    from tenant_scope import tenant_of
+    tenant = tenant_of(user)
+    try:
+        doc = (await db.projects.find_one({"$or": [{"id": dev_id}, {"slug": dev_id}], "dev_org_id": tenant}, {"_id": 0, "id": 1})
+               or await db.developments.find_one({"id": dev_id, "dev_org_id": tenant}, {"_id": 0, "id": 1}))
+    except Exception:
+        doc = None
+    if not doc:
+        raise HTTPException(403, "Acceso restringido: este desarrollo no pertenece a tu tenant.")
+
+
 def _require_dev_or_superadmin(user) -> None:
     if user.role not in {"superadmin", "developer_admin"}:
         raise HTTPException(403, "Solo superadmin y developer_admin pueden gestionar documentos.")
@@ -670,15 +690,13 @@ async def assets_upload(
 ):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    db = _get_db(request)
+    await _assert_dev_access(db, user, dev_id)   # seed o proyecto del wizard (B1.2)
 
     if asset_type not in ASSET_TYPES:
         raise HTTPException(400, f"asset_type inválido. Permitidos: {sorted(ASSET_TYPES)}")
     if len(files) > ASSET_MAX_BATCH:
         raise HTTPException(400, f"Máximo {ASSET_MAX_BATCH} archivos por lote")
-
-    db = _get_db(request)
     # Determine starting order_index
     last = await db.dev_assets.find_one(
         {"development_id": dev_id, "asset_type": asset_type},
@@ -742,8 +760,8 @@ async def _categorize_and_save(db, asset_id: str, image_bytes: bytes):
 async def assets_reorder(dev_id: str, body: ReorderBody, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
     db = _get_db(request)
+    await _assert_dev_access(db, user, dev_id)
 
     # Capture previous order for undo (Batch 17)
     prev = await db.dev_assets.find(
@@ -777,8 +795,8 @@ async def assets_reorder(dev_id: str, body: ReorderBody, request: Request):
 async def asset_categorize(dev_id: str, asset_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
     db = _get_db(request)
+    await _assert_dev_access(db, user, dev_id)
     a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
     if not a:
         raise HTTPException(404, "Asset no encontrado")
@@ -803,8 +821,8 @@ async def asset_categorize(dev_id: str, asset_id: str, request: Request):
 async def asset_generate_360(dev_id: str, asset_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
     db = _get_db(request)
+    await _assert_dev_access(db, user, dev_id)
     a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
     if not a:
         raise HTTPException(404, "Asset no encontrado")
@@ -827,8 +845,8 @@ async def asset_generate_360(dev_id: str, asset_id: str, request: Request):
 async def asset_delete(dev_id: str, asset_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
     db = _get_db(request)
+    await _assert_dev_access(db, user, dev_id)
     a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
     if not a:
         raise HTTPException(404, "Asset no encontrado")
