@@ -28,6 +28,14 @@ Origen: B1.2 (fotos reales en wizard). El endpoint de assets es **solo imágenes
 
 ---
 
+## ⚖️ ASISTENTE LEGAL / DOCUMENT INTELLIGENCE — activar extracción (2026-06-05 · B1.3)
+
+Origen: B1.3 (docs legales en wizard). El pipeline DI existe y es real (OCR pdfplumber/pytesseract → extracción Claude `extraction_engine` → cross-check 5 reglas → IE scores riesgo legal → compliance-badge verde/ámbar al comprador). Hoy el wizard sube docs reales a di_documents (status `pending`) y `legal_seal` dice "el asistente los está revisando".
+- **Upgrade (necesita keys/budget):** activar EMERGENT_LLM_KEY → la extracción Claude corre → status `extracted` → `legal_seal` pasa a "N verificados" + compliance-badge sube a verde + cross-check detecta riesgos (precio escritura vs LP, vigencia predial, SEDUVI vs unidades, m² licencia, RFC). Surfacear al dev las alertas de riesgo ("tu predial vence en 30 días", "la escritura no coincide con los m² declarados"). El cableado ya está; solo falta encender la key. Destino: cuando haya budget LLM. NO bloquea — el dato fluye, el sello se autoupgradea.
+- Pendiente menor: selector de PORTADA explícito para fotos (B1.2) sigue en su propio backlog arriba.
+
+---
+
 ## 🔧 OPORTUNIDADES ASESOR — IA/ML/Seguridad/Diseño (2026-06-01 · de la auditoría)
 
 Origen: auditoría arquitectura asesor (`memory/ASESOR_ARCH_AUDIT.md`). Destino: Etapa 0-6 (ver `06_ROADMAP.md`). **Insight: casi todo = cablear/surfacear motor existente, no construir ML de cero.**

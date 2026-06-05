@@ -13,7 +13,7 @@ import {
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
-import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal, uploadProjectAssets } from '../../api/developer';
+import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal, uploadProjectAssets, getLegalMeta, uploadDevDocument } from '../../api/developer';
 import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
 import { SchemeCard } from '../../components/developer/paymentSchemesUI';
 import { SistemaPicker, SelloConfianza } from '../../components/developer/sistemaConstructivoUI';
@@ -310,39 +310,52 @@ function Step5Contenido({ data = {}, onChange }) {
   );
 }
 
-// ═══ STEP 6 — Legal ═══════════════════════════════════════════════════════
+// ═══ STEP 6 — Legal: estado + documentos reales que el asistente revisa (B1.3) ═══
+const _legalKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
 function Step6Legal({ data = {}, onChange }) {
   const set = (k, v) => onChange({ ...data, [k]: v });
-  const estados = [
-    { v: 'sin_contrato',   label: 'Sin contrato' },
-    { v: 'docs_pendientes', label: 'Docs pendientes' },
-    { v: 'en_revision',    label: 'En revisión' },
-    { v: 'aprobado',       label: 'Aprobado' },
-    { v: 'rechazado',      label: 'Rechazado' },
-  ];
-  const [docs, setDocs] = useState(data.documents || []);
-  const onDrop = (files) => {
-    const next = [...docs, ...files.map(f => ({ name: f.name, size: f.size }))];
-    setDocs(next);
-    set('documents', next);
+  const [meta, setMeta] = useState(null);
+  const [cat, setCat] = useState('escritura');
+  const docs = data.documents || [];   // [{file, doc_type, label}]
+
+  useEffect(() => { getLegalMeta().then(m => { setMeta(m); if (m.doc_types?.[0]) setCat(m.doc_types[0].value); }).catch(() => {}); }, []);
+
+  const onDrop = (incoming) => {
+    const label = meta?.doc_types?.find(t => t.value === cat)?.label || cat;
+    const map = new Map(docs.map(d => [_legalKey(d.file), d]));
+    (incoming || []).forEach(f => map.set(_legalKey(f), { file: f, doc_type: cat, label }));
+    set('documents', [...map.values()]);
   };
+  const remove = (k) => set('documents', docs.filter(d => _legalKey(d.file) !== k));
+
+  const estados = (meta?.estados || []).map(e => ({ v: e.value, label: e.label }));
   return (
     <div className="space-y-5">
-      <Field label="Estado proceso legal">
-        <RadioGrid value={data.estado || 'sin_contrato'} onChange={v => set('estado', v)} opts={estados} tid="legal-status" />
+      <Field label="Estado del proceso legal">
+        <RadioGrid value={data.estado || 'sin_contrato'} onChange={v => set('estado', v)} opts={estados.length ? estados : [{ v: 'sin_contrato', label: 'Sin contrato' }]} tid="legal-status" />
       </Field>
       <div>
-        <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(var(--cream-rgb),0.5)] mb-2">Documentos legales</h4>
-        <DragDropZone
-          accept=".pdf,.docx,.xlsx"
-          maxSizeMB={20}
-          maxFiles={15}
-          onUpload={onDrop}
-          label="Uso de suelo, SEDUVI, planos aprobados, contratos…"
-        />
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <h4 className="text-[10px] font-bold tracking-wider uppercase text-[rgba(var(--cream-rgb),0.5)]">Documentos legales</h4>
+          <select value={cat} onChange={e => setCat(e.target.value)} data-testid="legal-doc-type"
+            className="text-xs rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.14)] text-[var(--cream)] px-2 py-1.5">
+            {(meta?.doc_types || []).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </div>
+        <DragDropZone accept=".pdf,.jpg,.jpeg,.png" maxSizeMB={20} maxFiles={15} onUpload={onDrop}
+          label={`Arrastra: ${meta?.doc_types?.find(t => t.value === cat)?.label || 'documento'}`} />
         {docs.length > 0 && (
-          <div className="mt-2 text-xs text-[var(--cream-2)]" data-testid="legal-docs-count">
-            {docs.length} documento(s) listos · Se categorizarán automáticamente con IA tras crear el proyecto.
+          <div className="mt-3 space-y-1.5" data-testid="legal-docs-list">
+            {docs.map((d) => (
+              <div key={_legalKey(d.file)} className="flex items-center gap-2 text-xs text-[var(--cream-2)] bg-[rgba(var(--cream-rgb),0.05)] rounded-lg px-3 py-1.5">
+                <span className="font-bold text-[var(--theme,#6D4AFF)]">{d.label}</span>
+                <span className="truncate flex-1">{d.file.name}</span>
+                <button type="button" onClick={() => remove(_legalKey(d.file))} className="text-[rgba(var(--cream-rgb),0.4)] hover:text-red-400">✕</button>
+              </div>
+            ))}
+            <div className="text-[11px] text-[rgba(var(--cream-rgb),0.5)] pt-1">
+              🤖 El asistente legal los revisa solo (lee, extrae datos y verifica) tras crear el proyecto.
+            </div>
           </div>
         )}
       </div>
@@ -669,6 +682,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFotos, setUploadingFotos] = useState(0);
+  const [uploadingDocs, setUploadingDocs] = useState(0);
 
   useEffect(() => {
     getWizardSmartDefaults().then(setSmartDefaults).catch(() => {});
@@ -708,6 +722,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
       const am = allData.amenidades;
       const amObj = Array.isArray(am) ? { amenities: am } : (am || {});
       const fotos = (allData.contenido && allData.contenido.files) || [];   // File[] reales
+      const legalDocs = (allData.legal && allData.legal.documents) || [];   // [{file, doc_type}]
       const payload = {
         categoria: allData.categoria || {},
         operacion: allData.operacion || {},
@@ -718,7 +733,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         pagos: allData.pagos || {},
         construccion: allData.construccion || {},
         contenido: { count: fotos.length },   // los archivos NO van en el JSON; se suben aparte
-        legal: allData.legal || {},
+        legal: { estado: (allData.legal && allData.legal.estado) || 'sin_contrato' },  // docs aparte
         comercializacion: allData.comercializacion || {},
         ia_source: iaPrefill ? 'ia_upload' : (mode === 'drive' ? 'drive' : 'manual'),
         ia_extraction_id: iaPrefill?.run_id || null,
@@ -728,6 +743,16 @@ export default function NuevoProyectoPage({ user, onLogout }) {
       if (fotos.length && r.project_id) {
         setUploadingFotos(fotos.length);
         try { await uploadProjectAssets(r.project_id, fotos); } catch (e) { /* el proyecto ya existe; se reintenta en la ficha */ }
+      }
+      // Subida REAL de documentos legales (cada uno con su tipo → di_documents → pipeline IA)
+      if (legalDocs.length && r.project_id) {
+        setUploadingFotos(0); setUploadingDocs(legalDocs.length);
+        for (const d of legalDocs) {
+          try {
+            const fd = new FormData(); fd.append('file', d.file); fd.append('doc_type', d.doc_type || 'otro');
+            await uploadDevDocument(r.project_id, fd);
+          } catch (e) { /* no bloquea; se reintenta en la ficha Legal */ }
+        }
       }
       navigate(r.redirect || `/desarrollador/proyectos/${r.project_id}`);
     } catch (e) {
@@ -796,7 +821,8 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         {submitting && (
           <div className="fixed inset-0 bg-black/60 z-[1500] flex items-center justify-center">
             <div className="bg-[var(--surface-2,rgba(var(--cream-rgb),0.04))] border border-[var(--border,rgba(var(--cream-rgb),0.2))] rounded-xl p-6 text-[var(--cream)]">
-              {uploadingFotos > 0 ? `Subiendo ${uploadingFotos} foto(s)…` : 'Creando proyecto…'}
+              {uploadingDocs > 0 ? `Subiendo ${uploadingDocs} documento(s) legal(es)…`
+                : uploadingFotos > 0 ? `Subiendo ${uploadingFotos} foto(s)…` : 'Creando proyecto…'}
             </div>
           </div>
         )}

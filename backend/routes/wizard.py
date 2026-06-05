@@ -187,6 +187,34 @@ async def construction_seal_endpoint(body: ConstructionSealBody, request: Reques
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# LEGAL · tipos de documento + estados (catálogo para el wizard · B1.3)
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Subconjunto LEGAL de DI_DOC_TYPES (excluye lp/brochure que no son legales). Solo valores válidos.
+_LEGAL_DOC_TYPES = ["escritura", "permiso_seduvi", "estudio_suelo",
+                    "licencia_construccion", "predial", "plano_arquitectonico",
+                    "contrato_cv", "constancia_fiscal", "otro"]
+
+_LEGAL_ESTADOS = [
+    {"value": "sin_contrato", "label": "Sin contrato", "tier": "red"},
+    {"value": "docs_pendientes", "label": "Documentos pendientes", "tier": "amber"},
+    {"value": "en_revision", "label": "En revisión", "tier": "amber"},
+    {"value": "aprobado", "label": "Aprobado", "tier": "green"},
+    {"value": "rechazado", "label": "Rechazado", "tier": "red"},
+]
+
+
+@router.get("/legal-meta")
+async def legal_meta(request: Request):
+    """Catálogo para el paso Legal del wizard: tipos de documento (label es) + estados."""
+    await _auth(request)
+    from document_intelligence import DI_DOC_TYPE_LABELS_ES
+    doc_types = [{"value": t, "label": (DI_DOC_TYPE_LABELS_ES.get(t) or t.replace("_", " ").title())}
+                 for t in _LEGAL_DOC_TYPES]
+    return {"doc_types": doc_types, "estados": _LEGAL_ESTADOS}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # DRAFT  (cross-device)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -286,6 +314,8 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         "cp": ub.get("cp"),
         "lat": ub.get("lat"),
         "lng": ub.get("lng"),
+        # Estado legal declarado por el dev (B1.3 · los documentos van aparte a di_documents)
+        "legal_status": (payload.legal or {}).get("estado") or "sin_contrato",
         # Metadata
         "created_via": "wizard",
         "wizard_source": payload.ia_source or "manual",

@@ -289,6 +289,8 @@ export const suggestSchemes = (body) => post('/api/dev/wizard/suggest-schemes', 
 // Sistema constructivo en el wizard: catálogo + smart-default por tipo + sello de confianza preview
 export const getConstructionMeta = (tipo) => j(`/api/dev/wizard/construction-meta${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ''}`);
 export const getConstructionSeal = (sistema_constructivo) => post('/api/dev/wizard/construction-seal', { sistema_constructivo });
+// Catálogo del paso Legal del wizard: tipos de documento (label es) + estados (B1.3)
+export const getLegalMeta = () => j('/api/dev/wizard/legal-meta');
 // Sube fotos REALES (multipart) a un proyecto → db.dev_assets (watermark + auto-tag IA) → comprador (B1.2)
 export const uploadProjectAssets = async (projectId, files, assetType = 'foto_render') => {
   const fd = new FormData();

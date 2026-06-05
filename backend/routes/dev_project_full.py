@@ -81,6 +81,13 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
         n_assets = await db.dev_assets.count_documents({"development_id": pid})
     except Exception:
         n_assets = 0
+    # Documentos legales (di_documents) — el pipeline IA los procesa (OCR→extracción→cross-check)
+    try:
+        n_legal = await db.di_documents.count_documents({"development_id": pid})
+        n_legal_ok = await db.di_documents.count_documents({"development_id": pid, "status": "extracted"})
+    except Exception:
+        n_legal, n_legal_ok = 0, 0
+    legal_status = dev.get("legal_status") or "sin_contrato"
     photos = dev.get("photos") if isinstance(dev.get("photos"), list) else []
 
     ph = dev.get("price_history") or []
@@ -120,6 +127,7 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
             "sistema_constructivo": con.get("sistema_constructivo") or {},
         },
         "contenido": {"photos": len(photos), "assets": n_assets, "video": bool(dev.get("video_url")), "tour": bool(dev.get("tour360_url"))},
+        "legal": {"estado": legal_status, "docs": n_legal, "verificados": n_legal_ok},
         "plusvalia_desde_lanzamiento_pct": since,
         "source": "seed" if DEVELOPMENTS_BY_ID.get(pid) else "db",
     }
@@ -133,6 +141,7 @@ def project_readiness(full: Dict[str, Any]) -> Dict[str, Any]:
     loc = full.get("ubicacion") or {}
     cont = full.get("contenido") or {}
     comm = full.get("comercializacion") or {}
+    leg = full.get("legal") or {}
     checks = [
         ("Datos básicos", bool(full.get("nombre") and full.get("price_from")), "inicio"),
         ("Ubicación en el mapa", bool(loc.get("lat") and loc.get("colonia")), "ubicacion"),
@@ -142,6 +151,7 @@ def project_readiness(full: Dict[str, Any]) -> Dict[str, Any]:
         ("Formas de pago", len(pay.get("schemes") or []) >= 1, "comercializacion"),
         ("Política comercial", bool(comm.get("configured")), "comercializacion"),
         ("Fotos del proyecto", ((cont.get("photos") or 0) + (cont.get("assets") or 0)) >= 3, "contenido"),
+        ("Documentos legales", (leg.get("docs") or 0) >= 1 or leg.get("estado") in ("aprobado", "en_revision"), "legal"),
         ("Avance de obra", (con.get("overall_percent") or 0) > 0, "avance"),
     ]
     passed = sum(1 for _, ok, _ in checks if ok)
@@ -182,6 +192,7 @@ async def publish_to_developments(db, pid: str, *, user_id: Optional[str] = None
         "description": seed.get("description"), "address_full": seed.get("address_full"),
         "developer_id": seed.get("developer_id"), "dev_org_id": seed.get("dev_org_id"),
         "featured": seed.get("featured", False), "verified": True,
+        "legal_status": seed.get("legal_status") or "sin_contrato",  # B1.3 · estado legal del dev
         # Bloque rico (la unificación de verdad — lo que B0.3/B2 consumirán):
         "config": {
             "servicios": full["amenidades"]["servicios"], "amenity_scope": full["amenidades"]["amenity_scope"],
@@ -217,6 +228,29 @@ def _payment_public(schemes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
+_LEGAL_TIER = {
+    "aprobado": ("green", "Documentación aprobada"),
+    "en_revision": ("amber", "Verificación legal en proceso"),
+    "docs_pendientes": ("amber", "Documentos en integración"),
+    "rechazado": ("red", "Documentación con observaciones"),
+    "sin_contrato": ("gray", "Documentación pendiente"),
+}
+
+
+def legal_seal(estado: Optional[str], n_docs: int = 0, n_extracted: int = 0) -> Dict[str, Any]:
+    """Traduce el estado legal + documentos a una señal de confianza para el comprador.
+    Honesto: 'el asistente los está revisando' (corre OCR+extracción) → 'verificados' cuando termina."""
+    tier, titulo = _LEGAL_TIER.get(estado or "sin_contrato", ("gray", "Documentación pendiente"))
+    if n_extracted >= 1:
+        desc = f"{n_extracted} documento(s) revisados por el asistente legal."
+    elif n_docs >= 1:
+        desc = f"{n_docs} documento(s) cargados · el asistente los está revisando."
+    else:
+        desc = "Aún no se cargan documentos legales."
+    return {"configured": bool(n_docs) or estado in ("aprobado", "en_revision"),
+            "tier": tier, "titulo": titulo, "descripcion": desc, "docs": n_docs, "verificados": n_extracted}
+
+
 async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     """Capa que el portal PÚBLICO superpone sobre el seed (fail-open). SOLO datos seguros para el
     comprador (amenidades, servicios, formas de pago, sistema constructivo, plusvalía). Reusa
@@ -230,7 +264,9 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     am = full.get("amenidades") or {}
     pagos = full.get("pagos") or {}
     sis = (full.get("construccion") or {}).get("sistema_constructivo") or {}
-    has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis)
+    leg = full.get("legal") or {}
+    sello_leg = legal_seal(leg.get("estado"), leg.get("docs") or 0, leg.get("verificados") or 0)
+    has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis or sello_leg["configured"])
     if not has_any:
         return {}
     # Sello de confianza en lenguaje del comprador (fuente única en dev_batch2)
@@ -244,6 +280,7 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
         "amenity_scope": am.get("amenity_scope") or {},
         "formas_pago": _payment_public(pagos.get("schemes")), "fecha_entrega": pagos.get("fecha_entrega"),
         "sistema_constructivo": sis, "sello_constructivo": sello,
+        "sello_legal": sello_leg,
         "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
         "fuente": "dev_configurado",
     }
@@ -265,6 +302,8 @@ async def portal_preview(db, pid: str) -> Dict[str, Any]:
     tiene_sistema = bool(ov.get("sistema_constructivo"))
     cont = full.get("contenido") or {}
     n_fotos = (cont.get("photos") or 0) + (cont.get("assets") or 0)
+    leg = full.get("legal") or {}
+    sello_leg = legal_seal(leg.get("estado"), leg.get("docs") or 0, leg.get("verificados") or 0)
     comprador_items = []
     if n_fotos:
         comprador_items.append(f"{n_fotos} fotos del proyecto")
@@ -276,6 +315,8 @@ async def portal_preview(db, pid: str) -> Dict[str, Any]:
         comprador_items.append(f"{n_pago} formas de pago")
     if tiene_sistema:
         comprador_items.append("Sistema constructivo (sello de confianza)")
+    if sello_leg["configured"]:
+        comprador_items.append(f"Sello legal: {sello_leg['titulo'].lower()}")
     if ov.get("plusvalia_desde_lanzamiento_pct") is not None:
         comprador_items.append(f"Plusvalía +{ov['plusvalia_desde_lanzamiento_pct']}% desde lanzamiento")
 
@@ -305,8 +346,9 @@ async def portal_preview(db, pid: str) -> Dict[str, Any]:
             {
                 "key": "corporativo", "titulo": "Así te ve el corporativo", "sub": "Terminal superadmin",
                 "estado": "activo" if published else "pendiente",
-                "items": ([f"Ficha {rd.get('pct', 0)}% completa", "Cuentas en la terminal global"] if published
-                          else ["Publica para aparecer en la terminal global"]),
+                "items": (([f"Ficha {rd.get('pct', 0)}% completa", "Cuentas en la terminal global"]
+                           + ([f"{leg.get('docs')} documentos legales (riesgo verificable)"] if (leg.get("docs") or 0) else []))
+                          if published else ["Publica para aparecer en la terminal global"]),
                 "nota": "Apareces en métricas y rankings del corporativo." if published else "Publica a portales para entrar.",
             },
         ],

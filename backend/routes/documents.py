@@ -254,8 +254,7 @@ async def upload_document(
 ):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
 
     def _parse_dt(v: Optional[str]):
         if not v:
@@ -299,8 +298,7 @@ async def list_dev_documents(
 ):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
 
     db = _get_db(request)
     query: dict = {"development_id": dev_id}
@@ -481,8 +479,7 @@ async def get_extraction(doc_id: str, request: Request):
 async def bulk_extract(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
 
     db = _get_db(request)
     cursor = db.di_documents.find({
@@ -516,8 +513,7 @@ async def bulk_extract(dev_id: str, request: Request):
 async def trigger_cross_check(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     res = await run_cross_check(db, dev_id)
     return res
@@ -527,8 +523,7 @@ async def trigger_cross_check(dev_id: str, request: Request):
 async def get_cross_check(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     return {**(await get_dev_cross_check(db, dev_id)), "engine_version": CC_ENGINE_VERSION}
 
@@ -571,8 +566,7 @@ class FieldLockBody(BaseModel):
 async def sync_preview(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     overlay = await sync_get_overlay(db, dev_id)
     changes = await sync_compute_changes(db, dev_id)
@@ -587,8 +581,7 @@ async def sync_preview(dev_id: str, request: Request):
 async def sync_apply(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     result = await sync_apply_changes(db, dev_id, applied_by=f"{user.role}:{user.user_id}")
     # F0.1 — Audit log auto-sync mapper
@@ -613,8 +606,7 @@ async def sync_full_run(dev_id: str, request: Request):
 async def sync_revert(dev_id: str, audit_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     result = await sync_revert_audit(db, dev_id, audit_id, applied_by=f"{user.role}:{user.user_id}")
     # F0.1 — Audit log (revert critical)
@@ -635,8 +627,7 @@ async def sync_revert(dev_id: str, audit_id: str, request: Request):
 async def sync_audit(dev_id: str, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     audit = await sync_get_audit(db, dev_id)
     return {"development_id": dev_id, "audit": audit, "count": len(audit)}
@@ -646,8 +637,7 @@ async def sync_audit(dev_id: str, request: Request):
 async def sync_lock_field(dev_id: str, body: FieldLockBody, request: Request):
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
-    _check_dev_access(user, dev_id)
-    _dev_exists(dev_id)
+    await _assert_dev_access(_get_db(request), user, dev_id)  # seed o proyecto del wizard (B1.3)
     db = _get_db(request)
     return await sync_set_field_lock(db, dev_id, body.field, body.locked)
 
