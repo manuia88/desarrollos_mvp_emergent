@@ -16,6 +16,7 @@ import VentasIntel from './VentasIntel';
 import InsightsIntel from './InsightsIntel';
 import AmenidadesIntel from './AmenidadesIntel';
 import BrokerIntel from './BrokerIntel';
+import CanalesIntel from './CanalesIntel';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -397,8 +398,8 @@ export function AreaInsights({ slug, summary, area }) {
   if (area === 'amenidades') return <AmenidadesIntel slug={slug} summary={summary} />;
   // Pagos y administración: cockpit solo de formas de pago.
   if (area === 'comercializacion') return <BrokerIntel slug={slug} section="pagos" />;
-  // Canales (in-house y brokers): cockpit de canal, conversión y confianza.
-  if (area === 'canales') return <BrokerIntel slug={slug} section="canales" />;
+  // Canales (in-house y brokers): comparador broker vs in-house + ranking de asesores (general/proyecto).
+  if (area === 'canales') return <CanalesIntel slug={slug} />;
 
   const cfg = C[area];
   if (!cfg) return null;
