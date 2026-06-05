@@ -151,10 +151,10 @@ ALL_AMENIDADES = {
         "business_center": "Business center", "cowork": "Coworking",
         "cine": "Sala de cine", "game_room": "Salón de juegos", "ludoteca": "Ludoteca",
         "casa_club": "Casa club", "salon_usos": "Salón de usos múltiples",
-        "alberca_techada": "Alberca techada", "fire_pit": "Fire pit", "sala_juntas": "Sala de juntas",
+        "fire_pit": "Fire pit", "sala_juntas": "Sala de juntas",
     },
     "deportivas": {  # Deporte y bienestar (lo más común primero)
-        "spa": "Spa", "jogging": "Pista de jogging", "sauna": "Sauna",
+        "spa": "Spa", "jogging": "Pista de jogging", "sauna": "Sauna", "alberca_techada": "Alberca techada",
         "yoga": "Salón de yoga", "vapor": "Vapor", "cancha_padel": "Cancha de pádel",
         "cancha_tenis": "Cancha de tenis", "cancha_basquet": "Cancha de básquet",
         "cancha_futbol": "Cancha de fútbol", "spinning": "Spinning", "squash": "Squash",
