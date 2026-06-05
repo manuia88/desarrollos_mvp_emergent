@@ -4,7 +4,7 @@ Cierra los gaps de DEV_PORTAL_CONNECTIVITY_AUDIT + DEV_FUNNEL_GRANULARITY_MAP. O
 Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
 
 ## B0 · Unificación del modelo (CIMIENTO — bloquea B1-B3)
-- B0.1 · Capa de lectura única `project_full(pid)` que fusiona seed/developments + colecciones por-tab (amenidades/comercialización/pagos/construcción/precio) → payload canónico. · dep: — · M · base de todo
+- ✅ B0.1 · Capa de lectura única `project_full(pid)` (fusiona seed + tabs) + `project_readiness` ("ficha X% lista para publicar", consumido por indicador en el Inicio · chips → tab). GET /api/dev/projects/{id}/full. Commit 0b56d9f4. · dep: — · M · base de todo
 - B0.2 · Wizard espeja el doc a `db.developments` (proyectos del wizard visibles a superadmin/marketplace) · dep: B0.1 · M · visibilidad global
 - B0.3 · Migrar portales (público/asesor/superadmin) a leer la capa única (adaptadores) · dep: B0.1 · M · fin del silo
 
