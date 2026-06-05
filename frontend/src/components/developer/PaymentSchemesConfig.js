@@ -2,6 +2,7 @@
  * PaymentSchemesConfig — configura hasta 5 formas de pago por proyecto.
  * Lógica R3: firma% + mensualidades% + escritura% = 100; a mayor enganche, menor
  * precio. Mensualidades ÷ meses (auto de fechas obra→entrega, con override).
+ * Estilo alineado a los cockpits: tarjetas blancas, inputs limpios, chips con tinte.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { getPaymentSchemes, putPaymentSchemes } from '../../api/developer';
@@ -12,12 +13,14 @@ import { Z } from '../../styles/zIndex';
 
 const fmtMXN = (v) => v == null ? '—' : `$${Number(v).toLocaleString('es-MX')}`;
 
-const lbl = { fontSize: 10, color: 'var(--cream-3)', fontWeight: 600, display: 'block', marginBottom: 3 };
+const lbl = { fontSize: 10, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', display: 'block', marginBottom: 5 };
 const inp = {
-  width: '100%', background: 'rgba(var(--bg-rgb),0.5)', border: '1px solid var(--border)',
-  borderRadius: 8, color: 'var(--cream)', fontSize: 13, padding: '7px 9px',
+  width: '100%', background: '#fff', border: '1px solid var(--border)',
+  borderRadius: 9, color: 'var(--cream)', fontSize: 13, padding: '8px 10px',
   fontFamily: 'DM Sans,sans-serif', boxSizing: 'border-box',
 };
+const gradBtn = { background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', border: 'none', color: '#fff', borderRadius: 10, padding: '9px 20px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' };
+const ghostBtn = { background: '#fff', border: '1px solid var(--border)', color: 'var(--cream-2)', borderRadius: 10, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' };
 
 function NumField({ label, value, onChange, suffix, step = 1, min = 0 }) {
   return (
@@ -26,7 +29,7 @@ function NumField({ label, value, onChange, suffix, step = 1, min = 0 }) {
       <div style={{ position: 'relative' }}>
         <input type="number" value={value} step={step} min={min}
           onChange={e => onChange(e.target.value)} style={inp} />
-        {suffix && <span style={{ position: 'absolute', right: 9, top: 8, fontSize: 12, color: 'var(--cream-3)' }}>{suffix}</span>}
+        {suffix && <span style={{ position: 'absolute', right: 10, top: 9, fontSize: 12, color: 'var(--cream-3)', fontWeight: 700 }}>{suffix}</span>}
       </div>
     </div>
   );
@@ -80,22 +83,19 @@ export default function PaymentSchemesConfig({ devId }) {
   return (
     <div data-testid="payment-schemes-config">
       {/* Intro */}
-      <div style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'Outfit', fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>
+      <div style={{ marginBottom: 18 }}>
+        <h3 style={{ margin: '0 0 4px', fontFamily: 'Outfit', fontSize: 17.5, fontWeight: 800, color: 'var(--cream)' }}>
           Formas de pago
         </h3>
-        <p style={{ margin: 0, fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, maxWidth: 640 }}>
-          Define hasta {SCHEME_MAX} formas de pago. Cada una reparte el precio en <strong>firma</strong> (enganche),
-          <strong> mensualidades</strong> y <strong>escrituración</strong> (deben sumar 100%). A mayor enganche puedes
-          dar un <strong>descuento</strong>. El comprador verá el precio cambiar según la forma que elija.
+        <p style={{ margin: 0, fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5, maxWidth: 660 }}>
+          Define hasta {SCHEME_MAX} formas de pago. Cada una reparte el precio en <b>firma</b> (enganche),
+          <b> mensualidades</b> y <b>escrituración</b> (deben sumar 100%). A mayor enganche puedes
+          dar un <b>descuento</b>. El comprador verá el precio cambiar según la forma que elija.
         </p>
       </div>
 
-      {/* Fechas para mensualidades */}
-      <div style={{
-        display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16,
-        padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10,
-      }}>
+      {/* Fechas + precio de ejemplo */}
+      <div className="dmx-card" style={{ background: '#fff', padding: 14, marginBottom: 16, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ flex: '1 1 160px' }}>
           <label style={lbl}>Inicio de obra</label>
           <input type="date" value={fIni} onChange={e => setFIni(e.target.value)} style={inp} />
@@ -104,19 +104,15 @@ export default function PaymentSchemesConfig({ devId }) {
           <label style={lbl}>Entrega estimada</label>
           <input type="date" value={fEnt} onChange={e => setFEnt(e.target.value)} style={inp} />
         </div>
-        <div style={{ flex: '1 1 160px', fontSize: 12, color: 'var(--cream-2)' }}>
-          {mesesAuto
-            ? <>Plazo de mensualidades: <strong style={{ color: 'var(--cream)' }}>{mesesAuto} meses</strong></>
-            : <span style={{ color: 'var(--amber)' }}>Completa las fechas para calcular los meses</span>}
+        <div style={{ flex: '1 1 150px' }}>
+          <label style={lbl}>Ver con precio de ejemplo</label>
+          <input type="number" value={sample} step={100000} min={0} onChange={e => setSample(+e.target.value)} style={inp} />
         </div>
-      </div>
-
-      {/* Precio de ejemplo para el preview */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontSize: 12, color: 'var(--cream-3)' }}>
-        <span>Ver con un precio de ejemplo:</span>
-        <input type="number" value={sample} step={100000} min={0}
-          onChange={e => setSample(+e.target.value)}
-          style={{ ...inp, width: 160 }} />
+        <div style={{ flex: '1 1 150px', fontSize: 12, color: 'var(--cream-2)', paddingBottom: 9 }}>
+          {mesesAuto
+            ? <>Plazo de mensualidades: <span style={{ fontWeight: 800, color: 'var(--theme)' }}>{mesesAuto} meses</span></>
+            : <span style={{ color: 'var(--warm, #E2982E)' }}>Completa las fechas para calcular los meses</span>}
+        </div>
       </div>
 
       {/* Esquemas */}
@@ -126,21 +122,22 @@ export default function PaymentSchemesConfig({ devId }) {
           const ok = schemeSumOk(s);
           const bd = breakdown(sample, s, fIni, fEnt);
           return (
-            <div key={s.id || i} data-testid={`scheme-card-${i}`} style={{
-              border: `1px solid ${ok ? 'var(--border)' : 'rgba(239,68,68,0.4)'}`,
-              borderRadius: 12, padding: 14, background: 'rgba(var(--cream-rgb),0.02)',
+            <div key={s.id || i} data-testid={`scheme-card-${i}`} className="dmx-card" style={{
+              background: '#fff', border: `1.5px solid ${ok ? 'var(--border)' : '#F2635B'}`,
+              borderRadius: 14, padding: 16,
             }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 8, background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, fontFamily: 'Outfit' }}>{i + 1}</span>
                 <input value={s.nombre} onChange={e => update(i, 'nombre', e.target.value)}
                   placeholder={`Forma ${i + 1} (ej: Contado, Enganche 30%)`}
-                  style={{ ...inp, flex: 1, fontWeight: 600 }} />
+                  style={{ ...inp, flex: 1, fontWeight: 700, fontSize: 14 }} />
                 <button onClick={() => remove(i)} title="Quitar"
-                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}>
+                  style={{ background: '#fff', border: '1px solid var(--border)', color: '#DC2626', borderRadius: 9, padding: '7px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                   Quitar
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 11 }}>
                 <NumField label="Firma / enganche" value={s.firma_pct} suffix="%" onChange={v => update(i, 'firma_pct', v)} />
                 <NumField label="Mensualidades" value={s.mensualidades_pct} suffix="%" onChange={v => update(i, 'mensualidades_pct', v)} />
                 <NumField label="Al escriturar" value={s.escritura_pct} suffix="%" onChange={v => update(i, 'escritura_pct', v)} />
@@ -150,19 +147,19 @@ export default function PaymentSchemesConfig({ devId }) {
               </div>
 
               {/* Suma + preview */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 9999,
-                  background: ok ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
-                  color: ok ? '#22c55e' : 'var(--red)',
+                  fontSize: 11, fontWeight: 800, padding: '4px 11px', borderRadius: 999,
+                  background: ok ? 'rgba(31,160,106,0.12)' : 'rgba(242,99,91,0.12)',
+                  color: ok ? '#15803d' : '#DC2626',
                 }}>
                   Suma {sum}% {ok ? '✓' : '· debe ser 100%'}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>
-                  Precio: <strong style={{ color: 'var(--cream)' }}>{fmtMXN(bd.precio_aplicado)}</strong>
-                  {bd.ahorro > 0 && <span style={{ color: '#22c55e' }}> (ahorra {fmtMXN(bd.ahorro)})</span>}
+                <span style={{ fontSize: 12.5, color: 'var(--cream-2)' }}>
+                  Precio: <b style={{ color: 'var(--cream)' }}>{fmtMXN(bd.precio_aplicado)}</b>
+                  {bd.ahorro > 0 && <span style={{ color: '#15803d', fontWeight: 700 }}> (ahorra {fmtMXN(bd.ahorro)})</span>}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>
+                <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>
                   Firma {fmtMXN(bd.firma)} · {bd.mensualidades_total > 0
                     ? <>{bd.meses
                         ? `${fmtMXN(bd.mensualidad)}/mes × ${bd.meses}${bd.meses_transcurridos != null ? ` (restan ${bd.meses_restantes})` : ''}`
@@ -178,18 +175,11 @@ export default function PaymentSchemesConfig({ devId }) {
       {/* Acciones */}
       <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center' }}>
         {schemes.length < SCHEME_MAX && (
-          <button onClick={add} data-testid="scheme-add"
-            style={{ background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)', color: 'var(--cream-2)', borderRadius: 9999, padding: '9px 16px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
-            + Agregar forma de pago
-          </button>
+          <button onClick={add} data-testid="scheme-add" style={ghostBtn}>+ Agregar forma de pago</button>
         )}
         <div style={{ flex: 1 }} />
         <button onClick={save} disabled={saving || !allValid} data-testid="scheme-save"
-          style={{
-            background: (saving || !allValid) ? 'rgba(148,163,184,0.25)' : 'var(--grad)',
-            border: 'none', color: '#fff', borderRadius: 9999, padding: '9px 20px',
-            cursor: (saving || !allValid) ? 'not-allowed' : 'pointer', fontSize: 12.5, fontWeight: 700,
-          }}>
+          style={{ ...gradBtn, ...(saving || !allValid ? { background: 'rgba(var(--cream-rgb),0.18)', color: 'var(--cream-3)', cursor: 'not-allowed' } : {}) }}>
           {saving ? 'Guardando…' : 'Guardar formas de pago'}
         </button>
       </div>
@@ -197,10 +187,10 @@ export default function PaymentSchemesConfig({ devId }) {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
-          padding: '12px 18px', borderRadius: 14,
-          background: toast.type === 'ok' ? 'rgba(21,128,61,0.97)' : 'rgba(185,28,28,0.97)',
-          border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,
-          color: toast.type === 'ok' ? '#86efac' : '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500,
+          padding: '12px 18px', borderRadius: 12,
+          background: toast.type === 'ok' ? '#1E2230' : '#B91C1C',
+          color: '#fff', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
         }}>
           {toast.msg}
         </div>
