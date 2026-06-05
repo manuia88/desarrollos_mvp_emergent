@@ -576,6 +576,9 @@ app.include_router(location_intel_router)
 from routes.dev_sales_intel import router as dev_sales_intel_router, ensure_sales_intel_indexes
 app.include_router(dev_sales_intel_router)
 
+from routes.dev_insights_intel import router as dev_insights_intel_router, ensure_insights_intel_indexes
+app.include_router(dev_insights_intel_router)
+
 # Fase 3.2 · lente del dev sobre el cubo (benchmark anónimo + amenity ranker + demand-gap)
 from routes.dev_market import router as dev_market_router
 app.include_router(dev_market_router)
@@ -1613,6 +1616,7 @@ async def startup():
     await ensure_batch10_indexes(db)
     await ensure_location_intel_indexes(db)
     await ensure_sales_intel_indexes(db)
+    await ensure_insights_intel_indexes(db)
     await ensure_batch8_indexes(db)
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)

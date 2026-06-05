@@ -36,10 +36,10 @@ async def _enrich(db, p: Dict[str, Any]) -> Dict[str, Any]:
     units_sold = await db.units.count_documents(
         {"project_id": pid, "status": {"$in": ["vendido", "vendida"]}}
     )
-    # Price/m² estimate
-    sample = await db.units.find_one({"project_id": pid, "price": {"$gt": 0}, "sqm": {"$gt": 0}},
-                                       {"_id": 0, "price": 1, "sqm": 1})
-    price_m2 = round((sample["price"] / sample["sqm"]), 2) if sample else 0
+    # Price/m² estimate (campo real = m2_privative; bug histórico usaba "sqm" → siempre 0)
+    sample = await db.units.find_one({"project_id": pid, "price": {"$gt": 0}, "m2_privative": {"$gt": 0}},
+                                       {"_id": 0, "price": 1, "m2_privative": 1})
+    price_m2 = round((sample["price"] / sample["m2_privative"]), 2) if sample else 0
     hs = await db.health_scores.find_one(
         {"entity_type": "project", "entity_id": pid},
         {"_id": 0, "score": 1}, sort=[("computed_at", -1)],

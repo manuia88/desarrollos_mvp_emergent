@@ -13,6 +13,7 @@ import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask
 import { Z } from '../../styles/zIndex';
 import UbicacionIntel from './UbicacionIntel';
 import VentasIntel from './VentasIntel';
+import InsightsIntel from './InsightsIntel';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -362,7 +363,6 @@ export function AreaInsights({ slug, summary, area }) {
   if (!summary) return null;
   const vsMkt = avm ? (avm.vs_market_pct ?? avm.vs_pct ?? null) : null;
   const cv = summary.conversion_pct ?? 0;
-  const cvTone = cv >= 12 ? 'green' : cv >= 5 ? 'amber' : 'red';
   const mesesEntrega = (() => {
     if (!summary.delivery_estimate) return null;
     const [y, m] = String(summary.delivery_estimate).split('-').map(Number);
@@ -382,18 +382,10 @@ export function AreaInsights({ slug, summary, area }) {
   const engMin = schemes.length ? Math.min(...schemes.map(s => +s.firma_pct || 0)) : null;
   const descMax = schemes.length ? Math.max(...schemes.map(s => +s.descuento_pct || 0)) : null;
   const mesesPlan = pay?.meses_auto ?? null;
-  const priceVerdict = vsMkt == null ? '—' : (vsMkt > 12 ? 'arriba · justifica el premium' : vsMkt < -8 ? 'barato · puedes subir precio' : 'alineado con la zona');
   const priceTone = vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green';
   const priceVal = vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—';
 
   const C = {
-    insights: { title: 'Veredicto rápido', cards: [
-      { ...sb('Salud del activo', summary.health_score, ['Necesita atención', 'Estable', 'Sano']), cmp: `${summary.health_score ?? 0}/100 · funde todo` },
-      { label: 'Conversión', value: `${cv}`, unit: '%', tone: cvTone, cmp: `${summary.leads_won ?? 0} cierres de ${summary.leads_total ?? 0} leads` },
-      { label: 'Interés', value: summary.views_cliente ?? 0, unit: ' vistas', tone: (summary.views_cliente ?? 0) > 0 ? 'green' : 'flat', cmp: 'clientes viendo tu ficha' },
-      sb('Posición en la zona', pv('IE_PROY_SCORE_VS_COLONIA'), ['Debajo', 'En el promedio', 'Arriba'], 'vs otros proyectos de la colonia'),
-      { label: 'Precio vs mercado', value: priceVal, tone: priceTone, cmp: priceVerdict },
-    ] },
     comercializacion: { title: 'Pagos y brokers', cards: [
       { label: 'Formas de pago', value: schemes.length || '—', tone: schemes.length ? 'green' : 'flat', cmp: 'planes para tu comprador' },
       { label: 'Enganche desde', value: engMin != null ? `${engMin}` : '—', unit: engMin != null ? '%' : '', tone: 'green', cmp: 'la entrada más accesible' },
@@ -432,6 +424,8 @@ export function AreaInsights({ slug, summary, area }) {
   if (area === 'ubicacion') return <UbicacionIntel slug={slug} summary={summary} />;
   // Ventas: cockpit "Pulso de ventas" (agotamiento, what-if de precio, proyección, mix, margen).
   if (area === 'ventas') return <VentasIntel slug={slug} summary={summary} />;
+  // Insights: cockpit "Veredicto de mercado" (AVM vs tu precio, comparables, embudo, salud).
+  if (area === 'insights') return <InsightsIntel slug={slug} summary={summary} />;
 
   const cfg = C[area];
   if (!cfg) return null;
