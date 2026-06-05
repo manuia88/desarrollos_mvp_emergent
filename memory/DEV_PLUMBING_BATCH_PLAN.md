@@ -6,7 +6,8 @@ Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
 ## B0 · Unificación del modelo (CIMIENTO — bloquea B1-B3)
 - ✅ B0.1 · Capa de lectura única `project_full(pid)` (fusiona seed + tabs) + `project_readiness` ("ficha X% lista para publicar", consumido por indicador en el Inicio · chips → tab). GET /api/dev/projects/{id}/full. Commit 0b56d9f4. · dep: — · M · base de todo
 - ✅ B0.2 · `publish_to_developments()` espeja el payload canónico a `db.developments` (campos dev-compat + bloque `config` rico: servicios/scope/sistema/pagos/políticas/plusvalía). POST /api/dev/projects/{id}/publish + auto-publish en wizard.create_project. Front: botón "Publicar a portales" en ProjectReadiness (→ "↻ Actualizar portales" + "✓ Publicado" + fecha). Verificado: clic real crea doc Mongo (readiness 89%, source manual). · dep: B0.1 · M · visibilidad global
-- B0.3 · Migrar portales (público/asesor/superadmin) a leer la capa única (adaptadores) · dep: B0.1 · M · fin del silo
+- ✅ B0.3 · Adaptador de overlay (fail-open) `project_public_overlay()` — el portal PÚBLICO superpone lo que el dev configuró (amenidades/servicios/formas de pago/sistema/plusvalía) sobre el seed, SIN romper los 24 sin configurar. Cableado en public.get_development + fallback a db.developments para proyectos del wizard. Front+back: `portal_preview()` (3 lentes comprador/asesor/corporativo sobre la fuente única) + GET /portal-preview + `PortalPreview.js` montado en FichaHome ("Cómo te ven los portales"). Verificado: config fluye a la API pública, 3 lentes activos, fail-open OK (lomas-signature intacto, 404 sano). · dep: B0.1 · M · fin del silo
+  - NOTA: cable PROFUNDO del asesor (argumentario lee seed Python en advisor.py:3017, matches/suggestions en 2519/1437) → va en B3.1. Superadmin founder_console ya cuenta db.developments (se beneficia pasivo de B0.2).
 
 ## B1 · Wizard completo (al crear = tabs llenas)
 - B1.1 · Servicios con tipo + amenity_scope en Step4 + persistir · dep: B0 · S

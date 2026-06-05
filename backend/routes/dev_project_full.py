@@ -178,6 +178,114 @@ async def publish_to_developments(db, pid: str, *, user_id: Optional[str] = None
     return {"ok": True, "published_at": now_iso, "readiness_pct": rd["pct"]}
 
 
+# ─── B0.3 · Adaptadores de overlay (portales leen la capa única, fail-open) ───────
+
+def _payment_public(schemes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Proyección segura al comprador de las formas de pago (sin datos internos)."""
+    out = []
+    for s in schemes or []:
+        out.append({
+            "nombre": s.get("nombre"), "firma_pct": s.get("firma_pct"),
+            "mensualidades_pct": s.get("mensualidades_pct"), "escritura_pct": s.get("escritura_pct"),
+            "descuento_pct": s.get("descuento_pct") or 0, "apartado_mxn": s.get("apartado_mxn"),
+        })
+    return out
+
+
+async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
+    """Capa que el portal PÚBLICO superpone sobre el seed (fail-open). SOLO datos seguros para el
+    comprador (amenidades, servicios, formas de pago, sistema constructivo, plusvalía). Reusa
+    project_full (fusión única). Devuelve {} si el dev no configuró nada → la ficha queda intacta."""
+    try:
+        full = await project_full(db, pid)
+    except Exception:
+        full = None
+    if not full:
+        return {}
+    am = full.get("amenidades") or {}
+    pagos = full.get("pagos") or {}
+    sis = (full.get("construccion") or {}).get("sistema_constructivo") or {}
+    has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis)
+    if not has_any:
+        return {}
+    return {
+        "amenidades": am.get("amenities") or [], "servicios": am.get("servicios") or {},
+        "amenity_scope": am.get("amenity_scope") or {},
+        "formas_pago": _payment_public(pagos.get("schemes")), "fecha_entrega": pagos.get("fecha_entrega"),
+        "sistema_constructivo": sis, "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
+        "fuente": "dev_configurado",
+    }
+
+
+async def portal_preview(db, pid: str) -> Dict[str, Any]:
+    """Vista de "cómo te ven los portales" para el DEV (cierra el ciclo de B0.2/B0.3).
+    Tres lentes sobre la MISMA fuente unificada: comprador (marketplace), asesor, corporativo."""
+    full = await project_full(db, pid) or {}
+    comm = full.get("comercializacion") or {}
+    ov = await project_public_overlay(db, pid)
+    rd = project_readiness(full) if full else {"pct": 0, "missing": []}
+    pub = await db.developments.find_one({"id": pid}, {"_id": 0, "published_at": 1})
+    published = bool((pub or {}).get("published_at"))
+
+    n_serv = len((ov.get("servicios") or {}))
+    n_amen = len((ov.get("amenidades") or []))
+    n_pago = len((ov.get("formas_pago") or []))
+    tiene_sistema = bool(ov.get("sistema_constructivo"))
+    comprador_items = []
+    if n_amen:
+        comprador_items.append(f"{n_amen} amenidades")
+    if n_serv:
+        comprador_items.append(f"{n_serv} servicios (gas, agua, luz…)")
+    if n_pago:
+        comprador_items.append(f"{n_pago} formas de pago")
+    if tiene_sistema:
+        comprador_items.append("Sistema constructivo (sello de confianza)")
+    if ov.get("plusvalia_desde_lanzamiento_pct") is not None:
+        comprador_items.append(f"Plusvalía +{ov['plusvalia_desde_lanzamiento_pct']}% desde lanzamiento")
+
+    pol_ok = bool(comm.get("configured"))
+    asesor_items = []
+    if pol_ok:
+        asesor_items.append(f"Comisión {comm.get('default_commission_pct', 3.0)}%")
+        asesor_items.append("Brokers externos" if comm.get("works_with_brokers") else "Solo venta interna")
+    if n_pago:
+        asesor_items.append(f"{n_pago} formas de pago para cotizar")
+
+    return {
+        "project_id": pid, "published": published, "readiness_pct": rd.get("pct", 0),
+        "lentes": [
+            {
+                "key": "comprador", "titulo": "Así te ve el comprador", "sub": "Marketplace público",
+                "estado": "activo" if comprador_items else "vacio",
+                "items": comprador_items or ["Aún no configuras datos visibles al comprador"],
+                "nota": "Tu ficha pública ya entrega estos datos." if comprador_items else "Configura amenidades, servicios o formas de pago.",
+            },
+            {
+                "key": "asesor", "titulo": "Así te vende el asesor", "sub": "Portal del asesor",
+                "estado": "activo" if asesor_items else "pendiente",
+                "items": asesor_items or ["Falta tu política comercial (comisión y reglas)"],
+                "nota": "Tu política y pagos alimentan su guion de venta." if asesor_items else "Configura tu política comercial.",
+            },
+            {
+                "key": "corporativo", "titulo": "Así te ve el corporativo", "sub": "Terminal superadmin",
+                "estado": "activo" if published else "pendiente",
+                "items": ([f"Ficha {rd.get('pct', 0)}% completa", "Cuentas en la terminal global"] if published
+                          else ["Publica para aparecer en la terminal global"]),
+                "nota": "Apareces en métricas y rankings del corporativo." if published else "Publica a portales para entrar.",
+            },
+        ],
+    }
+
+
+@router.get("/projects/{project_id}/portal-preview")
+async def get_portal_preview(project_id: str, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    if project_id not in _user_dev_ids(user):
+        raise HTTPException(403, "Proyecto no accesible")
+    return await portal_preview(db, project_id)
+
+
 @router.get("/projects/{project_id}/full")
 async def get_project_full(project_id: str, request: Request):
     user = await _auth(request)

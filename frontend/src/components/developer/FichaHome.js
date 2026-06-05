@@ -18,6 +18,7 @@ import AmenidadesIntel from './AmenidadesIntel';
 import BrokerIntel from './BrokerIntel';
 import CanalesIntel from './CanalesIntel';
 import ProjectReadiness from './ProjectReadiness';
+import PortalPreview from './PortalPreview';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -232,6 +233,9 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
     <div data-testid="ficha-home" style={{ marginBottom: 8 }}>
       {/* Ficha lista para publicar (capa única → portales) */}
       <ProjectReadiness slug={slug} onGoTab={onGoTab} />
+
+      {/* Cómo te ven los portales (3 lentes sobre la fuente única) */}
+      <PortalPreview slug={slug} />
 
       {/* 👑 CORONA: Salud + la jugada de hoy */}
       <div className="dmx-card" style={{ display: 'grid', gridTemplateColumns: '218px 1fr', gap: 0, overflow: 'hidden', padding: 0, marginBottom: 22, background: '#fff' }}>

@@ -282,6 +282,8 @@ export const getChannelIntel = (projectId) => j(`/api/dev/channel-intel${project
 export const getProjectFull = (projectId) => j(`/api/dev/projects/${projectId}/full`);
 // Publica/espeja el proyecto a la tienda unificada (db.developments) → visible a los portales
 export const publishProject = (projectId) => post(`/api/dev/projects/${projectId}/publish`, {});
+// "Cómo te ven los portales" — 3 lentes (comprador/asesor/corporativo) sobre la misma fuente única
+export const getPortalPreview = (projectId) => j(`/api/dev/projects/${projectId}/portal-preview`);
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);

@@ -363,11 +363,29 @@ async def list_developments(
 
 @router.get("/api/developments/{dev_id}")
 async def get_development(dev_id: str, request: Request):
+    db = request.app.state.db
     d = DEVELOPMENTS_BY_ID.get(dev_id)
-    if not d:
-        raise HTTPException(404, "Desarrollo no encontrado")
-    await _ensure_overlay_loaded(dev_id, request.app.state.db)
-    return _dev_public(d, include_units=True)
+    if d:
+        await _ensure_overlay_loaded(dev_id, db)
+        out = _dev_public(d, include_units=True)
+    else:
+        # B0.3 · Proyecto creado/publicado por el dev → leer la tienda unificada (no solo el seed)
+        pub = await db.developments.find_one({"id": dev_id}, {"_id": 0})
+        if not pub:
+            raise HTTPException(404, "Desarrollo no encontrado")
+        out = {k: v for k, v in pub.items() if k != "config"}
+        out["contact_phone"] = pub.get("contact_phone") or DMX_FALLBACK_WHATSAPP
+    # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
+    try:
+        from routes.dev_project_full import project_public_overlay
+        ov = await project_public_overlay(db, dev_id)
+        if ov:
+            out["config"] = ov
+            if ov.get("amenidades"):
+                out["amenities"] = ov["amenidades"]  # el dev es la fuente de verdad
+    except Exception:
+        pass
+    return out
 
 
 @router.get("/api/developments/{dev_id}/units")
