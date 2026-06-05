@@ -20,6 +20,19 @@ export async function fetchDevelopment(id) {
   return r.json();
 }
 
+// B2.1 — Fotos reales del comprador (watermarked). Sírvelas con `${API}${public_url}`.
+// Fail-open: devuelve {count:0, assets:[]} si falla, para no romper la ficha.
+export async function fetchDevelopmentAssets(id, assetType = null) {
+  const qs = assetType ? `?asset_type=${encodeURIComponent(assetType)}` : '';
+  try {
+    const r = await fetch(`${API}/api/developments/${encodeURIComponent(id)}/assets${qs}`);
+    if (!r.ok) return { count: 0, assets: [] };
+    return r.json();
+  } catch {
+    return { count: 0, assets: [] };
+  }
+}
+
 export async function fetchDevelopmentUnits(id, filters = {}) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(filters)) {

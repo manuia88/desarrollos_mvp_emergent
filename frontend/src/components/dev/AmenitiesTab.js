@@ -21,9 +21,13 @@ const AMENITY_SVG = {
   area_pets: <g><path d="M4 15a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v5H4z" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" fill="none"/><circle cx={9} cy={8} r={1.6} fill="currentColor"/><circle cx={15} cy={8} r={1.6} fill="currentColor"/></g>,
 };
 
+const SCOPE_LABEL = { algunos: 'En algunas unidades', todos: 'En todas las unidades', comun: 'Área común' };
+
 export default function AmenitiesTab({ dev }) {
   const { t } = useTranslation();
-  const list = dev.amenities || [];
+  // B2.1 — config.amenidades es la fuente de verdad sobre el hardcode (fail-open al hardcode).
+  const list = (dev.config?.amenidades && dev.config.amenidades.length) ? dev.config.amenidades : (dev.amenities || []);
+  const scope = dev.config?.amenity_scope || {};
   return (
     <div data-testid="amenities-tab" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }} className="amen-grid">
       {list.map(a => (
@@ -50,6 +54,11 @@ export default function AmenitiesTab({ dev }) {
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
             {t(`marketplace_v2.amenity_aliases.${a}`, { defaultValue: a })}
           </div>
+          {scope[a] && (
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+              {SCOPE_LABEL[scope[a]] || scope[a]}
+            </div>
+          )}
         </div>
       ))}
       <style>{`
