@@ -1,5 +1,15 @@
 # Spec canónico — Motor de Historial de Precios y Plusvalía (Appreciation Engine) · 2026-06-05
 
+> ✅ ESTADO 2026-06-05: **F0/F1 SHIPPED** (commit be2b4c05). Colección `price_events` +
+> `record_price_event()` cableado en `patch_unit` (cada cambio de precio se captura,
+> append-only, fail-open). Endpoint `GET /api/dev/projects/{id}/price-history` (serie +
+> % desde lanzamiento + anualizado + por prototipo; real si hay eventos, si no estima del
+> seed). Frontend `PriceHistory.js` (curva SVG) montado en Insights (reemplazó el stub de
+> apreciación). Captura verificada end-to-end. Pendiente: snapshots cron (continuidad),
+> rollup por colonia/alcaldía → `drpi_snapshots` (F2), backfill de proyectos sin eventos,
+> y el mismo patrón para leads/brokers (ver DEV_BROKER_CHANNEL_INTEL_SPEC).
+
+
 Origen: founder pidió "ruta de guardado de snapshots de la data para generar historial que alimente
 los datos · lista de precios anterior + historial de crecimiento por prototipo/tamaño/características/
 unidad/desarrollo/microzona/macrozona · gráfica de crecimiento visible para dev, asesor y superadmin
