@@ -130,30 +130,87 @@ async def _claude_haiku(db, dev_org_id: str, system: str, user_text: str,
 # AMENIDADES
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Catálogo completo (nivel casa club / desarrollo premium). Las keys existentes se conservan.
 ALL_AMENIDADES = {
-    "comunes": {
-        "alberca": "Alberca", "gym": "Gimnasio", "roof": "Rooftop",
-        "spa": "Spa", "salon_eventos": "Salón de eventos",
-        "sky_lounge": "Sky Lounge", "cava": "Cava",
-        "area_pets": "Área de mascotas", "jardines": "Jardines",
-        "cowork": "Coworking", "business_center": "Business Center",
+    "comunes": {  # Áreas sociales y comunes
+        "casa_club": "Casa club", "alberca": "Alberca", "alberca_techada": "Alberca techada",
+        "jacuzzi": "Jacuzzi", "roof": "Roof garden", "sky_lounge": "Sky lounge",
+        "salon_eventos": "Salón de eventos", "salon_usos": "Salón de usos múltiples",
+        "bar_lounge": "Bar / Lounge", "cava": "Cava", "cine": "Sala de cine",
+        "game_room": "Salón de juegos", "ludoteca": "Ludoteca",
+        "asadores": "Asadores / Grill", "fire_pit": "Fire pit", "terraza_comun": "Terraza común",
+        "lobby": "Lobby doble altura", "business_center": "Business center",
+        "cowork": "Coworking", "sala_juntas": "Sala de juntas",
     },
-    "internas": {
-        "closet": "Clóset integrado", "cocina_equipada": "Cocina equipada",
-        "bodega": "Bodega", "balcon": "Balcón/Terraza privada",
-        "cuarto_servicio": "Cuarto de servicio",
+    "deportivas": {  # Deporte y bienestar
+        "gym": "Gimnasio", "yoga": "Salón de yoga", "spinning": "Spinning",
+        "spa": "Spa", "sauna": "Sauna", "vapor": "Vapor",
+        "cancha_padel": "Cancha de pádel", "cancha_tenis": "Cancha de tenis",
+        "cancha_basquet": "Cancha de básquet", "cancha_futbol": "Cancha de fútbol",
+        "squash": "Squash", "golf": "Golf / Putting green",
+        "jogging": "Pista de jogging", "ciclopista": "Ciclopista",
     },
-    "tecnologicas": {
-        "domotica": "Domótica", "cargador_ev": "Cargador VE",
-        "fibra_optica": "Fibra óptica", "seguridad": "Sistema de seguridad 24h",
-        "acceso_biometrico": "Acceso biométrico",
+    "familiares": {  # Familia y niños
+        "kids_club": "Kids club", "teens_room": "Teens room",
+        "chapoteadero": "Chapoteadero", "area_juegos": "Juegos infantiles",
+        "area_pets": "Área de mascotas", "pet": "Pet friendly",
     },
-    "sustentabilidad": {
-        "paneles_solares": "Paneles solares", "cisterna": "Cisterna",
-        "huertos": "Huertos urbanos", "bicicletas": "Estacionamiento bicis",
-        "pet": "Pet-friendly certificado", "estacionamiento": "Estacionamiento incluido",
-        "concierge": "Concierge",
+    "exteriores": {  # Exteriores y naturaleza
+        "jardines": "Jardines", "areas_verdes": "Áreas verdes",
+        "lago": "Lago / Espejo de agua", "andadores": "Andadores", "huertos": "Huertos urbanos",
     },
+    "seguridad": {  # Seguridad y acceso
+        "seguridad": "Seguridad 24h", "caseta": "Caseta de vigilancia",
+        "cctv": "CCTV / Circuito cerrado", "control_acceso": "Control de acceso",
+        "acceso_biometrico": "Acceso biométrico", "fraccionamiento_privado": "Fraccionamiento privado",
+    },
+    "tecnologicas": {  # Tecnología
+        "domotica": "Domótica", "fibra_optica": "Fibra óptica",
+        "cargador_ev": "Cargador para auto eléctrico", "smart_locks": "Cerraduras inteligentes",
+        "elevador": "Elevador",
+    },
+    "sustentabilidad": {  # Sustentabilidad
+        "paneles_solares": "Paneles solares", "planta_tratadora": "Planta tratadora de agua",
+        "captacion_pluvial": "Captación pluvial", "cisterna": "Cisterna",
+        "bicicletas": "Estacionamiento de bicis", "separacion_basura": "Separación de basura",
+        "concierge": "Concierge", "valet": "Valet parking", "estacionamiento": "Estacionamiento incluido",
+    },
+    "internas": {  # Por unidad
+        "cocina_equipada": "Cocina equipada", "closet": "Clóset integrado",
+        "walk_in_closet": "Walk-in closet", "bodega": "Bodega",
+        "balcon": "Balcón / Terraza privada", "cuarto_servicio": "Cuarto de servicio",
+        "family_room": "Family room", "estudio": "Estudio",
+        "aire_acondicionado": "Aire acondicionado", "calefaccion": "Calefacción",
+        "amueblado": "Amueblado", "doble_altura": "Doble altura",
+    },
+}
+
+# Servicios del desarrollo: cada uno tiene TIPO (el dev elige con qué cuenta).
+ALL_SERVICIOS = {
+    "gas":           {"label": "Gas", "options": [
+        {"value": "natural", "label": "Natural"},
+        {"value": "lp", "label": "LP / Cilindro"},
+        {"value": "estacionario", "label": "Tanque estacionario"}]},
+    "agua":          {"label": "Agua", "options": [
+        {"value": "red", "label": "Red municipal"},
+        {"value": "pozo", "label": "Pozo propio"},
+        {"value": "ambos", "label": "Red + pozo"}]},
+    "energia":       {"label": "Energía eléctrica", "options": [
+        {"value": "cfe", "label": "CFE / Red"},
+        {"value": "paneles", "label": "Paneles solares"},
+        {"value": "hibrido", "label": "Híbrido (CFE + paneles)"}]},
+    "agua_caliente": {"label": "Agua caliente", "options": [
+        {"value": "boiler", "label": "Boiler de gas"},
+        {"value": "solar", "label": "Calentador solar"},
+        {"value": "instantaneo", "label": "Paso instantáneo"}]},
+    "drenaje":       {"label": "Drenaje", "options": [
+        {"value": "municipal", "label": "Red municipal"},
+        {"value": "planta", "label": "Planta tratadora"},
+        {"value": "fosa", "label": "Fosa séptica"}]},
+    "internet":      {"label": "Internet", "options": [
+        {"value": "fibra", "label": "Fibra óptica"},
+        {"value": "cable", "label": "Cable / DSL"},
+        {"value": "preinstalado", "label": "Preinstalación"}]},
 }
 
 
@@ -165,6 +222,10 @@ async def get_amenities(project_id: str, request: Request):
         {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
     )
     if doc:
+        doc.setdefault("amenities", [])
+        doc.setdefault("servicios", {})
+        doc["all_categories"] = ALL_AMENIDADES
+        doc["all_servicios"] = ALL_SERVICIOS
         return doc
 
     # Fall back to seed data
@@ -174,12 +235,15 @@ async def get_amenities(project_id: str, request: Request):
     return {
         "project_id": project_id,
         "amenities": seed,
+        "servicios": {},
         "all_categories": ALL_AMENIDADES,
+        "all_servicios": ALL_SERVICIOS,
     }
 
 
 class AmenitiesPatch(BaseModel):
     amenities: List[str]
+    servicios: Optional[Dict[str, str]] = None
 
 
 @router.patch("/projects/{project_id}/amenities")
@@ -199,6 +263,8 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
         "amenities": payload.amenities,
         "updated_at": now_iso, "updated_by": user.user_id,
     }
+    if payload.servicios is not None:
+        update["servicios"] = payload.servicios
     await db.project_amenities.update_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)},
         {"$set": update}, upsert=True
@@ -207,7 +273,7 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
                       before=old, after=update, request=request,
                       ml_event="amenities_changed",
                       ml_context={"project_id": project_id, "count": len(payload.amenities)})
-    return {"ok": True, "amenities": payload.amenities}
+    return {"ok": True, "amenities": payload.amenities, "servicios": payload.servicios}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

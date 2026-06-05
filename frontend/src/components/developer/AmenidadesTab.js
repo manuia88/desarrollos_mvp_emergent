@@ -9,26 +9,40 @@ import { Check } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
 const SECTION_LABELS = {
-  comunes: 'Áreas comunes',
+  comunes: 'Áreas comunes y sociales',
+  deportivas: 'Deporte y bienestar',
+  familiares: 'Familia y niños',
+  exteriores: 'Exteriores y naturaleza',
+  seguridad: 'Seguridad y acceso',
+  tecnologicas: 'Tecnología',
+  sustentabilidad: 'Sustentabilidad',
   internas: 'Internas (por unidad)',
-  tecnologicas: 'Tecnológicas',
-  sustentabilidad: 'Sustentabilidad y bienestar',
 };
 
 // Ícono por amenidad (key → emoji). Fallback por sección.
 const AMENITY_ICONS = {
-  // comunes
-  alberca: '🏊', gym: '🏋️', roof: '🌆', spa: '💆', salon_eventos: '🎉', sky_lounge: '🍸',
-  cava: '🍷', area_pets: '🐾', jardines: '🌳', cowork: '💼', business_center: '🏢',
-  // internas
-  closet: '🚪', cocina_equipada: '🍳', bodega: '📦', balcon: '🪴', cuarto_servicio: '🧺',
-  // tecnológicas
-  domotica: '📱', cargador_ev: '🔌', fibra_optica: '🌐', seguridad: '🛡️', acceso_biometrico: '👆',
-  // sustentabilidad
-  paneles_solares: '☀️', cisterna: '💧', huertos: '🌱', bicicletas: '🚲', pet: '🐶',
-  estacionamiento: '🅿️', concierge: '🛎️',
+  casa_club: '🏰', alberca: '🏊', alberca_techada: '🏊', jacuzzi: '🛁', roof: '🌆', sky_lounge: '🍸',
+  salon_eventos: '🎉', salon_usos: '🏟️', bar_lounge: '🍸', cava: '🍷', cine: '🎬', game_room: '🎮',
+  ludoteca: '🧸', asadores: '🍖', fire_pit: '🔥', terraza_comun: '🌅', lobby: '🛋️',
+  business_center: '🏢', cowork: '💼', sala_juntas: '📊',
+  gym: '🏋️', yoga: '🧘', spinning: '🚴', spa: '💆', sauna: '🧖', vapor: '♨️',
+  cancha_padel: '🎾', cancha_tenis: '🎾', cancha_basquet: '🏀', cancha_futbol: '⚽', squash: '🎾',
+  golf: '⛳', jogging: '🏃', ciclopista: '🚲',
+  kids_club: '🧒', teens_room: '🕹️', chapoteadero: '🛟', area_juegos: '🎠', area_pets: '🐾', pet: '🐶',
+  jardines: '🌳', areas_verdes: '🌿', lago: '🏞️', andadores: '🚶', huertos: '🌱',
+  seguridad: '🛡️', caseta: '👮', cctv: '📹', control_acceso: '🚧', acceso_biometrico: '👆', fraccionamiento_privado: '🔒',
+  domotica: '📱', fibra_optica: '🌐', cargador_ev: '🔌', smart_locks: '🔐', elevador: '🛗',
+  paneles_solares: '☀️', planta_tratadora: '💧', captacion_pluvial: '🌧️', cisterna: '🪣',
+  bicicletas: '🚲', separacion_basura: '♻️', concierge: '🛎️', valet: '🚗', estacionamiento: '🅿️',
+  cocina_equipada: '🍳', closet: '🚪', walk_in_closet: '👔', bodega: '📦', balcon: '🪴',
+  cuarto_servicio: '🧺', family_room: '🛋️', estudio: '📚', aire_acondicionado: '❄️',
+  calefaccion: '🔥', amueblado: '🛏️', doble_altura: '📐',
 };
-const SECTION_FALLBACK_ICON = { comunes: '🏛️', internas: '🏠', tecnologicas: '⚙️', sustentabilidad: '🌿' };
+const SECTION_FALLBACK_ICON = {
+  comunes: '🏛️', deportivas: '🏅', familiares: '👨‍👩‍👧', exteriores: '🌳',
+  seguridad: '🛡️', tecnologicas: '⚙️', sustentabilidad: '🌿', internas: '🏠',
+};
+const SERVICIO_ICONS = { gas: '🔥', agua: '🚰', energia: '⚡', agua_caliente: '♨️', drenaje: '🚿', internet: '🌐' };
 
 function AmenityCard({ amenityKey, label, icon, checked, isEditing, onToggle }) {
   return (
@@ -94,9 +108,69 @@ function Section({ sectionKey, sectionLabel, allOptions, selected, isEditing, on
   );
 }
 
+// Servicios del desarrollo: cada servicio se elige CON su tipo (gas natural/LP, agua pozo/red…).
+function ServiciosSection({ catalog, servicios, isEditing, onPick }) {
+  const keys = Object.keys(catalog || {});
+  if (!keys.length) return null;
+  const chosen = keys.filter(k => servicios[k]).length;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11 }}>
+        <span style={{ width: 4, height: 16, borderRadius: 3, background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))' }} />
+        <h4 style={{ margin: 0, fontSize: 12.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
+          Servicios del desarrollo
+        </h4>
+        <span style={{ fontSize: 11, fontWeight: 700, color: chosen > 0 ? 'var(--theme)' : 'var(--cream-3)',
+          background: chosen > 0 ? 'rgba(var(--theme-rgb),0.09)' : 'rgba(var(--cream-rgb),0.05)', padding: '2px 9px', borderRadius: 999 }}>
+          {chosen} de {keys.length}
+        </span>
+        {isEditing && <span style={{ fontSize: 11, color: 'var(--cream-3)', fontStyle: 'italic' }}>elige con qué tipo cuenta el desarrollo</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(290px,1fr))', gap: 10 }}>
+        {keys.map(k => {
+          const svc = catalog[k];
+          const sel = servicios[k];
+          return (
+            <div key={k} className="dmx-card" data-testid={`servicio-${k}`}
+              style={{ background: '#fff', border: `1.5px solid ${sel ? 'var(--theme)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: isEditing ? 9 : 0 }}>
+                <span style={{ fontSize: 17 }}>{SERVICIO_ICONS[k] || '🔧'}</span>
+                <b style={{ fontSize: 12.5, color: 'var(--cream)' }}>{svc.label}</b>
+                {!isEditing && (
+                  <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: sel ? 'var(--theme)' : 'var(--cream-3)' }}>
+                    {sel ? (svc.options.find(o => o.value === sel)?.label || sel) : 'No especificado'}
+                  </span>
+                )}
+              </div>
+              {isEditing && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {svc.options.map(o => {
+                    const on = sel === o.value;
+                    return (
+                      <button key={o.value} type="button" data-testid={`servicio-${k}-${o.value}`}
+                        onClick={() => onPick(k, on ? null : o.value)}
+                        style={{ fontSize: 11.5, fontWeight: 700, padding: '5px 11px', borderRadius: 999, cursor: 'pointer',
+                          border: `1px solid ${on ? 'var(--theme)' : 'var(--border)'}`,
+                          background: on ? 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))' : '#fff',
+                          color: on ? '#fff' : 'var(--cream-2)' }}>
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AmenidadesTab({ devId, user }) {
   const [data, setData] = useState(null);
   const [selected, setSelected] = useState([]);
+  const [servicios, setServicios] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [otherProjects, setOtherProjects] = useState([]);
@@ -108,6 +182,7 @@ export default function AmenidadesTab({ devId, user }) {
       const d = await getProjectAmenities(devId);
       setData(d);
       setSelected(d.amenities || []);
+      setServicios(d.servicios || {});
     } catch (e) { console.error('AmenidadesTab:', e); }
   }, [devId]);
 
@@ -125,10 +200,18 @@ export default function AmenidadesTab({ devId, user }) {
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
+  const handlePickServicio = (key, value) => {
+    setServicios(prev => {
+      const next = { ...prev };
+      if (value == null) delete next[key]; else next[key] = value;
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await patchProjectAmenities(devId, { amenities: selected });
+      await patchProjectAmenities(devId, { amenities: selected, servicios });
       setIsEditing(false);
       await load();
     } catch (e) { console.error('Save amenidades:', e); }
@@ -139,6 +222,7 @@ export default function AmenidadesTab({ devId, user }) {
     try {
       const d = await getProjectAmenities(projectId);
       setSelected(d.amenities || []);
+      setServicios(d.servicios || {});
       setShowDefaults(false);
     } catch (e) { console.error('Apply defaults:', e); }
   };
@@ -195,7 +279,7 @@ export default function AmenidadesTab({ devId, user }) {
           )}
           {isEditing && (
             <>
-              <button onClick={() => { setIsEditing(false); setSelected(data.amenities || []); }} style={btnGhost}>Cancelar</button>
+              <button onClick={() => { setIsEditing(false); setSelected(data.amenities || []); setServicios(data.servicios || {}); }} style={btnGhost}>Cancelar</button>
               <button data-testid="save-amenidades-btn" onClick={handleSave} disabled={saving}
                 style={{ background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'default' : 'pointer' }}>
                 {saving ? 'Guardando…' : 'Guardar cambios'}
@@ -205,12 +289,16 @@ export default function AmenidadesTab({ devId, user }) {
         </div>
       </div>
 
-      {/* Secciones */}
+      {/* Secciones de amenidades */}
       {Object.entries(allCategories).map(([sectionKey, options]) => (
         <Section key={sectionKey} sectionKey={sectionKey}
           sectionLabel={SECTION_LABELS[sectionKey] || sectionKey}
           allOptions={options} selected={selected} isEditing={isEditing} onToggle={handleToggle} />
       ))}
+
+      {/* Servicios del desarrollo (con tipo) */}
+      <ServiciosSection catalog={data.all_servicios} servicios={servicios}
+        isEditing={isEditing} onPick={handlePickServicio} />
     </div>
   );
 }
