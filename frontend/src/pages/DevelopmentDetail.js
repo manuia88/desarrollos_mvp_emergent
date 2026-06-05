@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
-import { fetchDevelopment } from '../api/marketplace';
+import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import DescriptionTab from '../components/dev/DescriptionTab';
@@ -48,6 +48,10 @@ import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard'
 import ConstructionQualityBadge from '../components/property/ConstructionQualityBadge';
 import { getQualityIndex } from '../api/constructionQuality';
 import MarketValueCard from '../components/marketplace/MarketValueCard';
+// B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
+import DevConfigSections from '../components/marketplace/DevConfigSections';
+import PublicCotizador from '../components/marketplace/PublicCotizador';
+import PlusvaliaCard from '../components/marketplace/PlusvaliaCard';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -120,10 +124,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     }).catch(() => { if (alive) setDev(null); });
     // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
     trackPropertyView(id, 'marketplace');
-    // Phase 7.6: superpone fotos reales de dev_assets si existen.
+    // Phase 7.6 / B2.1: superpone fotos reales del comprador (dev_assets) si existen.
     const API = process.env.REACT_APP_BACKEND_URL;
-    fetch(`${API}/api/developments/${encodeURIComponent(id)}/assets`)
-      .then(r => r.ok ? r.json() : null)
+    fetchDevelopmentAssets(id)
       .then((data) => {
         if (!alive || !data) return;
         const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo'];
@@ -343,6 +346,22 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           <section data-testid="dev-narrative-layer-section" style={{ marginTop: 20 }}>
             <NarrativeBlockLLM scope="project" entityId={dev.id} audience="neutral" />
           </section>
+
+          {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
+          <DevConfigSections config={dev.config} />
+
+          {/* B2.2 — Cotizador público con las formas de pago del desarrollador */}
+          <PublicCotizador
+            formasPago={dev.config?.formas_pago}
+            basePrice={dev.price_from}
+            fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate}
+          />
+
+          {/* B2.4 — Plusvalía pública: % desde lanzamiento + histórico embebido */}
+          <PlusvaliaCard
+            plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
+            priceHistory={dev.price_history}
+          />
 
           {/* Layout */}
           <div className="dev-grid" style={{
