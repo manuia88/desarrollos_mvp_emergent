@@ -1,23 +1,16 @@
 /**
- * UbicacionIntel — Cockpit de inteligencia de zona para la ficha del proyecto (pestaña Ubicación).
+ * UbicacionIntel — Cockpit de inteligencia de zona (pestaña Ubicación de la ficha del proyecto).
  * Doctrina del dato práctico: cada métrica = NÚMERO + PLAZO + COMPARATIVO + PARA QUÉ SIRVE.
- * Nada de palabras vagas ("Áreas verdes: Algunas"). Cablea el endpoint /location-intel que junta
- * el arsenal real (simulador de inversión, DRPI, censo de negocios, demanda, forecast, perfil INEGI).
- * Conectores que aún no traen dato (negocios/forecast) = stub honesto que se autollena (estado final).
+ * Cablea /location-intel (simulador de inversión, DRPI, censo de negocios, demanda, perfil INEGI).
+ * Conectores sin dato aún (negocios/forecast) = stub honesto que se autollena (estado final).
  */
 import React, { useEffect, useState } from 'react';
 import { getLocationIntel } from '../../api/developer';
+import { fmtMXN, fmtFull, grid, Block, Stat, BigCard } from './cockpitUI';
 
-const fmtMXN = (v) => {
-  if (v == null) return '—';
-  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(v) >= 1_000) return `$${Math.round(v / 1_000)}K`;
-  return `$${Math.round(v)}`;
-};
-const fmtFull = (v) => (v == null ? '—' : `$${Math.round(v).toLocaleString('es-MX')}`);
 const CDMX_APREC = 6; // referencia de apreciación residencial promedio (industria)
 
-// Banda para el perfil del comprador (score 0-100 → palabra + acción práctica).
+// Banda del perfil del comprador (score 0-100 → palabra + acción práctica).
 function buyerLine(score, kind) {
   if (score == null) return null;
   const hi = score >= 67, mid = score >= 40;
@@ -36,56 +29,6 @@ function buyerLine(score, kind) {
   return null;
 }
 
-const TONE = { green: '#15803d', amber: '#B7791F', red: '#DC2626', flat: 'var(--cream-3)' };
-const DOT = { green: '#1FA06A', amber: '#E2982E', red: '#F2635B', flat: 'rgba(var(--cream-rgb),0.3)' };
-
-function Block({ title, hint, children }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 10 }}>
-        {title}{hint && <span style={{ color: 'var(--cream-3)', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}> · {hint}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-// Tarjeta grande de estrategia de inversión (la joya).
-function StrategyCard({ icon, name, big, sub, framing, tag, tone = 'green', estimado }) {
-  return (
-    <div className="dmx-card" style={{ background: '#fff', padding: '15px 16px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
-        <b style={{ fontSize: 13, color: 'var(--cream)' }}>{name}</b>
-        {tag && <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 800, color: TONE[tone], background: `${DOT[tone]}22`, padding: '2px 8px', borderRadius: 999 }}>{tag}</span>}
-      </div>
-      <div style={{ fontFamily: 'Outfit,sans-serif', fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: 'var(--cream)', lineHeight: 1 }}>{big}</div>
-      {sub && <div style={{ fontSize: 11.5, fontWeight: 700, color: TONE[tone], marginTop: 5 }}>{sub}</div>}
-      {framing && <div style={{ fontSize: 11.5, color: 'var(--cream-2)', lineHeight: 1.45, marginTop: 8 }}>{framing}</div>}
-      {estimado && <div style={{ fontSize: 9.5, color: 'var(--cream-3)', marginTop: 7, fontStyle: 'italic' }}>○ estimado · se afina con datos reales de Airbnb</div>}
-    </div>
-  );
-}
-
-// Tarjeta chica de dato de zona.
-function ZoneStat({ label, value, unit, framing, tone = 'flat', stub }) {
-  return (
-    <div className="dmx-card" style={{ background: '#fff', padding: '13px 15px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{label}</span>
-        <span style={{ width: 9, height: 9, borderRadius: '50%', background: DOT[tone] }} />
-      </div>
-      <div style={{ fontFamily: 'Outfit,sans-serif', fontSize: 23, fontWeight: 800, letterSpacing: '-.02em', color: 'var(--cream)', lineHeight: 1.05 }}>
-        {value}{unit && <span style={{ fontSize: 12, color: 'var(--cream-3)', fontWeight: 700 }}>{unit}</span>}
-      </div>
-      {framing && <div style={{ fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.4, marginTop: 7 }}>{framing}</div>}
-      {stub && <div style={{ fontSize: 9.5, color: 'var(--cream-3)', marginTop: 6, fontStyle: 'italic' }}>○ se conecta pronto</div>}
-    </div>
-  );
-}
-
-const grid = (min) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit,minmax(${min}px,1fr))`, gap: 12 });
-
 const NEG_CATS = [
   { k: 'restaurants', label: 'Restaurantes', icon: '🍽️' },
   { k: 'schools', label: 'Escuelas', icon: '🎓' },
@@ -96,7 +39,7 @@ const NEG_CATS = [
   { k: 'gyms', label: 'Gimnasios', icon: '🏋️' },
 ];
 
-export default function UbicacionIntel({ slug, summary }) {
+export default function UbicacionIntel({ slug }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(false);
 
@@ -121,12 +64,9 @@ export default function UbicacionIntel({ slug, summary }) {
   const neg = d.negocios || {};
   const buyer = d.comprador || {};
 
-  // Tu precio vs zona
   const myM2 = d.price_m2_project;
   const zoneM2 = drpi.median_price_per_m2;
   const vsZone = (myM2 && zoneM2) ? Math.round((myM2 / zoneM2 - 1) * 100) : null;
-
-  // Airbnb vs renta tradicional (cuánto más flujo)
   const abVsRt = (ab.renta_neta_mensual && rt.renta_neta_mensual)
     ? Math.round((ab.renta_neta_mensual / rt.renta_neta_mensual - 1) * 100) : null;
 
@@ -139,13 +79,13 @@ export default function UbicacionIntel({ slug, summary }) {
       {/* 1 · La joya: ROI por estrategia */}
       <Block title="¿Cuánto rinde invertir aquí?" hint={`${d.colonia} · sobre ${fmtMXN(d.precio_entrada)} de entrada`}>
         <div style={grid(210)}>
-          <StrategyCard icon="🏠" name="Renta tradicional" tone="green"
+          <BigCard icon="🏠" name="Renta tradicional" tone="green"
             big={`${fmtFull(rt.renta_neta_mensual)}`} sub={`/mes neto · yield ${rt.yield_bruto_anual_pct ?? '—'}%/año`}
             framing="Flujo estable y sin operación. Para quien busca renta de largo plazo." />
-          <StrategyCard icon="🌙" name="Airbnb" tone="amber" estimado tag="estimado"
+          <BigCard icon="🌙" name="Airbnb" tone="amber" tag="estimado" note="estimado · se afina con datos reales de Airbnb"
             big={`${fmtFull(ab.renta_neta_mensual)}`} sub={abVsRt != null ? `/mes neto · +${abVsRt}% vs renta fija` : '/mes neto'}
             framing="Más flujo, pero operas tú (huéspedes, limpieza). Para maximizar ingreso mensual." />
-          <StrategyCard icon="📈" name="Reventa a 10 años" tone="green" tag={`ROI ${rv.roi_pct != null ? Math.round(rv.roi_pct) : '—'}%`}
+          <BigCard icon="📈" name="Reventa a 10 años" tone="green" tag={`ROI ${rv.roi_pct != null ? Math.round(rv.roi_pct) : '—'}%`}
             big={`+${fmtMXN(rv.plusvalia_abs)}`} sub={rv.precio_final ? `vale ~${fmtMXN(rv.precio_final)} a 10 años` : ''}
             framing="Apreciación pura: casi triplicas tu inversión si vendes en una década." />
         </div>
@@ -154,14 +94,14 @@ export default function UbicacionIntel({ slug, summary }) {
       {/* 2 · Plusvalía / apreciación */}
       <Block title="¿Cuánto se aprecia la zona?" hint="qué tan rápido sube de valor">
         <div style={grid(190)}>
-          <ZoneStat label="Apreciación al año" value={aprec != null ? `+${aprec}` : '—'} unit="%"
+          <Stat label="Apreciación al año" value={aprec != null ? `+${aprec}` : '—'} unit="%"
             tone={aprec != null ? (aprec >= CDMX_APREC ? 'green' : 'amber') : 'flat'}
             framing={aprec != null ? `vs ~${CDMX_APREC}% promedio CDMX → ${aprec >= CDMX_APREC ? 'crece por encima del promedio, buen activo de apreciación' : 'crece por debajo del promedio, véndela como zona consolidada y segura'}` : 'sin dato'} />
-          <ZoneStat label="Escenario conservador" value={scen.conservador?.aprec_anual_pct != null ? `+${scen.conservador.aprec_anual_pct}` : '—'} unit="%/año"
+          <Stat label="Escenario conservador" value={scen.conservador?.aprec_anual_pct != null ? `+${scen.conservador.aprec_anual_pct}` : '—'} unit="%/año"
             tone="amber" framing={scen.conservador?.roi_pct != null ? `ROI ${Math.round(scen.conservador.roi_pct)}% a 10 años · el piso realista` : 'el piso realista'} />
-          <ZoneStat label="Escenario optimista" value={scen.optimista?.aprec_anual_pct != null ? `+${scen.optimista.aprec_anual_pct}` : '—'} unit="%/año"
+          <Stat label="Escenario optimista" value={scen.optimista?.aprec_anual_pct != null ? `+${scen.optimista.aprec_anual_pct}` : '—'} unit="%/año"
             tone="green" framing={scen.optimista?.roi_pct != null ? `ROI ${Math.round(scen.optimista.roi_pct)}% a 10 años · si el mercado acompaña` : 'si el mercado acompaña'} />
-          <ZoneStat label="Plusvalía a 10 años" value={fmtMXN(rv.plusvalia_abs)}
+          <Stat label="Plusvalía a 10 años" value={fmtMXN(rv.plusvalia_abs)}
             tone="green" framing={roi.tir_anual_pct != null ? `rendimiento anualizado ${roi.tir_anual_pct}% (TIR)` : 'ganancia de capital proyectada'} />
         </div>
       </Block>
@@ -169,10 +109,10 @@ export default function UbicacionIntel({ slug, summary }) {
       {/* 3 · Tu precio vs la zona */}
       <Block title="Tu precio vs la zona" hint="¿estás caro, barato o en línea?">
         <div style={grid(190)}>
-          <ZoneStat label="Tu precio /m²" value={fmtFull(myM2)} tone={vsZone == null ? 'flat' : vsZone > 15 ? 'amber' : 'green'}
+          <Stat label="Tu precio /m²" value={fmtFull(myM2)} tone={vsZone == null ? 'flat' : vsZone > 15 ? 'amber' : 'green'}
             framing={vsZone != null ? `${vsZone > 0 ? '+' : ''}${vsZone}% vs la referencia de zona (${fmtFull(zoneM2)}/m²) → ${vsZone > 15 ? 'premium; justifícalo con marca/amenidades o el ritmo se frena' : vsZone < -8 ? 'por debajo de la zona, tienes espacio para subir' : 'alineado con la zona'}` : 'sin referencia de zona aún'}
             stub={!drpi.available} />
-          <ZoneStat label="Referencia de zona /m²" value={fmtFull(zoneM2)} tone="flat"
+          <Stat label="Referencia de zona /m²" value={fmtFull(zoneM2)} tone="flat"
             framing={drpi.available ? `mediana real · ${drpi.sample_size} ventas` : 'estimado de zona · se afina con transacciones reales'} stub={!drpi.available} />
         </div>
       </Block>
@@ -180,11 +120,11 @@ export default function UbicacionIntel({ slug, summary }) {
       {/* 4 · Demanda viva */}
       <Block title="Demanda viva de tu zona" hint="interés real ahora mismo">
         <div style={grid(170)}>
-          <ZoneStat label="Leads activos" value={dem.leads_activos ?? 0} tone={(dem.leads_activos ?? 0) > 0 ? 'green' : 'amber'}
+          <Stat label="Leads activos" value={dem.leads_activos ?? 0} tone={(dem.leads_activos ?? 0) > 0 ? 'green' : 'amber'}
             framing={`de ${dem.leads_total ?? 0} leads totales en este proyecto`} />
-          <ZoneStat label="Leads ganados" value={dem.leads_ganados ?? 0} tone={(dem.leads_ganados ?? 0) > 0 ? 'green' : 'flat'}
+          <Stat label="Leads ganados" value={dem.leads_ganados ?? 0} tone={(dem.leads_ganados ?? 0) > 0 ? 'green' : 'flat'}
             framing="cierres confirmados en la zona" />
-          <ZoneStat label="Citas agendadas" value={dem.citas ?? 0} tone={(dem.citas ?? 0) > 0 ? 'green' : 'flat'}
+          <Stat label="Citas agendadas" value={dem.citas ?? 0} tone={(dem.citas ?? 0) > 0 ? 'green' : 'flat'}
             framing="visitas al proyecto" />
         </div>
       </Block>
@@ -192,9 +132,9 @@ export default function UbicacionIntel({ slug, summary }) {
       {/* 5 · ¿Quién compra aquí? */}
       <Block title="¿Quién compra aquí?" hint="a quién le hablas en tu marketing">
         <div style={grid(230)}>
-          {ingreso && <ZoneStat label="Poder de compra" value={ingreso.word} tone={ingreso.tone} framing={ingreso.use} />}
-          {familia && <ZoneStat label="Perfil de la zona" value={familia.word} tone={familia.tone} framing={familia.use} />}
-          {conect && <ZoneStat label="Conectividad" value={conect.word} tone={conect.tone} framing={conect.use} />}
+          {ingreso && <Stat label="Poder de compra" value={ingreso.word} tone={ingreso.tone} framing={ingreso.use} />}
+          {familia && <Stat label="Perfil de la zona" value={familia.word} tone={familia.tone} framing={familia.use} />}
+          {conect && <Stat label="Conectividad" value={conect.word} tone={conect.tone} framing={conect.use} />}
         </div>
       </Block>
 

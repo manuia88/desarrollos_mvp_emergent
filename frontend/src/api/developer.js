@@ -259,6 +259,9 @@ export const getProjectSummary = (projectId) => j(`/api/dev/projects/${projectId
 // Inteligencia de ubicación — fan-out a motores de zona (ROI/plusvalía/negocios/demanda/comprador)
 export const getLocationIntel = (projectId) => j(`/api/dev/projects/${projectId}/location-intel`);
 
+// Pulso de ventas — agotamiento vs entrega, what-if de precio, proyección, mix, margen
+export const getSalesIntel = (projectId) => j(`/api/dev/projects/${projectId}/sales-intel`);
+
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
 export const patchProjectAmenities = (pid, b) => patch(`/api/dev/projects/${pid}/amenities`, b);
