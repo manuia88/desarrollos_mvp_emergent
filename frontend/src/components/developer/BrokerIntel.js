@@ -14,7 +14,7 @@ function trustWord(v, tier, words) {
   return { word: words[0], tone: 'red' };
 }
 
-export default function BrokerIntel({ slug }) {
+export default function BrokerIntel({ slug, section = 'all' }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(false);
 
@@ -36,9 +36,13 @@ export default function BrokerIntel({ slug }) {
   const marca = trustWord(conf.IE_PROY_MARCA_TRUST?.value, conf.IE_PROY_MARCA_TRUST?.tier, ['Por construir', 'Buena', 'Alta']);
   const entregas = trustWord(conf.IE_PROY_DEVELOPER_DELIVERY_HIST?.value, conf.IE_PROY_DEVELOPER_DELIVERY_HIST?.tier, ['Irregular', 'Bueno', 'Impecable']);
 
+  const showPagos = section === 'all' || section === 'pagos';
+  const showCanales = section === 'all' || section === 'canales';
+
   return (
     <div data-testid="broker-intel" style={{ marginBottom: 22 }}>
       {/* 1 · Formas de pago */}
+      {showPagos && (
       <Block title="Tus formas de pago" hint={`${p.n_planes || 0} planes · hasta ${p.financiamiento_meses ?? '—'} meses sin banco`}>
         {planes.length > 0 ? (
           <div style={grid(210)}>
@@ -51,7 +55,9 @@ export default function BrokerIntel({ slug }) {
           </div>
         ) : <div style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>Sin formas de pago configuradas.</div>}
       </Block>
+      )}
 
+      {showCanales && (<>
       {/* 2 · Cómo comercializas (canal) */}
       <Block title="Cómo comercializas" hint="tu canal y política de comisión">
         <div style={grid(190)}>
@@ -89,6 +95,7 @@ export default function BrokerIntel({ slug }) {
           )}
         </div>
       </Block>
+      </>)}
     </div>
   );
 }

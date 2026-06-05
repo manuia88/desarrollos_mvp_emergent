@@ -86,6 +86,16 @@ function Card({ title, children }) {
   );
 }
 
+// Sub-sección con fondo sutil (sin arcoíris) para separar grupos de campos.
+function Group({ title, children }) {
+  return (
+    <div style={{ background: 'rgba(var(--cream-rgb),0.025)', border: '1px solid var(--border)', borderRadius: 11, padding: '13px 14px 1px', marginBottom: 12 }}>
+      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 11 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 // Presets de cada política (el dev elige; "Otra…" para custom).
 const OPT = {
   comision_pago: ['100% al firmar contrato', '50% firma / 50% escritura', '100% al escriturar'],
@@ -201,25 +211,37 @@ export default function PoliciesConfig({ devId, projectName }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(330px,1fr))', gap: 14 }}>
         <Card title="Política para asesores / brokers">
-          <NumRow label="Comisión" value={broker.comision_pct} suffix="%" step={0.1} onChange={v => bset('comision_pct', v)} />
-          <ChipSelect label="¿Cómo se paga la comisión?" value={broker.comision_pago_esquema} options={OPT.comision_pago} onChange={v => bset('comision_pago_esquema', v)} />
-          <NumRow label="Plazo de pago tras escriturar" value={broker.comision_pago_dias} suffix="días" onChange={v => bset('comision_pago_dias', v)} />
-          <ChipSelect label="Registro de leads" value={broker.registro_leads} options={OPT.registro_leads} onChange={v => bset('registro_leads', v)} />
-          <NumRow label="Descuento máximo que puede ofrecer un asesor" value={broker.descuento_max_pct} suffix="%" step={0.1} onChange={v => bset('descuento_max_pct', v)} />
-          <ChipSelect label="Comisión escalonada (bonos)" value={broker.comision_escalonada} options={OPT.comision_escalonada} onChange={v => bset('comision_escalonada', v)} />
-          <ChipSelect label="Co-brokering / reparto" value={broker.cobrokering_reparto} options={OPT.cobrokering} onChange={v => bset('cobrokering_reparto', v)} />
-          <ChipSelect label="Exclusividad (opcional)" value={broker.exclusividad} options={OPT.exclusividad} onChange={v => bset('exclusividad', v)} />
+          <Group title="Comisión">
+            <NumRow label="Comisión" value={broker.comision_pct} suffix="%" step={0.1} onChange={v => bset('comision_pct', v)} />
+            <ChipSelect label="¿Cómo se paga?" value={broker.comision_pago_esquema} options={OPT.comision_pago} onChange={v => bset('comision_pago_esquema', v)} />
+            <NumRow label="Plazo de pago tras escriturar" value={broker.comision_pago_dias} suffix="días" onChange={v => bset('comision_pago_dias', v)} />
+          </Group>
+          <Group title="Reglas de operación">
+            <ChipSelect label="Registro de leads" value={broker.registro_leads} options={OPT.registro_leads} onChange={v => bset('registro_leads', v)} />
+            <NumRow label="Descuento máximo que puede ofrecer un asesor" value={broker.descuento_max_pct} suffix="%" step={0.1} onChange={v => bset('descuento_max_pct', v)} />
+            <ChipSelect label="Exclusividad" value={broker.exclusividad} options={OPT.exclusividad} onChange={v => bset('exclusividad', v)} />
+          </Group>
+          <Group title="Incentivos">
+            <ChipSelect label="Comisión escalonada (bonos)" value={broker.comision_escalonada} options={OPT.comision_escalonada} onChange={v => bset('comision_escalonada', v)} />
+            <ChipSelect label="Co-brokering / reparto" value={broker.cobrokering_reparto} options={OPT.cobrokering} onChange={v => bset('cobrokering_reparto', v)} />
+          </Group>
         </Card>
 
         <Card title="Política de venta (comprador)">
-          <NumRow label="Apartado" value={sales.apartado_mxn} suffix="$" step={1000} onChange={v => sset('apartado_mxn', v)} />
-          <ChipSelect label="Condiciones del apartado" value={sales.apartado_condiciones} options={OPT.apartado_cond} onChange={v => sset('apartado_condiciones', v)} />
-          <Field label="Vigencia del precio (hasta)">
-            <input type="date" value={sales.precio_vigencia_fecha || ''} onChange={e => sset('precio_vigencia_fecha', e.target.value)} style={{ ...inp, maxWidth: 200 }} />
-          </Field>
-          <ChipSelect label="Política de cancelación / devolución" value={sales.cancelacion_politica} options={OPT.cancelacion} onChange={v => sset('cancelacion_politica', v)} />
-          <ChipMulti label="¿Qué incluye el precio? (varias)" value={sales.incluye} options={OPT.incluye} onChange={v => sset('incluye', v)} />
-          <ChipSelect label="Tiempos del proceso (apartado → firma → escritura)" value={sales.tiempos} options={OPT.tiempos} onChange={v => sset('tiempos', v)} />
+          <Group title="Apartado">
+            <NumRow label="Apartado" value={sales.apartado_mxn} suffix="$" step={1000} onChange={v => sset('apartado_mxn', v)} />
+            <ChipSelect label="Condiciones del apartado" value={sales.apartado_condiciones} options={OPT.apartado_cond} onChange={v => sset('apartado_condiciones', v)} />
+          </Group>
+          <Group title="Precio">
+            <Field label="Vigencia del precio (hasta)">
+              <input type="date" value={sales.precio_vigencia_fecha || ''} onChange={e => sset('precio_vigencia_fecha', e.target.value)} style={{ ...inp, maxWidth: 200 }} />
+            </Field>
+            <ChipMulti label="¿Qué incluye el precio? (varias)" value={sales.incluye} options={OPT.incluye} onChange={v => sset('incluye', v)} />
+          </Group>
+          <Group title="Proceso">
+            <ChipSelect label="Política de cancelación / devolución" value={sales.cancelacion_politica} options={OPT.cancelacion} onChange={v => sset('cancelacion_politica', v)} />
+            <ChipSelect label="Tiempos del proceso (apartado → firma → escritura)" value={sales.tiempos} options={OPT.tiempos} onChange={v => sset('tiempos', v)} />
+          </Group>
         </Card>
       </div>
 

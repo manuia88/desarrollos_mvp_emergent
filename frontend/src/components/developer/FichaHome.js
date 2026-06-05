@@ -395,8 +395,10 @@ export function AreaInsights({ slug, summary, area }) {
   if (area === 'insights') return <InsightsIntel slug={slug} summary={summary} />;
   // Amenidades: cockpit "Valor de tus amenidades" (qué sube tu precio, brecha vs competidores).
   if (area === 'amenidades') return <AmenidadesIntel slug={slug} summary={summary} />;
-  // Pagos y brokers: cockpit (formas de pago, canal/comisión, conversión, confianza).
-  if (area === 'comercializacion') return <BrokerIntel slug={slug} summary={summary} />;
+  // Pagos y administración: cockpit solo de formas de pago.
+  if (area === 'comercializacion') return <BrokerIntel slug={slug} section="pagos" />;
+  // Canales (in-house y brokers): cockpit de canal, conversión y confianza.
+  if (area === 'canales') return <BrokerIntel slug={slug} section="canales" />;
 
   const cfg = C[area];
   if (!cfg) return null;

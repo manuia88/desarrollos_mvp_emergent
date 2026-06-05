@@ -1,254 +1,83 @@
 /**
- * Phase 4 Batch 11 — Sub-chunk B
- * ComercializacionTab — política comercial + brokers + pre-asignaciones
+ * ComercializacionTab — "Pagos y administración": formas de pago + políticas (brokers/venta)
+ * + política comercial (trabajar con brokers / in-house). Lo operativo de canales (asignar
+ * brokers, pre-asignar asesores) vive en CanalesTab. Estilo cockpit (tarjetas blancas).
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  getCommercialization, patchCommercialization,
-  listBrokers, assignBroker, patchBroker,
-  listPreassignments, createPreassignment, deletePreassignment,
-  listInternalUsers, listProjectsWithStats,
-} from '../../api/developer';
-import InlineEditField from '../shared/InlineEditField';
+import { getCommercialization, patchCommercialization, listProjectsWithStats } from '../../api/developer';
 import PaymentSchemesConfig from './PaymentSchemesConfig';
 import PoliciesConfig from './PoliciesConfig';
-import { Users, Check } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
-const BROKER_TYPE_LABELS = {
-  advisor: 'Asesor externo',
-  developer_admin: 'Admin interno',
-  developer_member: 'Miembro interno',
-};
-
-const BROKER_STATUS_COLORS = {
-  active:  { bg: '#1FA06A', color: '#fff' },
-  paused:  { bg: '#C77F12', color: '#fff' },
-  revoked: { bg: '#E0463D', color: '#fff' },
-};
+const inp = { width: '100%', maxWidth: 200, background: '#fff', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--cream)', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' };
 
 function Toggle({ value, onChange, label, disabled }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: disabled ? 'default' : 'pointer' }}>
-      <div
-        onClick={() => !disabled && onChange(!value)}
-        style={{
-          width: 42, height: 24, borderRadius: 12, position: 'relative',
-          background: value ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.15)',
-          border: `1.5px solid ${value ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.25)'}`,
-          transition: 'all 0.2s', cursor: disabled ? 'default' : 'pointer', flexShrink: 0,
-        }}
-      >
-        <div style={{
-          position: 'absolute', top: 2, left: value ? 20 : 2,
-          width: 16, height: 16, borderRadius: '50%',
-          background: value ? 'var(--navy)' : 'rgba(var(--cream-rgb),0.4)',
-          transition: 'left 0.2s',
-        }} />
-      </div>
-      <span style={{ fontSize: 13, color: 'var(--cream-2)' }}>{label}</span>
-    </label>
-  );
-}
-
-function AssignBrokerModal({ projectId, onClose, onAssigned }) {
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
-  const [commission, setCommission] = useState('3');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    listInternalUsers().then(d => setUsers(d?.items || d || [])).catch(() => {});
-  }, []);
-
-  const handleAssign = async () => {
-    if (!selectedUser || !commission) return;
-    setSaving(true);
-    try {
-      await assignBroker(projectId, {
-        broker_user_id: selectedUser,
-        commission_pct: parseFloat(commission),
-        access_level: 'sell',
-      });
-      onAssigned();
-      onClose();
-    } catch (e) {
-      alert(e?.message || 'Error al asignar broker');
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(var(--bg-rgb),0.85)', zIndex: Z.DRAWER,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <div style={{
-        background: 'linear-gradient(180deg, #161b27, #0e121b)', border: '1px solid rgba(var(--cream-rgb),0.18)',
-        borderRadius: 14, padding: 28, width: 400, maxWidth: '90vw',
-        boxShadow: '0 18px 48px rgba(0,0,0,0.5)',
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+      <div onClick={() => !disabled && onChange(!value)} style={{
+        width: 42, height: 24, borderRadius: 999, position: 'relative', flexShrink: 0,
+        background: value ? 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))' : 'var(--border)',
+        cursor: disabled ? 'default' : 'pointer', transition: 'background .2s',
       }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-          Asignar asesor/broker
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ fontSize: 11, color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Asesor</label>
-            <select
-              value={selectedUser}
-              onChange={e => setSelectedUser(e.target.value)}
-              style={{
-                width: '100%', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)',
-                border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
-                padding: '8px 10px', fontSize: 13,
-              }}
-            >
-              <option value="" style={{ background: '#161b27', color: 'var(--cream)' }}>Selecciona asesor…</option>
-              {users.map(u => (
-                <option key={u.user_id || u.id} value={u.user_id || u.id} style={{ background: '#161b27', color: 'var(--cream)' }}>
-                  {u.name || u.email}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: 11, color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Comisión %</label>
-            <input
-              type="number" min="0" max="15" step="0.5"
-              value={commission} onChange={e => setCommission(e.target.value)}
-              style={{
-                width: '100%', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)',
-                border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 8,
-                padding: '8px 10px', fontSize: 13, boxSizing: 'border-box',
-              }}
-            />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
-          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.12)', color: 'var(--cream-2)', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
-            Cancelar
-          </button>
-          <button
-            data-testid="confirm-assign-broker-btn"
-            onClick={handleAssign} disabled={saving || !selectedUser}
-            style={{
-              background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 700,
-              cursor: saving || !selectedUser ? 'default' : 'pointer',
-            }}
-          >
-            {saving ? 'Asignando…' : 'Asignar'}
-          </button>
-        </div>
+        <div style={{ position: 'absolute', top: 2.5, left: value ? 20 : 2.5, width: 19, height: 19, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left .2s' }} />
       </div>
+      <span style={{ fontSize: 13, color: 'var(--cream-2)', fontWeight: 600 }}>{label}</span>
     </div>
   );
 }
 
 export default function ComercializacionTab({ devId, user, projectName }) {
   const [config, setConfig] = useState(null);
-  const [brokers, setBrokers] = useState([]);
-  const [preassigns, setPreassigns] = useState([]);
-  const [inHouseUsers, setInHouseUsers] = useState([]);
   const [otherProjects, setOtherProjects] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDefaults, setShowDefaults] = useState(false);
-
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
 
   const load = useCallback(async () => {
-    try {
-      const [cfg, bkrs, pas, inHouse] = await Promise.all([
-        getCommercialization(devId),
-        listBrokers(devId),
-        listPreassignments(devId),
-        listInternalUsers(),
-      ]);
-      setConfig(cfg);
-      setBrokers(bkrs?.items || []);
-      setPreassigns(pas?.items || []);
-      setInHouseUsers(inHouse?.items || inHouse || []);
-    } catch (e) { console.error('ComercializacionTab:', e); }
+    try { setConfig(await getCommercialization(devId)); } catch (e) { console.error('ComercializacionTab:', e); }
   }, [devId]);
-
   useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    listProjectsWithStats().then(all => setOtherProjects((all || []).filter(p => p.id !== devId))).catch(() => {});
-  }, [devId]);
+  useEffect(() => { listProjectsWithStats().then(all => setOtherProjects((all || []).filter(p => p.id !== devId))).catch(() => {}); }, [devId]);
 
   const saveConfig = async (patch) => {
     setSaving(true);
-    try {
-      const updated = await patchCommercialization(devId, patch);
-      setConfig(updated);
-    } catch (e) { console.error('Save config:', e); }
-    finally { setSaving(false); }
+    try { setConfig(await patchCommercialization(devId, patch)); } catch (e) { console.error('Save config:', e); } finally { setSaving(false); }
   };
-
   const applyFrom = async (projectId) => {
     try {
-      const other = await getCommercialization(projectId);
-      const { works_with_brokers, default_commission_pct, iva_included, in_house_only, broker_terms } = other;
-      await saveConfig({ works_with_brokers, default_commission_pct, iva_included, in_house_only, broker_terms });
+      const o = await getCommercialization(projectId);
+      await saveConfig({ works_with_brokers: o.works_with_brokers, default_commission_pct: o.default_commission_pct, iva_included: o.iva_included, in_house_only: o.in_house_only, broker_terms: o.broker_terms });
       setShowDefaults(false);
     } catch (e) { console.error('Apply defaults:', e); }
   };
 
-  const handleBrokerAction = async (brokerId, action) => {
-    try {
-      await patchBroker(devId, brokerId, { status: action === 'pause' ? 'paused' : 'revoked' });
-      await load();
-    } catch (e) { console.error('Broker action:', e); }
-  };
-
-  const handlePreassignToggle = async (userId, currentlyAssigned) => {
-    if (currentlyAssigned) {
-      await deletePreassignment(devId, userId);
-    } else {
-      await createPreassignment(devId, { user_id: userId });
-    }
-    await load();
-  };
-
-  if (!config) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cargando política comercial…</div>;
+  if (!config) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cargando…</div>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Section 0: Formas de pago (esquemas R3) */}
-      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
-        <PaymentSchemesConfig devId={devId} />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <PaymentSchemesConfig devId={devId} />
+      <PoliciesConfig devId={devId} projectName={projectName} />
 
-      {/* Section 0.5: Políticas (brokers + venta), editable y descargable */}
-      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
-        <PoliciesConfig devId={devId} projectName={projectName} />
-      </div>
-
-      {/* Section 1: Política comercial */}
-      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-            Política comercial
-          </h3>
+      {/* Política comercial */}
+      <div className="dmx-card" style={{ background: '#fff', borderRadius: 14, padding: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <span style={{ width: 4, height: 16, borderRadius: 3, background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))' }} />
+            <h3 style={{ margin: 0, fontFamily: 'Outfit', fontSize: 15.5, fontWeight: 800, color: 'var(--cream)' }}>Política comercial</h3>
+          </div>
           {isAdmin && otherProjects.length > 0 && (
             <div style={{ position: 'relative' }}>
-              <button
-                data-testid="comercial-defaults-btn"
-                onClick={() => setShowDefaults(!showDefaults)}
-                style={{ background: 'rgba(var(--cream-rgb),0.07)', color: 'var(--cream-2)', border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 7, padding: '5px 11px', fontSize: 11, cursor: 'pointer' }}
-              >
-                Aplicar desde otro proyecto ↓
+              <button data-testid="comercial-defaults-btn" onClick={() => setShowDefaults(!showDefaults)}
+                style={{ background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '7px 13px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Copiar de otro proyecto ↓
               </button>
               {showDefaults && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: '#161b27', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: '#fff', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', minWidth: 210, boxShadow: '0 16px 40px rgba(0,0,0,0.14)' }}>
                   {otherProjects.map(p => (
                     <button key={p.id} onClick={() => applyFrom(p.id)}
-                      style={{ width: '100%', background: 'none', border: 'none', padding: '8px 14px', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontSize: 12 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.06)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                      {p.name}
-                    </button>
+                      style={{ width: '100%', background: 'none', border: 'none', padding: '9px 14px', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontSize: 12.5 }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.07)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>{p.name}</button>
                   ))}
                 </div>
               )}
@@ -256,168 +85,36 @@ export default function ComercializacionTab({ devId, user, projectName }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Toggle
-            value={config.works_with_brokers}
-            onChange={v => isAdmin && saveConfig({ works_with_brokers: v })}
-            label="Trabajar con brokers externos"
-            disabled={!isAdmin || saving}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Toggle value={config.works_with_brokers} onChange={v => isAdmin && saveConfig({ works_with_brokers: v })} label="Trabajar con brokers externos" disabled={!isAdmin || saving} />
 
           {config.works_with_brokers && (
-            <>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginLeft: 52 }}>
+            <div style={{ marginLeft: 53, display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 16px', background: 'rgba(var(--theme-rgb),0.04)', borderRadius: 11 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div>
-                  <label style={{ fontSize: 11, color: 'var(--cream-3)', display: 'block', marginBottom: 4 }}>Comisión default %</label>
-                  <InlineEditField
-                    value={String(config.default_commission_pct || 3)}
-                    type="number"
-                    onSave={v => saveConfig({ default_commission_pct: parseFloat(v) })}
-                    canEdit={isAdmin}
-                    style={{ fontSize: 16, fontWeight: 700, color: 'var(--cream)' }}
-                  />
+                  <label style={{ fontSize: 10.5, color: 'var(--cream-3)', fontWeight: 700, display: 'block', marginBottom: 5 }}>Comisión default</label>
+                  <div style={{ position: 'relative', maxWidth: 130 }}>
+                    <input type="number" step={0.5} value={config.default_commission_pct ?? 3} disabled={!isAdmin}
+                      onChange={e => saveConfig({ default_commission_pct: parseFloat(e.target.value) })} style={inp} />
+                    <span style={{ position: 'absolute', right: 10, top: 9, fontSize: 12, color: 'var(--cream-3)', fontWeight: 700 }}>%</span>
+                  </div>
                 </div>
-                <Toggle
-                  value={config.iva_included}
-                  onChange={v => isAdmin && saveConfig({ iva_included: v })}
-                  label="Incluye IVA"
-                  disabled={!isAdmin || saving}
-                />
+                <Toggle value={config.iva_included} onChange={v => isAdmin && saveConfig({ iva_included: v })} label="Incluye IVA" disabled={!isAdmin || saving} />
               </div>
-              <div style={{ marginLeft: 52 }}>
-                <label style={{ fontSize: 11, color: 'var(--cream-3)', display: 'block', marginBottom: 4 }}>Términos comerciales</label>
-                <InlineEditField
-                  value={config.broker_terms || ''}
-                  type="textarea"
-                  placeholder="Describe las condiciones para brokers externos…"
-                  onSave={v => saveConfig({ broker_terms: v })}
-                  canEdit={isAdmin}
-                  style={{ fontSize: 12, color: 'var(--cream-2)' }}
-                />
+              <div>
+                <label style={{ fontSize: 10.5, color: 'var(--cream-3)', fontWeight: 700, display: 'block', marginBottom: 5 }}>Términos comerciales (opcional)</label>
+                <textarea rows={2} value={config.broker_terms || ''} disabled={!isAdmin}
+                  placeholder="Condiciones para brokers externos…"
+                  onChange={e => setConfig(c => ({ ...c, broker_terms: e.target.value }))}
+                  onBlur={e => isAdmin && saveConfig({ broker_terms: e.target.value })}
+                  style={{ ...inp, maxWidth: '100%', resize: 'vertical', fontFamily: 'DM Sans,sans-serif' }} />
               </div>
-            </>
-          )}
-
-          <Toggle
-            value={config.in_house_only}
-            onChange={v => isAdmin && saveConfig({ in_house_only: v })}
-            label="Solo asesores in-house (excluye externos)"
-            disabled={!isAdmin || saving}
-          />
-        </div>
-      </div>
-
-      {/* Section 2: Brokers asignados */}
-      <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-            Brokers asignados
-            <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--cream-3)', fontWeight: 400 }}>
-              ({brokers.filter(b => b.status === 'active').length} activos)
-            </span>
-          </h3>
-          {isAdmin && (
-            <button
-              data-testid="assign-broker-btn"
-              onClick={() => setShowAssignModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'rgba(var(--cream-rgb),0.10)', color: 'var(--cream)',
-                border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
-                padding: '6px 12px', fontSize: 12, cursor: 'pointer',
-              }}
-            >
-              <Users size={13} /> + Asignar broker
-            </button>
-          )}
-        </div>
-
-        {brokers.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--cream-3)', margin: 0 }}>Sin brokers asignados todavía.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {brokers.map(b => {
-              const st = BROKER_STATUS_COLORS[b.status] || BROKER_STATUS_COLORS.active;
-              const info = b.broker_info || {};
-              return (
-                <div key={b.id} data-testid={`broker-row-${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.03)', borderRadius: 8, border: '1px solid rgba(var(--cream-rgb),0.07)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(var(--cream-rgb),0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Users size={14} color="rgba(var(--cream-rgb),0.4)" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>{info.name || info.email || b.broker_user_id}</div>
-                    <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{BROKER_TYPE_LABELS[info.role] || 'Broker'} · {b.commission_pct}% comisión</div>
-                  </div>
-                  <span style={{ background: st.bg, color: st.color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{b.status}</span>
-                  {isAdmin && b.status === 'active' && (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => handleBrokerAction(b.id, 'pause')} style={{ background: 'none', border: '1px solid rgba(var(--cream-rgb),0.1)', color: 'var(--cream-3)', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Pausar</button>
-                      <button onClick={() => handleBrokerAction(b.id, 'revoke')} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--red)', borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Revocar</button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Section 3: Pre-asignaciones in-house (admin only) */}
-      {isAdmin && (
-        <div style={{ background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid rgba(var(--cream-rgb),0.1)', borderRadius: 12, padding: '18px 20px' }}>
-          <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-            Pre-asignar asesores in-house
-          </h3>
-          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--cream-3)' }}>
-            Cuando invites a un nuevo asesor, automáticamente obtendrá acceso a los proyectos marcados aquí.
-          </p>
-          {inHouseUsers.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--cream-3)', margin: 0 }}>Sin asesores in-house registrados.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {inHouseUsers.map(u => {
-                const isAssigned = preassigns.some(p => p.assigned_user_id === (u.user_id || u.id));
-                return (
-                  <div key={u.user_id || u.id} data-testid={`preassign-row-${u.user_id || u.id}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: isAssigned ? 'rgba(var(--cream-rgb),0.06)' : 'rgba(var(--cream-rgb),0.02)', borderRadius: 8, border: `1px solid ${isAssigned ? 'rgba(var(--cream-rgb),0.16)' : 'rgba(var(--cream-rgb),0.06)'}`, transition: 'all 0.12s' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(var(--cream-rgb),0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Users size={13} color="rgba(var(--cream-rgb),0.4)" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, color: 'var(--cream)', fontWeight: isAssigned ? 600 : 400 }}>{u.name || u.email}</div>
-                      <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{u.role || 'developer_member'}</div>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                      <div
-                        onClick={() => handlePreassignToggle(u.user_id || u.id, isAssigned)}
-                        style={{
-                          width: 36, height: 20, borderRadius: 10, position: 'relative',
-                          background: isAssigned ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.12)',
-                          border: `1.5px solid ${isAssigned ? 'var(--cream)' : 'rgba(var(--cream-rgb),0.2)'}`,
-                          cursor: 'pointer', transition: 'all 0.15s',
-                        }}
-                      >
-                        <div style={{ position: 'absolute', top: 2, left: isAssigned ? 16 : 2, width: 12, height: 12, borderRadius: '50%', background: isAssigned ? 'var(--navy)' : 'rgba(var(--cream-rgb),0.4)', transition: 'left 0.15s' }} />
-                      </div>
-                      <span style={{ fontSize: 11, color: isAssigned ? 'var(--cream)' : 'var(--cream-3)' }}>
-                        {isAssigned ? 'Pre-asignado' : 'No asignado'}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
             </div>
           )}
-        </div>
-      )}
 
-      {showAssignModal && (
-        <AssignBrokerModal
-          projectId={devId}
-          onClose={() => setShowAssignModal(false)}
-          onAssigned={load}
-        />
-      )}
+          <Toggle value={config.in_house_only} onChange={v => isAdmin && saveConfig({ in_house_only: v })} label="Solo asesores in-house (excluye externos)" disabled={!isAdmin || saving} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import ContenidoTab from '../../components/developer/ContenidoTab';
 import AmenidadesTab from '../../components/developer/AmenidadesTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
+import CanalesTab from '../../components/developer/CanalesTab';
 import InsightsTab from '../../components/developer/insights/InsightsTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import DiagnosticReportContent from '../../components/developer/DiagnosticReportContent';
@@ -187,7 +188,8 @@ const TABS = DEV_V2 ? [
   { key: 'inicio',          label: 'Inicio',          phase: null },  // home: ¿cómo va y qué hago hoy?
   { key: 'ventas',          label: 'Ventas',          phase: null },  // workhorse diario
   { key: 'insights',        label: 'Insights',        phase: null },  // cómo va / decisiones
-  { key: 'comercializacion',label: 'Pagos y brokers',phase: null },  // pagos, políticas, brokers
+  { key: 'comercializacion',label: 'Pagos y administración',phase: null },  // esquemas, políticas, política comercial
+  { key: 'canales',         label: 'Canales',         phase: null },  // in-house y brokers (operación)
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'contenido',       label: 'Contenido',       phase: null },
   { key: 'amenidades',      label: 'Amenidades',      phase: null },
@@ -639,6 +641,9 @@ export default function ProyectoDetail({ user, onLogout }) {
           )}
           {activeTab === 'comercializacion' && (
             <ComercializacionTab devId={slug} user={user} projectName={summary?.name || slug} />
+          )}
+          {activeTab === 'canales' && (
+            <CanalesTab devId={slug} user={user} />
           )}
           {activeTab === 'insights' && (
             <InsightsTab projectId={slug} user={user} />
