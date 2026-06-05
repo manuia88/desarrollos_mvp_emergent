@@ -673,8 +673,10 @@ async def patch_unit(dev_id: str, unit_id: str, payload: UnitPatch, request: Req
     if payload.price:
         try:
             from routes.dev_price_history import record_price_event
+            from data_developments import DEVELOPMENTS_BY_ID
             old_price = (existing or {}).get("price") or unit.get("price")
             await record_price_event(db, dev_id, unit, old_price, payload.price,
+                                     dev=DEVELOPMENTS_BY_ID.get(dev_id),
                                      user_id=user.user_id, source="inventory_edit",
                                      label=payload.price_change_reason or "Ajuste de lista")
         except Exception:

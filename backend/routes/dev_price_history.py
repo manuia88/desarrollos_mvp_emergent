@@ -54,22 +54,36 @@ def _months_between(a: str, b: str) -> int:
     return (yb * 12 + mb) - (ya * 12 + ma)
 
 
+# Huella completa de la unidad (granularidad extrema) → permite analizar plusvalía por
+# cualquier dimensión: prototipo, tamaño, nivel, orientación, vista, terraza/roof/balcón, cajones.
+_UNIT_FINGERPRINT = (
+    "prototype", "m2_privative", "m2_total", "bedrooms", "bathrooms", "level",
+    "orientation", "vista", "parking_spots", "parking_type", "bodega",
+    "m2_terrace", "m2_roof_garden", "m2_balcony", "status",
+)
+
+
 async def record_price_event(db, dev_id: str, unit: Dict[str, Any], old_price: Optional[float],
-                             new_price: Optional[float], *, user_id: Optional[str] = None,
-                             source: str = "inventory_edit", label: str = "Ajuste de lista") -> None:
-    """Append-only. Captura cada cambio de precio para el historial. Fail-open."""
+                             new_price: Optional[float], *, dev: Optional[Dict] = None,
+                             user_id: Optional[str] = None, source: str = "inventory_edit",
+                             label: str = "Ajuste de lista") -> None:
+    """Append-only. Captura cada cambio de precio con la huella COMPLETA de la unidad. Fail-open."""
     try:
         if not new_price or (old_price is not None and float(old_price) == float(new_price)):
             return
         m2 = unit.get("m2_privative") or unit.get("m2_total") or 0
-        await db.price_events.insert_one({
-            "dev_id": dev_id, "unit_id": unit.get("id"), "prototype": unit.get("prototype"),
-            "m2_privative": m2, "old_price": old_price, "new_price": new_price,
+        doc = {k: unit.get(k) for k in _UNIT_FINGERPRINT}
+        doc.update({
+            "dev_id": dev_id, "unit_id": unit.get("id"),
+            "colonia_id": (dev or {}).get("colonia_id"), "alcaldia": (dev or {}).get("alcaldia"),
+            "old_price": old_price, "new_price": new_price,
             "price_per_m2": round(new_price / m2) if m2 else None,
+            "delta_abs": round(new_price - old_price) if old_price else None,
             "delta_pct": round((new_price / old_price - 1) * 100, 2) if old_price else None,
             "changed_at": datetime.now(timezone.utc).isoformat(),
             "changed_by": user_id, "source": source, "label": label,
         })
+        await db.price_events.insert_one(doc)
     except Exception as e:  # noqa
         log.warning(f"[price-event] {e}")
 
