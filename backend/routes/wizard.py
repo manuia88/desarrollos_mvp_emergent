@@ -328,6 +328,13 @@ async def create_project(payload: WizardProjectPayload, request: Request):
     except Exception:
         pass
 
+    # Espeja a db.developments → el proyecto nuevo queda visible a superadmin/marketplace (B0.2)
+    try:
+        from routes.dev_project_full import publish_to_developments
+        await publish_to_developments(db, slug, user_id=user.user_id, source="wizard")
+    except Exception:
+        pass
+
     # Cleanup draft
     await db.wizard_drafts.delete_one({"user_id": user.user_id, "dev_org_id": org})
 

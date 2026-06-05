@@ -5,7 +5,7 @@ Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
 
 ## B0 · Unificación del modelo (CIMIENTO — bloquea B1-B3)
 - ✅ B0.1 · Capa de lectura única `project_full(pid)` (fusiona seed + tabs) + `project_readiness` ("ficha X% lista para publicar", consumido por indicador en el Inicio · chips → tab). GET /api/dev/projects/{id}/full. Commit 0b56d9f4. · dep: — · M · base de todo
-- B0.2 · Wizard espeja el doc a `db.developments` (proyectos del wizard visibles a superadmin/marketplace) · dep: B0.1 · M · visibilidad global
+- ✅ B0.2 · `publish_to_developments()` espeja el payload canónico a `db.developments` (campos dev-compat + bloque `config` rico: servicios/scope/sistema/pagos/políticas/plusvalía). POST /api/dev/projects/{id}/publish + auto-publish en wizard.create_project. Front: botón "Publicar a portales" en ProjectReadiness (→ "↻ Actualizar portales" + "✓ Publicado" + fecha). Verificado: clic real crea doc Mongo (readiness 89%, source manual). · dep: B0.1 · M · visibilidad global
 - B0.3 · Migrar portales (público/asesor/superadmin) a leer la capa única (adaptadores) · dep: B0.1 · M · fin del silo
 
 ## B1 · Wizard completo (al crear = tabs llenas)

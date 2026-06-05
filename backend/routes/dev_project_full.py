@@ -9,6 +9,7 @@ Upgrade que cierra el ciclo: project_readiness() = "qué tan lista está la fich
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -130,6 +131,53 @@ def project_readiness(full: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+async def publish_to_developments(db, pid: str, *, user_id: Optional[str] = None,
+                                  source: str = "publish") -> Optional[Dict[str, Any]]:
+    """Espeja el payload canónico a db.developments (la tienda que leen superadmin/marketplace).
+    Guarda campos dev-compat (planos, para queries existentes) + bloque `config` rico para B0.3/B2."""
+    full = await project_full(db, pid)
+    if not full:
+        return None
+    from data_developments import DEVELOPMENTS_BY_ID
+    seed = DEVELOPMENTS_BY_ID.get(pid) or await db.projects.find_one({"$or": [{"id": pid}, {"slug": pid}]}, {"_id": 0}) or {}
+    loc = full["ubicacion"]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    rd = project_readiness(full)
+    doc = {
+        "id": pid, "slug": pid, "name": full["nombre"],
+        "colonia": loc.get("colonia"), "colonia_id": loc.get("colonia_id"), "alcaldia": loc.get("alcaldia"),
+        "city": seed.get("city"),
+        "center": ([loc["lng"], loc["lat"]] if loc.get("lat") and loc.get("lng") else seed.get("center")),
+        "price_from": full.get("price_from"), "price_to": full.get("price_to"),
+        "m2_range": seed.get("m2_range"), "units_total": full.get("units_total"),
+        "units": seed.get("units", []), "units_sold": seed.get("units_sold"),
+        "units_available": seed.get("units_available"), "units_reserved": seed.get("units_reserved"),
+        "stage": full.get("stage"), "delivery_estimate": full.get("delivery_estimate"),
+        "amenities": full["amenidades"]["amenities"], "photos": seed.get("photos", []),
+        "description": seed.get("description"), "address_full": seed.get("address_full"),
+        "developer_id": seed.get("developer_id"), "dev_org_id": seed.get("dev_org_id"),
+        "featured": seed.get("featured", False), "verified": True,
+        # Bloque rico (la unificación de verdad — lo que B0.3/B2 consumirán):
+        "config": {
+            "servicios": full["amenidades"]["servicios"], "amenity_scope": full["amenidades"]["amenity_scope"],
+            "sistema_constructivo": full["construccion"]["sistema_constructivo"],
+            "payment_schemes": full["pagos"]["schemes"],
+            "broker_policy": full["comercializacion"]["broker_policy"],
+            "sales_policy": full["comercializacion"]["sales_policy"],
+            "in_house_only": full["comercializacion"]["in_house_only"],
+            "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
+        },
+        "readiness_pct": rd["pct"],
+        "published_at": now_iso, "published_by": user_id, "published_source": source,
+    }
+    try:
+        await db.developments.update_one({"id": pid}, {"$set": doc}, upsert=True)
+    except Exception as e:  # noqa
+        log.warning(f"[publish] {pid}: {e}")
+        return None
+    return {"ok": True, "published_at": now_iso, "readiness_pct": rd["pct"]}
+
+
 @router.get("/projects/{project_id}/full")
 async def get_project_full(project_id: str, request: Request):
     user = await _auth(request)
@@ -140,7 +188,21 @@ async def get_project_full(project_id: str, request: Request):
     if not full:
         raise HTTPException(404, "Proyecto no encontrado")
     full["readiness"] = project_readiness(full)
+    pub = await db.developments.find_one({"id": project_id}, {"_id": 0, "published_at": 1})
+    full["published"] = {"at": (pub or {}).get("published_at")}
     return full
+
+
+@router.post("/projects/{project_id}/publish")
+async def publish_project(project_id: str, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    if project_id not in _user_dev_ids(user):
+        raise HTTPException(403, "Proyecto no accesible")
+    res = await publish_to_developments(db, project_id, user_id=getattr(user, "user_id", None), source="manual")
+    if not res:
+        raise HTTPException(404, "Proyecto no encontrado")
+    return res
 
 
 async def ensure_project_full_indexes(db):

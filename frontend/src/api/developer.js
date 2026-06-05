@@ -280,6 +280,8 @@ export const getChannelIntel = (projectId) => j(`/api/dev/channel-intel${project
 
 // Capa única — payload canónico del proyecto (todas las tabs) + readiness para publicar
 export const getProjectFull = (projectId) => j(`/api/dev/projects/${projectId}/full`);
+// Publica/espeja el proyecto a la tienda unificada (db.developments) → visible a los portales
+export const publishProject = (projectId) => post(`/api/dev/projects/${projectId}/publish`, {});
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
