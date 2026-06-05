@@ -612,7 +612,8 @@ export default function ProyectoDetail({ user, onLogout }) {
           {activeTab === 'inicio' && (
             <FichaHome slug={slug} summary={summary}
               onOpenInsights={() => setTab('insights')}
-              onOpenDiagnostic={() => setDiagnosticOpen(true)} />
+              onOpenDiagnostic={() => setDiagnosticOpen(true)}
+              onGoTab={setTab} />
           )}
           {activeTab === 'ventas' && (
             <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />

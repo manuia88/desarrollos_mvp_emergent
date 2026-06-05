@@ -278,6 +278,9 @@ export const getPriceHistory = (projectId) => j(`/api/dev/projects/${projectId}/
 // Inteligencia de canales — broker vs in-house + ranking de asesores (general o por proyecto)
 export const getChannelIntel = (projectId) => j(`/api/dev/channel-intel${projectId ? `?project_id=${projectId}` : ''}`);
 
+// Capa única — payload canónico del proyecto (todas las tabs) + readiness para publicar
+export const getProjectFull = (projectId) => j(`/api/dev/projects/${projectId}/full`);
+
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
 export const getAmenitiesCatalog = () => j('/api/dev/amenities-catalog');

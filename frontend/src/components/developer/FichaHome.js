@@ -17,6 +17,7 @@ import InsightsIntel from './InsightsIntel';
 import AmenidadesIntel from './AmenidadesIntel';
 import BrokerIntel from './BrokerIntel';
 import CanalesIntel from './CanalesIntel';
+import ProjectReadiness from './ProjectReadiness';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -113,7 +114,7 @@ const SCORE_ACTION = {
   'Demanda y leads': 'genera más leads: difusión y landing pública',
 };
 
-export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnostic }) {
+export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnostic, onGoTab }) {
   const [stats, setStats] = useState(null);
   const [driver, setDriver] = useState(null);
   const [avm, setAvm] = useState(null);
@@ -229,6 +230,9 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
 
   return (
     <div data-testid="ficha-home" style={{ marginBottom: 8 }}>
+      {/* Ficha lista para publicar (capa única → portales) */}
+      <ProjectReadiness slug={slug} onGoTab={onGoTab} />
+
       {/* 👑 CORONA: Salud + la jugada de hoy */}
       <div className="dmx-card" style={{ display: 'grid', gridTemplateColumns: '218px 1fr', gap: 0, overflow: 'hidden', padding: 0, marginBottom: 22, background: '#fff' }}>
         <div style={{ background: 'linear-gradient(150deg, rgba(var(--theme-rgb),0.10), rgba(198,63,174,0.05))', padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRight: '1px solid var(--border)' }}>

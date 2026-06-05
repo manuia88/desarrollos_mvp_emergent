@@ -591,6 +591,9 @@ app.include_router(dev_price_history_router)
 from routes.dev_channel_intel import router as dev_channel_intel_router, ensure_channel_intel_indexes
 app.include_router(dev_channel_intel_router)
 
+from routes.dev_project_full import router as dev_project_full_router, ensure_project_full_indexes
+app.include_router(dev_project_full_router)
+
 # Fase 3.2 · lente del dev sobre el cubo (benchmark anónimo + amenity ranker + demand-gap)
 from routes.dev_market import router as dev_market_router
 app.include_router(dev_market_router)
@@ -1633,6 +1636,7 @@ async def startup():
     await ensure_broker_intel_indexes(db)
     await ensure_price_history_indexes(db)
     await ensure_channel_intel_indexes(db)
+    await ensure_project_full_indexes(db)
     await ensure_batch8_indexes(db)
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)
