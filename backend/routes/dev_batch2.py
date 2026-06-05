@@ -720,6 +720,23 @@ DEFAULT_STAGES = [
 ]
 
 
+# Sistema constructivo: en lenguaje simple (el dev no es ingeniero). Cimentación + estructura.
+SISTEMA_CONSTRUCTIVO_OPTS = {
+    "cimentacion": {"label": "Cimentación", "options": [
+        {"value": "zapatas", "label": "Zapatas", "hint": "Bases aisladas bajo cada columna · común en baja altura"},
+        {"value": "losa", "label": "Losa de cimentación", "hint": "Una sola losa que reparte el peso"},
+        {"value": "cajon", "label": "Cajón de cimentación", "hint": "Caja rígida · ideal en suelo blando (CDMX)"},
+        {"value": "pilas", "label": "Pilas / Pilotes", "hint": "Columnas profundas hasta suelo firme · torres"},
+        {"value": "mixta", "label": "Mixta", "hint": "Combinación de las anteriores"}]},
+    "estructura": {"label": "Estructura", "options": [
+        {"value": "concreto", "label": "Concreto armado", "hint": "Lo más común en México"},
+        {"value": "acero", "label": "Acero", "hint": "Estructura metálica · torres y claros grandes"},
+        {"value": "mixta", "label": "Mixta (acero + concreto)", "hint": "Combinación · común en altura"},
+        {"value": "muros", "label": "Muros de carga", "hint": "Mampostería que sostiene · casas y baja altura"},
+        {"value": "prefabricado", "label": "Prefabricado", "hint": "Piezas hechas en planta y montadas"}]},
+}
+
+
 @router.get("/construction/{project_id}/progress")
 async def get_construction_progress(project_id: str, request: Request):
     user = await _auth(request)
@@ -744,11 +761,35 @@ async def get_construction_progress(project_id: str, request: Request):
             doc["units"] = units
             doc["per_unit_avg_percent"] = overall
 
-    return {
+    out = {
         "project_id": project_id,
         "project_name": dev["name"],
         **{k: v for k, v in doc.items() if k != "_id"},
     }
+    out.setdefault("sistema_constructivo", {})
+    out["sistema_options"] = SISTEMA_CONSTRUCTIVO_OPTS
+    return out
+
+
+class SistemaConstructivoPatch(BaseModel):
+    sistema_constructivo: Dict[str, str]
+
+
+@router.patch("/construction/{project_id}/sistema")
+async def patch_sistema_constructivo(project_id: str, payload: SistemaConstructivoPatch, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID
+    if project_id not in DEVELOPMENTS_BY_ID:
+        raise HTTPException(404, "Proyecto no encontrado")
+    # asegura que el doc exista (lo siembra si hace falta)
+    await _get_or_seed_progress_doc(db, project_id, _tenant(user))
+    await db.project_construction_progress.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)},
+        {"$set": {"sistema_constructivo": payload.sistema_constructivo, "updated_at": _now().isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True, "sistema_constructivo": payload.sistema_constructivo}
 
 
 class ConstructionUpdate(BaseModel):

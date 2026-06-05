@@ -35,6 +35,7 @@ const AMENITY_ICONS = {
   paneles_solares: '☀️', planta_tratadora: '💧', captacion_pluvial: '🌧️', cisterna: '🪣',
   bicicletas: '🚲', separacion_basura: '♻️', concierge: '🛎️', valet: '🚗', estacionamiento: '🅿️',
   cocina_equipada: '🍳', closet: '🚪', walk_in_closet: '👔', bodega: '📦', balcon: '🪴',
+  terraza_privada: '🌅', roof_garden_privado: '🌇',
   cuarto_servicio: '🧺', family_room: '🛋️', estudio: '📚', aire_acondicionado: '❄️',
   calefaccion: '🔥', amueblado: '🛏️', doble_altura: '📐',
 };
@@ -42,35 +43,35 @@ const SECTION_FALLBACK_ICON = {
   comunes: '🏛️', deportivas: '🏅', familiares: '👨‍👩‍👧', exteriores: '🌳',
   seguridad: '🛡️', tecnologicas: '⚙️', sustentabilidad: '🌿', internas: '🏠',
 };
-const SERVICIO_ICONS = { gas: '🔥', agua: '🚰', energia: '⚡', agua_caliente: '♨️', drenaje: '🚿', internet: '🌐' };
+const SERVICIO_ICONS = { gas: '🔥', agua: '🚰', cisterna: '🪣', energia: '⚡', agua_caliente: '♨️', drenaje: '🚿', internet: '🌐' };
 
-function AmenityCard({ amenityKey, label, icon, checked, isEditing, onToggle }) {
+const SCOPE_OPTS = [{ v: 'todos', l: 'En todas' }, { v: 'algunos', l: 'En algunas' }];
+
+function AmenityCard({ amenityKey, label, icon, checked, isEditing, isVariable, scope, onToggle, onScope }) {
+  const effScope = scope || 'todos';
   return (
-    <button
-      type="button"
-      data-testid={`amenidad-${amenityKey}`}
-      onClick={() => isEditing && onToggle(amenityKey)}
-      disabled={!isEditing}
+    <div
       className="dmx-card"
+      data-testid={`amenidad-${amenityKey}`}
       style={{
-        display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left',
         padding: '11px 13px', borderRadius: 12, position: 'relative',
-        cursor: isEditing ? 'pointer' : 'default',
         background: checked ? 'rgba(var(--theme-rgb),0.06)' : '#fff',
         border: `1.5px solid ${checked ? 'var(--theme)' : 'var(--border)'}`,
         opacity: !isEditing && !checked ? 0.4 : 1,
         transition: 'background .15s, border-color .15s, opacity .15s',
-        width: '100%', font: 'inherit',
       }}
     >
-      <span style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0, fontSize: 19,
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: checked ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(var(--cream-rgb),0.05)',
-        filter: (!isEditing && !checked) ? 'grayscale(0.6)' : 'none',
-      }}>{icon}</span>
-      <span style={{ fontSize: 12.5, fontWeight: checked ? 700 : 600, lineHeight: 1.25,
-        color: checked ? 'var(--cream)' : 'var(--cream-2)' }}>{label}</span>
+      <div onClick={() => isEditing && onToggle(amenityKey)}
+        style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: isEditing ? 'pointer' : 'default' }}>
+        <span style={{
+          width: 38, height: 38, borderRadius: 10, flexShrink: 0, fontSize: 19,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: checked ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(var(--cream-rgb),0.05)',
+          filter: (!isEditing && !checked) ? 'grayscale(0.6)' : 'none',
+        }}>{icon}</span>
+        <span style={{ fontSize: 12.5, fontWeight: checked ? 700 : 600, lineHeight: 1.25,
+          color: checked ? 'var(--cream)' : 'var(--cream-2)' }}>{label}</span>
+      </div>
       {checked && (
         <span style={{
           position: 'absolute', top: -7, right: -7, width: 20, height: 20, borderRadius: '50%',
@@ -79,11 +80,31 @@ function AmenityCard({ amenityKey, label, icon, checked, isEditing, onToggle }) 
           boxShadow: '0 2px 6px rgba(var(--theme-rgb),0.4)',
         }}><Check size={11} color="#fff" strokeWidth={3.5} /></span>
       )}
-    </button>
+      {isVariable && checked && isEditing && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
+          {SCOPE_OPTS.map(s => {
+            const on = effScope === s.v;
+            return (
+              <button key={s.v} type="button" data-testid={`scope-${amenityKey}-${s.v}`}
+                onClick={(e) => { e.stopPropagation(); onScope(amenityKey, s.v); }}
+                style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999, cursor: 'pointer',
+                  border: `1px solid ${on ? 'var(--theme)' : 'var(--border)'}`,
+                  background: on ? 'rgba(var(--theme-rgb),0.1)' : '#fff',
+                  color: on ? 'var(--theme)' : 'var(--cream-3)' }}>
+                {s.l}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {isVariable && checked && !isEditing && effScope === 'algunos' && (
+        <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 6, fontWeight: 600 }}>· solo en algunas unidades</div>
+      )}
+    </div>
   );
 }
 
-function Section({ sectionKey, sectionLabel, allOptions, selected, isEditing, onToggle }) {
+function Section({ sectionKey, sectionLabel, allOptions, selected, isEditing, onToggle, variableSet, scope, onScope }) {
   const keys = Object.keys(allOptions);
   const count = keys.filter(k => selected.includes(k)).length;
   return (
@@ -101,7 +122,8 @@ function Section({ sectionKey, sectionLabel, allOptions, selected, isEditing, on
         {keys.map(k => (
           <AmenityCard key={k} amenityKey={k} label={allOptions[k]}
             icon={AMENITY_ICONS[k] || SECTION_FALLBACK_ICON[sectionKey] || '✨'}
-            checked={selected.includes(k)} isEditing={isEditing} onToggle={onToggle} />
+            checked={selected.includes(k)} isEditing={isEditing} onToggle={onToggle}
+            isVariable={!!variableSet && variableSet.has(k)} scope={scope && scope[k]} onScope={onScope} />
         ))}
       </div>
     </div>
@@ -138,11 +160,30 @@ function ServiciosSection({ catalog, servicios, isEditing, onPick }) {
                 <b style={{ fontSize: 12.5, color: 'var(--cream)' }}>{svc.label}</b>
                 {!isEditing && (
                   <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: sel ? 'var(--theme)' : 'var(--cream-3)' }}>
-                    {sel ? (svc.options.find(o => o.value === sel)?.label || sel) : 'No especificado'}
+                    {sel
+                      ? (svc.capacity ? `${Number(sel).toLocaleString('es-MX')} ${svc.unit || ''}`.trim() : (svc.options?.find(o => o.value === sel)?.label || sel))
+                      : 'No especificado'}
                   </span>
                 )}
               </div>
-              {isEditing && (
+              {isEditing && svc.capacity && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <input type="number" min="0" inputMode="numeric" data-testid={`servicio-${k}-input`}
+                    value={sel || ''} placeholder="Capacidad"
+                    onChange={(e) => onPick(k, e.target.value ? e.target.value : null)}
+                    style={{ width: 110, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--cream)', background: '#fff' }} />
+                  <span style={{ fontSize: 11.5, color: 'var(--cream-3)', fontWeight: 600 }}>{svc.unit}</span>
+                  {['5000', '10000', '20000', '40000'].map(p => (
+                    <button key={p} type="button" onClick={() => onPick(k, p)}
+                      style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 8px', borderRadius: 999, cursor: 'pointer',
+                        border: `1px solid ${sel === p ? 'var(--theme)' : 'var(--border)'}`,
+                        background: sel === p ? 'rgba(var(--theme-rgb),0.1)' : '#fff', color: sel === p ? 'var(--theme)' : 'var(--cream-3)' }}>
+                      {Number(p).toLocaleString('es-MX')}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isEditing && !svc.capacity && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {svc.options.map(o => {
                     const on = sel === o.value;
@@ -171,6 +212,7 @@ export default function AmenidadesTab({ devId, user }) {
   const [data, setData] = useState(null);
   const [selected, setSelected] = useState([]);
   const [servicios, setServicios] = useState({});
+  const [amenityScope, setAmenityScope] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [otherProjects, setOtherProjects] = useState([]);
@@ -183,6 +225,7 @@ export default function AmenidadesTab({ devId, user }) {
       setData(d);
       setSelected(d.amenities || []);
       setServicios(d.servicios || {});
+      setAmenityScope(d.amenity_scope || {});
     } catch (e) { console.error('AmenidadesTab:', e); }
   }, [devId]);
 
@@ -198,6 +241,15 @@ export default function AmenidadesTab({ devId, user }) {
 
   const handleToggle = (key) => {
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+    // al quitar una amenidad variable, limpia su "algunos/todos"
+    setAmenityScope(prev => {
+      if (!prev[key]) return prev;
+      const next = { ...prev }; delete next[key]; return next;
+    });
+  };
+
+  const handleScope = (key, value) => {
+    setAmenityScope(prev => ({ ...prev, [key]: value }));
   };
 
   const handlePickServicio = (key, value) => {
@@ -211,7 +263,7 @@ export default function AmenidadesTab({ devId, user }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await patchProjectAmenities(devId, { amenities: selected, servicios });
+      await patchProjectAmenities(devId, { amenities: selected, servicios, amenity_scope: amenityScope });
       setIsEditing(false);
       await load();
     } catch (e) { console.error('Save amenidades:', e); }
@@ -223,6 +275,7 @@ export default function AmenidadesTab({ devId, user }) {
       const d = await getProjectAmenities(projectId);
       setSelected(d.amenities || []);
       setServicios(d.servicios || {});
+      setAmenityScope(d.amenity_scope || {});
       setShowDefaults(false);
     } catch (e) { console.error('Apply defaults:', e); }
   };
@@ -232,6 +285,7 @@ export default function AmenidadesTab({ devId, user }) {
   }
 
   const allCategories = data.all_categories || {};
+  const variableSet = new Set(data.variable_amenities || []);
   const selectedCount = selected.length;
   const btnGhost = { background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' };
 
@@ -279,7 +333,7 @@ export default function AmenidadesTab({ devId, user }) {
           )}
           {isEditing && (
             <>
-              <button onClick={() => { setIsEditing(false); setSelected(data.amenities || []); setServicios(data.servicios || {}); }} style={btnGhost}>Cancelar</button>
+              <button onClick={() => { setIsEditing(false); setSelected(data.amenities || []); setServicios(data.servicios || {}); setAmenityScope(data.amenity_scope || {}); }} style={btnGhost}>Cancelar</button>
               <button data-testid="save-amenidades-btn" onClick={handleSave} disabled={saving}
                 style={{ background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'default' : 'pointer' }}>
                 {saving ? 'Guardando…' : 'Guardar cambios'}
@@ -293,7 +347,8 @@ export default function AmenidadesTab({ devId, user }) {
       {Object.entries(allCategories).map(([sectionKey, options]) => (
         <Section key={sectionKey} sectionKey={sectionKey}
           sectionLabel={SECTION_LABELS[sectionKey] || sectionKey}
-          allOptions={options} selected={selected} isEditing={isEditing} onToggle={handleToggle} />
+          allOptions={options} selected={selected} isEditing={isEditing} onToggle={handleToggle}
+          variableSet={variableSet} scope={amenityScope} onScope={handleScope} />
       ))}
 
       {/* Servicios del desarrollo (con tipo) */}

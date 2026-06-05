@@ -31,6 +31,84 @@ const fmtDay = (iso) => {
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
 };
 
+// Sistema constructivo (cimentación + estructura) en lenguaje simple para el dev.
+function SistemaConstructivoCard({ devId, value, options, readOnly, onSaved, setToast }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value || {});
+  const [saving, setSaving] = useState(false);
+  const cats = options || {};
+  const catKeys = Object.keys(cats);
+  const ghostBtn = { background: '#fff', color: 'var(--cream-2)', border: '1px solid var(--border)', borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' };
+  const gradBtn = { background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' };
+  if (!catKeys.length) return null;
+
+  const start = () => { setDraft(value || {}); setEditing(true); };
+  const pick = (cat, val) => setDraft(p => ({ ...p, [cat]: p[cat] === val ? undefined : val }));
+  const save = async () => {
+    setSaving(true);
+    try {
+      const clean = Object.fromEntries(Object.entries(draft).filter(([, v]) => v));
+      await api.patchSistemaConstructivo(devId, { sistema_constructivo: clean });
+      setEditing(false);
+      onSaved && onSaved();
+      setToast && setToast({ type: 'ok', msg: 'Sistema constructivo guardado' });
+    } catch (e) { setToast && setToast({ type: 'error', msg: e.body?.detail || 'Error al guardar' }); }
+    finally { setSaving(false); }
+  };
+
+  const cur = editing ? draft : (value || {});
+  return (
+    <Card style={{ padding: 18 }} data-testid="sistema-constructivo">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <h3 style={{ margin: 0, fontFamily: 'Outfit', fontSize: 17, fontWeight: 800, color: 'var(--cream)' }}>Sistema constructivo</h3>
+          <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--cream-3)' }}>Con qué está construido el desarrollo</p>
+        </div>
+        {!readOnly && (editing ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setEditing(false)} style={ghostBtn}>Cancelar</button>
+            <button onClick={save} disabled={saving} style={gradBtn}>{saving ? 'Guardando…' : 'Guardar'}</button>
+          </div>
+        ) : (
+          <button data-testid="edit-sistema-btn" onClick={start} style={gradBtn}>Editar</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+        {catKeys.map(cat => {
+          const sel = cur[cat];
+          const selOpt = cats[cat].options.find(o => o.value === sel);
+          return (
+            <div key={cat}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 8 }}>{cats[cat].label}</div>
+              {editing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {cats[cat].options.map(o => {
+                    const on = sel === o.value;
+                    return (
+                      <button key={o.value} type="button" data-testid={`sistema-${cat}-${o.value}`} onClick={() => pick(cat, o.value)}
+                        style={{ textAlign: 'left', padding: '9px 11px', borderRadius: 10, cursor: 'pointer',
+                          border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border)'}`,
+                          background: on ? 'rgba(var(--theme-rgb),0.06)' : '#fff' }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: on ? 'var(--cream)' : 'var(--cream-2)' }}>{o.label}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2, lineHeight: 1.3 }}>{o.hint}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="dmx-card" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, fontFamily: 'Outfit', color: selOpt ? 'var(--cream)' : 'var(--cream-3)' }}>{selOpt?.label || 'No especificado'}</div>
+                  {selOpt?.hint && <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>{selOpt.hint}</div>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export default function AvanceObraTab({ devId, readOnly = false }) {
   const [data, setData] = useState(null);
   const [editing, setEditing] = useState(null);    // stage_key en edición
@@ -218,6 +296,10 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
           </div>
         )}
       </Card>
+
+      {/* ── SISTEMA CONSTRUCTIVO ──────────────────────────────────────────────── */}
+      <SistemaConstructivoCard devId={devId} value={data.sistema_constructivo}
+        options={data.sistema_options} readOnly={readOnly} onSaved={load} setToast={setToast} />
 
       {/* ── REGISTRO DE AVANCE (timeline fecha · % · comentario) ──────────────── */}
       <div>

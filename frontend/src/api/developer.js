@@ -118,6 +118,7 @@ export const getIEImprove = (projectId, code) => j(`/api/dev/ie/projects/${proje
 export const getConstructionProgress = (projectId) => j(`/api/dev/construction/${projectId}/progress`);
 export const updateConstructionStage = (projectId, b) => post(`/api/dev/construction/${projectId}/update-stage`, b);
 export const addConstructionComment = (projectId, b) => post(`/api/dev/construction/${projectId}/comment`, b);
+export const patchSistemaConstructivo = (projectId, b) => patch(`/api/dev/construction/${projectId}/sistema`, b);
 
 // Phase 4 Batch 2.1 — Colonia benchmark + notifications + per-unit progress + simulate
 export const getColoniaBenchmark = (projectId) => j(`/api/dev/ie/projects/${projectId}/colonia-benchmark`);

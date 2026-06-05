@@ -130,62 +130,68 @@ async def _claude_haiku(db, dev_org_id: str, system: str, user_text: str,
 # AMENIDADES
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Catálogo completo (nivel casa club / desarrollo premium). Las keys existentes se conservan.
+# Catálogo completo (nivel casa club). Orden: de adentro (unidad) hacia afuera (zona),
+# y dentro de cada sección, lo MÁS COMÚN primero. Las keys existentes se conservan.
 ALL_AMENIDADES = {
-    "comunes": {  # Áreas sociales y comunes
-        "casa_club": "Casa club", "alberca": "Alberca", "alberca_techada": "Alberca techada",
-        "jacuzzi": "Jacuzzi", "roof": "Roof garden", "sky_lounge": "Sky lounge",
-        "salon_eventos": "Salón de eventos", "salon_usos": "Salón de usos múltiples",
-        "bar_lounge": "Bar / Lounge", "cava": "Cava", "cine": "Sala de cine",
-        "game_room": "Salón de juegos", "ludoteca": "Ludoteca",
-        "asadores": "Asadores / Grill", "fire_pit": "Fire pit", "terraza_comun": "Terraza común",
-        "lobby": "Lobby doble altura", "business_center": "Business center",
-        "cowork": "Coworking", "sala_juntas": "Sala de juntas",
-    },
-    "deportivas": {  # Deporte y bienestar
-        "gym": "Gimnasio", "yoga": "Salón de yoga", "spinning": "Spinning",
-        "spa": "Spa", "sauna": "Sauna", "vapor": "Vapor",
-        "cancha_padel": "Cancha de pádel", "cancha_tenis": "Cancha de tenis",
-        "cancha_basquet": "Cancha de básquet", "cancha_futbol": "Cancha de fútbol",
-        "squash": "Squash", "golf": "Golf / Putting green",
-        "jogging": "Pista de jogging", "ciclopista": "Ciclopista",
-    },
-    "familiares": {  # Familia y niños
-        "kids_club": "Kids club", "teens_room": "Teens room",
-        "chapoteadero": "Chapoteadero", "area_juegos": "Juegos infantiles",
-        "area_pets": "Área de mascotas", "pet": "Pet friendly",
-    },
-    "exteriores": {  # Exteriores y naturaleza
-        "jardines": "Jardines", "areas_verdes": "Áreas verdes",
-        "lago": "Lago / Espejo de agua", "andadores": "Andadores", "huertos": "Huertos urbanos",
-    },
-    "seguridad": {  # Seguridad y acceso
-        "seguridad": "Seguridad 24h", "caseta": "Caseta de vigilancia",
-        "cctv": "CCTV / Circuito cerrado", "control_acceso": "Control de acceso",
-        "acceso_biometrico": "Acceso biométrico", "fraccionamiento_privado": "Fraccionamiento privado",
-    },
-    "tecnologicas": {  # Tecnología
-        "domotica": "Domótica", "fibra_optica": "Fibra óptica",
-        "cargador_ev": "Cargador para auto eléctrico", "smart_locks": "Cerraduras inteligentes",
-        "elevador": "Elevador",
-    },
-    "sustentabilidad": {  # Sustentabilidad
-        "paneles_solares": "Paneles solares", "planta_tratadora": "Planta tratadora de agua",
-        "captacion_pluvial": "Captación pluvial", "cisterna": "Cisterna",
-        "bicicletas": "Estacionamiento de bicis", "separacion_basura": "Separación de basura",
-        "concierge": "Concierge", "valet": "Valet parking", "estacionamiento": "Estacionamiento incluido",
-    },
-    "internas": {  # Por unidad
+    "internas": {  # Por unidad (lo más común primero)
         "cocina_equipada": "Cocina equipada", "closet": "Clóset integrado",
-        "walk_in_closet": "Walk-in closet", "bodega": "Bodega",
-        "balcon": "Balcón / Terraza privada", "cuarto_servicio": "Cuarto de servicio",
-        "family_room": "Family room", "estudio": "Estudio",
-        "aire_acondicionado": "Aire acondicionado", "calefaccion": "Calefacción",
+        "balcon": "Balcón", "aire_acondicionado": "Aire acondicionado",
+        "bodega": "Bodega", "cuarto_servicio": "Cuarto de servicio",
+        "terraza_privada": "Terraza privada", "walk_in_closet": "Walk-in closet",
+        "estudio": "Estudio", "family_room": "Family room",
+        "roof_garden_privado": "Roof garden privado", "calefaccion": "Calefacción",
         "amueblado": "Amueblado", "doble_altura": "Doble altura",
+    },
+    "comunes": {  # Áreas comunes del edificio (lo más común primero)
+        "roof": "Roof garden común", "alberca": "Alberca", "salon_eventos": "Salón de eventos",
+        "terraza_comun": "Terraza común", "asadores": "Asadores / Grill",
+        "lobby": "Lobby doble altura", "sky_lounge": "Sky lounge",
+        "business_center": "Business center", "cowork": "Coworking",
+        "bar_lounge": "Bar / Lounge", "cava": "Cava", "cine": "Sala de cine",
+        "game_room": "Salón de juegos", "ludoteca": "Ludoteca", "casa_club": "Casa club",
+        "salon_usos": "Salón de usos múltiples", "alberca_techada": "Alberca techada",
+        "jacuzzi": "Jacuzzi", "fire_pit": "Fire pit", "sala_juntas": "Sala de juntas",
+    },
+    "deportivas": {  # Deporte y bienestar (lo más común primero)
+        "gym": "Gimnasio", "spa": "Spa", "jogging": "Pista de jogging", "sauna": "Sauna",
+        "yoga": "Salón de yoga", "vapor": "Vapor", "cancha_padel": "Cancha de pádel",
+        "cancha_tenis": "Cancha de tenis", "cancha_basquet": "Cancha de básquet",
+        "cancha_futbol": "Cancha de fútbol", "spinning": "Spinning", "squash": "Squash",
+        "golf": "Golf / Putting green", "ciclopista": "Ciclopista",
+    },
+    "familiares": {  # Familia y niños (lo más común primero)
+        "area_juegos": "Juegos infantiles", "area_pets": "Área de mascotas",
+        "pet": "Pet friendly", "chapoteadero": "Chapoteadero",
+        "kids_club": "Kids club", "teens_room": "Teens room",
+    },
+    "seguridad": {  # Seguridad y acceso (lo más común primero)
+        "seguridad": "Seguridad 24h", "control_acceso": "Control de acceso",
+        "cctv": "CCTV / Circuito cerrado", "caseta": "Caseta de vigilancia",
+        "fraccionamiento_privado": "Fraccionamiento privado", "acceso_biometrico": "Acceso biométrico",
+    },
+    "exteriores": {  # Exteriores y naturaleza (lo más común primero)
+        "jardines": "Jardines", "areas_verdes": "Áreas verdes", "andadores": "Andadores",
+        "lago": "Lago / Espejo de agua", "huertos": "Huertos urbanos",
+    },
+    "tecnologicas": {  # Tecnología (lo más común primero)
+        "elevador": "Elevador", "fibra_optica": "Fibra óptica", "domotica": "Domótica",
+        "cargador_ev": "Cargador para auto eléctrico", "smart_locks": "Cerraduras inteligentes",
+    },
+    "sustentabilidad": {  # Sustentabilidad (lo más común primero)
+        "estacionamiento": "Estacionamiento incluido", "paneles_solares": "Paneles solares",
+        "captacion_pluvial": "Captación pluvial", "planta_tratadora": "Planta tratadora de agua",
+        "concierge": "Concierge", "valet": "Valet parking",
+        "bicicletas": "Estacionamiento de bicis", "separacion_basura": "Separación de basura",
     },
 }
 
-# Servicios del desarrollo: cada uno tiene TIPO (el dev elige con qué cuenta).
+# Amenidades internas que VARÍAN por unidad → tras seleccionarlas, el dev marca "algunos" o "todos".
+VARIABLE_AMENITIES = [
+    "bodega", "balcon", "terraza_privada", "roof_garden_privado",
+    "estudio", "cuarto_servicio", "walk_in_closet", "family_room", "amueblado",
+]
+
+# Servicios del desarrollo: el dev elige con qué TIPO cuenta (cisterna lleva capacidad libre).
 ALL_SERVICIOS = {
     "gas":           {"label": "Gas", "options": [
         {"value": "natural", "label": "Natural"},
@@ -195,6 +201,7 @@ ALL_SERVICIOS = {
         {"value": "red", "label": "Red municipal"},
         {"value": "pozo", "label": "Pozo propio"},
         {"value": "ambos", "label": "Red + pozo"}]},
+    "cisterna":      {"label": "Cisterna", "capacity": True, "unit": "litros"},
     "energia":       {"label": "Energía eléctrica", "options": [
         {"value": "cfe", "label": "CFE / Red"},
         {"value": "paneles", "label": "Paneles solares"},
@@ -224,8 +231,10 @@ async def get_amenities(project_id: str, request: Request):
     if doc:
         doc.setdefault("amenities", [])
         doc.setdefault("servicios", {})
+        doc.setdefault("amenity_scope", {})
         doc["all_categories"] = ALL_AMENIDADES
         doc["all_servicios"] = ALL_SERVICIOS
+        doc["variable_amenities"] = VARIABLE_AMENITIES
         return doc
 
     # Fall back to seed data
@@ -236,14 +245,17 @@ async def get_amenities(project_id: str, request: Request):
         "project_id": project_id,
         "amenities": seed,
         "servicios": {},
+        "amenity_scope": {},
         "all_categories": ALL_AMENIDADES,
         "all_servicios": ALL_SERVICIOS,
+        "variable_amenities": VARIABLE_AMENITIES,
     }
 
 
 class AmenitiesPatch(BaseModel):
     amenities: List[str]
     servicios: Optional[Dict[str, str]] = None
+    amenity_scope: Optional[Dict[str, str]] = None
 
 
 @router.patch("/projects/{project_id}/amenities")
@@ -265,6 +277,8 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
     }
     if payload.servicios is not None:
         update["servicios"] = payload.servicios
+    if payload.amenity_scope is not None:
+        update["amenity_scope"] = payload.amenity_scope
     await db.project_amenities.update_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)},
         {"$set": update}, upsert=True
@@ -273,7 +287,8 @@ async def patch_amenities(project_id: str, payload: AmenitiesPatch, request: Req
                       before=old, after=update, request=request,
                       ml_event="amenities_changed",
                       ml_context={"project_id": project_id, "count": len(payload.amenities)})
-    return {"ok": True, "amenities": payload.amenities, "servicios": payload.servicios}
+    return {"ok": True, "amenities": payload.amenities, "servicios": payload.servicios,
+            "amenity_scope": payload.amenity_scope}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
