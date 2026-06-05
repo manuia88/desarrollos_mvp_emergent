@@ -6,7 +6,7 @@
  * semáforo + puerta a Insights. Fase 1: dato real donde existe; conectores que faltan = stub honesto.
  */
 import React, { useEffect, useState } from 'react';
-import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getPaymentSchemes } from '../../api/developer';
+import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress } from '../../api/developer';
 import { getInsightsMarketValue } from '../../api/insights';
 import { getDevelopmentScores } from '../../api/ie_scores';
 import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
@@ -15,6 +15,7 @@ import UbicacionIntel from './UbicacionIntel';
 import VentasIntel from './VentasIntel';
 import InsightsIntel from './InsightsIntel';
 import AmenidadesIntel from './AmenidadesIntel';
+import BrokerIntel from './BrokerIntel';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -343,13 +344,11 @@ function Ring({ value }) {
 export function AreaInsights({ slug, summary, area }) {
   const [obra, setObra] = useState(null);
   const [proy, setProy] = useState(null);     // scores IE del proyecto (precio, absorción, marca, docs…)
-  const [pay, setPay] = useState(null);       // esquemas de pago
 
   useEffect(() => {
     // Scores IE del proyecto: ricos y útiles en casi todas las pestañas (precio, absorción, marca, docs).
     getDevelopmentScores(slug).then(setProy).catch(() => {});
     if (area === 'avance') getConstructionProgress(slug).then(setObra).catch(() => {});
-    if (area === 'comercializacion') getPaymentSchemes(slug).then(setPay).catch(() => {});
   }, [slug, area, summary]);
 
   if (!summary) return null;
@@ -367,21 +366,8 @@ export function AreaInsights({ slug, summary, area }) {
   const pv = (code) => ps(code)?.value;
   // Tarjeta a partir de un score: lo vuelve palabra + semáforo + acción.
   const sb = (label, v, words, cmp, invert = false) => { const b = band(v, words, invert); return { label, value: b.word, tone: b.tone, cmp }; };
-  // Esquemas de pago.
-  const schemes = pay?.schemes || [];
-  const engMin = schemes.length ? Math.min(...schemes.map(s => +s.firma_pct || 0)) : null;
-  const descMax = schemes.length ? Math.max(...schemes.map(s => +s.descuento_pct || 0)) : null;
-  const mesesPlan = pay?.meses_auto ?? null;
 
   const C = {
-    comercializacion: { title: 'Pagos y brokers', cards: [
-      { label: 'Formas de pago', value: schemes.length || '—', tone: schemes.length ? 'green' : 'flat', cmp: 'planes para tu comprador' },
-      { label: 'Enganche desde', value: engMin != null ? `${engMin}` : '—', unit: engMin != null ? '%' : '', tone: 'green', cmp: 'la entrada más accesible' },
-      { label: 'Descuento máx', value: descMax != null ? `${descMax}` : '—', unit: descMax != null ? '%' : '', tone: descMax > 0 ? 'green' : 'flat', cmp: descMax > 0 ? 'por pronto pago / contado' : 'sin descuento configurado' },
-      { label: 'Financiamiento', value: mesesPlan != null ? mesesPlan : '—', unit: mesesPlan != null ? ' meses' : '', tone: 'flat', cmp: 'a la entrega, sin banco' },
-      sb('Confianza de tu marca', pv('IE_PROY_MARCA_TRUST'), ['Por construir', 'Buena', 'Alta'], 'lo que perciben brokers y clientes'),
-      sb('Cumples entregas', pv('IE_PROY_DEVELOPER_DELIVERY_HIST'), ['Irregular', 'Bueno', 'Impecable'], 'tu historial de entregas a tiempo'),
-    ] },
     avance: { title: 'Obra', cards: [
       { label: 'Avance', value: obra?.overall_percent ?? summary.construction_pct ?? 0, unit: '%', tone: (obra?.overall_percent ?? summary.construction_pct ?? 0) > 0 ? 'green' : 'flat', cmp: 'completado' },
       { label: 'Etapa actual', value: obra?.current_stage ? String(obra.current_stage).replace(/_/g, ' ') : '—', tone: 'flat', cmp: 'en curso' },
@@ -409,6 +395,8 @@ export function AreaInsights({ slug, summary, area }) {
   if (area === 'insights') return <InsightsIntel slug={slug} summary={summary} />;
   // Amenidades: cockpit "Valor de tus amenidades" (qué sube tu precio, brecha vs competidores).
   if (area === 'amenidades') return <AmenidadesIntel slug={slug} summary={summary} />;
+  // Pagos y brokers: cockpit (formas de pago, canal/comisión, conversión, confianza).
+  if (area === 'comercializacion') return <BrokerIntel slug={slug} summary={summary} />;
 
   const cfg = C[area];
   if (!cfg) return null;
