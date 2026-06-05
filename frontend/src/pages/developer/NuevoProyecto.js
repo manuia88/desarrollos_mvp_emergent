@@ -14,7 +14,7 @@ import {
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
 import { getAmenitiesCatalog } from '../../api/developer';
-import { SECTION_LABELS, AmenitySection } from '../../components/developer/amenitiesUI';
+import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
 
 // ═══ STEP 1 — Categoría ═══════════════════════════════════════════════════
 function Step1Categoria({ data = {}, onChange, ia_prefill }) {
@@ -123,29 +123,44 @@ function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
   );
 }
 
-// ═══ STEP 4 — Amenidades (mismo diseño que la ficha: tarjetas con ícono) ════
-function Step4Amenidades({ data = [], onChange }) {
+// Smart-defaults CDMX: lo que casi todo desarrollo tiene (el dev confirma/ajusta) → la ficha nace completa.
+const SERVICIOS_DEFAULT = { gas: 'natural', agua: 'red', energia: 'cfe', drenaje: 'municipal' };
+
+// ═══ STEP 4 — Amenidades + alcance + servicios (mismo diseño que la ficha) ════
+function Step4Amenidades({ data, onChange }) {
   const [catalog, setCatalog] = useState(null);
+  // Compat: si llega como array (prefill viejo), lo normalizamos a objeto.
+  const val = Array.isArray(data) ? { amenities: data } : (data || {});
+  const selected = val.amenities || [];
+  const servicios = val.servicios || {};
+  const scope = val.amenity_scope || {};
+
   useEffect(() => { getAmenitiesCatalog().then(setCatalog).catch(() => {}); }, []);
-  const selected = data || [];
-  const toggle = (a) => {
-    const set = new Set(selected);
-    set.has(a) ? set.delete(a) : set.add(a);
-    onChange([...set]);
-  };
+  // Pre-llena servicios norma CDMX la primera vez (sin pisar lo que el dev ya tocó).
+  useEffect(() => {
+    if (catalog && !val.servicios) onChange({ amenities: selected, servicios: { ...SERVICIOS_DEFAULT }, amenity_scope: scope });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
+
+  const emit = (patch) => onChange({ amenities: selected, servicios, amenity_scope: scope, ...patch });
+  const toggle = (a) => { const s = new Set(selected); s.has(a) ? s.delete(a) : s.add(a); emit({ amenities: [...s] }); };
+  const setScope = (k, v) => emit({ amenity_scope: { ...scope, [k]: v } });
+  const pickServicio = (k, v) => { const n = { ...servicios }; v ? (n[k] = v) : delete n[k]; emit({ servicios: n }); };
+
   if (!catalog) return <div className="text-xs text-[rgba(var(--cream-rgb),0.55)]">Cargando amenidades…</div>;
   const cats = catalog.all_categories || {};
   const variableSet = new Set(catalog.variable_amenities || []);
-  // Panel CLARO (mismo look que la ficha) dentro del wizard oscuro.
   return (
     <div className="theme-light-scope" style={{ background: 'var(--bg)', borderRadius: 14, padding: 16 }}>
       <div style={{ fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>
-        Toca para activar · <strong style={{ color: 'var(--theme)' }}>{selected.length}</strong> seleccionadas
+        Toca para activar · <strong style={{ color: 'var(--theme)' }}>{selected.length}</strong> amenidades · <strong style={{ color: 'var(--theme)' }}>{Object.keys(servicios).length}</strong> servicios
       </div>
       {Object.entries(cats).map(([sk, opts]) => (
         <AmenitySection key={sk} sectionKey={sk} sectionLabel={SECTION_LABELS[sk] || sk}
-          allOptions={opts} selected={selected} isEditing={true} onToggle={toggle} variableSet={variableSet} />
+          allOptions={opts} selected={selected} isEditing={true} onToggle={toggle}
+          variableSet={variableSet} scope={scope} onScope={setScope} />
       ))}
+      <ServiciosSection catalog={catalog.all_servicios} servicios={servicios} isEditing={true} onPick={pickServicio} />
     </div>
   );
 }
@@ -574,11 +589,15 @@ export default function NuevoProyectoPage({ user, onLogout }) {
   const handleComplete = async (allData) => {
     setSubmitting(true); setSubmitError(null);
     try {
+      const am = allData.amenidades;
+      const amObj = Array.isArray(am) ? { amenities: am } : (am || {});
       const payload = {
         categoria: allData.categoria || {},
         operacion: allData.operacion || {},
         ubicacion: allData.ubicacion || {},
-        amenidades: allData.amenidades || [],
+        amenidades: amObj.amenities || [],
+        servicios: amObj.servicios || {},
+        amenity_scope: amObj.amenity_scope || {},
         contenido: allData.contenido || {},
         legal: allData.legal || {},
         comercializacion: allData.comercializacion || {},

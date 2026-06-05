@@ -10,7 +10,7 @@ Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
   - NOTA: cable PROFUNDO del asesor (argumentario lee seed Python en advisor.py:3017, matches/suggestions en 2519/1437) → va en B3.1. Superadmin founder_console ya cuenta db.developments (se beneficia pasivo de B0.2).
 
 ## B1 · Wizard completo (al crear = tabs llenas)
-- B1.1 · Servicios con tipo + amenity_scope en Step4 + persistir · dep: B0 · S
+- ✅ B1.1 · Servicios (con tipo) + amenity_scope en Step4 del wizard + persistir. Front: `ServiciosSection`+`SERVICIO_ICONS` movidos a amenitiesUI.js (compartido ficha↔wizard, DRY), Step4 reescrito (objeto {amenities,servicios,amenity_scope} + scope + smart-defaults CDMX gas natural/agua red/luz CFE/drenaje municipal). Back: WizardProjectPayload +servicios +amenity_scope, create_project los persiste en project_amenities. Loop: vía B0.2 auto-publish → db.developments.config + ficha pública + portal-preview comprador. BONUS (ciclos rotos hallados+cerrados): `_owns_project()` (el dev ahora puede abrir su proyecto del wizard, antes 403 por user_dev_ids solo-seed) + fix coords (wizard guarda lat/lng planos → project_full/publish reconstruyen center). Verificado por API end-to-end (proyecto creado por wizard → servicios en project_amenities + db.developments + ficha pública; readiness 56%). · dep: B0 · S
 - B1.2 · Subida REAL de assets (Contenido → project_assets) · dep: B0 · M
 - B1.3 · Docs legales + estado (Legal) · dep: B0 · M
 - B1.4 · Paso Formas de pago (dev_payment_schemes) · dep: B0 · S

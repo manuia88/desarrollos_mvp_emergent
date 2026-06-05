@@ -187,6 +187,8 @@ class WizardProjectPayload(BaseModel):
     operacion: Dict[str, Any] = {}
     ubicacion: Dict[str, Any] = {}
     amenidades: List[str] = []
+    servicios: Dict[str, Any] = {}        # B1.1 · gas/agua/luz con tipo
+    amenity_scope: Dict[str, Any] = {}    # B1.1 · por-unidad vs comunes
     contenido: Dict[str, Any] = {}       # asset IDs references
     legal: Dict[str, Any] = {}
     comercializacion: Dict[str, Any] = {}
@@ -247,13 +249,15 @@ async def create_project(payload: WizardProjectPayload, request: Request):
 
     await db.projects.insert_one(dict(project_doc))
 
-    # Amenities
-    if payload.amenidades:
+    # Amenities + servicios (con tipo) + alcance por-unidad (B1.1 · ficha nace completa)
+    if payload.amenidades or payload.servicios or payload.amenity_scope:
         await db.project_amenities.update_one(
             {"project_id": slug, "dev_org_id": org},
             {"$set": {
                 "project_id": slug, "dev_org_id": org,
                 "amenities": payload.amenidades,
+                "servicios": payload.servicios or {},
+                "amenity_scope": payload.amenity_scope or {},
                 "updated_at": now_iso, "updated_by": user.user_id,
             }},
             upsert=True,

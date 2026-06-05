@@ -37,6 +37,24 @@ def _user_dev_ids(user) -> List[str]:
     return user_dev_ids(user)
 
 
+async def _owns_project(db, user, pid: str) -> bool:
+    """Acceso del dev a un proyecto. Además del seed (user_dev_ids), permite proyectos creados
+    por el wizard verificando pertenencia por org en Mongo — cierra el ciclo crear→abrir ficha
+    sin tocar tenant_scope (sync). Scoped: nunca cruza de tenant."""
+    from tenant_scope import tenant_of
+    if getattr(user, "role", None) == "superadmin":
+        return True
+    if pid in _user_dev_ids(user):
+        return True
+    tenant = tenant_of(user)
+    try:
+        doc = (await db.projects.find_one({"id": pid}, {"_id": 0, "dev_org_id": 1})
+               or await db.developments.find_one({"id": pid}, {"_id": 0, "dev_org_id": 1}))
+    except Exception:
+        doc = None
+    return bool(doc and doc.get("dev_org_id") and doc.get("dev_org_id") == tenant)
+
+
 async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
     """Payload canónico del proyecto (seed/developments/projects + colecciones por-tab).
     Fuente única reusable por todos los portales. Fail-open por bloque."""
@@ -70,7 +88,11 @@ async def project_full(db, pid: str) -> Optional[Dict[str, Any]]:
     if len(ph) >= 2 and ph[0].get("price"):
         since = round((ph[-1]["price"] / ph[0]["price"] - 1) * 100, 1)
 
-    center = dev.get("center") or [None, None]
+    # center canónico [lng, lat]; los proyectos del wizard guardan lat/lng planos → reconstruir
+    center = dev.get("center")
+    if not center and dev.get("lat") is not None and dev.get("lng") is not None:
+        center = [dev.get("lng"), dev.get("lat")]
+    center = center or [None, None]
     return {
         "project_id": pid, "nombre": dev.get("name"), "stage": dev.get("stage"),
         "price_from": dev.get("price_from"), "price_to": dev.get("price_to"),
@@ -141,13 +163,16 @@ async def publish_to_developments(db, pid: str, *, user_id: Optional[str] = None
     from data_developments import DEVELOPMENTS_BY_ID
     seed = DEVELOPMENTS_BY_ID.get(pid) or await db.projects.find_one({"$or": [{"id": pid}, {"slug": pid}]}, {"_id": 0}) or {}
     loc = full["ubicacion"]
+    # Coords: los proyectos del wizard las guardan planas en db.projects → resolver y persistir
+    _lat = loc.get("lat") if loc.get("lat") is not None else seed.get("lat")
+    _lng = loc.get("lng") if loc.get("lng") is not None else seed.get("lng")
     now_iso = datetime.now(timezone.utc).isoformat()
     rd = project_readiness(full)
     doc = {
         "id": pid, "slug": pid, "name": full["nombre"],
         "colonia": loc.get("colonia"), "colonia_id": loc.get("colonia_id"), "alcaldia": loc.get("alcaldia"),
-        "city": seed.get("city"),
-        "center": ([loc["lng"], loc["lat"]] if loc.get("lat") and loc.get("lng") else seed.get("center")),
+        "city": seed.get("city"), "lat": _lat, "lng": _lng,
+        "center": ([_lng, _lat] if _lat is not None and _lng is not None else seed.get("center")),
         "price_from": full.get("price_from"), "price_to": full.get("price_to"),
         "m2_range": seed.get("m2_range"), "units_total": full.get("units_total"),
         "units": seed.get("units", []), "units_sold": seed.get("units_sold"),
@@ -281,7 +306,7 @@ async def portal_preview(db, pid: str) -> Dict[str, Any]:
 async def get_portal_preview(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if not await _owns_project(db, user, project_id):
         raise HTTPException(403, "Proyecto no accesible")
     return await portal_preview(db, project_id)
 
@@ -290,7 +315,7 @@ async def get_portal_preview(project_id: str, request: Request):
 async def get_project_full(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if not await _owns_project(db, user, project_id):
         raise HTTPException(403, "Proyecto no accesible")
     full = await project_full(db, project_id)
     if not full:
@@ -305,7 +330,7 @@ async def get_project_full(project_id: str, request: Request):
 async def publish_project(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if project_id not in _user_dev_ids(user):
+    if not await _owns_project(db, user, project_id):
         raise HTTPException(403, "Proyecto no accesible")
     res = await publish_to_developments(db, project_id, user_id=getattr(user, "user_id", None), source="manual")
     if not res:
