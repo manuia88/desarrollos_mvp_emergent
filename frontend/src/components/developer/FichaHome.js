@@ -6,7 +6,7 @@
  * semáforo + puerta a Insights. Fase 1: dato real donde existe; conectores que faltan = stub honesto.
  */
 import React, { useEffect, useState } from 'react';
-import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getProjectAmenities, getPaymentSchemes } from '../../api/developer';
+import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getPaymentSchemes } from '../../api/developer';
 import { getInsightsMarketValue } from '../../api/insights';
 import { getDevelopmentScores } from '../../api/ie_scores';
 import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
@@ -14,6 +14,7 @@ import { Z } from '../../styles/zIndex';
 import UbicacionIntel from './UbicacionIntel';
 import VentasIntel from './VentasIntel';
 import InsightsIntel from './InsightsIntel';
+import AmenidadesIntel from './AmenidadesIntel';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -341,27 +342,17 @@ function Ring({ value }) {
 // ── Insights del área (mini-cockpit por pestaña): mismos botones arriba → estos → desglose ──
 export function AreaInsights({ slug, summary, area }) {
   const [obra, setObra] = useState(null);
-  const [driver, setDriver] = useState(null);
-  const [avm, setAvm] = useState(null);
   const [proy, setProy] = useState(null);     // scores IE del proyecto (precio, absorción, marca, docs…)
-  const [amen, setAmen] = useState(null);     // amenidades del proyecto
   const [pay, setPay] = useState(null);       // esquemas de pago
 
   useEffect(() => {
     // Scores IE del proyecto: ricos y útiles en casi todas las pestañas (precio, absorción, marca, docs).
     getDevelopmentScores(slug).then(setProy).catch(() => {});
     if (area === 'avance') getConstructionProgress(slug).then(setObra).catch(() => {});
-    if (area === 'amenidades') getDevAmenityRanker().then(d => {
-      const pos = (d.amenity_ranker || []).filter(a => a.significativo && a.impacto_pct_precio_m2 > 0).sort((a, b) => b.impacto_pct_precio_m2 - a.impacto_pct_precio_m2);
-      setDriver(pos[0] || null);
-    }).catch(() => {});
-    if (['insights', 'amenidades'].includes(area)) getInsightsMarketValue(slug).then(setAvm).catch(() => {});
-    if (area === 'amenidades') getProjectAmenities(slug).then(setAmen).catch(() => {});
     if (area === 'comercializacion') getPaymentSchemes(slug).then(setPay).catch(() => {});
   }, [slug, area, summary]);
 
   if (!summary) return null;
-  const vsMkt = avm ? (avm.vs_market_pct ?? avm.vs_pct ?? null) : null;
   const cv = summary.conversion_pct ?? 0;
   const mesesEntrega = (() => {
     if (!summary.delivery_estimate) return null;
@@ -374,7 +365,6 @@ export function AreaInsights({ slug, summary, area }) {
   // Scores IE traducidos a palabra humana + acción (no "/100" crudo).
   const ps = (code) => ieScore(proy, code);
   const pv = (code) => ps(code)?.value;
-  const amenCount = (amen?.amenities || []).length;
   // Tarjeta a partir de un score: lo vuelve palabra + semáforo + acción.
   const sb = (label, v, words, cmp, invert = false) => { const b = band(v, words, invert); return { label, value: b.word, tone: b.tone, cmp }; };
   // Esquemas de pago.
@@ -382,8 +372,6 @@ export function AreaInsights({ slug, summary, area }) {
   const engMin = schemes.length ? Math.min(...schemes.map(s => +s.firma_pct || 0)) : null;
   const descMax = schemes.length ? Math.max(...schemes.map(s => +s.descuento_pct || 0)) : null;
   const mesesPlan = pay?.meses_auto ?? null;
-  const priceTone = vsMkt == null ? 'flat' : vsMkt > 12 ? 'amber' : 'green';
-  const priceVal = vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—';
 
   const C = {
     comercializacion: { title: 'Pagos y brokers', cards: [
@@ -406,13 +394,6 @@ export function AreaInsights({ slug, summary, area }) {
       { label: 'Genera leads', value: summary.leads_total ?? 0, tone: (summary.leads_total ?? 0) > 0 ? 'green' : 'flat', cmp: `${cv}% convierte a cierre` },
       { label: '% Vendido', value: summary.sold_pct ?? 0, unit: '%', tone: 'green', cmp: `${summary.sold_units ?? 0} de ${summary.units_total}` },
     ] },
-    amenidades: { title: 'Tu producto vs la zona', cards: [
-      { label: 'Servicios incluidos', value: amenCount || '—', tone: amenCount > 0 ? 'green' : 'flat', cmp: 'amenidades del proyecto' },
-      sb('Nivel vs la zona', pv('IE_PROY_AMENIDADES'), ['Por debajo', 'En línea', 'Líder'], 'más amenidades = tu ventaja'),
-      { label: 'Lo que más vende aquí', value: driver ? driver.atributo : '—', tone: driver ? 'green' : 'flat', cmp: driver ? `+${driver.impacto_pct_precio_m2}% en precio/m² · destácalo` : 'sin muestra suficiente' },
-      sb('Competencia', pv('IE_PROY_COMPETITION_PRESSURE'), ['Baja · ventaja', 'Media', 'Alta'], 'presión de proyectos rivales', true),
-      { label: 'Precio vs mercado', value: priceVal, tone: priceTone, cmp: vsMkt != null ? (vsMkt > 12 ? '¿lo justifican las amenidades?' : 'alineado') : 'sin comparativo' },
-    ] },
     legal: { title: 'Estado legal y confianza', cards: [
       sb('Documentos', pv('IE_PROY_QUALITY_DOCS'), ['Pendientes', 'Parciales', 'Completos'], 'súbelos · dan confianza al broker'),
       sb('Confianza de tu marca', pv('IE_PROY_MARCA_TRUST'), ['Por construir', 'Buena', 'Alta'], 'lo que percibe el comprador'),
@@ -426,6 +407,8 @@ export function AreaInsights({ slug, summary, area }) {
   if (area === 'ventas') return <VentasIntel slug={slug} summary={summary} />;
   // Insights: cockpit "Veredicto de mercado" (AVM vs tu precio, comparables, embudo, salud).
   if (area === 'insights') return <InsightsIntel slug={slug} summary={summary} />;
+  // Amenidades: cockpit "Valor de tus amenidades" (qué sube tu precio, brecha vs competidores).
+  if (area === 'amenidades') return <AmenidadesIntel slug={slug} summary={summary} />;
 
   const cfg = C[area];
   if (!cfg) return null;

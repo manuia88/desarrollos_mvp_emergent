@@ -266,6 +266,9 @@ export const getSalesIntel = (projectId) => j(`/api/dev/projects/${projectId}/sa
 // Veredicto de mercado — AVM vs tu precio, comparables, embudo, salud, apreciación
 export const getInsightsIntel = (projectId) => j(`/api/dev/projects/${projectId}/insights-intel`);
 
+// Valor + brecha de amenidades — qué sube tu precio, qué te falta vs competidores, cobertura
+export const getAmenityIntel = (projectId) => j(`/api/dev/projects/${projectId}/amenity-intel`);
+
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
 export const getAmenitiesCatalog = () => j('/api/dev/amenities-catalog');
