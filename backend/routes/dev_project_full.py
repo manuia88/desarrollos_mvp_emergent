@@ -233,11 +233,18 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     has_any = bool(am.get("servicios") or am.get("amenity_scope") or pagos.get("schemes") or sis)
     if not has_any:
         return {}
+    # Sello de confianza en lenguaje del comprador (fuente única en dev_batch2)
+    try:
+        from routes.dev_batch2 import construction_seal
+        sello = construction_seal(sis)
+    except Exception:
+        sello = {"configured": False}
     return {
         "amenidades": am.get("amenities") or [], "servicios": am.get("servicios") or {},
         "amenity_scope": am.get("amenity_scope") or {},
         "formas_pago": _payment_public(pagos.get("schemes")), "fecha_entrega": pagos.get("fecha_entrega"),
-        "sistema_constructivo": sis, "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
+        "sistema_constructivo": sis, "sello_constructivo": sello,
+        "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
         "fuente": "dev_configurado",
     }
 

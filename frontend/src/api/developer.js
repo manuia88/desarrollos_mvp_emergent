@@ -286,6 +286,9 @@ export const publishProject = (projectId) => post(`/api/dev/projects/${projectId
 export const getPortalPreview = (projectId) => j(`/api/dev/projects/${projectId}/portal-preview`);
 // Asistente del wizard: sugiere formas de pago por perfil (segmento/precio/etapa) — el proyecto aún no existe
 export const suggestSchemes = (body) => post('/api/dev/wizard/suggest-schemes', body);
+// Sistema constructivo en el wizard: catálogo + smart-default por tipo + sello de confianza preview
+export const getConstructionMeta = (tipo) => j(`/api/dev/wizard/construction-meta${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ''}`);
+export const getConstructionSeal = (sistema_constructivo) => post('/api/dev/wizard/construction-seal', { sistema_constructivo });
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);

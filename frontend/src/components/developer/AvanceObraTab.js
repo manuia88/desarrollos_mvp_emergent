@@ -5,6 +5,7 @@ import { Card } from '../advisor/primitives';
 import * as api from '../../api/developer';
 import { CheckCircle, Camera, Upload, X, Plus } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { SistemaPicker, SelloConfianza } from './sistemaConstructivoUI';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -32,7 +33,7 @@ const fmtDay = (iso) => {
 };
 
 // Sistema constructivo (cimentación + estructura) en lenguaje simple para el dev.
-function SistemaConstructivoCard({ devId, value, options, readOnly, onSaved, setToast }) {
+function SistemaConstructivoCard({ devId, value, options, readOnly, onSaved, setToast, sello }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || {});
   const [saving, setSaving] = useState(false);
@@ -73,38 +74,8 @@ function SistemaConstructivoCard({ devId, value, options, readOnly, onSaved, set
           <button data-testid="edit-sistema-btn" onClick={start} style={gradBtn}>Editar</button>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
-        {catKeys.map(cat => {
-          const sel = cur[cat];
-          const selOpt = cats[cat].options.find(o => o.value === sel);
-          return (
-            <div key={cat}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 8 }}>{cats[cat].label}</div>
-              {editing ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {cats[cat].options.map(o => {
-                    const on = sel === o.value;
-                    return (
-                      <button key={o.value} type="button" data-testid={`sistema-${cat}-${o.value}`} onClick={() => pick(cat, o.value)}
-                        style={{ textAlign: 'left', padding: '9px 11px', borderRadius: 10, cursor: 'pointer',
-                          border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border)'}`,
-                          background: on ? 'rgba(var(--theme-rgb),0.06)' : '#fff' }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, color: on ? 'var(--cream)' : 'var(--cream-2)' }}>{o.label}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2, lineHeight: 1.3 }}>{o.hint}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="dmx-card" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, fontFamily: 'Outfit', color: selOpt ? 'var(--cream)' : 'var(--cream-3)' }}>{selOpt?.label || 'No especificado'}</div>
-                  {selOpt?.hint && <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>{selOpt.hint}</div>}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <SistemaPicker catalog={cats} value={cur} onPick={pick} readOnly={!editing} />
+      {!editing && sello?.configured && <div style={{ marginTop: 14 }}><SelloConfianza sello={sello} /></div>}
     </Card>
   );
 }
@@ -299,7 +270,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
 
       {/* ── SISTEMA CONSTRUCTIVO ──────────────────────────────────────────────── */}
       <SistemaConstructivoCard devId={devId} value={data.sistema_constructivo}
-        options={data.sistema_options} readOnly={readOnly} onSaved={load} setToast={setToast} />
+        options={data.sistema_options} readOnly={readOnly} onSaved={load} setToast={setToast} sello={data.sello} />
 
       {/* ── REGISTRO DE AVANCE (timeline fecha · % · comentario) ──────────────── */}
       <div>

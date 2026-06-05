@@ -13,6 +13,13 @@ Origen: B1.4 (asistente `suggest_schemes` en payment_schemes.py). Hoy es **rule-
 
 ---
 
+## 🛡️ SELLO DE CONFIANZA CONSTRUCTIVO — reglas → datos reales (2026-06-05 · B1.5)
+
+Origen: B1.5 (`construction_seal` en dev_batch2.py). Hoy traduce {cimentacion, estructura} a lenguaje del comprador con reglas CDMX (ángulo sísmico). Fuente única (wizard preview + ficha + overlay público).
+- **Upgrade futuro (necesita datos):** enriquecer con certificaciones reales (sismo-resistencia NTC-2020, DRO responsable, sustentabilidad EDGE/LEED), cálculo estructural, y memoria de materiales subida en Legal/Contenido. El sello citaría evidencia verificable en vez de descripción genérica. Posible 2ª capa: badge "verificado" cuando haya documento soporte. Destino: tras B1.2/B1.3 (assets+legal) que traen los documentos. NO bloquea hoy.
+
+---
+
 ## 🔧 OPORTUNIDADES ASESOR — IA/ML/Seguridad/Diseño (2026-06-01 · de la auditoría)
 
 Origen: auditoría arquitectura asesor (`memory/ASESOR_ARCH_AUDIT.md`). Destino: Etapa 0-6 (ver `06_ROADMAP.md`). **Insight: casi todo = cablear/surfacear motor existente, no construir ML de cero.**

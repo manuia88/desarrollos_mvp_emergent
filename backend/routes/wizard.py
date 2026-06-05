@@ -161,6 +161,32 @@ async def suggest_schemes_endpoint(body: SuggestSchemesBody, request: Request):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# SISTEMA CONSTRUCTIVO · catálogo + smart-default + sello de confianza (B1.5)
+# ═════════════════════════════════════════════════════════════════════════════
+
+class ConstructionSealBody(BaseModel):
+    sistema_constructivo: Dict[str, Any] = {}
+
+
+@router.get("/construction-meta")
+async def construction_meta(request: Request, tipo: Optional[str] = None):
+    """Todo lo que el wizard necesita: catálogo + sugerencia por tipo + sello preview."""
+    await _auth(request)
+    from routes.dev_batch2 import SISTEMA_CONSTRUCTIVO_OPTS, suggest_sistema, construction_seal
+    suggested = suggest_sistema(tipo)
+    return {"catalog": SISTEMA_CONSTRUCTIVO_OPTS, "suggested": suggested,
+            "seal": construction_seal(suggested)}
+
+
+@router.post("/construction-seal")
+async def construction_seal_endpoint(body: ConstructionSealBody, request: Request):
+    """Sello de confianza en vivo mientras el dev elige (lenguaje del comprador)."""
+    await _auth(request)
+    from routes.dev_batch2 import construction_seal
+    return construction_seal(body.sistema_constructivo)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # DRAFT  (cross-device)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -209,6 +235,7 @@ class WizardProjectPayload(BaseModel):
     servicios: Dict[str, Any] = {}        # B1.1 · gas/agua/luz con tipo
     amenity_scope: Dict[str, Any] = {}    # B1.1 · por-unidad vs comunes
     pagos: Dict[str, Any] = {}            # B1.4 · {schemes, fecha_inicio, fecha_entrega}
+    construccion: Dict[str, Any] = {}     # B1.5 · {sistema_constructivo: {cimentacion, estructura}}
     contenido: Dict[str, Any] = {}       # asset IDs references
     legal: Dict[str, Any] = {}
     comercializacion: Dict[str, Any] = {}
@@ -322,6 +349,21 @@ async def create_project(payload: WizardProjectPayload, request: Request):
             }},
             upsert=True,
         )
+
+    # Sistema constructivo (B1.5 · sello de confianza al comprador + readiness + Avance de Obra)
+    sistema = (payload.construccion or {}).get("sistema_constructivo") or {}
+    sistema = {k: v for k, v in sistema.items() if v}
+    if sistema:
+        try:
+            from routes.dev_batch2 import _get_or_seed_progress_doc
+            await _get_or_seed_progress_doc(db, slug, org)   # siembra etapas/units → no rompe Avance
+            await db.project_construction_progress.update_one(
+                {"project_id": slug, "dev_org_id": org},
+                {"$set": {"sistema_constructivo": sistema, "updated_at": now_iso}},
+                upsert=True,
+            )
+        except Exception:
+            pass
 
     # Pre-asignaciones in-house
     for uid in comm.get("preassigned_asesores", []) or []:

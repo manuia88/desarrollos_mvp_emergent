@@ -736,14 +736,76 @@ SISTEMA_CONSTRUCTIVO_OPTS = {
         {"value": "prefabricado", "label": "Prefabricado", "hint": "Piezas hechas en planta y montadas"}]},
 }
 
+# ─── Sello de confianza · traduce el sistema técnico a lenguaje del comprador (B1.5) ──
+# Única fuente: la consume el wizard (preview), la ficha pública y el portal-preview.
+# Rule-based hoy; built-for-endstate: luego enriquece con certificaciones reales / cálculo estructural.
+_SELLO_CIMENTACION = {
+    "cajon": "cimentación de cajón, pensada para el suelo blando de la Ciudad de México",
+    "pilas": "cimentación de pilas que llega a suelo firme, lo más sólido para torres",
+    "losa": "losa de cimentación que reparte el peso de forma pareja",
+    "zapatas": "cimentación de zapatas, robusta y probada",
+    "mixta": "cimentación mixta, tomando lo mejor de cada sistema",
+}
+_SELLO_ESTRUCTURA = {
+    "concreto": "estructura de concreto armado, la más probada en México",
+    "acero": "estructura de acero, ligera y resistente para grandes espacios",
+    "mixta": "estructura mixta de acero y concreto, ideal en altura",
+    "muros": "muros de carga, nobleza estructural para vivienda baja",
+    "prefabricado": "elementos prefabricados con control de calidad de planta",
+}
+
+
+def construction_seal(sistema: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Convierte {cimentacion, estructura} en un sello de confianza para el comprador."""
+    sistema = sistema or {}
+    cim, est = sistema.get("cimentacion"), sistema.get("estructura")
+    partes, badges = [], []
+    if cim:
+        partes.append(_SELLO_CIMENTACION.get(cim, cim))
+        badges.append({"label": "Cimentación", "value": cim})
+    if est:
+        partes.append(_SELLO_ESTRUCTURA.get(est, est))
+        badges.append({"label": "Estructura", "value": est})
+    if not partes:
+        return {"configured": False, "titulo": "", "descripcion": "", "badges": []}
+    nota = ""
+    if cim in ("cajon", "pilas") or est in ("concreto", "acero", "mixta"):
+        nota = " Pensado para el suelo y la actividad sísmica de la Ciudad de México."
+    return {
+        "configured": True, "titulo": "Construcción con respaldo",
+        "descripcion": "Construido con " + " y ".join(partes) + "." + nota, "badges": badges,
+    }
+
+
+def suggest_sistema(tipo_proyecto: Optional[str]) -> Dict[str, str]:
+    """Smart-default por tipo de proyecto (el dev confirma/ajusta)."""
+    t = tipo_proyecto or ""
+    if t in ("residencial_horizontal",):
+        return {"cimentacion": "zapatas", "estructura": "muros"}
+    if t in ("comercial",):
+        return {"cimentacion": "pilas", "estructura": "acero"}
+    # vertical / mixto / default → torre en CDMX
+    return {"cimentacion": "cajon", "estructura": "concreto"}
+
+
+async def _resolve_project_name(db, project_id: str, dev_org_id: str) -> Optional[str]:
+    """Nombre del proyecto desde el seed o (proyectos del wizard) desde Mongo. None si no existe."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if dev:
+        return dev.get("name")
+    doc = (await db.projects.find_one({"$or": [{"id": project_id}, {"slug": project_id}], "dev_org_id": dev_org_id}, {"_id": 0, "name": 1})
+           or await db.developments.find_one({"id": project_id, "dev_org_id": dev_org_id}, {"_id": 0, "name": 1}))
+    return doc.get("name") if doc else None
+
 
 @router.get("/construction/{project_id}/progress")
 async def get_construction_progress(project_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
-    from data_developments import DEVELOPMENTS_BY_ID
-    dev = DEVELOPMENTS_BY_ID.get(project_id)
-    if not dev:
+    # Acepta proyectos del seed Y del wizard (cierra el ciclo crear→Avance de Obra · B1.5)
+    project_name = await _resolve_project_name(db, project_id, _tenant(user))
+    if not project_name:
         raise HTTPException(404, "Proyecto no encontrado")
 
     doc = await _get_or_seed_progress_doc(db, project_id, _tenant(user))
@@ -763,11 +825,12 @@ async def get_construction_progress(project_id: str, request: Request):
 
     out = {
         "project_id": project_id,
-        "project_name": dev["name"],
+        "project_name": project_name,
         **{k: v for k, v in doc.items() if k != "_id"},
     }
     out.setdefault("sistema_constructivo", {})
     out["sistema_options"] = SISTEMA_CONSTRUCTIVO_OPTS
+    out["sello"] = construction_seal(out.get("sistema_constructivo"))
     return out
 
 
@@ -779,8 +842,8 @@ class SistemaConstructivoPatch(BaseModel):
 async def patch_sistema_constructivo(project_id: str, payload: SistemaConstructivoPatch, request: Request):
     user = await _auth(request)
     db = _db(request)
-    from data_developments import DEVELOPMENTS_BY_ID
-    if project_id not in DEVELOPMENTS_BY_ID:
+    # Acepta proyectos del seed Y del wizard (B1.5)
+    if not await _resolve_project_name(db, project_id, _tenant(user)):
         raise HTTPException(404, "Proyecto no encontrado")
     # asegura que el doc exista (lo siembra si hace falta)
     await _get_or_seed_progress_doc(db, project_id, _tenant(user))
@@ -789,7 +852,8 @@ async def patch_sistema_constructivo(project_id: str, payload: SistemaConstructi
         {"$set": {"sistema_constructivo": payload.sistema_constructivo, "updated_at": _now().isoformat()}},
         upsert=True,
     )
-    return {"ok": True, "sistema_constructivo": payload.sistema_constructivo}
+    return {"ok": True, "sistema_constructivo": payload.sistema_constructivo,
+            "sello": construction_seal(payload.sistema_constructivo)}
 
 
 class ConstructionUpdate(BaseModel):
@@ -1229,6 +1293,9 @@ async def _get_or_seed_progress_doc(db, project_id: str, dev_org_id: str) -> Dic
     )
     if doc and doc.get("units"):
         return doc
+    # Doc parcial (p.ej. wizard guardó sistema_constructivo pero sin units todavía):
+    # preservar lo que el dev ya capturó al re-sembrar (no pisarlo con un doc en blanco).
+    _prev = doc or {}
 
     # Seed from development.progress
     from data_developments import DEVELOPMENTS_BY_ID
@@ -1254,8 +1321,9 @@ async def _get_or_seed_progress_doc(db, project_id: str, dev_org_id: str) -> Dic
         "overall_percent": overall,
         "per_unit_avg_percent": overall,
         "units": units,
-        "photos": [],
-        "comments": [],
+        "photos": _prev.get("photos", []),
+        "comments": _prev.get("comments", []),
+        "sistema_constructivo": _prev.get("sistema_constructivo", {}),
         "updated_at": _now().isoformat(),
     }
     # Best-effort upsert (keep idempotent)

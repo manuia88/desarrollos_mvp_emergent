@@ -13,9 +13,10 @@ import {
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
-import { getAmenitiesCatalog, suggestSchemes } from '../../api/developer';
+import { getAmenitiesCatalog, suggestSchemes, getConstructionMeta, getConstructionSeal } from '../../api/developer';
 import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
 import { SchemeCard } from '../../components/developer/paymentSchemesUI';
+import { SistemaPicker, SelloConfianza } from '../../components/developer/sistemaConstructivoUI';
 import { SCHEME_MAX, schemeSumOk, emptyScheme } from '../../utils/paymentSchemes';
 
 // ═══ STEP 1 — Categoría ═══════════════════════════════════════════════════
@@ -232,7 +233,52 @@ function StepPagos({ data = {}, onChange, allData = {} }) {
   );
 }
 
-// ═══ STEP 6 — Contenido y Fotos ═══════════════════════════════════════════
+// ═══ STEP 6 — Sistema constructivo + sello de confianza (B1.5) ════════════════
+function StepSistema({ data = {}, onChange, allData = {} }) {
+  const tipo = (allData.categoria || {}).tipo_proyecto;
+  const sistema = data.sistema_constructivo || {};
+  const [catalog, setCatalog] = useState(null);
+  const [sello, setSello] = useState(null);
+
+  // Carga catálogo + sugerencia por tipo; pre-llena si está vacío.
+  useEffect(() => {
+    let alive = true;
+    getConstructionMeta(tipo).then(m => {
+      if (!alive) return;
+      setCatalog(m.catalog);
+      if (!(data.sistema_constructivo && Object.keys(data.sistema_constructivo).length)) {
+        onChange({ ...data, sistema_constructivo: m.suggested });
+        setSello(m.seal);
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refresca el sello (fuente única: backend) cuando cambia la selección.
+  useEffect(() => {
+    if (!Object.keys(sistema).length) return;
+    let alive = true;
+    getConstructionSeal(sistema).then(s => { if (alive) setSello(s); }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sistema.cimentacion, sistema.estructura]);
+
+  const pick = (cat, val) => onChange({ ...data, sistema_constructivo: { ...sistema, [cat]: sistema[cat] === val ? undefined : val } });
+
+  if (!catalog) return <div className="text-xs text-[rgba(var(--cream-rgb),0.55)]">Cargando…</div>;
+  return (
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', borderRadius: 14, padding: 16 }}>
+      <div style={{ fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>
+        Con qué está construido el desarrollo. Te sugerí lo típico para tu tipo de proyecto — ajústalo. Esto le da <strong style={{ color: 'var(--theme)' }}>confianza al comprador</strong>.
+      </div>
+      <SistemaPicker catalog={catalog} value={sistema} onPick={pick} readOnly={false} />
+      {sello?.configured && <div style={{ marginTop: 16 }}><SelloConfianza sello={sello} /></div>}
+    </div>
+  );
+}
+
+// ═══ STEP 7 — Contenido y Fotos ═══════════════════════════════════════════
 function Step5Contenido({ data = {}, onChange }) {
   const [uploaded, setUploaded] = useState(data.files || []);
   const handleDrop = (files) => {
@@ -649,6 +695,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
       validate: v => (!v?.colonia ? 'Colonia requerida' : null) },
     { id: 'amenidades',   title: 'Amenidades',     component: Step4Amenidades, optional: true },
     { id: 'pagos',        title: 'Formas de pago', component: StepPagos,       optional: true },
+    { id: 'construccion', title: 'Construcción',   component: StepSistema,     optional: true },
     { id: 'contenido',    title: 'Contenido',      component: Step5Contenido,  optional: true },
     { id: 'legal',        title: 'Legal',          component: Step6Legal,      optional: true },
     { id: 'comercializacion', title: 'Comercialización', component: Step7Comercializacion },
@@ -667,6 +714,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         servicios: amObj.servicios || {},
         amenity_scope: amObj.amenity_scope || {},
         pagos: allData.pagos || {},
+        construccion: allData.construccion || {},
         contenido: allData.contenido || {},
         legal: allData.legal || {},
         comercializacion: allData.comercializacion || {},
@@ -693,7 +741,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-[var(--cream)] font-[Outfit]">Nuevo proyecto</h1>
           <p className="text-sm text-[rgba(var(--cream-rgb),0.55)] mt-1">
-            Crea un proyecto nuevo en 8 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
+            Crea un proyecto nuevo en 9 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
           </p>
         </div>
 
