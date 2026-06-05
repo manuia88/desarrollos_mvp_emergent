@@ -8,9 +8,10 @@
 import React, { useEffect, useState } from 'react';
 import { listProjectsWithStats, getDevAmenityRanker, getConstructionProgress, getProjectAmenities, getPaymentSchemes } from '../../api/developer';
 import { getInsightsMarketValue } from '../../api/insights';
-import { getZoneScores, getDevelopmentScores } from '../../api/ie_scores';
+import { getDevelopmentScores } from '../../api/ie_scores';
 import { getCerebroStatus, runCerebroGoal, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import { Z } from '../../styles/zIndex';
+import UbicacionIntel from './UbicacionIntel';
 
 // Lee un score IE por código → {value, tone}.
 const TIER_TONE = { red: 'red', amber: 'amber', green: 'green' };
@@ -19,7 +20,6 @@ function ieScore(arr, code) {
   const s = list.find(x => x.code === code);
   return s ? { value: s.value, tone: TIER_TONE[s.tier] || 'flat' } : null;
 }
-const slugZone = (name) => (name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-');
 
 // Traduce un score 0-100 a PALABRA humana + semáforo. words=[bajo, medio, alto].
 // invert=true cuando un valor BAJO es BUENO (ej. presión de competencia).
@@ -342,7 +342,6 @@ export function AreaInsights({ slug, summary, area }) {
   const [obra, setObra] = useState(null);
   const [driver, setDriver] = useState(null);
   const [avm, setAvm] = useState(null);
-  const [zone, setZone] = useState(null);     // scores IE de la colonia
   const [proy, setProy] = useState(null);     // scores IE del proyecto (precio, absorción, marca, docs…)
   const [amen, setAmen] = useState(null);     // amenidades del proyecto
   const [pay, setPay] = useState(null);       // esquemas de pago
@@ -355,12 +354,11 @@ export function AreaInsights({ slug, summary, area }) {
     // Scores IE del proyecto: ricos y útiles en casi todas las pestañas (precio, absorción, marca, docs).
     getDevelopmentScores(slug).then(setProy).catch(() => {});
     if (area === 'avance') getConstructionProgress(slug).then(setObra).catch(() => {});
-    if (area === 'amenidades' || area === 'ubicacion') getDevAmenityRanker().then(d => {
+    if (area === 'amenidades') getDevAmenityRanker().then(d => {
       const pos = (d.amenity_ranker || []).filter(a => a.significativo && a.impacto_pct_precio_m2 > 0).sort((a, b) => b.impacto_pct_precio_m2 - a.impacto_pct_precio_m2);
       setDriver(pos[0] || null);
     }).catch(() => {});
-    if (['ubicacion', 'insights', 'ventas', 'amenidades'].includes(area)) getInsightsMarketValue(slug).then(setAvm).catch(() => {});
-    if (area === 'ubicacion') getZoneScores(slugZone(summary?.colonia)).then(setZone).catch(() => {});
+    if (['insights', 'ventas', 'amenidades'].includes(area)) getInsightsMarketValue(slug).then(setAvm).catch(() => {});
     if (area === 'amenidades') getProjectAmenities(slug).then(setAmen).catch(() => {});
     if (area === 'comercializacion') getPaymentSchemes(slug).then(setPay).catch(() => {});
   }, [slug, area, summary]);
@@ -385,9 +383,7 @@ export function AreaInsights({ slug, summary, area }) {
   })();
 
   // Scores IE traducidos a palabra humana + acción (no "/100" crudo).
-  const zs = (code) => ieScore(zone, code);
   const ps = (code) => ieScore(proy, code);
-  const zv = (code) => zs(code)?.value;
   const pv = (code) => ps(code)?.value;
   const amenCount = (amen?.amenities || []).length;
   // Tarjeta a partir de un score: lo vuelve palabra + semáforo + acción.
@@ -444,15 +440,6 @@ export function AreaInsights({ slug, summary, area }) {
       sb('Competencia', pv('IE_PROY_COMPETITION_PRESSURE'), ['Baja · ventaja', 'Media', 'Alta'], 'presión de proyectos rivales', true),
       { label: 'Precio vs mercado', value: priceVal, tone: priceTone, cmp: vsMkt != null ? (vsMkt > 12 ? '¿lo justifican las amenidades?' : 'alineado') : 'sin comparativo' },
     ] },
-    ubicacion: { title: 'Inteligencia de tu zona', cards: [
-      sb('Tu comprador', zv('IE_COL_DEMOGRAFIA_INGRESO'), ['Medio', 'Acomodado', 'Alto poder'], 'nivel de ingreso · enfoca tu pitch'),
-      sb('Perfil de la zona', zv('IE_COL_DEMOGRAFIA_FAMILIA'), ['Joven/soltera', 'Mixta', 'Familiar'], 'a quién le hablas en tu marketing'),
-      { label: 'Plusvalía a futuro', value: zv('IE_COL_PLUSVALIA_PROYECTADA') != null ? `+${zv('IE_COL_PLUSVALIA_PROYECTADA').toFixed(1)}` : '—', unit: zv('IE_COL_PLUSVALIA_PROYECTADA') != null ? '%' : '', tone: zs('IE_COL_PLUSVALIA_PROYECTADA')?.tone || 'flat', cmp: 'la zona se aprecia · véndelo como inversión' },
-      sb('Conectividad', zv('IE_COL_CONECTIVIDAD_VIALIDAD'), ['Limitada', 'Media', 'Buena'], 'vialidad y transporte'),
-      sb('Áreas verdes', zv('IE_COL_CULTURAL_PARQUES'), ['Pocas', 'Algunas', 'Muchas'], 'parques cercanos'),
-      sb('Vida y restaurantes', zv('IE_COL_CULTURAL_VIDA_NOCTURNA'), ['Tranquila', 'Animada', 'Muy animada'], 'gastronomía y ocio'),
-      { label: 'Tu precio vs zona', value: priceVal, tone: priceTone, cmp: priceVerdict },
-    ] },
     legal: { title: 'Estado legal y confianza', cards: [
       sb('Documentos', pv('IE_PROY_QUALITY_DOCS'), ['Pendientes', 'Parciales', 'Completos'], 'súbelos · dan confianza al broker'),
       sb('Confianza de tu marca', pv('IE_PROY_MARCA_TRUST'), ['Por construir', 'Buena', 'Alta'], 'lo que percibe el comprador'),
@@ -460,6 +447,9 @@ export function AreaInsights({ slug, summary, area }) {
       { label: 'A la entrega', value: mesesEntrega != null ? mesesEntrega : '—', unit: mesesEntrega != null ? ' meses' : '', tone: 'flat', cmp: summary.delivery_estimate ? `entrega ${summary.delivery_estimate}` : 'sin fecha' },
     ] },
   };
+  // Ubicación: cockpit rico dedicado (ROI por estrategia, plusvalía, demanda, comprador, negocios).
+  if (area === 'ubicacion') return <UbicacionIntel slug={slug} summary={summary} />;
+
   const cfg = C[area];
   if (!cfg) return null;
   return (
