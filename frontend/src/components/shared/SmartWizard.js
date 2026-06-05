@@ -192,6 +192,7 @@ export function SmartWizard({
             data={data[step?.id]}
             onChange={(d) => updateStepData(step.id, d)}
             ia_prefill={ia_prefill}
+            allData={data}
           />
         )}
       </div>

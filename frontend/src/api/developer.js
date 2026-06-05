@@ -284,6 +284,8 @@ export const getProjectFull = (projectId) => j(`/api/dev/projects/${projectId}/f
 export const publishProject = (projectId) => post(`/api/dev/projects/${projectId}/publish`, {});
 // "Cómo te ven los portales" — 3 lentes (comprador/asesor/corporativo) sobre la misma fuente única
 export const getPortalPreview = (projectId) => j(`/api/dev/projects/${projectId}/portal-preview`);
+// Asistente del wizard: sugiere formas de pago por perfil (segmento/precio/etapa) — el proyecto aún no existe
+export const suggestSchemes = (body) => post('/api/dev/wizard/suggest-schemes', body);
 
 // Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
 export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);

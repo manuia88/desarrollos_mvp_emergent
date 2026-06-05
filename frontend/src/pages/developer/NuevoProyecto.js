@@ -13,8 +13,10 @@ import {
   uploadWizardFiles, getDriveStatus, processDriveUrl,
 } from '../../api/wizard';
 import { Sparkles, UploadCloud, Cloud, FileText, Check, AlertCircle, X } from 'lucide-react';
-import { getAmenitiesCatalog } from '../../api/developer';
+import { getAmenitiesCatalog, suggestSchemes } from '../../api/developer';
 import { SECTION_LABELS, AmenitySection, ServiciosSection } from '../../components/developer/amenitiesUI';
+import { SchemeCard } from '../../components/developer/paymentSchemesUI';
+import { SCHEME_MAX, schemeSumOk, emptyScheme } from '../../utils/paymentSchemes';
 
 // ═══ STEP 1 — Categoría ═══════════════════════════════════════════════════
 function Step1Categoria({ data = {}, onChange, ia_prefill }) {
@@ -165,7 +167,72 @@ function Step4Amenidades({ data, onChange }) {
   );
 }
 
-// ═══ STEP 5 — Contenido y Fotos ═══════════════════════════════════════════
+// ═══ STEP 5 — Formas de pago (con asistente que sugiere por perfil · B1.4) ════
+function StepPagos({ data = {}, onChange, allData = {} }) {
+  const cat = allData.categoria || {};
+  const op = allData.operacion || {};
+  const schemes = data.schemes || [];
+  const sample = op.target_price || 1000000;
+  const [sug, setSug] = useState(null);
+
+  // El asistente sugiere al entrar; pre-llena si aún no hay esquemas.
+  useEffect(() => {
+    let alive = true;
+    suggestSchemes({ segment: cat.segmento, price_from: op.target_price || 0, stage: cat.etapa })
+      .then(s => {
+        if (!alive) return;
+        setSug(s);
+        if (!(data.schemes && data.schemes.length)) onChange({ ...data, schemes: s.schemes });
+      }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const emit = (patch) => onChange({ ...data, ...patch });
+  const update = (i, key, val) => emit({ schemes: schemes.map((x, j) => j === i ? { ...x, [key]: val } : x) });
+  const remove = (i) => emit({ schemes: schemes.filter((_, j) => j !== i) });
+  const add = () => { if (schemes.length < SCHEME_MAX) emit({ schemes: [...schemes, emptyScheme()] }); };
+  const useSug = () => sug && emit({ schemes: sug.schemes.map(s => ({ ...s })) });
+  const okCount = schemes.filter(s => (s.nombre || '').trim() && schemeSumOk(s)).length;
+
+  return (
+    <div className="theme-light-scope" style={{ background: 'var(--bg)', borderRadius: 14, padding: 16 }}>
+      {sug && (
+        <div className="dmx-card" style={{ background: '#fff', padding: 14, marginBottom: 14, borderLeft: '3px solid var(--theme)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <span style={{ fontSize: 16 }}>🤝</span>
+            <b style={{ fontSize: 12.5, color: 'var(--cream)' }}>El asistente sugiere</b>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme)', background: 'rgba(var(--theme-rgb),.09)', padding: '2px 8px', borderRadius: 999 }}>
+              {sug.confidence === 'alta' ? 'recomendado para tu perfil' : 'orientativo'}
+            </span>
+          </div>
+          <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>{sug.rationale}</p>
+          <button type="button" onClick={useSug}
+            style={{ background: 'var(--grad, linear-gradient(120deg,#6D4AFF,#C63FAE))', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            Usar estos planes
+          </button>
+        </div>
+      )}
+      <div style={{ fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 12 }}>
+        Cada forma reparte el precio en firma + mensualidades + escritura (suman 100%) · <strong style={{ color: 'var(--theme)' }}>{okCount}</strong> listas. El comprador verá el precio cambiar según la que elija.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {schemes.map((s, i) => (
+          <SchemeCard key={s.id || i} scheme={s} index={i} sample={sample}
+            fIni={data.fecha_inicio} fEnt={data.fecha_entrega} onUpdate={update} onRemove={remove} />
+        ))}
+      </div>
+      {schemes.length < SCHEME_MAX && (
+        <button type="button" onClick={add}
+          style={{ marginTop: 12, background: '#fff', border: '1px solid var(--border)', color: 'var(--cream-2)', borderRadius: 10, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+          + Agregar forma de pago
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ═══ STEP 6 — Contenido y Fotos ═══════════════════════════════════════════
 function Step5Contenido({ data = {}, onChange }) {
   const [uploaded, setUploaded] = useState(data.files || []);
   const handleDrop = (files) => {
@@ -581,6 +648,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
     { id: 'ubicacion',    title: 'Ubicación',      component: Step3Ubicacion,
       validate: v => (!v?.colonia ? 'Colonia requerida' : null) },
     { id: 'amenidades',   title: 'Amenidades',     component: Step4Amenidades, optional: true },
+    { id: 'pagos',        title: 'Formas de pago', component: StepPagos,       optional: true },
     { id: 'contenido',    title: 'Contenido',      component: Step5Contenido,  optional: true },
     { id: 'legal',        title: 'Legal',          component: Step6Legal,      optional: true },
     { id: 'comercializacion', title: 'Comercialización', component: Step7Comercializacion },
@@ -598,6 +666,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         amenidades: amObj.amenities || [],
         servicios: amObj.servicios || {},
         amenity_scope: amObj.amenity_scope || {},
+        pagos: allData.pagos || {},
         contenido: allData.contenido || {},
         legal: allData.legal || {},
         comercializacion: allData.comercializacion || {},
@@ -624,7 +693,7 @@ export default function NuevoProyectoPage({ user, onLogout }) {
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-[var(--cream)] font-[Outfit]">Nuevo proyecto</h1>
           <p className="text-sm text-[rgba(var(--cream-rgb),0.55)] mt-1">
-            Crea un proyecto nuevo en 7 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
+            Crea un proyecto nuevo en 8 pasos. Puedes usar IA para pre-llenar desde documentos existentes.
           </p>
         </div>
 

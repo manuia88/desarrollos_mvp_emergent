@@ -251,3 +251,69 @@ def default_schemes() -> List[Dict[str, Any]]:
         {"id": "esq_patrim", "nombre": "Plan Patrimonio", "firma_pct": 30, "mensualidades_pct": 0,
          "escritura_pct": 70, "descuento_pct": 5, "apartado_mxn": 50000, "meses_override": None},
     ]
+
+
+# ─── Asistente: sugiere las formas de pago que más venden por perfil (B1.4) ──────
+# Reglas de mercado CDMX por segmento/etapa/precio. Construido para enriquecerse:
+# cuando haya señales reales (competidores BattleCard, velocidad de venta Live Pulse),
+# se ajustan los descuentos/enganches sin cambiar el contrato.
+_SEGMENT_PLAYBOOK = {
+    "NSE_AB":  {"label": "premium", "apartado": 100000, "plans": [
+        ("Precio de lista", 10, 20, 70, 0), ("Plan Preferente", 20, 10, 70, 3), ("Plan Patrimonio", 30, 0, 70, 6)]},
+    "NSE_C+":  {"label": "alto-medio", "apartado": 50000, "plans": [
+        ("Precio de lista", 10, 20, 70, 0), ("Plan Preferente", 15, 15, 70, 3), ("Plan Patrimonio", 25, 5, 70, 5)]},
+    "NSE_C":   {"label": "medio", "apartado": 25000, "plans": [
+        ("Precio de lista", 10, 25, 65, 0), ("Plan Preferente", 15, 15, 70, 2), ("Con tu crédito", 20, 0, 80, 0)]},
+    "NSE_D":   {"label": "medio-bajo", "apartado": 15000, "plans": [
+        ("Precio de lista", 5, 15, 80, 0), ("Infonavit / crédito", 10, 0, 90, 0)]},
+}
+
+_STAGE_NOTE = {
+    "preventa": "Estás en preventa: conviene premiar a quien da más enganche con un mejor descuento para asegurar flujo desde el arranque.",
+    "en_construccion": "En obra: mantén un plan accesible de enganche bajo y otro que premie el pago fuerte.",
+    "entregado": "Ya entregas: con inventario listo no necesitas descuentos agresivos; cobra más al contado.",
+}
+
+
+def suggest_schemes(segment: Optional[str] = None, price_from: float = 0,
+                    stage: Optional[str] = None) -> Dict[str, Any]:
+    """Devuelve 2-3 formas de pago sugeridas + por qué, en lenguaje normal. Rule-based hoy;
+    se afina con datos de mercado cuando existan. Nunca falla (cae al default genérico)."""
+    pb = _SEGMENT_PLAYBOOK.get(segment or "")
+    seg_label = pb["label"] if pb else "general"
+    plans = pb["plans"] if pb else [("Precio de lista", 10, 20, 70, 0), ("Plan Preferente", 20, 10, 70, 3)]
+    apartado = pb["apartado"] if pb else 50000
+    # Apartado escala con el precio (proyectos caros → apartado mayor)
+    try:
+        if price_from and price_from >= 8_000_000:
+            apartado = max(apartado, 150000)
+        elif price_from and price_from >= 4_000_000:
+            apartado = max(apartado, 75000)
+    except Exception:
+        pass
+    is_preventa = (stage or "preventa") == "preventa"
+    is_entregado = (stage or "") == "entregado"
+
+    schemes = []
+    for i, (nombre, firma, mens, escr, desc) in enumerate(plans):
+        d = desc
+        if d > 0 and is_preventa:
+            d = min(d + 1, 12)          # preventa premia el compromiso temprano
+        elif d > 0 and is_entregado:
+            d = max(d - 1, 0)
+        schemes.append({
+            "id": f"esq_sug_{i+1}", "nombre": nombre,
+            "firma_pct": firma, "mensualidades_pct": mens, "escritura_pct": escr,
+            "descuento_pct": d, "apartado_mxn": apartado, "meses_override": None,
+        })
+
+    rationale = (
+        f"Para segmento {seg_label}, estos son los planes que mejor funcionan en CDMX. "
+        + _STAGE_NOTE.get(stage or "preventa", _STAGE_NOTE["preventa"])
+        + " Te dejé los planes listos — ajústalos a tu gusto."
+    )
+    return {
+        "schemes": schemes, "rationale": rationale,
+        "segment_label": seg_label, "confidence": "alta" if pb else "media",
+        "basado_en": ["segmento", "etapa", "precio"],
+    }

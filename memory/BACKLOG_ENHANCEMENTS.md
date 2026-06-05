@@ -6,6 +6,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 💳 RECOMENDADOR DE FORMAS DE PAGO — reglas → ML/mercado (2026-06-05 · B1.4)
+
+Origen: B1.4 (asistente `suggest_schemes` en payment_schemes.py). Hoy es **rule-based** (playbook por segmento/etapa/precio CDMX) — honesto, sin ML. Construido para enriquecerse SIN cambiar el contrato del endpoint (`POST /api/dev/wizard/suggest-schemes` ya devuelve `{schemes, rationale, confidence, basado_en}`).
+- **Upgrade futuro (necesita escala de datos):** afinar enganches/descuentos con señales reales — velocidad de venta por esquema (Live Pulse W5.5), esquemas de competidores (Battle Card W5.23), absorción histórica por segmento/zona. El `rationale` citaría la evidencia ("desarrollos premium en Polanco que piden 20% enganche venden 30% más rápido"). `confidence` pasaría de heurístico a respaldado por datos. Destino: cuando haya histórico de cierres por esquema (post-escala). NO bloquea nada hoy.
+
+---
+
 ## 🔧 OPORTUNIDADES ASESOR — IA/ML/Seguridad/Diseño (2026-06-01 · de la auditoría)
 
 Origen: auditoría arquitectura asesor (`memory/ASESOR_ARCH_AUDIT.md`). Destino: Etapa 0-6 (ver `06_ROADMAP.md`). **Insight: casi todo = cablear/surfacear motor existente, no construir ML de cero.**

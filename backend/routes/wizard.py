@@ -142,6 +142,25 @@ async def smart_defaults(request: Request):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# ASISTENTE · sugerir formas de pago por perfil (B1.4)
+# ═════════════════════════════════════════════════════════════════════════════
+
+class SuggestSchemesBody(BaseModel):
+    segment: Optional[str] = None
+    price_from: Optional[float] = 0
+    stage: Optional[str] = None
+
+
+@router.post("/suggest-schemes")
+async def suggest_schemes_endpoint(body: SuggestSchemesBody, request: Request):
+    """El asistente propone las formas de pago que más venden para el perfil del proyecto.
+    Se consume en el wizard (el proyecto aún no existe) → recibe segmento/precio/etapa."""
+    await _auth(request)
+    from payment_schemes import suggest_schemes
+    return suggest_schemes(segment=body.segment, price_from=body.price_from or 0, stage=body.stage)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # DRAFT  (cross-device)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -189,6 +208,7 @@ class WizardProjectPayload(BaseModel):
     amenidades: List[str] = []
     servicios: Dict[str, Any] = {}        # B1.1 · gas/agua/luz con tipo
     amenity_scope: Dict[str, Any] = {}    # B1.1 · por-unidad vs comunes
+    pagos: Dict[str, Any] = {}            # B1.4 · {schemes, fecha_inicio, fecha_entrega}
     contenido: Dict[str, Any] = {}       # asset IDs references
     legal: Dict[str, Any] = {}
     comercializacion: Dict[str, Any] = {}
@@ -279,6 +299,29 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         }},
         upsert=True,
     )
+
+    # Formas de pago (B1.4 · el proyecto nace con esquemas → cotizador público + readiness)
+    pagos = payload.pagos or {}
+    schemes_in = pagos.get("schemes") or []
+    if schemes_in:
+        norm = []
+        for i, s in enumerate(schemes_in):
+            norm.append({
+                "id": s.get("id") or f"esq_{uuid.uuid4().hex[:10]}",
+                "nombre": s.get("nombre") or f"Forma {i+1}",
+                "firma_pct": s.get("firma_pct", 0), "mensualidades_pct": s.get("mensualidades_pct", 0),
+                "escritura_pct": s.get("escritura_pct", 0), "descuento_pct": s.get("descuento_pct", 0),
+                "apartado_mxn": s.get("apartado_mxn", 50000), "meses_override": s.get("meses_override"),
+            })
+        await db.dev_payment_schemes.update_one(
+            {"project_id": slug, "dev_org_id": org},
+            {"$set": {
+                "project_id": slug, "dev_org_id": org, "schemes": norm,
+                "fecha_inicio": pagos.get("fecha_inicio"), "fecha_entrega": pagos.get("fecha_entrega"),
+                "updated_at": now_iso, "updated_by": user.user_id,
+            }},
+            upsert=True,
+        )
 
     # Pre-asignaciones in-house
     for uid in comm.get("preassigned_asesores", []) or []:
