@@ -92,7 +92,12 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       de precio por proyecto vs mediana zona · receta lookalike (zonas/precio/amenidades) · forecast_engine
       fail-open · acciones agentic. Front: StockSoldOut.js (6o toggle, Title Case inteligente).
       Verificado: 18 proyectos (2 verde/10 neutro/6 rojo). NUEVA REGLA: Title Case inteligente en toda UI nueva.
-- [ ] Macro+ciudad (transporte/negocios/riesgo→valor) — requiere prender conectores gov (llaves)
+- [x] **Macro+ciudad (transporte/negocios/riesgo→valor)** — ✅ HECHO (commit Fase 3)
+      Back: GET /devmaster/macro-ciudad — Pearson(score ciudad, precio/m²) → qué mueve el valor con
+      DIRECCIÓN (insight real: movilidad NEGATIVO, zonas caras menos conectadas) · tasa Banxico REAL
+      (banxico_series) → mensualidad+ahorro · gentrificación (momentum+trend) · riesgo ciudad · perfil
+      de zonas. Reusa COLONIAS scores + gov_data_mx_engine fail-open. GTFS/DENUE/Atlas con llaves.
+      Front: MacroCiudad.js (7o toggle). Verificado en vivo (tasa 8.83%, educación +80%).
 - [ ] Competencia y red (🔧knowledge graph)
 - [ ] Brief diario "el mercado en una frase" + índice de salud CDMX
 - [ ] Observabilidad de la IA (cómo aprende close-prob/forecast/drift — el cable dormido)
