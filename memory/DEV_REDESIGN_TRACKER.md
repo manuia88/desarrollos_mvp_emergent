@@ -33,7 +33,10 @@ Patrón: strangler-fig (V2 detrás de flag `REACT_APP_DEV_V2`, conviven, se reti
 - ⬜ B.8 Retirar V1 (DEV_NAV viejo) — SOLO después de gates (build verde + qa_journey_dev). NO hacer aún.
 
 ───────────────────────────────────────────────────────────────────
-### BATCH DEV-C · Rediseño por tab (hubs por dentro · Paso C) ⬜ PENDIENTE
+### BATCH DEV-C · Rediseño por tab (hubs por dentro · Paso C) ✅ COMPLETO (2026-06-06)
+> Las 7 secciones del dev quedaron con su upgrade IA-first que cierra ciclo: C.1 Inicio (La Lectura) · C.2 CRM (Cockpit de Leads + Ficha + fix cable roto) · C.3 Inteligencia (Qué Frena Tus Ventas) · C.4 Pricing (Precio Inteligente, tabs Estrategia/Sugerencias) · C.5 Red Comercial (Salud de tu Red) · C.6 Marketing (Qué Promocionar Hoy) · C.7 Reportes (Resumen Ejecutivo del Mes). Patrón: cada batch reusa los motores del Dev-Master scope-ados al dev, tema claro, front+back, cero deuda. SIGUE: Fase 1-4 hardening (aislamiento cross-dev-org + QA) · luego recap de upgrades por batch al founder.
+
+### BATCH DEV-C · (detalle histórico) ⬜→✅
 ───────────────────────────────────────────────────────────────────
 Orden sugerido (centro primero): empezar por **Mis Proyectos**.
 - ⚠️ **GIRO DE ENFOQUE (founder 2026-06-02):** rechazó 3 rediseños desde cero del Inicio/Mis Proyectos (incl. el cambio a tema CLARO `.portal-asesor` + los mockups). NUEVA regla → ver [[feedback_dev_upgrade_not_redesign]]: PARTIR del diseño ORIGINAL (oscuro, el que ya existe) y darle UPGRADES de VALOR con ML/IA/agentic/cierre-de-ciclo. NO rewrite, NO asumir tema claro. La tesis de valor `DEV_VALUE_THESIS.md` sigue válida (el QUÉ); cambia el CÓMO = incremental sobre lo existente. `MisProyectosV2.js` (tema claro) queda en pausa/posible descarte.
