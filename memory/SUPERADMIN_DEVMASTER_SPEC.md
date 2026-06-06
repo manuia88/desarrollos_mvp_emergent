@@ -104,7 +104,18 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       zombie · estado grafo Neo4j fail-open (reusa knowledge_graph_engine). Acciones agentic.
       Front: CompetenciaRed.js (8o toggle). Verificado (Polanco $22M+ saturado, Ana 29%, 5 zombies).
 - [ ] Brief diario "el mercado en una frase" + índice de salud CDMX
-- [ ] Observabilidad de la IA (cómo aprende close-prob/forecast/drift — el cable dormido)
+- [x] **Observabilidad de la IA (cómo aprende — el cable dormido)** — ✅ HECHO (commit Fase 3 · CIERRA FASE 3)
+      Back: GET /devmaster/observabilidad-ia — salud modelos (accuracy_snapshots MAPE honesto + model_
+      validation_runs R²) · reentreno auto (forecast/hedonico runs + 65 hedonicos vivos) · espejo
+      (cerebro_lessons reales + reajustes) · vigilancia (141 predictive_alerts + drift) · INVENTARIO
+      qué IA activa(6)/en espera(2) = cable dormido visible. Reusa accuracy_engine + cerebro.
+      Front: ObservabilidadIA.js (9o toggle 'Cómo Aprende la IA'). Verificado (6/8 activos, reentreno 9h).
+
+## ESTADO: ✅ FASE 3 COMPLETA — 8 joyas shipped+verificadas (1 brief + 7 lentes en SuperadminDesarrollos)
+Toggles: Panorama · Dónde Construir · Gusto del Mercado · Comportamiento · Stock y Sold-Out · Macro y Ciudad ·
+Competencia y Red · Cómo Aprende la IA · Catálogo. Todo front+back, datos reales donde hay + stub fail-open
+para endstate, Title Case inteligente, lenguaje humano, acciones agentic, cero deuda.
+PENDIENTE OPCIONAL: con 9 toggles, evaluar agrupar los 7 lentes de inteligencia bajo un submenú.
 
 ## Orden recomendado
 Fase 0 → Fase 1 (ficha B) → Fase 2 (home) → Fase 3 (joyas, priorizadas por el founder).
