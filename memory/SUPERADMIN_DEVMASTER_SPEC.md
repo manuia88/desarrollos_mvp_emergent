@@ -67,7 +67,12 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       Back: GET /devmaster/brief (resumen narrativo + señales + 3 acciones agénticas con link + fuente=asistente-de-mercado).
       Front: BriefCard arriba del Panorama (titulo "El mercado hoy", señales, acciones clicables). Verificado en vivo.
       ⚠️ LECCIÓN: panoFilters como objeto literal en el padre → loop infinito de fetch ocultaba el brief; fix con useMemo.
-- [ ] Demanda latente / dónde construir (demanda vs oferta por micro-zona)
+- [x] **Demanda latente / dónde construir** — ✅ HECHO (commit Fase 3 #2)
+      Back: GET /devmaster/donde-construir — cruza demanda real (leads: budget+prototipo→recámaras+dev→zona)
+      vs oferta (units_available por banda×recámaras). Veredicto+mensaje por celda · prototipo pedido ·
+      índice por zona · sobreoferta · reusa dmx_demand (cubo). Cotizador+amenidades(taste) stubbeados fail-open.
+      Front: DondeConstruir.js (3er toggle) + deep-link Panorama + CTA cierra ciclo (→catálogo filtrado).
+      Verificado en vivo: 42 leads → "Lomas Chapultepec 4rec $16-22M: 6 buscando, 0 inventario → construir".
 - [ ] Gusto visual del mercado (🔧taste model) + recomendación de amenidades
 - [ ] Objeciones + comportamiento del comprador (🔧minería conversaciones)
 - [ ] Stock score + predicción sold-out + elasticidad de precio
