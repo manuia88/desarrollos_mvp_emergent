@@ -25,6 +25,8 @@ export const ASSET_BASE = API; // para armar URL pública del PDF
 export const getDashboard = () => j('/api/desarrollador/dashboard');
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
 export const getDevPlays = () => j('/api/dev/projects/plays');
+// Inicio upgrade · "La Lectura del Portafolio" (cada número con su lectura + salud explicada + pulso)
+export const getPortfolioReading = () => j('/api/desarrollador/portfolio-reading');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

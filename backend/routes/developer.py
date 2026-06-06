@@ -90,6 +90,158 @@ async def dashboard(request: Request):
     }
 
 
+# ─── La Lectura del Portafolio (Inicio · upgrade: cada número con su lectura + ──────
+#     salud explicada + Live Pulse accionable). El asistente INTERPRETA los números del
+#     cockpit en lenguaje normal con veredicto + acción. Reusa dashboard data + db.leads
+#     + live_pulse_engine (fail-open). IA-first, cero deuda.
+def _mmx(n):
+    n = n or 0
+    if n >= 1e9:
+        return f"${n/1e9:.2f}B"
+    if n >= 1e6:
+        return f"${n/1e6:.1f}M"
+    if n >= 1e3:
+        return f"${n/1e3:.0f}K"
+    return f"${round(n)}"
+
+
+def _slug(s):
+    return (s or "").lower().replace(" ", "-").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+
+@router.get("/portfolio-reading")
+async def portfolio_reading(request: Request):
+    from data_developments import DEVELOPMENTS, ALL_UNITS
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
+    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+
+    total = len(my_units)
+    sold = sum(1 for u in my_units if u["status"] == "vendido")
+    avail = sum(1 for u in my_units if u["status"] == "disponible")
+    resv = sum(1 for u in my_units if u["status"] == "reservado")
+    absor = round(100 * sold / total) if total else 0
+    por_cobrar = sum(u.get("price", 0) for u in my_units if u["status"] == "disponible")
+    valor = sum(u.get("price", 0) for u in my_units)
+
+    # Leads (universo real db.leads del portafolio)
+    leads_by_dev = {}
+    leads_total = 0
+    leads_closed = 0
+    try:
+        async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0, "development_id": 1, "status_v2": 1, "status": 1}):
+            did = l.get("development_id")
+            leads_by_dev[did] = leads_by_dev.get(did, 0) + 1
+            leads_total += 1
+            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado"):
+                leads_closed += 1
+    except Exception:
+        pass
+    conv = round(leads_closed / leads_total * 100) if leads_total else 0
+    leads_x_unit = round(leads_total / avail, 1) if avail else 0
+
+    # ── Lecturas (cada número con su lectura + veredicto) ──
+    lecturas = []
+    lecturas.append({
+        "metrica": "Dinero por cobrar", "valor": _mmx(por_cobrar),
+        "veredicto": "ojo" if (avail and por_cobrar > valor * 0.5) else "bien",
+        "lectura": f"Tienes {_mmx(por_cobrar)} sin cobrar en {avail} unidades. " +
+                   ("Es buena parte de tu portafolio parado — moverlas libera capital." if (avail and por_cobrar > valor * 0.5) else "Vas colocando a buen ritmo."),
+    })
+    lecturas.append({
+        "metrica": "Absorción", "valor": f"{absor}%",
+        "veredicto": "bien" if absor >= 40 else "ojo" if absor >= 20 else "mal",
+        "lectura": (f"Has colocado {absor}% del inventario ({sold} de {total}). " +
+                    ("Ritmo sano para preventa." if absor >= 40 else "Vas lento para tu etapa — revisa precio o marketing." if absor < 20 else "Vas en camino, no te confíes.")),
+    })
+    lecturas.append({
+        "metrica": "Demanda", "valor": f"{leads_total} leads · {leads_x_unit}/unidad",
+        "veredicto": "bien" if leads_x_unit >= 2 else "ojo" if leads_x_unit >= 1 else "mal",
+        "lectura": (f"{leads_total} interesados para {avail} unidades disponibles. " +
+                    ("Demanda caliente — tienes espacio para subir precio." if leads_x_unit >= 2 else "Demanda tibia — alimenta el embudo." if leads_x_unit >= 1 else "Demanda fría — empuja marketing y captación.")),
+    })
+    if conv:
+        lecturas.append({
+            "metrica": "Conversión", "valor": f"{conv}%",
+            "veredicto": "bien" if conv >= 15 else "ojo",
+            "lectura": f"{conv}% de tus leads terminan en venta. " + ("Sano." if conv >= 15 else "Hay fuga — revisa seguimiento y tiempos de respuesta."),
+        })
+
+    # ── Salud explicada (qué la arrastra) ──
+    drag = []
+    for d in my_devs:
+        a_av = d.get("units_available") or 0
+        a_so = (d.get("units_sold") or 0) + (d.get("units_reserved") or 0)
+        a_to = d.get("units_total") or 0
+        st = round(100 * a_so / a_to) if a_to else 0
+        ld = leads_by_dev.get(d["id"], 0)
+        if a_av >= 6 and (st < 35 or ld == 0):
+            motivo = "lleva mucho inventario y casi nadie pregunta" if ld == 0 else f"solo {st}% colocado y {a_av} unidades libres"
+            drag.append({"proyecto": d.get("name"), "por_que": motivo,
+                         "link": f"/desarrollador/proyectos/{d['id']}", "_stuck": a_av})
+    drag.sort(key=lambda x: -x["_stuck"])
+    for x in drag:
+        x.pop("_stuck", None)
+    if absor >= 40 and not drag:
+        salud_verdict, salud_color = "Sana", "bien"
+    elif drag or absor < 20:
+        salud_verdict, salud_color = "Necesita atención", "mal"
+    else:
+        salud_verdict, salud_color = "Estable", "ojo"
+    salud = {"veredicto": salud_verdict, "color": salud_color, "drivers": drag[:3],
+             "resumen": (f"{len(drag)} proyecto(s) frenan el portafolio." if drag else "Ningún proyecto te está frenando.")}
+
+    # ── Live Pulse accionable (señal viva de tu zona principal) ──
+    pulso = {"fuente": "espera", "texto": "El pulso del mercado se enciende con el tráfico real de tus zonas.", "accion": None, "link": None, "zona": None}
+    try:
+        import live_pulse_engine as lpe
+        top_zona = None
+        zmoney = {}
+        for d in my_devs:
+            zmoney[d.get("colonia")] = zmoney.get(d.get("colonia"), 0) + (d.get("units_available") or 0) * (d.get("price_from") or 0)
+        if zmoney:
+            top_zona = max(zmoney.items(), key=lambda x: x[1])[0]
+        if top_zona:
+            p = await lpe.compute_pulse(db, _slug(top_zona))
+            sigs = p.get("signals") or {}
+            real = [(k, v) for k, v in sigs.items() if (v or {}).get("source") not in ("unavailable", None) and abs((v or {}).get("delta_pct") or 0) > 0]
+            if real:
+                k, v = max(real, key=lambda kv: abs(kv[1].get("delta_pct") or 0))
+                dpct = round(v.get("delta_pct") or 0)
+                up = dpct > 0
+                nombre = {"search_velocity": "las búsquedas", "view_volume": "las visitas", "trend_velocity": "el interés online",
+                          "lead_intent_velocity": "la intención de compra", "price_movement": "los precios", "accuracy_drift": "el modelo"}.get(k, "la actividad")
+                pulso = {"fuente": "real", "zona": top_zona, "score": p.get("score"), "bucket": p.get("bucket"),
+                         "texto": f"En {top_zona}, {nombre} {'subió' if up else 'bajó'} {abs(dpct)}% esta semana.",
+                         "accion": ("Buen momento para subir precio o empujar ese proyecto." if up else "Refuerza marketing en esa zona antes de que enfríe."),
+                         "link": "/desarrollador/mercado"}
+            else:
+                pulso["zona"] = top_zona
+    except Exception as e:
+        import logging
+        logging.getLogger("dmx.dev").info("portfolio pulso: %s", e)
+
+    # ── Resumen (una frase) ──
+    partes = [f"Tu portafolio vale {_mmx(valor)} con {_mmx(por_cobrar)} por cobrar."]
+    if leads_x_unit >= 2:
+        partes.append("La demanda está caliente.")
+    elif leads_x_unit < 1 and leads_total:
+        partes.append("La demanda está fría.")
+    if salud_color == "mal":
+        partes.append(f"{len(drag)} proyecto(s) necesitan que muevas inventario.")
+    resumen = " ".join(partes)
+
+    return {
+        "resumen": resumen,
+        "lecturas": lecturas,
+        "salud": salud,
+        "pulso": pulso,
+        "kpis": {"valor": valor, "por_cobrar": por_cobrar, "absorcion": absor, "leads": leads_total, "leads_x_unit": leads_x_unit, "conversion": conv},
+    }
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):

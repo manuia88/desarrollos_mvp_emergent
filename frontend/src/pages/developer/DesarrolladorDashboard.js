@@ -15,6 +15,7 @@ import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
+import PortfolioReading from '../../components/developer/PortfolioReading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -448,7 +449,8 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
               <div><AsistentePanel /></div>
             </div>
 
-            {/* TABLERO CENTRAL — signos vitales + cada proyecto con todos sus instrumentos (drill-down) */}
+            {/* TABLERO CENTRAL — la lectura (interpreta los números) precede a los signos vitales */}
+            <PortfolioReading />
             <PortfolioCockpit />
 
             {/* MERCADO — Inicio ligero: una puerta con un dato real al terminal de Inteligencia.
