@@ -86,7 +86,12 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       (<2h=22% vs >6h=5%) · DISC (infer_disc_from_lead) + objeciones-literales (extract_text_signals)
       + sentimiento cableados fail-open sobre whatsapp/conversation_messages (vacíos→auto-llenan).
       Front: Comportamiento.js (5o toggle). Verificado en vivo. Lección: MessageSquareWarning no existe en lucide instalado.
-- [ ] Stock score + predicción sold-out + elasticidad de precio
+- [x] **Stock score + predicción sold-out + elasticidad de precio** — ✅ HECHO (commit Fase 3 · Mercado Predictivo)
+      Back: GET /devmaster/stock-soldout — absorción (colocadas/tiempo via price_history) → meses para
+      agotar + stock score + semáforo (15/30m benchmark) · elasticidad Pearson(precio,venta) + espacio
+      de precio por proyecto vs mediana zona · receta lookalike (zonas/precio/amenidades) · forecast_engine
+      fail-open · acciones agentic. Front: StockSoldOut.js (6o toggle, Title Case inteligente).
+      Verificado: 18 proyectos (2 verde/10 neutro/6 rojo). NUEVA REGLA: Title Case inteligente en toda UI nueva.
 - [ ] Macro+ciudad (transporte/negocios/riesgo→valor) — requiere prender conectores gov (llaves)
 - [ ] Competencia y red (🔧knowledge graph)
 - [ ] Brief diario "el mercado en una frase" + índice de salud CDMX
