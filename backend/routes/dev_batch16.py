@@ -132,6 +132,8 @@ class PublicAvailabilityIn(BaseModel):
 
 @router.post("/api/public/projects/{slug}/availability")
 async def post_public_availability(slug: str, body: PublicAvailabilityIn, request: Request):
+    from rate_limit import check_rate
+    check_rate(request, "public_availability", limit=30, window_sec=60)   # anti-scraping
     db = _db(request)
     from projects_unified import get_project_by_slug
     proj = await get_project_by_slug(db, slug)

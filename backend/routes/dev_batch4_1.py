@@ -813,6 +813,8 @@ async def get_slot_availability(
     project_id: str, request: Request,
     date: str = Query(..., description="YYYY-MM-DD"),
 ):
+    from rate_limit import check_rate
+    check_rate(request, "slot_availability", limit=30, window_sec=60)   # anti-scraping
     db = _db(request)
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d")

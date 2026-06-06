@@ -7,6 +7,7 @@ Sub-chunks:
 """
 from __future__ import annotations
 
+from rate_limit import check_rate   # módulo-level (usado por los endpoints públicos por token)
 import asyncio
 import base64
 import json
@@ -386,6 +387,7 @@ async def _kanban_lead_status(db, lead_id: str, new_status: str, ml_event: str, 
 
 @router.post("/api/cita/public/{token}/confirm")
 async def public_cita_confirm(token: str, request: Request):
+    check_rate(request, "cita_token_action", limit=10, window_sec=60)   # anti brute-force del token
     db = _db(request)
     apt = await db.appointments.find_one({"confirmation_token": token}, {"_id": 0})
     if not apt:
@@ -428,6 +430,7 @@ class CancelBody(BaseModel):
 
 @router.post("/api/cita/public/{token}/cancel")
 async def public_cita_cancel(token: str, payload: CancelBody, request: Request):
+    check_rate(request, "cita_token_action", limit=10, window_sec=60)   # anti brute-force del token
     db = _db(request)
     apt = await db.appointments.find_one({"confirmation_token": token}, {"_id": 0})
     if not apt:
@@ -477,6 +480,7 @@ class RescheduleBody(BaseModel):
 
 @router.post("/api/cita/public/{token}/reschedule")
 async def public_cita_reschedule(token: str, payload: RescheduleBody, request: Request):
+    check_rate(request, "cita_token_action", limit=10, window_sec=60)   # anti brute-force del token
     db = _db(request)
     apt = await db.appointments.find_one({"confirmation_token": token}, {"_id": 0})
     if not apt:

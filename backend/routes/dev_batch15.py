@@ -369,6 +369,8 @@ class PublicBookingIn(BaseModel):
 @router.post("/api/public/appointments/book")
 async def public_book_appointment(body: PublicBookingIn, request: Request):
     """Public booking endpoint — creates or reuses lead + auto-assigns appointment."""
+    from rate_limit import check_rate
+    check_rate(request, "public_appt_book", limit=5, window_sec=60)   # anti-flood de bookings
     db = _db(request)
 
     # Find or create lead
