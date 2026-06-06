@@ -27,7 +27,8 @@ Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
 
 ## B3 · Cables a Asesor + Superadmin
 - ✅ B3.1 · Playbook del proyecto para el asesor (routes/asesor_playbook.py · GET /api/asesor/proyecto/{id}/playbook): puede_vender (interno/preasignado/autorizado/puede_solicitar/no_disponible vía is_authorized+preassignments+tenant) + comisión + política (broker/venta) + formas de pago + sellos + "qué ofrecer" (IA-first rule-based). Front: PlaybookProyecto.js (tema asesor oscuro) + ruta /asesor/proyecto/:id + botón en drawer inventario. NO tocó las funciones gigantes de advisor.py. Verificado live (fix: pasar user a AdvisorLayout). · dep: B0 · M
-- B3.2 · Superadmin: agregador global por-tab (terminal Bloomberg) · dep: B0.1 · L · PENDIENTE
+- ✅ B3.2 · "Pulso del catálogo" — terminal global del superadmin (routes/superadmin_catalog_pulse.py · GET /catalog-pulse/dashboard). Cruza TODOS los proyectos: readiness agregado + cobertura de config (% con servicios/sistema/pagos/legal/fotos) + DEMANDA del comprador (lead_captures.interes del cotizador B2 → integra marketplace→superadmin). Reusa project_full+project_readiness, itera seed+db.developments+db.projects. Front: SuperadminCatalogPulse.js (tema cyan datos) + ruta + menú. Verificado live (18 proyectos, 42% readiness, demanda agrega). · dep: B0.1 · L
+- ✅ **B3 COMPLETO** (asesor playbook + superadmin catalog pulse). Plomería B0→B3 cierra el silo end-to-end: dev configura → fluye a marketplace (comprador ve+cotiza+expresa interés) → asesor (playbook con qué ofrecer) → superadmin (pulso global + demanda real).
 
 ## B4 · Granularidad profunda del embudo (parcialmente independiente de B0-B3)
 - B4.1 · Unificar los 2 universos de leads (db.leads ↔ asesor_contactos) · dep: — · L · habilita todo cross-etapa
