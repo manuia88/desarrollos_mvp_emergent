@@ -206,8 +206,10 @@ async def home(request: Request, zona: Optional[str] = None, segmento: Optional[
                etapa: Optional[str] = None, dev: Optional[str] = None):
     from permissions import require_superadmin
     await require_superadmin(request)
-    db = request.app.state.db
+    return await _home_data(request.app.state.db, zona, segmento, etapa, dev)
 
+
+async def _home_data(db, zona=None, segmento=None, etapa=None, dev=None):
     all_rows = await _catalog_rows(db)
     rows = _apply_filters(all_rows, zona, segmento, etapa, dev)
     n = len(rows)
@@ -301,3 +303,78 @@ async def home(request: Request, zona: Optional[str] = None, segmento: Optional[
         "riesgo": {"con_docs_legales": con_legal, "con_docs_legales_pct": round(con_legal / n * 100) if n else 0,
                    "baja_readiness": baja_readiness},
     }
+
+
+# ─── Fase 3 · Brief del mercado (asistente que sintetiza + recomienda · IA-first) ────
+def _mmm(n):
+    return f"${round((n or 0) / 1e6, 1)}M" if n else "—"
+
+
+async def _market_brief(db, zona=None, segmento=None, etapa=None, dev=None):
+    """El 'asistente del mercado': sintetiza el panorama en una frase + 3 movidas accionables.
+    Rule-based hoy (determinista, exacto); built-for-endstate: hook para narrar con LLM (intelligence_engine)."""
+    home = await _home_data(db, zona, segmento, etapa, dev)
+    rows = _apply_filters(await _catalog_rows(db), zona, segmento, etapa, dev)
+    r = home["resumen"]
+    zonas = home["zonas"]
+    op = home["oportunidad"]
+    top_zona = next((z for z in zonas if z["leads"]), None)
+    top_plan = (home["demanda"]["top_planes"] or [{}])[0].get("plan")
+
+    # ── Narrativa (lenguaje normal) ──
+    partes = [f"Tu catálogo tiene {r['desarrollos']} desarrollos con {r['unidades']} unidades de {r['devs']} desarrolladoras."]
+    if top_zona:
+        partes.append(f"La demanda se concentra en {top_zona['zona']} ({top_zona['leads']} interesados).")
+    if op:
+        partes.append(f"Hay oportunidad de construir en {op[0]['zona']}: más gente buscando que inventario.")
+    if r["readiness_promedio"] < 60:
+        partes.append(f"Pero el catálogo está en promedio al {r['readiness_promedio']}% — muchas fichas aún no listas para publicar.")
+    if top_plan:
+        partes.append(f"El plan de pago que más piden es {top_plan}.")
+    resumen = " ".join(partes)
+
+    # ── 3 movidas accionables (agentic) ──
+    acciones = []
+    # 1. Proyecto con demanda pero ficha incompleta / sin publicar → completarlo
+    cand = [r2 for r2 in rows if r2["leads"] and not r2["publicado"]]
+    cand.sort(key=lambda x: (-x["leads"], x["readiness_pct"]))
+    if cand:
+        c = cand[0]
+        acciones.append({"tipo": "completar", "project_id": c["project_id"],
+                         "texto": f"{c['nombre']} tiene {c['leads']} interesados pero no está publicado (ficha {c['readiness_pct']}%). Complétala y publícala.",
+                         "link": f"/superadmin/desarrollos/{c['project_id']}"})
+    # 2. Oportunidad de construcción
+    if op:
+        acciones.append({"tipo": "oportunidad", "zona": op[0]["zona"],
+                         "texto": f"Dile a tus devs: en {op[0]['zona']} hay {op[0]['leads']} buscando y solo {op[0]['units']} unidades — buena zona para construir.",
+                         "link": f"/superadmin/desarrollos?zona={op[0]['zona']}"})
+    # 3. Riesgo legal / completitud
+    if home["riesgo"]["con_docs_legales_pct"] < 40:
+        acciones.append({"tipo": "riesgo",
+                         "texto": f"Solo {home['riesgo']['con_docs_legales_pct']}% del catálogo tiene documentos legales — empuja a los devs a subirlos (confianza del comprador).",
+                         "link": "/superadmin/desarrollos"})
+    elif home["riesgo"]["baja_readiness"]:
+        acciones.append({"tipo": "riesgo",
+                         "texto": f"{home['riesgo']['baja_readiness']} fichas están bajo 50% — no se podrán publicar hasta completarlas.",
+                         "link": "/superadmin/desarrollos"})
+
+    return {
+        "titulo": "El mercado hoy",
+        "resumen": resumen,
+        "señales": [
+            {"label": "Demanda", "valor": f"{r['leads']} leads", "sub": (f"foco {top_zona['zona']}" if top_zona else "")},
+            {"label": "Oportunidad", "valor": (op[0]["zona"] if op else "—"), "sub": (f"índice {op[0]['score']}" if op else "")},
+            {"label": "Listas para publicar", "valor": f"{r['publicados']}/{r['desarrollos']}", "sub": f"{r['readiness_promedio']}% prom"},
+            {"label": "Ticket promedio", "valor": _mmm(r["ticket_promedio"]), "sub": top_plan or ""},
+        ],
+        "acciones": acciones[:3],
+        "fuente": "asistente-de-mercado",
+    }
+
+
+@router.get("/brief")
+async def brief(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None,
+                etapa: Optional[str] = None, dev: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _market_brief(request.app.state.db, zona, segmento, etapa, dev)

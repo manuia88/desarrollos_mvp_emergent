@@ -3,7 +3,8 @@
  * con máxima granularidad (9 áreas) y filtros transversales. Consume /devmaster/home.
  */
 import React, { useEffect, useState } from 'react';
-import { Building2, DollarSign, Users, ShoppingBag, TrendingUp, Layers, MapPin, ShieldAlert, Compass } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, DollarSign, Users, ShoppingBag, TrendingUp, Layers, MapPin, ShieldAlert, Compass, Sparkles, ArrowRight } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const mxn = (n) => (Number(n) ? `$${(Number(n) / 1e6).toFixed(1)}M` : '—');
@@ -49,17 +50,59 @@ function Bar({ label, value, max, right }) {
   );
 }
 
+function BriefCard({ brief, navigate }) {
+  if (!brief) return null;
+  return (
+    <div data-testid="market-brief" style={{ ...card, borderColor: 'rgba(var(--theme-rgb),0.45)', background: 'linear-gradient(150deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.02))' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Sparkles size={16} style={{ color: 'var(--theme)' }} />
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--sa-text)', margin: 0 }}>{brief.titulo}</h3>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme)', background: 'rgba(var(--theme-rgb),0.12)', padding: '2px 8px', borderRadius: 999 }}>asistente del mercado</span>
+      </div>
+      <p style={{ fontSize: 13.5, color: 'var(--sa-text-dim)', lineHeight: 1.55, margin: '0 0 14px' }}>{brief.resumen}</p>
+      {(brief.señales || []).length > 0 && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          {brief.señales.map((s, i) => (
+            <div key={i} style={{ background: 'var(--bg-card-2)', border: '1px solid var(--sa-border)', borderRadius: 10, padding: '8px 12px', minWidth: 110 }}>
+              <div style={{ fontSize: 10, ...mute, textTransform: 'uppercase', letterSpacing: '.04em' }}>{s.label}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--sa-text)' }}>{s.valor}</div>
+              {s.sub && <div style={{ fontSize: 10.5, ...mute }}>{s.sub}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11, fontWeight: 700, ...mute, marginBottom: 8 }}>QUÉ HACER HOY</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {(brief.acciones || []).map((a, i) => (
+          <button key={i} onClick={() => navigate(a.link)} data-testid={`brief-accion-${i}`}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', cursor: 'pointer',
+              background: 'var(--bg-card)', border: '1px solid var(--sa-border)', borderRadius: 10, padding: '11px 13px', color: 'var(--sa-text)' }}>
+            <span style={{ flex: 1, fontSize: 12.5, color: 'var(--sa-text-dim)', lineHeight: 1.4 }}>{a.texto}</span>
+            <ArrowRight size={15} style={{ color: 'var(--theme)', flexShrink: 0 }} />
+          </button>
+        ))}
+        {(!brief.acciones || !brief.acciones.length) && <div style={{ fontSize: 12, ...mute }}>Todo en orden — sin movidas urgentes hoy.</div>}
+      </div>
+    </div>
+  );
+}
+
 export default function DesarrollosPanorama({ filters, onFacetas }) {
+  const navigate = useNavigate();
   const [d, setD] = useState(null);
+  const [brief, setBrief] = useState(null);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
     let alive = true;
     const qs = new URLSearchParams(Object.entries(filters || {}).filter(([, v]) => v)).toString();
-    fetch(`${API}/api/superadmin/devmaster/home${qs ? `?${qs}` : ''}`, { credentials: 'include' })
+    const q = qs ? `?${qs}` : '';
+    fetch(`${API}/api/superadmin/devmaster/home${q}`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('error')))
       .then(r => { if (alive) { setD(r); if (onFacetas) onFacetas(r.facetas); } })
       .catch(e => { if (alive) setErr(e.message); });
+    fetch(`${API}/api/superadmin/devmaster/brief${q}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null).then(b => { if (alive && b) setBrief(b); }).catch(() => {});
     return () => { alive = false; };
   }, [filters, onFacetas]);
 
@@ -72,6 +115,9 @@ export default function DesarrollosPanorama({ filters, onFacetas }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Brief del mercado (asistente · IA-first) */}
+      <BriefCard brief={brief} navigate={navigate} />
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
         <Kpi icon={Building2} label="Desarrollos" value={r.desarrollos} sub={`${r.devs} devs`} />
