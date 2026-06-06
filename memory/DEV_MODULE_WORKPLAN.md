@@ -20,6 +20,14 @@ Riesgo central de Dev (distinto a asesor): es **multi-tenant por dev_org** → e
 **0.5 Quitar/renombrar** lo que confunde (Mini Market, Legajo, Solicitudes, Disputas → revisar si se exponen o esconden).
 
 ═══════════════════════════════════════════════════════════════════
+## ✅ FASE 1 + 2.1 HECHO (2026-06-06): auditoría arquitectura + AISLAMIENTO cross-dev-org cerrado.
+Triage automatizado 91 endpoints con id de recurso → 9 fugas reales cerradas con candado reusable
+`tenant_scope.assert_dev_org/assert_dev_project` (superadmin bypass): reports download · pricing PATCH+results ·
+units {dev_id} ×3 · prototypes reorder · assets role · appointments policy GET+PUT · lead recalc-heat
+(+ get_lead_detail en Bloque 1.2). Verificado en vivo (ajeno→403, propio→200). Falsos positivos: público/
+dato-de-mercado/ya-protegido (can_view_ai_summary). PENDIENTE Fase 2 restante: atomicidad (unit-holds/booking
+doble-reserva CAS+índice único) · barrido 208 rutas (500s) · vocabulario dev_org/project · rate-limit públicos · QA Fase 4.
+
 ## FASE 1 · AUDITORÍA DE ARQUITECTURA (mapa de flujos + cables)
 ═══════════════════════════════════════════════════════════════════
 **1.1 Mapear el flujo natural del desarrollador** (el "viaje" para el QA después):
