@@ -28,3 +28,10 @@ export async function fetchGustoMercado(filters = {}) {
   if (!r.ok) throw new Error('No se pudo cargar el gusto del mercado');
   return r.json();
 }
+
+export async function fetchComportamiento(filters = {}) {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/comportamiento${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar el comportamiento del comprador');
+  return r.json();
+}

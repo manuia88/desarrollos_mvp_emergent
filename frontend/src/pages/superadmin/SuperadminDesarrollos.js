@@ -11,6 +11,7 @@ import { fetchDevmasterProjects, ASSET_BASE } from '../../api/superadminDevmaste
 import DesarrollosPanorama from './DesarrollosPanorama';
 import DondeConstruir from './DondeConstruir';
 import GustoMercado from './GustoMercado';
+import Comportamiento from './Comportamiento';
 
 const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
 const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s;
@@ -81,6 +82,7 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
           <button onClick={() => setView('panorama')} style={vtab(view === 'panorama')} data-testid="view-panorama">Panorama</button>
           <button onClick={() => setView('construir')} style={vtab(view === 'construir')} data-testid="view-construir">Dónde construir</button>
           <button onClick={() => setView('gusto')} style={vtab(view === 'gusto')} data-testid="view-gusto">Gusto del mercado</button>
+          <button onClick={() => setView('comportamiento')} style={vtab(view === 'comportamiento')} data-testid="view-comportamiento">Comportamiento</button>
           <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
         </div>
       </div>
@@ -129,6 +131,9 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
 
       {/* GUSTO DEL MERCADO · modelo de gusto agregado (Fase 3 #11) */}
       {view === 'gusto' && <GustoMercado filters={panoFilters} />}
+
+      {/* COMPORTAMIENTO · objeciones + comportamiento del comprador (Fase 3) */}
+      {view === 'comportamiento' && <Comportamiento filters={panoFilters} />}
 
       {/* CATÁLOGO · grid de proyectos */}
       {view === 'catalogo' && (

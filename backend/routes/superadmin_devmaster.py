@@ -852,3 +852,224 @@ async def gusto_mercado(request: Request, zona: Optional[str] = None, segmento: 
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _gusto_mercado(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 · Objeciones + comportamiento del comprador (minería de conversaciones) ──
+# Agrega a nivel mercado: qué frena la compra (objeciones) + cómo es y cómo decide el comprador.
+# Señal REAL hoy: outcomes de leads (precio vs presupuesto, velocidad de respuesta vs cierre, embudo,
+# maduración). Minería de texto de conversaciones (objeciones literales + DISC + sentimiento) cableada
+# fail-open: se autollena cuando entren mensajes (whatsapp/conversation_messages). Reusa extract_text_signals
+# + infer_disc_from_lead. Cada objeción trae su contra-argumento (agentic). Cero deuda.
+_DISC_SELL = {
+    "D": "Directo, con datos duros y retorno. Decide rápido — no lo marees.",
+    "I": "Con estilo de vida y experiencia. Conecta emocionalmente, usa historias.",
+    "S": "Con calma y seguridad. No presiones; da garantías y tiempo.",
+    "C": "Con documentos, comparativos y evidencia. Responde TODO al detalle.",
+}
+_OBJ_LABEL = {
+    "precio": "Precio / presupuesto", "respuesta_lenta": "Le contestaron tarde",
+    "ubicacion": "Ubicación / zona", "financiamiento": "Crédito / financiamiento",
+    "tamano": "Tamaño / espacios", "confianza": "Confianza / legal", "entrega": "Tiempo de entrega",
+}
+_OBJ_REBUTTAL = {
+    "precio": "Resalta plusvalía y plan de pagos; muestra el costo por m² vs la zona (no el precio total).",
+    "respuesta_lenta": "Contesta en menos de 2 horas: tus leads rápidos cierran mucho más.",
+    "ubicacion": "Apóyate en el score de barrio, conectividad y servicios cercanos.",
+    "financiamiento": "Ofrece simulador de crédito (Infonavit/bancario) y enganche flexible.",
+    "tamano": "Muestra distribuciones eficientes y opciones de mayor metraje del mismo proyecto.",
+    "confianza": "Comparte documentos legales, avance de obra y testimonios verificados.",
+    "entrega": "Da fecha de entrega clara y avance de obra con fotos.",
+}
+
+
+def _parse_dt(v):
+    from datetime import datetime
+    if not v:
+        return None
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+async def _comportamiento(db, zona=None, segmento=None):
+    from data_developments import DEVELOPMENTS_BY_ID
+    try:
+        from disc_inferencer_landing import infer_disc_from_lead, disc_label
+    except Exception:
+        infer_disc_from_lead = lambda x: None  # noqa: E731
+        disc_label = lambda x: "Sin perfil"    # noqa: E731
+
+    WON = ("vendido", "won", "ganado", "cierre", "cerrado")
+    LOST = ("perdido", "lost", "descartado")
+
+    leads = []
+    try:
+        async for l in db.leads.find({}, {"_id": 0}):
+            dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))
+            if zona and (not dv or dv.get("colonia") != zona):
+                continue
+            l["_dev"] = dv
+            leads.append(l)
+    except Exception as e:
+        log.warning("comportamiento leads: %s", e)
+    n = len(leads)
+
+    # ── 1. Objeciones ──────────────────────────────────────────────────────────────
+    # 1a. Precio (REAL): presupuesto del lead < precio del desarrollo → fricción de precio.
+    precio_obj = 0
+    precio_lost = 0
+    for l in leads:
+        dv = l.get("_dev")
+        b = l.get("budget_mxn")
+        if dv and b and dv.get("price_from") and b < dv["price_from"] * 0.9:
+            precio_obj += 1
+            if (l.get("status_v2") or "").lower() in LOST:
+                precio_lost += 1
+    # 1b. Respuesta lenta (REAL): contestados tarde (>6h) y perdidos.
+    lenta_obj = sum(1 for l in leads if (l.get("first_response_hrs") or 0) > 6)
+    lenta_lost = sum(1 for l in leads if (l.get("first_response_hrs") or 0) > 6 and (l.get("status_v2") or "").lower() in LOST)
+
+    # 1c. Minería de texto de conversaciones (objeciones literales) — fail-open, se autollena.
+    text_obj: Dict[str, int] = {}
+    msgs_minados = 0
+    try:
+        from taste_profile import extract_text_signals
+        cols = ["whatsapp_messages", "conversation_messages", "chat_messages", "buyer_coach_conversations"]
+        for col in cols:
+            try:
+                async for m in db[col].find({"$or": [{"role": "user"}, {"from": "lead"}, {"sender": "buyer"}]},
+                                            {"_id": 0, "text": 1, "body": 1, "content": 1, "message": 1}).limit(500):
+                    txt = m.get("text") or m.get("body") or m.get("content") or m.get("message")
+                    if not txt:
+                        continue
+                    sig = extract_text_signals(txt)
+                    msgs_minados += 1
+                    for s in sig.get("signals", []):
+                        if s.get("kind") == "budget" and s.get("polarity") == "neg":
+                            text_obj["precio"] = text_obj.get("precio", 0) + 1
+                        if s.get("kind") == "feature" and s.get("value") == "amplio" and s.get("polarity") in ("wants", "neg"):
+                            text_obj["tamano"] = text_obj.get("tamano", 0) + 1
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    objeciones = []
+    if precio_obj:
+        objeciones.append({"tipo": "precio", "label": _OBJ_LABEL["precio"], "n": precio_obj,
+                           "pct": round(precio_obj / n * 100) if n else 0, "perdidos": precio_lost,
+                           "severidad": "alta" if precio_obj >= n * 0.3 else "media", "fuente": "leads-reales",
+                           "rebuttal": _OBJ_REBUTTAL["precio"]})
+    if lenta_obj:
+        objeciones.append({"tipo": "respuesta_lenta", "label": _OBJ_LABEL["respuesta_lenta"], "n": lenta_obj,
+                           "pct": round(lenta_obj / n * 100) if n else 0, "perdidos": lenta_lost,
+                           "severidad": "alta" if lenta_lost else "media", "fuente": "leads-reales",
+                           "rebuttal": _OBJ_REBUTTAL["respuesta_lenta"]})
+    for t, c in text_obj.items():
+        if t not in [o["tipo"] for o in objeciones]:
+            objeciones.append({"tipo": t, "label": _OBJ_LABEL.get(t, t), "n": c,
+                               "pct": round(c / max(msgs_minados, 1) * 100), "perdidos": 0,
+                               "severidad": "media", "fuente": "conversaciones",
+                               "rebuttal": _OBJ_REBUTTAL.get(t, "")})
+    # Objeciones que SOLO se detectan con conversaciones (hoy en espera) — visibles como "pendientes".
+    pendientes = [{"tipo": t, "label": _OBJ_LABEL[t]} for t in ("ubicacion", "financiamiento", "confianza", "entrega")
+                  if t not in text_obj and not msgs_minados]
+    objeciones.sort(key=lambda x: -x["n"])
+
+    # ── 2. Comportamiento · DISC del mercado ────────────────────────────────────────
+    disc_count: Dict[str, int] = {}
+    disc_zone: Dict[str, Dict[str, int]] = {}
+    inferibles = 0
+    for l in leads:
+        d = infer_disc_from_lead(l)
+        if d:
+            inferibles += 1
+            disc_count[d] = disc_count.get(d, 0) + 1
+            z = (l.get("_dev") or {}).get("colonia")
+            if z:
+                disc_zone.setdefault(z, {})[d] = disc_zone.setdefault(z, {}).get(d, 0) + 1
+    disc_dist = sorted([{"tipo": k, "label": disc_label(k), "n": v,
+                         "pct": round(v / inferibles * 100) if inferibles else 0,
+                         "como_venderle": _DISC_SELL.get(k, "")} for k, v in disc_count.items()],
+                       key=lambda x: -x["n"])
+
+    # ── 3. Maduración + velocidad de respuesta vs cierre (REAL · la joya) ───────────
+    # 3a. Embudo
+    funnel_order = ["lead_nuevo", "contactado", "negociacion", "vendido", "perdido"]
+    funnel_label = {"lead_nuevo": "Nuevos", "contactado": "Contactados", "negociacion": "En negociación",
+                    "vendido": "Ganados", "perdido": "Perdidos"}
+    funnel_count: Dict[str, int] = {}
+    for l in leads:
+        s = (l.get("status_v2") or "lead_nuevo").lower()
+        funnel_count[s] = funnel_count.get(s, 0) + 1
+    embudo = [{"etapa": funnel_label.get(s, s), "key": s, "n": funnel_count.get(s, 0)} for s in funnel_order if funnel_count.get(s)]
+
+    # 3b. Días promedio a cierre (created_at → last_activity_at de ganados)
+    dias = []
+    for l in leads:
+        if (l.get("status_v2") or "").lower() in WON:
+            a, b = _parse_dt(l.get("created_at")), _parse_dt(l.get("last_activity_at"))
+            if a and b:
+                dias.append((b - a).days)
+    dias_cierre = round(sum(dias) / len(dias)) if dias else None
+
+    # 3c. Interacciones promedio
+    inter = [l.get("interactions") for l in leads if isinstance(l.get("interactions"), (int, float))]
+    inter_prom = round(sum(inter) / len(inter), 1) if inter else None
+
+    # 3d. Velocidad de respuesta vs cierre (la joya accionable)
+    buckets = [("Menos de 2h", lambda h: h <= 2), ("2 a 6h", lambda h: 2 < h <= 6), ("Más de 6h", lambda h: h > 6)]
+    resp_vs_cierre = []
+    for label, cond in buckets:
+        grp = [l for l in leads if cond(l.get("first_response_hrs") or 99)]
+        won = sum(1 for l in grp if (l.get("status_v2") or "").lower() in WON)
+        resp_vs_cierre.append({"rango": label, "leads": len(grp), "cierres": won,
+                               "win_rate": round(won / len(grp) * 100) if grp else 0})
+
+    # ── 4. Resumen + acciones (agentic, lenguaje normal) ────────────────────────────
+    top_obj = objeciones[0] if objeciones else None
+    fast = resp_vs_cierre[0]["win_rate"] if resp_vs_cierre else 0
+    slow = resp_vs_cierre[-1]["win_rate"] if resp_vs_cierre else 0
+    partes = []
+    if top_obj:
+        partes.append(f"La objeción que más frena es {top_obj['label'].lower()} ({top_obj['pct']}% de los leads).")
+    if dias_cierre is not None:
+        partes.append(f"Un cierre tarda en promedio {dias_cierre} días.")
+    if fast and fast > slow:
+        partes.append(f"Contestar rápido importa: {fast}% de cierre si respondes en <2h vs {slow}% si tardas más de 6h.")
+    resumen = " ".join(partes) or "Aún hay poca señal de comportamiento. Se enriquece con cada conversación."
+
+    acciones = []
+    if top_obj:
+        acciones.append({"tipo": "objecion", "texto": f"Frente a '{top_obj['label'].lower()}': {top_obj['rebuttal']}"})
+    if fast and slow is not None and fast > slow:
+        acciones.append({"tipo": "velocidad", "texto": f"Pon a tus asesores a contestar en <2h — ahí el cierre es {fast}% vs {slow}%."})
+    if disc_dist:
+        d0 = disc_dist[0]
+        acciones.append({"tipo": "disc", "texto": f"El comprador dominante es {d0['label']}: {d0['como_venderle']}"})
+    elif not inferibles:
+        acciones.append({"tipo": "disc", "texto": "El perfil de personalidad (DISC) se infiere de las conversaciones — conecta WhatsApp para activarlo."})
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "objeciones": objeciones,
+        "objeciones_pendientes": pendientes,
+        "disc": {"distribucion": disc_dist, "inferibles": inferibles, "total_leads": n,
+                 "fuente": "leads" if inferibles else "espera-conversaciones"},
+        "maduracion": {"dias_cierre": dias_cierre, "interacciones_promedio": inter_prom,
+                       "embudo": embudo, "respuesta_vs_cierre": resp_vs_cierre},
+        "sentimiento": {"fuente": "espera-conversaciones", "positivo": None, "negativo": None,
+                        "nota": "Se calcula cuando entren mensajes de los compradores."},
+        "acciones": acciones[:3],
+        "fuente": {"leads": n, "conversaciones_minadas": msgs_minados,
+                   "nota": "Las objeciones literales, el DISC y el sentimiento se afinan con las conversaciones (WhatsApp/chat) del comprador."},
+    }
+
+
+@router.get("/comportamiento")
+async def comportamiento(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _comportamiento(request.app.state.db, zona, segmento)
