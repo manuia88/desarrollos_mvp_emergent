@@ -628,3 +628,220 @@ async def donde_construir(request: Request, zona: Optional[str] = None, segmento
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _donde_construir(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 #11 · Gusto visual del mercado (modelo de gusto agregado) ────────────────
+# Rescata el modelo de gusto (B5.4 · per-contacto) y lo AGREGA a nivel mercado: qué cuartos/estilos
+# enganchan, qué amenidades mueven la demanda (lift), qué fotos conviene subir. Primary: swipes reales
+# (asesor_swipe_events); fallback: tags del catálogo (photo_tagger) ponderados por demanda (leads).
+# Built-for-endstate: se autoafina cuando entren swipes/tags/perfiles. Cero deuda.
+_FEAT_LABEL = {"luz_natural": "Luz natural", "ventanal": "Ventanales", "moderno": "Moderno",
+               "lujo": "Lujo", "amplio": "Amplio", "vista_ciudad": "Vista a la ciudad",
+               "madera": "Madera", "verde": "Áreas verdes"}
+_AMEN_LABEL = {"gym": "Gimnasio", "alberca": "Alberca", "concierge": "Concierge", "roof": "Roof garden",
+               "spa": "Spa", "sky_lounge": "Sky lounge", "cava": "Cava", "seguridad": "Seguridad 24/7",
+               "salon_eventos": "Salón de eventos", "business_center": "Business center",
+               "pet_friendly": "Pet friendly", "cine": "Cine", "coworking": "Coworking"}
+
+
+def _lift_pct(lift):
+    if lift >= 1.15:
+        return f"+{round((lift - 1) * 100)}% interés"
+    if lift <= 0.85:
+        return f"−{round((1 - lift) * 100)}% interés"
+    return "estándar (no diferencia)"
+
+
+async def _gusto_mercado(db, zona=None, segmento=None):
+    from data_developments import DEVELOPMENTS
+    import photo_tagger as pt
+
+    devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+
+    # Demanda por desarrollo (db.leads) — peso de "qué engancha"
+    leads_by_dev: Dict[str, int] = {}
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1}):
+            k = l.get("development_id")
+            if k:
+                leads_by_dev[k] = leads_by_dev.get(k, 0) + 1
+    except Exception:
+        pass
+
+    # Peso de engagement: swipes reales si existen (asesor_swipe_events), si no → demanda (leads)
+    swipe_n = 0
+    swipe_by_dev: Dict[str, float] = {}
+    try:
+        swipe_n = await db.asesor_swipe_events.count_documents({})
+        if swipe_n:
+            async for ev in db.asesor_swipe_events.find({}, {"_id": 0, "dev_id": 1, "action": 1, "dwell_ms": 1}):
+                did = ev.get("dev_id")
+                if not did:
+                    continue
+                w = 1.0
+                if (ev.get("action") or "").lower() in ("like", "save", "open_detail", "back"):
+                    w = 2.0
+                w += min((ev.get("dwell_ms") or 0) / 4000.0, 2.0)
+                swipe_by_dev[did] = swipe_by_dev.get(did, 0) + w
+    except Exception:
+        pass
+    weight_by_dev = swipe_by_dev if swipe_n else {k: float(v) for k, v in leads_by_dev.items()}
+    fuente_taste = "swipes-reales" if swipe_n else "estimado-catalogo"
+
+    # 1. Tag de TODAS las fotos del catálogo → distribución (mostrado) + ponderada (engancha)
+    room_cat: Dict[str, int] = {}
+    room_w: Dict[str, float] = {}
+    feat_cat: Dict[str, int] = {}
+    feat_w: Dict[str, float] = {}
+    room_by_zone: Dict[str, Dict[str, int]] = {}
+    for d in devs:
+        w = weight_by_dev.get(d["id"], 0.0)
+        z = d.get("colonia")
+        for url in (d.get("photos") or []):
+            t = pt.tag_from_url(url)
+            rl = t.get("room_label") or "Interior"
+            room_cat[rl] = room_cat.get(rl, 0) + 1
+            room_w[rl] = room_w.get(rl, 0) + w
+            if z:
+                room_by_zone.setdefault(z, {})[rl] = room_by_zone.setdefault(z, {}).get(rl, 0) + 1
+            for f in (t.get("features") or []):
+                feat_cat[f] = feat_cat.get(f, 0) + 1
+                feat_w[f] = feat_w.get(f, 0) + w
+
+    tot_cat = sum(room_cat.values()) or 1
+    tot_w = sum(room_w.values()) or 1
+    ftot_cat = sum(feat_cat.values()) or 1
+    ftot_w = sum(feat_w.values()) or 1
+
+    def _indice(cat, c_tot, w, w_tot, count):
+        cs = cat / c_tot
+        ws = w / w_tot
+        return round((ws / cs), 2) if cs else 1.0
+
+    gusto_visual = []
+    for rl, c in room_cat.items():
+        ind = _indice(c, tot_cat, room_w.get(rl, 0), tot_w, c)
+        gusto_visual.append({"tag": rl, "tipo": "cuarto", "veces": c, "indice_interes": ind})
+    for f, c in feat_cat.items():
+        ind = _indice(c, ftot_cat, feat_w.get(f, 0), ftot_w, c)
+        gusto_visual.append({"tag": _FEAT_LABEL.get(f, f.title()), "tipo": "estilo", "veces": c, "indice_interes": ind})
+    gusto_visual.sort(key=lambda x: -x["indice_interes"])
+
+    # 2. Amenidades que mueven la aguja — lift de demanda (avg leads con amenidad / avg global)
+    all_leads = [leads_by_dev.get(d["id"], 0) for d in devs]
+    avg_all = (sum(all_leads) / len(all_leads)) if all_leads else 0
+    amen_vals: Dict[str, List[int]] = {}
+    for d in devs:
+        for a in (d.get("amenities") or []):
+            amen_vals.setdefault(a, []).append(leads_by_dev.get(d["id"], 0))
+    amenidades = []
+    for a, vals in amen_vals.items():
+        m = sum(vals) / len(vals)
+        lift = round(m / avg_all, 2) if avg_all else 1.0
+        amenidades.append({"amenidad": a, "label": _AMEN_LABEL.get(a, a.replace("_", " ").title()),
+                           "lift": lift, "lift_label": _lift_pct(lift), "n_proyectos": len(vals),
+                           "confianza": "alta" if len(vals) >= 5 else "temprana"})
+    amenidades.sort(key=lambda x: -x["lift"])
+
+    # 3. Qué fotos conviene subir — cuartos que enganchan (índice alto) pero poco mostrados
+    med_cov = sorted(room_cat.values())[len(room_cat) // 2] if room_cat else 0
+    fotos_reco = [{"cuarto": g["tag"], "motivo": f"engancha (índice {g['indice_interes']}) pero hay pocas fotos"}
+                  for g in gusto_visual if g["tipo"] == "cuarto" and g["indice_interes"] >= 1.1 and g["veces"] <= med_cov][:4]
+
+    # 4. Por zona — qué prefiere cada mercado
+    por_zona = []
+    for z, rmap in room_by_zone.items():
+        top_room = max(rmap.items(), key=lambda x: x[1])[0] if rmap else None
+        zdevs = [d for d in devs if d.get("colonia") == z]
+        zamen: Dict[str, int] = {}
+        for d in zdevs:
+            for a in (d.get("amenities") or []):
+                zamen[a] = zamen.get(a, 0) + 1
+        top_amen = max(zamen.items(), key=lambda x: x[1])[0] if zamen else None
+        por_zona.append({"zona": z, "top_cuarto": top_room,
+                         "top_amenidad": _AMEN_LABEL.get(top_amen, top_amen) if top_amen else None})
+
+    # 5. Perfil del mercado — agrega asesor_taste_profile si existe; si no, estimado de leads
+    perfil = {"fuente": "estimado", "cuartos": [], "caracteristicas": [], "zona_top": None, "precio_tipico": None}
+    try:
+        tp_n = await db.asesor_taste_profile.count_documents({})
+        if tp_n:
+            agg_rooms: Dict[str, float] = {}
+            agg_feats: Dict[str, float] = {}
+            zt: Dict[str, int] = {}
+            precios: List[float] = []
+            async for p in db.asesor_taste_profile.find({}, {"_id": 0}):
+                for r, sc in (p.get("rooms") or {}).items():
+                    agg_rooms[r] = agg_rooms.get(r, 0) + (sc or 0)
+                for ft, sc in (p.get("features") or {}).items():
+                    agg_feats[ft] = agg_feats.get(ft, 0) + (sc or 0)
+                if p.get("zona"):
+                    zt[p["zona"]] = zt.get(p["zona"], 0) + 1
+                if p.get("precio"):
+                    precios.append(p["precio"])
+            perfil = {"fuente": "swipes-reales",
+                      "cuartos": [k for k, _ in sorted(agg_rooms.items(), key=lambda x: -x[1])[:4]],
+                      "caracteristicas": [_FEAT_LABEL.get(k, k) for k, _ in sorted(agg_feats.items(), key=lambda x: -x[1])[:4]],
+                      "zona_top": (max(zt.items(), key=lambda x: x[1])[0] if zt else None),
+                      "precio_tipico": (sorted(precios)[len(precios) // 2] if precios else None)}
+        else:
+            # estimado: zona más buscada por leads + presupuesto mediano
+            budgets: List[int] = []
+            zt2: Dict[str, int] = {}
+            from data_developments import DEVELOPMENTS_BY_ID
+            async for l in db.leads.find({}, {"_id": 0, "budget_mxn": 1, "development_id": 1}):
+                if l.get("budget_mxn"):
+                    budgets.append(l["budget_mxn"])
+                dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))
+                if dv and dv.get("colonia"):
+                    zt2[dv["colonia"]] = zt2.get(dv["colonia"], 0) + 1
+            perfil["zona_top"] = max(zt2.items(), key=lambda x: x[1])[0] if zt2 else None
+            perfil["precio_tipico"] = sorted(budgets)[len(budgets) // 2] if budgets else None
+            perfil["caracteristicas"] = [g["tag"] for g in gusto_visual if g["tipo"] == "estilo"][:3]
+    except Exception as e:
+        log.info("gusto_mercado perfil: %s", e)
+
+    # 6. Resumen + acciones (agentic · en lenguaje normal)
+    top_visual = [g["tag"] for g in gusto_visual[:3]]
+    top_amen_pos = [a for a in amenidades if a["lift"] >= 1.5][:3]
+    estandar = [a["label"] for a in amenidades if 0.85 <= a["lift"] <= 1.15][:2]
+    partes = []
+    if top_visual:
+        partes.append(f"El mercado se fija en {', '.join(top_visual[:2]).lower()}.")
+    if top_amen_pos:
+        partes.append(f"Lo que más mueve el interés: {', '.join(a['label'].lower() for a in top_amen_pos)}.")
+    if estandar:
+        partes.append(f"En cambio {', '.join(e.lower() for e in estandar)} ya son estándar y no diferencian.")
+    resumen = " ".join(partes) or "Aún no hay suficiente señal de gusto. Se llena con swipes y leads."
+
+    acciones = []
+    if top_amen_pos:
+        a0 = top_amen_pos[0]
+        acciones.append({"tipo": "amenidad",
+                         "texto": f"Diles a tus devs: incluir {a0['label'].lower()} se asocia a {a0['lift']}× más interés. {'Señal temprana.' if a0['confianza']=='temprana' else ''}".strip()})
+    if fotos_reco:
+        acciones.append({"tipo": "fotos",
+                         "texto": f"Pide más fotos de {fotos_reco[0]['cuarto'].lower()}: enganchan y casi no se muestran."})
+    if estandar:
+        acciones.append({"tipo": "diferenciar",
+                         "texto": f"{', '.join(estandar)} ya las tiene todo el mundo — para destacar hay que ir por amenidades de mayor interés."})
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "gusto_visual": gusto_visual[:10],
+        "amenidades_aguja": amenidades[:10],
+        "fotos_recomendadas": fotos_reco,
+        "por_zona": sorted(por_zona, key=lambda x: x["zona"])[:12],
+        "perfil_mercado": perfil,
+        "acciones": acciones[:3],
+        "fuente": {"gusto": fuente_taste, "swipes": swipe_n, "leads": sum(leads_by_dev.values()),
+                   "amenidades": "leads-reales", "nota": "El modelo de gusto se afina solo cuando entren swipes y fotos etiquetadas."},
+    }
+
+
+@router.get("/gusto-mercado")
+async def gusto_mercado(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _gusto_mercado(request.app.state.db, zona, segmento)

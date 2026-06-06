@@ -21,3 +21,10 @@ export async function fetchDondeConstruir(filters = {}) {
   if (!r.ok) throw new Error('No se pudo cargar dónde construir');
   return r.json();
 }
+
+export async function fetchGustoMercado(filters = {}) {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/gusto-mercado${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar el gusto del mercado');
+  return r.json();
+}
