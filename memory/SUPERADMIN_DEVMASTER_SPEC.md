@@ -98,7 +98,11 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       (banxico_series) → mensualidad+ahorro · gentrificación (momentum+trend) · riesgo ciudad · perfil
       de zonas. Reusa COLONIAS scores + gov_data_mx_engine fail-open. GTFS/DENUE/Atlas con llaves.
       Front: MacroCiudad.js (7o toggle). Verificado en vivo (tasa 8.83%, educación +80%).
-- [ ] Competencia y red (🔧knowledge graph)
+- [x] **Competencia y red (knowledge graph)** — ✅ HECHO (commit Fase 3)
+      Back: GET /devmaster/competencia-red — grafo desde Mongo (sin Neo4j): quién compite (zona×banda) ·
+      celdas disputadas · red de asesores (concentración + split inhouse/broker + conversión) · inventario
+      zombie · estado grafo Neo4j fail-open (reusa knowledge_graph_engine). Acciones agentic.
+      Front: CompetenciaRed.js (8o toggle). Verificado (Polanco $22M+ saturado, Ana 29%, 5 zombies).
 - [ ] Brief diario "el mercado en una frase" + índice de salud CDMX
 - [ ] Observabilidad de la IA (cómo aprende close-prob/forecast/drift — el cable dormido)
 
