@@ -52,13 +52,33 @@ const vtab = (active) => ({
   border: '1px solid var(--sa-border)',
 });
 
+// Lente secundario (pill chico) dentro de "Inteligencia"
+const ltab = (active) => ({
+  padding: '6px 13px', borderRadius: 999, cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+  background: active ? 'rgba(var(--theme-rgb),0.16)' : 'transparent', color: active ? 'var(--theme)' : 'var(--sa-text-mute)',
+  border: `1px solid ${active ? 'rgba(var(--theme-rgb),0.45)' : 'var(--sa-border)'}`,
+});
+
+// Las 7 lentes de inteligencia, agrupadas bajo "Inteligencia"
+const LENSES = [
+  { key: 'construir', label: 'Dónde Construir' },
+  { key: 'gusto', label: 'Gusto del Mercado' },
+  { key: 'comportamiento', label: 'Comportamiento' },
+  { key: 'stock', label: 'Stock y Sold-Out' },
+  { key: 'macro', label: 'Macro y Ciudad' },
+  { key: 'competencia', label: 'Competencia y Red' },
+  { key: 'ia', label: 'Cómo Aprende la IA' },
+];
+
 export default function SuperadminDesarrollos({ user, onLogout }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [f, setF] = useState({ zona: '', segmento: '', etapa: '', dev: '', publicado: '', q: '' });
-  const [view, setView] = useState('panorama'); // panorama | catalogo
+  const [view, setView] = useState('panorama'); // panorama | inteligencia | catalogo
+  const [lente, setLente] = useState('construir'); // lente activo dentro de Inteligencia
   const [facetas, setFacetas] = useState({});
+  const verInteligencia = (k) => { setLente(k); setView('inteligencia'); };
 
   const load = useCallback(() => {
     setErr(null);
@@ -84,16 +104,19 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setView('panorama')} style={vtab(view === 'panorama')} data-testid="view-panorama">Panorama</button>
-          <button onClick={() => setView('construir')} style={vtab(view === 'construir')} data-testid="view-construir">Dónde Construir</button>
-          <button onClick={() => setView('gusto')} style={vtab(view === 'gusto')} data-testid="view-gusto">Gusto del Mercado</button>
-          <button onClick={() => setView('comportamiento')} style={vtab(view === 'comportamiento')} data-testid="view-comportamiento">Comportamiento</button>
-          <button onClick={() => setView('stock')} style={vtab(view === 'stock')} data-testid="view-stock">Stock y Sold-Out</button>
-          <button onClick={() => setView('macro')} style={vtab(view === 'macro')} data-testid="view-macro">Macro y Ciudad</button>
-          <button onClick={() => setView('competencia')} style={vtab(view === 'competencia')} data-testid="view-competencia">Competencia y Red</button>
-          <button onClick={() => setView('ia')} style={vtab(view === 'ia')} data-testid="view-ia">Cómo Aprende la IA</button>
+          <button onClick={() => setView('inteligencia')} style={vtab(view === 'inteligencia')} data-testid="view-inteligencia">Inteligencia</button>
           <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
         </div>
       </div>
+
+      {/* Fila secundaria · lentes de Inteligencia */}
+      {view === 'inteligencia' && (
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 16 }} data-testid="lentes-row">
+          {LENSES.map(l => (
+            <button key={l.key} onClick={() => setLente(l.key)} style={ltab(lente === l.key)} data-testid={`lente-${l.key}`}>{l.label}</button>
+          ))}
+        </div>
+      )}
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
@@ -130,30 +153,20 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
       </div>
 
       {/* PANORAMA · home global */}
-      {view === 'panorama' && <DesarrollosPanorama filters={panoFilters} onFacetas={setFacetas} onVerConstruir={() => setView('construir')} />}
+      {view === 'panorama' && <DesarrollosPanorama filters={panoFilters} onFacetas={setFacetas} onVerConstruir={() => verInteligencia('construir')} />}
 
-      {/* DÓNDE CONSTRUIR · demanda latente (Fase 3 #2) */}
-      {view === 'construir' && (
-        <DondeConstruir filters={panoFilters} onPickZona={(z) => { set('zona', z); setView('catalogo'); }} />
+      {/* INTELIGENCIA · 7 lentes agrupados (Fase 3) */}
+      {view === 'inteligencia' && (
+        <>
+          {lente === 'construir' && <DondeConstruir filters={panoFilters} onPickZona={(z) => { set('zona', z); setView('catalogo'); }} />}
+          {lente === 'gusto' && <GustoMercado filters={panoFilters} />}
+          {lente === 'comportamiento' && <Comportamiento filters={panoFilters} />}
+          {lente === 'stock' && <StockSoldOut filters={panoFilters} />}
+          {lente === 'macro' && <MacroCiudad filters={panoFilters} />}
+          {lente === 'competencia' && <CompetenciaRed filters={panoFilters} />}
+          {lente === 'ia' && <ObservabilidadIA />}
+        </>
       )}
-
-      {/* GUSTO DEL MERCADO · modelo de gusto agregado (Fase 3 #11) */}
-      {view === 'gusto' && <GustoMercado filters={panoFilters} />}
-
-      {/* COMPORTAMIENTO · objeciones + comportamiento del comprador (Fase 3) */}
-      {view === 'comportamiento' && <Comportamiento filters={panoFilters} />}
-
-      {/* STOCK Y SOLD-OUT · mercado predictivo (Fase 3) */}
-      {view === 'stock' && <StockSoldOut filters={panoFilters} />}
-
-      {/* MACRO Y CIUDAD · la ciudad → el valor (Fase 3) */}
-      {view === 'macro' && <MacroCiudad filters={panoFilters} />}
-
-      {/* COMPETENCIA Y RED · el mapa del mercado (Fase 3) */}
-      {view === 'competencia' && <CompetenciaRed filters={panoFilters} />}
-
-      {/* CÓMO APRENDE LA IA · observabilidad del cerebro (Fase 3) */}
-      {view === 'ia' && <ObservabilidadIA />}
 
       {/* CATÁLOGO · grid de proyectos */}
       {view === 'catalogo' && (
