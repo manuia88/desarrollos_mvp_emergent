@@ -25,8 +25,10 @@ Triage automatizado 91 endpoints con id de recurso → 9 fugas reales cerradas c
 `tenant_scope.assert_dev_org/assert_dev_project` (superadmin bypass): reports download · pricing PATCH+results ·
 units {dev_id} ×3 · prototypes reorder · assets role · appointments policy GET+PUT · lead recalc-heat
 (+ get_lead_detail en Bloque 1.2). Verificado en vivo (ajeno→403, propio→200). Falsos positivos: público/
-dato-de-mercado/ya-protegido (can_view_ai_summary). PENDIENTE Fase 2 restante: atomicidad (unit-holds/booking
-doble-reserva CAS+índice único) · barrido 208 rutas (500s) · vocabulario dev_org/project · rate-limit públicos · QA Fase 4.
+dato-de-mercado/ya-protegido (can_view_ai_summary). ✅ FASE 2.4 ATOMICIDAD HECHO (2026-06-06): índice único PARCIAL anti doble-reserva en unit_holds
+{unit_id}@active y appointments {asesor_id,datetime}@confirmed + DuplicateKeyError→409. Verificado
+(2º insert bloqueado · re-apartar tras release OK · hold#1=200/#2=409 live). PENDIENTE Fase 2 restante:
+barrido 208 rutas (500s) · vocabulario dev_org/project · rate-limit públicos · QA Fase 4 (día del desarrollador).
 
 ## FASE 1 · AUDITORÍA DE ARQUITECTURA (mapa de flujos + cables)
 ═══════════════════════════════════════════════════════════════════
