@@ -63,6 +63,10 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
 - [x] Front: DesarrollosPanorama (cockpit oscuro) + toggle Panorama/Catálogo en SuperadminDesarrollos
 
 ### Fase 3 · Cruces killer ⭐ (joyas, una por una)
+- [x] **Brief diario "el mercado en una frase"** — ✅ HECHO (commit b7b6bba0 + fix loop ec06e528)
+      Back: GET /devmaster/brief (resumen narrativo + señales + 3 acciones agénticas con link + fuente=asistente-de-mercado).
+      Front: BriefCard arriba del Panorama (titulo "El mercado hoy", señales, acciones clicables). Verificado en vivo.
+      ⚠️ LECCIÓN: panoFilters como objeto literal en el padre → loop infinito de fetch ocultaba el brief; fix con useMemo.
 - [ ] Demanda latente / dónde construir (demanda vs oferta por micro-zona)
 - [ ] Gusto visual del mercado (🔧taste model) + recomendación de amenidades
 - [ ] Objeciones + comportamiento del comprador (🔧minería conversaciones)
