@@ -58,9 +58,9 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
 - [x] Botón "Impersonar dev" (editar como el dev) — reusa impersonateTenant
 - [x] Back: GET /devmaster/project/{id} = project_detail + comparativo
 
-### Fase 2 · Home cockpit global (áreas 1-9)
-- [ ] Back: agregador global con filtros transversales (zona/segmento/dev/etapa/periodo) — reusa cube/AVM/DRPI/demand-gap/hedónico/anomaly
-- [ ] Front: home dev-master (KPIs + 9 secciones + drill-down)
+### Fase 2 · Home cockpit global (áreas 1-9) — ✅ HECHO (commit bbe008b6)
+- [x] Back: GET /devmaster/home — agrega desde _catalog_rows + db.leads (KPIs, precios, oferta/etapa, concentración devs, ⭐dónde construir, demanda/planes, canales, devs ranking, zonas, riesgo) + filtros zona/segmento/etapa/dev
+- [x] Front: DesarrollosPanorama (cockpit oscuro) + toggle Panorama/Catálogo en SuperadminDesarrollos
 
 ### Fase 3 · Cruces killer ⭐ (joyas, una por una)
 - [ ] Demanda latente / dónde construir (demanda vs oferta por micro-zona)
