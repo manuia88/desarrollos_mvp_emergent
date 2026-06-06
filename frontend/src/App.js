@@ -301,6 +301,7 @@ const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/Proper
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
+const SuperadminCatalogPulse         = lazy(() => import('./pages/superadmin/SuperadminCatalogPulse'));
 // W2.7 Phase Z.0 — Data Lake foundation
 const SuperadminDataLake             = lazy(() => import('./pages/superadmin/SuperadminDataLake'));
 // W2.9 Phase Z.2 — Intelligence Hub (executive bird's-eye)
@@ -882,6 +883,7 @@ function AppRouter() {
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminFounderConsole} />} />
       <Route path="/superadmin/dashboard-legacy" element={<SuperadminRoute Page={SuperadminDashboard} />} />
+      <Route path="/superadmin/catalog-pulse" element={<SuperadminRoute Page={SuperadminCatalogPulse} />} />
       {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
       <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesHub} />} />
       {/* Legacy IE Engine sources page (kept accessible) */}

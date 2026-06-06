@@ -597,6 +597,9 @@ app.include_router(dev_project_full_router)
 from routes.asesor_playbook import router as asesor_playbook_router  # B3.1 · playbook dev→asesor
 app.include_router(asesor_playbook_router)
 
+from routes.superadmin_catalog_pulse import router as superadmin_catalog_pulse_router  # B3.2 · pulso del catálogo
+app.include_router(superadmin_catalog_pulse_router)
+
 # Fase 3.2 · lente del dev sobre el cubo (benchmark anónimo + amenity ranker + demand-gap)
 from routes.dev_market import router as dev_market_router
 app.include_router(dev_market_router)

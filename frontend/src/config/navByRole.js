@@ -200,6 +200,7 @@ const SUPERADMIN_NAV = [
       { key: 'documents',    to: '/superadmin/documents',    label: 'Documentos',       Icon: FileText },
       { key: 'data-lake',    to: '/superadmin/data-lake',    label: 'Data Lake',        Icon: Database },
       { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
+      { key: 'catalog-pulse', to: '/superadmin/catalog-pulse', label: 'Pulso del catálogo', Icon: Activity },
       // ─ W6.MOV.2 · Gov Data MX External Sources (3 tracks) ─
       { key: 'gov-data-mx',  to: '/superadmin/gov-data-mx',  label: 'Gov Data MX',      Icon: Database },
     ],
