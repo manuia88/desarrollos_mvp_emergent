@@ -1467,3 +1467,157 @@ async def macro_ciudad(request: Request, zona: Optional[str] = None, segmento: O
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _macro_ciudad(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 · Competencia y Red (knowledge graph: quién compite, red de asesores) ───
+# Mapa de relaciones del mercado: qué proyectos pelean por el mismo comprador (misma zona × banda),
+# qué asesores/brokers manejan qué proyectos (red), y qué inventario está "zombie". Computa el grafo
+# desde Mongo (no requiere Neo4j); reusa knowledge_graph_engine si está prendido. Built-for-endstate:
+# los compradores compartidos (edges INTERESTED_IN reales) se llenan con swipes/behavioral. Cero deuda.
+async def _competencia_red(db, zona=None, segmento=None):
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+
+    devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+    leads_by_dev: Dict[str, int] = {}
+    won_by_dev: Dict[str, int] = {}
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1, "status_v2": 1}):
+            k = l.get("development_id")
+            if k:
+                leads_by_dev[k] = leads_by_dev.get(k, 0) + 1
+                if (l.get("status_v2") or "").lower() in ("vendido", "won", "ganado"):
+                    won_by_dev[k] = won_by_dev.get(k, 0) + 1
+    except Exception:
+        pass
+
+    # ── 1. Quién compite con quién (misma zona × bandas de precio que cruzan) ────────
+    def _bands(d):
+        return set(_band_overlaps(d.get("price_from"), d.get("price_to")))
+
+    competidores = []
+    for d in devs:
+        my_bands = _bands(d)
+        rivales = []
+        for o in DEVELOPMENTS:
+            if o["id"] == d["id"] or o.get("colonia") != d.get("colonia"):
+                continue
+            shared = my_bands & _bands(o)
+            if shared:
+                rivales.append({"project_id": o["id"], "nombre": o.get("name"),
+                                "precio": o.get("price_from"), "disponibles": o.get("units_available"),
+                                "bandas_compartidas": sorted(shared)})
+        if rivales:
+            competidores.append({"project_id": d["id"], "nombre": d.get("name"), "zona": d.get("colonia"),
+                                 "precio": d.get("price_from"), "leads": leads_by_dev.get(d["id"], 0),
+                                 "n_rivales": len(rivales), "rivales": rivales[:6]})
+    competidores.sort(key=lambda x: -x["n_rivales"])
+
+    # ── 2. Celdas más disputadas (zona × banda con más proyectos peleando) ──────────
+    celda: Dict[tuple, Dict[str, Any]] = {}
+    for d in devs:
+        z = d.get("colonia")
+        for b in _bands(d):
+            if not z:
+                continue
+            c = celda.setdefault((z, b), {"zona": z, "banda": b, "proyectos": 0, "unidades": 0, "leads": 0})
+            c["proyectos"] += 1
+            c["unidades"] += d.get("units_available") or 0
+            c["leads"] += leads_by_dev.get(d["id"], 0)
+    disputadas = sorted([c for c in celda.values() if c["proyectos"] >= 2],
+                        key=lambda x: (-x["proyectos"], -x["unidades"]))[:8]
+
+    # ── 3. Red de asesores (quién maneja qué · hubs · concentración) ────────────────
+    asesor_map: Dict[str, Dict[str, Any]] = {}
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "assignee_name": 1, "channel": 1, "development_id": 1, "status_v2": 1}):
+            name = l.get("assignee_name")
+            if not name:
+                continue
+            a = asesor_map.setdefault(name, {"asesor": name, "canal": l.get("channel") or "inhouse",
+                                             "leads": 0, "won": 0, "proyectos": set()})
+            a["leads"] += 1
+            if (l.get("status_v2") or "").lower() in ("vendido", "won", "ganado"):
+                a["won"] += 1
+            if l.get("development_id"):
+                a["proyectos"].add(l["development_id"])
+    except Exception:
+        pass
+    red_asesores = sorted([
+        {"asesor": a["asesor"], "canal": a["canal"], "leads": a["leads"], "won": a["won"],
+         "conversion": round(a["won"] / a["leads"] * 100) if a["leads"] else 0,
+         "n_proyectos": len(a["proyectos"])}
+        for a in asesor_map.values()], key=lambda x: -x["leads"])
+    total_leads_asig = sum(a["leads"] for a in red_asesores) or 1
+    top_asesor = red_asesores[0] if red_asesores else None
+    concentracion = round(top_asesor["leads"] / total_leads_asig * 100) if top_asesor else 0
+    canal_split = {"inhouse": sum(a["leads"] for a in red_asesores if a["canal"] == "inhouse"),
+                   "broker": sum(a["leads"] for a in red_asesores if a["canal"] == "broker")}
+
+    # ── 4. Inventario zombie (mucho stock + nula tracción) ──────────────────────────
+    zombies = []
+    for d in devs:
+        tot = d.get("units_total") or 0
+        avail = d.get("units_available") or 0
+        sold = (d.get("units_sold") or 0) + (d.get("units_reserved") or 0)
+        sellthrough = round(sold / tot * 100) if tot else 0
+        if avail >= 8 and sellthrough < 35 and leads_by_dev.get(d["id"], 0) == 0:
+            zombies.append({"project_id": d["id"], "nombre": d.get("name"), "zona": d.get("colonia"),
+                            "disponibles": avail, "sellthrough": sellthrough})
+    zombies.sort(key=lambda x: -x["disponibles"])
+
+    # ── 5. Estado del grafo (Neo4j · músculo backend) ───────────────────────────────
+    kg = {"conectado": False, "nodos": None, "fuente": "calculado-en-vivo"}
+    try:
+        import knowledge_graph_engine as kge
+        h = await kge.health_check()
+        kg = {"conectado": bool(h.get("available")), "nodos": h.get("node_count"),
+              "fuente": "neo4j" if h.get("available") else "calculado-en-vivo"}
+    except Exception:
+        pass
+
+    # ── 6. Resumen + acciones (agentic) ─────────────────────────────────────────────
+    top_disp = disputadas[0] if disputadas else None
+    partes = []
+    if top_disp:
+        partes.append(f"La pelea más fuerte es en {top_disp['zona']} banda {top_disp['banda']}: {top_disp['proyectos']} proyectos por los mismos compradores.")
+    if top_asesor:
+        partes.append(f"{top_asesor['asesor']} concentra {concentracion}% de los leads asignados.")
+    if zombies:
+        partes.append(f"{len(zombies)} proyectos están sin tracción (inventario zombie).")
+    resumen = " ".join(partes) or "El mapa de competencia y red está despejado."
+
+    acciones = []
+    if top_disp:
+        acciones.append({"tipo": "competencia",
+                         "texto": f"{top_disp['zona']} ~{top_disp['banda']} está saturada ({top_disp['proyectos']} proyectos, {top_disp['unidades']} unidades) — diferénciate en producto o precio.",
+                         "link": f"/superadmin/desarrollos?zona={top_disp['zona']}"})
+    if top_asesor and concentracion >= 30:
+        acciones.append({"tipo": "red",
+                         "texto": f"{top_asesor['asesor']} maneja {concentracion}% de tus leads — si se va, te duele. Reparte y suma más canales."})
+    if zombies:
+        z0 = zombies[0]
+        acciones.append({"tipo": "zombie",
+                         "texto": f"{z0['nombre']} tiene {z0['disponibles']} unidades y cero leads — reactívalo con marketing o ajusta el precio.",
+                         "link": f"/superadmin/desarrollos/{z0['project_id']}"})
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "competidores": competidores[:10],
+        "celdas_disputadas": disputadas,
+        "red_asesores": red_asesores[:10],
+        "concentracion_top": concentracion,
+        "canal_split": canal_split,
+        "zombies": zombies[:6],
+        "grafo": kg,
+        "acciones": acciones[:3],
+        "fuente": {"proyectos": len(devs), "asesores": len(red_asesores),
+                   "nota": "Los compradores compartidos reales (un comprador que ve varios proyectos) se llenan con los swipes y la navegación; hoy la competencia se infiere por zona y banda de precio."},
+    }
+
+
+@router.get("/competencia-red")
+async def competencia_red(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _competencia_red(request.app.state.db, zona, segmento)

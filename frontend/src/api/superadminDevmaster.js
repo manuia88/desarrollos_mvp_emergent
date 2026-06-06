@@ -49,3 +49,10 @@ export async function fetchMacroCiudad(filters = {}) {
   if (!r.ok) throw new Error('No se pudo cargar macro y ciudad');
   return r.json();
 }
+
+export async function fetchCompetenciaRed(filters = {}) {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/competencia-red${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar competencia y red');
+  return r.json();
+}
