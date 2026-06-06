@@ -7,7 +7,8 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { TrendingUp, CheckCircle2, Layers, ShoppingBag } from 'lucide-react';
-import { fetchCatalogPulse } from '../../api/superadminCatalogPulse';
+import { fetchCatalogPulse, ASSET_BASE } from '../../api/superadminCatalogPulse';
+import CatalogProjectDrawer from './CatalogProjectDrawer';
 
 const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
 const card = { background: 'var(--bg-card)', border: '1px solid var(--sa-border)', borderRadius: 16, padding: 18 };
@@ -42,9 +43,40 @@ function CoverageBar({ label, pct, configurados }) {
   );
 }
 
+const tabBtn = (active) => ({
+  padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
+  background: active ? 'var(--theme)' : 'var(--bg-card)', color: active ? 'var(--theme-text, #001a1f)' : 'var(--sa-text-dim)',
+  border: '1px solid var(--sa-border)',
+});
+
+function ProjectCard({ p, onClick }) {
+  return (
+    <button onClick={onClick} data-testid={`catalog-card-${p.project_id}`} style={{
+      textAlign: 'left', cursor: 'pointer', padding: 0, borderRadius: 14, overflow: 'hidden',
+      background: 'var(--bg-card)', border: '1px solid var(--sa-border)', color: 'var(--sa-text)',
+    }}>
+      <div style={{ height: 120, background: 'var(--bg-card-2)', position: 'relative' }}>
+        {p.cover && <img src={p.cover.startsWith('/api') ? `${ASSET_BASE}${p.cover}` : p.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', color: p.readiness_pct >= 80 ? '#34D399' : (p.readiness_pct < 50 ? '#F2635B' : '#fff') }}>{p.readiness_pct}%</span>
+        {p.publicado && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 9.5, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: 'rgba(52,211,153,0.85)', color: '#001a10' }}>PUBLICADO</span>}
+      </div>
+      <div style={{ padding: '11px 13px' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--sa-text)' }}>{p.nombre}</div>
+        <div style={{ fontSize: 11.5, ...mute, marginTop: 2 }}>{p.colonia || '—'} · desde {mxn(p.price_from)}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>
+          <span style={{ ...dim }}>{p.leads_interes ? `${p.leads_interes} interesados` : 'Sin interesados'}</span>
+          <span style={{ ...mute }}>{(p.faltan || []).length ? `falta: ${p.faltan.length}` : '✓ completa'}</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function SuperadminCatalogPulse({ user, onLogout }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
+  const [view, setView] = useState('resumen'); // resumen | catalogo
+  const [openId, setOpenId] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -54,15 +86,21 @@ export default function SuperadminCatalogPulse({ user, onLogout }) {
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
-      <div style={{ marginBottom: 18 }}>
-        <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Pulso del catálogo</h1>
-        <p style={{ fontSize: 13, ...dim, margin: '4px 0 0' }}>Qué tan listo está todo tu catálogo y qué piden los compradores — en una sola vista.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Pulso del catálogo</h1>
+          <p style={{ fontSize: 13, ...dim, margin: '4px 0 0' }}>Salud del catálogo, demanda real y la ficha completa de cada proyecto de la plataforma.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setView('resumen')} style={tabBtn(view === 'resumen')} data-testid="view-resumen">Resumen</button>
+          <button onClick={() => setView('catalogo')} style={tabBtn(view === 'catalogo')} data-testid="view-catalogo">Todos los proyectos</button>
+        </div>
       </div>
 
       {err && <div style={{ ...card, color: '#FCA5A5' }}>No se pudo cargar: {err}</div>}
       {!d && !err && <div style={mute}>Cargando pulso del catálogo…</div>}
 
-      {d && (
+      {d && view === 'resumen' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
@@ -114,7 +152,8 @@ export default function SuperadminCatalogPulse({ user, onLogout }) {
                 </thead>
                 <tbody>
                   {(d.proyectos || []).map(p => (
-                    <tr key={p.project_id} data-testid={`pulse-row-${p.project_id}`} style={{ borderTop: '1px solid var(--sa-border)' }}>
+                    <tr key={p.project_id} data-testid={`pulse-row-${p.project_id}`} onClick={() => setOpenId(p.project_id)}
+                      style={{ borderTop: '1px solid var(--sa-border)', cursor: 'pointer' }}>
                       <td style={{ padding: '9px 10px' }}>
                         <div style={{ color: 'var(--sa-text)', fontWeight: 600 }}>{p.nombre || p.project_id}</div>
                         <div style={{ fontSize: 11, ...mute }}>{p.colonia || ''}</div>
@@ -132,6 +171,18 @@ export default function SuperadminCatalogPulse({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* CATÁLOGO · marketplace interno — todos los proyectos con su ficha completa */}
+      {d && view === 'catalogo' && (
+        <div>
+          <p style={{ fontSize: 12, ...mute, margin: '0 0 14px' }}>{d.total_proyectos} proyectos en la plataforma · toca uno para ver su ficha completa (público + interno).</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
+            {(d.proyectos || []).map(p => <ProjectCard key={p.project_id} p={p} onClick={() => setOpenId(p.project_id)} />)}
+          </div>
+        </div>
+      )}
+
+      {openId && <CatalogProjectDrawer projectId={openId} onClose={() => setOpenId(null)} />}
     </SuperadminLayout>
   );
 }
