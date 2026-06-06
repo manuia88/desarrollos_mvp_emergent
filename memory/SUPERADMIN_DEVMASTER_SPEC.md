@@ -46,16 +46,17 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
 
 ## CHECKLIST DE CONSTRUCCIÓN (front+back siempre · 🔧=reusa motor existente)
 
-### Fase 0 · Cimientos del portal
-- [ ] Back: endpoint lista global de proyectos con filtros (zona/segmento/dev/etapa/publicado) — reusa catalog-pulse
-- [ ] Front: sección nueva "Desarrollos" en menú superadmin (nav + ruta /superadmin/desarrollos)
-- [ ] Front: grid marketplace (portada/precio/readiness/demanda) + buscador + filtros — reusa grid de catalog-pulse
+### Fase 0 · Cimientos del portal — ✅ HECHO (commit fa1e00ef)
+- [x] Back: GET /api/superadmin/devmaster/projects (filtros zona/segmento/etapa/dev/publicado + facetas) — routes/superadmin_devmaster.py
+- [x] Front: sección "Desarrollos" en menú superadmin (tier Principal) + ruta /superadmin/desarrollos
+- [x] Front: SuperadminDesarrollos (grid + filtros + buscador)
 
-### Fase 1 · Ficha del proyecto (3 tabs)
-- [ ] Tab A Concentrado — back: project_detail (ya existe) · front: salud+portal-preview+resumen (solo lectura)
-- [ ] Tab B Analítica — back: endpoint que junta 🔧AVM+🔧forecast+demanda+plusvalía+canales+🔧close-prob+🔧hedónico del proyecto · front: cockpit analítica
-- [ ] Tab C Solo superadmin — back: interno+margen + comparativo vs cohorte + dev dueño + 🔧auditoría · front: tab
-- [ ] Botón "Impersonar" (editar como el dev) — reusa /tenants/{id}/impersonate
+### Fase 1 · Ficha del proyecto (3 tabs) — ✅ HECHO (commit fa1e00ef)
+- [x] Tab Concentrado — comprador + operación + qué falta (reusa project_detail)
+- [x] Tab Analítica — REUSA cockpits del dev (InsightsIntel AVM + CanalesIntel + VentasIntel) wrapped theme-light · "junta lo disperso"
+- [x] Tab Solo superadmin — interno + COMPARATIVO vs cohorte (percentiles precio/readiness/demanda) + auditoría
+- [x] Botón "Impersonar dev" (editar como el dev) — reusa impersonateTenant
+- [x] Back: GET /devmaster/project/{id} = project_detail + comparativo
 
 ### Fase 2 · Home cockpit global (áreas 1-9)
 - [ ] Back: agregador global con filtros transversales (zona/segmento/dev/etapa/periodo) — reusa cube/AVM/DRPI/demand-gap/hedónico/anomaly
