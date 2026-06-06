@@ -3,7 +3,7 @@
  * devs como un marketplace interno: catálogo con filtros + buscador → entra a la ficha completa.
  * Reusa /api/superadmin/devmaster/projects (filtros + facetas).
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Search } from 'lucide-react';
@@ -61,8 +61,12 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
 
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   const fac = facetas;
-  // Filtros del panorama (sin la búsqueda de texto, que es solo del catálogo)
-  const panoFilters = { zona: f.zona, segmento: f.segmento, etapa: f.etapa, dev: f.dev };
+  // Filtros del panorama (sin la búsqueda de texto, que es solo del catálogo).
+  // useMemo: referencia estable salvo que un filtro cambie de verdad → evita loop de fetch en el hijo.
+  const panoFilters = useMemo(
+    () => ({ zona: f.zona, segmento: f.segmento, etapa: f.etapa, dev: f.dev }),
+    [f.zona, f.segmento, f.etapa, f.dev]
+  );
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
