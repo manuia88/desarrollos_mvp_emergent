@@ -80,7 +80,12 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       qué fotos subir · perfil comprador típico · gusto por zona · acciones agentic. Primary:
       asesor_swipe_events (vacío hoy); fallback: catálogo×leads. Cero deuda.
       Front: GustoMercado.js (4o toggle). Verificado en vivo (Polanco $14M, recámara índice 2.18).
-- [ ] Objeciones + comportamiento del comprador (🔧minería conversaciones)
+- [x] **Objeciones + comportamiento del comprador** — ✅ HECHO (commit Fase 3)
+      Back: GET /devmaster/comportamiento — objeciones reales (precio 62%, respuesta lenta 48%) con
+      contra-argumento agentic · embudo · maduración (30d, 7.3 toques) · JOYA velocidad-vs-cierre
+      (<2h=22% vs >6h=5%) · DISC (infer_disc_from_lead) + objeciones-literales (extract_text_signals)
+      + sentimiento cableados fail-open sobre whatsapp/conversation_messages (vacíos→auto-llenan).
+      Front: Comportamiento.js (5o toggle). Verificado en vivo. Lección: MessageSquareWarning no existe en lucide instalado.
 - [ ] Stock score + predicción sold-out + elasticidad de precio
 - [ ] Macro+ciudad (transporte/negocios/riesgo→valor) — requiere prender conectores gov (llaves)
 - [ ] Competencia y red (🔧knowledge graph)
