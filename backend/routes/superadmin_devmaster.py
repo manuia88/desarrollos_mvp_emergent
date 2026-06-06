@@ -668,20 +668,26 @@ async def _gusto_mercado(db, zona=None, segmento=None):
     except Exception:
         pass
 
-    # Peso de engagement: swipes reales si existen (asesor_swipe_events), si no → demanda (leads)
+    # Peso de engagement: swipes del COMPRADOR (link tipo Tinder que manda el asesor) si existen
+    # (asesor_swipe_events · B5.4 Capa 1), si no → demanda (leads). Esquema real del evento:
+    # type ∈ {photo_view, photo_return, photo_zoom, detail_open, detail_dwell, decision(thumb up/down)}.
     swipe_n = 0
     swipe_by_dev: Dict[str, float] = {}
     try:
         swipe_n = await db.asesor_swipe_events.count_documents({})
         if swipe_n:
-            async for ev in db.asesor_swipe_events.find({}, {"_id": 0, "dev_id": 1, "action": 1, "dwell_ms": 1}):
+            async for ev in db.asesor_swipe_events.find({}, {"_id": 0, "dev_id": 1, "type": 1, "thumb": 1, "dwell_ms": 1}):
                 did = ev.get("dev_id")
                 if not did:
                     continue
-                w = 1.0
-                if (ev.get("action") or "").lower() in ("like", "save", "open_detail", "back"):
-                    w = 2.0
-                w += min((ev.get("dwell_ms") or 0) / 4000.0, 2.0)
+                typ = (ev.get("type") or "").lower()
+                if typ == "decision":
+                    w = 3.0 if (ev.get("thumb") == "up") else 0.2      # 👍 fuerte · 👎 casi nulo
+                elif typ in ("detail_open", "photo_return", "photo_zoom"):
+                    w = 1.5                                            # señales de interés
+                else:
+                    w = 0.5                                            # vista simple
+                w += min((ev.get("dwell_ms") or 0) / 4000.0, 2.0)     # + tiempo en la foto
                 swipe_by_dev[did] = swipe_by_dev.get(did, 0) + w
     except Exception:
         pass
@@ -836,7 +842,8 @@ async def _gusto_mercado(db, zona=None, segmento=None):
         "perfil_mercado": perfil,
         "acciones": acciones[:3],
         "fuente": {"gusto": fuente_taste, "swipes": swipe_n, "leads": sum(leads_by_dev.values()),
-                   "amenidades": "leads-reales", "nota": "El modelo de gusto se afina solo cuando entren swipes y fotos etiquetadas."},
+                   "amenidades": "leads-reales",
+                   "nota": "Se afina solo cuando los compradores swipeen en el link tipo Tinder que les manda el asesor."},
     }
 
 

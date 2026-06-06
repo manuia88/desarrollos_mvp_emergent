@@ -44,8 +44,8 @@ export default function GustoMercado({ filters }) {
 
   const maxVisual = Math.max(...(d.gusto_visual || []).map(g => g.indice_interes), 1);
   const fuenteTxt = d.fuente?.gusto === 'swipes-reales'
-    ? `Basado en ${d.fuente.swipes} swipes reales.`
-    : `Estimado del catálogo (${d.fuente?.leads || 0} leads) — se afina solo cuando entren swipes reales.`;
+    ? `Basado en ${d.fuente.swipes} swipes de compradores en el link tipo Tinder que les manda el asesor.`
+    : `Estimado del catálogo (${d.fuente?.leads || 0} leads) — se afina solo cuando los compradores swipeen en el link que les manda el asesor.`;
 
   return (
     <div data-testid="gusto-mercado" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -142,7 +142,7 @@ export default function GustoMercado({ filters }) {
             </div>
           </div>
           <div style={{ fontSize: 10.5, ...mute, marginTop: 10, fontStyle: 'italic' }}>
-            {d.perfil_mercado?.fuente === 'swipes-reales' ? 'Basado en swipes reales.' : 'Estimado de leads — se afina con swipes.'}
+            {d.perfil_mercado?.fuente === 'swipes-reales' ? 'Basado en swipes de compradores.' : 'Estimado de leads — se afina con los swipes de los compradores.'}
           </div>
         </Panel>
 
