@@ -378,3 +378,253 @@ async def brief(request: Request, zona: Optional[str] = None, segmento: Optional
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _market_brief(request.app.state.db, zona, segmento, etapa, dev)
+
+
+# ─── Fase 3 #2 · Dónde construir (demanda latente: zona × banda de precio × recámaras) ──
+# Cruza la DEMANDA real (leads: presupuesto + prototipo → recámaras + desarrollo → zona) contra la
+# OFERTA (unidades disponibles por banda/recámaras). Responde la pregunta del founder: "N compradores
+# buscan X en zona Y y solo hay M unidades → construye esto". Reusa dmx_demand (cubo) como señal
+# secundaria. Built-for-endstate: cotizador (marketplace) y modelo de gusto (amenidades) stubbeados,
+# se autollenan al llegar el dato. Cero deuda.
+_BANDS = [(0, 6e6, "< $6M"), (6e6, 9e6, "$6–9M"), (9e6, 12e6, "$9–12M"),
+          (12e6, 16e6, "$12–16M"), (16e6, 22e6, "$16–22M"), (22e6, float("inf"), "$22M+")]
+
+
+def _band_label(mxn):
+    for lo, hi, lab in _BANDS:
+        if mxn is not None and lo <= mxn < hi:
+            return lab
+    return None
+
+
+def _band_overlaps(pf, pt):
+    """Bandas que cruza un rango [price_from, price_to]."""
+    pf = pf or 0
+    pt = pt or pf
+    return [lab for lo, hi, lab in _BANDS if pf < hi and pt >= lo]
+
+
+def _proto_to_recamaras(proto, br):
+    """Mapea prototipo (A/B/PH) a recámaras dentro del rango del desarrollo (heurística defensiva)."""
+    if not br or not isinstance(br, (list, tuple)) or not br:
+        return None
+    lo, hi = (br[0], br[-1]) if len(br) >= 2 else (br[0], br[0])
+    p = (proto or "").upper()
+    if p == "A":
+        return lo
+    if p in ("PH", "P"):
+        return hi
+    if p == "B":
+        return round((lo + hi) / 2)
+    return round((lo + hi) / 2)
+
+
+def _mode(vals):
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return None
+    counts: Dict[Any, int] = {}
+    for v in vals:
+        counts[v] = counts.get(v, 0) + 1
+    return max(counts.items(), key=lambda x: x[1])[0]
+
+
+_PROTO_LABEL = {"A": "tipo de entrada", "B": "intermedio", "PH": "penthouse"}
+
+
+async def _donde_construir(db, zona=None, segmento=None):
+    from data_developments import DEVELOPMENTS_BY_ID, DEVELOPMENTS
+
+    # 0. Universo de desarrollos (filtrado por zona si aplica) + lookup
+    devs = list(DEVELOPMENTS)
+    if zona:
+        devs = [d for d in devs if d.get("colonia") == zona]
+    dev_ids = {d["id"] for d in devs}
+
+    # 1. DEMANDA real — leads (presupuesto + prototipo → recámaras + desarrollo → zona)
+    demand_cells: Dict[tuple, Dict[str, Any]] = {}     # (zona, banda) → agg
+    proto_pop: Dict[str, Dict[str, int]] = {}          # zona → {proto: n}
+    leads_usados = 0
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1, "budget_mxn": 1, "prototype_interes": 1}):
+            did = l.get("development_id")
+            dv = DEVELOPMENTS_BY_ID.get(did)
+            if not dv:
+                continue
+            z = dv.get("colonia")
+            if zona and z != zona:
+                continue
+            band = _band_label(l.get("budget_mxn"))
+            if not band:
+                continue
+            rec = _proto_to_recamaras(l.get("prototype_interes"), dv.get("bedrooms_range"))
+            key = (z, band)
+            cell = demand_cells.setdefault(key, {"zona": z, "banda": band, "demanda": 0, "_rec": [], "_dids": set()})
+            cell["demanda"] += 1
+            cell["_rec"].append(rec)
+            cell["_dids"].add(did)
+            proto = (l.get("prototype_interes") or "—").upper()
+            proto_pop.setdefault(z, {})[proto] = proto_pop.setdefault(z, {}).get(proto, 0) + 1
+            leads_usados += 1
+    except Exception as e:
+        log.warning("donde_construir demanda leads: %s", e)
+
+    # 1b. Cotizador (marketplace) — STUB hoy (lead_captures vacío), se autollena. Fail-open.
+    cotizador_usados = 0
+    try:
+        async for l in db.lead_captures.find({"interes": {"$ne": None}}, {"_id": 0, "property_id": 1, "interes": 1}):
+            dv = DEVELOPMENTS_BY_ID.get(l.get("property_id"))
+            if not dv:
+                continue
+            z = dv.get("colonia")
+            if zona and z != zona:
+                continue
+            band = _band_label((l.get("interes") or {}).get("precio") or dv.get("price_from"))
+            if not band:
+                continue
+            cell = demand_cells.setdefault((z, band), {"zona": z, "banda": band, "demanda": 0, "_rec": [], "_dids": set()})
+            cell["demanda"] += 1
+            cotizador_usados += 1
+    except Exception:
+        pass
+
+    # 2. OFERTA — units_available distribuidas en las bandas que cruza cada desarrollo
+    supply_cells: Dict[tuple, Dict[str, Any]] = {}     # (zona, banda) → agg
+    for d in devs:
+        z = d.get("colonia")
+        avail = d.get("units_available") or 0
+        if not z or avail <= 0:
+            continue
+        bands = _band_overlaps(d.get("price_from"), d.get("price_to")) or [_band_label(d.get("price_from"))]
+        bands = [b for b in bands if b]
+        if not bands:
+            continue
+        per = avail / len(bands)
+        br = d.get("bedrooms_range")
+        rec_typ = round((br[0] + br[-1]) / 2) if br else None
+        for b in bands:
+            cell = supply_cells.setdefault((z, b), {"zona": z, "banda": b, "oferta": 0, "_rec": [], "_devs": 0})
+            cell["oferta"] += per
+            cell["_devs"] += 1
+            if rec_typ:
+                cell["_rec"].append(rec_typ)
+
+    # 3. CRUCE → celdas con gap + veredicto + mensaje en lenguaje normal
+    all_keys = set(demand_cells) | set(supply_cells)
+    dmax = max([c["demanda"] for c in demand_cells.values()] or [1])
+    smax = max([c["oferta"] for c in supply_cells.values()] or [1])
+    cells: List[Dict[str, Any]] = []
+    for k in all_keys:
+        dem = demand_cells.get(k, {})
+        sup = supply_cells.get(k, {})
+        z, band = k
+        demanda = dem.get("demanda", 0)
+        oferta = round(sup.get("oferta", 0))
+        rec_dem = _mode(dem.get("_rec", []))
+        rec_sup = _mode(sup.get("_rec", []))
+        rec = rec_dem or rec_sup
+        gap = round((demanda / dmax) - (oferta / smax), 3)
+        ratio = round(demanda / (oferta + 1), 2)
+        if demanda == 0:
+            verdict, color = "Sobreoferta: inventario sin demanda", "rojo"
+        elif oferta == 0:
+            verdict, color = "Construir: demanda sin inventario", "verde"
+        elif ratio >= 2:
+            verdict, color = "Construir: mucha más demanda que oferta", "verde"
+        elif ratio >= 1:
+            verdict, color = "Ventana: la demanda supera la oferta", "ambar"
+        else:
+            verdict, color = "Equilibrado", "neutro"
+        rec_txt = f"{rec} rec" if rec else "esta tipología"
+        if demanda and oferta == 0:
+            msg = f"En {z}, {demanda} compradores buscan {rec_txt} ~{band} y NO hay inventario → construye {rec_txt} en {band}."
+        elif demanda:
+            msg = f"En {z}, {demanda} buscan {rec_txt} ~{band} y solo hay {oferta} unidades → {'construye más' if ratio >= 1 else 'sostén'} {rec_txt}."
+        else:
+            msg = f"En {z} hay {oferta} unidades ~{band} sin demanda registrada → cuidado con sobreoferta."
+        cells.append({"zona": z, "banda": band, "recamaras": rec, "demanda": demanda, "oferta": oferta,
+                      "gap_score": gap, "ratio": ratio, "veredicto": verdict, "color": color,
+                      "mensaje": msg, "devs": sup.get("_devs", 0)})
+
+    oportunidades = sorted([c for c in cells if c["demanda"] > 0], key=lambda x: (-x["gap_score"], -x["ratio"]))
+    sobreoferta = sorted([c for c in cells if c["demanda"] == 0 and c["oferta"] > 0], key=lambda x: -x["oferta"])[:5]
+
+    # 4. Agregado por zona (macro)
+    by_zone: Dict[str, Dict[str, Any]] = {}
+    for c in cells:
+        z = by_zone.setdefault(c["zona"], {"zona": c["zona"], "demanda": 0, "oferta": 0})
+        z["demanda"] += c["demanda"]
+        z["oferta"] += c["oferta"]
+    por_zona = sorted(by_zone.values(), key=lambda z: -(z["demanda"] / (z["oferta"] + 1)))
+    for z in por_zona:
+        z["indice_oportunidad"] = round(z["demanda"] / (z["oferta"] + 1), 2)
+
+    # 5. Prototipo más pedido (qué tipo de producto piden) — global + por zona top
+    proto_global: Dict[str, int] = {}
+    for zmap in proto_pop.values():
+        for p, n in zmap.items():
+            proto_global[p] = proto_global.get(p, 0) + n
+    top_proto = max(proto_global.items(), key=lambda x: x[1])[0] if proto_global else None
+    prototipo_pedido = {
+        "global": ({"proto": top_proto, "label": _PROTO_LABEL.get(top_proto, top_proto), "veces": proto_global.get(top_proto, 0)}
+                   if top_proto else None),
+        "por_zona": sorted([
+            {"zona": z, "proto": (max(m.items(), key=lambda x: x[1])[0]),
+             "label": _PROTO_LABEL.get(max(m.items(), key=lambda x: x[1])[0], "—"),
+             "veces": max(m.values())} for z, m in proto_pop.items() if m],
+            key=lambda x: -x["veces"])[:6],
+    }
+
+    # 6. Amenidades sugeridas — STUB del modelo de gusto (Fase 3 #11). Hoy: las que más ofrecen los
+    #    desarrollos en las zonas de mayor demanda. Se afina con el taste model. Fail-open.
+    top_zonas_dem = {z["zona"] for z in por_zona[:3] if z["demanda"]}
+    amen_count: Dict[str, int] = {}
+    for d in devs:
+        if d.get("colonia") in top_zonas_dem:
+            for a in (d.get("amenities") or []):
+                amen_count[a] = amen_count.get(a, 0) + 1
+    amenidades = sorted([{"amenidad": a, "veces": n} for a, n in amen_count.items()], key=lambda x: -x["veces"])[:6]
+
+    # 7. Señal secundaria: cubo zona × tipología (dmx_demand) — se enriquece cuando carguen átomos
+    cube = {"fuente": "no-disponible", "cells": []}
+    try:
+        import dmx_demand
+        cg = await dmx_demand.demand_gap(db, top=8)
+        cube = {"fuente": cg.get("demand_source"), "cells": cg.get("cells", [])[:8]}
+    except Exception as e:
+        log.info("donde_construir cubo no disponible: %s", e)
+
+    # 8. Resumen accionable (una frase)
+    if oportunidades:
+        o = oportunidades[0]
+        rec_txt = f"{o['recamaras']} rec" if o["recamaras"] else "producto"
+        resumen = (f"La mayor oportunidad: {rec_txt} ~{o['banda']} en {o['zona']} — "
+                   f"{o['demanda']} buscando y {o['oferta']} disponibles.")
+    elif leads_usados == 0:
+        resumen = "Aún no hay demanda registrada para cruzar. Se llena cuando entren leads y cotizaciones."
+    else:
+        resumen = "Oferta y demanda están equilibradas en el catálogo actual."
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "oportunidades": oportunidades[:12],
+        "sobreoferta": sobreoferta,
+        "por_zona": por_zona[:12],
+        "prototipo_pedido": prototipo_pedido,
+        "amenidades_sugeridas": amenidades,
+        "cube": cube,
+        "fuente": {
+            "demanda": "leads-reales" if leads_usados else "sin-datos",
+            "leads_usados": leads_usados,
+            "cotizador_usados": cotizador_usados,
+            "amenidades": "oferta-actual (el modelo de gusto la afinará)",
+        },
+    }
+
+
+@router.get("/donde-construir")
+async def donde_construir(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _donde_construir(request.app.state.db, zona, segmento)

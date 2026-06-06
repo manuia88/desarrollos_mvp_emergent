@@ -87,7 +87,7 @@ function BriefCard({ brief, navigate }) {
   );
 }
 
-export default function DesarrollosPanorama({ filters, onFacetas }) {
+export default function DesarrollosPanorama({ filters, onFacetas, onVerConstruir }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [brief, setBrief] = useState(null);
@@ -111,7 +111,6 @@ export default function DesarrollosPanorama({ filters, onFacetas }) {
   const r = d.resumen;
   const maxEtapa = Math.max(...(d.oferta.por_etapa || []).map(e => e.n), 1);
   const maxDev = Math.max(...(d.oferta.concentracion_devs || []).map(x => x.n_proyectos), 1);
-  const maxZ = Math.max(...(d.zonas || []).map(z => z.leads), 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -139,6 +138,12 @@ export default function DesarrollosPanorama({ filters, onFacetas }) {
               </div>
             ))}
           </div>
+          {onVerConstruir && (
+            <button onClick={onVerConstruir} data-testid="ver-donde-construir" style={{
+              marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+              background: 'transparent', border: 'none', color: 'var(--theme)', fontSize: 12.5, fontWeight: 700, padding: 0,
+            }}>Ver a detalle: qué construir, en qué banda de precio y cuántas recámaras <ArrowRight size={13} /></button>
+          )}
         </Panel>
       )}
 

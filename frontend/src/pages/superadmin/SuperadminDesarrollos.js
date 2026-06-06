@@ -9,6 +9,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Search } from 'lucide-react';
 import { fetchDevmasterProjects, ASSET_BASE } from '../../api/superadminDevmaster';
 import DesarrollosPanorama from './DesarrollosPanorama';
+import DondeConstruir from './DondeConstruir';
 
 const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
 const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s;
@@ -77,6 +78,7 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setView('panorama')} style={vtab(view === 'panorama')} data-testid="view-panorama">Panorama</button>
+          <button onClick={() => setView('construir')} style={vtab(view === 'construir')} data-testid="view-construir">Dónde construir</button>
           <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
         </div>
       </div>
@@ -116,7 +118,12 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
       </div>
 
       {/* PANORAMA · home global */}
-      {view === 'panorama' && <DesarrollosPanorama filters={panoFilters} onFacetas={setFacetas} />}
+      {view === 'panorama' && <DesarrollosPanorama filters={panoFilters} onFacetas={setFacetas} onVerConstruir={() => setView('construir')} />}
+
+      {/* DÓNDE CONSTRUIR · demanda latente (Fase 3 #2) */}
+      {view === 'construir' && (
+        <DondeConstruir filters={panoFilters} onPickZona={(z) => { set('zona', z); setView('catalogo'); }} />
+      )}
 
       {/* CATÁLOGO · grid de proyectos */}
       {view === 'catalogo' && (

@@ -14,3 +14,10 @@ export async function fetchDevmasterProject(projectId) {
   if (!r.ok) throw new Error('No se pudo cargar la ficha del desarrollo');
   return r.json();
 }
+
+export async function fetchDondeConstruir(filters = {}) {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/donde-construir${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar dónde construir');
+  return r.json();
+}
