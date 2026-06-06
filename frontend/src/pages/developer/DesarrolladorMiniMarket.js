@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getDevMiniMarket, setDevExternalInventory } from '../../api/internal_users';
 import { Z } from '../../styles/zIndex';
+import DevMarketingJugadas from '../../components/developer/DevMarketingJugadas';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 const MKT_AREAS = [['mini', 'Mini Market'], ['studio', 'Studio']];
@@ -187,6 +188,9 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
       )}
 
       {DEV_V2 && area === 'studio' && <StudioLauncher />}
+
+      {/* Qué Promocionar Hoy — el asistente conecta la salud del portafolio con crear contenido. */}
+      {DEV_V2 && area === 'mini' && <DevMarketingJugadas />}
 
       {(!DEV_V2 || area === 'mini') && (
       <div data-testid="desarrollador-mini-market" style={{ maxWidth: 1200 }}>

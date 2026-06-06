@@ -484,6 +484,69 @@ async def dev_red_salud(request: Request):
     }
 
 
+# ─── Marketing · Qué Promocionar Hoy (Bloque 1.6) — conecta la salud del portafolio ──
+#     (estancados · baja demanda · interés caliente) con la acción de crear contenido (Studio).
+#     Reusa el motor de Stock/Sold-Out + leads, scope-ado al dev. Cierra el ciclo señal→contenido. Cero deuda.
+@router.get("/marketing-jugadas")
+async def dev_marketing_jugadas(request: Request):
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    from routes.superadmin_devmaster import _stock_soldout
+    ss = await _stock_soldout(db, dev_ids=dev_ids)
+
+    leads_by_dev = {}
+    try:
+        async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0, "development_id": 1}):
+            k = l.get("development_id")
+            if k:
+                leads_by_dev[k] = leads_by_dev.get(k, 0) + 1
+    except Exception:
+        pass
+
+    jugadas = []
+    for p in (ss.get("proyectos") or []):
+        pid = p["project_id"]
+        avail = p["disponibles"] or 0
+        leads = leads_by_dev.get(pid, 0)
+        lxu = leads / (avail + 1)
+        meses = p["meses_para_agotar"]
+        slow = (p["estado"] == "Se está estancando") or (meses is not None and meses > 30)
+        if slow and lxu < 1:
+            if leads >= 10:
+                motivo = f"Tienes demanda ({leads} leads) pero mucho inventario por mover ({avail} libres). Una landing + campaña acelera el cierre."
+            else:
+                motivo = f"Lleva mucho inventario ({avail} libres) y poca demanda. Una landing + campaña le mete leads."
+            prio, tipo = 0, "landing"
+            accion, contenido = "Crea una landing de captación", "Landing"
+        elif lxu < 0.8 and avail >= 5:
+            prio, tipo, motivo = 1, "carrusel", f"Demanda tibia ({leads} leads para {avail} unidades). Carruseles en redes amplían el alcance."
+            accion, contenido = "Genera carruseles para redes", "Carruseles"
+        elif lxu >= 2:
+            prio, tipo, motivo = 2, "video", f"Hay interés caliente ({leads} leads). Un video/tour aprovecha el momento y acelera el cierre."
+            accion, contenido = "Crea un video o tour", "Video"
+        else:
+            prio, tipo, motivo = 3, "auto", "Va a buen ritmo. Mantén presencia con contenido automático."
+            accion, contenido = "Programa contenido automático", "Auto-Content"
+        jugadas.append({
+            "project_id": pid, "nombre": p["nombre"], "zona": p["zona"],
+            "disponibles": avail, "leads": leads, "_prio": prio,
+            "motivo": motivo, "accion": accion, "contenido": contenido,
+            "link_studio": {"landing": "/portal/studio/landings", "carrusel": "/portal/studio/carruseles",
+                            "video": "/portal/studio/video", "auto": "/portal/studio/auto-content"}.get(tipo, "/portal/studio/brand-kit"),
+            "link_proyecto": f"/desarrollador/proyectos/{pid}",
+        })
+    jugadas.sort(key=lambda x: x["_prio"])
+    for j in jugadas:
+        j.pop("_prio", None)
+
+    urgentes = [j for j in jugadas if "landing" in (j["link_studio"] or "")]
+    resumen = (f"{len(urgentes)} proyecto(s) necesitan empuje de marketing ya." if urgentes
+               else "Tu portafolio va con buena tracción — mantén presencia.")
+    return {"resumen": resumen, "jugadas": jugadas[:6],
+            "nota": "Conecta tu ritmo de venta y demanda con el contenido que conviene crear. Lo armas en el Studio en un clic."}
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):

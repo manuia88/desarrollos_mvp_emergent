@@ -35,6 +35,8 @@ export const getDevComportamiento = () => j('/api/desarrollador/comportamiento')
 export const getDevPricingInteligente = () => j('/api/desarrollador/pricing-inteligente');
 // Red Comercial · "Salud de tu Red" (concentración + quién cierra + in-house vs broker + acciones)
 export const getDevRedSalud = () => j('/api/desarrollador/red-salud');
+// Marketing · "Qué Promocionar Hoy" (conecta salud del portafolio con crear contenido en Studio)
+export const getDevMarketingJugadas = () => j('/api/desarrollador/marketing-jugadas');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');
