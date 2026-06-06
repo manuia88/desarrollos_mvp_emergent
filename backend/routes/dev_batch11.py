@@ -483,6 +483,8 @@ def _get_unit(dev_id: str, unit_id: str):
 @router.get("/units/{dev_id}/{unit_id}/price-history")
 async def get_unit_price_history(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # no leer unidades de otra dev
     db = _db(request)
     # Real price changes from audit log
     history = []
@@ -557,6 +559,8 @@ async def get_unit_price_history(dev_id: str, unit_id: str, request: Request):
 @router.get("/units/{dev_id}/{unit_id}/comparables")
 async def get_unit_comparables(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # no leer unidades de otra dev
     dev, unit = _get_unit(dev_id, unit_id)
     if not unit:
         raise HTTPException(404, "Unidad no encontrada")
@@ -590,6 +594,8 @@ async def get_unit_comparables(dev_id: str, unit_id: str, request: Request):
 @router.get("/units/{dev_id}/{unit_id}/market-comparables")
 async def get_unit_market_comparables(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # no leer unidades de otra dev
     dev, unit = _get_unit(dev_id, unit_id)
     if not unit:
         raise HTTPException(404, "Unidad no encontrada")
@@ -993,6 +999,8 @@ class AssetRolePatch(BaseModel):
 async def patch_asset_role_alias(project_id: str, asset_id: str, payload: AssetRolePatch, request: Request):
     """Lightweight alias that stores asset role in project_asset_meta."""
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # no editar assets de otra dev
     db = _db(request)
     now_iso = _now().isoformat()
     if payload.role == "cover":

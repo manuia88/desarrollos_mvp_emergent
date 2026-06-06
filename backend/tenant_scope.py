@@ -61,3 +61,32 @@ def user_dev_ids(user) -> List[str]:
 
     # (4) fallback seguro — acotado, sin fuga cross-tenant
     return [d["id"] for d in DEVELOPMENTS[:2]]
+
+
+# ─── Candados de propiedad (Fase 2.1 · aislamiento cross-dev-org) ────────────────
+def dev_can_access_org(user, dev_org_id) -> bool:
+    """¿Puede el usuario tocar un recurso marcado con dev_org_id? superadmin o su mismo tenant."""
+    if is_superadmin(user):
+        return True
+    return bool(dev_org_id) and dev_org_id == tenant_of(user)
+
+
+def dev_can_access_project(user, project_id) -> bool:
+    """¿El proyecto pertenece al usuario? superadmin o está en sus desarrollos."""
+    if is_superadmin(user):
+        return True
+    return project_id in user_dev_ids(user)
+
+
+def assert_dev_org(user, dev_org_id):
+    """Lanza 403 si el usuario no es dueño del recurso (por dev_org_id)."""
+    from fastapi import HTTPException
+    if not dev_can_access_org(user, dev_org_id):
+        raise HTTPException(403, "Este recurso es de otra desarrolladora")
+
+
+def assert_dev_project(user, project_id):
+    """Lanza 403 si el proyecto no pertenece al usuario."""
+    from fastapi import HTTPException
+    if not dev_can_access_project(user, project_id):
+        raise HTTPException(403, "Este proyecto es de otra desarrolladora")

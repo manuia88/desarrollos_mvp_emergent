@@ -294,6 +294,8 @@ async def recalc_heat(lead_id: str, request: Request):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, lead.get("development_id"))   # no tocar leads de otra dev
     new_heat = await compute_heat_for_lead(db, lead)
     await db.leads.update_one({"id": lead_id}, {"$set": new_heat})
     await _safe_audit_ml(

@@ -572,6 +572,8 @@ async def reorder_prototypes(project_id: str, body: ReorderIn, request: Request)
     if user.role not in ("developer_admin", "developer_director", "developer_member",
                           "superadmin"):
         raise HTTPException(403, "Sin permiso")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # no reordenar prototipos de otra dev
     db = _db(request)
     return await _reorder_generic(
         db, "project_prototypes", "id",

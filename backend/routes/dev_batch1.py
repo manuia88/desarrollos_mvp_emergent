@@ -1086,6 +1086,8 @@ async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
 @router.delete("/units/{unit_id}/hold")
 async def release_hold(unit_id: str, dev_id: str, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # no liberar apartados de otra dev
     db = _db(request)
     result = await db.unit_holds.update_one(
         {"unit_id": unit_id, "status": "active"},

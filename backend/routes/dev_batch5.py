@@ -188,6 +188,8 @@ async def patch_pricing_experiment(exp_id: str, payload: PricingPatchInput, requ
     exp = await db.pricing_experiments.find_one({"id": exp_id}, {"_id": 0})
     if not exp:
         raise HTTPException(404, "Experimento no encontrado")
+    from tenant_scope import assert_dev_org
+    assert_dev_org(user, exp.get("dev_org_id"))   # no editar experimentos de otra dev
     update = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     if not update:
         return exp
@@ -373,6 +375,8 @@ async def pricing_results(exp_id: str, request: Request):
     exp = await db.pricing_experiments.find_one({"id": exp_id}, {"_id": 0})
     if not exp:
         raise HTTPException(404, "Experimento no encontrado")
+    from tenant_scope import assert_dev_org
+    assert_dev_org(user, exp.get("dev_org_id"))   # no leer resultados de otra dev
 
     variants_out = []
     for v in exp["variants"]:
@@ -822,6 +826,9 @@ async def download_report(file_id: str, request: Request):
     f = await db.report_files.find_one({"id": file_id}, {"_id": 0})
     if not f:
         raise HTTPException(404, "Archivo no encontrado")
+    # Aislamiento: solo el dueño (o superadmin) descarga el reporte (no exfiltrar de otra dev).
+    from tenant_scope import assert_dev_org
+    assert_dev_org(user, f.get("dev_org_id"))
     pdf = base64.b64decode(f["content_b64"])
     return Response(content=pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="report-{file_id}.pdf"'})

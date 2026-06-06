@@ -248,7 +248,9 @@ async def post_auto_assign(body: AutoAssignIn, request: Request):
 
 @router.get("/api/appointments/policy/{project_id}")
 async def get_policy_endpoint(project_id: str, request: Request):
-    await _auth(request)
+    user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # no ver la política de citas de otra dev
     db = _db(request)
     from availability import get_policy
     return await get_policy(db, project_id)
@@ -257,6 +259,8 @@ async def get_policy_endpoint(project_id: str, request: Request):
 @router.put("/api/appointments/policy/{project_id}")
 async def put_policy_endpoint(project_id: str, body: PolicyIn, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # no editar la política de citas de otra dev
     db = _db(request)
 
     if body.policy_type not in ("round_robin", "pre_selected", "load_balance", "smart_match"):
