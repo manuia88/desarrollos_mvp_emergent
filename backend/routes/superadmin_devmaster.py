@@ -700,17 +700,38 @@ async def _gusto_mercado(db, zona=None, segmento=None):
     feat_cat: Dict[str, int] = {}
     feat_w: Dict[str, float] = {}
     room_by_zone: Dict[str, Dict[str, int]] = {}
+    # Etiquetas REALES de las fotos (asesor_photo_tags · Capa 2 vision/url) si ya se procesaron;
+    # si no, se cae al nombre del archivo. (dev_id, photo_idx) → tag.
+    tags_real: Dict[tuple, Dict[str, Any]] = {}
+    fotos_etiquetadas = 0
+    fuente_fotos = "nombre-de-archivo"
+    try:
+        async for ptag in db.asesor_photo_tags.find({}, {"_id": 0, "dev_id": 1, "photo_idx": 1, "room_label": 1, "features": 1, "source": 1}):
+            tags_real[(ptag.get("dev_id"), ptag.get("photo_idx"))] = ptag
+            if ptag.get("source") == "vision":
+                fuente_fotos = "vision"
+    except Exception:
+        pass
+    if tags_real and fuente_fotos != "vision":
+        fuente_fotos = "etiquetas-guardadas"
     for d in devs:
         w = weight_by_dev.get(d["id"], 0.0)
         z = d.get("colonia")
-        for url in (d.get("photos") or []):
-            t = pt.tag_from_url(url)
-            rl = t.get("room_label") or "Interior"
+        for i, url in enumerate(d.get("photos") or []):
+            real = tags_real.get((d["id"], i))
+            if real:
+                rl = real.get("room_label") or "Interior"
+                feats = real.get("features") or []
+                fotos_etiquetadas += 1
+            else:
+                t = pt.tag_from_url(url)
+                rl = t.get("room_label") or "Interior"
+                feats = t.get("features") or []
             room_cat[rl] = room_cat.get(rl, 0) + 1
             room_w[rl] = room_w.get(rl, 0) + w
             if z:
                 room_by_zone.setdefault(z, {})[rl] = room_by_zone.setdefault(z, {}).get(rl, 0) + 1
-            for f in (t.get("features") or []):
+            for f in feats:
                 feat_cat[f] = feat_cat.get(f, 0) + 1
                 feat_w[f] = feat_w.get(f, 0) + w
 
@@ -842,7 +863,7 @@ async def _gusto_mercado(db, zona=None, segmento=None):
         "perfil_mercado": perfil,
         "acciones": acciones[:3],
         "fuente": {"gusto": fuente_taste, "swipes": swipe_n, "leads": sum(leads_by_dev.values()),
-                   "amenidades": "leads-reales",
+                   "amenidades": "leads-reales", "fotos": fuente_fotos, "fotos_etiquetadas": fotos_etiquetadas,
                    "nota": "Se afina solo cuando los compradores swipeen en el link tipo Tinder que les manda el asesor."},
     }
 
@@ -1733,6 +1754,17 @@ async def _observabilidad_ia(db):
         return {"estado": "activo", "detalle": None} if activo_si else {"estado": "espera", "detalle": motivo_espera}
     swipes = await _count("asesor_swipe_events")
     convos = await _count("conversation_messages") + await _count("whatsapp_messages")
+    photo_tags = await _count("asesor_photo_tags")
+    conv_sig = await db.conversation_signal.find_one({"_id": "global"}) if "conversation_signal" else None
+    conv_procesados = (conv_sig or {}).get("procesados", 0) if conv_sig else 0
+    # Gusto: activo si ya analizamos fotos (Capa 2) o hay swipes. Conversaciones: si hay mensajes/procesados.
+    if photo_tags > 0 and swipes == 0:
+        gusto_estado = {"estado": "activo", "detalle": f"Analiza {photo_tags} fotos reales del catálogo. El gusto por swipes se enciende con el link al comprador."}
+    elif photo_tags > 0 or swipes > 0:
+        gusto_estado = {"estado": "activo", "detalle": None}
+    else:
+        gusto_estado = {"estado": "espera", "detalle": "analiza las fotos del catálogo y los swipes del comprador"}
+    conv_estado = (await _estado((convos > 0 or conv_procesados > 0), motivo_espera="se llena al conectar WhatsApp/chat"))
     inventario = [
         {"modelo": "Valuación automática (AVM)", "para": "Dev · Superadmin",
          **(await _estado(bool(snap), motivo_espera="se activa con cierres para calibrar"))},
@@ -1746,10 +1778,10 @@ async def _observabilidad_ia(db):
          **(await _estado((await _count("cerebro_lessons")) > 0, motivo_espera="aprende con el uso real"))},
         {"modelo": "Alertas predictivas de leads", "para": "Asesor",
          **(await _estado(vigilancia["corridas"] > 0, motivo_espera="necesita actividad de leads"))},
-        {"modelo": "Gusto visual del comprador", "para": "Dev · Asesor",
-         **(await _estado(swipes > 0, motivo_espera="se llena con los swipes del comprador"))},
-        {"modelo": "Análisis de conversaciones", "para": "Asesor",
-         **(await _estado(convos > 0, motivo_espera="se llena al conectar WhatsApp/chat"))},
+        {"modelo": "Gusto visual del comprador", "para": "Dev · Asesor", "accion": "gusto",
+         "accion_label": "Analizar fotos del catálogo", **gusto_estado},
+        {"modelo": "Análisis de conversaciones", "para": "Asesor", "accion": "conversaciones",
+         "accion_label": "Procesar conversaciones", **conv_estado},
     ]
     activos = sum(1 for m in inventario if m["estado"] == "activo")
 
@@ -1795,3 +1827,90 @@ async def observabilidad_ia(request: Request):
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _observabilidad_ia(request.app.state.db)
+
+
+# ─── Cablear los 2 modelos en espera · conectores reales (gusto · conversaciones) ───
+# "Activar" = correr el conector que ALIMENTA cada modelo con el dato real que SÍ tenemos:
+#   · gusto → etiqueta las fotos del catálogo (photo_tagger, visión si hay llave OpenAI · Capa 2)
+#     → asesor_photo_tags → el modelo de gusto deja de adivinar por el nombre del archivo.
+#   · conversaciones → mina los mensajes guardados (objeciones + DISC + ánimo) → conversation_signal.
+# Idempotente, fail-open, cero deuda. Lo externo (swipes del comprador, WhatsApp) se autollena.
+async def _activar_gusto(db):
+    from data_developments import DEVELOPMENTS
+    import os
+    import photo_tagger as pt
+    use_vision = bool(os.environ.get("OPENAI_API_KEY"))
+    etiquetadas = 0
+    devs_ok = 0
+    for d in DEVELOPMENTS:
+        photos = d.get("photos") or []
+        if not photos:
+            continue
+        try:
+            tags = await pt.ensure_tags(db, d["id"], photos, use_vision=use_vision)
+            etiquetadas += len(tags)
+            devs_ok += 1
+        except Exception as e:
+            log.warning("activar_gusto %s: %s", d.get("id"), e)
+    total = 0
+    try:
+        total = await db.asesor_photo_tags.count_documents({})
+    except Exception:
+        pass
+    return {"modelo": "gusto", "ok": True, "fotos_etiquetadas": total, "procesadas_ahora": etiquetadas,
+            "desarrollos": devs_ok, "metodo": "vision" if use_vision else "nombre-de-archivo",
+            "mensaje": (f"Analicé {total} fotos del catálogo{' con visión IA' if use_vision else ''}. "
+                        "El gusto del mercado ya aprende de las imágenes reales, no del nombre del archivo. "
+                        "El gusto por swipes se enciende cuando un comprador use el link tipo Tinder.")}
+
+
+async def _activar_conversaciones(db):
+    """Mina los mensajes del comprador (objeciones + ánimo + DISC) → conversation_signal. 0 hoy, auto-llena."""
+    from datetime import datetime, timezone
+    obj_counts: Dict[str, int] = {}
+    sent = {"positivo": 0, "negativo": 0, "neutral": 0}
+    procesados = 0
+    try:
+        from taste_profile import extract_text_signals
+        for col in ["conversation_messages", "whatsapp_messages", "chat_messages", "buyer_coach_conversations"]:
+            try:
+                async for m in db[col].find({"$or": [{"role": "user"}, {"from": "lead"}, {"sender": "buyer"}, {"direction": "inbound"}]},
+                                            {"_id": 0, "content": 1, "text": 1, "body": 1, "message": 1}).limit(2000):
+                    txt = m.get("content") or m.get("text") or m.get("body") or m.get("message")
+                    if not txt:
+                        continue
+                    sig = extract_text_signals(txt)
+                    procesados += 1
+                    sent[sig.get("sentiment", "neutral")] = sent.get(sig.get("sentiment", "neutral"), 0) + 1
+                    for s in sig.get("signals", []):
+                        if s.get("kind") == "budget" and s.get("polarity") == "neg":
+                            obj_counts["precio"] = obj_counts.get("precio", 0) + 1
+                        if s.get("kind") == "feature" and s.get("value") == "amplio":
+                            obj_counts["tamano"] = obj_counts.get("tamano", 0) + 1
+            except Exception:
+                continue
+    except Exception as e:
+        log.warning("activar_conversaciones: %s", e)
+    doc = {"_id": "global", "procesados": procesados, "objeciones": obj_counts, "sentimiento": sent,
+           "updated_at": datetime.now(timezone.utc).isoformat()}
+    try:
+        await db.conversation_signal.replace_one({"_id": "global"}, doc, upsert=True)
+    except Exception:
+        pass
+    return {"modelo": "conversaciones", "ok": True, "mensajes_procesados": procesados,
+            "objeciones": obj_counts, "sentimiento": sent,
+            "mensaje": (f"Procesé {procesados} mensajes de compradores." if procesados else
+                        "El conector quedó listo y conectado. En cuanto entre la primera conversación "
+                        "(WhatsApp o el chat del asistente), se llena solo con objeciones, ánimo y perfil DISC.")}
+
+
+@router.post("/activar-modelo/{modelo}")
+async def activar_modelo(modelo: str, request: Request):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    if modelo == "gusto":
+        return await _activar_gusto(db)
+    if modelo == "conversaciones":
+        return await _activar_conversaciones(db)
+    raise HTTPException(400, "Modelo no reconocido")

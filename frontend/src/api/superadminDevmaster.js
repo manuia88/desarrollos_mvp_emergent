@@ -62,3 +62,9 @@ export async function fetchObservabilidadIA() {
   if (!r.ok) throw new Error('No se pudo cargar la observabilidad de la IA');
   return r.json();
 }
+
+export async function activarModelo(modelo) {
+  const r = await fetch(`${API}/api/superadmin/devmaster/activar-modelo/${modelo}`, { method: 'POST', credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo activar el modelo');
+  return r.json();
+}

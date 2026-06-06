@@ -6,8 +6,8 @@
  * Integra toda la IA de los 4 portales (AVM/forecast/close-prob/cerebro/alertas).
  */
 import React, { useEffect, useState } from 'react';
-import { Brain, Gauge, RefreshCw, Eye, Sparkles, CircuitBoard, Lightbulb, BookOpen } from 'lucide-react';
-import { fetchObservabilidadIA } from '../../api/superadminDevmaster';
+import { Brain, Gauge, RefreshCw, Eye, Sparkles, CircuitBoard, Lightbulb, BookOpen, Zap } from 'lucide-react';
+import { fetchObservabilidadIA, activarModelo } from '../../api/superadminDevmaster';
 
 const dim = { color: 'var(--sa-text-dim)' };
 const mute = { color: 'var(--sa-text-mute)' };
@@ -30,12 +30,28 @@ function Panel({ icon: Icon, title, sub, children, accent }) {
 export default function ObservabilidadIA() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
+  const [activando, setActivando] = useState(null);   // modelo en proceso
+  const [resultado, setResultado] = useState({});     // {modelo: mensaje}
 
+  const cargar = () => fetchObservabilidadIA().then(setD).catch(e => setErr(e.message));
   useEffect(() => {
     let alive = true;
     fetchObservabilidadIA().then(r => { if (alive) setD(r); }).catch(e => { if (alive) setErr(e.message); });
     return () => { alive = false; };
   }, []);
+
+  const onActivar = async (modelo) => {
+    setActivando(modelo);
+    try {
+      const r = await activarModelo(modelo);
+      setResultado(prev => ({ ...prev, [modelo]: r.mensaje }));
+      await cargar();
+    } catch (e) {
+      setResultado(prev => ({ ...prev, [modelo]: 'No se pudo activar. Intenta de nuevo.' }));
+    } finally {
+      setActivando(null);
+    }
+  };
 
   if (err) return <div style={{ color: '#FCA5A5' }}>No se pudo cargar la observabilidad de la IA.</div>;
   if (!d) return <div style={mute}>Abriendo el cerebro de la IA…</div>;
@@ -82,6 +98,15 @@ export default function ObservabilidadIA() {
               </div>
               <div style={{ fontSize: 10.5, ...mute, marginTop: 4 }}>{m.para}</div>
               {m.detalle && <div style={{ fontSize: 11, ...dim, marginTop: 5 }}>{m.detalle}</div>}
+              {m.accion && (
+                <button onClick={() => onActivar(m.accion)} disabled={activando === m.accion} data-testid={`activar-${m.accion}`}
+                  style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: activando === m.accion ? 'wait' : 'pointer',
+                    background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)',
+                    fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 8 }}>
+                  <Zap size={11} />{activando === m.accion ? 'Procesando…' : (m.accion_label || 'Activar')}
+                </button>
+              )}
+              {resultado[m.accion] && <div style={{ fontSize: 10.5, color: GREEN, marginTop: 6, lineHeight: 1.4 }}>{resultado[m.accion]}</div>}
             </div>
           ))}
         </div>
