@@ -1286,3 +1286,184 @@ async def stock_soldout(request: Request, zona: Optional[str] = None, segmento: 
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _stock_soldout(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 · Macro + Ciudad (transporte/negocios/riesgo/tasas → valor) ──────────────
+# Cruza las señales de CIUDAD (movilidad=transporte, comercio=negocios, riesgo, seguridad, educación,
+# vida) con el VALOR (precio/m²) y la DEMANDA (leads) para responder "qué mueve el precio en CDMX".
+# + Tasa Banxico real → afford./crédito · gentrificación (trend de la zona) · riesgo de ciudad.
+# Reusa COLONIAS (scores 7 ejes + trend) + banxico_series (dato real) + gov_data_mx_engine (fail-open).
+# Cero deuda: GTFS/DENUE/Atlas se enriquecen al prender llaves.
+_CITY_AXES = [
+    ("movilidad", "Movilidad (transporte)", "Qué tan bien conectada está (metro, vías)."),
+    ("comercio", "Comercio (negocios)", "Densidad de comercios y oficinas alrededor."),
+    ("seguridad", "Seguridad", "Percepción y datos de seguridad."),
+    ("educacion", "Educación", "Escuelas y universidades cercanas."),
+    ("vida", "Calidad de vida", "Parques, servicios, ambiente."),
+    ("riesgo", "Riesgo bajo", "Menor riesgo sísmico/climático = mejor."),
+]
+
+
+def _mortgage_payment(principal, annual_rate_pct, years=20):
+    r = (annual_rate_pct or 0) / 100.0 / 12.0
+    nN = years * 12
+    if r <= 0:
+        return round(principal / nN) if nN else None
+    return round(principal * r / (1 - (1 + r) ** (-nN)))
+
+
+async def _macro_ciudad(db, zona=None, segmento=None):
+    from data_seed import COLONIAS, COLONIAS_BY_ID  # noqa: F401
+    from data_developments import DEVELOPMENTS
+
+    devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+    leads_by_dev: Dict[str, int] = {}
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1}):
+            k = l.get("development_id")
+            if k:
+                leads_by_dev[k] = leads_by_dev.get(k, 0) + 1
+    except Exception:
+        pass
+    # Demanda + #proyectos por colonia (de nuestro catálogo)
+    leads_by_zona: Dict[str, int] = {}
+    proy_by_zona: Dict[str, int] = {}
+    for d in devs:
+        z = d.get("colonia")
+        if z:
+            leads_by_zona[z] = leads_by_zona.get(z, 0) + leads_by_dev.get(d["id"], 0)
+            proy_by_zona[z] = proy_by_zona.get(z, 0) + 1
+
+    cols = COLONIAS
+    if zona:
+        cols = [c for c in COLONIAS if c["name"] == zona] or COLONIAS
+
+    # ── 1. Qué mueve el valor: correlación de cada eje de ciudad con precio/m² ───────
+    precios = [c.get("price_m2_num") for c in cols if c.get("price_m2_num")]
+    drivers = []
+    for key, label, desc in _CITY_AXES:
+        xs, ys, ds = [], [], []
+        for c in cols:
+            sc = (c.get("scores") or {}).get(key)
+            pm = c.get("price_m2_num")
+            if sc is not None and pm:
+                xs.append(sc)
+                ys.append(pm)
+        corr = _pearson(xs, ys)
+        # correlación con demanda (leads) donde haya
+        xd, yd = [], []
+        for c in cols:
+            sc = (c.get("scores") or {}).get(key)
+            ld = leads_by_zona.get(c["name"], 0)
+            if sc is not None:
+                xd.append(sc)
+                yd.append(ld)
+        corr_dem = _pearson(xd, yd)
+        if corr is not None:
+            direccion = "sube" if corr > 0.1 else "inverso" if corr < -0.1 else "neutro"
+            if direccion == "sube":
+                efecto = f"A más {label.split('(')[0].strip().lower()}, más caro."
+            elif direccion == "inverso":
+                efecto = f"Las zonas más caras tienen MENOS {label.split('(')[0].strip().lower()} (relación inversa)."
+            else:
+                efecto = "Sin relación clara con el precio."
+            drivers.append({"eje": key, "label": label, "desc": desc, "corr_precio": corr,
+                            "corr_demanda": corr_dem, "direccion": direccion, "efecto": efecto,
+                            "impacto": "alto" if abs(corr) >= 0.5 else "medio" if abs(corr) >= 0.25 else "bajo"})
+    drivers.sort(key=lambda x: -abs(x["corr_precio"]))
+
+    # ── 2. Tasa Banxico → crédito (dato real) ───────────────────────────────────────
+    tasa_actual = None
+    tasa_prev = None
+    try:
+        rows = await db.banxico_series.find({}, {"_id": 0, "date": 1, "value": 1}).sort("date", -1).limit(40).to_list(40)
+        if rows:
+            tasa_actual = round(rows[0]["value"], 2)
+            tasa_prev = round(rows[-1]["value"], 2)
+    except Exception:
+        pass
+    rate = tasa_actual if tasa_actual is not None else 10.5  # fallback razonable
+    ticket = _pctile([d.get("price_from") for d in devs if d.get("price_from")], 50) or 8_000_000
+    loan = round(ticket * 0.8)
+    pago_actual = _mortgage_payment(loan, rate)
+    pago_menos1 = _mortgage_payment(loan, rate - 1)
+    ahorro_si_baja = (pago_actual - pago_menos1) if (pago_actual and pago_menos1) else None
+    tendencia_tasa = None
+    if tasa_actual is not None and tasa_prev is not None:
+        tendencia_tasa = "bajando" if tasa_actual < tasa_prev - 0.05 else "subiendo" if tasa_actual > tasa_prev + 0.05 else "estable"
+    credito = {"tasa": tasa_actual, "tendencia": tendencia_tasa, "ticket_referencia": ticket,
+               "credito": loan, "pago_mensual": pago_actual, "ahorro_si_baja_1pt": ahorro_si_baja,
+               "fuente": "banxico_series" if tasa_actual is not None else "estimado"}
+
+    # ── 3. Gentrificación: zonas que se calientan (momentum + pendiente del trend) ──
+    calientan = []
+    for c in cols:
+        tr = c.get("trend") or []
+        slope = (tr[-1] - tr[0]) if len(tr) >= 2 else 0
+        try:
+            mom = float(str(c.get("momentum", "0")).replace("%", "").replace("+", ""))
+        except Exception:
+            mom = 0
+        calientan.append({"zona": c["name"], "momentum_pct": mom, "subida_trend": round(slope, 1),
+                          "price_m2": c.get("price_m2_num"), "tier": c.get("tier"),
+                          "proyectos_nuestros": proy_by_zona.get(c["name"], 0)})
+    calientan.sort(key=lambda x: (-x["momentum_pct"], -x["subida_trend"]))
+
+    # ── 4. Riesgo de ciudad (mayor score = más seguro) ──────────────────────────────
+    riesgo = sorted([{"zona": c["name"], "riesgo_score": (c.get("scores") or {}).get("riesgo"),
+                      "price_m2": c.get("price_m2_num"), "proyectos_nuestros": proy_by_zona.get(c["name"], 0)}
+                     for c in cols if (c.get("scores") or {}).get("riesgo") is not None],
+                    key=lambda x: x["riesgo_score"])  # más riesgoso primero
+
+    # ── 5. Perfil de ciudad de NUESTRAS zonas ───────────────────────────────────────
+    nuestras = []
+    for z, nproy in sorted(proy_by_zona.items(), key=lambda x: -x[1]):
+        c = next((x for x in COLONIAS if x["name"] == z), None)
+        if not c:
+            continue
+        nuestras.append({"zona": z, "proyectos": nproy, "leads": leads_by_zona.get(z, 0),
+                         "price_m2": c.get("price_m2_num"), "momentum": c.get("momentum"),
+                         "scores": c.get("scores"), "tier": c.get("tier")})
+
+    # ── 6. Resumen + acciones (agentic) ─────────────────────────────────────────────
+    top_driver = drivers[0] if drivers else None
+    top_pos = next((d for d in drivers if d["direccion"] == "sube"), None)
+    sube = calientan[0] if calientan else None
+    partes = []
+    if top_pos:
+        partes.append(f"En CDMX, lo que más sube el precio es {top_pos['label'].split('(')[0].strip().lower()}.")
+    if credito["tasa"] is not None:
+        partes.append(f"La tasa de Banxico está en {credito['tasa']}% ({credito['tendencia']}); la mensualidad de un depto de ${round(ticket/1e6,1)}M ronda ${pago_actual:,}.".replace(",", ","))
+    if sube and sube["momentum_pct"] > 0:
+        partes.append(f"La zona que más se calienta es {sube['zona']} (+{sube['momentum_pct']}%).")
+    resumen = " ".join(partes) or "Señal de ciudad en construcción."
+
+    acciones = []
+    if top_pos:
+        zonas_top_eje = sorted(cols, key=lambda c: -((c.get("scores") or {}).get(top_pos["eje"]) or 0))[:1]
+        if zonas_top_eje:
+            acciones.append({"tipo": "valor", "texto": f"Lo que más sube el precio es {top_pos['label'].split('(')[0].strip().lower()}: resáltalo en tus proyectos de zonas como {zonas_top_eje[0]['name']}."})
+    if credito["tasa"] is not None and credito["tendencia"] == "bajando":
+        acciones.append({"tipo": "credito", "texto": f"La tasa viene bajando — el crédito se abarata. Empuja la compra: una mensualidad de ${round(ticket/1e6,1)}M ya está en ~${pago_actual:,}."})
+    if sube and sube["proyectos_nuestros"] == 0 and sube["momentum_pct"] > 0:
+        acciones.append({"tipo": "gentrificacion", "texto": f"{sube['zona']} se está calentando (+{sube['momentum_pct']}%) y no tienes proyectos ahí — considera entrar antes que suba más.", "link": f"/superadmin/desarrollos?zona={sube['zona']}"})
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "drivers_valor": drivers,
+        "credito": credito,
+        "zonas_calientan": calientan[:8],
+        "riesgo_ciudad": riesgo[:8],
+        "perfil_zonas": nuestras[:10],
+        "acciones": acciones[:3],
+        "fuente": {"tasa": credito["fuente"], "colonias": len(cols),
+                   "nota": "Transporte (GTFS), negocios (DENUE) y riesgo (Atlas CENAPRED) se enriquecen al prender los conectores de datos abiertos."},
+    }
+
+
+@router.get("/macro-ciudad")
+async def macro_ciudad(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _macro_ciudad(request.app.state.db, zona, segmento)
