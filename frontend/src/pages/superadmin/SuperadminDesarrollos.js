@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { Search } from 'lucide-react';
 import { fetchDevmasterProjects, ASSET_BASE } from '../../api/superadminDevmaster';
+import DesarrollosPanorama from './DesarrollosPanorama';
 
 const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
 const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s;
@@ -38,39 +39,63 @@ function Card({ p, onClick }) {
   );
 }
 
+const vtab = (active) => ({
+  padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
+  background: active ? 'var(--theme)' : 'var(--bg-card)', color: active ? 'var(--theme-text, #1a0009)' : 'var(--sa-text-dim)',
+  border: '1px solid var(--sa-border)',
+});
+
 export default function SuperadminDesarrollos({ user, onLogout }) {
   const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
-  const [f, setF] = useState({ zona: '', etapa: '', dev: '', publicado: '', q: '' });
+  const [f, setF] = useState({ zona: '', segmento: '', etapa: '', dev: '', publicado: '', q: '' });
+  const [view, setView] = useState('panorama'); // panorama | catalogo
+  const [facetas, setFacetas] = useState({});
 
   const load = useCallback(() => {
     setErr(null);
-    fetchDevmasterProjects(f).then(setD).catch(e => setErr(e.message));
+    fetchDevmasterProjects(f).then(r => { setD(r); setFacetas(r.facetas || {}); }).catch(e => setErr(e.message));
   }, [f]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (view === 'catalogo') load(); }, [load, view]);
 
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
-  const fac = d?.facetas || {};
+  const fac = facetas;
+  // Filtros del panorama (sin la búsqueda de texto, que es solo del catálogo)
+  const panoFilters = { zona: f.zona, segmento: f.segmento, etapa: f.etapa, dev: f.dev };
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Desarrollos</h1>
-        <p style={{ fontSize: 13, ...dim, margin: '4px 0 0' }}>Todos los desarrollos de todos los devs. Entra a cualquiera para ver su ficha completa.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Desarrollos</h1>
+          <p style={{ fontSize: 13, ...dim, margin: '4px 0 0' }}>Todo el catálogo de todos los devs: el panorama del mercado y la ficha completa de cada uno.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setView('panorama')} style={vtab(view === 'panorama')} data-testid="view-panorama">Panorama</button>
+          <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
+        </div>
       </div>
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
-          <Search size={14} style={{ position: 'absolute', left: 11, top: 10, color: 'var(--sa-text-mute)' }} />
-          <input value={f.q} onChange={e => set('q', e.target.value)} placeholder="Buscar proyecto, zona o dev…" data-testid="dm-search"
-            style={{ ...selStyle, width: '100%', paddingLeft: 32, boxSizing: 'border-box' }} />
-        </div>
+        {view === 'catalogo' && (
+          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
+            <Search size={14} style={{ position: 'absolute', left: 11, top: 10, color: 'var(--sa-text-mute)' }} />
+            <input value={f.q} onChange={e => set('q', e.target.value)} placeholder="Buscar proyecto, zona o dev…" data-testid="dm-search"
+              style={{ ...selStyle, width: '100%', paddingLeft: 32, boxSizing: 'border-box' }} />
+          </div>
+        )}
         <select value={f.zona} onChange={e => set('zona', e.target.value)} style={selStyle} data-testid="dm-zona">
           <option value="">Zona: todas</option>
           {(fac.zonas || []).map(z => <option key={z} value={z}>{z}</option>)}
         </select>
+        {(fac.segmentos || []).length > 0 && (
+          <select value={f.segmento} onChange={e => set('segmento', e.target.value)} style={selStyle} data-testid="dm-seg">
+            <option value="">Segmento: todos</option>
+            {(fac.segmentos || []).map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
         <select value={f.etapa} onChange={e => set('etapa', e.target.value)} style={selStyle} data-testid="dm-etapa">
           <option value="">Etapa: todas</option>
           {(fac.etapas || []).map(s => <option key={s} value={s}>{cap(s)}</option>)}
@@ -86,16 +111,23 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
         </select>
       </div>
 
-      {err && <div style={{ color: '#FCA5A5' }}>No se pudo cargar: {err}</div>}
-      {!d && !err && <div style={mute}>Cargando desarrollos…</div>}
+      {/* PANORAMA · home global */}
+      {view === 'panorama' && <DesarrollosPanorama filters={panoFilters} onFacetas={setFacetas} />}
 
-      {d && (
+      {/* CATÁLOGO · grid de proyectos */}
+      {view === 'catalogo' && (
         <>
-          <p style={{ fontSize: 12, ...mute, margin: '0 0 14px' }}>{d.total} de {d.total_catalogo} desarrollos</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
-            {(d.proyectos || []).map(p => <Card key={p.project_id} p={p} onClick={() => navigate(`/superadmin/desarrollos/${p.project_id}`)} />)}
-          </div>
-          {!d.proyectos.length && <div style={{ ...mute, padding: 30, textAlign: 'center' }}>Ningún desarrollo con esos filtros.</div>}
+          {err && <div style={{ color: '#FCA5A5' }}>No se pudo cargar: {err}</div>}
+          {!d && !err && <div style={mute}>Cargando desarrollos…</div>}
+          {d && (
+            <>
+              <p style={{ fontSize: 12, ...mute, margin: '0 0 14px' }}>{d.total} de {d.total_catalogo} desarrollos</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
+                {(d.proyectos || []).map(p => <Card key={p.project_id} p={p} onClick={() => navigate(`/superadmin/desarrollos/${p.project_id}`)} />)}
+              </div>
+              {!d.proyectos.length && <div style={{ ...mute, padding: 30, textAlign: 'center' }}>Ningún desarrollo con esos filtros.</div>}
+            </>
+          )}
         </>
       )}
     </SuperadminLayout>
