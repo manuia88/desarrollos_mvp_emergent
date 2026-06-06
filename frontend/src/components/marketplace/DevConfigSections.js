@@ -4,11 +4,15 @@
 import React from 'react';
 
 // ─── Etiquetas en lenguaje de persona normal ──────────────────────────────────
+// Llaves alineadas al catálogo real del dev (B1.1): gas/agua/energia/agua_caliente/drenaje/internet/cisterna.
 const SERVICE_META = {
-  gas: { icon: '🔥', label: 'Gas', values: { natural: 'Natural (de red)', estacionario: 'Estacionario (tanque)', mixto: 'Mixto' } },
-  agua: { icon: '💧', label: 'Agua', values: { red: 'De la red municipal', pozo: 'Pozo propio', mixta: 'Red + pozo', cisterna: 'Cisterna' } },
-  luz: { icon: '⚡', label: 'Luz', values: { cfe: 'CFE', subterranea: 'Cableado subterráneo', planta: 'Con planta de emergencia' } },
-  internet: { icon: '🛜', label: 'Internet', values: { fibra: 'Fibra óptica', cable: 'Cable' } },
+  gas: { icon: '🔥', label: 'Gas', values: { natural: 'Natural (de red)', lp: 'LP', estacionario: 'Estacionario (tanque)', mixto: 'Mixto' } },
+  agua: { icon: '💧', label: 'Agua', values: { red: 'De la red municipal', pozo: 'Pozo propio', ambos: 'Red + pozo', mixta: 'Red + pozo' } },
+  energia: { icon: '⚡', label: 'Luz', values: { cfe: 'CFE', paneles: 'Paneles solares', hibrido: 'CFE + paneles', subterranea: 'Cableado subterráneo', planta: 'Con planta de emergencia' } },
+  agua_caliente: { icon: '♨️', label: 'Agua caliente', values: { boiler: 'Boiler', solar: 'Calentador solar', instantaneo: 'Calentador instantáneo' } },
+  drenaje: { icon: '🚿', label: 'Drenaje', values: { municipal: 'Municipal', planta: 'Planta de tratamiento', fosa: 'Fosa séptica' } },
+  internet: { icon: '🛜', label: 'Internet', values: { fibra: 'Fibra óptica', cable: 'Cable', preinstalado: 'Preinstalado' } },
+  cisterna: { icon: '🪣', label: 'Cisterna', values: {} },
 };
 const humanize = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 

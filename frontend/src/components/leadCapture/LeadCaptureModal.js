@@ -49,6 +49,7 @@ export default function LeadCaptureModal({
   const [step, setStep] = useState('form'); // 'form' | 'confirmation'
   const [audience, setAudience] = useState(defaultAudience);
   const [behavioralScore, setBehavioralScore] = useState(null);
+  const [intent, setIntent] = useState(null); // B2 · plan de pago elegido en el cotizador
   const [name, setName] = useState('');
   const [waDigits, setWaDigits] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +63,7 @@ export default function LeadCaptureModal({
       const detail = (e && e.detail) || {};
       if (detail.audience) setAudience(detail.audience);
       if (detail.score) setBehavioralScore(detail.score);
+      if (detail.intent) setIntent(detail.intent);
       setOpen(true);
     };
     window.addEventListener('lead_capture_trigger', onTrigger);
@@ -108,6 +110,7 @@ export default function LeadCaptureModal({
         source_page: sourcePage || (typeof window !== 'undefined' ? window.location.pathname : ''),
         visitor_session_id: sessionId,
         behavioral_score: behavioralScore,
+        interes: intent || undefined,
       });
       setSuccess(r || {});
       setStep('confirmation');
@@ -152,6 +155,17 @@ export default function LeadCaptureModal({
         {step === 'form' && (
           <div style={{ display: 'grid', gap: 18 }}>
             <CTAOfferCard audience={audience} propertyTitle={propertyTitle} />
+            {intent && intent.plan && (
+              <div data-testid="lc-intent-banner" style={{
+                padding: '11px 14px', borderRadius: 12,
+                background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)',
+                fontFamily: 'DM Sans', fontSize: 12.5, color: CREAM,
+              }}>
+                Te interesa el <strong>{intent.plan}</strong>
+                {Number(intent.precio) ? ` · ${Number(intent.precio).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}` : ''}
+                . Tu asesor llega con esta info lista.
+              </div>
+            )}
             <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
               <label style={{ display: 'block' }}>
                 <span style={{ display: 'block', fontSize: 11, color: MUTED, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6 }}>{t('leadCapture.form_name_label')}</span>

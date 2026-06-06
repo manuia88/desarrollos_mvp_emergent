@@ -105,6 +105,35 @@ export default function PublicCotizador({ formasPago, basePrice, fechaEntrega })
           />
           <Row label={`Escrituración (${bd.escritura_pct}%)`} value={mxn(bd.escrituracion)} hint="Al recibir tu unidad" />
 
+          {/* Cierra el ciclo: el comprador expresa interés en ESTE plan → lead con el plan que eligió */}
+          <button
+            type="button"
+            data-testid="cotizador-interes-btn"
+            onClick={() => {
+              try {
+                window.dispatchEvent(new CustomEvent('lead_capture_trigger', {
+                  detail: {
+                    audience: 'investor',
+                    intent: {
+                      tipo: 'cotizador',
+                      plan: selected?.nombre || `Plan ${idx + 1}`,
+                      precio: bd.precio_aplicado,
+                      enganche_pct: bd.firma_pct,
+                      descuento_pct: bd.descuento_pct || 0,
+                    },
+                  },
+                }));
+              } catch { /* noop */ }
+            }}
+            style={{
+              marginTop: 16, width: '100%', padding: '13px 0', borderRadius: 12,
+              background: 'var(--grad)', border: 'none', color: '#fff', cursor: 'pointer',
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
+            }}
+          >
+            Me interesa este plan · hablar con un asesor
+          </button>
+
           <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.5 }}>
               Estimación informativa con base en las formas de pago del desarrollador

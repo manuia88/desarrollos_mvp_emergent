@@ -544,6 +544,8 @@ async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, An
         "behavioral_score": int(payload.get("behavioral_score") or 0),
         "visitor_session_id": payload.get("visitor_session_id"),
         "utm": payload.get("utm") if isinstance(payload.get("utm"), dict) else None,
+        # B2 upgrade · plan de pago elegido en el cotizador → el asesor sabe qué ofrecer (cierra el ciclo)
+        "interes": payload.get("interes") if isinstance(payload.get("interes"), dict) else None,
         "created_at": _now(),
         "status": "new",
     }

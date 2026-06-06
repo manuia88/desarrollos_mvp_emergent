@@ -79,6 +79,7 @@ class CaptureBody(BaseModel):
     visitor_session_id: Optional[str] = None
     behavioral_score: Optional[int] = Field(default=0, ge=0, le=100)
     utm: Optional[Dict[str, Any]] = None
+    interes: Optional[Dict[str, Any]] = None   # B2 upgrade · plan de pago que el comprador eligió en el cotizador
 
     @validator("whatsapp")
     def _wa_format(cls, v):
