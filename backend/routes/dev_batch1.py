@@ -1040,12 +1040,32 @@ class HoldPayload(BaseModel):
         return v
 
 
+_HOLD_IDX_DONE = False
+
+
+async def _ensure_hold_index(db):
+    """Índice único PARCIAL: una unidad no puede tener 2 apartados ACTIVOS a la vez (anti doble-reserva)."""
+    global _HOLD_IDX_DONE
+    if _HOLD_IDX_DONE:
+        return
+    try:
+        await db.unit_holds.create_index(
+            [("unit_id", 1)], unique=True, name="uniq_active_hold",
+            partialFilterExpression={"status": "active"},
+        )
+    except Exception:
+        pass
+    _HOLD_IDX_DONE = True
+
+
 @router.post("/units/{unit_id}/hold")
 async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
     user = await _auth(request)
     db = _db(request)
+    await _ensure_hold_index(db)
 
-    # Check existing active hold
+    # Check existing active hold (mensaje claro · fast path). La GARANTÍA atómica real es el índice
+    # único parcial: si dos compradores apartan a la vez, el 2º insert revienta con DuplicateKey → 409.
     existing = await db.unit_holds.find_one({"unit_id": unit_id, "status": "active"}, {"_id": 0})
     if existing:
         raise HTTPException(409, f"La unidad ya tiene un apartado activo hasta {existing.get('expires_at')}")
@@ -1064,7 +1084,13 @@ async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
         "status": "active",
         "created_at": _now().isoformat(),
     }
-    await db.unit_holds.insert_one(dict(hold))
+    try:
+        await db.unit_holds.insert_one(dict(hold))
+    except Exception as e:
+        # DuplicateKey del índice único parcial = otro comprador apartó esta unidad en la misma carrera.
+        if "duplicate key" in str(e).lower() or e.__class__.__name__ == "DuplicateKeyError":
+            raise HTTPException(409, "Esta unidad acaba de ser apartada por otra persona. Elige otra.")
+        raise
     hold.pop("_id", None)
 
     # Auto-set unit status to "apartado"

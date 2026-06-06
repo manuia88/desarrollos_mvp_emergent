@@ -252,6 +252,24 @@ async def _select_asesor_load_balance(
     return min(loads, key=loads.get)
 
 
+_APPT_IDX_DONE = False
+
+
+async def _ensure_appt_index(db):
+    """Índice único PARCIAL: un asesor no puede tener 2 citas CONFIRMADAS en el mismo horario."""
+    global _APPT_IDX_DONE
+    if _APPT_IDX_DONE:
+        return
+    try:
+        await db.appointments.create_index(
+            [("asesor_id", 1), ("datetime", 1)], unique=True, name="uniq_asesor_slot",
+            partialFilterExpression={"status": "confirmed"},
+        )
+    except Exception:
+        pass
+    _APPT_IDX_DONE = True
+
+
 async def assign_appointment(
     db,
     project_id: str,
@@ -391,7 +409,15 @@ async def assign_appointment(
         "created_at": now.isoformat(),
         "created_by": actor_user_id,
     }
-    await db.appointments.insert_one({**appointment})
+    # Garantía atómica anti doble-reserva: índice único parcial (asesor + datetime confirmado).
+    # Si dos compradores agarran el mismo slot/asesor a la vez, el 2º insert revienta → 409.
+    await _ensure_appt_index(db)
+    try:
+        await db.appointments.insert_one({**appointment})
+    except Exception as e:
+        if "duplicate key" in str(e).lower() or e.__class__.__name__ == "DuplicateKeyError":
+            raise ValueError("Ese horario acaba de ocuparse. Elige otro.")
+        raise
 
     # Log rotation for round_robin
     await db.appointment_assign_log.insert_one({
