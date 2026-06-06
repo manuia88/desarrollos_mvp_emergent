@@ -302,6 +302,8 @@ const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/Sup
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
 const SuperadminCatalogPulse         = lazy(() => import('./pages/superadmin/SuperadminCatalogPulse'));
+const SuperadminDesarrollos          = lazy(() => import('./pages/superadmin/SuperadminDesarrollos'));
+const SuperadminDesarrolloFicha      = lazy(() => import('./pages/superadmin/SuperadminDesarrolloFicha'));
 // W2.7 Phase Z.0 — Data Lake foundation
 const SuperadminDataLake             = lazy(() => import('./pages/superadmin/SuperadminDataLake'));
 // W2.9 Phase Z.2 — Intelligence Hub (executive bird's-eye)
@@ -884,6 +886,8 @@ function AppRouter() {
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminFounderConsole} />} />
       <Route path="/superadmin/dashboard-legacy" element={<SuperadminRoute Page={SuperadminDashboard} />} />
       <Route path="/superadmin/catalog-pulse" element={<SuperadminRoute Page={SuperadminCatalogPulse} />} />
+      <Route path="/superadmin/desarrollos" element={<SuperadminRoute Page={SuperadminDesarrollos} />} />
+      <Route path="/superadmin/desarrollos/:id" element={<SuperadminRoute Page={SuperadminDesarrolloFicha} />} />
       {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
       <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesHub} />} />
       {/* Legacy IE Engine sources page (kept accessible) */}

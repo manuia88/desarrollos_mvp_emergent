@@ -188,6 +188,7 @@ const SUPERADMIN_NAV = [
     tier: 1, label: 'Principal', section_key: 'principal',
     items: [
       { key: 'inicio',  to: '/superadmin',         label: 'Inicio',   Icon: LayoutDashboard, end: true },
+      { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
       { key: 'tenants', to: '/superadmin/tenants', label: 'Clientes', Icon: Users },
     ],
   },

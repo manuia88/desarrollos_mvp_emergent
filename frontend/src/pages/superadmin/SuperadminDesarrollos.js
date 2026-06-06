@@ -1,0 +1,103 @@
+/**
+ * SuperadminDesarrollos (Dev-Master · Fase 0) — el superadmin ve TODOS los desarrollos de todos los
+ * devs como un marketplace interno: catálogo con filtros + buscador → entra a la ficha completa.
+ * Reusa /api/superadmin/devmaster/projects (filtros + facetas).
+ */
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
+import { Search } from 'lucide-react';
+import { fetchDevmasterProjects, ASSET_BASE } from '../../api/superadminDevmaster';
+
+const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
+const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s;
+const dim = { color: 'var(--sa-text-dim)' };
+const mute = { color: 'var(--sa-text-mute)' };
+const selStyle = { background: 'var(--bg-card)', border: '1px solid var(--sa-border)', color: 'var(--sa-text)', borderRadius: 10, padding: '8px 11px', fontSize: 12.5 };
+
+function Card({ p, onClick }) {
+  return (
+    <button onClick={onClick} data-testid={`dm-card-${p.project_id}`} style={{
+      textAlign: 'left', cursor: 'pointer', padding: 0, borderRadius: 14, overflow: 'hidden',
+      background: 'var(--bg-card)', border: '1px solid var(--sa-border)', color: 'var(--sa-text)',
+    }}>
+      <div style={{ height: 124, background: 'var(--bg-card-2)', position: 'relative' }}>
+        {p.cover && <img src={p.cover.startsWith('/api') ? `${ASSET_BASE}${p.cover}` : p.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', color: p.readiness_pct >= 80 ? '#34D399' : (p.readiness_pct < 50 ? '#F2635B' : '#fff') }}>{p.readiness_pct}%</span>
+        {p.publicado && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 9.5, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: 'rgba(52,211,153,0.85)', color: '#001a10' }}>PUBLICADO</span>}
+      </div>
+      <div style={{ padding: '11px 13px' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--sa-text)' }}>{p.nombre}</div>
+        <div style={{ fontSize: 11.5, ...mute, marginTop: 2 }}>{p.colonia || '—'}{p.stage ? ` · ${cap(p.stage)}` : ''} · desde {mxn(p.price_from)}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>
+          <span style={{ ...dim }}>{p.dev_org || '—'}</span>
+          <span style={{ ...mute }}>{p.leads_interes ? `${p.leads_interes} interesados` : ''}</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+export default function SuperadminDesarrollos({ user, onLogout }) {
+  const navigate = useNavigate();
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [f, setF] = useState({ zona: '', etapa: '', dev: '', publicado: '', q: '' });
+
+  const load = useCallback(() => {
+    setErr(null);
+    fetchDevmasterProjects(f).then(setD).catch(e => setErr(e.message));
+  }, [f]);
+  useEffect(() => { load(); }, [load]);
+
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+  const fac = d?.facetas || {};
+
+  return (
+    <SuperadminLayout user={user} onLogout={onLogout}>
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--sa-text)', margin: 0, letterSpacing: '-0.02em' }}>Desarrollos</h1>
+        <p style={{ fontSize: 13, ...dim, margin: '4px 0 0' }}>Todos los desarrollos de todos los devs. Entra a cualquiera para ver su ficha completa.</p>
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
+          <Search size={14} style={{ position: 'absolute', left: 11, top: 10, color: 'var(--sa-text-mute)' }} />
+          <input value={f.q} onChange={e => set('q', e.target.value)} placeholder="Buscar proyecto, zona o dev…" data-testid="dm-search"
+            style={{ ...selStyle, width: '100%', paddingLeft: 32, boxSizing: 'border-box' }} />
+        </div>
+        <select value={f.zona} onChange={e => set('zona', e.target.value)} style={selStyle} data-testid="dm-zona">
+          <option value="">Zona: todas</option>
+          {(fac.zonas || []).map(z => <option key={z} value={z}>{z}</option>)}
+        </select>
+        <select value={f.etapa} onChange={e => set('etapa', e.target.value)} style={selStyle} data-testid="dm-etapa">
+          <option value="">Etapa: todas</option>
+          {(fac.etapas || []).map(s => <option key={s} value={s}>{cap(s)}</option>)}
+        </select>
+        <select value={f.dev} onChange={e => set('dev', e.target.value)} style={selStyle} data-testid="dm-dev">
+          <option value="">Dev: todos</option>
+          {(fac.devs || []).map(dv => <option key={dv} value={dv}>{dv}</option>)}
+        </select>
+        <select value={f.publicado} onChange={e => set('publicado', e.target.value)} style={selStyle} data-testid="dm-pub">
+          <option value="">Publicado: todos</option>
+          <option value="true">Publicados</option>
+          <option value="false">No publicados</option>
+        </select>
+      </div>
+
+      {err && <div style={{ color: '#FCA5A5' }}>No se pudo cargar: {err}</div>}
+      {!d && !err && <div style={mute}>Cargando desarrollos…</div>}
+
+      {d && (
+        <>
+          <p style={{ fontSize: 12, ...mute, margin: '0 0 14px' }}>{d.total} de {d.total_catalogo} desarrollos</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
+            {(d.proyectos || []).map(p => <Card key={p.project_id} p={p} onClick={() => navigate(`/superadmin/desarrollos/${p.project_id}`)} />)}
+          </div>
+          {!d.proyectos.length && <div style={{ ...mute, padding: 30, textAlign: 'center' }}>Ningún desarrollo con esos filtros.</div>}
+        </>
+      )}
+    </SuperadminLayout>
+  );
+}
