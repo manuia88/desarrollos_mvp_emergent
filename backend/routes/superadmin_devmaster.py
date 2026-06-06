@@ -913,7 +913,8 @@ def _parse_dt(v):
         return None
 
 
-async def _comportamiento(db, zona=None, segmento=None):
+async def _comportamiento(db, zona=None, segmento=None, dev_ids=None):
+    # dev_ids: si se pasa, scope-a a los leads de ESE desarrollador (reuso desde el portal dev).
     from data_developments import DEVELOPMENTS_BY_ID
     try:
         from disc_inferencer_landing import infer_disc_from_lead, disc_label
@@ -925,8 +926,9 @@ async def _comportamiento(db, zona=None, segmento=None):
     LOST = ("perdido", "lost", "descartado")
 
     leads = []
+    q = {"development_id": {"$in": list(dev_ids)}} if dev_ids else {}
     try:
-        async for l in db.leads.find({}, {"_id": 0}):
+        async for l in db.leads.find(q, {"_id": 0}):
             dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))
             if zona and (not dv or dv.get("colonia") != zona):
                 continue

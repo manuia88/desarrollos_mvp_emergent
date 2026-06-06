@@ -15,6 +15,7 @@ import DesarrolladorPricing from './DesarrolladorPricing';
 import DesarrolladorCompetidores from './DesarrolladorCompetidores';
 import DesarrolladorReportes from './DesarrolladorReportes';
 import DesarrolladorSiteSelection from './DesarrolladorSiteSelection';
+import DevComportamiento from '../../components/developer/DevComportamiento';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
@@ -22,6 +23,7 @@ const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 const AREAS = [
   ['mercado', 'Mercado'],
   ['demanda', 'Demanda'],
+  ['comportamiento', 'Qué Frena Tus Ventas'],
   ['precios', 'Precios'],
   ['competencia', 'Competencia'],
   ['reportes', 'Reportes'],
@@ -88,6 +90,7 @@ export default function DesarrolladorMercado({ user, onLogout }) {
 
       {/* Áreas embebidas (V2) — reusan las hojas existentes sin doble layout (bare). */}
       {DEV_V2 && area === 'demanda' && <DesarrolladorDemanda user={user} embedded />}
+      {DEV_V2 && area === 'comportamiento' && <DevComportamiento />}
       {DEV_V2 && area === 'precios' && <DesarrolladorPricing user={user} embedded />}
       {DEV_V2 && area === 'competencia' && <DesarrolladorCompetidores user={user} embedded />}
       {DEV_V2 && area === 'reportes' && <DesarrolladorReportes user={user} embedded />}

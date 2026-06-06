@@ -350,6 +350,18 @@ async def leads_cockpit(request: Request):
             "nota": "La temperatura es estimada de la actividad del lead; se afina con el motor de calor IA al conectar la llave."}
 
 
+# ─── Inteligencia · Qué Frena Tus Ventas (Bloque 1.3) — baja el lente "Comportamiento" ──
+#     del Dev-Master, scope-ado a los leads de ESTE desarrollador. Reusa el MISMO motor
+#     (_comportamiento) → objeciones + velocidad-respuesta-vs-cierre + embudo + DISC. Cero deuda.
+@router.get("/comportamiento")
+async def dev_comportamiento(request: Request):
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    from routes.superadmin_devmaster import _comportamiento
+    return await _comportamiento(db, dev_ids=dev_ids)
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
