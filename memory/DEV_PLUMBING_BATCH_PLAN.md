@@ -18,15 +18,16 @@ Esfuerzo: S≈≤media tanda · M≈1 tanda · L≈2+ tandas.
 - ✅ B1.5 · Paso "Construcción" en el wizard + **sello de confianza** (traduce el sistema técnico a lenguaje del comprador). Back: `construction_seal(sistema)` + `suggest_sistema(tipo)` en dev_batch2.py (CDMX-aware: cajón=suelo blando, ángulo sísmico; built-for-endstate: luego enriquece con certificaciones reales) + GET /wizard/construction-meta + POST /wizard/construction-seal + WizardProjectPayload.construccion + create_project persiste project_construction_progress.sistema_constructivo (vía _get_or_seed → no rompe Avance). Sello expuesto en project_public_overlay.sello_constructivo (comprador) + en GET/PATCH /construction (ficha). Front: SistemaPicker+SelloConfianza en sistemaConstructivoUI.js (compartido, refactor AvanceObraTab verificado intacto), StepSistema (smart-default por tipo + sello en vivo). Cierra 2 ciclos: sistema→sello al comprador + fix get/patch construction 404 para proyectos del wizard (_resolve_project_name) + fix _get_or_seed que perdía sistema en docs sin units. Verificado E2E (API + wizard en vivo: cajón/concreto, sello CDMX, readiness flip, Avance abre). · dep: B0 · S
 - B1.6 · Políticas broker/venta en Comercialización · dep: B0 · S
 
-## B2 · Cables a Marketplace (visible al comprador)
-- B2.1 · Amenidades catálogo (+servicios/scope) → ficha pública + studio landings (quita los 15 slugs hardcoded) · dep: B0 · M · lo más visible
-- B2.2 · Formas de pago del dev → cotizador público · dep: B0 · M
-- B2.3 · Sistema constructivo → ficha pública (sello de confianza) · dep: B0 · S
-- B2.4 · price_events → módulo de plusvalía público · dep: B0 · M
+## B2 · Cables a Marketplace (visible al comprador) — ✅ HECHO (terminal paralela b2-marketplace, revisado+verificado por Claude Code)
+- ✅ B2.1 · servicios + sistema constructivo + sello legal + amenidades del dev → ficha pública (DevConfigSections.js). Fail-open con optional chaining.
+- ✅ B2.2 · Formas de pago del dev → cotizador público (PublicCotizador.js, reusa breakdown() canónico). Verificado: 3 planes, desglose exacto.
+- ✅ B2.3 · Sistema constructivo + sello → ficha pública (dentro de DevConfigSections, badges).
+- ✅ B2.4 · plusvalía pública (PlusvaliaCard.js · % + sparkline del price_history embebido).
+- Cableado en DevelopmentDetail.js (refactor fetch fotos→helper fetchDevelopmentAssets). NO tocó archivos prohibidos, 0 endpoints nuevos. Verificado live en /desarrollo/altavista-polanco. Galería de fotos: cae a seed (dev_assets vacío) hasta que el wizard suba; AssetGallery NO montado en comprador (es uploader admin, decisión correcta).
 
 ## B3 · Cables a Asesor + Superadmin
-- B3.1 · broker_policy → acceso real del asesor (unir advisor_authorization con project_commercialization/brokers/preassignments) · dep: B0 · M · la política SÍ aplica
-- B3.2 · Superadmin: agregador global por-tab (terminal Bloomberg) · dep: B0.1 · L
+- ✅ B3.1 · Playbook del proyecto para el asesor (routes/asesor_playbook.py · GET /api/asesor/proyecto/{id}/playbook): puede_vender (interno/preasignado/autorizado/puede_solicitar/no_disponible vía is_authorized+preassignments+tenant) + comisión + política (broker/venta) + formas de pago + sellos + "qué ofrecer" (IA-first rule-based). Front: PlaybookProyecto.js (tema asesor oscuro) + ruta /asesor/proyecto/:id + botón en drawer inventario. NO tocó las funciones gigantes de advisor.py. Verificado live (fix: pasar user a AdvisorLayout). · dep: B0 · M
+- B3.2 · Superadmin: agregador global por-tab (terminal Bloomberg) · dep: B0.1 · L · PENDIENTE
 
 ## B4 · Granularidad profunda del embudo (parcialmente independiente de B0-B3)
 - B4.1 · Unificar los 2 universos de leads (db.leads ↔ asesor_contactos) · dep: — · L · habilita todo cross-etapa
