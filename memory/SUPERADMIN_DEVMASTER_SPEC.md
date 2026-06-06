@@ -118,6 +118,12 @@ para endstate, Title Case inteligente, lenguaje humano, acciones agentic, cero d
 ✅ NAV AGRUPADA: 3 pestañas primarias (Panorama · Inteligencia · Catálogo) + fila secundaria de 7 lentes
 (pills) dentro de Inteligencia. Default lente=Dónde Construir. Deep-link Panorama→Inteligencia. Verificado.
 
+✅ CABLEADO 2 MODELOS EN ESPERA (2026-06-06): conectores reales POST /devmaster/activar-modelo/{gusto|conversaciones}.
+gusto=ensure_tags (photo_tagger Capa 2, visión con llave OpenAI si no por nombre) sobre fotos reales 18 devs →
+asesor_photo_tags (108 etiquetadas) → gusto pasa a Activo y usa etiquetas reales. conversaciones=mina mensajes
+→ conversation_signal (0 hoy, honesto, autollena). Botón "Activar" (Zap) en inventario de Observabilidad.
+Verificado: 6/8→7/8 activos. PENDIENTE para llenar del todo: swipes del comprador (link Tinder) + WhatsApp/chat + llave OpenAI (visión).
+
 ## Orden recomendado
 Fase 0 → Fase 1 (ficha B) → Fase 2 (home) → Fase 3 (joyas, priorizadas por el founder).
 Empezar por Fase 0+1 da el "dev-master" navegable con la ficha que junta lo disperso.
