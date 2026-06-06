@@ -35,3 +35,10 @@ export async function fetchComportamiento(filters = {}) {
   if (!r.ok) throw new Error('No se pudo cargar el comportamiento del comprador');
   return r.json();
 }
+
+export async function fetchStockSoldout(filters = {}) {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/stock-soldout${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar stock y sold-out');
+  return r.json();
+}

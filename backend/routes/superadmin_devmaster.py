@@ -1073,3 +1073,216 @@ async def comportamiento(request: Request, zona: Optional[str] = None, segmento:
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _comportamiento(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 · Mercado Predictivo: Stock Score + Sold-Out + Elasticidad de Precio ────
+# Cierra el ciclo "¿cuándo se agota y cuánto puedo cobrar?": absorción real (units_sold/reserved
+# sobre tiempo) → meses para agotar + stock score · elasticidad cross-seccional (precio vs venta) →
+# espacio de precio por proyecto · receta de los que se agotan (lookalike). Reusa forecast_engine
+# (precio por zona, fail-open) + datos del catálogo. Built-for-endstate: se afina con ventas reales
+# en serie de tiempo. Cero deuda.
+import re as _re
+
+_SOLD_FAST = 15   # ≤ meses para agotar el inventario restante = se vende bien (benchmark preventa CDMX)
+_SOLD_SLOW = 30   # > = se está estancando
+
+
+def _months_on_market(dev):
+    """Antigüedad en meses, estimada del price_history ('Lanzamiento'→'+N meses'→'Hoy'). Default 12."""
+    ph = dev.get("price_history") or []
+    mx = 0
+    for p in ph:
+        m = _re.search(r"(\d{1,2})\s*mes", str(p.get("date", "")).lower())
+        if m:
+            mx = max(mx, int(m.group(1)))
+    return max(mx + 3, 6) if mx else 12  # 'Hoy' ≈ +3m sobre el último hito; piso 6
+
+
+def _pearson(xs, ys):
+    nN = len(xs)
+    if nN < 3:
+        return None
+    mx = sum(xs) / nN
+    my = sum(ys) / nN
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    dx = sum((x - mx) ** 2 for x in xs) ** 0.5
+    dy = sum((y - my) ** 2 for y in ys) ** 0.5
+    if dx == 0 or dy == 0:
+        return None
+    return round(num / (dx * dy), 2)
+
+
+def _appreciation_pct(dev):
+    ph = dev.get("price_history") or []
+    if len(ph) >= 2 and ph[0].get("price") and ph[-1].get("price"):
+        return round((ph[-1]["price"] / ph[0]["price"] - 1) * 100, 1)
+    return None
+
+
+async def _stock_soldout(db, zona=None, segmento=None):
+    from data_developments import DEVELOPMENTS
+
+    devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+
+    leads_by_dev: Dict[str, int] = {}
+    try:
+        async for l in db.leads.find({}, {"_id": 0, "development_id": 1}):
+            k = l.get("development_id")
+            if k:
+                leads_by_dev[k] = leads_by_dev.get(k, 0) + 1
+    except Exception:
+        pass
+
+    # Mediana de precio por zona (para "espacio de precio")
+    zona_prices: Dict[str, List[int]] = {}
+    for d in devs:
+        if d.get("colonia") and d.get("price_from"):
+            zona_prices.setdefault(d["colonia"], []).append(d["price_from"])
+    zona_med = {z: sorted(v)[len(v) // 2] for z, v in zona_prices.items()}
+
+    proyectos = []
+    for d in devs:
+        tot = d.get("units_total") or 0
+        avail = d.get("units_available") or 0
+        sold = d.get("units_sold") or 0
+        resv = d.get("units_reserved") or 0
+        mom = _months_on_market(d)
+        colocadas = sold + resv
+        sellthrough = round(colocadas / tot * 100) if tot else 0
+        velocity = colocadas / mom if mom else 0                  # unidades/mes
+        meses_agotar = round(avail / velocity) if velocity > 0 else None
+        leads = leads_by_dev.get(d["id"], 0)
+        demanda_presion = round(leads / (avail + 1), 2)
+
+        # Stock score 0-100: vende rápido + demanda + sell-through, penaliza estancado en entrega
+        v_score = min(velocity / 2.0, 1.0) * 45                   # 2 u/mes ≈ tope
+        d_score = min(demanda_presion / 1.0, 1.0) * 25
+        s_score = (sellthrough / 100.0) * 30
+        score = round(v_score + d_score + s_score)
+        if (d.get("stage") in ("entrega_inmediata", "exclusiva")) and sellthrough < 50:
+            score = max(0, score - 12)                            # listo para entregar y aún con mucho stock
+
+        if meses_agotar is not None and meses_agotar <= _SOLD_FAST:
+            estado, color = "Se vende bien", "verde"
+        elif meses_agotar is not None and meses_agotar <= _SOLD_SLOW:
+            estado, color = "Ritmo normal", "neutro"
+        else:
+            estado, color = "Se está estancando", "rojo"
+
+        # Espacio de precio (elasticidad por proyecto): precio vs mediana de zona + absorción
+        med = zona_med.get(d.get("colonia"))
+        vs_med = round((d["price_from"] / med - 1) * 100) if (med and d.get("price_from")) else None
+        if meses_agotar is not None and meses_agotar <= _SOLD_FAST and (vs_med is None or vs_med <= 5):
+            headroom = "Tiene espacio para subir precio"
+            headroom_color = "verde"
+        elif meses_agotar is not None and meses_agotar > _SOLD_SLOW and (vs_med is not None and vs_med > 5):
+            headroom = "Está caro para su demanda — considera ajustar"
+            headroom_color = "rojo"
+        else:
+            headroom = "Precio en línea con su ritmo"
+            headroom_color = "neutro"
+
+        proyectos.append({
+            "project_id": d["id"], "nombre": d.get("name"), "zona": d.get("colonia"),
+            "units_total": tot, "disponibles": avail, "colocadas": colocadas, "sellthrough": sellthrough,
+            "meses_para_agotar": meses_agotar, "velocidad_mes": round(velocity, 2), "meses_en_mercado": mom,
+            "stock_score": score, "estado": estado, "color": color, "leads": leads,
+            "precio": d.get("price_from"), "vs_mediana_zona": vs_med, "apreciacion_pct": _appreciation_pct(d),
+            "espacio_precio": headroom, "espacio_precio_color": headroom_color, "stage": d.get("stage"),
+        })
+
+    proyectos.sort(key=lambda x: (x["meses_para_agotar"] is None, x["meses_para_agotar"] or 9999))
+    rapidos = [p for p in proyectos if p["color"] == "verde"]
+    estancados = sorted([p for p in proyectos if p["color"] == "rojo"], key=lambda x: -(x["disponibles"]))
+
+    # Elasticidad de mercado (cross-seccional): precio vs sell-through. Negativo = más caro vende menos.
+    px = [p["precio"] for p in proyectos if p["precio"]]
+    sy = [p["sellthrough"] for p in proyectos if p["precio"]]
+    corr = _pearson(px, sy)
+    if corr is None:
+        elasticidad = {"signo": None, "fuerza": "sin señal", "texto": "Aún no hay suficiente señal para medir sensibilidad al precio."}
+    elif corr <= -0.3:
+        elasticidad = {"signo": "elastico", "corr": corr, "fuerza": "alta" if corr <= -0.6 else "media",
+                       "texto": "El mercado es sensible al precio: los proyectos más caros se venden más lento. Cuida el precio."}
+    elif corr >= 0.3:
+        elasticidad = {"signo": "inelastico", "corr": corr, "fuerza": "media",
+                       "texto": "Poco sensible al precio: el precio no frena la venta — hay espacio para cobrar más donde hay demanda."}
+    else:
+        elasticidad = {"signo": "neutro", "corr": corr, "fuerza": "baja",
+                       "texto": "Sensibilidad al precio mixta: depende más de la zona y el producto que del precio."}
+
+    # Receta de los que se agotan (lookalike de éxitos)
+    receta = None
+    if rapidos:
+        from collections import Counter
+        zc = Counter(p["zona"] for p in rapidos if p["zona"])
+        precios_r = [p["precio"] for p in rapidos if p["precio"]]
+        amen_c: Dict[str, int] = {}
+        rids = {p["project_id"] for p in rapidos}
+        for d in devs:
+            if d["id"] in rids:
+                for a in (d.get("amenities") or []):
+                    amen_c[a] = amen_c.get(a, 0) + 1
+        receta = {
+            "zonas": [z for z, _ in zc.most_common(3)],
+            "precio_tipico": (sorted(precios_r)[len(precios_r) // 2] if precios_r else None),
+            "amenidades": [a for a, _ in sorted(amen_c.items(), key=lambda x: -x[1])[:4]],
+            "n": len(rapidos),
+        }
+
+    # Forecast de precio por zona (reusa forecast_engine · fail-open)
+    forecast = {"fuente": "no-disponible", "zona": None, "horizontes": None}
+    try:
+        import forecast_engine as fe
+        zslug = (zona or (proyectos[0]["zona"] if proyectos else None))
+        if zslug:
+            fc = await fe.get_zone_forecast(db, str(zslug).lower().replace(" ", "-"))
+            if fc:
+                forecast = {"fuente": "forecast_engine", "zona": zslug, "horizontes": fc.get("horizons") or fc.get("forecast")}
+    except Exception as e:
+        log.info("stock forecast: %s", e)
+
+    # Resumen + acciones (agentic)
+    partes = []
+    if rapidos:
+        partes.append(f"{len(rapidos)} proyectos se venden a buen ritmo (se agotan en ~{_SOLD_FAST} meses o menos).")
+    if estancados:
+        partes.append(f"{len(estancados)} se están estancando y conviene moverlos.")
+    if elasticidad.get("signo"):
+        partes.append(elasticidad["texto"])
+    resumen = " ".join(partes) or "El inventario va a ritmo sano en general."
+
+    acciones = []
+    subir = next((p for p in proyectos if p["espacio_precio_color"] == "verde"), None)
+    if subir:
+        acciones.append({"tipo": "subir_precio",
+                         "texto": f"{subir['nombre']} se agota en {subir['meses_para_agotar']} meses y está {'bajo' if (subir['vs_mediana_zona'] or 0) < 0 else 'en línea con'} la mediana de {subir['zona']} — tiene espacio para subir precio.",
+                         "link": f"/superadmin/desarrollos/{subir['project_id']}"})
+    if estancados:
+        e0 = estancados[0]
+        acciones.append({"tipo": "mover_inventario",
+                         "texto": f"{e0['nombre']} lleva {e0['meses_en_mercado']} meses y aún tiene {e0['disponibles']} disponibles — baja precio o mete marketing.",
+                         "link": f"/superadmin/desarrollos/{e0['project_id']}"})
+    if receta and receta["amenidades"]:
+        acciones.append({"tipo": "receta",
+                         "texto": f"Receta de los que se agotan: {', '.join(receta['zonas'][:2])}, ~${round((receta['precio_tipico'] or 0)/1e6,1)}M, con {', '.join(receta['amenidades'][:3])}."})
+
+    return {
+        "filtros": {"zona": zona, "segmento": segmento},
+        "resumen": resumen,
+        "proyectos": proyectos,
+        "estancados": estancados[:6],
+        "elasticidad": elasticidad,
+        "receta_exito": receta,
+        "forecast_precio": forecast,
+        "acciones": acciones[:3],
+        "fuente": {"proyectos": len(proyectos), "con_demanda": sum(1 for p in proyectos if p["leads"]),
+                   "nota": "La absorción usa ventas acumuladas sobre el tiempo en mercado; se afina con la serie real de ventas semanales."},
+    }
+
+
+@router.get("/stock-soldout")
+async def stock_soldout(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _stock_soldout(request.app.state.db, zona, segmento)
