@@ -414,6 +414,76 @@ async def dev_pricing_inteligente(request: Request):
     }
 
 
+# ─── Red Comercial · Salud de tu Red (Bloque 1.5) — capa IA-first sobre el directorio: ──
+#     quién vende, quién no cierra, concentración (¿dependes de uno?), in-house vs broker, con
+#     acciones (diversifica / reasigna). Mismo patrón que "Red de Asesores" del Dev-Master, sobre
+#     los leads del dev. Cierra el ciclo con el directorio + reasignación. Cero deuda.
+@router.get("/red-salud")
+async def dev_red_salud(request: Request):
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    WON = ("vendido", "won", "ganado", "cerrado")
+    amap = {}
+    canal = {"inhouse": 0, "broker": 0}
+    try:
+        async for l in db.leads.find({"development_id": {"$in": dev_ids}},
+                                     {"_id": 0, "assignee_name": 1, "channel": 1, "status_v2": 1, "status": 1, "development_id": 1}):
+            ch = "broker" if (l.get("channel") == "broker") else "inhouse"
+            canal[ch] += 1
+            name = l.get("assignee_name")
+            if not name:
+                continue
+            a = amap.setdefault(name, {"asesor": name, "canal": ch, "leads": 0, "won": 0, "proyectos": set()})
+            a["leads"] += 1
+            if (l.get("status_v2") or l.get("status") or "").lower() in WON:
+                a["won"] += 1
+            if l.get("development_id"):
+                a["proyectos"].add(l["development_id"])
+    except Exception as e:
+        import logging
+        logging.getLogger("dmx.dev").warning("red_salud: %s", e)
+
+    red = sorted([
+        {"asesor": a["asesor"], "canal": a["canal"], "leads": a["leads"], "won": a["won"],
+         "conversion": round(a["won"] / a["leads"] * 100) if a["leads"] else 0, "n_proyectos": len(a["proyectos"])}
+        for a in amap.values()], key=lambda x: -x["leads"])
+    total_asig = sum(a["leads"] for a in red) or 1
+    top = red[0] if red else None
+    concentracion = round(top["leads"] / total_asig * 100) if top else 0
+    # quién no cierra (≥4 leads, 0% conversión)
+    sin_cierre = [a for a in red if a["leads"] >= 4 and a["conversion"] == 0]
+    estrella = max(red, key=lambda x: (x["conversion"], x["leads"]), default=None) if red else None
+
+    partes = []
+    if top:
+        partes.append(f"{top['asesor']} maneja {concentracion}% de tus leads.")
+    if estrella and estrella["conversion"] > 0:
+        partes.append(f"Tu mejor cierre es {estrella['asesor']} ({estrella['conversion']}%).")
+    if sin_cierre:
+        partes.append(f"{len(sin_cierre)} con leads pero 0% de cierre.")
+    resumen = " ".join(partes) or "Aún no hay actividad suficiente para leer tu red."
+
+    acciones = []
+    if concentracion >= 35 and top:
+        acciones.append({"tipo": "concentracion", "texto": f"Dependes mucho de {top['asesor']} ({concentracion}% de los leads). Si se va, te duele — reparte y suma más canales."})
+    if sin_cierre:
+        s0 = sin_cierre[0]
+        acciones.append({"tipo": "reasignar", "texto": f"{s0['asesor']} tiene {s0['leads']} leads y 0 cierres — dale coaching o reasigna esos leads."})
+    if canal["broker"] == 0 and canal["inhouse"] > 0:
+        acciones.append({"tipo": "canal", "texto": "Todo tu pipeline es in-house. Sumar brokers/inmobiliarias aliadas amplía tu alcance."})
+
+    return {
+        "resumen": resumen,
+        "red": red[:12],
+        "concentracion_top": concentracion,
+        "canal_split": canal,
+        "estrella": estrella,
+        "acciones": acciones[:3],
+        "nota": "Sobre los leads de tus proyectos (in-house + brokers).",
+    }
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):

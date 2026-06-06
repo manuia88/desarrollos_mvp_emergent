@@ -33,6 +33,8 @@ export const getLeadsCockpit = () => j('/api/desarrollador/leads-cockpit');
 export const getDevComportamiento = () => j('/api/desarrollador/comportamiento');
 // Pricing · "Precio Inteligente" (capa estratégica: dónde subir/bajar precio por proyecto)
 export const getDevPricingInteligente = () => j('/api/desarrollador/pricing-inteligente');
+// Red Comercial · "Salud de tu Red" (concentración + quién cierra + in-house vs broker + acciones)
+export const getDevRedSalud = () => j('/api/desarrollador/red-salud');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

@@ -9,6 +9,7 @@ import {
 import { getDevRedComercial } from '../../api/directories';
 import { Z } from '../../styles/zIndex';
 import DesarrolladorUsuarios from './DesarrolladorUsuarios';
+import DevRedSalud from '../../components/developer/DevRedSalud';
 import MetricasEquipo from './MetricasEquipo';
 import AsesoresMetrics from './AsesoresMetrics';
 import DesarrolladorSolicitudes from './DesarrolladorSolicitudes';
@@ -261,6 +262,9 @@ export default function DesarrolladorRedComercial({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* Salud de tu Red (IA-first · síntesis: concentración + quién cierra + acciones) */}
+      {DEV_V2 && <DevRedSalud onVerAsesores={() => setArea('met-asesores')} />}
 
       {/* Switch de áreas (V2) — consolida las hojas de la red en un solo centro. */}
       {DEV_V2 && (
