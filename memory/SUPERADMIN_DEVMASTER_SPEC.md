@@ -73,7 +73,13 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
       índice por zona · sobreoferta · reusa dmx_demand (cubo). Cotizador+amenidades(taste) stubbeados fail-open.
       Front: DondeConstruir.js (3er toggle) + deep-link Panorama + CTA cierra ciclo (→catálogo filtrado).
       Verificado en vivo: 42 leads → "Lomas Chapultepec 4rec $16-22M: 6 buscando, 0 inventario → construir".
-- [ ] Gusto visual del mercado (🔧taste model) + recomendación de amenidades
+- [x] **Gusto visual del mercado (taste model) + amenidades** — ✅ HECHO (commit Fase 3 #11)
+      Back: GET /devmaster/gusto-mercado — rescata el modelo de gusto B5.4 a nivel MERCADO.
+      Tag fotos catálogo (photo_tagger) → qué engancha (índice ponderado por demanda) · JOYA:
+      amenidad→demanda lift (cava +800%/sky lounge +500% vs gym/roof estándar) + confianza ·
+      qué fotos subir · perfil comprador típico · gusto por zona · acciones agentic. Primary:
+      asesor_swipe_events (vacío hoy); fallback: catálogo×leads. Cero deuda.
+      Front: GustoMercado.js (4o toggle). Verificado en vivo (Polanco $14M, recámara índice 2.18).
 - [ ] Objeciones + comportamiento del comprador (🔧minería conversaciones)
 - [ ] Stock score + predicción sold-out + elasticidad de precio
 - [ ] Macro+ciudad (transporte/negocios/riesgo→valor) — requiere prender conectores gov (llaves)
