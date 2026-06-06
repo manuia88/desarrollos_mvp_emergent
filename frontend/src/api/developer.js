@@ -37,6 +37,8 @@ export const getDevPricingInteligente = () => j('/api/desarrollador/pricing-inte
 export const getDevRedSalud = () => j('/api/desarrollador/red-salud');
 // Marketing · "Qué Promocionar Hoy" (conecta salud del portafolio con crear contenido en Studio)
 export const getDevMarketingJugadas = () => j('/api/desarrollador/marketing-jugadas');
+// Reportes · "Resumen Ejecutivo del Mes" (junta dinero+ventas+demanda+red+prioridades, compartible)
+export const getDevReporteEjecutivo = () => j('/api/desarrollador/reporte-ejecutivo');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

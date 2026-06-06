@@ -2,6 +2,7 @@
 // Tabs: Reporte Ejecutivo | Absorción avanzada | Forecast
 import React, { useEffect, useState, useMemo } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
+import DevReporteEjecutivo from '../../components/developer/DevReporteEjecutivo';
 import { PageHeader, Card, Badge, fmt0, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Sparkle, BarChart, Target, TrendUp, TrendDown, Activity, Bookmark, Plus, Check } from '../../components/icons';
@@ -19,6 +20,8 @@ const TABS = [
   { k: 'branded',    label: 'Reportes branded',  Icon: Bookmark },
 ];
 
+const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
+
 export default function DesarrolladorReportes({ user, onLogout, embedded }) {
   const [tab, setTab] = useState('executive');
   const [toast, setToast] = useState(null);
@@ -30,6 +33,9 @@ export default function DesarrolladorReportes({ user, onLogout, embedded }) {
         title="Reportes ejecutivos e insights"
         sub="Resumen narrado por Claude + análisis de absorción por cohortes, heatmap de ventas y forecast por proyecto."
       />
+
+      {/* Resumen Ejecutivo del Mes (IA · junta dinero+ventas+demanda+red+prioridades, compartible) */}
+      {DEV_V2 && <DevReporteEjecutivo />}
 
       {/* Tab bar */}
       <div data-testid="rep-tabs" style={{

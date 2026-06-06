@@ -547,6 +547,107 @@ async def dev_marketing_jugadas(request: Request):
             "nota": "Conecta tu ritmo de venta y demanda con el contenido que conviene crear. Lo armas en el Studio en un clic."}
 
 
+# ─── Reportes · Resumen Ejecutivo del Mes (Bloque 1.7) — junta TODO en un reporte ───
+#     compartible: dinero + ventas/sold-out + demanda + red + las 3 prioridades. Síntesis
+#     cross-feature que amarra los upgrades (reusa los motores scope-ados). Cierra Paso C. Cero deuda.
+_MESES_ES = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+             "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+@router.get("/reporte-ejecutivo")
+async def dev_reporte_ejecutivo(request: Request):
+    from data_developments import DEVELOPMENTS, ALL_UNITS
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    now = _now()
+    periodo = f"{_MESES_ES[now.month]} {now.year}"
+
+    my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
+    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+    total = len(my_units)
+    sold = sum(1 for u in my_units if u["status"] == "vendido")
+    avail = sum(1 for u in my_units if u["status"] == "disponible")
+    absor = round(100 * sold / total) if total else 0
+    valor = sum(u.get("price", 0) for u in my_units)
+    por_cobrar = sum(u.get("price", 0) for u in my_units if u["status"] == "disponible")
+    cobrado = sum(u.get("price", 0) for u in my_units if u["status"] == "vendido")
+
+    # Reusa los motores (scope-ados al dev)
+    from routes.superadmin_devmaster import _stock_soldout, _comportamiento
+    ss = await _stock_soldout(db, dev_ids=dev_ids)
+    comp = await _comportamiento(db, dev_ids=dev_ids)
+    estancados = ss.get("estancados") or []
+    rapidos = [p for p in (ss.get("proyectos") or []) if p["color"] == "verde"]
+    top_obj = (comp.get("objeciones") or [{}])[0]
+    rvc = comp.get("maduracion", {}).get("respuesta_vs_cierre") or []
+    leads_total = comp.get("fuente", {}).get("leads", 0)
+
+    secciones = [
+        {"titulo": "Dinero", "kpis": [
+            {"label": "Valor del portafolio", "valor": _mmx(valor)},
+            {"label": "Cobrado", "valor": _mmx(cobrado)},
+            {"label": "Por cobrar", "valor": _mmx(por_cobrar)},
+        ], "lectura": f"Has cobrado {_mmx(cobrado)} y te quedan {_mmx(por_cobrar)} por mover en {avail} unidades."},
+        {"titulo": "Ventas y Sold-Out", "kpis": [
+            {"label": "Absorción", "valor": f"{absor}%"},
+            {"label": "Se venden bien", "valor": str(len(rapidos))},
+            {"label": "Estancados", "valor": str(len(estancados))},
+        ], "lectura": (f"{len(rapidos)} proyecto(s) se agotan rápido; {len(estancados)} se están estancando." if (rapidos or estancados) else "Tu inventario va a ritmo parejo.")},
+        {"titulo": "Demanda y Conversión", "kpis": [
+            {"label": "Leads", "valor": str(leads_total)},
+            {"label": "Cierre si <2h", "valor": (f"{rvc[0]['win_rate']}%" if rvc else "—")},
+            {"label": "Objeción #1", "valor": (top_obj.get("label") or "—")},
+        ], "lectura": (f"Lo que más frena: {top_obj.get('label','—').lower()}. " + (f"Contestar en <2h cierra {rvc[0]['win_rate']}% vs {rvc[-1]['win_rate']}% si tardas." if rvc else "")) if top_obj else "Aún sin señal de demanda."},
+    ]
+
+    # Red comercial (concentración + estrella) — cálculo lean
+    amap = {}
+    try:
+        async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0, "assignee_name": 1, "status_v2": 1, "status": 1}):
+            name = l.get("assignee_name")
+            if not name:
+                continue
+            a = amap.setdefault(name, {"leads": 0, "won": 0})
+            a["leads"] += 1
+            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado"):
+                a["won"] += 1
+    except Exception:
+        pass
+    if amap:
+        tot = sum(a["leads"] for a in amap.values()) or 1
+        top_name = max(amap.items(), key=lambda kv: kv[1]["leads"])
+        concentr = round(top_name[1]["leads"] / tot * 100)
+        estrella = max(amap.items(), key=lambda kv: (kv[1]["won"] / kv[1]["leads"] if kv[1]["leads"] else 0, kv[1]["leads"]))
+        secciones.append({"titulo": "Red Comercial", "kpis": [
+            {"label": "Asesores activos", "valor": str(len(amap))},
+            {"label": "Concentración top", "valor": f"{concentr}%"},
+            {"label": "Mejor cierre", "valor": estrella[0]},
+        ], "lectura": f"{top_name[0]} maneja {concentr}% de tus leads; tu mejor cierre es {estrella[0]}."})
+
+    # Las 3 prioridades del mes (lo de mayor palanca, de cada lente)
+    prioridades = []
+    if estancados:
+        e0 = estancados[0]
+        prioridades.append({"texto": f"Mueve el inventario estancado: {e0['nombre']} tiene {e0['disponibles']} unidades sin colocar.", "link": f"/desarrollador/proyectos/{e0['project_id']}"})
+    if rvc and rvc[0].get("win_rate", 0) > (rvc[-1].get("win_rate", 0) if rvc else 0):
+        prioridades.append({"texto": f"Pon a tu equipo a contestar en <2h — ahí cierras {rvc[0]['win_rate']}% vs {rvc[-1]['win_rate']}%.", "link": "/desarrollador/crm"})
+    if top_obj and top_obj.get("rebuttal"):
+        prioridades.append({"texto": f"Frente a '{top_obj.get('label','').lower()}': {top_obj['rebuttal']}", "link": "/desarrollador/mercado"})
+    if not prioridades:
+        prioridades.append({"texto": "Mantén el ritmo: tu portafolio va sano. Sostén marketing y seguimiento.", "link": "/desarrollador"})
+
+    headline = (f"En {periodo}, tu portafolio vale {_mmx(valor)} con {absor}% colocado y {leads_total} leads. "
+                + (prioridades[0]["texto"] if prioridades else ""))
+
+    return {
+        "titulo": f"Resumen Ejecutivo · {periodo.capitalize()}",
+        "periodo": periodo, "headline": headline,
+        "secciones": secciones, "prioridades": prioridades[:3],
+        "nota": "Compilado de tu dinero, ventas, demanda y red. Listo para compartir con socios o inversionistas.",
+    }
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
