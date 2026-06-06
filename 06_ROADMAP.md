@@ -1,8 +1,23 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-01
+**Última actualización**: 2026-06-06
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+---
+
+## 🧠 SUPERADMIN DEV-MASTER — FASE 0-3 COMPLETA ✅ (2026-06-06)
+
+Portal "Dev-Master" del superadmin: ve TODOS los desarrollos como marketplace interno + ficha 3 lentes + Panorama global + **7 inteligencias agrupadas bajo "Inteligencia"**. Doc: `memory/SUPERADMIN_DEVMASTER_SPEC.md`.
+
+| Fase | Entrega |
+|---|---|
+| **0** | Catálogo global con filtros + facetas |
+| **1** | Ficha 3 lentes (Concentrado · Analítica reusa cockpits dev · Solo-superadmin + comparativo) + Impersonar |
+| **2** | Panorama cockpit global (9 áreas, máxima granularidad) |
+| **3** | 8 joyas: Brief del Mercado · Dónde Construir · Gusto del Mercado · Comportamiento · Stock y Sold-Out · Macro y Ciudad · Competencia y Red · Cómo Aprende la IA |
+
+Todo front+back, datos reales + stub fail-open (cero deuda), reusa ~15 motores ML existentes, lenguaje humano + Title Case inteligente + acciones agentic. **Pendiente opcional**: cablear los 2 modelos en espera (swipes del comprador · conversaciones WhatsApp) · llevar las inteligencias al portal del dev.
 
 ---
 

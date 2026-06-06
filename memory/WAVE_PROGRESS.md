@@ -2,6 +2,19 @@
 
 ---
 
+## 🧠 SUPERADMIN DEV-MASTER · FASE 0-3 COMPLETA ✅ (2026-06-06)
+
+Portal "Dev-Master" en superadmin: marketplace interno de TODOS los desarrollos de todos los devs + ficha de 3 lentes + Panorama global + 7 inteligencias agrupadas. Todo front+back, datos reales donde hay + conectores stub fail-open (cero deuda), Title Case inteligente, lenguaje humano, acciones agentic. Doc canónico: `memory/SUPERADMIN_DEVMASTER_SPEC.md`. Backend: `routes/superadmin_devmaster.py` (+ `superadmin_catalog_pulse.py`). Front: `pages/superadmin/SuperadminDesarrollos.js` + 9 componentes.
+
+- **Fase 0** Catálogo global con filtros + facetas (`/devmaster/projects`).
+- **Fase 1** Ficha 3 lentes (Concentrado · Analítica que reusa cockpits del dev · Solo-superadmin + comparativo) + Impersonar dev (`/devmaster/project/{id}`).
+- **Fase 2** Panorama cockpit global 9 áreas máxima granularidad (`/devmaster/home`).
+- **Fase 3 · 8 joyas** (nav agrupada bajo "Inteligencia"): **Brief del Mercado** (asistente agentic) · **Dónde Construir** (demanda latente zona×precio×recámaras vs oferta) · **Gusto del Mercado** (taste model agregado + lift amenidad→demanda) · **Comportamiento** (objeciones + velocidad-vs-cierre + DISC) · **Stock y Sold-Out** (absorción + sold-out + elasticidad + receta de éxito) · **Macro y Ciudad** (señal urbana→precio + tasa Banxico real→crédito + gentrificación) · **Competencia y Red** (grafo: quién compite + red de asesores + zombie) · **Cómo Aprende la IA** (observabilidad: accuracy/reentreno/espejo/inventario de modelos = el cable dormido visible).
+- **Integración**: cruza datos de marketplace (cotizador/behavioral) + asesor (leads/swipes/conversaciones) + dev (inventario/fotos/amenidades) + superadmin, reusando ~15 motores ML existentes (dmx_demand, forecast_engine, photo_tagger, taste_profile, disc_inferencer, accuracy_engine, knowledge_graph_engine, gov_data_mx/banxico, cerebro). Verificado en vivo (login superadmin, 18 proyectos, 42 leads reales).
+- **Cables en espera** (autollenan al llegar dato): gusto visual=swipes del comprador en link tipo Tinder · análisis de conversaciones=WhatsApp/chat.
+
+---
+
 ## 🏗️ RE-ARQUITECTURA TOTAL IA-FIRST · FASE 0 CIMIENTOS DEL MOLDE ✅ (2026-06-02)
 
 Re-arquitectura total (founder ruling): el moat NO son pantallas, es **el dato a nivel UNIDAD → cubo OLAP → lentes** (superadmin god-view, dev, asesor, API). Molde multi-tenant: N devs + N asesores idénticos, 1 superadmin = control plane estilo GoHighLevel (snapshots por plan). "Sin datos ≠ humo": todo construido y conectado, se activa al llegar el dato. Docs canónicos: `memory/DMX_SPINE_MASTER.md`, `DMX_BUILD_CHECKLIST.md`, `DEV_GRANULAR_DATA_SPINE.md`, `DEV_INICIO_BUILD_SCOPE.md`.
