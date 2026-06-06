@@ -115,7 +115,8 @@ ya existe "impersonar" (actuar como el dev en su portal real → cero deuda).
 Toggles: Panorama · Dónde Construir · Gusto del Mercado · Comportamiento · Stock y Sold-Out · Macro y Ciudad ·
 Competencia y Red · Cómo Aprende la IA · Catálogo. Todo front+back, datos reales donde hay + stub fail-open
 para endstate, Title Case inteligente, lenguaje humano, acciones agentic, cero deuda.
-PENDIENTE OPCIONAL: con 9 toggles, evaluar agrupar los 7 lentes de inteligencia bajo un submenú.
+✅ NAV AGRUPADA: 3 pestañas primarias (Panorama · Inteligencia · Catálogo) + fila secundaria de 7 lentes
+(pills) dentro de Inteligencia. Default lente=Dónde Construir. Deep-link Panorama→Inteligencia. Verificado.
 
 ## Orden recomendado
 Fase 0 → Fase 1 (ficha B) → Fase 2 (home) → Fase 3 (joyas, priorizadas por el founder).
