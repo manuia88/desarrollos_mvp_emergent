@@ -32,7 +32,7 @@ function SectionTitle({ icon: Icon, children }) {
   );
 }
 
-export default function PlaybookProyecto() {
+export default function PlaybookProyecto({ user, onLogout }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [d, setD] = useState(null);
@@ -45,7 +45,7 @@ export default function PlaybookProyecto() {
   }, [id]);
 
   return (
-    <AdvisorLayout>
+    <AdvisorLayout user={user} onLogout={onLogout}>
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '22px 18px' }}>
         <button onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', color: 'rgba(240,235,224,0.6)', cursor: 'pointer', fontSize: 13, marginBottom: 16 }}>
           <ArrowLeft size={15} /> Volver
