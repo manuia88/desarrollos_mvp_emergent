@@ -1142,10 +1142,14 @@ def _appreciation_pct(dev):
     return None
 
 
-async def _stock_soldout(db, zona=None, segmento=None):
+async def _stock_soldout(db, zona=None, segmento=None, dev_ids=None):
+    # dev_ids: si se pasa, scope-a a los proyectos de ESE desarrollador (reuso desde el portal dev).
     from data_developments import DEVELOPMENTS
 
     devs = [d for d in DEVELOPMENTS if (not zona or d.get("colonia") == zona)]
+    if dev_ids is not None:
+        _ids = set(dev_ids)
+        devs = [d for d in devs if d["id"] in _ids]
 
     leads_by_dev: Dict[str, int] = {}
     try:
@@ -1156,9 +1160,10 @@ async def _stock_soldout(db, zona=None, segmento=None):
     except Exception:
         pass
 
-    # Mediana de precio por zona (para "espacio de precio")
+    # Mediana de precio por zona = del MERCADO completo (todos los devs de la zona), no solo los
+    # del scope → el "espacio de precio" compara tu precio vs el mercado, no vs ti mismo.
     zona_prices: Dict[str, List[int]] = {}
-    for d in devs:
+    for d in DEVELOPMENTS:
         if d.get("colonia") and d.get("price_from"):
             zona_prices.setdefault(d["colonia"], []).append(d["price_from"])
     zona_med = {z: sorted(v)[len(v) // 2] for z, v in zona_prices.items()}

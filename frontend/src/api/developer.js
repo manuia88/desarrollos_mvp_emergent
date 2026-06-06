@@ -31,6 +31,8 @@ export const getPortfolioReading = () => j('/api/desarrollador/portfolio-reading
 export const getLeadsCockpit = () => j('/api/desarrollador/leads-cockpit');
 // Inteligencia · "Qué Frena Tus Ventas" (lente Comportamiento del Dev-Master scope-ado al dev)
 export const getDevComportamiento = () => j('/api/desarrollador/comportamiento');
+// Pricing · "Precio Inteligente" (capa estratégica: dónde subir/bajar precio por proyecto)
+export const getDevPricingInteligente = () => j('/api/desarrollador/pricing-inteligente');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

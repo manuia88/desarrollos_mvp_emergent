@@ -362,6 +362,58 @@ async def dev_comportamiento(request: Request):
     return await _comportamiento(db, dev_ids=dev_ids)
 
 
+# ─── Pricing · Precio Inteligente (Bloque 1.4) — capa ESTRATÉGICA por proyecto: dónde ──
+#     tienes espacio para subir precio y dónde estás caro para tu demanda. Reusa el MISMO
+#     motor de Stock/Sold-Out del Dev-Master, scope-ado al dev. Cierra el ciclo con las
+#     sugerencias por unidad. Cero deuda.
+@router.get("/pricing-inteligente")
+async def dev_pricing_inteligente(request: Request):
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    from routes.superadmin_devmaster import _stock_soldout
+    ss = await _stock_soldout(db, dev_ids=dev_ids)
+    proyectos = []
+    for p in (ss.get("proyectos") or []):
+        color = p["espacio_precio_color"]
+        meses = p["meses_para_agotar"]
+        # Recomendación de pricing clara y accionable (usa ritmo de venta + posición vs zona)
+        if color == "verde":
+            reco, reco_color, mover = "Sube el precio — se agota rápido y la demanda aguanta.", "verde", "subir"
+        elif color == "rojo":
+            reco, reco_color, mover = "Estás caro para tu demanda — baja o justifica con valor.", "rojo", "bajar"
+        elif meses is not None and meses > 30:
+            reco, reco_color, mover = "Ritmo lento — un precio más agresivo o una promoción puede mover el inventario.", "ambar", "promo"
+        else:
+            reco, reco_color, mover = "Precio en línea con tu ritmo — sostén.", "neutro", "sostener"
+        proyectos.append({
+            "project_id": p["project_id"], "nombre": p["nombre"], "zona": p["zona"],
+            "precio": p["precio"], "vs_mediana_zona": p["vs_mediana_zona"],
+            "recomendacion": reco, "color": reco_color, "mover": mover,
+            "meses_para_agotar": meses, "estado": p["estado"],
+            "apreciacion_pct": p.get("apreciacion_pct"), "disponibles": p["disponibles"],
+        })
+    order = {"verde": 0, "rojo": 1, "ambar": 2, "neutro": 3}
+    proyectos.sort(key=lambda x: order.get(x["color"], 4))
+    suben = [p for p in proyectos if p["color"] == "verde"]
+    caros = [p for p in proyectos if p["color"] == "rojo"]
+    lentos = [p for p in proyectos if p["color"] == "ambar"]
+    partes = []
+    if suben:
+        partes.append(f"{len(suben)} proyecto(s) con espacio para subir precio (se agotan rápido).")
+    if caros:
+        partes.append(f"{len(caros)} caros para su demanda — considera ajustar.")
+    if lentos:
+        partes.append(f"{len(lentos)} con ritmo lento — un precio más agresivo o promoción los movería.")
+    resumen = " ".join(partes) or "Tus precios están en línea con tu ritmo de venta."
+    return {
+        "resumen": resumen,
+        "proyectos": proyectos,
+        "elasticidad": ss.get("elasticidad"),
+        "nota": "Basado en tu ritmo de venta y la mediana de precio de cada zona. Aplica los cambios unidad por unidad en Sugerencias.",
+    }
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
