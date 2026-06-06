@@ -242,6 +242,114 @@ async def portfolio_reading(request: Request):
     }
 
 
+# ─── CRM & Leads · Cockpit de Leads (Bloque 1.2) — Lista IA-first: cada lead con su ──
+#     temperatura + próxima mejor acción + clic a la Ficha. Reusa heat real si existe; si no,
+#     proxy de los campos del lead. Built-for-endstate (heat IA con llave), cero deuda.
+def _parse_dt_dev(v):
+    if not v:
+        return None
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _days_since(v):
+    d = _parse_dt_dev(v)
+    if not d:
+        return 999
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return max(0, (_now() - d).days)
+
+
+_STAGE_LABEL_DEV = {"lead_nuevo": "Nuevo", "nuevo": "Nuevo", "contactado": "Contactado",
+                    "negociacion": "En negociación", "calificado": "Calificado",
+                    "cita_agendada": "Cita agendada", "vendido": "Ganado", "perdido": "Perdido"}
+
+
+def _lead_temp_score(lead):
+    """(temperatura, score 0-100). Usa heat real si está; si no, proxy de recencia+etapa+toques."""
+    if lead.get("heat_tag"):
+        return lead["heat_tag"], lead.get("heat_score") or 0
+    st = (lead.get("status_v2") or lead.get("status") or "").lower()
+    if st in ("vendido", "won", "ganado"):
+        return "ganado", 100
+    if st in ("perdido", "lost"):
+        return "perdido", 0
+    inter = lead.get("interactions") or 0
+    dlast = _days_since(lead.get("last_activity_at"))
+    score = 0
+    score += {"negociacion": 50, "calificado": 40, "contactado": 30, "lead_nuevo": 18, "nuevo": 18}.get(st, 15)
+    score += min(inter * 4, 20)
+    score += 25 if dlast <= 3 else (12 if dlast <= 10 else 0)
+    score = min(score, 99)
+    temp = "caliente" if score >= 55 else "tibio" if score >= 30 else "frio"
+    return temp, score
+
+
+def _next_action_dev(lead):
+    st = (lead.get("status_v2") or lead.get("status") or "").lower()
+    dcreated = _days_since(lead.get("created_at"))
+    dlast = _days_since(lead.get("last_activity_at"))
+    if st in ("vendido", "won", "ganado"):
+        return "Ganado — activa post-venta (reseña + referidos)."
+    if st in ("perdido", "lost"):
+        return "Perdido — reactívalo en ~30 días con novedades del proyecto."
+    if st in ("lead_nuevo", "nuevo"):
+        return "Contáctalo ya — lleva " + (f"{dcreated} días sin tocar." if dcreated else "recién entró, contesta en <2h.")
+    if st == "negociacion":
+        return "Empuja el cierre — agenda cita u oferta formal."
+    if st in ("contactado", "calificado") and dlast > 5:
+        return f"Dar seguimiento — lleva {dlast} días sin avanzar."
+    return "Dar seguimiento y agendar siguiente paso."
+
+
+@router.get("/leads-cockpit")
+async def leads_cockpit(request: Request):
+    from data_developments import DEVELOPMENTS_BY_ID
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    rows = []
+    heat_real = False
+    try:
+        async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0}):
+            if l.get("heat_tag"):
+                heat_real = True
+            temp, score = _lead_temp_score(l)
+            dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))
+            st = (l.get("status_v2") or l.get("status") or "").lower()
+            rows.append({
+                "id": l.get("id"), "nombre": l.get("name") or l.get("nombre") or "—",
+                "proyecto": (dv.get("name") if dv else l.get("development_id")) or "—",
+                "etapa": _STAGE_LABEL_DEV.get(st, st or "—"), "etapa_key": st,
+                "fuente": l.get("source") or l.get("channel") or "—",
+                "canal": l.get("channel") or "inhouse",
+                "asesor": l.get("assignee_name") or ("Directo" if not l.get("assignee_id") else l.get("assignee_id")),
+                "temperatura": temp, "score": score,
+                "siguiente_accion": _next_action_dev(l),
+                "dias_sin_actividad": _days_since(l.get("last_activity_at")),
+                "presupuesto": l.get("budget_mxn"),
+            })
+    except Exception as e:
+        import logging
+        logging.getLogger("dmx.dev").warning("leads_cockpit: %s", e)
+    order = {"caliente": 0, "tibio": 1, "frio": 2, "ganado": 3, "perdido": 4}
+    rows.sort(key=lambda r: (order.get(r["temperatura"], 5), -r["score"]))
+    abiertos = [r for r in rows if r["temperatura"] in ("caliente", "tibio", "frio")]
+    resumen = {
+        "total": len(rows), "abiertos": len(abiertos),
+        "calientes": sum(1 for r in rows if r["temperatura"] == "caliente"),
+        "tibios": sum(1 for r in rows if r["temperatura"] == "tibio"),
+        "frios": sum(1 for r in rows if r["temperatura"] == "frio"),
+        "sin_contactar": sum(1 for r in rows if r["etapa_key"] in ("lead_nuevo", "nuevo")),
+        "fuente_heat": "ia" if heat_real else "estimado",
+    }
+    return {"leads": rows, "resumen": resumen,
+            "nota": "La temperatura es estimada de la actividad del lead; se afina con el motor de calor IA al conectar la llave."}
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):

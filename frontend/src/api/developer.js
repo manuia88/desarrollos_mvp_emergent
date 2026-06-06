@@ -27,6 +27,8 @@ export const getDashboard = () => j('/api/desarrollador/dashboard');
 export const getDevPlays = () => j('/api/dev/projects/plays');
 // Inicio upgrade · "La Lectura del Portafolio" (cada número con su lectura + salud explicada + pulso)
 export const getPortfolioReading = () => j('/api/desarrollador/portfolio-reading');
+// CRM upgrade · "Cockpit de Leads" (cada lead con temperatura + próxima acción + clic a la Ficha)
+export const getLeadsCockpit = () => j('/api/desarrollador/leads-cockpit');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

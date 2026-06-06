@@ -6,7 +6,7 @@
 import React from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
-import LeadKanban from '../../components/shared/LeadKanban';
+import LeadKanban, { LeadDrawer } from '../../components/shared/LeadKanban';
 import { MessageSquare } from 'lucide-react';
 // Suite IA agéntica (Tanda 2) — paneles org-level montados en el portal dev
 import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
@@ -16,7 +16,7 @@ import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 import { Sparkle, Settings as SettingsIcon } from 'lucide-react';
 import { FunnelChart } from './CrmFunnel';
 import { getFunnel, getFunnelBreakdown, getFunnelSuggestion } from '../../api/metrics';
-import { listLeads, listProjectsWithStats } from '../../api/developer';
+import { listLeads, listProjectsWithStats, getLeadsCockpit } from '../../api/developer';
 import CrmAssistantStrip from '../../components/developer/CrmAssistantStrip';
 import CrmLearningPanel from '../../components/developer/CrmLearningPanel';
 
@@ -57,31 +57,73 @@ function EmbudoView() {
   );
 }
 
-// Lista (re-ubicado al workspace · vista) — tabla de leads del dev.
-const LEAD_STAGE_LABEL = { nuevo: 'Nuevo', under_review: 'En revisión', contactado: 'Contactado', calificado: 'Calificado', cita_agendada: 'Cita', cerrado_ganado: 'Ganado', cerrado_perdido: 'Perdido' };
+// Lista (vista) — Cockpit de Leads IA-first: cada lead con su temperatura + próxima
+// mejor acción + clic a la Ficha (reusa LeadDrawer del board). Consume /leads-cockpit.
+const TEMP_META = {
+  caliente: { label: 'Caliente', color: 'var(--hot, #F2635B)' },
+  tibio: { label: 'Tibio', color: 'var(--warm, #E2982E)' },
+  frio: { label: 'Frío', color: 'var(--theme, #6D4AFF)' },
+  ganado: { label: 'Ganado', color: 'var(--ok, #1FA06A)' },
+  perdido: { label: 'Perdido', color: 'var(--cream-3)' },
+};
 function ListaView() {
-  const [leads, setLeads] = React.useState(null);
-  React.useEffect(() => { listLeads({ limit: 100 }).then(r => setLeads(r.items || r.leads || [])).catch(() => setLeads([])); }, []);
-  if (!leads) return <div style={{ padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Cargando leads…</div>;
+  const [d, setD] = React.useState(null);
+  const [openLeadId, setOpenLeadId] = React.useState(null);
+  React.useEffect(() => { getLeadsCockpit().then(setD).catch(() => setD(false)); }, []);
+  if (d === null) return <div style={{ padding: 40, color: 'var(--cream-3)', fontSize: 13 }}>Leyendo tus leads…</div>;
+  const leads = (d && d.leads) || [];
+  const r = (d && d.resumen) || {};
   if (!leads.length) return <div data-testid="crm-lista" style={{ padding: 48, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Aún no hay leads. Llegan de tus landings, del marketplace o de tus asesores.</div>;
-  const th = { textAlign: 'left', padding: '9px 12px', fontSize: 10.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--cream-3)', borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.10))' };
-  const td = { padding: '10px 12px', fontSize: 12.5, color: 'var(--cream-2)', borderBottom: '1px solid rgba(var(--cream-rgb),0.06)' };
+
+  const Chip = ({ n, label, color }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 10, background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))' }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+      <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{n}</span>
+      <span style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>{label}</span>
+    </div>
+  );
+
   return (
-    <div data-testid="crm-lista" style={{ overflowX: 'auto', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={th}>Cliente</th><th style={th}>Proyecto</th><th style={th}>Etapa</th><th style={th}>Fuente</th><th style={th}>Asesor</th></tr></thead>
-        <tbody>
-          {leads.map((l, i) => (
-            <tr key={l.id || i}>
-              <td style={{ ...td, color: 'var(--cream)', fontWeight: 700 }}>{l.name || l.nombre || '—'}</td>
-              <td style={td}>{l.project_id || '—'}</td>
-              <td style={td}>{LEAD_STAGE_LABEL[l.status] || l.status || '—'}</td>
-              <td style={td}>{l.source || '—'}</td>
-              <td style={td}>{l.asesor_id ? (l.asesor_name || l.asesor_id) : <span style={{ color: 'var(--theme)' }}>Directo</span>}</td>
-            </tr>
+    <div data-testid="crm-lista">
+      {/* Resumen accionable */}
+      <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginBottom: 14 }}>
+        <Chip n={r.calientes || 0} label="calientes · cierra ya" color={TEMP_META.caliente.color} />
+        <Chip n={r.tibios || 0} label="tibios · nutre" color={TEMP_META.tibio.color} />
+        <Chip n={r.sin_contactar || 0} label="sin contactar · urgen" color={'var(--theme, #6D4AFF)'} />
+        <Chip n={r.total || 0} label="en total" color={'var(--cream-3)'} />
+      </div>
+
+      {/* Tabla cockpit */}
+      <div style={{ overflowX: 'auto', background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '108px 1.3fr 1fr 1fr 2fr 18px', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', minWidth: 860 }}>
+          {['Temperatura', 'Cliente', 'Proyecto', 'Etapa', 'Próxima mejor acción', ''].map((h, i) => (
+            <div key={i} style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{h}</div>
           ))}
-        </tbody>
-      </table>
+        </div>
+        {leads.map((l, i) => {
+          const t = TEMP_META[l.temperatura] || TEMP_META.frio;
+          return (
+            <button key={l.id || i} data-testid="crm-lead-row" onClick={() => setOpenLeadId(l.id)}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.05)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              style={{ display: 'grid', gridTemplateColumns: '108px 1.3fr 1fr 1fr 2fr 18px', gap: 12, padding: '12px 16px', minWidth: 860, alignItems: 'center', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(var(--cream-rgb),0.05)', cursor: 'pointer' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: t.color }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.color, flexShrink: 0 }} />{t.label}
+                <span style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700 }}>{l.score}</span>
+              </span>
+              <span style={{ fontWeight: 700, color: 'var(--cream)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.nombre}<span style={{ fontWeight: 400, color: 'var(--cream-3)', fontSize: 11 }}> · {l.canal}</span></span>
+              <span style={{ fontSize: 12.5, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.proyecto}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--cream-2)' }}>{l.etapa}</span>
+              <span style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.35 }}>{l.siguiente_accion}</span>
+              <span style={{ color: 'var(--theme)', fontSize: 14 }}>›</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>{d.nota}</div>
+
+      {/* Ficha del lead (reusa el drawer del board) */}
+      {openLeadId && <LeadDrawer leadId={openLeadId} onClose={() => setOpenLeadId(null)} pipelineVersion="v1" />}
     </div>
   );
 }

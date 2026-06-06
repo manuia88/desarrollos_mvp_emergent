@@ -506,7 +506,7 @@ function AttributionMini({ leadId }) {
   );
 }
 
-function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChanged }) {
+export function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChanged }) {
   const [lead, setLead] = useState(null);
   const [conv, setConv] = useState(null);
   const [ai, setAi] = useState(null);

@@ -600,6 +600,16 @@ async def get_lead_detail(lead_id: str, request: Request):
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
 
+    # El dev ve los leads de SUS proyectos (owner del development), aunque el lead no traiga
+    # dev_org_id. Scope-ado por tenant via user_dev_ids → NO abre acceso cross-desarrolladora.
+    _dev_ids = set()
+    if lvl in ("developer_director", "developer_member", "developer_admin"):
+        try:
+            from tenant_scope import user_dev_ids
+            _dev_ids = set(user_dev_ids(user))
+        except Exception:
+            _dev_ids = set()
+
     # Access check
     can_see = (
         lead.get("assigned_to") == uid
@@ -608,6 +618,7 @@ async def get_lead_detail(lead_id: str, request: Request):
         or (lvl == "developer_director" and lead.get("dev_org_id") == getattr(user, "tenant_id", ""))
         or (lvl == "inmobiliaria_director" and lead.get("inmobiliaria_id") == getattr(user, "inmobiliaria_id", ""))
         or (lvl == "developer_member" and lead.get("dev_org_id") == getattr(user, "tenant_id", ""))
+        or (lead.get("development_id") in _dev_ids)
     )
     if not can_see:
         await _safe_audit_ml(
