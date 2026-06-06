@@ -32,13 +32,14 @@ function Row({ label, value, hint, strong, tone }) {
   );
 }
 
-export default function PublicCotizador({ formasPago, basePrice, fechaEntrega }) {
+export default function PublicCotizador({ formasPago, basePrice, fechaInicio, fechaEntrega }) {
   const schemes = Array.isArray(formasPago) ? formasPago : [];
   const [idx, setIdx] = useState(0);
   const base = Number(basePrice) || 0;
 
   const selected = schemes[idx] || null;
-  const fIni = useMemo(() => currentYM(), []);
+  // Calendario REAL del desarrollador (inicio de ventas → entrega); cae a hoy si no lo configuró.
+  const fIni = useMemo(() => (fechaInicio ? String(fechaInicio).slice(0, 7) : currentYM()), [fechaInicio]);
 
   const bd = useMemo(() => {
     if (!selected || !base) return null;

@@ -354,6 +354,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           <PublicCotizador
             formasPago={dev.config?.formas_pago}
             basePrice={dev.price_from}
+            fechaInicio={dev.config?.fecha_inicio}
             fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate}
           />
 

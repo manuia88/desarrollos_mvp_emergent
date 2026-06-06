@@ -278,7 +278,8 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
     return {
         "amenidades": am.get("amenities") or [], "servicios": am.get("servicios") or {},
         "amenity_scope": am.get("amenity_scope") or {},
-        "formas_pago": _payment_public(pagos.get("schemes")), "fecha_entrega": pagos.get("fecha_entrega"),
+        "formas_pago": _payment_public(pagos.get("schemes")),
+        "fecha_inicio": pagos.get("fecha_inicio"), "fecha_entrega": pagos.get("fecha_entrega"),
         "sistema_constructivo": sis, "sello_constructivo": sello,
         "sello_legal": sello_leg,
         "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),
