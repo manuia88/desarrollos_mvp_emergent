@@ -15,6 +15,7 @@ import Comportamiento from './Comportamiento';
 import StockSoldOut from './StockSoldOut';
 import MacroCiudad from './MacroCiudad';
 import CompetenciaRed from './CompetenciaRed';
+import ObservabilidadIA from './ObservabilidadIA';
 
 const mxn = (n) => (Number(n) ? Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : '—');
 const cap = (s) => s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s;
@@ -89,6 +90,7 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
           <button onClick={() => setView('stock')} style={vtab(view === 'stock')} data-testid="view-stock">Stock y Sold-Out</button>
           <button onClick={() => setView('macro')} style={vtab(view === 'macro')} data-testid="view-macro">Macro y Ciudad</button>
           <button onClick={() => setView('competencia')} style={vtab(view === 'competencia')} data-testid="view-competencia">Competencia y Red</button>
+          <button onClick={() => setView('ia')} style={vtab(view === 'ia')} data-testid="view-ia">Cómo Aprende la IA</button>
           <button onClick={() => setView('catalogo')} style={vtab(view === 'catalogo')} data-testid="view-catalogo">Catálogo</button>
         </div>
       </div>
@@ -149,6 +151,9 @@ export default function SuperadminDesarrollos({ user, onLogout }) {
 
       {/* COMPETENCIA Y RED · el mapa del mercado (Fase 3) */}
       {view === 'competencia' && <CompetenciaRed filters={panoFilters} />}
+
+      {/* CÓMO APRENDE LA IA · observabilidad del cerebro (Fase 3) */}
+      {view === 'ia' && <ObservabilidadIA />}
 
       {/* CATÁLOGO · grid de proyectos */}
       {view === 'catalogo' && (

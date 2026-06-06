@@ -1621,3 +1621,177 @@ async def competencia_red(request: Request, zona: Optional[str] = None, segmento
     from permissions import require_superadmin
     await require_superadmin(request)
     return await _competencia_red(request.app.state.db, zona, segmento)
+
+
+# ─── Fase 3 · Observabilidad de la IA (cómo aprende · el cable dormido) ──────────────
+# Hace VISIBLE el cerebro: qué tan bien le atina cada modelo (AVM/forecast/hedónico), cómo se
+# reentrena solo, qué aprendió el Cerebro, qué vigila — y un inventario que muestra qué IA está
+# ACTIVA vs EN ESPERA de datos. Rescata engines que corrían por cron sin panel (accuracy/drift/retrain).
+# Reusa accuracy_snapshots/model_validation_runs/cerebro_*/predictive_alerts_runs (datos reales). Cero deuda.
+def _hace(dt):
+    from datetime import datetime, timezone
+    d = _parse_dt(dt)
+    if not d:
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    delta = datetime.now(timezone.utc) - d
+    s = int(delta.total_seconds())
+    if s < 3600:
+        return f"hace {max(1, s // 60)} min"
+    if s < 86400:
+        return f"hace {s // 3600} h"
+    if s < 86400 * 30:
+        return f"hace {s // 86400} días"
+    return f"hace {s // (86400 * 30)} meses"
+
+
+async def _observabilidad_ia(db):
+    async def _count(c):
+        try:
+            return await db[c].count_documents({})
+        except Exception:
+            return 0
+
+    async def _latest(c, sort_field="_id"):
+        try:
+            return await db[c].find_one({}, sort=[(sort_field, -1)])
+        except Exception:
+            return None
+
+    # ── 1. Salud de los modelos (accuracy real) ─────────────────────────────────────
+    def _mape_norm(m):
+        if isinstance(m, dict):
+            val = m.get("mape") or m.get("value")
+            return {"disponible": bool(m.get("available")) and val is not None,
+                    "valor": round(val, 1) if isinstance(val, (int, float)) else None,
+                    "muestras": m.get("sample_size"), "min": m.get("min_required")}
+        if isinstance(m, (int, float)):
+            return {"disponible": True, "valor": round(m, 1), "muestras": None, "min": None}
+        return {"disponible": False, "valor": None, "muestras": None, "min": None}
+
+    snap = await _latest("accuracy_snapshots", "computed_at")
+    accuracy = None
+    mape30 = None
+    if snap:
+        m30 = _mape_norm(snap.get("mape_30d"))
+        mape30 = m30["valor"] if m30["disponible"] else None
+        accuracy = {"mape_30d": m30, "mape_90d": _mape_norm(snap.get("mape_90d")),
+                    "mape_365d": _mape_norm(snap.get("mape_365d")), "hit_rate_30d": _mape_norm(snap.get("hit_rate_30d")),
+                    "scope": snap.get("scope"), "cuando": _hace(snap.get("computed_at"))}
+    validaciones = []
+    try:
+        seen = set()
+        async for v in db.model_validation_runs.find({}, {"_id": 0}).sort("run_at", -1).limit(20):
+            nm = v.get("model_name")
+            if nm and nm not in seen:
+                seen.add(nm)
+                validaciones.append({"modelo": nm, "mape": v.get("mape"), "r2": v.get("r_squared"),
+                                     "rmse": v.get("rmse"), "muestras": v.get("sample_size"),
+                                     "metodo": v.get("validation_method"), "cuando": _hace(v.get("run_at"))})
+    except Exception:
+        pass
+
+    # ── 2. Cómo aprende (reentrenamiento automático) ────────────────────────────────
+    retrains = []
+    for col, label in [("forecast_retrain_runs", "Pronóstico de precio"), ("hedonic_retrain_runs", "Modelo de precio por características")]:
+        r = await _latest(col, "finished_at")
+        if r:
+            retrains.append({"motor": label, "zonas": r.get("zones_total"), "ok": r.get("fitted_ok"),
+                             "promovidos": r.get("promoted"), "duracion_s": r.get("duration_s"),
+                             "cuando": _hace(r.get("finished_at") or r.get("started_at")),
+                             "corridas": await _count(col)})
+    hedonic_vivos = await _count("hedonic_models")
+
+    # ── 3. El espejo del asistente (lo que el Cerebro aprendió) ─────────────────────
+    lecciones = []
+    try:
+        async for l in db.cerebro_lessons.find({}, {"_id": 0}).sort("created_at", -1).limit(5):
+            lecciones.append({"texto": l.get("text"), "resultado": l.get("outcome"),
+                              "base": l.get("basis"), "cuando": _hace(l.get("created_at"))})
+    except Exception:
+        pass
+    reajustes = []
+    try:
+        async for r in db.cerebro_retrains.find({}, {"_id": 0}).sort("created_at", -1).limit(5):
+            reajustes.append({"motores": r.get("engines"), "resumen": r.get("summary"),
+                              "disparo": r.get("trigger"), "nivel": r.get("level"),
+                              "aplicado": r.get("applied"), "cuando": _hace(r.get("created_at"))})
+    except Exception:
+        pass
+
+    # ── 4. Qué vigila la IA (alertas predictivas + drift) ───────────────────────────
+    pa = await _latest("predictive_alerts_runs", "started_at")
+    vigilancia = {"corridas": await _count("predictive_alerts_runs"),
+                  "leads_escaneados": (pa or {}).get("leads_scanned"),
+                  "alertas_creadas": (pa or {}).get("alerts_created"),
+                  "cuando": _hace((pa or {}).get("started_at")),
+                  "drift_alertas": await _count("drift_triggers_log") + await _count("conversation_drift_alerts")}
+
+    # ── 5. Inventario de modelos: qué IA está ACTIVA vs EN ESPERA (el cable dormido) ─
+    async def _estado(activo_si, *, motivo_espera):
+        return {"estado": "activo", "detalle": None} if activo_si else {"estado": "espera", "detalle": motivo_espera}
+    swipes = await _count("asesor_swipe_events")
+    convos = await _count("conversation_messages") + await _count("whatsapp_messages")
+    inventario = [
+        {"modelo": "Valuación automática (AVM)", "para": "Dev · Superadmin",
+         **(await _estado(bool(snap), motivo_espera="se activa con cierres para calibrar"))},
+        {"modelo": "Pronóstico de precio por zona", "para": "Dev · Superadmin · Asesor",
+         **(await _estado((await _count("forecast_retrain_runs")) > 0, motivo_espera="necesita histórico de precios"))},
+        {"modelo": "Precio por características (hedónico)", "para": "Dev · Superadmin",
+         **(await _estado(hedonic_vivos > 0, motivo_espera="necesita más operaciones por zona"))},
+        {"modelo": "Probabilidad de cierre", "para": "Asesor",
+         **(await _estado((await _count("cerebro_predictions")) > 0 or (await _count("cerebro_retrains")) > 0, motivo_espera="aprende con cada trato ganado/perdido"))},
+        {"modelo": "Cerebro que aprende (agente)", "para": "Todos",
+         **(await _estado((await _count("cerebro_lessons")) > 0, motivo_espera="aprende con el uso real"))},
+        {"modelo": "Alertas predictivas de leads", "para": "Asesor",
+         **(await _estado(vigilancia["corridas"] > 0, motivo_espera="necesita actividad de leads"))},
+        {"modelo": "Gusto visual del comprador", "para": "Dev · Asesor",
+         **(await _estado(swipes > 0, motivo_espera="se llena con los swipes del comprador"))},
+        {"modelo": "Análisis de conversaciones", "para": "Asesor",
+         **(await _estado(convos > 0, motivo_espera="se llena al conectar WhatsApp/chat"))},
+    ]
+    activos = sum(1 for m in inventario if m["estado"] == "activo")
+
+    # ── 6. Resumen + acciones ───────────────────────────────────────────────────────
+    partes = [f"{activos} de {len(inventario)} modelos de IA están activos."]
+    if mape30 is not None:
+        partes.append(f"La valuación se equivoca en promedio {mape30}% (últimos 30 días).")
+    else:
+        partes.append("La precisión de la valuación se empieza a medir con los primeros cierres reales.")
+    if retrains:
+        partes.append(f"Los modelos se reentrenan solos: el último fue {retrains[0]['cuando'] or 'reciente'}.")
+    if vigilancia["corridas"]:
+        partes.append(f"La IA vigila los leads en automático ({vigilancia['corridas']} corridas).")
+    resumen = " ".join(partes)
+
+    acciones = []
+    en_espera = [m for m in inventario if m["estado"] == "espera"]
+    if en_espera:
+        acciones.append({"tipo": "activar",
+                         "texto": f"Hay {len(en_espera)} modelos listos pero en espera de datos (ej. {en_espera[0]['modelo']}: {en_espera[0]['detalle']}). Conecta la fuente y se prenden solos."})
+    if mape30 is None:
+        acciones.append({"tipo": "calibrar", "texto": "La valuación ya corre, pero para medir qué tan bien le atina necesita ~20 cierres reales. Carga los cierres y empieza a calificarse sola."})
+    elif mape30 > 12:
+        acciones.append({"tipo": "calibrar", "texto": f"La valuación se está desviando ({mape30}%). Conviene cargar más cierres reales para recalibrar."})
+    if lecciones:
+        acciones.append({"tipo": "aprendizaje", "texto": f"La IA ya aprende del uso: \"{(lecciones[0]['texto'] or '')[:80]}\". Mientras más se use, mejor predice."})
+
+    return {
+        "resumen": resumen,
+        "salud_modelos": {"accuracy": accuracy, "validaciones": validaciones[:8]},
+        "como_aprende": {"retrains": retrains, "modelos_vivos_hedonico": hedonic_vivos},
+        "espejo": {"lecciones": lecciones, "reajustes": reajustes},
+        "vigilancia": vigilancia,
+        "inventario_modelos": inventario,
+        "activos": activos, "total_modelos": len(inventario),
+        "acciones": acciones[:3],
+        "fuente": {"nota": "Estos modelos corrían por detrás (cron) sin panel; aquí se hacen visibles. Se afinan solos con cada cierre, conversación y swipe real."},
+    }
+
+
+@router.get("/observabilidad-ia")
+async def observabilidad_ia(request: Request):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    return await _observabilidad_ia(request.app.state.db)

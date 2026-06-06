@@ -56,3 +56,9 @@ export async function fetchCompetenciaRed(filters = {}) {
   if (!r.ok) throw new Error('No se pudo cargar competencia y red');
   return r.json();
 }
+
+export async function fetchObservabilidadIA() {
+  const r = await fetch(`${API}/api/superadmin/devmaster/observabilidad-ia`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar la observabilidad de la IA');
+  return r.json();
+}
