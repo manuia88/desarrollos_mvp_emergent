@@ -48,6 +48,7 @@ import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard'
 import ConstructionQualityBadge from '../components/property/ConstructionQualityBadge';
 import { getQualityIndex } from '../api/constructionQuality';
 import MarketValueCard from '../components/marketplace/MarketValueCard';
+import BuySignal from '../components/marketplace/BuySignal';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
 import PublicCotizador from '../components/marketplace/PublicCotizador';
@@ -328,6 +329,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
             />
           </section>
+
+          {/* Bloque 4 · ¿Es buena compra? — precio justo (AVM) + buen momento (ciclo) para el comprador */}
+          <BuySignal devId={dev.id} />
 
           {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
           <MarketValueCard colonia={dev.colonia_id || dev.colonia} />

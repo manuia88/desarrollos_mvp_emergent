@@ -20,6 +20,19 @@ export async function fetchDevelopment(id) {
   return r.json();
 }
 
+// ¿Es Buena Compra? — precio justo (AVM) + buen momento (ciclo) + veredicto. Opcional por-unidad.
+export async function fetchBuySignal(devId, unit = {}) {
+  const qs = new URLSearchParams();
+  if (unit.price) qs.set('price', unit.price);
+  if (unit.m2) qs.set('m2', unit.m2);
+  if (unit.rec != null) qs.set('rec', unit.rec);
+  if (unit.ban != null) qs.set('ban', unit.ban);
+  const q = qs.toString();
+  const r = await fetch(`${API}/api/public/buy-signal/${devId}${q ? `?${q}` : ''}`);
+  if (!r.ok) throw new Error('buy-signal fetch failed');
+  return r.json();
+}
+
 // B2.1 — Fotos reales del comprador (watermarked). Sírvelas con `${API}${public_url}`.
 // Fail-open: devuelve {count:0, assets:[]} si falla, para no romper la ficha.
 export async function fetchDevelopmentAssets(id, assetType = null) {

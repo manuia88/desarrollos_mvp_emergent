@@ -452,6 +452,10 @@ app.include_router(investment_explorer_router)
 from routes.dmx_indices import router as dmx_indices_router
 app.include_router(dmx_indices_router)
 
+# A12+A07 — ¿Es Buena Compra? (precio justo + buen momento · comprador · reusa AVM+ciclo+índices)
+from routes.buy_signal import router as buy_signal_router
+app.include_router(buy_signal_router)
+
 # W3.4A ZZ.4 — Fraud Detection + Risk Score V1 (SESNSP)
 from routes.fraud_detection import router as fraud_router
 from routes.risk_score import router as risk_score_router
