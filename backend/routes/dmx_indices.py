@@ -197,13 +197,15 @@ async def superadmin_colonias_compute_scores(
     return await cc.compute_catalog_scores(request.app.state.db, city=city)
 
 
-@router.post("/api/superadmin/colonias/sync-denue")
-async def superadmin_colonias_sync_denue(
+@router.post("/api/superadmin/colonias/sync-comercios")
+async def superadmin_colonias_sync_comercios(
     request: Request,
     city: str = Query("CDMX", description="ciudad a sincronizar"),
+    source: str = Query("osm", description="osm (gratis · default) | denue (respaldo)"),
 ):
-    """Sincroniza densidad DENUE real (negocios) por colonia usando su centro + recalcula scores.
-    Cierra el ciclo dato→score en un clic. Honesto si el API no responde."""
+    """Sincroniza la densidad real de comercios por colonia (OSM por defecto · gratis y confiable)
+    usando su centro + recalcula scores. Cierra el ciclo dato→score en un clic. Honesto si la
+    fuente no responde."""
     await _sa(request)
     import colonias_catalog as cc
-    return await cc.sync_denue_for_city(request.app.state.db, city=city)
+    return await cc.sync_business_density(request.app.state.db, city=city, source=source)

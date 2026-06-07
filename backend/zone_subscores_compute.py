@@ -48,17 +48,17 @@ LIFESTYLE_CATEGORIES = {"restaurante", "bar", "cafe", "ocio", "recreacion"}
 async def compute_lifestyle(db, zone_slug: str) -> Dict[str, Any]:
     try:
         doc = await db.denue_zone_density.find_one(
-            {"zone_id": zone_slug}, {"_id": 0, "by_category": 1, "businesses_per_km2": 1},
+            {"zone_id": zone_slug}, {"_id": 0, "by_category": 1, "businesses_per_km2": 1, "source": 1},
         )
         if not doc:
-            log.warning(f"[subscores] lifestyle stub {zone_slug}: denue not synced")
+            log.warning(f"[subscores] lifestyle stub {zone_slug}: densidad no sincronizada")
             return STUB
         by_cat = doc.get("by_category") or {}
         rec_count = sum(int(v) for k, v in by_cat.items()
                         if any(token in (k or "").lower() for token in LIFESTYLE_CATEGORIES))
         # Normaliza con cap 200 POIs recreativos → 100 score
         score = min(100.0, (rec_count / 200.0) * 100.0)
-        return _wrap(score, "denue", sample_size=rec_count)
+        return _wrap(score, doc.get("source") or "denue", sample_size=rec_count)
     except Exception as e:
         log.warning(f"[subscores] lifestyle error {zone_slug}: {e}")
         return STUB
@@ -110,16 +110,16 @@ async def compute_transporte(db, zone_slug: str) -> Dict[str, Any]:
 async def compute_amenidades(db, zone_slug: str) -> Dict[str, Any]:
     try:
         doc = await db.denue_zone_density.find_one(
-            {"zone_id": zone_slug}, {"_id": 0, "businesses_per_km2": 1, "businesses_count_total": 1},
+            {"zone_id": zone_slug}, {"_id": 0, "businesses_per_km2": 1, "businesses_count_total": 1, "source": 1},
         )
         if not doc:
-            log.warning(f"[subscores] amenidades stub {zone_slug}: denue not synced")
+            log.warning(f"[subscores] amenidades stub {zone_slug}: densidad no sincronizada")
             return STUB
         density = float(doc.get("businesses_per_km2") or 0)
         # Referencia ÚNICA de densidad (negocios/km², Polanco ~400) — fuente en metric_normalizer.
         from metric_normalizer import DENUE_DENSITY_REF
         score = min(100.0, (density / DENUE_DENSITY_REF) * 100.0)
-        return _wrap(score, "denue", sample_size=int(doc.get("businesses_count_total") or 0))
+        return _wrap(score, doc.get("source") or "denue", sample_size=int(doc.get("businesses_count_total") or 0))
     except Exception as e:
         log.warning(f"[subscores] amenidades error {zone_slug}: {e}")
         return STUB

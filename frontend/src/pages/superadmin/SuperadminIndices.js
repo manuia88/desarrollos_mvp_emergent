@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncDenue } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -40,15 +40,15 @@ export default function SuperadminIndices() {
     }
   };
 
-  const sincronizarDenue = async () => {
-    setIngest({ busy: true, msg: 'Sincronizando negocios (DENUE)… puede tardar un minuto.' });
+  const sincronizarComercios = async () => {
+    setIngest({ busy: true, msg: 'Sincronizando comercios (OpenStreetMap)… puede tardar un minuto.' });
     try {
-      const r = await syncDenue('CDMX');
-      const base = `${r.sincronizadas} colonias sincronizadas · ${r.con_datos} con negocios reales · ${r.scores?.con_scores_reales ?? 0} con scores reales.`;
+      const r = await syncComercios('CDMX', 'osm');
+      const base = `${r.sincronizadas} colonias sincronizadas · ${r.con_datos} con comercios reales · ${r.scores?.con_scores_reales ?? 0} con scores reales.`;
       setIngest({ busy: false, msg: r.nota ? `${base} ${r.nota}` : base });
       refrescar();
     } catch (e) {
-      setIngest({ busy: false, msg: 'Error al sincronizar DENUE.' });
+      setIngest({ busy: false, msg: 'Error al sincronizar comercios.' });
     }
   };
 
@@ -131,8 +131,8 @@ export default function SuperadminIndices() {
             <button data-testid="ix-cargar-catalogo" onClick={cargarCatalogo} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               {ingest.busy ? 'Trabajando…' : 'Cargar Catálogo CDMX'}
             </button>
-            <button data-testid="ix-sync-denue" onClick={sincronizarDenue} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
-              Sincronizar Negocios (DENUE)
+            <button data-testid="ix-sync-comercios" onClick={sincronizarComercios} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Sincronizar Comercios
             </button>
             <button data-testid="ix-computar-scores" onClick={computarScores} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Computar Scores Reales

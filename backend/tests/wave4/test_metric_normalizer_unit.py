@@ -163,6 +163,28 @@ def test_score_bridge_sin_datos_todo_pendiente():
     assert r["reales"] == 0 and r["cobertura_pct"] == 0 and r["es_estimado"] is True
 
 
+def test_osm_clasifica_pois_a_categorias_dmx():
+    """El motor OSM mapea tags reales a categorías; las claves de vida usan tokens en español."""
+    import osm_engine as osm
+    assert osm._classify({"amenity": "restaurant"}) == "restaurante"
+    assert osm._classify({"amenity": "cafe"}) == "cafe"
+    assert osm._classify({"amenity": "bar"}) == "bar"
+    assert osm._classify({"shop": "supermarket"}) == "mercado"
+    assert osm._classify({"amenity": "pharmacy"}) == "farmacia"
+    assert osm._classify({"leisure": "park"}) == "recreacion"
+    assert osm._classify({"shop": "florist"}) == "otro_comercio"   # cuenta para densidad total
+    assert osm._classify({"highway": "residential"}) is None        # no es comercio
+
+
+def test_osm_keys_compatibles_con_lifestyle():
+    """Las categorías de vida de OSM deben matchear el detector de lifestyle (vida)."""
+    import osm_engine as osm
+    from zone_subscores_compute import LIFESTYLE_CATEGORIES
+    vida_keys = {"restaurante", "bar", "cafe", "ocio", "recreacion"}
+    for k in vida_keys:
+        assert any(token in k for token in LIFESTYLE_CATEGORIES), f"{k} no lo detecta lifestyle"
+
+
 def test_bandas_no_mezclan_ciudades():
     """Una colonia de otra ciudad se compara solo contra su ciudad (no contra CDMX)."""
     import dmx_indices_engine as ix

@@ -45,9 +45,10 @@ export const computeColoniasScores = async (city = 'CDMX') => {
   return body;
 };
 
-// Superadmin · sincronizar densidad DENUE real por colonia + recalcular (cierra ciclo dato→score)
-export const syncDenue = async (city = 'CDMX') => {
-  const r = await fetch(`${API}/api/superadmin/colonias/sync-denue?city=${encodeURIComponent(city)}`, {
+// Superadmin · sincronizar densidad real de comercios por colonia + recalcular (cierra ciclo dato→score)
+// source: 'osm' (gratis, default) | 'denue' (respaldo)
+export const syncComercios = async (city = 'CDMX', source = 'osm') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/sync-comercios?city=${encodeURIComponent(city)}&source=${encodeURIComponent(source)}`, {
     method: 'POST', credentials: 'include',
   });
   const body = await r.json().catch(() => ({}));
