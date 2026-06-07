@@ -62,11 +62,12 @@ def test_velocity_values_positive_ints():
 
 # ─── _predictions ────────────────────────────────────────────────────────────
 
-def test_predictions_has_q3_q4_forecasts():
-    """Predictions incluye Q3 y Q4 aprec."""
+def test_predictions_derived_and_flagged_estimate():
+    """Predictions: plusvalía derivada del dato (no hardcodeada) + marcada estimada."""
     p = _predictions(list(_FALLBACK_TOP_ROI))
-    assert "q3_avg_appreciation" in p
-    assert "q4_avg_appreciation" in p
+    assert "q_next_avg_appreciation" in p
+    assert p.get("es_estimado") is True          # fallback de ejemplo → estimado
+    assert "q3_avg_appreciation" not in p         # ya no hay forecast trimestral inventado
 
 
 def test_predictions_hot_zones_top_5():

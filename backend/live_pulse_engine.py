@@ -325,15 +325,34 @@ WEIGHTS = {
 
 
 def compose_score(signals: Dict[str, Dict[str, Any]]) -> float:
-    """Score 0-100 sigmoid weighted sum sobre delta_pct capped [-100,+500]."""
+    """Score 0-100 sigmoid · SOLO las señales reales lo mueven (los stubs no contaminan).
+    Se re-normaliza al peso real usado, para no inventar movimiento con dato sintético."""
+    total_weight = sum(w for w in WEIGHTS.values() if w > 0)
     weighted_sum = 0.0
+    used_weight = 0.0
     for key, weight in WEIGHTS.items():
+        if weight <= 0:
+            continue
         sig = signals.get(key) or {}
-        delta = float(sig.get("delta_pct") or 0.0)
-        delta_capped = max(-100.0, min(500.0, delta))
-        weighted_sum += delta_capped * weight
+        if sig.get("source") != "real":   # stub/unavailable/insufficient → NO mueven el score
+            continue
+        delta = max(-100.0, min(500.0, float(sig.get("delta_pct") or 0.0)))
+        weighted_sum += delta * weight
+        used_weight += weight
+    if used_weight <= 0:
+        return 50.0   # sin dato real → neutral (se acompaña de data_quality.es_estimado)
+    weighted_sum *= total_weight / used_weight   # escala como si el peso real cubriera todo
     score = 100.0 / (1.0 + math.exp(-weighted_sum / 30.0))
     return round(score, 2)
+
+
+def data_quality(signals: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """Cuánto del pulso viene de dato real vs estimado — para mostrar 'estimando' honesto."""
+    total = sum(w for w in WEIGHTS.values() if w > 0) or 1.0
+    real = sum(w for k, w in WEIGHTS.items() if w > 0 and (signals.get(k) or {}).get("source") == "real")
+    frac = round(real / total, 2)
+    return {"real_weight": frac, "es_estimado": frac < 0.5,
+            "lectura": ("Datos reales" if frac >= 0.8 else "Parcialmente estimado" if frac >= 0.5 else "Estimado — aún sin datos en vivo de esta zona")}
 
 
 def score_bucket(score: float) -> str:
@@ -401,6 +420,7 @@ async def compute_pulse(db, zone_slug: str) -> Dict[str, Any]:
         "signals": signals,
         "computed_at": _iso(_now()),
         "stub_flags": _stub_flags(signals),
+        "data_quality": data_quality(signals),   # honestidad: cuánto es real vs estimado
     }
     if _rag_context_text:
         out["rag_context"] = _rag_context_text

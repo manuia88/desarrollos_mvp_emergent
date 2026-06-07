@@ -87,9 +87,9 @@ export default function StateOfCDMX() {
     { id: 'velocity-champion', label: 'Velocity champion',
       value: `${metrics.velocity_by_category?.social ?? 7} meses`,
       sub: 'segmento Social' },
-    { id: 'forecast-q4', label: 'Forecast Q4 2026',
-      value: `+${(preds.q4_avg_appreciation ?? 0).toFixed(1)}%`,
-      sub: 'apreciación promedio' },
+    { id: 'forecast-next', label: 'Plusvalía estimada',
+      value: preds.q_next_avg_appreciation != null ? `~+${preds.q_next_avg_appreciation.toFixed(1)}%` : '—',
+      sub: preds.es_estimado ? 'escenario estimado' : 'apreciación promedio' },
   ];
 
   return (
@@ -171,20 +171,15 @@ export default function StateOfCDMX() {
       </Section>
 
       {/* Section 5 · Predictions */}
-      <Section testid="state-section-5" title="Predicciones 2026 · Q3 → Q4">
+      <Section testid="state-section-5" title="Escenario direccional de plusvalía">
         <div style={{
           display: 'grid', gap: 14,
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         }}>
           <div style={gradientCard}>
-            <div style={eyebrowOnGradient}>APRECIACIÓN Q3</div>
-            <div style={bigNum}>+{(preds.q3_avg_appreciation ?? 0).toFixed(1)}%</div>
-            <div style={sub}>Promedio top zonas CDMX</div>
-          </div>
-          <div style={gradientCard}>
-            <div style={eyebrowOnGradient}>APRECIACIÓN Q4</div>
-            <div style={bigNum}>+{(preds.q4_avg_appreciation ?? 0).toFixed(1)}%</div>
-            <div style={sub}>Aceleración esperada cierre año</div>
+            <div style={eyebrowOnGradient}>PLUSVALÍA ESTIMADA · TOP ZONAS</div>
+            <div style={bigNum}>{preds.q_next_avg_appreciation != null ? `~+${preds.q_next_avg_appreciation.toFixed(1)}%` : '—'}</div>
+            <div style={sub}>{preds.nota || 'Promedio direccional de las zonas top'}</div>
           </div>
           <div style={{ ...gradientCard, background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.10)' }}>
             <div style={eyebrow}>HOT ZONES</div>

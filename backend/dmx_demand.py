@@ -92,6 +92,11 @@ async def demand_gap(db, top: int = 25) -> Dict[str, Any]:
 
     out.sort(key=lambda x: x["gap_score"], reverse=True)
     return {"demand_source": "proxy" if is_proxy else "behavioral_events",
+            # Honestidad: si aún no hay búsquedas/vistas reales, la demanda es un estimado
+            # (proxy de inventario) y se auto-cambia al llegar eventos reales de la zona.
+            "es_estimado": is_proxy,
+            "lectura_datos": ("Demanda estimada — aún sin búsquedas reales en estas zonas"
+                              if is_proxy else "Demanda con datos reales de búsqueda/vistas"),
             "cells": out[:top], "total_cells": len(out), "computed_at": _iso()}
 
 

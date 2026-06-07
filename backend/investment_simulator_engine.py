@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import time
 from typing import Any, Dict, List, Optional
 
@@ -68,11 +69,12 @@ COLONIA_DEFAULTS: Dict[str, float] = {
     "tepito": 0.025,
 }
 
-# TIIE 28d reference (current approx)
-TIIE_RATE = 0.095
-# Spread hipotecario typical
-SPREAD = 0.04
-MORTGAGE_RATE_ANNUAL = TIIE_RATE + SPREAD  # ~13.5%
+# Tasas — fuente única actualizable por env (lista para feed BANXICO en vivo · stub auto-fill).
+# Valores por defecto = mercado real CDMX 2026 (TIIE 28d ~7.2%, hipoteca fija ~10.5%).
+# Antes estaban hardcodeadas y stale (9.5% / 13.5%) → inflaban el costo ~250-300bps.
+TIIE_RATE = float(os.getenv("DMX_TIIE_28D", "0.0725"))          # referencia variable (BANXICO)
+MORTGAGE_RATE_ANNUAL = float(os.getenv("DMX_MORTGAGE_RATE", "0.105"))  # hipoteca fija real (alineada con mortgage_calculator BBVA)
+SPREAD = round(MORTGAGE_RATE_ANNUAL - TIIE_RATE, 4)
 
 # Rental yield by tier (annual, gross)
 RENTAL_YIELDS = {

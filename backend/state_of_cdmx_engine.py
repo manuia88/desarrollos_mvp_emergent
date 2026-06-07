@@ -30,6 +30,8 @@ def current_period() -> str:
     return f"{now.year}-Q{q}"
 
 
+# OJO: estos fallbacks son DATOS DE EJEMPLO (no medidos) para que la pantalla funcione sin
+# datos cargados. Se reemplazan solos cuando hay zone_scores reales. Van marcados es_estimado.
 _FALLBACK_TOP_ROI = [
     {"slug": "polanco", "name": "Polanco", "roi_12m_pct": 18.4, "hedonic_change_pct": 12.1, "velocity_months": 6},
     {"slug": "condesa", "name": "Condesa", "roi_12m_pct": 16.2, "hedonic_change_pct": 10.6, "velocity_months": 7},
@@ -66,19 +68,22 @@ async def _top_colonias_by_roi(db, limit: int = 10) -> List[Dict[str, Any]]:
             if not slug:
                 continue
             score = float(d.get("score_total") or 0)
-            roi = round(8 + (score / 100) * 14, 1)
+            roi = round(8 + (score / 100) * 14, 1)   # ESTIMADO direccional desde el score (no ROI medido)
             out.append({
                 "slug": slug,
                 "name": d.get("name") or slug.replace("-", " ").title(),
                 "roi_12m_pct": roi,
                 "hedonic_change_pct": round(roi * 0.65, 1),
                 "velocity_months": max(4, round(14 - score / 10)),
+                "fuente": "estimado_score",   # derivado del zone score, no ROI real de transacciones
             })
             if len(out) >= limit:
                 break
     except Exception as exc:
         log.debug(f"[state] top_colonias_by_roi failed: {exc}")
-    return out[:limit] if out else list(_FALLBACK_TOP_ROI[:limit])
+    if out:
+        return out[:limit]
+    return [{**r, "fuente": "ejemplo"} for r in _FALLBACK_TOP_ROI[:limit]]   # datos de ejemplo
 
 
 async def _demand_supply_top(db, limit: int = 10) -> List[Dict[str, Any]]:
@@ -115,10 +120,19 @@ def _velocity_by_category() -> Dict[str, int]:
 
 
 def _predictions(top_roi: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Direccional, DERIVADO del dato que ya tenemos (no números puestos a mano).
+    Promedio de la plusvalía estimada de las zonas top, suavizado. Marcado es_estimado."""
     hot = [r["slug"] for r in top_roi[:5]]
     cold = [r["slug"] for r in top_roi[-3:]] if len(top_roi) > 3 else []
-    return {"q3_avg_appreciation": 8.2, "q4_avg_appreciation": 9.1,
-            "hot_zones": hot, "cold_zones": cold}
+    hed = [r.get("hedonic_change_pct") or 0 for r in top_roi if r.get("hedonic_change_pct")]
+    avg = round(sum(hed) / len(hed), 1) if hed else None
+    es_estimado = any(r.get("fuente") in ("ejemplo", "estimado_score") for r in top_roi) or avg is None
+    return {
+        "q_next_avg_appreciation": avg,            # derivado, no hardcodeado
+        "hot_zones": hot, "cold_zones": cold,
+        "es_estimado": es_estimado,
+        "nota": "Escenario direccional derivado del índice de zona — no es un pronóstico medido.",
+    }
 
 
 async def compute_metrics(db, period: str) -> Dict[str, Any]:
