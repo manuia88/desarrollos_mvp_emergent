@@ -20,13 +20,17 @@ from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.banxico_rates")
 
-# ── Defaults OFICIALES al 2026-06-07 (fuente + fecha · actualizar aquí o vía conector) ──
+# ── Defaults OFICIALES (fuente + fecha · actualizar aquí o vía conector) ──
+# Hipoteca: Banxico cuadro CF303 (créditos hipotecarios en pesos a tasa fija), Abril 2026:
+#   tasa fija → mín 9.00% · prom 11.46% · máx 21.13% ; CAT → mín 10.70% · prom 13.96% · máx 28.18%.
 _OFICIAL: Dict[str, Dict[str, Any]] = {
     "tiie_28d":          {"valor": 0.066554, "fuente": "Hacienda/Banxico SF60648", "as_of": "2026-06-07"},
     "tasa_objetivo":     {"valor": 0.0650,   "fuente": "Banxico (tasa objetivo)",  "as_of": "2026-06-07"},
-    "hipoteca_fija_ref": {"valor": 0.105,    "fuente": "Banca fija (CONDUSEF/BBVA)", "as_of": "2026-06"},
+    "hipoteca_fija_ref": {"valor": 0.1146,   "fuente": "Banxico CF303 (fija, prom.)", "as_of": "2026-04"},
+    "hipoteca_fija_min": {"valor": 0.0900,   "fuente": "Banxico CF303 (fija, mín.)",  "as_of": "2026-04"},
+    "hipoteca_cat_prom": {"valor": 0.1396,   "fuente": "Banxico CF303 (CAT, prom.)",  "as_of": "2026-04"},
 }
-# Series SIE de Banxico para el conector en vivo
+# Series SIE de Banxico para el conector en vivo (TIIE 28d; hipoteca vive en cuadro CF303)
 BANXICO_SERIES = {"tiie_28d": "SF60648"}
 
 # Cache de proceso (lo llena el conector). get_rate_sync lee: cache → env → default oficial.
