@@ -103,6 +103,17 @@
 
 ---
 
+## 3.5 EXPANSIÓN · Colonias y Ciudades (nuevo track · 2026-06-07)
+**Por qué importa:** hoy hay solo **16 colonias CDMX curadas a mano** (scores a mano). El motor ya es por-zona y data-driven; expandir = **alimentar**, no reprogramar. Más colonias también arregla las bandas relativas de B.1 (distribución representativa).
+| # | Qué | Estado |
+|---|---|---|
+| EX.1 | Cargar catálogo oficial de colonias CDMX (INEGI/SEDUVI: nombre+polígono+centro) → de 16 a ~1,800 | ⏳ |
+| EX.2 | Correr recetas por colonia con fuentes ya conectadas (FGJ/DENUE/SACMEX) → scores REALES (no a mano) | ⏳ |
+| EX.3 | Agregar dimensión **`city`** al modelo (colonias·proyectos·scores·distribuciones·percentiles por ciudad) — build for endstate | ⏳ |
+| EX.4 | Percentiles/bandas **por ciudad** (Querétaro vs Querétaro) — cierra el caveat de B.1 | ⏳ |
+| EX.5 | Conector de dato local por ciudad (Jalisco IIEG · NL · Querétaro · Yucatán · QRoo); lo NACIONAL (INEGI/DENUE/SESNSP/Banxico/SHF/CENAPRED) ya cubre todo MX | ⏳ |
+| EX.6 | Rollout por mercado: CDMX completo → Guadalajara → Monterrey → Querétaro → Mérida → Playa del Carmen | ⏳ |
+
 ## 4. LO YA CONSTRUIDO (contexto · no reconstruir)
 
 ### Waves
