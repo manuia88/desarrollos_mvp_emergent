@@ -37,6 +37,8 @@ export const getDevPricingInteligente = () => j('/api/desarrollador/pricing-inte
 export const getDevRedSalud = () => j('/api/desarrollador/red-salud');
 // Marketing · "Qué Promocionar Hoy" (conecta salud del portafolio con crear contenido en Studio)
 export const getDevMarketingJugadas = () => j('/api/desarrollador/marketing-jugadas');
+// Inteligencia · "Ciclo y Renta" (fase del ciclo + gentrificación + renta corta/larga por zona)
+export const getDevCicloRenta = () => j('/api/desarrollador/ciclo-renta');
 // Reportes · "Resumen Ejecutivo del Mes" (junta dinero+ventas+demanda+red+prioridades, compartible)
 export const getDevReporteEjecutivo = () => j('/api/desarrollador/reporte-ejecutivo');
 

@@ -4,15 +4,16 @@
 > Leyenda: ✅ REAL (motor con datos reales + UI que lo muestra) · 🟡 MEDIAS (existe pero stub/sintético/sin la fuente/sin el framing) · 🔴 FALTA (no construido) · ⚪ SOLO-BACKEND (motor sin UI).
 
 ## RESULTADO GLOBAL — 97 funciones
-- ✅ **REAL: 54 (56%)** · 🟡 **MEDIAS: 15 (15%)** · 🔴 **FALTA: 28 (29%)** · ⚪ **SOLO-BACKEND: 0**
+- ✅ **REAL: 58 (60%)** · 🟡 **MEDIAS: 14 (14%)** · 🔴 **FALTA: 25 (26%)** · ⚪ **SOLO-BACKEND: 0**
+  - Avances 2026-06-06: B08 Absorción (🟡→✅) · B05 Ciclo + D05 Gentrificación + D07 STR/LTR (🔴→✅, motor `zone_cycle_engine`).
 - **Hallazgo:** CERO motores huérfanos. Todo lo construido de verdad ya tiene UI. Lo que no se ve = falta (28) o está a medias (15, casi todo = UI existe pero fuente de datos no conectada).
 
 | Cat | Rol | Total | ✅ | 🟡 | 🔴 |
 |---|---|---|---|---|---|
 | A | Comprador | 12 | 5 | 2 | 5 |
-| B | Desarrollador | 15 | 8 | 2 | 5 |
+| B | Desarrollador | 15 | 10 | 1 | 4 |
 | C | Asesor | 8 | 6 | 1 | 1 |
-| D | Mercado/API | 10 | 4 | 0 | 6 |
+| D | Mercado/API | 10 | 6 | 0 | 4 |
 | E | Cruces 2º orden | 8 | 7 | 0 | 1 |
 | F | Calidad de vida | 17 | 11 | 2 | 4 |
 | G | 2º orden 2.0 | 5 | 4 | 0 | 1 |
@@ -21,9 +22,9 @@
 
 ## DETALLE POR FUNCIÓN
 **A Comprador:** ✅ A01 Affordability (mortgage_calculator+UI) · ✅ A02 Investment Sim · ✅ A06 Neighborhood Quality (zone_score) · ✅ A08 Comparador (comparator_engine) · ✅ A10 Lifestyle Match (smart_match) · 🟡 A09 Risk Score (motor zona real, sin tarjeta por-proyecto comprador) · 🟡 A11 Patrimonio (subsumido en A02) · 🔴 A03 Migration renta→compra · 🔴 A04 Arbitraje preventa/reventa · 🔴 A05 TCO 10a integral · 🔴 A07 Timing comprador · 🔴 A12 Price Fairness vs listado
-**B Desarrollador:** ✅ B01 Demand Heatmap (demand_engine real) · ✅ B02 Margen semáforo (dmx_margin) · ✅ B03 Pricing Autopilot (real, mediana zona) · ✅ B06 Project Genesis (site-selection) · ✅ B07 Competitive (battle_card) · ✅ B09 Cash Flow · ✅ B11 Channel (funnel) · ✅ B12 Cost Tracker INPP · 🟡 B08 Absorción (**SINTÉTICO random**) · 🟡 B13 Amenity ROI (ranker hedónico, no ROI costo-ingreso) · 🔴 B04 PMF Score · 🔴 B05 Market Cycle · 🔴 B10 Unit Revenue Optimizer · 🔴 B14 Buyer Persona · 🔴 B15 Launch Timing
+**B Desarrollador:** ✅ B01 Demand Heatmap (demand_engine real) · ✅ B02 Margen semáforo (dmx_margin) · ✅ B03 Pricing Autopilot (real, mediana zona) · ✅ B06 Project Genesis (site-selection) · ✅ B07 Competitive (battle_card) · ✅ B09 Cash Flow · ✅ B11 Channel (funnel) · ✅ B12 Cost Tracker INPP · ✅ B08 Absorción (real, development_id) · ✅ B05 Market Cycle (zone_cycle_engine) · 🟡 B13 Amenity ROI (ranker hedónico, no ROI costo-ingreso) · 🔴 B04 PMF Score · 🔴 B10 Unit Revenue Optimizer · 🔴 B14 Buyer Persona · 🔴 B15 Launch Timing
 **C Asesor:** ✅ C01 Lead Scoring · ✅ C02 Argumentario · ✅ C03 Matching (fit_engine) · ✅ C04 Objection Killer · ✅ C05 Weekly Briefing · ✅ C06 Commission Forecaster · 🟡 C08 Dossier (CMA PDF sí; investor-memo no) · 🔴 C07 Zona Expertise Builder
-**D Mercado/API:** ✅ D01 Market Pulse (live_pulse) · ✅ D02 Zona Ranking (zone_score) · ✅ D09 Ecosystem/Health Score · ✅ D10 Data API tiers · 🔴 D03 Supply Pipeline · 🔴 D04 Correlation Finder · 🔴 D05 Gentrification · 🔴 D06 Affordability Crisis · 🔴 D07 STR/LTR · 🔴 D08 Foreign Investment
+**D Mercado/API:** ✅ D01 Market Pulse (live_pulse) · ✅ D02 Zona Ranking (zone_score) · ✅ D09 Ecosystem/Health Score · ✅ D10 Data API tiers · ✅ D05 Gentrification (zone_cycle_engine) · ✅ D07 STR/LTR (zone_cycle_engine, renta corta vs larga) · 🔴 D03 Supply Pipeline · 🔴 D04 Correlation Finder · 🔴 D06 Affordability Crisis · 🔴 D08 Foreign Investment
 **E Cruces 2º:** ✅ E01 Full Project Score "1 número" (dmx_project_score) · ✅ E03 Predictive Lead-Close (close_probability) · ✅ E04 Anomaly (comparable_anomaly) · ✅ E05 AI Narrative · ✅ E06 Dev Benchmark · ✅ E07 Scenario/stress (investment_sim+whatif) · ✅ E08 Auto Market Report (bulletins) · 🔴 E02 Portfolio Optimizer (Markowitz)
 **F Calidad de vida:** ✅ F01-F07 (recipes IE_COL_* → ZoneScoreStrip: seguridad/transporte/DENUE/aire/agua/uso-suelo/predial) · ✅ F12 Risk Map (natural_risk CENAPRED) · ✅ F15 School/Health · ✅ F16 Hipotecas (mortgage_calculator) · ✅ F17 Site Selection AI · 🟡 F13 Commute (drive-time como briefing asesor) · 🟡 F14 Neighborhood Change · 🔴 F08 LQI (no existe como índice propio) · 🔴 F09 Value Score (solo subscore precio) · 🔴 F10 Gentrification 2.0 · 🔴 F11 Supply Pipeline Predictor 2.0
 **G 2º orden 2.0:** ✅ G01 Full Score 2.0 · ✅ G02 AI Narrative 2.0 · ✅ G04 Zone Comparison · ✅ G05 Impact Predictor (whatif) · 🔴 G03 Auto Due Diligence Report
@@ -40,8 +41,13 @@
 **TIER 1 · Quick wins (datos/cubo ya listos · alto valor):**
 - ✅ B08 Absorción → REAL (2026-06-06). Estaba real en código pero scope-ado por dev_org_id (0 leads) →
   fix a development_id ∈ proyectos del dev → 42 leads reales (win 50%, embudo 42→30→24→6, cohort+heatmap). Verificado.
-- B05 Market Cycle (derivar de absorción + momentum precio + supply, todo en cubo).
-- D05 Gentrification + D07 STR/LTR (campos `gentrificacion`/`roi_renta_corta/larga` YA en `dmx_unit_schema`).
+- ✅ B05 Market Cycle + D05 Gentrification + D07 STR/LTR → REAL (2026-06-06). Motor reusable `zone_cycle_engine.py`
+  (compute_zone_cycle: ciclo fase recuperación/expansión/maduro/contracción desde momentum+trend+tier · gentrificación
+  velocidad 0-100 · renta larga vs corta por _TIER_YIELD+vitalidad, marca 'estimado' hasta conectar AirDNA). Endpoint
+  `GET /api/desarrollador/ciclo-renta` (scoped a zonas del dev) + UI área "Ciclo y Renta" en Centro de Inteligencia
+  (DevCicloRenta.js, light theme, por-zona: fase coloreada + gentrificación + renta + jugada). Verificado live:
+  Polanco Maduro/Pico gent 38 renta corta 8.1% vs larga 4.2%; Lomas Maduro/Pico gent 30. Motor reusable también
+  comprador/superadmin (toma un dict colonia). Renta marcada 'estimado' = autollena al prender conector STR.
 - I04: construir los 5 índices DMX como composites (DRPI ya existe; los otros cruzan scores existentes).
 - Conectar recipes DataPending (H01/H02/H07/H10/H06): setear `resource_id`/sync.
 **TIER 2 · Computable con datos existentes:**

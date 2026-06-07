@@ -16,6 +16,7 @@ import DesarrolladorReportes from './DesarrolladorReportes';
 import DesarrolladorSiteSelection from './DesarrolladorSiteSelection';
 import DevComportamiento from '../../components/developer/DevComportamiento';
 import DevPricingArea from '../../components/developer/DevPricingArea';
+import DevCicloRenta from '../../components/developer/DevCicloRenta';
 
 const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
 
@@ -25,6 +26,7 @@ const AREAS = [
   ['demanda', 'Demanda'],
   ['comportamiento', 'Qué Frena Tus Ventas'],
   ['precios', 'Precios'],
+  ['ciclo', 'Ciclo y Renta'],
   ['competencia', 'Competencia'],
   ['reportes', 'Reportes'],
   ['site', 'Dónde construir'],
@@ -92,6 +94,7 @@ export default function DesarrolladorMercado({ user, onLogout }) {
       {DEV_V2 && area === 'demanda' && <DesarrolladorDemanda user={user} embedded />}
       {DEV_V2 && area === 'comportamiento' && <DevComportamiento />}
       {DEV_V2 && area === 'precios' && <DevPricingArea user={user} />}
+      {DEV_V2 && area === 'ciclo' && <DevCicloRenta />}
       {DEV_V2 && area === 'competencia' && <DesarrolladorCompetidores user={user} embedded />}
       {DEV_V2 && area === 'reportes' && <DesarrolladorReportes user={user} embedded />}
       {DEV_V2 && area === 'site' && <DesarrolladorSiteSelection user={user} embedded />}

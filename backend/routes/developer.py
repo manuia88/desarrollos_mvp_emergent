@@ -648,6 +648,50 @@ async def dev_reporte_ejecutivo(request: Request):
     }
 
 
+# ─── Inteligencia · Ciclo y Renta de tus Zonas (Bloque 2.2 · B05+D05+D07) ───────────
+#     En qué fase del ciclo está cada zona donde tienes proyectos + qué tan rápido gentrifica
+#     + ROI de renta corta (Airbnb) vs larga. Motor reusable (dev/comprador). Cierra el ciclo
+#     con pricing/timing. Renta estimada se afina con AirROI. Cero deuda.
+@router.get("/ciclo-renta")
+async def dev_ciclo_renta(request: Request):
+    from data_developments import DEVELOPMENTS
+    from data_seed import COLONIAS
+    user = await require_dev_admin(request)
+    dev_ids = _user_dev_ids(user)
+    db = get_db(request)
+    import zone_cycle_engine as zce
+
+    # zonas donde el dev tiene proyectos
+    mis_zonas = []
+    for d in DEVELOPMENTS:
+        if d["id"] in dev_ids and d.get("colonia") and d["colonia"] not in mis_zonas:
+            mis_zonas.append(d["colonia"])
+    col_by_name = {c["name"]: c for c in COLONIAS}
+
+    zonas = []
+    acciones = []
+    for zn in mis_zonas:
+        c = col_by_name.get(zn)
+        if not c:
+            continue
+        z = zce.compute_zone_cycle(c)
+        z["recomendacion"] = zce.zone_recommendation(z)
+        zonas.append(z)
+        acciones.append({"texto": z["recomendacion"]})
+
+    # orden: expansión primero (donde mover), luego recuperación
+    order = {"expansion": 0, "recuperacion": 1, "maduro": 2, "contraccion": 3}
+    zonas.sort(key=lambda x: order.get(x["ciclo"]["fase_key"], 4))
+
+    expansion = [z for z in zonas if z["ciclo"]["fase_key"] == "expansion"]
+    resumen = (f"{len(expansion)} de tus zonas están en expansión — buen momento para subir precio o vender con plusvalía."
+               if expansion else "Tus zonas van a ritmo estable.")
+    return {
+        "resumen": resumen, "zonas": zonas, "acciones": acciones[:3],
+        "nota": "El ciclo y la gentrificación salen de la tendencia real de precios de cada zona. El ROI de renta es estimado; se afina con el conector de rentas (AirROI/AirDNA).",
+    }
+
+
 # ─── D1: Inventory ────────────────────────────────────────────────────────────
 @router.get("/inventario")
 async def list_inventory(request: Request, dev_id: Optional[str] = None):
