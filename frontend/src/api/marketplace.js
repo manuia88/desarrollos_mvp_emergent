@@ -33,6 +33,18 @@ export async function fetchBuySignal(devId, unit = {}) {
   return r.json();
 }
 
+// ¿Me conviene comprar? — rentar vs comprar (A03) + costo total a N años (A05).
+export async function fetchOwnership(devId, opts = {}) {
+  const enganche = opts.engancheRatio != null ? opts.engancheRatio : 0.20;
+  const years = opts.years != null ? opts.years : 10;
+  const qs = new URLSearchParams({ enganche_pct: String(enganche), years: String(years) });
+  if (opts.price) qs.set('price', opts.price);
+  if (opts.m2) qs.set('m2', opts.m2);
+  const r = await fetch(`${API}/api/public/ownership/${devId}?${qs.toString()}`);
+  if (!r.ok) throw new Error('ownership fetch failed');
+  return r.json();
+}
+
 // B2.1 — Fotos reales del comprador (watermarked). Sírvelas con `${API}${public_url}`.
 // Fail-open: devuelve {count:0, assets:[]} si falla, para no romper la ficha.
 export async function fetchDevelopmentAssets(id, assetType = null) {

@@ -185,6 +185,40 @@ async def buy_signal(
     })
 
 
+@router.get("/api/public/ownership/{dev_id}")
+async def ownership(
+    dev_id: str, request: Request,
+    enganche_pct: float = Query(0.20, ge=0.05, le=0.95),
+    years: int = Query(10, ge=1, le=30),
+    price: Optional[float] = Query(None, gt=0),
+    m2: Optional[float] = Query(None, gt=0, le=10000),
+):
+    """¿Rentar o comprar? (A03) + Costo Total a N años (A05) para un desarrollo.
+    Simula comprar vs rentar-e-invertir-la-diferencia con la plusvalía y renta reales de la zona."""
+    _rl(_ip(request))
+    db = request.app.state.db
+    dev = await _load_dev(db, dev_id)
+    if not dev:
+        raise HTTPException(404, "desarrollo_no_encontrado")
+    colonia_slug = dev.get("colonia_id") or (dev.get("colonia") or "").lower().replace(" ", "-")
+    rep = _representative_unit(dev)
+    u_price = float(price or rep["price"] or 0)
+    u_m2 = float(m2 or rep["m2"] or 80)
+    try:
+        from data_seed import COLONIAS_BY_ID
+        col = COLONIAS_BY_ID.get(colonia_slug)
+    except Exception:
+        col = None
+    import ownership_economics_engine as oee
+    out = oee.compute_ownership(u_price, u_m2, col, enganche_pct=enganche_pct, years=years)
+    return JSONResponse({
+        "ok": True, "dev_id": dev_id, "nombre": dev.get("name"),
+        "zona": dev.get("colonia") or colonia_slug, **out,
+        "nota": "Cálculo educativo con tasas CDMX estándar (predial/mantenimiento/escrituración estimados) y la "
+                "plusvalía + renta reales de la zona. No es asesoría financiera.",
+    })
+
+
 def _combined(pj: Optional[Dict[str, Any]], tm: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Cruza precio × momento en una frase accionable + un semáforo."""
     precio_ok = pj and pj["clave"] in ("barato", "justo")

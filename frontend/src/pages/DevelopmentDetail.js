@@ -49,6 +49,7 @@ import ConstructionQualityBadge from '../components/property/ConstructionQuality
 import { getQualityIndex } from '../api/constructionQuality';
 import MarketValueCard from '../components/marketplace/MarketValueCard';
 import BuySignal from '../components/marketplace/BuySignal';
+import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
 import PublicCotizador from '../components/marketplace/PublicCotizador';
@@ -332,6 +333,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* Bloque 4 · ¿Es buena compra? — precio justo (AVM) + buen momento (ciclo) para el comprador */}
           <BuySignal devId={dev.id} />
+
+          {/* Bloque 4.2 · ¿Me conviene comprar? — rentar vs comprar + costo total a N años */}
+          <OwnershipCalculator devId={dev.id} />
 
           {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
           <MarketValueCard colonia={dev.colonia_id || dev.colonia} />

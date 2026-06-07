@@ -4,7 +4,9 @@
 > Leyenda: ✅ REAL (motor con datos reales + UI que lo muestra) · 🟡 MEDIAS (existe pero stub/sintético/sin la fuente/sin el framing) · 🔴 FALTA (no construido) · ⚪ SOLO-BACKEND (motor sin UI).
 
 ## RESULTADO GLOBAL — 97 funciones
-- ✅ **REAL: 61 (63%)** · 🟡 **MEDIAS: 13 (13%)** · 🔴 **FALTA: 23 (24%)** · ⚪ **SOLO-BACKEND: 0**
+- ✅ **REAL: 63 (65%)** · 🟡 **MEDIAS: 13 (13%)** · 🔴 **FALTA: 21 (22%)** · ⚪ **SOLO-BACKEND: 0**
+  - +2026-06-06 (cont.): A03 Rentar vs Comprar + A05 Costo Total (🔴→✅, motor `ownership_economics_engine`:
+    simula comprar vs rentar-e-invertir, break-even + TCO real, reusa hipoteca+ciclo · módulo "¿Me Conviene Comprar?").
   - Avances 2026-06-06: B08 Absorción (🟡→✅) · B05 Ciclo + D05 Gentrificación + D07 STR/LTR (🔴→✅, motor `zone_cycle_engine`) ·
     I04 Índices Licenciables (🟡→✅, motor `dmx_indices_engine`: IPV/IAB/IDS/IRE/ICO + maestro IDM) ·
     A12 Price Fairness + A07 Timing comprador (🔴→✅, módulo "¿Es Buena Compra?" en la ficha del marketplace,
@@ -13,7 +15,7 @@
 
 | Cat | Rol | Total | ✅ | 🟡 | 🔴 |
 |---|---|---|---|---|---|
-| A | Comprador | 12 | 7 | 2 | 3 |
+| A | Comprador | 12 | 9 | 2 | 1 |
 | B | Desarrollador | 15 | 10 | 1 | 4 |
 | C | Asesor | 8 | 6 | 1 | 1 |
 | D | Mercado/API | 10 | 6 | 0 | 4 |
@@ -24,7 +26,7 @@
 | I | Productos vendibles | 6 | 6 | 0 | 0 |
 
 ## DETALLE POR FUNCIÓN
-**A Comprador:** ✅ A01 Affordability (mortgage_calculator+UI) · ✅ A02 Investment Sim · ✅ A06 Neighborhood Quality (zone_score) · ✅ A08 Comparador (comparator_engine) · ✅ A10 Lifestyle Match (smart_match) · 🟡 A09 Risk Score (motor zona real, sin tarjeta por-proyecto comprador) · 🟡 A11 Patrimonio (subsumido en A02) · ✅ A07 Timing comprador (módulo "¿Es Buena Compra?" · ciclo en clave comprador) · ✅ A12 Price Fairness vs listado (mismo módulo · AVM vs precio lista + comparables + veredicto) · 🔴 A03 Migration renta→compra · 🔴 A04 Arbitraje preventa/reventa · 🔴 A05 TCO 10a integral
+**A Comprador:** ✅ A01 Affordability (mortgage_calculator+UI) · ✅ A02 Investment Sim · ✅ A06 Neighborhood Quality (zone_score) · ✅ A08 Comparador (comparator_engine) · ✅ A10 Lifestyle Match (smart_match) · 🟡 A09 Risk Score (motor zona real, sin tarjeta por-proyecto comprador) · 🟡 A11 Patrimonio (subsumido en A02) · ✅ A07 Timing comprador (módulo "¿Es Buena Compra?" · ciclo en clave comprador) · ✅ A12 Price Fairness vs listado (mismo módulo · AVM vs precio lista + comparables + veredicto) · ✅ A03 Rentar vs Comprar (break-even rentar-e-invertir vs comprar · módulo "¿Me Conviene Comprar?") · ✅ A05 TCO 10a integral (costo real mensual + desglose + plusvalía neta · mismo módulo) · 🔴 A04 Arbitraje preventa/reventa
 **B Desarrollador:** ✅ B01 Demand Heatmap (demand_engine real) · ✅ B02 Margen semáforo (dmx_margin) · ✅ B03 Pricing Autopilot (real, mediana zona) · ✅ B06 Project Genesis (site-selection) · ✅ B07 Competitive (battle_card) · ✅ B09 Cash Flow · ✅ B11 Channel (funnel) · ✅ B12 Cost Tracker INPP · ✅ B08 Absorción (real, development_id) · ✅ B05 Market Cycle (zone_cycle_engine) · 🟡 B13 Amenity ROI (ranker hedónico, no ROI costo-ingreso) · 🔴 B04 PMF Score · 🔴 B10 Unit Revenue Optimizer · 🔴 B14 Buyer Persona · 🔴 B15 Launch Timing
 **C Asesor:** ✅ C01 Lead Scoring · ✅ C02 Argumentario · ✅ C03 Matching (fit_engine) · ✅ C04 Objection Killer · ✅ C05 Weekly Briefing · ✅ C06 Commission Forecaster · 🟡 C08 Dossier (CMA PDF sí; investor-memo no) · 🔴 C07 Zona Expertise Builder
 **D Mercado/API:** ✅ D01 Market Pulse (live_pulse) · ✅ D02 Zona Ranking (zone_score) · ✅ D09 Ecosystem/Health Score · ✅ D10 Data API tiers · ✅ D05 Gentrification (zone_cycle_engine) · ✅ D07 STR/LTR (zone_cycle_engine, renta corta vs larga) · 🔴 D03 Supply Pipeline · 🔴 D04 Correlation Finder · 🔴 D06 Affordability Crisis · 🔴 D08 Foreign Investment
