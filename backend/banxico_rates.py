@@ -67,7 +67,7 @@ def get_rate_meta(key: str = "tiie_28d") -> Dict[str, Any]:
 async def refresh_from_banxico(db=None) -> Dict[str, Any]:
     """Conector (auto-fill): baja TIIE 28d en vivo de la API SIE de Banxico y la cachea.
     Sin BANXICO_TOKEN → no-op honesto (sigue el default oficial documentado). Fail-open."""
-    token = os.getenv("BANXICO_TOKEN")
+    token = os.getenv("BANXICO_TOKEN") or os.getenv("IE_BANXICO_TOKEN")   # acepta cualquiera de los dos
     if not token:
         return {"ok": False, "reason": "sin BANXICO_TOKEN — usando default oficial documentado", "rate": get_rate_meta("tiie_28d")}
     serie = BANXICO_SERIES["tiie_28d"]
