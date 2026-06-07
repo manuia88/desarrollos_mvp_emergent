@@ -78,6 +78,7 @@ export const logLeadWhatsappInbound = (cid, text) => post(`/api/asesor/contactos
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
+export const getCaptAmenitiesCatalog = () => j('/api/asesor/amenities-catalog');
 export const createCaptacion = (b) => post('/api/asesor/captaciones', b);
 export const moveCaptacion = (id, stage, payload) => patch(`/api/asesor/captaciones/${id}/stage`, { stage, payload });
 export const getCaptacion = (id) => j(`/api/asesor/captaciones/${id}`);

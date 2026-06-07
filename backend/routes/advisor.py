@@ -129,6 +129,14 @@ class CaptacionIn(BaseModel):
     propietario_telefono: Optional[str] = ""
     urgencia: str = "media"
     notas: Optional[str] = ""
+    # ── Granularidad para el AVM (todo opcional · alimenta valuación nueva/usada) ──
+    condicion: str = "usada"               # a_estrenar | seminueva | usada
+    antiguedad_anos: Optional[int] = None  # edad del inmueble (0 = a estrenar)
+    estado_conservacion: Optional[str] = None  # excelente | bueno | a_remodelar
+    vista: Optional[str] = None            # calle | interior | parque | ciudad | area_verde
+    orientacion: Optional[str] = None      # N|S|E|O|NE|NO|SE|SO
+    nivel: Optional[int] = None            # piso
+    amenity_keys: List[str] = Field(default_factory=list)   # claves de AMENITY_TAXONOMY
 
 class CaptacionStage(BaseModel):
     stage: str
@@ -2719,6 +2727,15 @@ async def list_captaciones(request: Request):
     db = get_db(request)
     items = await db.asesor_captaciones.find({"owner_id": user.user_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return items
+
+
+@router.get("/amenities-catalog")
+async def asesor_amenities_catalog(request: Request):
+    """Catálogo canónico de amenidades/servicios (el MISMO del dev) para el captador del asesor.
+    Reusa las constantes de dev_batch11 — cero duplicado de datos."""
+    await require_advisor(request)
+    from routes.dev_batch11 import ALL_AMENIDADES, ALL_SERVICIOS, VARIABLE_AMENITIES
+    return {"all_categories": ALL_AMENIDADES, "all_servicios": ALL_SERVICIOS, "variable_amenities": VARIABLE_AMENITIES}
 
 
 @router.post("/captaciones")
