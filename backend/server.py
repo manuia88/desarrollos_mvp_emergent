@@ -448,6 +448,10 @@ app.include_router(drpi_router)
 app.include_router(bulletins_router)
 app.include_router(investment_explorer_router)
 
+# I04 — Índices DMX (IPV/IAB/IDS/IRE/ICO + maestro IDM · composites licenciables)
+from routes.dmx_indices import router as dmx_indices_router
+app.include_router(dmx_indices_router)
+
 # W3.4A ZZ.4 — Fraud Detection + Risk Score V1 (SESNSP)
 from routes.fraud_detection import router as fraud_router
 from routes.risk_score import router as risk_score_router

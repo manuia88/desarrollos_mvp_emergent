@@ -313,6 +313,7 @@ const SuperadminPhase5Foundation     = lazy(() => import('./pages/superadmin/Sup
 const SuperadminTransactionNetwork   = lazy(() => import('./pages/superadmin/SuperadminTransactionNetwork'));
 // W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
 const SuperadminDRPI                 = lazy(() => import('./pages/superadmin/SuperadminDRPI'));
+const SuperadminIndices              = lazy(() => import('./pages/superadmin/SuperadminIndices'));
 const SuperadminBulletins            = lazy(() => import('./pages/superadmin/SuperadminBulletins'));
 const SuperadminInvestmentExplorer   = lazy(() => import('./pages/superadmin/SuperadminInvestmentExplorer'));
 const MethodologyPage                = lazy(() => import('./pages/public/MethodologyPage'));
@@ -914,6 +915,7 @@ function AppRouter() {
       <Route path="/superadmin/transactions" element={<SuperadminRoute Page={SuperadminTransactionNetwork} />} />
       {/* W3.3 ZZ.3 — DRPI / Bulletins / Investment Explorer */}
       <Route path="/superadmin/drpi" element={<SuperadminRoute Page={SuperadminDRPI} />} />
+      <Route path="/superadmin/indices" element={<SuperadminRoute Page={SuperadminIndices} />} />
       <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
       <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}

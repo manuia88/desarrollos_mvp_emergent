@@ -60,11 +60,11 @@ BUNDLE_TEMPLATES: List[Dict[str, Any]] = [
         "key": "full_suite_enterprise",
         "name": "Full Suite Enterprise",
         "description": (
-            "Todo: DRPI + Risk + Comparables + Zone Scores + Transaction Network · "
+            "Todo: DRPI + Índices DMX + Risk + Comparables + Zone Scores + Transaction Network · "
             "SLA 99.95% · cuenta dedicada"
         ),
         "scope": [
-            "drpi", "risk_scores", "comparables",
+            "drpi", "indices_dmx", "risk_scores", "comparables",
             "zone_scores", "transaction_network",
         ],
         "geo_scope": ["national"],
@@ -72,6 +72,21 @@ BUNDLE_TEMPLATES: List[Dict[str, Any]] = [
         "price_usd_annual": 500_000,
         "sla_uptime_pct": 99.95,
         "ideal_for": "Bancos tier-1 · fondos institucionales internacionales",
+    },
+    {
+        "key": "indices_dmx_suite",
+        "name": "Índices DMX Suite",
+        "description": (
+            "Los 5 índices DMX compuestos · IPV (plusvalía) · IAB (absorción) · "
+            "IDS (demanda) · IRE (renta) · ICO (calidad) + maestro IDM · "
+            "por colonia × tier · refresh diario · API + export · SLA 99.5%"
+        ),
+        "scope": ["indices_dmx"],
+        "geo_scope": ["cdmx", "national"],
+        "frequency": "daily",
+        "price_usd_annual": 80_000,
+        "sla_uptime_pct": 99.5,
+        "ideal_for": "Fondos · proptechs · brokers · research de mercado residencial",
     },
     {
         "key": "comparables_api_only",

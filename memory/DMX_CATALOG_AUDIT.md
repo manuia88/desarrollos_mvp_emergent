@@ -4,8 +4,9 @@
 > Leyenda: ✅ REAL (motor con datos reales + UI que lo muestra) · 🟡 MEDIAS (existe pero stub/sintético/sin la fuente/sin el framing) · 🔴 FALTA (no construido) · ⚪ SOLO-BACKEND (motor sin UI).
 
 ## RESULTADO GLOBAL — 97 funciones
-- ✅ **REAL: 58 (60%)** · 🟡 **MEDIAS: 14 (14%)** · 🔴 **FALTA: 25 (26%)** · ⚪ **SOLO-BACKEND: 0**
-  - Avances 2026-06-06: B08 Absorción (🟡→✅) · B05 Ciclo + D05 Gentrificación + D07 STR/LTR (🔴→✅, motor `zone_cycle_engine`).
+- ✅ **REAL: 59 (61%)** · 🟡 **MEDIAS: 13 (13%)** · 🔴 **FALTA: 25 (26%)** · ⚪ **SOLO-BACKEND: 0**
+  - Avances 2026-06-06: B08 Absorción (🟡→✅) · B05 Ciclo + D05 Gentrificación + D07 STR/LTR (🔴→✅, motor `zone_cycle_engine`) ·
+    I04 Índices Licenciables (🟡→✅, motor `dmx_indices_engine`: IPV/IAB/IDS/IRE/ICO + maestro IDM).
 - **Hallazgo:** CERO motores huérfanos. Todo lo construido de verdad ya tiene UI. Lo que no se ve = falta (28) o está a medias (15, casi todo = UI existe pero fuente de datos no conectada).
 
 | Cat | Rol | Total | ✅ | 🟡 | 🔴 |
@@ -18,7 +19,7 @@
 | F | Calidad de vida | 17 | 11 | 2 | 4 |
 | G | 2º orden 2.0 | 5 | 4 | 0 | 1 |
 | H | Fuentes nuevas | 16 | 4 | 7 | 5 |
-| I | Productos vendibles | 6 | 5 | 1 | 0 |
+| I | Productos vendibles | 6 | 6 | 0 | 0 |
 
 ## DETALLE POR FUNCIÓN
 **A Comprador:** ✅ A01 Affordability (mortgage_calculator+UI) · ✅ A02 Investment Sim · ✅ A06 Neighborhood Quality (zone_score) · ✅ A08 Comparador (comparator_engine) · ✅ A10 Lifestyle Match (smart_match) · 🟡 A09 Risk Score (motor zona real, sin tarjeta por-proyecto comprador) · 🟡 A11 Patrimonio (subsumido en A02) · 🔴 A03 Migration renta→compra · 🔴 A04 Arbitraje preventa/reventa · 🔴 A05 TCO 10a integral · 🔴 A07 Timing comprador · 🔴 A12 Price Fairness vs listado
@@ -29,12 +30,12 @@
 **F Calidad de vida:** ✅ F01-F07 (recipes IE_COL_* → ZoneScoreStrip: seguridad/transporte/DENUE/aire/agua/uso-suelo/predial) · ✅ F12 Risk Map (natural_risk CENAPRED) · ✅ F15 School/Health · ✅ F16 Hipotecas (mortgage_calculator) · ✅ F17 Site Selection AI · 🟡 F13 Commute (drive-time como briefing asesor) · 🟡 F14 Neighborhood Change · 🔴 F08 LQI (no existe como índice propio) · 🔴 F09 Value Score (solo subscore precio) · 🔴 F10 Gentrification 2.0 · 🔴 F11 Supply Pipeline Predictor 2.0
 **G 2º orden 2.0:** ✅ G01 Full Score 2.0 · ✅ G02 AI Narrative 2.0 · ✅ G04 Zone Comparison · ✅ G05 Impact Predictor (whatif) · 🔴 G03 Auto Due Diligence Report
 **H Fuentes nuevas:** ✅ H03 Seismic Risk · ✅ H11 Infonavit/FOVISSSTE Calc · ✅ H13 Site Selection AI full · ✅ H16 Neighborhood Evolution · 🟡 H01 School (DataPending) · 🟡 H02 Health (DataPending) · 🟡 H05 Developer Trust (interno, sin PROFECO) · 🟡 H06 City Services Locatel (connector sin resource_id) · 🟡 H07 Environmental (recipe real, sin sync NOAA/CONAGUA) · 🟡 H10 Water Crisis (connector sin resource_id) · 🟡 H12 Zona Oportunidad (DataPending) · 🔴 H04 Credit Demand · 🔴 H08 Heritage Zone · 🔴 H09 Real Traffic Commute (Mapbox solo imágenes estáticas) · 🔴 H14 Buyer Persona por zona · 🔴 H15 Due Diligence Express
-**I Productos vendibles:** ✅ I01 Market Intelligence API · ✅ I02 Auto Market Report · ✅ I03 Feasibility SaaS · ✅ I05 Insurance Risk API · ✅ I06 Valuador AVM · 🟡 I04 Índices Licenciables (solo **DRPI** real; **IPV/IAB/IDS/IRE/ICO NO existen** con esos nombres)
+**I Productos vendibles:** ✅ I01 Market Intelligence API · ✅ I02 Auto Market Report · ✅ I03 Feasibility SaaS · ✅ I05 Insurance Risk API · ✅ I06 Valuador AVM · ✅ I04 Índices Licenciables (DRPI + los 5 composites IPV/IAB/IDS/IRE/ICO + maestro IDM, motor `dmx_indices_engine` · endpoints dev/público-tier-gated/superadmin · UI área "Índices DMX" en Centro de Inteligencia + terminal superadmin /superadmin/indices + bundle "Índices DMX Suite" en data_licensing)
 
 ## OJOS PUESTOS (lo más engañoso)
 1. **B08 Absorción = sintético** (`random` win/loss 142/87 hardcoded). El modelo real solo vive dentro del cash-flow (B09).
 2. **Recipes DataPending** (escuela/salud/aire/agua/Locatel): UI real, pero el connector CKAN no tiene `resource_id` → devuelve stub. Conectar la fuente = se prenden.
-3. **5 índices DMX nombrados no existen** — solo DRPI. IPV/IAB/IDS/IRE/ICO son composites por construir sobre scores existentes.
+3. ✅ RESUELTO (2026-06-06) — **5 índices DMX construidos** como composites (`dmx_indices_engine`): IPV (gentrificación) · IAB (absorción real de ventas) · IDS (demanda) · IRE (renta mezclada) · ICO (calidad 7-dim) + maestro IDM. DRPI sigue aparte (precios hedónicos). Surface dev + superadmin + licenciable.
 4. **PROFECO no integrado** (H05 usa track-record interno).
 
 ## PLAN para los 28 que faltan + 15 a medias (por palanca)

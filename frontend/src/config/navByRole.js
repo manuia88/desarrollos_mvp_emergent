@@ -215,6 +215,7 @@ const SUPERADMIN_NAV = [
       // ─ Intelligence layer (W3.x legacy) ─
       { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
       { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
+      { key: 'indices-dmx',       to: '/superadmin/indices',           label: 'Índices DMX',       Icon: LineChart },
       { key: 'risk-score',        to: '/superadmin/risk-score',        label: 'Risk Score',        Icon: AlertTriangle },
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer', Icon: DollarSign },
       { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },

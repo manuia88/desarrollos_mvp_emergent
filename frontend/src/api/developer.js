@@ -39,6 +39,8 @@ export const getDevRedSalud = () => j('/api/desarrollador/red-salud');
 export const getDevMarketingJugadas = () => j('/api/desarrollador/marketing-jugadas');
 // Inteligencia · "Ciclo y Renta" (fase del ciclo + gentrificación + renta corta/larga por zona)
 export const getDevCicloRenta = () => j('/api/desarrollador/ciclo-renta');
+// Inteligencia · "Índices DMX" (IPV/IAB/IDS/IRE/ICO + maestro IDM por zona del dev)
+export const getDevIndices = () => j('/api/desarrollador/indices');
 // Reportes · "Resumen Ejecutivo del Mes" (junta dinero+ventas+demanda+red+prioridades, compartible)
 export const getDevReporteEjecutivo = () => j('/api/desarrollador/reporte-ejecutivo');
 
