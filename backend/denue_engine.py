@@ -26,9 +26,9 @@ import httpx
 log = logging.getLogger("dmx.denue_engine")
 
 DENUE_BASE = "https://www.inegi.org.mx/app/api/denue/v1/consulta"
-# Per INEGI DENUE v1 docs: BuscarEntorno/{condicion}/{lat},{lng}/{distancia}/{token}
-# DENUE token obtained separately from https://www.inegi.org.mx/app/api/denue/v1/tokenVerify.aspx
-# Falls back to IE_INEGI_TOKEN for backwards-compat, but recommended: IE_DENUE_TOKEN
+# Método v1 correcto: Buscar/{condicion}/{lat},{lng}/{distancia}/{token} (búsqueda por punto+radio).
+# DENUE token: https://www.inegi.org.mx/app/api/denue/v1/tokenVerify.aspx
+# Usa IE_DENUE_TOKEN (recomendado) o IE_INEGI_TOKEN (fallback).
 
 # Category keywords for DENUE text search
 SCIAN_KEYWORDS: Dict[str, str] = {
@@ -66,24 +66,29 @@ async def _fetch_denue_entorno(
     lat: float, lng: float, radius_m: int = DEFAULT_RADIUS_M,
     keyword: str = "todos", max_records: int = MAX_RECORDS,
 ) -> List[Dict[str, Any]]:
-    """Call DENUE BuscarEntorno and return raw business list.
-    Correct DENUE v1 URL: BuscarEntorno/{condicion}/{lat},{lng}/{distancia}/{token}
+    """Call DENUE `Buscar` (búsqueda por punto+radio) and return raw business list.
+    URL v1: Buscar/{condicion}/{lat},{lng}/{distancia}/{token}
     """
     token = _token()
     if not token:
         log.warning("[denue] IE_DENUE_TOKEN / IE_INEGI_TOKEN ausente — retornando lista vacía")
         return []
-    url = f"{DENUE_BASE}/BuscarEntorno/{keyword}/{lat},{lng}/{radius_m}/{token}"
+    # Método correcto v1 = `Buscar` (búsqueda por punto+radio). El anterior `BuscarEntorno`
+    # devolvía la página 404 del sitio (endpoint muerto). Ref: inegi.org.mx/servicios/api_denue.html
+    url = f"{DENUE_BASE}/Buscar/{keyword}/{lat},{lng}/{radius_m}/{token}"
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
             r = await client.get(url, headers={"Accept": "application/json"})
         if r.status_code != 200:
-            log.warning(f"[denue] BuscarEntorno HTTP {r.status_code} lat={lat} lng={lng} kw={keyword}")
+            log.warning(f"[denue] Buscar HTTP {r.status_code} lat={lat} lng={lng} kw={keyword}")
+            return []
+        # Honesto: si INEGI devuelve HTML (API caída / token inválido) NO lo tratamos como dato.
+        ctype = (r.headers.get("content-type") or "").lower()
+        if "json" not in ctype and not r.text.lstrip().startswith(("[", "{")):
+            log.warning(f"[denue] respuesta no-JSON (¿API caída o token inválido?) kw={keyword}")
             return []
         data = r.json()
-        if isinstance(data, list):
-            return data
-        return []
+        return data if isinstance(data, list) else []
     except Exception as e:
         log.warning(f"[denue] fetch error: {e}")
         return []
@@ -163,15 +168,21 @@ def _safe_float(v) -> Optional[float]:
 async def compute_zone_density(
     db, zone_id: str, tier: str = "colonia",
     radius_m: int = DEFAULT_RADIUS_M,
+    lat: Optional[float] = None, lng: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Fetch DENUE for zone, store businesses, compute density record."""
-    # Resolve zone lat/lng from cube_aggregations
-    cube_row = await db.cube_aggregations.find_one(
-        {"tier_id": zone_id, "period": "current"}, {"_id": 0, "geo": 1, "name": 1},
-    )
-    geo = (cube_row or {}).get("geo") or {}
-    lat = geo.get("lat") or CDMX_LAT
-    lng = geo.get("lng") or CDMX_LNG
+    """Fetch DENUE for zone, store businesses, compute density record.
+
+    `lat`/`lng`: si el caller los pasa (ej. el `center` real de la colonia) se usan tal cual.
+    Si no, se resuelven de cube_aggregations. Esto evita el bug de caer al centro genérico de
+    CDMX (que daba la MISMA densidad a todas las zonas).
+    """
+    if lat is None or lng is None:
+        cube_row = await db.cube_aggregations.find_one(
+            {"tier_id": zone_id, "period": "current"}, {"_id": 0, "geo": 1, "name": 1},
+        )
+        geo = (cube_row or {}).get("geo") or {}
+        lat = lat if lat is not None else (geo.get("lat") or CDMX_LAT)
+        lng = lng if lng is not None else (geo.get("lng") or CDMX_LNG)
 
     businesses = await fetch_businesses_by_zone(lat, lng, radius_m)
 

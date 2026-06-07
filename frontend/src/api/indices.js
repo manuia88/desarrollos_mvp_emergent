@@ -44,3 +44,13 @@ export const computeColoniasScores = async (city = 'CDMX') => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · sincronizar densidad DENUE real por colonia + recalcular (cierra ciclo dato→score)
+export const syncDenue = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/sync-denue?city=${encodeURIComponent(city)}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};

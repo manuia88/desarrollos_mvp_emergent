@@ -195,3 +195,15 @@ async def superadmin_colonias_compute_scores(
     await _sa(request)
     import colonias_catalog as cc
     return await cc.compute_catalog_scores(request.app.state.db, city=city)
+
+
+@router.post("/api/superadmin/colonias/sync-denue")
+async def superadmin_colonias_sync_denue(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a sincronizar"),
+):
+    """Sincroniza densidad DENUE real (negocios) por colonia usando su centro + recalcula scores.
+    Cierra el ciclo dato→score en un clic. Honesto si el API no responde."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.sync_denue_for_city(request.app.state.db, city=city)

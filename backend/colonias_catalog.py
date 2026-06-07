@@ -210,6 +210,40 @@ async def compute_catalog_scores(db, city: str = "CDMX", limit: int = 2500) -> D
     }
 
 
+async def sync_denue_for_city(db, city: str = "CDMX", limit: int = 60, radius_m: int = 1500) -> Dict[str, Any]:
+    """Sincroniza la densidad DENUE real (negocios) de cada colonia usando SU centro real,
+    y luego recalcula los scores. Una sola acción que cierra el ciclo dato→score.
+    Honesto: si DENUE no responde (API caída/token), no inventa — reporta 0 con datos.
+    `limit` acota la corrida del botón; el cron semanal cubre el catálogo completo."""
+    import denue_engine as de
+    sincronizadas = con_datos = 0
+    cur = db.colonias.find({"city": city, "center": {"$ne": None}}, {"_id": 0, "id": 1, "center": 1})
+    async for c in cur:
+        if sincronizadas >= limit:
+            log.warning(f"[colonias_catalog] sync DENUE alcanzó el tope {limit} · {city}")
+            break
+        ctr = c.get("center")
+        if not (isinstance(ctr, (list, tuple)) and len(ctr) == 2):
+            continue
+        lng, lat = float(ctr[0]), float(ctr[1])   # el catálogo guarda [lng, lat]
+        try:
+            d = await de.compute_zone_density(db, c["id"], "colonia", radius_m=radius_m, lat=lat, lng=lng)
+            sincronizadas += 1
+            if (d.get("businesses_count_total") or 0) > 0:
+                con_datos += 1
+        except Exception as e:
+            log.warning(f"[colonias_catalog] sync DENUE {c.get('id')}: {e}")
+    # Recalcula scores con la densidad nueva (cierra el ciclo)
+    scores = await compute_catalog_scores(db, city)
+    nota = None if con_datos else ("DENUE no devolvió negocios — verifica que IE_DENUE_TOKEN sea "
+                                   "válido y que el API de INEGI sea alcanzable desde el servidor.")
+    return {
+        "ok": True, "city": city, "sincronizadas": sincronizadas, "con_datos": con_datos,
+        "scores": {"con_scores_reales": scores["con_scores_reales"], "pendientes": scores["pendientes"]},
+        "nota": nota, "cobertura": scores["cobertura"],
+    }
+
+
 async def ingest_official_catalog(db, city: str = "CDMX") -> Dict[str, Any]:
     """Carga el catálogo oficial de colonias de una ciudad. Fuentes (en orden):
       1) CKAN  → env `IE_COLONIAS_CDMX_RESOURCE_ID` (datos.cdmx datastore_search)

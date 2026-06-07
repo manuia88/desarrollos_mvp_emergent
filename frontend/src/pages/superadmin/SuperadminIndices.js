@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncDenue } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -37,6 +37,18 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al computar scores.' });
+    }
+  };
+
+  const sincronizarDenue = async () => {
+    setIngest({ busy: true, msg: 'Sincronizando negocios (DENUE)… puede tardar un minuto.' });
+    try {
+      const r = await syncDenue('CDMX');
+      const base = `${r.sincronizadas} colonias sincronizadas · ${r.con_datos} con negocios reales · ${r.scores?.con_scores_reales ?? 0} con scores reales.`;
+      setIngest({ busy: false, msg: r.nota ? `${base} ${r.nota}` : base });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al sincronizar DENUE.' });
     }
   };
 
@@ -118,6 +130,9 @@ export default function SuperadminIndices() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
             <button data-testid="ix-cargar-catalogo" onClick={cargarCatalogo} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               {ingest.busy ? 'Trabajando…' : 'Cargar Catálogo CDMX'}
+            </button>
+            <button data-testid="ix-sync-denue" onClick={sincronizarDenue} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Sincronizar Negocios (DENUE)
             </button>
             <button data-testid="ix-computar-scores" onClick={computarScores} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Computar Scores Reales
