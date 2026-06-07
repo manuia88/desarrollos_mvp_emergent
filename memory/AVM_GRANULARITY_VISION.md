@@ -42,5 +42,17 @@ Tag por foto (room + 4 features, vía visión GPT-4o-mini, fail-open) pero a niv
 - **G3 · AVM rico:** expandir el modelo hedónico para consumir vista/orientación/amenidades/acabados/piso/sustentabilidad (categóricos) → mejor R² y precio por-unidad real (no solo $/m² de zona).
 - **G4 · Fotos→unidad:** ligar el tagger a la unidad; autollenar `vista` y calidad desde las fotos (feed visual al AVM/taste).
 
+## AVANCE (2026-06-06)
+- ✅ **G2 captación asesor**: el captador real (`AsesorCaptaciones` "Nueva captación", NO el landing) ahora tiene
+  características finas en chips (condición a-estrenar/seminueva/usada · antigüedad · estado · vista · orientación ·
+  piso) + amenidades interactivas (reusa `amenitiesUI` del dev, catálogo compartido `/api/asesor/amenities-catalog`).
+  `CaptacionIn` extendido (condicion/antiguedad/estado/vista/orientacion/nivel/amenity_keys) + selector de colonia.
+- ✅ **G1 nueva/usada operacionalizada + flywheel cerrado**: `resale_data.resale_reference(db,colonia)` = mediana
+  $/m² de las captaciones (venta) de la zona. Cuando hay ≥2, el "Precio en Contexto" del comprador usa **reventa REAL**
+  ("Reventa real de la zona (N)") en vez de la estimada. Y el asesor ve **valor estimado en vivo** mientras captura
+  (`captacion_value_engine` + `GET /api/asesor/captacion-estimate`), que SUBE con cada detalle y marca su fuente
+  (real vs estimada). Verificado punta a punta: 3 captaciones → referencia real → comprador la consume.
+- PENDIENTE G3 (AVM rico) + alimentar el modelo hedónico cuando haya escala de captaciones.
+
 ## REGLA QUE QUEDA
 Capturamos máximo (170 campos), pero **el valor está en USAR y ALIMENTAR**: conectar atributos→AVM (G3), abrir la captación del asesor (G2) y operacionalizar nueva/usada (G1). Doc en repo `memory/AVM_GRANULARITY_VISION.md`.

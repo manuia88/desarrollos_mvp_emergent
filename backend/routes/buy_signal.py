@@ -157,10 +157,14 @@ async def buy_signal(
     except Exception:
         _col = None
     este_pm2 = (u_price / u_m2) if (u_price and u_m2) else 0
+    # Reventa REAL de la zona (captaciones del asesor) — cierra el flywheel.
+    from resale_data import resale_reference
+    rref = await resale_reference(db, colonia_slug)
     precio_contexto: Optional[Dict[str, Any]] = None
     if _col and este_pm2:
         precio_contexto = pce.compute_price_context(
             este_pm2, _col, peers_pm2, dev=dev, stage=dev.get("stage"),
+            usada_pm2_real=rref.get("pm2"), usada_n=rref.get("n", 0),
         )
         if precio_contexto:
             precio_contexto["precio_lista"] = round(u_price)

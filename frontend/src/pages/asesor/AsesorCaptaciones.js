@@ -159,7 +159,7 @@ function ChipPick({ value, options, onPick, testid }) {
 
 function CreateCaptForm({ onCreated, onError }) {
   const [f, setF] = useState({
-    direccion: '', tipo_operacion: 'venta', precio_sugerido: '', tipo_inmueble: 'dept',
+    direccion: '', colonia_id: '', tipo_operacion: 'venta', precio_sugerido: '', tipo_inmueble: 'dept',
     recamaras: 2, banos: 2, estacionamientos: 1, m2_construidos: '', propietario_nombre: '', propietario_telefono: '',
     urgencia: 'media', condicion: 'usada', antiguedad_anos: '', estado_conservacion: '', vista: '', orientacion: '', nivel: '',
     amenity_keys: [],
@@ -167,11 +167,27 @@ function CreateCaptForm({ onCreated, onError }) {
   const [sub, setSub] = useState(false);
   const [catalog, setCatalog] = useState(null);
   const [showAmen, setShowAmen] = useState(false);
+  const [colonias, setColonias] = useState([]);
+  const [estimate, setEstimate] = useState(null);
   useEffect(() => { api.getCaptAmenitiesCatalog().then(setCatalog).catch(() => setCatalog(false)); }, []);
+  useEffect(() => { api.listColoniaOptions().then(r => setColonias(r.colonias || [])).catch(() => setColonias([])); }, []);
 
   const ready = f.direccion.trim() && f.tipo_operacion && f.precio_sugerido;
   const set = (patch) => setF(prev => ({ ...prev, ...patch }));
   const toggleAmenity = (key) => set({ amenity_keys: f.amenity_keys.includes(key) ? f.amenity_keys.filter(k => k !== key) : [...f.amenity_keys, key] });
+
+  // Valor estimado en vivo (sube con cada detalle) — cierra el ciclo del asesor.
+  useEffect(() => {
+    if (!f.colonia_id || !f.m2_construidos) { setEstimate(null); return; }
+    const id = setTimeout(() => {
+      api.captacionEstimate({
+        colonia_id: f.colonia_id, m2: +f.m2_construidos, recamaras: +f.recamaras,
+        condicion: f.condicion, antiguedad_anos: f.antiguedad_anos, estado_conservacion: f.estado_conservacion,
+        vista: f.vista, n_amenidades: f.amenity_keys.length,
+      }).then(setEstimate).catch(() => setEstimate(null));
+    }, 350);
+    return () => clearTimeout(id);
+  }, [f.colonia_id, f.m2_construidos, f.recamaras, f.condicion, f.antiguedad_anos, f.estado_conservacion, f.vista, f.amenity_keys.length]);
 
   const submit = async () => {
     if (!ready) return;
@@ -202,7 +218,13 @@ function CreateCaptForm({ onCreated, onError }) {
       {/* 1 · Lo básico */}
       <div style={secTitle}>{bar} Lo básico</div>
       <label><div style={lblStyle}>Dirección *</div>
-        <input value={f.direccion} onChange={e => set({ direccion: e.target.value })} style={inputStyle} data-testid="capt-addr" placeholder="Calle + número + colonia" />
+        <input value={f.direccion} onChange={e => set({ direccion: e.target.value })} style={inputStyle} data-testid="capt-addr" placeholder="Calle + número" />
+      </label>
+      <label><div style={lblStyle}>Colonia <span style={{ textTransform: 'none', color: 'var(--cream-3)' }}>(para valuar la zona)</span></div>
+        <select value={f.colonia_id} onChange={e => set({ colonia_id: e.target.value })} className="asr-select" style={{ width: '100%' }} data-testid="capt-colonia">
+          <option value="">Elige la colonia…</option>
+          {colonias.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+        </select>
       </label>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <label><div style={lblStyle}>Operación *</div>
@@ -255,6 +277,20 @@ function CreateCaptForm({ onCreated, onError }) {
           options={['N', 'S', 'E', 'O', 'NE', 'NO', 'SE', 'SO'].map(o => ({ v: o, l: o }))}
           onPick={(v) => set({ orientacion: v })} />
       </div>
+
+      {/* Valor estimado en vivo — sube con cada detalle (cierra el ciclo del asesor) */}
+      {estimate && estimate.disponible && (
+        <div data-testid="capt-estimate" style={{ borderRadius: 14, padding: '13px 15px', background: 'linear-gradient(150deg, rgba(109,74,255,0.08), transparent)', border: '1px solid rgba(109,74,255,0.32)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 800 }}>Valor estimado de mercado</div>
+          <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 24, color: 'var(--cream)', marginTop: 3 }}>
+            {fmtMXN(estimate.valor)} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-3)' }}>· {fmtMXN(estimate.rango_low)}–{fmtMXN(estimate.rango_high)}</span>
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 5, lineHeight: 1.45 }}>{estimate.lectura}</div>
+          {estimate.fuente === 'reventa_real'
+            ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--ok, #1FA06A)', marginTop: 4, fontWeight: 700 }}>● Con reventa real de la zona</div>
+            : <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--warm, #E2982E)', marginTop: 4 }}>● Referencia estimada — se afina cuando hay más captaciones en la zona</div>}
+        </div>
+      )}
 
       {/* 3 · Amenidades (mismo selector interactivo del dev) */}
       <div style={secTitle}>{bar} Amenidades {f.amenity_keys.length > 0 && <span style={{ fontSize: 11, color: 'var(--theme)', fontWeight: 700 }}>· {f.amenity_keys.length}</span>}</div>

@@ -61,16 +61,30 @@ def _valor_de_estrenar(stage: Optional[str]) -> List[str]:
 def compute_price_context(
     este_pm2: float, colonia: Dict[str, Any], peers_pm2: List[float],
     *, dev: Optional[Dict[str, Any]] = None, stage: Optional[str] = None,
+    usada_pm2_real: Optional[float] = None, usada_n: int = 0,
 ) -> Optional[Dict[str, Any]]:
-    """Tres referencias + posición + prima de estrenar + respaldo, en lenguaje cuidado."""
+    """Tres referencias + posición + prima de estrenar + respaldo, en lenguaje cuidado.
+
+    usada_pm2_real: $/m² de reventa REAL de la zona (captaciones del asesor). Cuando
+    existe (usada_n>=2) reemplaza la referencia estimada — el flywheel cerrado.
+    """
     if not este_pm2 or este_pm2 <= 0:
         return None
 
     nuevo_pm2 = _median(peers_pm2)
-    usada_pm2 = (colonia or {}).get("price_m2_num")  # mercado general (mayormente reventa)
     n_peers = len([p for p in peers_pm2 if p and p > 0])
 
-    # Si no hay con qué comparar obra nueva, caemos al mercado general como referencia única (low conf).
+    # Reventa: REAL (captaciones) si la hay, si no el mercado general estimado.
+    if usada_pm2_real and usada_n >= 2:
+        usada_pm2 = round(usada_pm2_real)
+        usada_fuente = "captaciones_reales"
+        usada_label = f"Reventa real de la zona ({usada_n})"
+    else:
+        usada_pm2 = (colonia or {}).get("price_m2_num")  # mercado general (mayormente reventa)
+        usada_fuente = "mercado_general"
+        usada_label = "Mercado de reventa (general)"
+
+    # Si no hay con qué comparar obra nueva, caemos al mercado de reventa como referencia única (low conf).
     if not nuevo_pm2 and usada_pm2:
         nuevo_pm2 = round(usada_pm2 * 1.18)  # prima típica de estrenar ~18% (estimada, etiquetada)
         nuevo_fuente = "estimado"
@@ -82,8 +96,8 @@ def compute_price_context(
         refs.append({"clave": "nuevo", "label": "Obra nueva comparable", "pm2": round(nuevo_pm2),
                      "fuente": nuevo_fuente})
     if usada_pm2:
-        refs.append({"clave": "reventa", "label": "Mercado de reventa (general)", "pm2": round(usada_pm2),
-                     "fuente": "mercado_general"})
+        refs.append({"clave": "reventa", "label": usada_label, "pm2": round(usada_pm2),
+                     "fuente": usada_fuente})
     promedio_pm2 = None
     if nuevo_pm2 and usada_pm2:
         promedio_pm2 = round((nuevo_pm2 + usada_pm2) / 2)

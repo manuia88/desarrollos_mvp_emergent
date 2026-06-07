@@ -2738,6 +2738,40 @@ async def asesor_amenities_catalog(request: Request):
     return {"all_categories": ALL_AMENIDADES, "all_servicios": ALL_SERVICIOS, "variable_amenities": VARIABLE_AMENITIES}
 
 
+@router.get("/captacion-estimate")
+async def captacion_estimate(
+    request: Request,
+    colonia_id: str = Query(...),
+    m2: float = Query(..., gt=0, le=10000),
+    recamaras: Optional[int] = Query(None),
+    condicion: Optional[str] = Query(None),
+    antiguedad_anos: Optional[int] = Query(None),
+    estado_conservacion: Optional[str] = Query(None),
+    vista: Optional[str] = Query(None),
+    n_amenidades: int = Query(0, ge=0),
+):
+    """Valor estimado de una captación (reventa) según sus atributos + la reventa real de la
+    zona. Cierra el ciclo del asesor: ve el valor mientras captura, sube con cada detalle."""
+    await require_advisor(request)
+    db = get_db(request)
+    from resale_data import resale_reference
+    from captacion_value_engine import estimate_resale_value
+    try:
+        from data_seed import COLONIAS_BY_ID
+        col = COLONIAS_BY_ID.get(colonia_id)
+    except Exception:
+        col = None
+    rref = await resale_reference(db, colonia_id)
+    out = estimate_resale_value(
+        col,
+        {"m2": m2, "recamaras": recamaras, "condicion": condicion,
+         "antiguedad_anos": antiguedad_anos, "estado_conservacion": estado_conservacion,
+         "vista": vista, "n_amenidades": n_amenidades},
+        resale_pm2=rref.get("pm2"), resale_n=rref.get("n", 0),
+    )
+    return {"ok": True, "colonia_id": colonia_id, "reventa_zona": rref, **out}
+
+
 @router.post("/captaciones")
 async def create_captacion(payload: CaptacionIn, request: Request):
     user = await require_advisor(request)

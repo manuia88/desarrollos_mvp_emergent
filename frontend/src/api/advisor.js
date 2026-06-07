@@ -79,6 +79,12 @@ export const logLeadWhatsappInbound = (cid, text) => post(`/api/asesor/contactos
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
 export const getCaptAmenitiesCatalog = () => j('/api/asesor/amenities-catalog');
+export const listColoniaOptions = () => j('/api/avm-public/colonias/top?limit=100');
+export const captacionEstimate = (params) => {
+  const qs = new URLSearchParams();
+  Object.entries(params || {}).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') qs.set(k, v); });
+  return j(`/api/asesor/captacion-estimate?${qs.toString()}`);
+};
 export const createCaptacion = (b) => post('/api/asesor/captaciones', b);
 export const moveCaptacion = (id, stage, payload) => patch(`/api/asesor/captaciones/${id}/stage`, { stage, payload });
 export const getCaptacion = (id) => j(`/api/asesor/captaciones/${id}`);
