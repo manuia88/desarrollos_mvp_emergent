@@ -52,8 +52,13 @@ Tag por foto (room + 4 features, vía visión GPT-4o-mini, fail-open) pero a niv
   ("Reventa real de la zona (N)") en vez de la estimada. Y el asesor ve **valor estimado en vivo** mientras captura
   (`captacion_value_engine` + `GET /api/asesor/captacion-estimate`), que SUBE con cada detalle y marca su fuente
   (real vs estimada). Verificado punta a punta: 3 captaciones → referencia real → comprador la consume.
-- ✅ **G3 AVM rico**: motor compartido `avm_feature_engine.feature_adjustments` (vista/estado/condición/antigüedad/
-  amenidades/orientación/piso → multiplicador + "drivers" en lenguaje normal: "Vista al parque ↑", "Para remodelar ↓").
+- ⚠️ CORRECCIÓN founder (2026-06-06): la 1ª versión saltaba ~20% (apilaba %). Un avalúo REAL no salta así.
+  Reinvestigado (metodología perito · NMX-459 enfoque comparativo + homologación · Ross-Heidecke): se ancla a
+  COMPARABLES y los factores se multiplican pero ACOTADOS. Conservación es el que pesa (para remodelar ~-15%);
+  vista/amenidades/orientación = bundle "calidad" topado ±5% (no 1%/amenidad). Neto total acotado [-28%,+8%].
+  Verificado: vista+excelente +4% · bundle completo +6% · para remodelar -15% (antes +20%).
+- ✅ **G3 AVM rico**: motor compartido `avm_feature_engine.feature_adjustments` (conservación/edad/vista/amenidades/
+  orientación/piso → multiplicador ACOTADO estilo perito + "drivers" en lenguaje normal: "Vista al parque ↑", "Para remodelar ↓").
   Lo usan el AVM público (`avm_quick`/`avm_quick_async` aceptan `attrs` + devuelven `drivers`), la valuación de
   captación del asesor (unificada, sin duplicar) y queda listo para la unidad del dev. Surfaceado en el valuador
   público (`Valores.js`: inputs Vista+Estado + "Qué mueve el precio") y en el captador del asesor (chips ↑/↓).

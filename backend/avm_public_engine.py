@@ -288,7 +288,9 @@ def _avm_response(
     if attrs:
         try:
             import avm_feature_engine as afe
-            rich = {k: attrs.get(k) for k in ("vista", "estado_conservacion", "condicion",
+            # OJO: NO pasamos condición/antigüedad aquí — la base heurística ya aplica la edad
+            # (evita doble conteo). Solo conservación + calidad/ubicación.
+            rich = {k: attrs.get(k) for k in ("vista", "estado_conservacion",
                                               "n_amenidades", "orientacion", "nivel")}
             adj = afe.feature_adjustments(rich)
             fctr = adj["factor"]
