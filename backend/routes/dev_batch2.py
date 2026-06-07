@@ -125,9 +125,9 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
         months.append(m.strftime("%Y-%m"))
 
     # ── Cargar leads REALES del dev (antes era random.Random — datos inventados).
-    q: Dict[str, Any] = {"dev_org_id": _tenant(user)}
-    if project_id:
-        q["$or"] = [{"project_id": project_id}, {"development_id": project_id}]
+    # Scope por development_id ∈ sus proyectos (los leads traen development_id, NO dev_org_id →
+    # antes con dev_org_id devolvía VACÍO). dev_ids ya refleja el filtro de project_id de arriba.
+    q: Dict[str, Any] = {"development_id": {"$in": dev_ids}}
     leads = await db.leads.find(
         q, {"_id": 0, "status": 1, "lost_reason": 1, "created_at": 1, "updated_at": 1}
     ).to_list(5000)
@@ -163,10 +163,13 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
         "win_rate_pct": round(100 * won / (won + lost_total), 1) if (won + lost_total) else 0,
     }
 
-    # ── Funnel REAL por etapa (acumulado hacia el cierre)
+    # ── Funnel REAL por etapa (acumulado hacia el cierre). Vocabulario canonizado: acepta los dos
+    #    sets de status que conviven en la data (cita/cita_agendada · propuesta).
     n_total = len(leads)
-    n_calif = sum(counts.get(s, 0) for s in ("calificado", "cita_agendada", "cerrado_ganado", "cerrado_perdido"))
-    n_visita = sum(counts.get(s, 0) for s in ("cita_agendada", "cerrado_ganado", "cerrado_perdido"))
+    _CALIF = ("calificado", "cita", "cita_agendada", "propuesta", "cerrado_ganado", "cerrado_perdido")
+    _VISITA = ("cita", "cita_agendada", "propuesta", "cerrado_ganado", "cerrado_perdido")
+    n_calif = sum(counts.get(s, 0) for s in _CALIF)
+    n_visita = sum(counts.get(s, 0) for s in _VISITA)
     funnel_steps = [
         {"k": "lead",       "label": "Leads capturados", "count": n_total},
         {"k": "calificado", "label": "Calificados",      "count": n_calif},
