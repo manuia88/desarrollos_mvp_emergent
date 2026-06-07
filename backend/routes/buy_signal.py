@@ -25,7 +25,6 @@ from typing import Any, Deque, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-import avm_public_engine as avm_eng
 import zone_cycle_engine as zce
 import dmx_indices_engine as ix
 
@@ -79,25 +78,6 @@ def _representative_unit(dev: Dict[str, Any]) -> Dict[str, Any]:
             "rec": (bedr[0] if bedr else 2), "ban": 2}
 
 
-# ── A12 · Precio Justo ──
-def _fairness_verdict(vs_pct: float) -> Dict[str, str]:
-    if vs_pct <= -8:
-        return {"clave": "barato", "color": "verde",
-                "etiqueta": "Por debajo del mercado",
-                "lectura": "El precio está por debajo de lo que vale en el mercado — buena oportunidad."}
-    if vs_pct < 8:
-        return {"clave": "justo", "color": "verde",
-                "etiqueta": "En línea con el mercado",
-                "lectura": "El precio va en línea con lo que vale la zona — precio justo."}
-    if vs_pct < 18:
-        return {"clave": "caro", "color": "ambar",
-                "etiqueta": "Por encima del mercado",
-                "lectura": "Pagas algo por encima del mercado — revisa qué lo justifica (vista, marca, acabados) o negocia."}
-    return {"clave": "muy_caro", "color": "rojo",
-            "etiqueta": "Muy por encima del mercado",
-            "lectura": "El precio está bastante arriba del mercado — pide comparables y negocia antes de avanzar."}
-
-
 # ── A07 · Buen Momento (lectura del ciclo en clave comprador) ──
 _TIMING_BUYER = {
     "recuperacion": {"color": "verde", "score": 85,
@@ -134,21 +114,31 @@ async def buy_signal(
     u_rec = int(rec if rec is not None else rep["rec"])
     u_ban = int(ban if ban is not None else rep["ban"])
 
-    # ── Precio Justo (AVM) ──
-    avm = await avm_eng.avm_quick_async(db, colonia_slug, u_m2, u_rec, u_ban, 0)
-    precio_justo: Optional[Dict[str, Any]] = None
-    if "error" not in avm and avm.get("precio_estimado") and u_price > 0:
-        est = float(avm["precio_estimado"])
-        vs_pct = round((u_price - est) / est * 100, 1) if est else 0.0
-        v = _fairness_verdict(vs_pct)
-        precio_justo = {
-            "precio_lista": round(u_price), "valor_estimado": round(est),
-            "vs_pct": vs_pct, "range_low": avm.get("range_low"), "range_high": avm.get("range_high"),
-            "confianza": avm.get("confidence"), "modelo": avm.get("pricing_model"),
-            "m2": u_m2, "recamaras": u_rec, "banos": u_ban,
-            "comparables": (avm.get("comparables") or [])[:3],
-            **v,
-        }
+    # ── Precio en Contexto (obra nueva vs obra nueva · NO contra reventa) ──
+    from data_developments import DEVELOPMENTS
+    import price_context_engine as pce
+    peers_pm2 = []
+    for od in DEVELOPMENTS:
+        if od.get("colonia_id") != colonia_slug or od.get("id") == dev_id:
+            continue
+        omr = od.get("m2_range") or [0]
+        opm2 = (od.get("price_from") or 0) / omr[0] if omr and omr[0] else 0
+        if opm2:
+            peers_pm2.append(opm2)
+    try:
+        from data_seed import COLONIAS_BY_ID as _CBI
+        _col = _CBI.get(colonia_slug)
+    except Exception:
+        _col = None
+    este_pm2 = (u_price / u_m2) if (u_price and u_m2) else 0
+    precio_contexto: Optional[Dict[str, Any]] = None
+    if _col and este_pm2:
+        precio_contexto = pce.compute_price_context(
+            este_pm2, _col, peers_pm2, dev=dev, stage=dev.get("stage"),
+        )
+        if precio_contexto:
+            precio_contexto["precio_lista"] = round(u_price)
+            precio_contexto["m2"] = u_m2
 
     # ── Buen Momento (ciclo + índices) ──
     timing: Optional[Dict[str, Any]] = None
@@ -174,13 +164,13 @@ async def buy_signal(
         }
 
     # ── Veredicto combinado ──
-    veredicto = _combined(precio_justo, timing)
+    veredicto = _combined(precio_contexto, timing)
 
     return JSONResponse({
         "ok": True, "dev_id": dev_id, "nombre": dev.get("name"),
         "zona": dev.get("colonia") or colonia_slug,
-        "precio_justo": precio_justo, "timing": timing, "veredicto": veredicto,
-        "nota": "El valor estimado sale del modelo AVM de DMX (hedónico cuando hay muestra, si no heurística). "
+        "precio_contexto": precio_contexto, "timing": timing, "veredicto": veredicto,
+        "nota": "Comparamos obra nueva contra obra nueva comparable de la zona (no contra reventa). "
                 "El momento sale de la tendencia real de precios de la zona. No es una recomendación de inversión.",
     })
 
@@ -219,33 +209,35 @@ async def ownership(
     })
 
 
-def _combined(pj: Optional[Dict[str, Any]], tm: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Cruza precio × momento en una frase accionable + un semáforo."""
-    precio_ok = pj and pj["clave"] in ("barato", "justo")
-    precio_caro = pj and pj["clave"] in ("caro", "muy_caro")
+def _combined(pc: Optional[Dict[str, Any]], tm: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Cruza posición-en-obra-nueva × momento. NUNCA dice 'caro' por ser obra nueva:
+    una vivienda nueva está por arriba de la reventa por definición — eso es valor, no sobreprecio."""
+    pos = (pc or {}).get("posicion") or {}
+    band = pos.get("clave")  # entrada | en_rango | premium | top
     momento_bueno = tm and tm["fase_key"] in ("recuperacion", "expansion")
+    momento_lbl = tm["fase_label"].lower() if tm else ""
 
-    if pj is None and tm is None:
-        return {"clave": "sin_datos", "color": "ambar", "titulo": "Aún sin señal",
-                "lectura": "No tenemos suficientes datos para evaluar esta compra."}
-    if precio_caro:
-        return {"clave": "cuida_precio", "color": "ambar",
-                "titulo": "Cuida el precio",
-                "lectura": "Estás pagando por encima del mercado. Pide comparables y negocia antes de avanzar"
-                           + (", aunque la zona vaya al alza." if momento_bueno else ".")}
-    if precio_ok and momento_bueno:
-        return {"clave": "buena_compra", "color": "verde",
-                "titulo": "Buena compra",
-                "lectura": "Precio justo en una zona que va al alza — buena combinación de precio y plusvalía esperada."}
-    if precio_ok and tm and tm["fase_key"] == "maduro":
-        return {"clave": "compra_solida", "color": "verde",
-                "titulo": "Compra sólida",
-                "lectura": "Precio justo en una zona consolidada — pagas por estabilidad y ubicación más que por una subida rápida."}
-    if precio_ok:
-        return {"clave": "precio_ok", "color": "verde",
-                "titulo": "Precio justo",
-                "lectura": "El precio va en línea con el mercado. " + (tm["lectura"] if tm else "")}
-    # solo timing
-    return {"clave": "ver_momento", "color": tm["color"] if tm else "ambar",
-            "titulo": "Revisa el momento",
-            "lectura": (tm["lectura"] if tm else "Evalúa el precio contra comparables de la zona.")}
+    if pc is None and tm is None:
+        return {"clave": "sin_datos", "color": "ambar", "titulo": "Aún en contexto",
+                "lectura": "Estamos reuniendo comparables de obra nueva para ubicar este precio."}
+
+    # Precio accesible / en rango → señal positiva
+    if band in ("entrada", "en_rango"):
+        if momento_bueno:
+            return {"clave": "buena_entrada", "color": "verde", "titulo": "Buena entrada",
+                    "lectura": f"Precio en el rango de obra nueva de la zona y {momento_lbl} a favor — buena combinación."}
+        return {"clave": "en_rango", "color": "verde", "titulo": "Precio en su rango",
+                "lectura": "Va en línea con otros desarrollos nuevos comparables. " + (tm["lectura"] if tm else "")}
+
+    # Premium / tope → enmarcar el valor, sin asustar
+    if band in ("premium", "top"):
+        return {"clave": "premium", "color": "theme", "titulo": "Producto premium",
+                "lectura": "Está en la parte alta de la obra nueva de la zona — revisa qué lo respalda (ubicación, "
+                           "amenidades, marca) y compáralo con tu lista. " + ("La zona va al alza." if momento_bueno else "")}
+
+    # Solo momento (sin contexto de precio)
+    if tm:
+        return {"clave": "ver_momento", "color": tm["color"], "titulo": "Revisa el momento",
+                "lectura": tm["lectura"]}
+    return {"clave": "en_contexto", "color": "verde", "titulo": "Precio en contexto",
+            "lectura": "Mira cómo se ubica frente a la obra nueva de la zona abajo."}
