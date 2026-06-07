@@ -183,3 +183,15 @@ async def superadmin_colonias_ingest(
     await _sa(request)
     import colonias_catalog as cc
     return await cc.ingest_official_catalog(request.app.state.db, city=city)
+
+
+@router.post("/api/superadmin/colonias/compute-scores")
+async def superadmin_colonias_compute_scores(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a computar"),
+):
+    """Calcula scores REALES por colonia desde el dato (SESNSP/DENUE/DRPI) y los guarda (EX.2).
+    Lo que no tenga dato queda pendiente y se autollena al ingestar (honesto)."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.compute_catalog_scores(request.app.state.db, city=city)

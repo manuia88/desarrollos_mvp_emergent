@@ -108,7 +108,7 @@
 | # | Qué | Estado |
 |---|---|---|
 | EX.1 | Catálogo de colonias: colección `colonias` + cargador + cobertura + **conector de ingesta oficial (CKAN o GeoJSON) + endpoint POST /ingest + botón "Cargar Catálogo CDMX" en superadmin** ✅ (pipe completo + verificado, no-op honesto sin config). **Falta config founder:** poner `IE_COLONIAS_CDMX_URL` (GeoJSON de "coloniascdmx" en datos.cdmx) o `IE_COLONIAS_CDMX_RESOURCE_ID` y dar clic en Cargar → 16→~1,800 | 🟡 pipe hecho (2026-06-07) · espera fuente |
-| EX.2 | Correr recetas por colonia con fuentes ya conectadas (FGJ/DENUE/SACMEX) → scores REALES (no a mano) | ⏳ |
+| EX.2 | Scores REALES por colonia: **puente `score_bridge` (reusa compute_all_subscores: SESNSP/DENUE/DRPI → 7 dimensiones) + cómputo por catálogo + botón "Computar Scores Reales" + cobertura real-vs-pendiente** ✅. `seed_proxy` excluido (solo dato externo cuenta como real). Hoy: 1 con dato real (Polanco/DENUE), 15 pendientes — refleja qué falta ingestar. **Falta:** ingestar DENUE/crimen/DRPI por las ~1,800 zonas + wirear índices sobre colonias del catálogo (necesitan también precio/momentum) | 🟡 pipe hecho (2026-06-07) · espera ingesta |
 | EX.3 | Dimensión **`city`** (campo en colonias + distribuciones/percentiles por ciudad) — build for endstate | ✅ **hecho 2026-06-07** |
 | EX.4 | Percentiles/bandas **por ciudad** (no se mezclan mercados) — cierra el caveat de B.1 | ✅ **hecho 2026-06-07** |
 | EX.5 | Conector de dato local por ciudad (Jalisco IIEG · NL · Querétaro · Yucatán · QRoo); lo NACIONAL (INEGI/DENUE/SESNSP/Banxico/SHF/CENAPRED) ya cubre todo MX | ⏳ |

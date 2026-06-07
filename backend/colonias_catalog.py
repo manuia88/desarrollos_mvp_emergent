@@ -103,12 +103,19 @@ async def coverage(db) -> Dict[str, Any]:
             await seed_colonias(db)
         rows: List[Dict[str, Any]] = []
         async for r in db.colonias.aggregate([
-            {"$group": {"_id": "$city", "count": {"$sum": 1}}},
+            {"$group": {
+                "_id": "$city",
+                "count": {"$sum": 1},
+                "con_reales": {"$sum": {"$cond": [{"$gt": ["$scores_cobertura_pct", 0]}, 1, 0]}},
+            }},
             {"$sort": {"count": -1}},
         ]):
-            rows.append({"city": r["_id"] or "—", "colonias": r["count"]})
+            rows.append({"city": r["_id"] or "—", "colonias": r["count"],
+                         "con_scores_reales": r.get("con_reales", 0)})
         total = sum(r["colonias"] for r in rows)
-        return {"ciudades": rows, "total_colonias": total, "total_ciudades": len(rows)}
+        con_reales = sum(r["con_scores_reales"] for r in rows)
+        return {"ciudades": rows, "total_colonias": total, "total_ciudades": len(rows),
+                "total_con_scores_reales": con_reales, "total_pendientes": total - con_reales}
     except Exception as e:  # fail-open: la cobertura nunca rompe la página
         log.warning(f"[colonias_catalog] coverage: {e}")
         return {"ciudades": [], "total_colonias": 0, "total_ciudades": 0}
@@ -172,6 +179,35 @@ async def _fetch_geojson(url: str) -> List[Dict[str, Any]]:
             props.setdefault("lat", sum(p[1] for p in flat) / len(flat))
         rows.append(props)
     return rows
+
+
+async def compute_catalog_scores(db, city: str = "CDMX", limit: int = 2500) -> Dict[str, Any]:
+    """Calcula scores REALES (puente score_bridge → SESNSP/DENUE/DRPI) para cada colonia del
+    catálogo de la ciudad y los guarda en su doc. EX.2 · data-driven. Lo que no tenga dato
+    queda pendiente (honesto, cero deuda). `limit` = tope de seguridad para corridas grandes."""
+    import score_bridge as sb
+    computed = con_reales = 0
+    cur = db.colonias.find({"city": city}, {"_id": 0, "id": 1})
+    async for c in cur:
+        if computed >= limit:
+            log.warning(f"[colonias_catalog] compute_scores alcanzó el tope {limit} · {city}")
+            break
+        zid = c.get("id")
+        if not zid:
+            continue
+        r = await sb.real_scores_for(db, zid)
+        await db.colonias.update_one({"id": zid}, {"$set": {
+            "scores_reales": r["scores"], "scores_fuentes": r["fuentes"],
+            "scores_cobertura_pct": r["cobertura_pct"], "scores_es_estimado": r["es_estimado"],
+        }})
+        computed += 1
+        if r["reales"] > 0:
+            con_reales += 1
+    return {
+        "ok": True, "city": city, "computadas": computed,
+        "con_scores_reales": con_reales, "pendientes": computed - con_reales,
+        "cobertura": await coverage(db),
+    }
 
 
 async def ingest_official_catalog(db, city: str = "CDMX") -> Dict[str, Any]:

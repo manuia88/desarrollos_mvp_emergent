@@ -138,6 +138,31 @@ def test_colonias_map_row_heterogeneo():
     assert cc._map_row({"foo": "bar"}, "CDMX") is None
 
 
+def test_score_bridge_solo_cuenta_dato_externo_real():
+    """El puente cuenta REAL solo dato externo (DENUE/SESNSP/DRPI); stub y seed_proxy NO."""
+    import score_bridge as sb
+    sub = {
+        "lifestyle":  {"value": 80, "source": "denue"},       # → vida (real)
+        "amenidades": {"value": 70, "source": "denue"},       # → comercio (real)
+        "seguridad":  {"value": 90, "source": "sesnsp"},      # → seguridad + riesgo (real)
+        "transporte": {"value": 60, "source": "seed_proxy"},  # → movilidad: NO cuenta (es la semilla)
+        "precio":     {"value": 50, "source": "stub"},        # → plusvalia: NO cuenta (sin dato)
+        "vibe":       {"value": 40, "source": "stub"},
+    }
+    r = sb.map_subscores(sub)
+    assert r["scores"].get("vida") == 80 and r["scores"].get("comercio") == 70
+    assert r["scores"].get("seguridad") == 90 and r["scores"].get("riesgo") == 90
+    assert "movilidad" not in r["scores"]    # seed_proxy excluido
+    assert "plusvalia" not in r["scores"]    # stub excluido
+    assert r["reales"] == 4 and r["es_estimado"] is True   # 4 de 7 (falta educacion siempre)
+
+
+def test_score_bridge_sin_datos_todo_pendiente():
+    import score_bridge as sb
+    r = sb.map_subscores({})
+    assert r["reales"] == 0 and r["cobertura_pct"] == 0 and r["es_estimado"] is True
+
+
 def test_bandas_no_mezclan_ciudades():
     """Una colonia de otra ciudad se compara solo contra su ciudad (no contra CDMX)."""
     import dmx_indices_engine as ix

@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -16,15 +16,27 @@ export default function SuperadminIndices() {
   const [tier, setTier] = useState('');
   const [ingest, setIngest] = useState({ busy: false, msg: '' });
 
+  const refrescar = () => listIndices({ tier: tier || undefined, limit: 200 }).then(setData).catch(() => {});
+
   const cargarCatalogo = async () => {
     setIngest({ busy: true, msg: '' });
     try {
       const r = await ingestColonias('CDMX');
       setIngest({ busy: false, msg: r.ok ? `Se cargaron ${r.cargadas} colonias.` : (r.reason || 'No se pudo cargar.') });
-      setTier(t => t); // refresca la tabla/cobertura
-      listIndices({ tier: tier || undefined, limit: 200 }).then(setData).catch(() => {});
+      refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al cargar el catálogo.' });
+    }
+  };
+
+  const computarScores = async () => {
+    setIngest({ busy: true, msg: '' });
+    try {
+      const r = await computeColoniasScores('CDMX');
+      setIngest({ busy: false, msg: r.ok ? `${r.con_scores_reales} colonias con scores reales · ${r.pendientes} pendientes (falta ingestar el dato de la zona).` : 'No se pudo computar.' });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al computar scores.' });
     }
   };
 
@@ -90,6 +102,11 @@ export default function SuperadminIndices() {
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>
               {cobertura.total_colonias} colonias · {cobertura.total_ciudades} ciudad{cobertura.total_ciudades === 1 ? '' : 'es'}
             </span>
+            {cobertura.total_con_scores_reales != null && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                <b style={{ color: 'var(--ok, #1FA06A)' }}>{cobertura.total_con_scores_reales}</b> con scores reales · <b style={{ color: 'var(--warm, #E2982E)' }}>{cobertura.total_pendientes}</b> pendientes
+              </span>
+            )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
               {(cobertura.ciudades || []).map(c => (
                 <span key={c.city} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', padding: '4px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -100,7 +117,10 @@ export default function SuperadminIndices() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
             <button data-testid="ix-cargar-catalogo" onClick={cargarCatalogo} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
-              {ingest.busy ? 'Cargando…' : 'Cargar Catálogo CDMX'}
+              {ingest.busy ? 'Trabajando…' : 'Cargar Catálogo CDMX'}
+            </button>
+            <button data-testid="ix-computar-scores" onClick={computarScores} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Computar Scores Reales
             </button>
             {ingest.msg && <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{ingest.msg}</span>}
           </div>
