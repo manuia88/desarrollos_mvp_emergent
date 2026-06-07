@@ -3,6 +3,12 @@
 > 2026-06-07 · 5 barridos paralelos sobre ~50 motores numéricos del backend. Disparado por founder tras detectar que el AVM saltaba 20% con coeficientes inventados. Pregunta: "¿cuántos índices/métricas más están calculados así y no coinciden con valores reales?"
 > Leyenda: ✅ FUNDAMENTADO (fuente real / método estándar) · ⚠️ HEURÍSTICO (plausible pero elegido, sin derivar) · 🔴 INVENTADO (coeficiente arbitrario presentado como preciso, o dato sintético/random presentado como real).
 
+## AVANCE 2026-06-07 (checklist vivo)
+Tanda A (honestidad) prácticamente cerrada + datos reales conectados:
+- ✅ Tasas oficiales vivas (`banxico_rates.py`) · ✅ investment_sim lee de fuente única · ✅ Live Pulse solo cuenta señal real · ✅ dmx_demand/state_of_cdmx marcados “estimado” · ✅ AVM homologación conservadora · ✅ Precio en Contexto neutro · ✅ flywheel asesor→AVM · ✅ tokens reales + resource_ids CDMX verificados + bug `.env.local` arreglado.
+- ⏳ PENDIENTE: ingestar SIG predios + valores unitarios 2026 · disparar SHF (INEGI 736183) · **Tanda B** (scores→bandas direccionales en toda la UI) · **Tanda C** (valuación vs comparables + normalizador por percentiles + guard de outliers de captación).
+> Detalle completo + estado de ingesta + colecciones: ver `memory/DATA_SOURCES.md` §⭐ ESTADO REAL 2026-06-07.
+
 ## VEREDICTO
 La sospecha del founder **se confirma en parte, con matiz clave**:
 - ✅ Lo que toca DINERO LEGAL/REAL está SÓLIDO: impuestos (ISR/ISAI/predial con tablas oficiales DOF/Gaceta, auto-testeadas ±$5), hipoteca (Infonavit/Fovissste oficiales). El **hedónico real, DRPI, ARIMA, FSD** son ML de verdad.

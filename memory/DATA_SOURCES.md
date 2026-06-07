@@ -1,8 +1,93 @@
 # DMX Data Sources Map (canonical)
 
-**Última actualización**: 2026-05-16 (W6.13 External Sources Activation · 3 tracks ingesta documentados)
+**Última actualización**: 2026-06-07 (consolidación canónica · tokens reales cargados + resource_ids verificados + SIG/valor unitario/SHF para valuación + estado real de ingesta + checklist de fundamentación)
 
 Mapa exhaustivo de fuentes de información que DMX consume o consumirá. Estado per fuente + URL exacta + token requerido + Wave/batch que la usa + **tipo de ingesta**.
+
+---
+
+# ⭐ ESTADO REAL · 2026-06-07 (fuente única de verdad)
+
+> Disparado tras detectar AVM/índices con coeficientes inventados. Regla: todo número al usuario se ancla a fuente OFICIAL con fecha, o se muestra como banda/“sin dato aún”. Cero inventos, cero deuda.
+
+## 3 niveles de “conexión” (no confundir)
+1. **Registrada** — la fuente está en el catálogo `ie_data_sources` (18 filas). NO significa que haya datos.
+2. **Conectada** — el token/resource_id está en `backend/.env.local` y el conector puede pegarle. Listo para jalar.
+3. **Ingestada** — los datos YA están en una colección Mongo y alimentan scores/AVM. Esto es lo único que mueve números reales.
+
+## A) Lo que YA quedó CONECTADO en env (2026-06-07)
+| Fuente | Env var | Nivel | Alimenta |
+|---|---|---|---|
+| Banxico SIE (TIIE/tasas/SHF) | `IE_BANXICO_TOKEN` | Conectada ✅ (conector `banxico_rates.py` vivo) | tasas hipoteca/TIIE reales · plusvalía SHF |
+| INEGI (Censo/ENIGH/DENUE/SCIAN) | `IE_INEGI_TOKEN` | Conectada ✅ | demografía + comparables |
+| DENUE (negocios) | `IE_DENUE_TOKEN` | Conectada ✅ | densidad comercial real por zona |
+| NOAA clima | `IE_NOAA_API_KEY` | Conectada ✅ | clima/isla de calor |
+| Mapbox | `MAPBOX_TOKEN` | Conectada ✅ | mapas/heatmaps/geocoding |
+| Apify (trends) | `APIFY_API_TOKEN` + `APIFY_TRENDS_REAL=true` | Conectada ✅ | velocidad de búsqueda (Live Pulse) |
+| AirROI (Airbnb) | `IE_AIRROI_API_KEY` | Conectada ✅ | ROI renta corta real |
+| datos.cdmx base | `IE_DATOS_CDMX_BASE_URL` | Conectada ✅ | endpoint CKAN |
+
+## B) Resource_ids CDMX verificados (no llevan token, solo el ID)
+| Fuente | Env var | Resource ID | Alimenta |
+|---|---|---|---|
+| FGJ — carpetas/delitos por colonia (2.1M filas) | `IE_FGJ_CDMX_RESOURCE_ID` | `48fcb848-220c-4af0-839b-4fd8ac812c0f` | IE_COL_SEGURIDAD (riesgo real) |
+| SACMEX — cortes de agua | `IE_SACMEX_RESOURCE_ID` | `a8069e94-c7cb-45d7-8166-561e80884422` | IE_COL_AGUA_CONFIABILIDAD |
+| Locatel *0311 — reportes ciudadanos (baches/luz/fugas) | `IE_LOCATEL_RESOURCE_ID` | `44913088-806d-4f80-acca-1409a8225e9c` | IE_COL_LOCATEL / trust vecindario |
+
+> Nota Locatel: Cowork sugirió `be32ff48-…` (Servicios Integrales/Línea Mujeres = call center, NO urbano). Para reportes urbanos el correcto es el *0311 `44913088-…`. Documentado para no volver a confundir.
+
+## C) VALUACIÓN — la pieza que ancla el AVM (SIG + valores unitarios + SHF)
+La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
+**valor catastral = valor del suelo + valor de la construcción**
+- Suelo = *valor unitario de suelo $/m²* (tablas por colonia catastral/corredor/área de valor) × m² terreno.
+- Construcción = *valor unitario de construcción $/m²* (por uso×clase×niveles) × m² construidos.
+- Publicado **cada año** en el **Código Fiscal CDMX / Gaceta Oficial**. El PDF de ejemplo es 2020; existe **2024** (transparencia.finanzas.cdmx) y **2026** (Gaceta). **Usar 2026.**
+
+| Pieza | Qué es | Estado | Env var (propuesta) | Cómo se usa |
+|---|---|---|---|---|
+| **SIG WFS predios** | Capa `predios2022sig_local` (6.89M predios · `vsuelo` $/m² · uso) | Registrada (hoy `catastro_cdmx` = manual_upload) → **API WFS = upgrade pendiente** | `IE_SIG_WFS_URL` | piso de valor de suelo por predio |
+| **Valores unitarios 2026** | Tablas oficiales $/m² suelo + construcción por zona | Pendiente cargar (PDF/tabla Gaceta) | `IE_VALORES_UNITARIOS_2026_URL` | base catastral → se calibra a comercial (~+15–40%) |
+| **SHF Índice precios vivienda** | Índice oficial de plusvalía residencial | Conectada vía INEGI BIE serie **736183** / Banxico SIE (token ya puesto) | (reusa `IE_INEGI_TOKEN`/`IE_BANXICO_TOKEN`) | benchmark de apreciación vs DRPI propio |
+
+## D) Dónde caen los datos (colecciones Mongo) — estado real HOY
+| Colección | Conteo (2026-06-07) | Qué guarda |
+|---|---|---|
+| `ie_data_sources` | 18 | catálogo de fuentes |
+| `ie_raw_observations` | 235 | observaciones crudas ingestadas |
+| `ie_scores` | 3,422 | scores por colonia (vivo) |
+| `ie_score_history` | 17,110 | histórico de scores |
+| `ie_ingestion_jobs` | 41 | corridas de ingesta |
+| `catastro_cdmx` | **0** | predios — **vacío, falta ingestar** |
+| `sigcdmx_uso_suelo` | **0** | uso de suelo SEDUVI — **vacío** |
+| `gov_data_mx_raw` | 2 | casi vacío |
+| (SHF/plusvalia_hist) | **no poblada** | falta disparar serie 736183 |
+
+**Traducción honesta:** el motor de scores por colonia SÍ está vivo (3.4k scores), pero las fuentes pesadas de valuación (**catastro/valores unitarios y SHF**) **todavía NO están ingestadas** — solo registradas/conectadas. Por eso el AVM aún se apoya en heurísticas; al ingestar SIG+valores unitarios+SHF se ancla a oficial.
+
+## E) Checklist de fundamentación (avance · ✅ hecho · ⏳ pendiente)
+- ✅ Tasas oficiales vivas (`banxico_rates.py`: TIIE 6.6554% / hipoteca CF303 11.46%) — fin del 7.25% de blog.
+- ✅ `investment_simulator` lee tasas de la fuente única (no hardcode).
+- ✅ Live Pulse: el score solo cuenta señales reales (el trend sintético ya no contamina).
+- ✅ `dmx_demand` / `state_of_cdmx`: fallbacks marcados “estimado”, sin ROI inventado.
+- ✅ AVM homologación conservadora (NMX-459/Ross-Heidecke) — no salta 20%.
+- ✅ Precio en Contexto: obra nueva vs obra nueva comparable + bandas neutras (no “caro”).
+- ✅ Flywheel asesor→AVM: captaciones reales alimentan referencia de reventa.
+- ✅ Tokens reales cargados + resource_ids CDMX verificados + bug `.env.local` ($ sin comillas) arreglado de raíz.
+- ⏳ **Ingestar SIG WFS predios + valores unitarios 2026** (vuelve `catastro_cdmx`/valor de suelo reales).
+- ⏳ **Disparar SHF (INEGI 736183)** → poblar plusvalía histórica oficial.
+- ⏳ **Tanda B**: scores inventados (IAB/IDS/gentrificación/IDM) → señal direccional (bajo/medio/alto) en toda la UI + “señal DMX, no medición”.
+- ⏳ **Tanda C**: valuación afinada contra comparables reales (normalizar por percentiles reales, no topes inventados).
+- ⏳ Normalizador por percentiles (`metric_normalizer`) + leyenda honesta de fuente/fecha en cada métrica.
+
+## F) Dato 100% asertivo = imposible hoy en México (decisión de producto)
+Los asesores subirán propiedades a veces a valor de mercado y a veces al precio que pide el dueño (inflado). Igual pasa con cualquier portal. **No peleamos por exactitud imposible; peleamos por honestidad y robustez:**
+1. **Anclar** a oficial donde exista (valores unitarios, SHF, Banxico).
+2. **Filtrar atípicos**: marcar/winsorizar precios fuera de rango vs la colonia (no borrar, etiquetar “fuera de rango”).
+3. **Mostrar confianza + fuente**: “estimado”, n de comparables, fecha. Banda, no decimal falso.
+4. **Mejorar con volumen**: más captaciones + más devs = la mediana se corrige sola (flywheel).
+→ Pendiente operativo: guard de outliers en captación + sello de confianza visible. (va con Tanda C)
+
+---
 
 ## Tipos de ingesta soportados (W6.13)
 
