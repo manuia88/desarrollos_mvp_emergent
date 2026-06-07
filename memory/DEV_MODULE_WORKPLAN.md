@@ -29,7 +29,11 @@ dato-de-mercado/ya-protegido (can_view_ai_summary). ✅ FASE 2.4 ATOMICIDAD HECH
 {unit_id}@active y appointments {asesor_id,datetime}@confirmed + DuplicateKeyError→409. Verificado
 (2º insert bloqueado · re-apartar tras release OK · hold#1=200/#2=409 live). ✅ FASE 2.3 HECHO (2026-06-06): rate-limit en 6 públicos (check_rate: book 5/min · availability/slots 30/min ·
 cita token-actions 10/min · verificado 429) + barrido 100 GET dev → CERO 500 (86×200/7×422/3×404/2×403-candados/
-1×429/1×307). PENDIENTE Fase 2-4 restante: vocabulario dev_org/project (canonizar) · QA Fase 4 (día del desarrollador) · luego recap upgrades por batch.
+1×429/1×307). ✅ FASE 4 QA HECHO (2026-06-06): scripts/qa_journey_dev.py (arnés reusable, pega al backend vivo) →
+20/20 verde: journey 8/8 (dashboard+7 upgrades) · aislamiento 7/7 (red-team cross-dev-org) · atomicidad 2/2
+(doble-apartado→409) · cohesión 2/2. **DEV MÓDULO FASE 1-4 COMPLETO** (rediseño Paso C + endurecimiento
+aislamiento/atomicidad/rate-limit/sin-500 + QA). Pendiente menor opcional: canonizar vocabulario dev_org/
+project · load test N proyectos. SIGUE: recap de upgrades por batch al founder.
 
 ## FASE 1 · AUDITORÍA DE ARQUITECTURA (mapa de flujos + cables)
 ═══════════════════════════════════════════════════════════════════
