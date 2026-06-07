@@ -38,7 +38,8 @@
 
 ## PLAN para los 28 que faltan + 15 a medias (por palanca)
 **TIER 1 · Quick wins (datos/cubo ya listos · alto valor):**
-- B08 Absorción sintético → real (reusar modelo de B09 cash-flow).
+- ✅ B08 Absorción → REAL (2026-06-06). Estaba real en código pero scope-ado por dev_org_id (0 leads) →
+  fix a development_id ∈ proyectos del dev → 42 leads reales (win 50%, embudo 42→30→24→6, cohort+heatmap). Verificado.
 - B05 Market Cycle (derivar de absorción + momentum precio + supply, todo en cubo).
 - D05 Gentrification + D07 STR/LTR (campos `gentrificacion`/`roi_renta_corta/larga` YA en `dmx_unit_schema`).
 - I04: construir los 5 índices DMX como composites (DRPI ya existe; los otros cruzan scores existentes).
