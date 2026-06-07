@@ -30,6 +30,14 @@ Dos tipos de salida:
 - **VALOR REAL** (debe coincidir con algo medible: precio, costo, impuesto, tasa) → AHÍ el error duele. Los de impuesto/hipoteca están bien; el AVM fallback + investment_sim son los que hay que fundamentar.
 - **SCORE RELATIVO** (ranking construido, NO existe un "valor real" de "gentrificación 38") → el riesgo no es "está mal" sino que se VE preciso. Fix: mostrarlos como **bajo/medio/alto** (lenguaje), nunca número crudo, + anclar a dato real donde se pueda.
 
+## LECCIÓN · TASAS DE FUENTE OFICIAL (founder 2026-06-07)
+Usé 7.25% TIIE de un BLOG ("marzo 2026"). Founder corrigió con fuente oficial: TIIE 28d = **6.6554%**
+(mst.hacienda.gob.mx, 7-jun) · tasa objetivo Banxico **6.5%**. Regla: toda constante financiera ancla
+a fuente OFICIAL (Banxico SIE / Hacienda / DOF / SAT) con fecha, y se mantiene viva por conector.
+→ Creado `banxico_rates.py`: fuente única (defaults oficiales con fecha) + conector `refresh_from_banxico`
+(API SIE Banxico serie SF60648, header Bmx-Token) que auto-llena cuando hay `BANXICO_TOKEN`; sin token
+usa el default oficial documentado. `investment_simulator` ya lee de ahí (hipoteca 10.5%, TIIE 6.6554%).
+
 ## PLAN DE TRIAGE PROPUESTO
 - **Tanda A (P0 honestidad):** quitar/etiquetar datos sintéticos (live_pulse trend, dmx_demand proxy, state_of_cdmx fallbacks) → "sin dato aún" en vez de inventar; corregir TIIE/tasa hipoteca (a config/fuente). 
 - **Tanda B (P1 consistencia):** unificar tope DENUE; convertir scores inventados a señal direccional (bajo/medio/alto) en TODA superficie usuario + marcar "señal DMX, no medición".

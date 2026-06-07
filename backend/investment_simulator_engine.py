@@ -69,12 +69,18 @@ COLONIA_DEFAULTS: Dict[str, float] = {
     "tepito": 0.025,
 }
 
-# Tasas — fuente única actualizable por env (lista para feed BANXICO en vivo · stub auto-fill).
-# Valores por defecto = mercado real CDMX 2026 (TIIE 28d ~7.2%, hipoteca fija ~10.5%).
-# Antes estaban hardcodeadas y stale (9.5% / 13.5%) → inflaban el costo ~250-300bps.
-TIIE_RATE = float(os.getenv("DMX_TIIE_28D", "0.0725"))          # referencia variable (BANXICO)
-MORTGAGE_RATE_ANNUAL = float(os.getenv("DMX_MORTGAGE_RATE", "0.105"))  # hipoteca fija real (alineada con mortgage_calculator BBVA)
-SPREAD = round(MORTGAGE_RATE_ANNUAL - TIIE_RATE, 4)
+# Tasas — fuente ÚNICA oficial (banxico_rates) con conector que auto-llena de Banxico.
+# Defaults OFICIALES al 2026-06-07: TIIE 28d 6.6554% (Hacienda), hipoteca fija ~10.5%.
+# (Antes estaba un 9.5%/13.5% de un blog → corregido a fuente oficial.)
+import banxico_rates as _rates
+
+
+def _tiie() -> float:
+    return _rates.get_rate_sync("tiie_28d")
+
+
+def _mortgage_rate() -> float:
+    return _rates.get_rate_sync("hipoteca_fija_ref")
 
 # Rental yield by tier (annual, gross)
 RENTAL_YIELDS = {
@@ -114,7 +120,7 @@ def _compute_scenario(
     inversion_inicial = enganche + gastos_cierre
 
     # Monthly mortgage payment
-    pago_mensual = _pmt(MORTGAGE_RATE_ANNUAL, plazo_meses, credito)
+    pago_mensual = _pmt(_mortgage_rate(), plazo_meses, credito)
 
     # Aprec price trajectory
     precio_final = precio_entrada * ((1 + aprec_annual) ** (plazo_meses / 12))
@@ -432,7 +438,7 @@ async def get_colonia_baseline(db, colonia_slug: str) -> Dict[str, Any]:
         "base_aprec_anual_pct": round(base_aprec * 100, 2),
         "demand_supply_status": demand_supply,
         "suggested_financiamiento_pct": 0.80,
-        "mortgage_rate_annual_pct": round(MORTGAGE_RATE_ANNUAL * 100, 2),
+        "mortgage_rate_annual_pct": round(_mortgage_rate() * 100, 2),
     }
 
 
@@ -457,7 +463,7 @@ async def stress_test(scenario_bundle: Dict[str, Any]) -> Dict[str, Any]:
         rental_yield * 0.9, tier, "alza_tasas",
     )
     # Re-compute with higher mortgage rate
-    orig_rate = MORTGAGE_RATE_ANNUAL
+    orig_rate = _mortgage_rate()
     import buyer_coach_engine  # avoid circular
     alza_tasas_s["pago_mensual_hipoteca"] = round(
         _pmt(orig_rate + 0.03, plazo, precio * fin_pct), 0
