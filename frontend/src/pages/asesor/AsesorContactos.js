@@ -1431,6 +1431,8 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const tasteLine = c.taste_line || ''; // E2.2 · gusto aprendido (de asesor_taste_profile)
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
+  // Señal honesta en palabra (no "10/100"): calidad del lead según el score de comprador.
+  const pctWord = pct >= 67 ? 'Alta' : pct >= 40 ? 'Media' : 'Baja';
   // Temperatura como EMOJI (point 3) · va junto a la acción · la recencia sube al encabezado.
   const tempEmoji = meta.label === 'Caliente' ? '🔥' : meta.label === 'Tibio' ? '🌤️' : meta.label === 'Cliente' ? '🤝' : '🧊';
   // DINERO en juego = presupuesto de su búsqueda (dato real · compacto).
@@ -1477,7 +1479,7 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.08)`, border: `1px solid rgba(${meta.rgb}, 0.20)` }}>
         <span title={meta.label} style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{tempEmoji}</span>
         <span style={{ flex: 1, minWidth: 0, height: 34, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: 13, fontWeight: 700, lineHeight: 1.3, color: actText ? 'var(--cream)' : 'var(--cream-3)' }}>{actText || 'Sin acción pendiente'}</span>
-        {score != null && <span title={`Score ${pct}/100`} style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: `rgb(${meta.rgb})` }}>{pct}</span>}
+        {score != null && <span title={`Calidad del lead: ${pctWord}`} style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: `rgb(${meta.rgb})`, whiteSpace: 'nowrap' }}>{pctWord}</span>}
       </div>
 
       {/* 3a · zona + dinero en juego ($) */}

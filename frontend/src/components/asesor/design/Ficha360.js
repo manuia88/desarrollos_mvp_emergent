@@ -62,7 +62,7 @@ function factorText(f) {
   if (f.label) return String(f.label).trim();
   if (f.text) return String(f.text).trim();
   const map = {
-    buyer_score: f.value != null ? `Score de comprador ${Math.round(Number(f.value))}/100` : '',
+    buyer_score: f.value != null ? `Comprador: ${Number(f.value) >= 67 ? 'Alta calidad' : Number(f.value) >= 40 ? 'Calidad media' : 'Calidad baja'}` : '',
     temperatura: f.value ? `Temperatura ${f.value}` : '',
     stage: f.value ? `Etapa de búsqueda: ${f.value}` : '',
     ofertas: f.value != null ? `${f.value} oferta(s) registrada(s)` : '',

@@ -20,6 +20,9 @@ const LETTER_BG = {
   F: 'rgba(220,38,38,0.12)',
 };
 
+// Calidad de zona en lenguaje normal (no "85/100"): la letra es el badge compacto, la palabra el tooltip.
+const LETTER_WORD = { A: 'Muy Buena', B: 'Buena', C: 'Media', D: 'Regular', E: 'Baja', F: 'Muy Baja' };
+
 export default function ZoneScoreBadge({
   zone_id, score_letter, score_numeric, zone_name,
   size = 'sm', showBreakdown = true,
@@ -38,7 +41,7 @@ export default function ZoneScoreBadge({
       <button
         data-testid={`zone-score-badge-${zone_id}`}
         onClick={e => { if (showBreakdown) { e.preventDefault(); e.stopPropagation(); setOpen(true); } }}
-        title={`Zone Score ${score_letter} · ${score_numeric}/100`}
+        title={`Calidad de Zona: ${LETTER_WORD[score_letter] || score_letter}${zone_name ? ` · ${zone_name}` : ''}`}
         style={{
           width: dim, height: dim,
           borderRadius: 9999,

@@ -105,11 +105,13 @@ const ScorePill = ({ score, onClick }) => {
         {CODE_LABELS[score.code] || score.code}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: pred ? 20 : 22, color: tone.fg, letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {pred ? pred.main : (score.value != null ? score.value.toFixed(0) : '—')}
+        {/* Señal honesta: la PALABRA es la protagonista, no el número crudo. Los predictivos
+            sí muestran su unidad real (%, días) porque son una medición, no un score 0-100. */}
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: pred ? 20 : 16, color: tone.fg, letterSpacing: '-0.02em', lineHeight: 1 }}>
+          {pred ? pred.main : (score.value != null ? tone.label : 'Sin Dato')}
         </span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {pred ? pred.sub : tone.label}
+          {pred ? pred.sub : 'señal de zona'}
         </span>
       </div>
     </button>

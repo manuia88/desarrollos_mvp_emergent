@@ -30,13 +30,15 @@ function ScoreRow({ label, score }) {
   const v = score?.value;
   const tier = score?.tier;
   const color = tier === 'green' ? '#86efac' : tier === 'amber' ? '#fcd34d' : '#fca5a5';
+  // Señal honesta en palabra (no "85/100"): el resultado se lee, no se calcula.
+  const word = v == null ? '—' : tier === 'green' ? 'Bien' : tier === 'amber' ? 'Parcial' : tier === 'red' ? 'Atención' : '—';
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ width: 9, height: 9, borderRadius: 9999, background: color }} />
-        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)', minWidth: 50, textAlign: 'right' }}>
-          {v == null ? '—' : `${Math.round(v)}/100`}
+        <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: 'var(--cream)', minWidth: 60, textAlign: 'right' }}>
+          {word}
         </span>
       </div>
     </div>

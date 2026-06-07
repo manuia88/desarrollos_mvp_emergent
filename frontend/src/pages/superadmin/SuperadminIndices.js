@@ -191,7 +191,10 @@ export default function SuperadminIndices() {
                       <Td><span style={{ color: 'var(--cream)', fontWeight: 600 }}>{r.zona}</span></Td>
                       <Td>{r.tier}</Td>
                       <Td>${(r.price_m2 / 1000).toFixed(0)}k</Td>
-                      <Td center><span style={{ fontWeight: 800, color: BAND[r.idm.color] || 'var(--cream)' }}>{r.idm.valor}<span style={{ fontSize: 10, opacity: 0.7, marginLeft: 3 }}>{r.idm.letra}</span></span></Td>
+                      <Td center>
+                        <span style={{ fontWeight: 800, color: BAND[r.idm.color] || 'var(--cream)' }}>{r.idm.valor}<span style={{ fontSize: 10, opacity: 0.7, marginLeft: 3 }}>{r.idm.letra}</span></span>
+                        {r.idm.etiqueta && <div style={{ fontSize: 9.5, color: 'var(--cream-3)', marginTop: 2 }}>{r.idm.etiqueta}</div>}
+                      </Td>
                       {['IPV', 'IAB', 'IDS', 'IRE', 'ICO'].map(k => (
                         <Td key={k} center>
                           <span title={by[k] && by[k].fuente === 'estimado' ? 'estimado' : ''} style={{ fontWeight: 700, color: by[k] ? cellCol(by[k]) : 'var(--cream-3)' }}>
