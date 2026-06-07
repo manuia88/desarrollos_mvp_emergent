@@ -78,15 +78,41 @@ def _representative_unit(dev: Dict[str, Any]) -> Dict[str, Any]:
             "rec": (bedr[0] if bedr else 2), "ban": 2}
 
 
+def _plain_senales(by: Dict[str, Any], renta: Dict[str, Any]) -> list:
+    """Convierte los índices (números) en señales que cualquiera entiende y puede usar."""
+    out = []
+    ipv = (by.get("IPV") or {}).get("valor")
+    if ipv is not None:
+        if ipv >= 67:
+            out.append({"label": "Cómo sube de valor", "plain": "Se revaloriza rápido", "color": "verde"})
+        elif ipv >= 45:
+            out.append({"label": "Cómo sube de valor", "plain": "Sube de valor a ritmo medio", "color": "ambar"})
+        else:
+            out.append({"label": "Cómo sube de valor", "plain": "Sube de valor despacio", "color": "ambar"})
+    ico = (by.get("ICO") or {}).get("valor")
+    if ico is not None:
+        if ico >= 75:
+            out.append({"label": "Para vivir", "plain": "Muy buena zona para vivir", "color": "verde"})
+        elif ico >= 55:
+            out.append({"label": "Para vivir", "plain": "Buena zona, con cosas por mejorar", "color": "verde"})
+        else:
+            out.append({"label": "Para vivir", "plain": "Zona en desarrollo", "color": "ambar"})
+    mejor_pct = renta.get("corta_pct") if renta.get("mejor") == "corta" else renta.get("larga_pct")
+    if mejor_pct:
+        est = " aprox." if renta.get("fuente") == "estimado" else ""
+        out.append({"label": "Si la rentas", "plain": f"Te dejaría ~{round(mejor_pct)}% al año{est}", "color": "verde"})
+    return out
+
+
 # ── A07 · Buen Momento (lectura del ciclo en clave comprador) ──
 _TIMING_BUYER = {
-    "recuperacion": {"color": "verde", "score": 85,
+    "recuperacion": {"color": "verde", "score": 85, "titulo": "Apenas empieza a subir",
                      "lectura": "Apenas empieza a subir — entrar ahora puede capturar plusvalía temprana."},
-    "expansion": {"color": "verde", "score": 78,
+    "expansion": {"color": "verde", "score": 78, "titulo": "Zona al alza",
                   "lectura": "Zona creciendo fuerte — buena plusvalía esperada, aunque los precios ya van al alza."},
-    "maduro": {"color": "ambar", "score": 55,
+    "maduro": {"color": "ambar", "score": 55, "titulo": "Zona consolidada",
                "lectura": "Zona consolidada — pagas por ubicación y estabilidad, no por una subida rápida."},
-    "contraccion": {"color": "ambar", "score": 45,
+    "contraccion": {"color": "ambar", "score": 45, "titulo": "Precios a la baja",
                     "lectura": "Precios a la baja — tienes margen para negociar; ve por el mejor precio."},
 }
 
@@ -154,13 +180,10 @@ async def buy_signal(
         idx = ix.compute_indices(col)
         by = {i["key"]: i for i in idx["indices"]}
         timing = {
-            "zona": z["zona"], "fase_key": fase, "fase_label": z["ciclo"]["label"],
+            "zona": z["zona"], "fase_key": fase, "fase_label": tb.get("titulo", z["ciclo"]["label"]),
             "color": tb["color"], "score": tb["score"], "lectura": tb["lectura"],
-            "gentrificacion": z["gentrificacion"]["nivel"],
-            "plusvalia_idx": by.get("IPV", {}).get("valor"),
-            "idm": idx["idm"]["valor"], "idm_letra": idx["idm"]["letra"],
-            "renta": {"larga_pct": z["renta"]["larga_pct"], "corta_pct": z["renta"]["corta_pct"],
-                      "mejor": z["renta"]["mejor"], "fuente": z["renta"]["fuente"]},
+            # Señales en lenguaje normal (cero números crudos al comprador)
+            "senales": _plain_senales(by, z["renta"]),
         }
 
     # ── Veredicto combinado ──

@@ -115,10 +115,14 @@ export default function BuySignal({ devId }) {
               <div style={{ width: `${Math.max(3, Math.min(100, tm.score))}%`, height: '100%', background: COL[tm.color] || COL.verde, borderRadius: 999 }} />
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 9, lineHeight: 1.45 }}>{tm.lectura}</div>
-            <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
-              <span>Plusvalía <b style={{ color: 'var(--cream)' }}>{tm.plusvalia_idx ?? '—'}</b></span>
-              <span>Índice DMX <b style={{ color: 'var(--cream)' }}>{tm.idm}{tm.idm_letra}</b></span>
-              <span>Renta ~<b style={{ color: 'var(--cream)' }}>{tm.renta.mejor === 'corta' ? tm.renta.corta_pct : tm.renta.larga_pct}%</b>{tm.renta.fuente === 'estimado' ? ' (est.)' : ''}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 11 }}>
+              {(tm.senales || []).map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: COL[s.color] || COL.verde, flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>{s.label}:</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{s.plain}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
