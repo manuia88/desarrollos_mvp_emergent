@@ -111,7 +111,7 @@ async def public_zone_indices(zone_id: str, request: Request):
     # Banda por percentil real: compara esta zona contra TODA la ciudad (lazy · idempotente).
     ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
     result = ix.compute_indices(colonia, _ctx_for(colonia, abs_map))
-    result["senal_leyenda"] = ix.signal_leyenda()
+    result["senal_leyenda"] = ix.signal_leyenda(result.get("city") or "CDMX")
     tier_label = await _user_tier(request)
     if tier_label == "free":
         return {"tier_label": "free", "source": "via DMX Índices", **_qualitative(result)}
@@ -153,4 +153,21 @@ async def superadmin_indices(
         "leyenda": [{"key": k, **v} for k, v in ix.INDICES_META.items()],
         "idm_meta": ix.IDM_META,
         "senal_leyenda": ix.signal_leyenda(),
+        "cobertura": await _colonias_coverage(request),
     }
+
+
+async def _colonias_coverage(request: Request) -> Dict[str, Any]:
+    """Cobertura de colonias por ciudad (para la cabecera del terminal · fail-open)."""
+    try:
+        import colonias_catalog as cc
+        return await cc.coverage(request.app.state.db)
+    except Exception:
+        return {"ciudades": [], "total_colonias": 0, "total_ciudades": 0}
+
+
+@router.get("/api/superadmin/colonias/coverage")
+async def superadmin_colonias_coverage(request: Request):
+    """Catálogo de colonias por ciudad — cuántas cubre cada mercado (EX.1)."""
+    await _sa(request)
+    return await _colonias_coverage(request)

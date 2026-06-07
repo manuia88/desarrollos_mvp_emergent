@@ -153,6 +153,15 @@ COLONIAS = [
 
 COLONIAS_BY_ID = {c["id"]: c for c in COLONIAS}
 
+# ── Dimensión Ciudad (multi-ciudad ready · build for endstate) ──
+# Hoy todo es CDMX. Al cargar el catálogo de otras ciudades (Guadalajara, Monterrey,
+# Querétaro, Mérida, Playa del Carmen…), cada colonia trae su `city` y las bandas/percentiles
+# se calculan POR CIUDAD (no se mezcla un mercado con otro). Cero deuda: el campo existe ya.
+CITY_DEFAULT = "CDMX"
+for _c in COLONIAS:
+    _c.setdefault("city", CITY_DEFAULT)
+CITIES = sorted({c.get("city", CITY_DEFAULT) for c in COLONIAS})
+
 
 def _prop(pid, colonia_id, titulo_es, titulo_en, price, beds, baths, parking, sqm, tipo, tag,
           advisor_name, advisor_initials, amenities, description_es, description_en, delivery="2026-09"):

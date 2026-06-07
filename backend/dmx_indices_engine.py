@@ -24,11 +24,11 @@ from typing import Any, Dict, List, Optional
 import zone_cycle_engine as _zce
 import metric_normalizer as _mn
 
-# Distribución (percentiles) de cada índice sobre TODA la ciudad — se llena lazy con
-# ensure_index_distributions(). Permite bandear cada zona por su PERCENTIL real
-# ("top 20% de la ciudad") en vez de un tope inventado. Cero deuda: si está vacío,
-# _idx cae a banda absoluta honesta marcada "estimado".
-_INDEX_DIST: Dict[str, Dict[str, Any]] = {}
+# Distribución (percentiles) de cada índice POR CIUDAD: {ciudad: {clave_indice: dist}}.
+# Se llena lazy con ensure_index_distributions(). Permite bandear cada zona por su PERCENTIL
+# real dentro de SU mercado ("top 20% de su ciudad") en vez de un tope inventado o de mezclar
+# ciudades. Cero deuda: si está vacío, _idx cae a banda absoluta honesta marcada "estimado".
+_INDEX_DIST: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
 # ── Metadatos en lenguaje normal (lo que mide cada índice) ──
 INDICES_META: Dict[str, Dict[str, str]] = {
@@ -91,10 +91,10 @@ _NIVEL_TO_LEGACY = {
 }
 
 
-def _idx(key: str, valor: float, fuente: str) -> Dict[str, Any]:
+def _idx(key: str, valor: float, fuente: str, cdist: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     valor = round(_clamp(valor), 1)
-    # Banda HONESTA por percentil real de la ciudad (los 5 índices: más alto = mejor).
-    sig = _mn.band_from_dist(_INDEX_DIST.get(key), valor)
+    # Banda HONESTA por percentil real DE SU CIUDAD (los 5 índices: más alto = mejor).
+    sig = _mn.band_from_dist((cdist or {}).get(key), valor)
     legacy, li = _NIVEL_TO_LEGACY.get(sig["nivel"], ("medio", 1))
     estimado = bool(sig["es_estimado"]) or (fuente == "estimado")
     return {
@@ -123,28 +123,31 @@ def compute_indices(colonia: Dict[str, Any], ctx: Optional[Dict[str, Any]] = Non
     inv = colonia.get("inventory") or 100
     mom = _zce._momentum_pct(colonia)
     z = _zce.compute_zone_cycle(colonia)  # reusa gentrificación + renta (no duplica)
+    # Distribución de SU ciudad (percentiles por mercado, no se mezcla CDMX con GDL/MTY…).
+    city = colonia.get("city") or "CDMX"
+    cdist = _INDEX_DIST.get(city) or _INDEX_DIST.get("CDMX") or {}
 
     # ── IPV · Plusvalía = velocidad de gentrificación (momentum + tendencia real) ──
-    ipv = _idx("IPV", z["gentrificacion"]["score"], "real")
+    ipv = _idx("IPV", z["gentrificacion"]["score"], "real", cdist)
 
     # ── IAB · Absorción ──
     if ctx.get("absorcion_pct") is not None:
-        iab = _idx("IAB", float(ctx["absorcion_pct"]), "real")
+        iab = _idx("IAB", float(ctx["absorcion_pct"]), "real", cdist)
     else:
         scarcity = _clamp((140 - inv) / 140.0 * 25, -12, 25)
-        iab = _idx("IAB", 50 + mom * 4 + scarcity, "estimado")
+        iab = _idx("IAB", 50 + mom * 4 + scarcity, "estimado", cdist)
 
     # ── IDS · Demanda ──
     if ctx.get("demanda_score") is not None:
-        ids = _idx("IDS", float(ctx["demanda_score"]), "real")
+        ids = _idx("IDS", float(ctx["demanda_score"]), "real", cdist)
     else:
         desir = (scores.get("comercio", 60) + scores.get("vida", 60) + scores.get("plusvalia", 60)) / 3.0
         scarcity = _clamp((140 - inv) / 140.0 * 20, -10, 20)
-        ids = _idx("IDS", 0.55 * desir + mom * 4 + scarcity, "estimado")
+        ids = _idx("IDS", 0.55 * desir + mom * 4 + scarcity, "estimado", cdist)
 
     # ── IRE · Renta = ROI mezclado (55% tradicional + 45% Airbnb) normalizado ──
     blend_yield = 0.55 * z["renta"]["larga_pct"] + 0.45 * z["renta"]["corta_pct"]
-    ire = _idx("IRE", _yield_to_score(blend_yield), z["renta"]["fuente"])
+    ire = _idx("IRE", _yield_to_score(blend_yield), z["renta"]["fuente"], cdist)
     ire["detalle"] = {"larga_pct": z["renta"]["larga_pct"], "corta_pct": z["renta"]["corta_pct"], "mejor": z["renta"]["mejor"]}
 
     # ── ICO · Calidad de zona = promedio ponderado de las 7 dimensiones (mayor=mejor) ──
@@ -152,14 +155,14 @@ def compute_indices(colonia: Dict[str, Any], ctx: Optional[Dict[str, Any]] = Non
                + 0.16 * scores.get("movilidad", 60) + 0.14 * scores.get("comercio", 60)
                + 0.12 * scores.get("educacion", 60) + 0.12 * scores.get("plusvalia", 60)
                + 0.08 * scores.get("riesgo", 60))
-    ico = _idx("ICO", ico_val, "real")
+    ico = _idx("ICO", ico_val, "real", cdist)
 
     indices = [ipv, iab, ids, ire, ico]
     by_key = {i["key"]: i for i in indices}
 
     # ── IDM · maestro = promedio ponderado de los 5 ──
     idm_val = round(_clamp(sum(by_key[k]["valor"] * w for k, w in IDM_WEIGHTS.items())), 1)
-    idm_sig = _mn.band_from_dist(_INDEX_DIST.get("IDM"), idm_val)
+    idm_sig = _mn.band_from_dist(cdist.get("IDM"), idm_val)
     idm_legacy, _li = _NIVEL_TO_LEGACY.get(idm_sig["nivel"], ("medio", 1))
     any_est = any(i["fuente"] == "estimado" for i in indices)
     idm = {
@@ -173,7 +176,7 @@ def compute_indices(colonia: Dict[str, Any], ctx: Optional[Dict[str, Any]] = Non
     }
 
     return {
-        "zona": colonia.get("name"), "tier": colonia.get("tier"),
+        "zona": colonia.get("name"), "tier": colonia.get("tier"), "city": city,
         "price_m2": colonia.get("price_m2_num") or 0, "momentum_pct": mom,
         "idm": idm, "indices": indices,
     }
@@ -195,31 +198,33 @@ def indices_play(result: Dict[str, Any]) -> str:
     return f"{zona}: zona equilibrada — mantén precio en línea con el mercado y cuida el ritmo de venta."
 
 
-# ── Distribución de los 5 índices sobre TODA la ciudad (banda por percentil real) ──
-def build_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None) -> Dict[str, Dict[str, Any]]:
-    """Calcula la distribución (percentiles) de cada índice sobre todas las colonias.
-    El `valor` de cada índice NO depende de la banda, así que es seguro llamar
-    compute_indices aquí aunque _INDEX_DIST aún esté vacío (no hay recursión)."""
-    grids: Dict[str, List[float]] = {k: [] for k in ("IPV", "IAB", "IDS", "IRE", "ICO", "IDM")}
+# ── Distribución de los 5 índices POR CIUDAD (banda por percentil real de su mercado) ──
+def build_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    """Distribución (percentiles) de cada índice, agrupada POR CIUDAD. Así "Alta" significa
+    alta frente a su propia ciudad, sin mezclar CDMX con Guadalajara/Monterrey/etc.
+    El `valor` de cada índice NO depende de la banda → es seguro llamar compute_indices
+    aquí aunque _INDEX_DIST esté vacío (no hay recursión)."""
+    grids: Dict[str, Dict[str, List[float]]] = {}
     for c in colonias:
-        ctx = ctx_fn(c) if ctx_fn else None
-        r = compute_indices(c, ctx)
+        city = c.get("city") or "CDMX"
+        g = grids.setdefault(city, {k: [] for k in ("IPV", "IAB", "IDS", "IRE", "ICO", "IDM")})
+        r = compute_indices(c, ctx_fn(c) if ctx_fn else None)
         for i in r["indices"]:
-            grids[i["key"]].append(i["valor"])
-        grids["IDM"].append(r["idm"]["valor"])
+            g[i["key"]].append(i["valor"])
+        g["IDM"].append(r["idm"]["valor"])
     global _INDEX_DIST
-    _INDEX_DIST = {k: _mn.dist_from_values(v) for k, v in grids.items()}
+    _INDEX_DIST = {city: {k: _mn.dist_from_values(v) for k, v in g.items()} for city, g in grids.items()}
     return _INDEX_DIST
 
 
-def ensure_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None, refresh: bool = False) -> Dict[str, Dict[str, Any]]:
-    """Garantiza que la distribución de la ciudad esté lista (lazy · idempotente)."""
+def ensure_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None, refresh: bool = False) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    """Garantiza que las distribuciones por ciudad estén listas (lazy · idempotente)."""
     if _INDEX_DIST and not refresh:
         return _INDEX_DIST
     return build_index_distributions(colonias, ctx_fn)
 
 
-def signal_leyenda() -> str:
-    """Leyenda global del sello para la UI (de dónde sale la señal)."""
-    n = (_INDEX_DIST.get("IDM") or {}).get("n", 0)
+def signal_leyenda(city: str = "CDMX") -> str:
+    """Leyenda del sello para la UI (de dónde sale la señal · por ciudad)."""
+    n = ((_INDEX_DIST.get(city) or {}).get("IDM") or {}).get("n", 0)
     return _mn.leyenda(n, n < _mn.MIN_REAL)

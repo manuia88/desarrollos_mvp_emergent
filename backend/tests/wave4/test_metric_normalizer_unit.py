@@ -101,9 +101,37 @@ def test_indices_exponen_senal_honesta_y_compat():
         assert "valor" in i and "letra" in i
 
 
-def test_distribucion_ciudad_usa_poblacion_real():
+def test_distribucion_es_por_ciudad():
     import dmx_indices_engine as ix
     from data_seed import COLONIAS
 
     dist = ix.ensure_index_distributions(COLONIAS, refresh=True)
-    assert dist["IDM"]["n"] == len(COLONIAS)
+    # ahora la distribución está agrupada por ciudad: {ciudad: {clave: dist}}
+    assert "CDMX" in dist
+    assert dist["CDMX"]["IDM"]["n"] == len(COLONIAS)
+
+
+def test_gentrificacion_se_muestra_como_banda_honesta():
+    import zone_cycle_engine as zce
+    from data_seed import COLONIAS
+
+    zce.ensure_cycle_distributions(COLONIAS)
+    z = zce.compute_zone_cycle(COLONIAS[0])
+    g = z["gentrificacion"]
+    assert g["etiqueta"] in {"Muy Baja", "Baja", "Media", "Alta", "Muy Alta"}
+    assert g["nivel"] in {"alta", "media", "baja"}          # compat UI previa
+    assert "leyenda" in g and "comparado_con" in g
+    assert "city" in z
+
+
+def test_bandas_no_mezclan_ciudades():
+    """Una colonia de otra ciudad se compara solo contra su ciudad (no contra CDMX)."""
+    import dmx_indices_engine as ix
+    from data_seed import COLONIAS
+    import copy
+
+    otra = copy.deepcopy(COLONIAS[0]); otra["id"] = "gdl-centro"; otra["name"] = "GDL Centro"; otra["city"] = "Guadalajara"
+    universo = list(COLONIAS) + [otra]
+    dist = ix.ensure_index_distributions(universo, refresh=True)
+    assert "Guadalajara" in dist and "CDMX" in dist
+    assert dist["Guadalajara"]["IDM"]["n"] == 1   # solo su ciudad

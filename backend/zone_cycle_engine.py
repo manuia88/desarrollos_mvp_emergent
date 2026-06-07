@@ -11,7 +11,15 @@ opcionalmente la absorción del dev, y devuelve, en lenguaje normal:
 
 Sin datos finos NO inventa: marca la renta como 'estimada' y se autollenará al prender el conector.
 """
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+import metric_normalizer as _mn
+
+# Distribución de gentrificación POR CIUDAD ({ciudad: dist}) — banda por percentil real del
+# mercado, no por el número compuesto crudo. Se llena lazy con ensure_cycle_distributions().
+_GENT_DIST: Dict[str, Dict[str, Any]] = {}
+# banda honesta (Muy Alta…Muy Baja) → nivel legado (alta/media/baja) para no romper UI previa
+_GENT_LEGACY = {"muy_alta": "alta", "alta": "alta", "media": "media", "baja": "baja", "muy_baja": "baja", None: "media"}
 
 # Yield bruto anual estimado de renta LARGA por tier (CDMX, conservador).
 _TIER_YIELD = {
@@ -67,11 +75,18 @@ def compute_zone_cycle(colonia: Dict[str, Any], absorcion_pct: Optional[float] =
         fase = "expansion" if mom >= 5 else "recuperacion" if emergente else "maduro"
     ciclo = {"fase_key": fase, **_FASE[fase], "momentum_pct": mom}
 
-    # ── D05 · Gentrificación (velocidad de revalorización 0-100) ──
+    # ── D05 · Gentrificación = velocidad de revalorización, mostrada como BANDA honesta ──
+    # El número compuesto se usa solo para ordenar; al usuario se le da el nivel por percentil
+    # de SU ciudad ("revaloriza más rápido que el X% de la ciudad"), no el número crudo.
     gent = min(100, round(mom * 6 + max(0, slope) * 1.5 + (15 if emergente else 0)))
-    nivel = "alta" if gent >= 65 else "media" if gent >= 35 else "baja"
+    city = colonia.get("city") or "CDMX"
+    sig = _mn.band_from_dist(_GENT_DIST.get(city), gent)
+    nivel = _GENT_LEGACY.get(sig["nivel"], "media")  # compat (alta/media/baja)
     gentrificacion = {
         "score": gent, "nivel": nivel,
+        "etiqueta": sig["etiqueta"], "color": sig["color"],
+        "percentil": sig["percentil"], "comparado_con": sig["comparado_con"],
+        "es_estimado": sig["es_estimado"], "leyenda": sig["leyenda"],
         "lectura": ("Se revaloriza rápido — la zona está cambiando a tu favor." if nivel == "alta"
                     else "Se revaloriza a ritmo medio." if nivel == "media"
                     else "Zona estable, poca revalorización."),
@@ -90,7 +105,7 @@ def compute_zone_cycle(colonia: Dict[str, Any], absorcion_pct: Optional[float] =
     }
 
     return {
-        "zona": colonia.get("name"), "tier": tier, "price_m2": price_m2,
+        "zona": colonia.get("name"), "tier": tier, "price_m2": price_m2, "city": city,
         "ciclo": ciclo, "gentrificacion": gentrificacion, "renta": renta,
     }
 
@@ -108,3 +123,30 @@ def zone_recommendation(z: Dict[str, Any]) -> str:
     if fase == "maduro":
         return f"{base}: mercado maduro, crecimiento lento — no te sobrepases en precio; el gancho es el producto y la renta {renta['mejor']}."
     return f"{base}: precios a la baja — sostén precio y refuerza marketing; la renta {renta['mejor']} (~{renta['corta_pct'] if renta['mejor']=='corta' else renta['larga_pct']}%) sigue siendo un argumento."
+
+
+# ── Distribución de gentrificación POR CIUDAD (banda por percentil real del mercado) ──
+def build_cycle_distributions(colonias: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Percentiles de la gentrificación agrupados por ciudad. El score no depende de la
+    banda → seguro llamar compute_zone_cycle aquí aunque _GENT_DIST esté vacío (sin recursión)."""
+    grids: Dict[str, List[float]] = {}
+    for c in colonias:
+        city = c.get("city") or "CDMX"
+        z = compute_zone_cycle(c)
+        grids.setdefault(city, []).append(z["gentrificacion"]["score"])
+    global _GENT_DIST
+    _GENT_DIST = {city: _mn.dist_from_values(v) for city, v in grids.items()}
+    return _GENT_DIST
+
+
+def ensure_cycle_distributions(colonias: List[Dict[str, Any]], refresh: bool = False) -> Dict[str, Dict[str, Any]]:
+    """Garantiza que las distribuciones de gentrificación por ciudad estén listas (lazy)."""
+    if _GENT_DIST and not refresh:
+        return _GENT_DIST
+    return build_cycle_distributions(colonias)
+
+
+def signal_leyenda(city: str = "CDMX") -> str:
+    """Leyenda del sello (de dónde sale la señal de gentrificación · por ciudad)."""
+    n = (_GENT_DIST.get(city) or {}).get("n", 0)
+    return _mn.leyenda(n, n < _mn.MIN_REAL)

@@ -28,6 +28,7 @@ export default function SuperadminIndices() {
   const items = useMemo(() => (data && data.items) || [], [data]);
   const leyenda = (data && data.leyenda) || [];
   const kpis = (data && data.kpis) || {};
+  const cobertura = (data && data.cobertura) || null;
   const tiers = useMemo(() => [...new Set(items.map(r => r.tier).filter(Boolean))], [items]);
 
   const exportCSV = () => {
@@ -67,6 +68,28 @@ export default function SuperadminIndices() {
           </Card>
         ))}
       </div>
+
+      {/* Cobertura de colonias por ciudad (EX · crece al cargar el catálogo oficial / otras ciudades) */}
+      {cobertura && (
+        <Card data-testid="ix-cobertura" style={{ marginBottom: 18, padding: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Cobertura</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>
+              {cobertura.total_colonias} colonias · {cobertura.total_ciudades} ciudad{cobertura.total_ciudades === 1 ? '' : 'es'}
+            </span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+              {(cobertura.ciudades || []).map(c => (
+                <span key={c.city} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', padding: '4px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                  {c.city} <b style={{ color: 'var(--cream)' }}>{c.colonias}</b>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>
+            Crece al cargar el catálogo oficial CDMX (~1,800) y nuevas ciudades. Las señales se comparan por ciudad.
+          </div>
+        </Card>
+      )}
 
       {/* Leyenda + filtro tier */}
       <Card style={{ marginBottom: 18, padding: 14 }}>

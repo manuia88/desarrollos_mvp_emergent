@@ -42,7 +42,7 @@
 |---|---|---|---|---|
 | B.1 | Regla central `metric_normalizer` (percentiles reales → bandas) + 5 índices DMX honestos + sello `SenalDMX` en dev V2 + DENUE unificado (3000/500→500) + 12 tests | Back+Front | S | ✅ **hecho 2026-06-07** |
 | B.1 nota | Las bandas son RELATIVAS a la población comparada (hoy 16 colonias premium del seed → zonas premium pueden salir "Media/Baja" entre sí). Honesto + leyenda lo explica. Mejora: ampliar el set de colonias (dato) para una distribución más representativa. | — | — | ⚠️ a afinar en B.2 |
-| B.2 | Pasar por la regla los índices inventados: demanda, plusvalía/gentrificación (D05), calidad de zona, ciclo de mercado (B05), 5 índices DMX (IPV/IAB/IDS/IRE/ICO), score inversión, fit/match. Cada uno expone banda + "señal DMX" + confianza. | Back | M | ⏳ |
+| B.2 | Pasar por la regla los índices inventados + sello en sus superficies. **Hecho:** gentrificación (D05) + ciclo + 5 índices honestos por ciudad + sello en Ciclo y Renta (dev V2). **Falta:** demanda viva, score inversión, fit/match, y extender el sello al comprador/superadmin. | Back+Front | M | 🟡 parcial (2026-06-07) |
 | B.3 | Un solo sello visual honesto en lenguaje normal ("Demanda: Alta", no "69/100"), aplicado en los 4 portales. | Front | M | ⏳ |
 | B.4 | Verificar: test del normalizador + barrido de números crudos + revisión logueado en la app real. | Ambos | S | ⏳ |
 
@@ -107,10 +107,10 @@
 **Por qué importa:** hoy hay solo **16 colonias CDMX curadas a mano** (scores a mano). El motor ya es por-zona y data-driven; expandir = **alimentar**, no reprogramar. Más colonias también arregla las bandas relativas de B.1 (distribución representativa).
 | # | Qué | Estado |
 |---|---|---|
-| EX.1 | Cargar catálogo oficial de colonias CDMX (INEGI/SEDUVI: nombre+polígono+centro) → de 16 a ~1,800 | ⏳ |
+| EX.1 | Catálogo de colonias: **colección `colonias` + cargador `upsert_colonias` + endpoint cobertura + strip en terminal superadmin** ✅ (pipe listo, hoy 16/CDMX). **Falta:** ingerir el catálogo oficial CDMX (~1,800) | 🟡 parcial (2026-06-07) |
 | EX.2 | Correr recetas por colonia con fuentes ya conectadas (FGJ/DENUE/SACMEX) → scores REALES (no a mano) | ⏳ |
-| EX.3 | Agregar dimensión **`city`** al modelo (colonias·proyectos·scores·distribuciones·percentiles por ciudad) — build for endstate | ⏳ |
-| EX.4 | Percentiles/bandas **por ciudad** (Querétaro vs Querétaro) — cierra el caveat de B.1 | ⏳ |
+| EX.3 | Dimensión **`city`** (campo en colonias + distribuciones/percentiles por ciudad) — build for endstate | ✅ **hecho 2026-06-07** |
+| EX.4 | Percentiles/bandas **por ciudad** (no se mezclan mercados) — cierra el caveat de B.1 | ✅ **hecho 2026-06-07** |
 | EX.5 | Conector de dato local por ciudad (Jalisco IIEG · NL · Querétaro · Yucatán · QRoo); lo NACIONAL (INEGI/DENUE/SESNSP/Banxico/SHF/CENAPRED) ya cubre todo MX | ⏳ |
 | EX.6 | Rollout por mercado: CDMX completo → Guadalajara → Monterrey → Querétaro → Mérida → Playa del Carmen | ⏳ |
 

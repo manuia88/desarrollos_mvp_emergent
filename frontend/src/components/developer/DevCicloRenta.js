@@ -4,9 +4,9 @@
 import React, { useEffect, useState } from 'react';
 import { getDevCicloRenta } from '../../api/developer';
 import { Sparkle } from '../icons';
+import SenalDMX, { SenalLeyenda } from '../shared/SenalDMX';
 
 const FASE_COL = { azul: 'var(--theme, #6D4AFF)', verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)' };
-const GENT_COL = { alta: 'var(--ok, #1FA06A)', media: 'var(--warm, #E2982E)', baja: 'var(--cream-3)' };
 const card = { background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: 16, boxShadow: 'var(--asr-shadow, none)' };
 
 export default function DevCicloRenta() {
@@ -23,6 +23,7 @@ export default function DevCicloRenta() {
         </div>
         <p data-testid="cr-resumen" style={{ margin: 0, fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--cream)', lineHeight: 1.45 }}>{d.resumen}</p>
         <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 8 }}>{d.nota}</div>
+        {d.senal_leyenda && <SenalLeyenda texto={d.senal_leyenda} style={{ marginTop: 6 }} />}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 12 }}>
@@ -45,8 +46,10 @@ export default function DevCicloRenta() {
               {/* Gentrificación + Renta */}
               <div style={{ display: 'flex', gap: 20, marginTop: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700 }}>Gentrificación</div>
-                  <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 15, color: GENT_COL[z.gentrificacion.nivel] || 'var(--cream)', textTransform: 'capitalize' }}>{z.gentrificacion.nivel} <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>({z.gentrificacion.score})</span></div>
+                  <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700, marginBottom: 4 }}>Gentrificación</div>
+                  <SenalDMX etiqueta={z.gentrificacion.etiqueta} color={z.gentrificacion.color}
+                            percentil={z.gentrificacion.percentil} comparadoCon={z.gentrificacion.comparado_con}
+                            esEstimado={z.gentrificacion.es_estimado} leyenda={z.gentrificacion.leyenda} size="sm" />
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700 }}>Renta (ROI anual)</div>

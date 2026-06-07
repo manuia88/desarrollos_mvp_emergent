@@ -667,6 +667,8 @@ async def dev_ciclo_renta(request: Request):
         if d["id"] in dev_ids and d.get("colonia") and d["colonia"] not in mis_zonas:
             mis_zonas.append(d["colonia"])
     col_by_name = {c["name"]: c for c in COLONIAS}
+    # Banda de gentrificación por percentil real de su ciudad (lazy · idempotente).
+    zce.ensure_cycle_distributions(COLONIAS)
 
     zonas = []
     acciones = []
@@ -688,7 +690,8 @@ async def dev_ciclo_renta(request: Request):
                if expansion else "Tus zonas van a ritmo estable.")
     return {
         "resumen": resumen, "zonas": zonas, "acciones": acciones[:3],
-        "nota": "El ciclo y la gentrificación salen de la tendencia real de precios de cada zona. El ROI de renta es estimado; se afina con el conector de rentas (AirROI/AirDNA).",
+        "senal_leyenda": zce.signal_leyenda(zonas[0]["city"]) if zonas else None,
+        "nota": "El ciclo y la gentrificación se muestran como señal comparada con el resto de la ciudad (no un número exacto). El ROI de renta es estimado; se afina con el conector de rentas (AirROI/AirDNA).",
     }
 
 
