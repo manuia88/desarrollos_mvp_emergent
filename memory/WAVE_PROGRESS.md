@@ -2,6 +2,15 @@
 
 ---
 
+## 🎯 HONESTIDAD DE DATOS + EXPANSIÓN (Tandas A/B + EX) · EN CURSO (2026-06-07)
+Disparado tras detectar índices con coeficientes inventados. Detalle completo y checklist vivo: **`memory/MASTER_PLAN_DETALLADO.md`**.
+- ✅ **Tanda A** (honestidad): tasas oficiales (`banxico_rates`), quitar datos sintéticos, tokens+resource_ids, bug `.env.local`.
+- ✅ **Tanda B** señales honestas: `metric_normalizer` (percentiles reales→bandas) · 5 índices DMX + gentrificación/ciclo por percentil de SU ciudad · **sello `SenalDMX` en los 4 portales** (dev/comprador/asesor/superadmin · fin de los "/100"). Pendiente menor: demanda viva + fit/match a banda.
+- ✅ **EX dimensión ciudad**: percentiles por ciudad (no se mezclan mercados) · catálogo `colonias` + cargador + cobertura + **conector de ingesta oficial** (CKAN/GeoJSON) + **puente de scores reales** (score_bridge reusa subscores SESNSP/DENUE/DRPI) + **ingesta DENUE por zona** (fix método API + centro real). Pipes listos; esperan fuente/token del founder.
+- ⏳ **Pendiente**: Tanda C (valuación: cierres reales + outliers) · ingesta crimen (EX.2c) · cargar catálogo CDMX real (founder) · luego BLOQUE 1 (portal Dev, Paso C).
+
+---
+
 ## 🧠 SUPERADMIN DEV-MASTER · FASE 0-3 COMPLETA ✅ (2026-06-06)
 
 Portal "Dev-Master" en superadmin: marketplace interno de TODOS los desarrollos de todos los devs + ficha de 3 lentes + Panorama global + 7 inteligencias agrupadas. Todo front+back, datos reales donde hay + conectores stub fail-open (cero deuda), Title Case inteligente, lenguaje humano, acciones agentic. Doc canónico: `memory/SUPERADMIN_DEVMASTER_SPEC.md`. Backend: `routes/superadmin_devmaster.py` (+ `superadmin_catalog_pulse.py`). Front: `pages/superadmin/SuperadminDesarrollos.js` + 9 componentes.
