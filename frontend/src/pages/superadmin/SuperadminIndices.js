@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices } from '../../api/indices';
+import { listIndices, ingestColonias } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -14,6 +14,19 @@ export default function SuperadminIndices() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('');
+  const [ingest, setIngest] = useState({ busy: false, msg: '' });
+
+  const cargarCatalogo = async () => {
+    setIngest({ busy: true, msg: '' });
+    try {
+      const r = await ingestColonias('CDMX');
+      setIngest({ busy: false, msg: r.ok ? `Se cargaron ${r.cargadas} colonias.` : (r.reason || 'No se pudo cargar.') });
+      setTier(t => t); // refresca la tabla/cobertura
+      listIndices({ tier: tier || undefined, limit: 200 }).then(setData).catch(() => {});
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al cargar el catálogo.' });
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -85,8 +98,14 @@ export default function SuperadminIndices() {
               ))}
             </div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+            <button data-testid="ix-cargar-catalogo" onClick={cargarCatalogo} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              {ingest.busy ? 'Cargando…' : 'Cargar Catálogo CDMX'}
+            </button>
+            {ingest.msg && <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{ingest.msg}</span>}
+          </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>
-            Crece al cargar el catálogo oficial CDMX (~1,800) y nuevas ciudades. Las señales se comparan por ciudad.
+            Crece al cargar el catálogo oficial CDMX (~1,800) y nuevas ciudades. Las señales se comparan por ciudad. Los scores reales de cada colonia llegan al correr las recetas (siguiente paso).
           </div>
         </Card>
       )}

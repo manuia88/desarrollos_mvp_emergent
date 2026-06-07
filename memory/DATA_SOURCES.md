@@ -36,6 +36,14 @@ Mapa exhaustivo de fuentes de información que DMX consume o consumirá. Estado 
 
 > Nota Locatel: Cowork sugirió `be32ff48-…` (Servicios Integrales/Línea Mujeres = call center, NO urbano). Para reportes urbanos el correcto es el *0311 `44913088-…`. Documentado para no volver a confundir.
 
+## B.1) CATÁLOGO DE COLONIAS (EX.1 · pipe listo, espera fuente)
+El conector de ingesta (`colonias_catalog.ingest_official_catalog`) carga el catálogo oficial y crece la cobertura (hoy 16/CDMX → ~1,800). Acepta DOS modos; pon UNA env var en `backend/.env.local`:
+| Modo | Env var | Valor | Fuente |
+|---|---|---|---|
+| GeoJSON (recomendado para CDMX) | `IE_COLONIAS_CDMX_URL` | URL directa del GeoJSON de "coloniascdmx" | [datos.cdmx · coloniascdmx (IECM)](https://datos.cdmx.gob.mx/dataset/coloniascdmx) · "Catálogo de colonias" |
+| CKAN datastore | `IE_COLONIAS_CDMX_RESOURCE_ID` | resource_id (si el dataset es datastore-activo) | datos.cdmx |
+> Nota: los resource_id de colonias de datos.cdmx NO son datastore-CKAN (son GeoJSON/Opendatasoft) → usar `IE_COLONIAS_CDMX_URL` con el link directo de descarga GeoJSON. Tras configurar: terminal superadmin → "Cargar Catálogo CDMX". Los scores reales por colonia llegan al correr las recetas (EX.2).
+
 ## C) VALUACIÓN — la pieza que ancla el AVM (SIG + valores unitarios + SHF)
 La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
 **valor catastral = valor del suelo + valor de la construcción**

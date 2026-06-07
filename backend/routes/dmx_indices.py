@@ -171,3 +171,15 @@ async def superadmin_colonias_coverage(request: Request):
     """Catálogo de colonias por ciudad — cuántas cubre cada mercado (EX.1)."""
     await _sa(request)
     return await _colonias_coverage(request)
+
+
+@router.post("/api/superadmin/colonias/ingest")
+async def superadmin_colonias_ingest(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a cargar"),
+):
+    """Carga el catálogo oficial de colonias de una ciudad (EX.1). Sin fuente configurada,
+    responde con la instrucción de qué env var poner (no-op honesto)."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.ingest_official_catalog(request.app.state.db, city=city)

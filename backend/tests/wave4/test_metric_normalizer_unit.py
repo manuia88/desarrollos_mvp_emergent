@@ -124,6 +124,20 @@ def test_gentrificacion_se_muestra_como_banda_honesta():
     assert "city" in z
 
 
+def test_colonias_map_row_heterogeneo():
+    """El cargador del catálogo mapea esquemas oficiales distintos a un doc limpio."""
+    import colonias_catalog as cc
+    m = cc._map_row({"nom_colonia": "ROMA NORTE", "alcaldia": "Cuauhtémoc", "lat": 19.41, "lon": -99.16}, "CDMX")
+    assert m["name"] == "Roma Norte" and m["alcaldia"] == "Cuauhtémoc"
+    assert m["city"] == "CDMX" and m["center"] == [-99.16, 19.41]
+    assert m["id"] == "roma-norte-cuauhtemoc"
+    # nombre alterno + sin coords
+    m2 = cc._map_row({"asentamiento": "Polanco V Sección", "delegacion": "Miguel Hidalgo"}, "CDMX")
+    assert m2["name"] == "Polanco V Sección" and m2["center"] is None
+    # sin nombre → descarta
+    assert cc._map_row({"foo": "bar"}, "CDMX") is None
+
+
 def test_bandas_no_mezclan_ciudades():
     """Una colonia de otra ciudad se compara solo contra su ciudad (no contra CDMX)."""
     import dmx_indices_engine as ix

@@ -107,7 +107,7 @@
 **Por qué importa:** hoy hay solo **16 colonias CDMX curadas a mano** (scores a mano). El motor ya es por-zona y data-driven; expandir = **alimentar**, no reprogramar. Más colonias también arregla las bandas relativas de B.1 (distribución representativa).
 | # | Qué | Estado |
 |---|---|---|
-| EX.1 | Catálogo de colonias: **colección `colonias` + cargador `upsert_colonias` + endpoint cobertura + strip en terminal superadmin** ✅ (pipe listo, hoy 16/CDMX). **Falta:** ingerir el catálogo oficial CDMX (~1,800) | 🟡 parcial (2026-06-07) |
+| EX.1 | Catálogo de colonias: colección `colonias` + cargador + cobertura + **conector de ingesta oficial (CKAN o GeoJSON) + endpoint POST /ingest + botón "Cargar Catálogo CDMX" en superadmin** ✅ (pipe completo + verificado, no-op honesto sin config). **Falta config founder:** poner `IE_COLONIAS_CDMX_URL` (GeoJSON de "coloniascdmx" en datos.cdmx) o `IE_COLONIAS_CDMX_RESOURCE_ID` y dar clic en Cargar → 16→~1,800 | 🟡 pipe hecho (2026-06-07) · espera fuente |
 | EX.2 | Correr recetas por colonia con fuentes ya conectadas (FGJ/DENUE/SACMEX) → scores REALES (no a mano) | ⏳ |
 | EX.3 | Dimensión **`city`** (campo en colonias + distribuciones/percentiles por ciudad) — build for endstate | ✅ **hecho 2026-06-07** |
 | EX.4 | Percentiles/bandas **por ciudad** (no se mezclan mercados) — cierra el caveat de B.1 | ✅ **hecho 2026-06-07** |
