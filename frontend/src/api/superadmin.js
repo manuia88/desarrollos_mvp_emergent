@@ -12,6 +12,8 @@ const j = async (url, opts = {}) => {
 
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
+// Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla
+export const getRecipesCoverage    = ()   => j('/api/superadmin/recipes-coverage');
 export const getDataSource         = (id) => j(`/api/superadmin/data-sources/${id}`);
 export const listIngestionJobs     = (params = {}) => {
   const qs = new URLSearchParams(Object.entries(params).filter(([_, v]) => v != null)).toString();

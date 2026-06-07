@@ -208,6 +208,27 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
           )}
         </div>
       )}
+
+      {/* Honesto: lo que aún no medimos para esta zona se muestra como "datos en camino"
+          (no se esconde). Se prende solo cuando conectamos la fuente en superadmin. */}
+      {Array.isArray(data.pending) && data.pending.length > 0 && (
+        <div data-testid="score-pending" style={{
+          marginTop: 10, padding: '9px 13px', borderRadius: 12,
+          background: 'rgba(148,163,184,0.06)', border: '1px dashed var(--border)',
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)',
+        }}>
+          <Database size={11} />
+          <span>Datos en camino:</span>
+          {data.pending.map(p => (
+            <span key={p.categoria} title={p.powers} style={{
+              padding: '2px 9px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+              color: 'var(--cream-2)', fontWeight: 600,
+            }}>{p.categoria}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

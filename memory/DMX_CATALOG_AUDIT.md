@@ -34,7 +34,7 @@
 
 ## OJOS PUESTOS (lo más engañoso)
 1. **B08 Absorción = sintético** (`random` win/loss 142/87 hardcoded). El modelo real solo vive dentro del cash-flow (B09).
-2. **Recipes DataPending** (escuela/salud/aire/agua/Locatel): UI real, pero el connector CKAN no tiene `resource_id` → devuelve stub. Conectar la fuente = se prenden.
+2. **Recipes DataPending** (escuela/salud/aire/agua/Locatel): UI real, pero el connector CKAN no tiene `resource_id` → devuelve stub. ✅ 2026-06-06 construido el LAYER de conexión+surfaceo (`recipe_catalog` + `GET /api/superadmin/recipes-coverage` + página "Cobertura de Datos" con conexión guiada inline [pega resource_id→test→sync→se prende] + el comprador ahora ve "datos en camino" honesto en vez de hueco). El motor sigue sin inventar números; conectar la fuente real (resource_id de datos.cdmx o subir DGIS) sigue pendiente de la fuente externa, pero ahora es 1 acción legible. Verificado: Locatel pendiente→lista al pegar resource_id.
 3. ✅ RESUELTO (2026-06-06) — **5 índices DMX construidos** como composites (`dmx_indices_engine`): IPV (gentrificación) · IAB (absorción real de ventas) · IDS (demanda) · IRE (renta mezclada) · ICO (calidad 7-dim) + maestro IDM. DRPI sigue aparte (precios hedónicos). Surface dev + superadmin + licenciable.
 4. **PROFECO no integrado** (H05 usa track-record interno).
 
@@ -50,7 +50,10 @@
   Polanco Maduro/Pico gent 38 renta corta 8.1% vs larga 4.2%; Lomas Maduro/Pico gent 30. Motor reusable también
   comprador/superadmin (toma un dict colonia). Renta marcada 'estimado' = autollena al prender conector STR.
 - I04: construir los 5 índices DMX como composites (DRPI ya existe; los otros cruzan scores existentes).
-- Conectar recipes DataPending (H01/H02/H07/H10/H06): setear `resource_id`/sync.
+- ✅ 2026-06-06 Conectar recipes DataPending (H01/H02/H07/H10/H06): construida la consola "Cobertura de Datos"
+  (superadmin) que hace de `setear resource_id` una acción guiada de 1 paso + surfaceo honesto "datos en camino"
+  al comprador (ZoneScoreStrip). Falta el dato externo real (resource_id datos.cdmx / upload DGIS) — eso lo pone
+  el operador con la fuente en mano; el sistema ya está 100% listo para autollenarse.
 **TIER 2 · Computable con datos existentes:**
 - Comprador: A03 renta-vs-compra · A04 arbitraje · A05 TCO · A07 timing · A12 price fairness (calculadoras sobre datos que ya tenemos).
 - E02 Portfolio Optimizer (Markowitz sobre ROI por-unidad de investment_sim) · B10 Unit Revenue Optimizer · D06 Affordability Crisis · D04 Correlation.

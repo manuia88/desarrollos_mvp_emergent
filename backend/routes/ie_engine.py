@@ -303,6 +303,17 @@ async def data_sources_stats(request: Request):
     )
 
 
+@router.get("/recipes-coverage")
+async def recipes_coverage(request: Request):
+    """Cobertura de Datos: qué receta alimenta qué en el producto, de qué fuente,
+    en qué estado (conectada/lista/pendiente/interna) y la UNA acción para prenderla.
+    Cruza las recetas registradas × las fuentes × los scores reales. Solo lectura."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+    from recipe_catalog import build_recipe_coverage
+    return await build_recipe_coverage(db)
+
+
 @router.get("/data-sources/{source_id}", response_model=DataSourceOut)
 async def get_data_source(source_id: str, request: Request):
     await _require_superadmin(request)

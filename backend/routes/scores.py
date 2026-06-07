@@ -168,12 +168,21 @@ async def public_zone_scores(zone_id: str, request: Request):
 MIN_REAL_SCORES_FOR_UI = 5
 
 
+class PendingCategoryOut(BaseModel):
+    categoria: str
+    icono: str = "otros"
+    powers: str = ""
+
+
 class ZoneCoverageOut(BaseModel):
     zone_id: str
     real_count: int
     total_recipes: int
     ui_mode: str  # "real" | "seed"
     scores: List[ScoreOut]
+    # Categorías de cara al usuario aún sin dato real → se muestran como "datos en camino"
+    # (honesto, no hueco). Se autollenan cuando el operador conecta la fuente en superadmin.
+    pending: List[PendingCategoryOut] = Field(default_factory=list)
 
 
 @pub_router.get("/zones/{zone_id}/scores/coverage", response_model=ZoneCoverageOut)
@@ -202,10 +211,20 @@ async def zone_coverage(zone_id: str, request: Request):
     ).to_list(length=200)
     total = sum(1 for r in all_recipes().values() if getattr(r, "scope", "colonia") == scope)
     mode = "real" if len(real_docs) >= MIN_REAL_SCORES_FOR_UI else "seed"
+    # Honesto: lo de cara al usuario que aún no tiene dato real → "datos en camino".
+    pending = []
+    if scope == "colonia":
+        try:
+            from recipe_catalog import pending_categories_for_zone
+            real_codes = [d.get("code") for d in real_docs]
+            pending = pending_categories_for_zone(real_codes)
+        except Exception:
+            pending = []
     return ZoneCoverageOut(
         zone_id=zone_id, real_count=len(real_docs),
         total_recipes=total, ui_mode=mode,
         scores=[ScoreOut(**d) for d in real_docs],
+        pending=[PendingCategoryOut(**p) for p in pending],
     )
 
 

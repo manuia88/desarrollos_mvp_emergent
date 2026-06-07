@@ -197,6 +197,7 @@ const SUPERADMIN_NAV = [
     items: [
       { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',  label: 'Ingesta masiva',   Icon: FolderUp },
       { key: 'conectores',   to: '/superadmin/data-sources', label: 'Conectores',       Icon: Plug },
+      { key: 'recipes-coverage', to: '/superadmin/recipes-coverage', label: 'Cobertura de Datos', Icon: Database },
       { key: 'drive',        to: '/superadmin/drive',        label: 'Drive',            Icon: FolderOpen },
       { key: 'documents',    to: '/superadmin/documents',    label: 'Documentos',       Icon: FileText },
       { key: 'data-lake',    to: '/superadmin/data-lake',    label: 'Data Lake',        Icon: Database },
