@@ -3,7 +3,7 @@
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export async function fetchAvmQuick({ coloniaSlug, m2, recamaras, banos, antiguedadAnos, explain = false }) {
+export async function fetchAvmQuick({ coloniaSlug, m2, recamaras, banos, antiguedadAnos, explain = false, vista, estadoConservacion, condicion, orientacion, nivel, nAmenidades }) {
   const params = new URLSearchParams({
     colonia_slug: coloniaSlug,
     m2: String(m2),
@@ -12,6 +12,13 @@ export async function fetchAvmQuick({ coloniaSlug, m2, recamaras, banos, antigue
     antiguedad_anos: String(antiguedadAnos),
     explain: explain ? 'true' : 'false',
   });
+  // AVM rico (opcional · atributos finos que mueven el precio)
+  if (vista) params.set('vista', vista);
+  if (estadoConservacion) params.set('estado_conservacion', estadoConservacion);
+  if (condicion) params.set('condicion', condicion);
+  if (orientacion) params.set('orientacion', orientacion);
+  if (nivel) params.set('nivel', String(nivel));
+  if (nAmenidades) params.set('n_amenidades', String(nAmenidades));
   const r = await fetch(`${API}/api/avm-public/quick?${params}`);
   if (!r.ok) {
     if (r.status === 429) throw new Error('Demasiadas peticiones. Espera 1 minuto.');

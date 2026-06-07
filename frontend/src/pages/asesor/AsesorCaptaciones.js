@@ -286,6 +286,18 @@ function CreateCaptForm({ onCreated, onError }) {
             {fmtMXN(estimate.valor)} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-3)' }}>· {fmtMXN(estimate.rango_low)}–{fmtMXN(estimate.rango_high)}</span>
           </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 5, lineHeight: 1.45 }}>{estimate.lectura}</div>
+          {(estimate.drivers || []).length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {estimate.drivers.map((d, i) => (
+                <span key={i} style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 9999,
+                  background: d.dir === 'up' ? 'rgba(31,160,106,0.10)' : 'rgba(226,152,46,0.12)',
+                  border: `1px solid ${d.dir === 'up' ? 'rgba(31,160,106,0.30)' : 'rgba(226,152,46,0.32)'}`,
+                  color: d.dir === 'up' ? 'var(--ok, #1FA06A)' : 'var(--warm, #E2982E)' }}>
+                  {d.dir === 'up' ? '↑' : '↓'} {d.plain}
+                </span>
+              ))}
+            </div>
+          )}
           {estimate.fuente === 'reventa_real'
             ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--ok, #1FA06A)', marginTop: 4, fontWeight: 700 }}>● Con reventa real de la zona</div>
             : <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--warm, #E2982E)', marginTop: 4 }}>● Referencia estimada — se afina cuando hay más captaciones en la zona</div>}

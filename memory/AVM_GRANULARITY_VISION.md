@@ -52,7 +52,13 @@ Tag por foto (room + 4 features, vía visión GPT-4o-mini, fail-open) pero a niv
   ("Reventa real de la zona (N)") en vez de la estimada. Y el asesor ve **valor estimado en vivo** mientras captura
   (`captacion_value_engine` + `GET /api/asesor/captacion-estimate`), que SUBE con cada detalle y marca su fuente
   (real vs estimada). Verificado punta a punta: 3 captaciones → referencia real → comprador la consume.
-- PENDIENTE G3 (AVM rico) + alimentar el modelo hedónico cuando haya escala de captaciones.
+- ✅ **G3 AVM rico**: motor compartido `avm_feature_engine.feature_adjustments` (vista/estado/condición/antigüedad/
+  amenidades/orientación/piso → multiplicador + "drivers" en lenguaje normal: "Vista al parque ↑", "Para remodelar ↓").
+  Lo usan el AVM público (`avm_quick`/`avm_quick_async` aceptan `attrs` + devuelven `drivers`), la valuación de
+  captación del asesor (unificada, sin duplicar) y queda listo para la unidad del dev. Surfaceado en el valuador
+  público (`Valores.js`: inputs Vista+Estado + "Qué mueve el precio") y en el captador del asesor (chips ↑/↓).
+  Verificado: mismo depa $6.12M→$7.36M con vista+estado+amenidades, explicado en lenguaje normal.
+- PENDIENTE (escala): alimentar el modelo hedónico con captaciones cuando haya volumen (hoy heurística + atributos).
 
 ## REGLA QUE QUEDA
 Capturamos máximo (170 campos), pero **el valor está en USAR y ALIMENTAR**: conectar atributos→AVM (G3), abrir la captación del asesor (G2) y operacionalizar nueva/usada (G1). Doc en repo `memory/AVM_GRANULARITY_VISION.md`.

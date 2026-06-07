@@ -28,6 +28,7 @@ def avm_quick(
     recamaras: int,
     banos: int,
     antiguedad_anos: int,
+    attrs: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     col = _colonia_record(colonia_slug)
     if not col:
@@ -54,7 +55,7 @@ def avm_quick(
     return _avm_response(
         colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
         estimate, adj_pm2, range_low, range_high, confidence,
-        pricing_model, r_squared, model_id,
+        pricing_model, r_squared, model_id, attrs,
     )
 
 
@@ -68,15 +69,21 @@ async def avm_quick_async(
     *,
     skip_cache: bool = False,
     with_explain: bool = False,
+    attrs: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Async path that prefers hedonic_regression_engine real model.
     Falls back to heuristic if the model is not available.
 
     W5.1 — added LRU cache + opt-in explainability breakdown.
+    attrs (opcional): atributos finos (vista/estado/condición/amenidades/orientación/piso)
+    para el AVM rico — ajustan el valor y explican qué lo mueve.
     """
     col = _colonia_record(colonia_slug)
     if not col:
         return {"error": "colonia_not_found", "colonia_slug": colonia_slug}
+
+    if attrs:
+        skip_cache = True  # el ajuste por atributos no entra en la llave de caché
 
     # ── Cache lookup (W5.1 Sub-E) ───────────────────────────────────────────
     if not skip_cache:
@@ -189,7 +196,7 @@ async def avm_quick_async(
     response = _avm_response(
         colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
         estimate, adj_pm2, range_low, range_high, confidence,
-        pricing_model, r_squared, model_id,
+        pricing_model, r_squared, model_id, attrs,
     )
     response["cache_hit"] = False
 
@@ -271,8 +278,29 @@ async def avm_quick_async(
 def _avm_response(
     colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
     estimate, adj_per_m2, range_low, range_high, confidence,
-    pricing_model, r_squared, model_id,
+    pricing_model, r_squared, model_id, attrs=None,
 ) -> Dict[str, Any]:
+    # ── AVM rico: atributos finos (vista/estado/condición/amenidades/orientación/piso) ──
+    # ajustan el valor + explican en lenguaje normal "qué mueve el precio". (rec/baños/edad
+    # ya están en la base heurística → no se vuelven a contar.)
+    drivers: List[Dict[str, Any]] = []
+    drivers_resumen = None
+    if attrs:
+        try:
+            import avm_feature_engine as afe
+            rich = {k: attrs.get(k) for k in ("vista", "estado_conservacion", "condicion",
+                                              "n_amenidades", "orientacion", "nivel")}
+            adj = afe.feature_adjustments(rich)
+            fctr = adj["factor"]
+            estimate = estimate * fctr
+            adj_per_m2 = adj_per_m2 * fctr
+            range_low = round(estimate * 0.88)
+            range_high = round(estimate * 1.12)
+            drivers = adj["drivers"]
+            drivers_resumen = afe.drivers_headline(drivers)
+        except Exception:
+            pass
+
     # Comparables: top devs misma colonia
     from data_developments import DEVELOPMENTS
     comparables = []
@@ -307,6 +335,8 @@ def _avm_response(
         "pricing_model": pricing_model,
         "model_id": model_id,
         "r_squared": r_squared,
+        "drivers": drivers,                    # qué mueve el precio (lenguaje normal)
+        "drivers_resumen": drivers_resumen,
         "generated_at": _now().isoformat(),
     }
 

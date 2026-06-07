@@ -49,11 +49,21 @@ async def avm_quick_endpoint(
     banos: int = Query(..., ge=0, le=15),
     antiguedad_anos: int = Query(..., ge=0, le=200),
     explain: bool = Query(False),
+    # AVM rico (opcional · atributos finos que mueven el precio)
+    vista: Optional[str] = Query(None),
+    estado_conservacion: Optional[str] = Query(None),
+    condicion: Optional[str] = Query(None),
+    orientacion: Optional[str] = Query(None),
+    nivel: Optional[int] = Query(None),
+    n_amenidades: int = Query(0, ge=0),
 ):
     _rate_limit_check(_client_ip(request))
+    attrs = {"vista": vista, "estado_conservacion": estado_conservacion, "condicion": condicion,
+             "orientacion": orientacion, "nivel": nivel, "n_amenidades": n_amenidades}
+    attrs = {k: v for k, v in attrs.items() if v not in (None, 0, "")} or None
     out = await eng.avm_quick_async(
         request.app.state.db, colonia_slug, m2, recamaras, banos, antiguedad_anos,
-        with_explain=explain,
+        with_explain=explain, attrs=attrs,
     )
     if "error" in out:
         raise HTTPException(404, out["error"])

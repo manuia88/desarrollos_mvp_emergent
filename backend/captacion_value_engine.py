@@ -14,16 +14,6 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 
-def _clamp(v, lo, hi):
-    return max(lo, min(hi, v))
-
-
-# Ajustes por atributo (multiplicadores honestos sobre $/m² de reventa de la zona)
-_COND = {"a_estrenar": 1.08, "seminueva": 1.03, "usada": 1.0}
-_ESTADO = {"excelente": 1.04, "bueno": 1.0, "a_remodelar": 0.90}
-_VISTA = {"parque": 1.05, "area_verde": 1.04, "ciudad": 1.03, "calle": 1.0, "interior": 0.97}
-
-
 def estimate_resale_value(
     colonia: Optional[Dict[str, Any]], attrs: Dict[str, Any],
     resale_pm2: Optional[float] = None, resale_n: int = 0,
@@ -33,6 +23,8 @@ def estimate_resale_value(
     attrs: {m2, recamaras, banos, condicion, antiguedad_anos, estado_conservacion,
             vista, orientacion, nivel, n_amenidades}
     """
+    import avm_feature_engine as afe
+
     m2 = float(attrs.get("m2") or 0)
     if m2 <= 0:
         return {"disponible": False, "motivo": "Falta el tamaño (m²) para estimar."}
@@ -47,21 +39,9 @@ def estimate_resale_value(
     if base_pm2 <= 0:
         return {"disponible": False, "motivo": "Aún no tenemos referencia de precio para esta zona."}
 
-    factor = 1.0
-    factor *= _COND.get(attrs.get("condicion") or "usada", 1.0)
-    factor *= _ESTADO.get(attrs.get("estado_conservacion") or "bueno", 1.0)
-    factor *= _VISTA.get(attrs.get("vista") or "calle", 1.0)
-    ant = attrs.get("antiguedad_anos")
-    if ant is not None:
-        factor *= _clamp(1.0 - float(ant) * 0.008, 0.78, 1.0)   # -0.8%/año, piso -22%
-    n_amen = int(attrs.get("n_amenidades") or 0)
-    factor *= 1.0 + _clamp(n_amen * 0.01, 0.0, 0.08)            # +1%/amenidad, tope +8%
-    # recámaras vs base 2
-    rec = attrs.get("recamaras")
-    if rec is not None:
-        factor *= 1.0 + (int(rec) - 2) * 0.03
-
-    valor = base_pm2 * m2 * factor
+    # Ajuste por atributos finos (motor compartido con el AVM) + drivers en lenguaje normal.
+    adj = afe.feature_adjustments(attrs)
+    valor = base_pm2 * m2 * adj["factor"]
     low, high = round(valor * 0.90), round(valor * 1.10)
 
     fuente_txt = (f"reventa real de la zona ({resale_n} captaciones)" if fuente == "reventa_real"
@@ -74,4 +54,5 @@ def estimate_resale_value(
         "valor": round(valor), "rango_low": low, "rango_high": high,
         "pm2_estimado": round(valor / m2), "pm2_base": round(base_pm2),
         "fuente": fuente, "lectura": lectura,
+        "drivers": adj["drivers"], "drivers_resumen": afe.drivers_headline(adj["drivers"]),
     }

@@ -25,6 +25,8 @@ export default function Valores() {
   const [recamaras, setRecamaras] = useState(2);
   const [banos, setBanos] = useState(2);
   const [antiguedad, setAntiguedad] = useState(5);
+  const [vista, setVista] = useState('');
+  const [estado, setEstado] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -40,6 +42,7 @@ export default function Valores() {
     try {
       const data = await fetchAvmQuick({
         coloniaSlug, m2, recamaras, banos, antiguedadAnos: antiguedad, explain: true,
+        vista, estadoConservacion: estado,
       });
       setResult(data);
     } catch (e) { setError(String(e.message || e)); }
@@ -109,6 +112,25 @@ export default function Valores() {
               <div style={LBL_STYLE}>Antigüedad (años)</div>
               <input data-testid="valores-input-ant" type="number" min={0} max={150} value={antiguedad} onChange={e => setAntiguedad(+e.target.value)} required style={INPUT_STYLE} />
             </label>
+            <label>
+              <div style={LBL_STYLE}>Vista</div>
+              <select data-testid="valores-input-vista" value={vista} onChange={e => setVista(e.target.value)} style={INPUT_STYLE}>
+                <option value="">A la calle / sin especificar</option>
+                <option value="parque">Al parque</option>
+                <option value="area_verde">A área verde</option>
+                <option value="ciudad">A la ciudad</option>
+                <option value="interior">Interior</option>
+              </select>
+            </label>
+            <label>
+              <div style={LBL_STYLE}>Estado</div>
+              <select data-testid="valores-input-estado" value={estado} onChange={e => setEstado(e.target.value)} style={INPUT_STYLE}>
+                <option value="">Sin especificar</option>
+                <option value="excelente">Excelente</option>
+                <option value="bueno">Bueno</option>
+                <option value="a_remodelar">Para remodelar</option>
+              </select>
+            </label>
             <div style={{ gridColumn: 'span 2', textAlign: 'right' }}>
               <button
                 data-testid="valores-submit"
@@ -151,6 +173,21 @@ export default function Valores() {
                 <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
                 {fmtMXN(result.precio_per_m2)} / m²
               </div>
+              {(result.drivers || []).length > 0 && (
+                <div data-testid="valores-drivers" style={{ marginTop: 14 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, marginBottom: 7 }}>Qué mueve el precio</div>
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    {result.drivers.map((d, i) => (
+                      <span key={i} style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, padding: '4px 11px', borderRadius: 9999,
+                        background: d.dir === 'up' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.14)',
+                        border: `1px solid ${d.dir === 'up' ? 'rgba(34,197,94,0.30)' : 'rgba(245,158,11,0.32)'}`,
+                        color: d.dir === 'up' ? '#86efac' : '#fcd34d' }}>
+                        {d.dir === 'up' ? '↑' : '↓'} {d.plain}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => navigate(`/colonia/${result.colonia_slug}`)}
