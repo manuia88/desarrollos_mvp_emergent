@@ -725,6 +725,28 @@ async def dev_indices(request: Request):
             agg["sold"] += int(d.get("units_sold") or 0)
             agg["total"] += int(d.get("units_total") or 0)
 
+    # Banda por percentil real: la distribución se construye sobre TODA la ciudad (no
+    # solo las zonas del dev), para que "Alta" signifique alta frente a la ciudad.
+    city_abs: dict = {}
+    for d in DEVELOPMENTS:
+        zn = d.get("colonia")
+        if not zn:
+            continue
+        agg = city_abs.setdefault(zn, {"sold": 0, "total": 0})
+        units = d.get("units") or []
+        if units:
+            agg["sold"] += sum(1 for u in units if u.get("status") == "vendido")
+            agg["total"] += len(units)
+        else:
+            agg["sold"] += int(d.get("units_sold") or 0)
+            agg["total"] += int(d.get("units_total") or 0)
+
+    def _city_ctx(c):
+        a = city_abs.get(c.get("name")) or {}
+        return {"absorcion_pct": round(a["sold"] / a["total"] * 100, 1)} if a.get("total") else {}
+
+    ix.ensure_index_distributions(COLONIAS, ctx_fn=_city_ctx)
+
     col_by_name = {c["name"]: c for c in COLONIAS}
     zonas = []
     for zn in mis_zonas:
@@ -741,13 +763,17 @@ async def dev_indices(request: Request):
 
     zonas.sort(key=lambda x: -x["idm"]["valor"])
     mejor = zonas[0] if zonas else None
-    resumen = (f"{mejor['zona']} es tu zona más fuerte (Índice DMX {mejor['idm']['valor']}/100). "
-               + "Cada índice te dice dónde apretar: plusvalía, absorción, demanda, renta y calidad."
+    resumen = (f"{mejor['zona']} es tu zona más fuerte: su Índice DMX está {mejor['idm']['etiqueta']} "
+               "frente al resto de la ciudad. Cada índice te dice dónde apretar: "
+               "plusvalía, absorción, demanda, renta y calidad."
                if mejor else "Aún no hay zonas con proyectos para calcular índices.")
     return {
         "resumen": resumen, "zonas": zonas,
         "leyenda": [{"key": k, **v} for k, v in ix.INDICES_META.items()],
-        "nota": "Índices 0-100 (A-F). La absorción usa tus ventas reales; la renta y la demanda son estimadas y se afinan al conectar las fuentes (cero deuda). El DRPI de precios va aparte.",
+        "senal_leyenda": ix.signal_leyenda(),
+        "nota": "Cada señal compara la zona contra el resto de la ciudad (no es un número exacto). "
+                "La absorción usa tus ventas reales; la renta y la demanda son estimadas y se afinan "
+                "al conectar las fuentes (cero deuda). El DRPI de precios va aparte.",
     }
 
 

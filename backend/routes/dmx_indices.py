@@ -84,15 +84,18 @@ def _ctx_for(colonia: Dict[str, Any], abs_map: Dict[str, Dict[str, int]]) -> Dic
 
 
 def _qualitative(result: Dict[str, Any]) -> Dict[str, Any]:
-    """Vista free: solo letra + banda, sin el número exacto (gating)."""
+    """Vista free: nivel honesto (Alta/Media/Baja) sin el número exacto (gating)."""
     out = {
         "zona": result["zona"], "tier": result["tier"],
-        "idm": {k: result["idm"][k] for k in ("nombre", "letra", "banda", "color", "fuente")},
+        "idm": {k: result["idm"].get(k) for k in
+                ("nombre", "nivel", "etiqueta", "banda", "color", "fuente", "comparado_con")},
         "indices": [{"key": i["key"], "nombre": i["nombre"], "que_mide": i["que_mide"],
-                     "letra": i["letra"], "banda": i["banda"], "color": i["color"]}
+                     "nivel": i["nivel"], "etiqueta": i["etiqueta"],
+                     "banda": i["banda"], "color": i["color"], "es_estimado": i["es_estimado"]}
                     for i in result["indices"]],
+        "senal_leyenda": ix.signal_leyenda(),
         "upgrade_required": "pro",
-        "nota": "Valores exactos, lecturas y jugada disponibles en plan Pro/Enterprise.",
+        "nota": "Los valores exactos, las lecturas y la jugada están en el plan Pro/Enterprise.",
     }
     return out
 
@@ -105,7 +108,10 @@ async def public_zone_indices(zone_id: str, request: Request):
     if not colonia:
         raise HTTPException(status_code=404, detail="Zona no encontrada")
     abs_map = _market_absorcion_by_colonia()
+    # Banda por percentil real: compara esta zona contra TODA la ciudad (lazy · idempotente).
+    ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
     result = ix.compute_indices(colonia, _ctx_for(colonia, abs_map))
+    result["senal_leyenda"] = ix.signal_leyenda()
     tier_label = await _user_tier(request)
     if tier_label == "free":
         return {"tier_label": "free", "source": "via DMX Índices", **_qualitative(result)}
@@ -123,6 +129,7 @@ async def superadmin_indices(
     await _sa(request)
     from data_seed import COLONIAS
     abs_map = _market_absorcion_by_colonia()
+    ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
     rows: List[Dict[str, Any]] = []
     for c in COLONIAS:
         if tier and (c.get("tier") or "").lower() != tier.lower():
@@ -145,4 +152,5 @@ async def superadmin_indices(
         },
         "leyenda": [{"key": k, **v} for k, v in ix.INDICES_META.items()],
         "idm_meta": ix.IDM_META,
+        "senal_leyenda": ix.signal_leyenda(),
     }

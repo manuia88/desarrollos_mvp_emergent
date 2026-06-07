@@ -22,6 +22,13 @@ Reusa zone_cycle_engine (gentrificación + renta) — NO duplica esa lógica.
 from typing import Any, Dict, List, Optional
 
 import zone_cycle_engine as _zce
+import metric_normalizer as _mn
+
+# Distribución (percentiles) de cada índice sobre TODA la ciudad — se llena lazy con
+# ensure_index_distributions(). Permite bandear cada zona por su PERCENTIL real
+# ("top 20% de la ciudad") en vez de un tope inventado. Cero deuda: si está vacío,
+# _idx cae a banda absoluta honesta marcada "estimado".
+_INDEX_DIST: Dict[str, Dict[str, Any]] = {}
 
 # ── Metadatos en lenguaje normal (lo que mide cada índice) ──
 INDICES_META: Dict[str, Dict[str, str]] = {
@@ -69,14 +76,6 @@ def _letter(v: float) -> str:
     return "F"
 
 
-def _band(v: float) -> Dict[str, str]:
-    if v >= 67:
-        return {"banda": "alto", "color": "verde", "i": 0}
-    if v >= 45:
-        return {"banda": "medio", "color": "ambar", "i": 1}
-    return {"banda": "bajo", "color": "rojo", "i": 2}
-
-
 def _yield_to_score(pct: float) -> float:
     """ROI de renta anual → 0-100 (8%→100 · 5%→60 · 2%→20)."""
     if pct >= 8: return 100.0
@@ -85,15 +84,30 @@ def _yield_to_score(pct: float) -> float:
     return _clamp(pct * 10)
 
 
+# nivel honesto → banda legada (alto/medio/bajo) para no romper consumidores previos
+_NIVEL_TO_LEGACY = {
+    "muy_alta": ("alto", 0), "alta": ("alto", 0), "media": ("medio", 1),
+    "baja": ("bajo", 2), "muy_baja": ("bajo", 2), None: ("medio", 1),
+}
+
+
 def _idx(key: str, valor: float, fuente: str) -> Dict[str, Any]:
     valor = round(_clamp(valor), 1)
-    b = _band(valor)
+    # Banda HONESTA por percentil real de la ciudad (los 5 índices: más alto = mejor).
+    sig = _mn.band_from_dist(_INDEX_DIST.get(key), valor)
+    legacy, li = _NIVEL_TO_LEGACY.get(sig["nivel"], ("medio", 1))
+    estimado = bool(sig["es_estimado"]) or (fuente == "estimado")
     return {
         "key": key, "nombre": INDICES_META[key]["nombre"],
         "que_mide": INDICES_META[key]["que_mide"],
         "valor": valor, "letra": _letter(valor),
-        "banda": b["banda"], "color": b["color"], "fuente": fuente,
-        "lectura": _READS[key][b["i"]],
+        # ── Señal honesta (lenguaje normal) ──
+        "nivel": sig["nivel"], "etiqueta": sig["etiqueta"],
+        "percentil": sig["percentil"], "comparado_con": sig["comparado_con"],
+        "es_estimado": estimado, "leyenda": sig["leyenda"],
+        # ── Compatibilidad con UI previa ──
+        "banda": legacy, "color": sig["color"], "fuente": fuente,
+        "lectura": _READS[key][li],
     }
 
 
@@ -145,11 +159,16 @@ def compute_indices(colonia: Dict[str, Any], ctx: Optional[Dict[str, Any]] = Non
 
     # ── IDM · maestro = promedio ponderado de los 5 ──
     idm_val = round(_clamp(sum(by_key[k]["valor"] * w for k, w in IDM_WEIGHTS.items())), 1)
-    idm_band = _band(idm_val)
+    idm_sig = _mn.band_from_dist(_INDEX_DIST.get("IDM"), idm_val)
+    idm_legacy, _li = _NIVEL_TO_LEGACY.get(idm_sig["nivel"], ("medio", 1))
     any_est = any(i["fuente"] == "estimado" for i in indices)
     idm = {
         "key": "IDM", "nombre": IDM_META["nombre"], "que_mide": IDM_META["que_mide"],
-        "valor": idm_val, "letra": _letter(idm_val), "banda": idm_band["banda"], "color": idm_band["color"],
+        "valor": idm_val, "letra": _letter(idm_val),
+        "nivel": idm_sig["nivel"], "etiqueta": idm_sig["etiqueta"],
+        "percentil": idm_sig["percentil"], "comparado_con": idm_sig["comparado_con"],
+        "leyenda": idm_sig["leyenda"],
+        "banda": idm_legacy, "color": idm_sig["color"],
         "fuente": "mixto" if any_est else "real",
     }
 
@@ -174,3 +193,33 @@ def indices_play(result: Dict[str, Any]) -> str:
     if ipv < 45:
         return f"{zona}: plusvalía lenta — vende el producto y la calidad de vida, no la espera de valor."
     return f"{zona}: zona equilibrada — mantén precio en línea con el mercado y cuida el ritmo de venta."
+
+
+# ── Distribución de los 5 índices sobre TODA la ciudad (banda por percentil real) ──
+def build_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None) -> Dict[str, Dict[str, Any]]:
+    """Calcula la distribución (percentiles) de cada índice sobre todas las colonias.
+    El `valor` de cada índice NO depende de la banda, así que es seguro llamar
+    compute_indices aquí aunque _INDEX_DIST aún esté vacío (no hay recursión)."""
+    grids: Dict[str, List[float]] = {k: [] for k in ("IPV", "IAB", "IDS", "IRE", "ICO", "IDM")}
+    for c in colonias:
+        ctx = ctx_fn(c) if ctx_fn else None
+        r = compute_indices(c, ctx)
+        for i in r["indices"]:
+            grids[i["key"]].append(i["valor"])
+        grids["IDM"].append(r["idm"]["valor"])
+    global _INDEX_DIST
+    _INDEX_DIST = {k: _mn.dist_from_values(v) for k, v in grids.items()}
+    return _INDEX_DIST
+
+
+def ensure_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None, refresh: bool = False) -> Dict[str, Dict[str, Any]]:
+    """Garantiza que la distribución de la ciudad esté lista (lazy · idempotente)."""
+    if _INDEX_DIST and not refresh:
+        return _INDEX_DIST
+    return build_index_distributions(colonias, ctx_fn)
+
+
+def signal_leyenda() -> str:
+    """Leyenda global del sello para la UI (de dónde sale la señal)."""
+    n = (_INDEX_DIST.get("IDM") or {}).get("n", 0)
+    return _mn.leyenda(n, n < _mn.MIN_REAL)

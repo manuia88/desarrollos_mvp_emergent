@@ -35,8 +35,10 @@ WEIGHTS = {
     "yield_score":   0.15,
     "denue_density": 0.10,
 }
-# max businesses_per_km2 for normalization (empirical CDMX top-tier)
-MAX_DENSITY_REF = 3000.0
+# Referencia ÚNICA de densidad comercial (negocios/km²) — fuente única en metric_normalizer.
+# Antes 3000 aquí vs 500 en subscores (contradicción que sub-calificaba todo). Unificado a 500
+# (Polanco ~400). Pendiente upgrade a percentil real (Tanda B.2).
+from metric_normalizer import DENUE_DENSITY_REF as MAX_DENSITY_REF  # noqa: E402
 # Annual gross yield threshold refs
 YIELD_HIGH = 8.0    # 8% yield → score 100
 YIELD_MID  = 5.0    # 5% yield → score 60

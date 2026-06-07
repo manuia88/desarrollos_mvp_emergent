@@ -116,8 +116,9 @@ async def compute_amenidades(db, zone_slug: str) -> Dict[str, Any]:
             log.warning(f"[subscores] amenidades stub {zone_slug}: denue not synced")
             return STUB
         density = float(doc.get("businesses_per_km2") or 0)
-        # Cap 500 negocios/km² → 100 score (Polanco ~ 400)
-        score = min(100.0, (density / 500.0) * 100.0)
+        # Referencia ÚNICA de densidad (negocios/km², Polanco ~400) — fuente en metric_normalizer.
+        from metric_normalizer import DENUE_DENSITY_REF
+        score = min(100.0, (density / DENUE_DENSITY_REF) * 100.0)
         return _wrap(score, "denue", sample_size=int(doc.get("businesses_count_total") or 0))
     except Exception as e:
         log.warning(f"[subscores] amenidades error {zone_slug}: {e}")

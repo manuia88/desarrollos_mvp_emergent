@@ -4,8 +4,9 @@
 import React, { useEffect, useState } from 'react';
 import { getDevIndices } from '../../api/developer';
 import { Sparkle } from '../icons';
+import SenalDMX, { SenalLeyenda } from '../shared/SenalDMX';
 
-const BAND_COL = { verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)' };
+const BAND_COL = { verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', neutro: 'var(--cream-3)' };
 const card = { background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: 16, boxShadow: 'var(--asr-shadow, none)' };
 
 function Gauge({ value, color }) {
@@ -21,13 +22,14 @@ function IndexChip({ i }) {
   const col = BAND_COL[i.color] || 'var(--theme)';
   return (
     <div title={i.que_mide} style={{ ...card, padding: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream-2)' }}>{i.nombre} <span style={{ color: 'var(--cream-3)', fontWeight: 600 }}>· {i.key}</span></span>
-        <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 17, color: col }}>{i.valor}<span style={{ fontSize: 10, color: 'var(--cream-3)', marginLeft: 3 }}>{i.letra}</span></span>
+        <SenalDMX etiqueta={i.etiqueta} color={i.color} percentil={i.percentil}
+                  comparadoCon={i.comparado_con} esEstimado={i.es_estimado}
+                  leyenda={i.leyenda} valor={i.valor} showValor size="sm" />
       </div>
-      <Gauge value={i.valor} color={col} />
+      <Gauge value={i.percentil != null ? i.percentil : i.valor} color={col} />
       <div style={{ fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.4, marginTop: 7 }}>{i.lectura}</div>
-      {i.fuente === 'estimado' && <span style={{ fontSize: 9, color: 'var(--warm, #E2982E)' }}>estimado</span>}
     </div>
   );
 }
@@ -46,6 +48,7 @@ export default function DevIndicesDMX() {
         </div>
         <p data-testid="ix-resumen" style={{ margin: 0, fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--cream)', lineHeight: 1.45 }}>{d.resumen}</p>
         <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 8 }}>{d.nota}</div>
+        {d.senal_leyenda && <SenalLeyenda texto={d.senal_leyenda} style={{ marginTop: 6 }} />}
       </div>
 
       {(d.zonas || []).map((z, idx) => (
@@ -57,11 +60,9 @@ export default function DevIndicesDMX() {
               <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{z.tier} · ${(z.price_m2 / 1000).toFixed(0)}k/m²</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700 }}>Índice DMX</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'flex-end' }}>
-                <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 30, color: BAND_COL[z.idm.color] || 'var(--theme)' }}>{z.idm.valor}</span>
-                <span style={{ fontSize: 15, fontWeight: 800, color: BAND_COL[z.idm.color] || 'var(--theme)' }}>{z.idm.letra}</span>
-              </div>
+              <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700, marginBottom: 4 }}>Índice DMX</div>
+              <SenalDMX etiqueta={z.idm.etiqueta} color={z.idm.color} valor={z.idm.valor} showValor
+                        comparadoCon={z.idm.comparado_con} leyenda={z.idm.leyenda} />
             </div>
           </div>
 

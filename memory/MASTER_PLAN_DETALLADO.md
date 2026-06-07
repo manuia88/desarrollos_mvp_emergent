@@ -40,7 +40,8 @@
 **Meta:** ningún número inventado se ve como medición exacta → todo índice se muestra como **banda** (Bajo/Medio/Alto) + "señal DMX, no medición" + confianza. Deja la base lista para BLOQUE 2.
 | Chunk | Qué | Front/Back | Tamaño | Estado |
 |---|---|---|---|---|
-| B.1 | Regla central `metric_normalizer`: número → banda por **percentiles reales** (no topes inventados). Unifica densidad DENUE (3000/500 → real ~400). | Back | S | ⏳ |
+| B.1 | Regla central `metric_normalizer` (percentiles reales → bandas) + 5 índices DMX honestos + sello `SenalDMX` en dev V2 + DENUE unificado (3000/500→500) + 12 tests | Back+Front | S | ✅ **hecho 2026-06-07** |
+| B.1 nota | Las bandas son RELATIVAS a la población comparada (hoy 16 colonias premium del seed → zonas premium pueden salir "Media/Baja" entre sí). Honesto + leyenda lo explica. Mejora: ampliar el set de colonias (dato) para una distribución más representativa. | — | — | ⚠️ a afinar en B.2 |
 | B.2 | Pasar por la regla los índices inventados: demanda, plusvalía/gentrificación (D05), calidad de zona, ciclo de mercado (B05), 5 índices DMX (IPV/IAB/IDS/IRE/ICO), score inversión, fit/match. Cada uno expone banda + "señal DMX" + confianza. | Back | M | ⏳ |
 | B.3 | Un solo sello visual honesto en lenguaje normal ("Demanda: Alta", no "69/100"), aplicado en los 4 portales. | Front | M | ⏳ |
 | B.4 | Verificar: test del normalizador + barrido de números crudos + revisión logueado en la app real. | Ambos | S | ⏳ |
