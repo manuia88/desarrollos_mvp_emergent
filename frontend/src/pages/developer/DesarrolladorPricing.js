@@ -146,6 +146,14 @@ export default function DesarrolladorPricing({ user, onLogout, embedded }) {
                         </div>
                       ))}
                     </div>
+                    {/* C.1→Dev: ancla de la sugerencia (ventas reales > precios de lista) */}
+                    {(s.anclado_cierres || s.confianza) && (
+                      <div style={{ marginTop: 7 }} data-testid={`sug-ancla-${s.id}`}>
+                        {s.anclado_cierres
+                          ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, color: 'var(--ok, #1FA06A)' }}>● Anclado a Ventas Reales de la Zona</span>
+                          : <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>Valor de zona · confianza <b style={{ textTransform: 'capitalize', color: 'var(--cream-2)' }}>{s.confianza || '—'}</b></span>}
+                      </div>
+                    )}
                   </div>
                   {s.status === 'pending' && (
                     <div style={{ display: 'flex', gap: 6 }}>

@@ -1122,47 +1122,55 @@ async def list_pricing_suggestions(request: Request):
     db = get_db(request)
     dev_ids = _user_dev_ids(user)
 
-    # UPGRADE Pricing real (re-arquitectura Inteligencia): de sintético → mercado real.
-    # Ancla = mediana $/m² de la zona (átomo real, dmx_demand). Si la unidad está debajo
-    # del mercado → sube; si está arriba → baja. Movimiento medido (cap ±8%), razón real.
-    # Migración: si las sugerencias guardadas son las viejas sintéticas (sin `source`),
-    # se purgan y se regeneran reales (una sola vez · las reales sí llevan `source`).
-    existing_real = await db.developer_pricing_suggestions.count_documents(
-        {"owner_id": user.user_id, "source": {"$exists": True}})
-    if existing_real == 0:
+    # UPGRADE C.1→Dev: ancla las sugerencias a la VALUACIÓN REAL de la zona (4-fuentes con
+    # CIERRES reales · resale_data.colonia_valuation), no a la mediana de precios de LISTA (que
+    # puede venir inflada). Si la zona tiene ventas reales, comparamos contra lo que de verdad se
+    # pagó. Movimiento medido (cap ±8%), razón real + confianza. Regenera una vez (anchor=valuacion).
+    existing_v2 = await db.developer_pricing_suggestions.count_documents(
+        {"owner_id": user.user_id, "anchor": "valuacion"})
+    if existing_v2 == 0:
         await db.developer_pricing_suggestions.delete_many(
-            {"owner_id": user.user_id, "source": {"$exists": False}, "status": "pending"})
-        import dmx_demand
-        from data_seed import COLONIAS
-        medians = await dmx_demand._colonia_median_pm2(db)
+            {"owner_id": user.user_id, "anchor": {"$ne": "valuacion"}, "status": "pending"})
+        from resale_data import colonia_valuation, obra_nueva_pm2_map
+        from data_seed import COLONIAS, COLONIAS_BY_ID
         colonia_name = {c["id"]: c["name"] for c in COLONIAS}
         dev_colonia = {d["id"]: d.get("colonia_id", d.get("colonia", "")) for d in DEVELOPMENTS}
-        suggestions = []
+        obra = obra_nueva_pm2_map()
         candidate_units = [u for u in ALL_UNITS if u.get("development_id") in dev_ids and u.get("status") == "disponible"][:60]
+        # Valuación REAL una vez por zona (no por unidad)
+        zonas = {dev_colonia.get(u.get("development_id")) for u in candidate_units} - {None, ""}
+        zone_val = {}
+        for z in zonas:
+            base = (COLONIAS_BY_ID.get(z) or {}).get("price_m2_num")
+            zone_val[z] = await colonia_valuation(db, z, obra_pm2=obra.get(z), base_pm2=base)
+        suggestions = []
         for u in candidate_units:
             m2 = u.get("m2_privative") or u.get("m2_total")
             price = u.get("price")
             zid = dev_colonia.get(u.get("development_id"))
-            market_pm2 = medians.get(zid)
+            val = zone_val.get(zid) or {}
+            market_pm2 = val.get("pm2")
             if not m2 or not price or m2 <= 0 or not market_pm2:
                 continue
             current_pm2 = price / m2
-            pct = round((market_pm2 - current_pm2) / current_pm2 * 100, 1)  # >0 = debajo del mercado
-            if abs(pct) < 2:   # dentro de mercado → mantener, sin sugerencia
+            pct = round((market_pm2 - current_pm2) / current_pm2 * 100, 1)  # >0 = debajo del valor
+            if abs(pct) < 2:   # dentro del valor → mantener
                 continue
             direction = "up" if pct > 0 else "down"
-            move = round(max(-8.0, min(8.0, pct)), 1)   # movimiento medido, cap ±8%
+            move = round(max(-8.0, min(8.0, pct)), 1)
             new_price = int(price * (1 + move / 100))
             zname = colonia_name.get(zid, str(zid or "").replace("_", " ").title())
+            anclado_cierres = val.get("anclado") == "cierres"
+            ancla_txt = "el valor real de la zona (ventas reales)" if anclado_cierres else f"el valor de {zname}"
             if direction == "up":
                 reasons = [
-                    f"Tu ${current_pm2:,.0f}/m² está debajo de la mediana de {zname} (${market_pm2:,.0f}/m²).",
-                    f"Hay espacio para subir ~{abs(move)}% sin salir de mercado.",
+                    f"Tu ${current_pm2:,.0f}/m² está debajo de {ancla_txt} (${market_pm2:,.0f}/m²).",
+                    f"Hay espacio para subir ~{abs(move)}% sin salir de valor.",
                 ]
             else:
                 reasons = [
-                    f"Tu ${current_pm2:,.0f}/m² está arriba de la mediana de {zname} (${market_pm2:,.0f}/m²).",
-                    f"Bajar ~{abs(move)}% acelera la venta manteniéndote competitivo.",
+                    f"Tu ${current_pm2:,.0f}/m² está arriba de {ancla_txt} (${market_pm2:,.0f}/m²).",
+                    f"Bajar ~{abs(move)}% acelera la venta manteniéndote en valor.",
                 ]
             suggestions.append({
                 "id": _uid("pricesug"),
@@ -1178,7 +1186,10 @@ async def list_pricing_suggestions(request: Request):
                 "current_pm2": round(current_pm2),
                 "market_pm2": round(market_pm2),
                 "reasons": reasons,
-                "source": "mercado real · mediana $/m² de zona",
+                "anchor": "valuacion",
+                "confianza": val.get("confianza"),
+                "anclado_cierres": anclado_cierres,
+                "source": "valor real de la zona (ventas + reventa + obra)",
                 "status": "pending",  # pending|approved|rejected|applied
                 "created_at": _now(),
             })

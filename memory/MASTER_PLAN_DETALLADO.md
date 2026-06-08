@@ -32,7 +32,7 @@
 | DEV-A — Descubrir features ocultas | ✅ |
 | DEV-B — Menú V2 (7 secciones claras) | ✅ |
 | DEV-C — 7 upgrades IA-first (Inicio·MisProyectos·CRM·Inteligencia·Pricing·Red·Marketing·Reportes) | ✅ (2026-06-06, verificado en app) |
-| Conectar dato FALSO→REAL: Demanda (random→forecast) · Pricing por unidad (heurística→AVM/valuación real) | ⏳ **siguiente lógico** |
+| Conectar dato FALSO→REAL: **Pricing por unidad → valuación REAL anclada a cierres** ✅ (la sugerencia compara vs lo que de verdad se pagó, no vs la mediana de lista inflada · sello "Anclado a Ventas Reales" + confianza · verificado: 111k lista→90k real). **Falta:** Demanda (random→forecast/dato real) | 🟡 Pricing ✅ · Demanda ⏳ |
 | Hardening Fase 1-4 (aislamiento cross-dev-org + QA) | ⏳ (= Bloque 3) |
 | Deuda menor (link Cash Flow roto · tabs fantasma CRM Citas/Slots/Brokers · prender suite IA por flag) | ⏳ |
 
