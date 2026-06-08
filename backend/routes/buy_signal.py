@@ -179,6 +179,13 @@ async def buy_signal(
         valuacion_zona["plusvalia_oficial"] = await _shf.get_appreciation(db)
     except Exception:
         pass
+    # Valor catastral OFICIAL del suelo ($/m² · SIG · ING.1/2) — ancla/piso oficial granular.
+    try:
+        _colrec = await db.colonias.find_one({"id": colonia_slug}, {"_id": 0, "vsuelo_pm2_catastral": 1})
+        if _colrec and _colrec.get("vsuelo_pm2_catastral"):
+            valuacion_zona["valor_catastral_suelo"] = _colrec["vsuelo_pm2_catastral"]
+    except Exception:
+        pass
 
     # ── Buen Momento (ciclo + índices) ──
     timing: Optional[Dict[str, Any]] = None

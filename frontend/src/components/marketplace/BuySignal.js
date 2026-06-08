@@ -127,6 +127,12 @@ export default function BuySignal({ devId }) {
                 <span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · {vz.plusvalia_oficial.region} · {vz.plusvalia_oficial.periodo}</span>
               </div>
             )}
+            {vz.valor_catastral_suelo != null && (
+              <div style={{ marginTop: 6, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--cream-2)' }}>
+                Valor Catastral del Suelo (Oficial): {mmx(vz.valor_catastral_suelo)} /m²
+                <span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · base oficial SIG CDMX · es el piso, no el precio de venta</span>
+              </div>
+            )}
           </div>
         )}
 

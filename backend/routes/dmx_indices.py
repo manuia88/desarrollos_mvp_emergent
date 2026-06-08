@@ -240,6 +240,18 @@ async def superadmin_shf_refresh(request: Request):
     return await shf.refresh_from_xlsx(request.app.state.db)
 
 
+@router.post("/api/superadmin/colonias/sync-catastro")
+async def superadmin_colonias_sync_catastro(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a sincronizar"),
+):
+    """Sincroniza el valor catastral OFICIAL del suelo ($/m²) por colonia desde el WFS de la SIG
+    CDMX (predios2022sig_local · vsuelo/área). Base oficial granular de valuación (ING.1/2)."""
+    await _sa(request)
+    import sig_catastro_engine as sig
+    return await sig.sync_vsuelo_for_city(request.app.state.db, city=city)
+
+
 @router.post("/api/superadmin/colonias/fill-chunk")
 async def superadmin_colonias_fill_chunk(
     request: Request,

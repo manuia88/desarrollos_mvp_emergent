@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -75,6 +75,18 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al sincronizar seguridad.' });
+    }
+  };
+
+  const sincronizarCatastro = async () => {
+    setIngest({ busy: true, msg: 'Sincronizando valor catastral del suelo (SIG CDMX)… puede tardar un minuto.' });
+    try {
+      const r = await syncCatastro('CDMX');
+      const base = `${r.sincronizadas} colonias consultadas · ${r.con_dato} con valor catastral oficial del suelo.`;
+      setIngest({ busy: false, msg: r.nota ? `${base} ${r.nota}` : base });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al sincronizar el valor catastral.' });
     }
   };
 
@@ -162,6 +174,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-sync-seguridad" onClick={sincronizarSeguridad} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Seguridad
+            </button>
+            <button data-testid="ix-sync-catastro" onClick={sincronizarCatastro} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Sincronizar Valor del Suelo
             </button>
             <button data-testid="ix-llenar-todo" onClick={llenarTodo} disabled={ingest.busy} style={{ ...btnSecondary, borderColor: 'rgba(var(--theme-rgb),0.5)', opacity: ingest.busy ? 0.6 : 1 }}>
               Llenar Todo (Auto)

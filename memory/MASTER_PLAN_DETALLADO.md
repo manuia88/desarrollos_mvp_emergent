@@ -2,7 +2,7 @@
 
 **Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Portal Dev (Paso C ✅ + dato falso→real ✅). **Pendiente real:** ingesta oficial (SIG/valores unitarios diferible · SHF si alcanzable) → endurecer Dev (aislamiento cross-org).
+**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF ✅ + SIG valor catastral del suelo $/m² ✅. Portal Dev (Paso C ✅ + dato falso→real ✅). **Pendiente real:** modelo valor comercial (catastral×SHF×ratio) + valores unitarios 2026 diferibles → endurecer Dev (aislamiento cross-org).
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
 
@@ -18,7 +18,7 @@
 | Tanda B.2 — resto a banda (gentrificación·ciclo·calidad·demanda viva·fit/match) ✅ | ✅ |
 | Tanda B.3 — Sello honesto en los 4 portales | ✅ |
 | Tanda C — Valuación (C.1 cierres · C.2 atípicos · C.3 4-fuentes · C.4 base honesta) | ✅ |
-| Ingesta oficial — **SHF** (plusvalía) ✅ · SIG predios (vsuelo) + valor comercial diferible | 🟡 SHF ✅ · resto diferible |
+| Ingesta oficial — **SHF** (plusvalía) ✅ · **SIG predios → valor catastral del suelo $/m²** ✅ · modelo valor comercial (catastral×SHF×ratio) diferible | 🟡 SHF ✅ · SIG ✅ · solo modelo comercial diferible |
 | EX.1 — Catálogo 16→1,352 (derivado del FGJ) | ✅ |
 | EX.2 — Scores reales **7/7 dimensiones** por colonia | ✅ |
 | EX.2b/c/d — OSM comercios · FGJ seguridad · cron auto | ✅ |
@@ -100,9 +100,9 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 ### Ingesta de datos oficiales ⏳ (ancla/piso del AVM)
 | Chunk | Qué | Estado | Nota |
 |---|---|---|---|
-| ING.1 | SIG WFS predios (`vsuelo` $/m²) → poblar `catastro_cdmx` (hoy 0) | ⏳ | upgrade de "manual" a API |
-| ING.2 | Valores unitarios 2026 (Gaceta/Código Fiscal: $/m² suelo + construcción por zona) | ⏳ | tabla oficial, carga 1 vez/año |
-| ING.3 | SHF índice plusvalía (INEGI BIE serie 736183 / Banxico SIE — token ya puesto) | ⏳ | quick-win |
+| ING.1 | SIG WFS predios → **valor catastral oficial del suelo $/m² por colonia** (`sig_catastro_engine`: vsuelo/área · banda percentil · botón superadmin + en valuación del comprador) | ✅ | 16 colonias vivas · crece al sincronizar; `vsuelo` = total del lote, $/m² = vsuelo/área |
+| ING.2 | Valores unitarios 2026 (Gaceta/Código Fiscal) + **modelo comercial = catastral × factor_SHF × ratio comercial/catastral** | ⏳ | no se inyecta con ratio adivinado (cero deuda); catastral ya es el ancla/piso |
+| ING.3 | SHF índice plusvalía (XLSX gob.mx · `shf_engine`) | ✅ | Valle de México +5.1% anual · en valuación del comprador (NO Banxico — corregido) |
 
 ---
 

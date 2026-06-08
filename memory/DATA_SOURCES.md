@@ -53,14 +53,14 @@ La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
 
 | Pieza | Qué es | Estado | Env var (propuesta) | Cómo se usa |
 |---|---|---|---|---|
-| **SIG WFS predios** | Capa `predios2022sig_local` (6.89M predios · `vsuelo` $/m² · uso) | Registrada (hoy `catastro_cdmx` = manual_upload) → **API WFS = upgrade pendiente** | `IE_SIG_WFS_URL` | piso de valor de suelo por predio |
+| **SIG WFS predios** ✅ | Capa `predios2022sig_local` (6.89M predios · `vsuelo` = valor catastral TOTAL del lote · uso) | **HECHO** (`sig_catastro_engine` · WFS por colonia → mediana $/m² = vsuelo/área del polígono · banda por percentil) | `IE_SIG_WFS_URL` (default catalogov2.sig.cdmx) | valor catastral OFICIAL del suelo $/m² por colonia · piso/ancla (NO precio de venta) · surfaceado en valuación del comprador |
 | **Valores unitarios 2026** | Tablas oficiales $/m² suelo + construcción por zona | Pendiente cargar (PDF/tabla Gaceta) | `IE_VALORES_UNITARIOS_2026_URL` | base catastral → se calibra a comercial (~+15–40%) |
 | **SHF Índice precios vivienda** ✅ | Plusvalía OFICIAL (avalúos de todo crédito hipotecario) | **HECHO** (`shf_engine` · sembrado oficial 1T2026 + pipe refresh XLSX) | `IE_SHF_XLSX_URL` (default gob.mx) | plusvalía oficial CDMX +5.1% · surfaceada en valuación del comprador |
 
 ### ⚠️ CORRECCIÓN CLAVE (reporte verificado founder 2026-06-07)
 - **SHF NO existe en el SIE de Banxico** (cualquier serie ID es inventada). Solo XLSX en gob.mx (trimestral feb/may/ago/nov). 1T2026: nacional +8.7% · Valle de México +5.1% · nueva +9.1%/usada +8.3% · avalúo mediana $1,331,000. XLSX: `gob.mx/cms/uploads/attachment/file/1077618/Indice_SHF_datos_abiertos_1_trim_2026.xlsx`.
 - **No existe precio de CIERRE público** (RPP/notarías no publican). Proxies: INCOIN/Softec (obra nueva, pago) + créditos SNIIV. Por eso el moat = nuestros cierres del asesor (C.1).
-- **Catastro vsuelo** (valores unitarios): SIG WFS `geoserver/ows` capa `geonode:predios2022sig_local` (6,886,398 predios · campos clave/vsuelo/ayocon) — verificado. Modelo valor comercial = `vsuelo(2022) × factor_SHF(alcaldía) × ratio comercial/catastral(colonia)`.
+- **Catastro vsuelo** ✅ INGESTADO: SIG WFS `geoserver/ows` capa `geonode:predios2022sig_local` (6,886,398 predios · campos clave/vsuelo/ayocon). CLAVE: `vsuelo` es STRING = valor catastral TOTAL del lote (NO $/m²); el unitario sale de `vsuelo/área del polígono` (shoelace sobre el anillo MultiPolygon, grados→m² vía 111320×cos(lat)). bbox axis order = lat,lng con `urn:ogc:def:crs:EPSG::4326`. `sig_catastro_engine.sync_vsuelo_for_city` consulta ~300 predios alrededor del centro de cada colonia → mediana $/m² catastral → banda por percentil de la ciudad → `colonias.vsuelo_pm2_catastral/vsuelo_score`. Verificado live: Lomas $9,423 (muy alta) · Polanco $1,409 · Roma Norte $405 (catastral es ~40-65% del comercial, por eso es PISO no precio). Modelo valor comercial PENDIENTE (ING.1/2): `vsuelo_pm2 × factor_SHF(alcaldía) × ratio comercial/catastral(colonia)` — no se inyecta con ratio adivinado (cero deuda), se muestra como ancla oficial banda.
 - **SNIIV API** (sin token): `sniiv.sedatu.gob.mx/api/CuboAPI/` (GetInfonavit/GetCNBV/GetInventario…) → créditos + inventario por municipio. CDMX = cve 09.
 - **Renta corta**: AirROI (~$10 pay-as-you-go, por colonia) fase 2.
 
@@ -72,7 +72,8 @@ La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
 | `ie_scores` | 3,422 | scores por colonia (vivo) |
 | `ie_score_history` | 17,110 | histórico de scores |
 | `ie_ingestion_jobs` | 41 | corridas de ingesta |
-| `catastro_cdmx` | **0** | predios — **vacío, falta ingestar** |
+| `colonias.vsuelo_pm2_catastral` | **16** ✅ | valor catastral oficial del suelo $/m² por colonia (SIG WFS · sig_catastro_engine) — vivo; crece al sincronizar colonias con centroide |
+| `catastro_cdmx` (tabla legacy) | 0 | predios crudos — sin usar; el catastral vive ya por colonia (arriba) |
 | `sigcdmx_uso_suelo` | **0** | uso de suelo SEDUVI — **vacío** |
 | `gov_data_mx_raw` | 2 | casi vacío |
 | (SHF/plusvalia_hist) | **no poblada** | falta disparar serie 736183 |
@@ -88,7 +89,7 @@ La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
 - ✅ Precio en Contexto: obra nueva vs obra nueva comparable + bandas neutras (no “caro”).
 - ✅ Flywheel asesor→AVM: captaciones reales alimentan referencia de reventa.
 - ✅ Tokens reales cargados + resource_ids CDMX verificados + bug `.env.local` ($ sin comillas) arreglado de raíz.
-- ⏳ **Ingestar SIG WFS predios + valores unitarios 2026** (vuelve `catastro_cdmx`/valor de suelo reales).
+- ✅ **Ingestar SIG WFS predios** → valor catastral OFICIAL del suelo $/m² por colonia (`sig_catastro_engine` · vsuelo/área · banda percentil · 16 colonias vivas · botón superadmin "Sincronizar Valor del Suelo" + surfaceado en valuación del comprador). ⏳ resta: valores unitarios 2026 (PDF Gaceta) + modelo comercial = catastral × factor_SHF × ratio.
 - ⏳ **Disparar SHF (INEGI 736183)** → poblar plusvalía histórica oficial.
 - ⏳ **Tanda B**: scores inventados (IAB/IDS/gentrificación/IDM) → señal direccional (bajo/medio/alto) en toda la UI + “señal DMX, no medición”.
 - ⏳ **Tanda C**: valuación afinada contra comparables reales (normalizar por percentiles reales, no topes inventados).

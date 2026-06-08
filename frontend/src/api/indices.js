@@ -75,3 +75,13 @@ export const fillChunk = async (city = 'CDMX', chunk = 40) => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · valor catastral OFICIAL del suelo ($/m²) por colonia desde el WFS de la SIG CDMX.
+export const syncCatastro = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/sync-catastro?city=${encodeURIComponent(city)}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
