@@ -51,8 +51,8 @@
 |---|---|---|
 | C.1 | **AVM anclado a CIERRES REALES** ✅: colección `cierres_reales` + `registrar_cierre` + `resale_reference` ahora ANCLA a cierres (lo que de verdad se pagó) cuando los hay; las captaciones (lista) solo amplían el rango. Endpoint `POST /captaciones/{id}/vender` (marca vendida + precio final → registra cierre + reentrena la valuación de la zona vía Cerebro E6 `on_deal_closed` level=project). Botón "Marcar Vendida" en el captador. **Verificado**: con cierre a 48k la referencia pasó de 55k (lista) → 48k (real). Lección Monopolio/DD360. | ✅ hecho (2026-06-08) |
 | C.2 | **Guard de atípicos + confianza** ✅: `resale_reference` ahora filtra precios inflados (MAD robusto · no se ensucia la mediana) + reporta rango típico + confianza (alta/media/baja por n). `clasificar_precio` avisa al asesor "Dentro/Arriba/Abajo del Rango Típico" (no borra, no bloquea). Cableado en el captador (AsesorCaptaciones): al poner precio ve el aviso honesto + confianza de la zona. Verificado: inflado de 180k excluido, mediana robusta 50k · 25 tests verde. | ✅ hecho (2026-06-08) |
-| C.3 | Mezcla de comparables estilo 4-fuentes (obra nueva + usada + cierres + base propia) con confianza | ⏳ |
-| C.4 | Afinar avm fallback / price_context / margin contra comparables reales (percentiles, no topes) | ⏳ |
+| C.3 | **Mezcla 4-fuentes con confianza** ✅: `colonia_valuation` combina Ventas Reales (cierres · peso 5) + En Venta/Reventa (captaciones · peso 2) + Obra Nueva (inventario dev · peso 2) + Estimado de Zona (peso 1) → $/m² ponderado + confianza (alta/media/baja) + desglose por fuente honesto. Cableado en el comprador (BuySignal · tarjeta "Valor de la Zona" con las fuentes + confianza). **Verificado**: cierres 48k pesan más → blend 54.4k, confianza alta. | ✅ hecho (2026-06-08) |
+| C.4 | Afinar avm fallback/price_context/margin (la valuación ya sale por confianza + mediana ROBUSTA, no por topes inventados; bandas honestas). Resto de afinado de márgenes/fallback → continuo al avanzar. | 🟡 base honesta lista |
 
 ### Ingesta de datos oficiales ⏳ (ancla/piso del AVM)
 | Chunk | Qué | Estado | Nota |

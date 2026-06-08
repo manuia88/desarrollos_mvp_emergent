@@ -41,8 +41,9 @@ export default function BuySignal({ devId }) {
 
   if (d === null) return <div style={{ ...panel, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>Poniendo el precio en contexto…</div>;
   if (!d || !d.ok) return null;
-  const { precio_contexto: pc, timing: tm, veredicto: v } = d;
+  const { precio_contexto: pc, valuacion_zona: vz, timing: tm, veredicto: v } = d;
   if (!pc && !tm) return null;
+  const confColor = (c) => c === 'alta' ? 'var(--ok, #1FA06A)' : c === 'media' ? 'var(--warm, #E2982E)' : 'var(--cream-3)';
   const pos = pc && pc.posicion;
   const prima = pc && pc.prima_estrenar;
 
@@ -100,6 +101,26 @@ export default function BuySignal({ devId }) {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Valor de la zona · mezcla 4-fuentes con confianza (C.3) */}
+        {vz && vz.pm2 && (vz.fuentes || []).length > 0 && (
+          <div data-testid="bs-valuacion" style={panel}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700 }}>Valor de la Zona (por m²)</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginTop: 4 }}>{mmx(vz.pm2)}<span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-3)' }}> /m²</span></div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: confColor(vz.confianza), marginTop: 2, fontWeight: 700, textTransform: 'capitalize' }}>Confianza: {vz.confianza}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+              {vz.fuentes.map((f, i) => (
+                <span key={i} title={f.n ? `${f.n} dato(s)` : 'referencia'} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 9999,
+                  background: f.tipo === 'cierres' ? 'rgba(31,160,106,0.12)' : 'rgba(var(--cream-rgb),0.06)',
+                  border: `1px solid ${f.tipo === 'cierres' ? 'rgba(31,160,106,0.30)' : 'var(--border)'}`,
+                  color: f.tipo === 'cierres' ? 'var(--ok, #1FA06A)' : 'var(--cream-2)' }}>
+                  {f.etiqueta}: {mmx(f.pm2)}{f.n ? ` · ${f.n}` : ''}
+                </span>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>{vz.leyenda}</div>
           </div>
         )}
 

@@ -159,6 +159,68 @@ async def registrar_cierre(db, *, colonia_id: str, m2: float, precio: float,
     return doc
 
 
+def _robust_median(xs: List[float]) -> Optional[float]:
+    dentro, _ = _split_outliers([x for x in xs if x and x > 0])
+    return _median(dentro)
+
+
+_VAL_LEYENDA = {
+    "alta": "Basado en ventas reales de la zona.",
+    "media": "Basado en ventas y propiedades en venta de la zona.",
+    "baja": "Pocos datos aún — se afina con más ventas en la zona.",
+    "estimado": "Estimado de zona — aún sin transacciones registradas.",
+    "insuficiente": "Aún no hay datos suficientes en la zona.",
+}
+
+
+async def colonia_valuation(db, colonia_slug: str, *,
+                            obra_pm2: Optional[List[float]] = None,
+                            base_pm2: Optional[float] = None) -> Dict[str, Any]:
+    """Mezcla 4-FUENTES del valor por m² de la colonia, con su confianza y desglose honesto:
+      1) Ventas Reales (cierres) — mayor peso · 2) En Venta/Reventa (captaciones) ·
+      3) Obra Nueva (inventario dev) · 4) Estimado de Zona (base).
+    Cada fuente aporta su mediana robusta ponderada por confianza. Sin nada → insuficiente.
+    """
+    cierres = await _pm2s_cierres(db, colonia_slug)
+    capt = await _pm2s_captaciones(db, colonia_slug)
+    fuentes: List[Dict[str, Any]] = []
+    if cierres:
+        m = _robust_median(cierres)
+        if m:
+            fuentes.append({"tipo": "cierres", "etiqueta": "Ventas Reales", "pm2": round(m), "n": len(cierres), "peso": 5})
+    if capt:
+        m = _robust_median(capt)
+        if m:
+            fuentes.append({"tipo": "reventa", "etiqueta": "En Venta (Reventa)", "pm2": round(m), "n": len(capt), "peso": 2})
+    if obra_pm2:
+        vals = [p for p in obra_pm2 if p and p > 0]
+        m = _median(vals)
+        if m:
+            fuentes.append({"tipo": "obra_nueva", "etiqueta": "Obra Nueva", "pm2": round(m), "n": len(vals), "peso": 2})
+    if base_pm2 and base_pm2 > 0:
+        fuentes.append({"tipo": "estimado", "etiqueta": "Estimado de Zona", "pm2": round(base_pm2), "n": 0, "peso": 1})
+
+    if not fuentes:
+        return {"pm2": None, "confianza": "insuficiente", "anclado": None, "fuentes": [],
+                "leyenda": _VAL_LEYENDA["insuficiente"]}
+
+    peso_tot = sum(f["peso"] for f in fuentes)
+    pm2 = round(sum(f["pm2"] * f["peso"] for f in fuentes) / peso_tot)
+    reales = [f for f in fuentes if f["tipo"] in ("cierres", "reventa", "obra_nueva")]
+    if any(f["tipo"] == "cierres" and f["n"] >= 3 for f in fuentes):
+        conf = "alta"
+    elif cierres or len(reales) >= 2:
+        conf = "media"
+    elif reales:
+        conf = "baja"
+    else:
+        conf = "estimado"
+    return {
+        "pm2": pm2, "confianza": conf, "anclado": fuentes[0]["tipo"],
+        "fuentes": fuentes, "leyenda": _VAL_LEYENDA[conf],
+    }
+
+
 # Bandas de comunicación cuando un precio se compara con la referencia de la colonia.
 _BANDAS_PRECIO = {
     "muy_alto":   ("Bastante Arriba del Rango", "Este precio está bastante arriba de lo que se capta en la colonia — revísalo o respáldalo con su valor diferencial."),

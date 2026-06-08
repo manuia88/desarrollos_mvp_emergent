@@ -158,7 +158,7 @@ async def buy_signal(
         _col = None
     este_pm2 = (u_price / u_m2) if (u_price and u_m2) else 0
     # Reventa REAL de la zona (captaciones del asesor) — cierra el flywheel.
-    from resale_data import resale_reference
+    from resale_data import resale_reference, colonia_valuation
     rref = await resale_reference(db, colonia_slug)
     precio_contexto: Optional[Dict[str, Any]] = None
     if _col and este_pm2:
@@ -169,6 +169,10 @@ async def buy_signal(
         if precio_contexto:
             precio_contexto["precio_lista"] = round(u_price)
             precio_contexto["m2"] = u_m2
+
+    # Valuación 4-fuentes de la zona (ventas reales + reventa + obra nueva + estimado · C.3)
+    base_pm2 = float((_col or {}).get("price_m2_num") or 0) or None
+    valuacion_zona = await colonia_valuation(db, colonia_slug, obra_pm2=peers_pm2, base_pm2=base_pm2)
 
     # ── Buen Momento (ciclo + índices) ──
     timing: Optional[Dict[str, Any]] = None
@@ -196,7 +200,7 @@ async def buy_signal(
     return JSONResponse({
         "ok": True, "dev_id": dev_id, "nombre": dev.get("name"),
         "zona": dev.get("colonia") or colonia_slug,
-        "precio_contexto": precio_contexto, "timing": timing, "veredicto": veredicto,
+        "precio_contexto": precio_contexto, "valuacion_zona": valuacion_zona, "timing": timing, "veredicto": veredicto,
         "nota": "Comparamos obra nueva contra obra nueva comparable de la zona (no contra reventa). "
                 "El momento sale de la tendencia real de precios de la zona. No es una recomendación de inversión.",
     })
