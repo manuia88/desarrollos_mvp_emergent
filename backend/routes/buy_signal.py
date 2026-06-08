@@ -173,15 +173,26 @@ async def buy_signal(
     # Valuación 4-fuentes de la zona (ventas reales + reventa + obra nueva + estimado · C.3)
     base_pm2 = float((_col or {}).get("price_m2_num") or 0) or None
     valuacion_zona = await colonia_valuation(db, colonia_slug, obra_pm2=peers_pm2, base_pm2=base_pm2)
-    # Plusvalía OFICIAL (Índice SHF · ING.3) — apreciación anual real de la zona metropolitana.
+    # Datos oficiales de la colonia (alcaldía para SHF + valor catastral del suelo).
+    _colrec = None
+    try:
+        _colrec = await db.colonias.find_one(
+            {"id": colonia_slug}, {"_id": 0, "alcaldia": 1, "vsuelo_pm2_catastral": 1})
+    except Exception:
+        _colrec = None
+    _alcaldia = (_colrec or {}).get("alcaldia")
+    # Plusvalía OFICIAL (Índice SHF · ING.3) — apreciación anual real, por ALCALDÍA cuando tiene
+    # índice propio (5 alcaldías) o promedio CDMX cuando no (honesto). + serie histórica para gráfica.
     try:
         import shf_engine as _shf
-        valuacion_zona["plusvalia_oficial"] = await _shf.get_appreciation(db)
+        valuacion_zona["plusvalia_oficial"] = await _shf.get_appreciation(db, alcaldia=_alcaldia)
+        _serie = await _shf.get_series(db, alcaldia=_alcaldia)
+        if _serie.get("serie"):
+            valuacion_zona["plusvalia_serie"] = _serie["serie"][-12:]  # últimos ~3 años trimestrales
     except Exception:
         pass
     # Valor catastral OFICIAL del suelo ($/m² · SIG · ING.1/2) — ancla/piso oficial granular.
     try:
-        _colrec = await db.colonias.find_one({"id": colonia_slug}, {"_id": 0, "vsuelo_pm2_catastral": 1})
         if _colrec and _colrec.get("vsuelo_pm2_catastral"):
             valuacion_zona["valor_catastral_suelo"] = _colrec["vsuelo_pm2_catastral"]
     except Exception:

@@ -35,6 +35,24 @@ function PriceScale({ refs, este }) {
   );
 }
 
+// Mini-gráfica de la plusvalía oficial (índice SHF trimestral) — tendencia, sin ejes.
+function Sparkline({ data }) {
+  if (!Array.isArray(data) || data.length < 3) return null;
+  const ys = data.map(p => p.indice).filter(v => v != null);
+  if (ys.length < 3) return null;
+  const min = Math.min(...ys), max = Math.max(...ys), span = max - min || 1;
+  const w = 64, h = 18;
+  const pts = ys.map((v, i) => `${(i / (ys.length - 1)) * w},${h - ((v - min) / span) * h}`).join(' ');
+  const up = ys[ys.length - 1] >= ys[0];
+  const col = up ? 'var(--ok, #1FA06A)' : '#fca5a5';
+  return (
+    <svg width={w} height={h} style={{ display: 'block' }} aria-label="Tendencia de plusvalía">
+      <polyline points={pts} fill="none" stroke={col} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={w} cy={h - ((ys[ys.length - 1] - min) / span) * h} r="1.8" fill={col} />
+    </svg>
+  );
+}
+
 export default function BuySignal({ devId }) {
   const [d, setD] = useState(null);
   useEffect(() => { if (devId) fetchBuySignal(devId).then(setD).catch(() => setD(false)); }, [devId]);
@@ -122,9 +140,17 @@ export default function BuySignal({ devId }) {
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>{vz.leyenda}</div>
             {vz.plusvalia_oficial && vz.plusvalia_oficial.plusvalia_anual_pct != null && (
-              <div style={{ marginTop: 6, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--ok, #1FA06A)' }}>
-                Plusvalía oficial (SHF): +{vz.plusvalia_oficial.plusvalia_anual_pct}% anual
-                <span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · {vz.plusvalia_oficial.region} · {vz.plusvalia_oficial.periodo}</span>
+              <div style={{ marginTop: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--ok, #1FA06A)' }}>
+                    Plusvalía Oficial (SHF): +{vz.plusvalia_oficial.plusvalia_anual_pct}% anual
+                  </span>
+                  <Sparkline data={vz.plusvalia_serie} />
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2 }}>
+                  {vz.plusvalia_oficial.zona} · {vz.plusvalia_oficial.periodo}
+                  {vz.plusvalia_oficial.es_propio === false && ' · promedio CDMX (esta zona no tiene índice propio del SHF)'}
+                </div>
               </div>
             )}
             {vz.valor_catastral_suelo != null && (

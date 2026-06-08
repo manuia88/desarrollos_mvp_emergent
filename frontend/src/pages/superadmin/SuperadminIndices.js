@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial, getShf, refreshShf } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -17,9 +17,11 @@ export default function SuperadminIndices() {
   const [tier, setTier] = useState('');
   const [ingest, setIngest] = useState({ busy: false, msg: '' });
   const [calib, setCalib] = useState(null);
+  const [shf, setShf] = useState(null);
 
   const refrescar = () => listIndices({ tier: tier || undefined, limit: 200 }).then(setData).catch(() => {});
   const refrescarCalib = () => getCalibracionComercial('CDMX').then(setCalib).catch(() => {});
+  const refrescarShf = () => getShf().then(setShf).catch(() => {});
 
   const cargarCatalogo = async () => {
     setIngest({ busy: true, msg: '' });
@@ -93,6 +95,20 @@ export default function SuperadminIndices() {
     }
   };
 
+  const refrescarPlusvalia = async () => {
+    setIngest({ busy: true, msg: 'Refrescando la plusvalía oficial (SHF · XLSX trimestral)…' });
+    try {
+      const r = await refreshShf();
+      const base = r.ok
+        ? `Plusvalía actualizada · ${r.alcaldias_actualizadas ?? 0} alcaldías · ${r.serie?.cargadas ?? 0} trimestres en la serie.`
+        : (r.reason || 'No se pudo refrescar.');
+      setIngest({ busy: false, msg: base });
+      refrescarShf();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al refrescar la plusvalía.' });
+    }
+  };
+
   const recalibrarValorComercial = async () => {
     setIngest({ busy: true, msg: 'Aprendiendo la relación entre el valor del suelo y el precio comercial con las ventas reales…' });
     try {
@@ -114,7 +130,7 @@ export default function SuperadminIndices() {
     return () => { alive = false; };
   }, [tier]);
 
-  useEffect(() => { refrescarCalib(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refrescarCalib(); refrescarShf(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = useMemo(() => (data && data.items) || [], [data]);
   const leyenda = (data && data.leyenda) || [];
@@ -197,6 +213,9 @@ export default function SuperadminIndices() {
             <button data-testid="ix-recalibrar-comercial" onClick={recalibrarValorComercial} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Recalibrar Valor Comercial
             </button>
+            <button data-testid="ix-refrescar-shf" onClick={refrescarPlusvalia} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Refrescar Plusvalía (SHF)
+            </button>
             <button data-testid="ix-llenar-todo" onClick={llenarTodo} disabled={ingest.busy} style={{ ...btnSecondary, borderColor: 'rgba(var(--theme-rgb),0.5)', opacity: ingest.busy ? 0.6 : 1 }}>
               Llenar Todo (Auto)
             </button>
@@ -235,6 +254,33 @@ export default function SuperadminIndices() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Plusvalía oficial SHF por alcaldía (ING.3 · 5 propias + promedio CDMX) */}
+          {shf && (shf.alcaldias || []).length > 0 && (
+            <div data-testid="ix-shf" style={{ marginTop: 14, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'rgba(var(--cream-rgb),0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>Plusvalía Oficial por Alcaldía (SHF)</span>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+                  {shf.snapshot?.periodo} · {shf.serie_filas} trimestres de historia
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                {shf.alcaldias.map((a, i) => (
+                  <span key={i} title={`Índice ${a.indice}`} style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 9999, background: 'rgba(31,160,106,0.10)', border: '1px solid rgba(31,160,106,0.28)', color: 'var(--ok,#1FA06A)' }}>
+                    {a.alcaldia}: +{a.plusvalia_anual_pct}%
+                  </span>
+                ))}
+                {shf.cdmx_estatal && (
+                  <span title={`Índice ${shf.cdmx_estatal.indice}`} style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 9999, border: '1px solid var(--border)', color: 'var(--cream-2)' }}>
+                    {shf.cdmx_estatal.alcaldia}: +{shf.cdmx_estatal.plusvalia_anual_pct}% (heredan las otras 11)
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>
+                Solo 5 alcaldías tienen índice SHF propio (volumen hipotecario suficiente); las demás usan el promedio CDMX. El +5.1% del boletín es la zona metropolitana (incluye Edomex), no la ciudad.
+              </div>
             </div>
           )}
         </Card>

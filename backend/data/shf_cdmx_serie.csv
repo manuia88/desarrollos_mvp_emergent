@@ -1,0 +1,511 @@
+Estado,Alcaldia,Trimestre,Anio,Indice
+Ciudad de México,CDMX (estatal),1,2005,33.81
+Ciudad de México,Gustavo A. Madero,1,2005,34.33
+Ciudad de México,Iztapalapa,1,2005,35.49
+Ciudad de México,Benito Juárez,1,2005,33.14
+Ciudad de México,Cuauhtémoc,1,2005,32.76
+Ciudad de México,Miguel Hidalgo,1,2005,32.59
+Ciudad de México,CDMX (estatal),2,2005,35.37
+Ciudad de México,Gustavo A. Madero,2,2005,35.8
+Ciudad de México,Iztapalapa,2,2005,36.93
+Ciudad de México,Benito Juárez,2,2005,34.77
+Ciudad de México,Cuauhtémoc,2,2005,34.35
+Ciudad de México,Miguel Hidalgo,2,2005,34.34
+Ciudad de México,CDMX (estatal),3,2005,36.78
+Ciudad de México,Gustavo A. Madero,3,2005,37.21
+Ciudad de México,Iztapalapa,3,2005,38.3
+Ciudad de México,Benito Juárez,3,2005,36.17
+Ciudad de México,Cuauhtémoc,3,2005,35.62
+Ciudad de México,Miguel Hidalgo,3,2005,35.68
+Ciudad de México,CDMX (estatal),4,2005,36.62
+Ciudad de México,Gustavo A. Madero,4,2005,37.1
+Ciudad de México,Iztapalapa,4,2005,38.38
+Ciudad de México,Benito Juárez,4,2005,36
+Ciudad de México,Cuauhtémoc,4,2005,35.62
+Ciudad de México,Miguel Hidalgo,4,2005,35.42
+Ciudad de México,CDMX (estatal),1,2006,37.68
+Ciudad de México,Gustavo A. Madero,1,2006,38.21
+Ciudad de México,Iztapalapa,1,2006,39.54
+Ciudad de México,Benito Juárez,1,2006,37.05
+Ciudad de México,Cuauhtémoc,1,2006,36.68
+Ciudad de México,Miguel Hidalgo,1,2006,36.39
+Ciudad de México,CDMX (estatal),2,2006,38.74
+Ciudad de México,Gustavo A. Madero,2,2006,39.18
+Ciudad de México,Iztapalapa,2,2006,40.61
+Ciudad de México,Benito Juárez,2,2006,38.13
+Ciudad de México,Cuauhtémoc,2,2006,37.7
+Ciudad de México,Miguel Hidalgo,2,2006,37.4
+Ciudad de México,CDMX (estatal),3,2006,39.37
+Ciudad de México,Gustavo A. Madero,3,2006,39.75
+Ciudad de México,Iztapalapa,3,2006,41.37
+Ciudad de México,Benito Juárez,3,2006,38.8
+Ciudad de México,Cuauhtémoc,3,2006,38.39
+Ciudad de México,Miguel Hidalgo,3,2006,38.02
+Ciudad de México,CDMX (estatal),4,2006,39.95
+Ciudad de México,Gustavo A. Madero,4,2006,40.23
+Ciudad de México,Iztapalapa,4,2006,41.91
+Ciudad de México,Benito Juárez,4,2006,39.43
+Ciudad de México,Cuauhtémoc,4,2006,38.92
+Ciudad de México,Miguel Hidalgo,4,2006,38.64
+Ciudad de México,CDMX (estatal),1,2007,41.46
+Ciudad de México,Gustavo A. Madero,1,2007,41.71
+Ciudad de México,Iztapalapa,1,2007,43.46
+Ciudad de México,Benito Juárez,1,2007,40.94
+Ciudad de México,Cuauhtémoc,1,2007,40.33
+Ciudad de México,Miguel Hidalgo,1,2007,40.14
+Ciudad de México,CDMX (estatal),2,2007,43.29
+Ciudad de México,Gustavo A. Madero,2,2007,43.48
+Ciudad de México,Iztapalapa,2,2007,45.26
+Ciudad de México,Benito Juárez,2,2007,42.79
+Ciudad de México,Cuauhtémoc,2,2007,42.13
+Ciudad de México,Miguel Hidalgo,2,2007,41.92
+Ciudad de México,CDMX (estatal),3,2007,44.61
+Ciudad de México,Gustavo A. Madero,3,2007,44.65
+Ciudad de México,Iztapalapa,3,2007,46.22
+Ciudad de México,Benito Juárez,3,2007,44.17
+Ciudad de México,Cuauhtémoc,3,2007,43.32
+Ciudad de México,Miguel Hidalgo,3,2007,43.25
+Ciudad de México,CDMX (estatal),4,2007,44.8
+Ciudad de México,Gustavo A. Madero,4,2007,44.71
+Ciudad de México,Iztapalapa,4,2007,46.06
+Ciudad de México,Benito Juárez,4,2007,44.45
+Ciudad de México,Cuauhtémoc,4,2007,43.57
+Ciudad de México,Miguel Hidalgo,4,2007,43.5
+Ciudad de México,CDMX (estatal),1,2008,45.94
+Ciudad de México,Gustavo A. Madero,1,2008,45.85
+Ciudad de México,Iztapalapa,1,2008,46.99
+Ciudad de México,Benito Juárez,1,2008,45.59
+Ciudad de México,Cuauhtémoc,1,2008,44.67
+Ciudad de México,Miguel Hidalgo,1,2008,44.64
+Ciudad de México,CDMX (estatal),2,2008,47.37
+Ciudad de México,Gustavo A. Madero,2,2008,47.53
+Ciudad de México,Iztapalapa,2,2008,48.5
+Ciudad de México,Benito Juárez,2,2008,46.87
+Ciudad de México,Cuauhtémoc,2,2008,46.02
+Ciudad de México,Miguel Hidalgo,2,2008,45.99
+Ciudad de México,CDMX (estatal),3,2008,48.57
+Ciudad de México,Gustavo A. Madero,3,2008,49
+Ciudad de México,Iztapalapa,3,2008,49.78
+Ciudad de México,Benito Juárez,3,2008,47.94
+Ciudad de México,Cuauhtémoc,3,2008,47.19
+Ciudad de México,Miguel Hidalgo,3,2008,47.09
+Ciudad de México,CDMX (estatal),4,2008,49.14
+Ciudad de México,Gustavo A. Madero,4,2008,49.88
+Ciudad de México,Iztapalapa,4,2008,50.51
+Ciudad de México,Benito Juárez,4,2008,48.34
+Ciudad de México,Cuauhtémoc,4,2008,47.64
+Ciudad de México,Miguel Hidalgo,4,2008,47.57
+Ciudad de México,CDMX (estatal),1,2009,49.57
+Ciudad de México,Gustavo A. Madero,1,2009,50.46
+Ciudad de México,Iztapalapa,1,2009,51.12
+Ciudad de México,Benito Juárez,1,2009,48.7
+Ciudad de México,Cuauhtémoc,1,2009,48.14
+Ciudad de México,Miguel Hidalgo,1,2009,47.93
+Ciudad de México,CDMX (estatal),2,2009,50.17
+Ciudad de México,Gustavo A. Madero,2,2009,51.1
+Ciudad de México,Iztapalapa,2,2009,51.78
+Ciudad de México,Benito Juárez,2,2009,49.28
+Ciudad de México,Cuauhtémoc,2,2009,48.82
+Ciudad de México,Miguel Hidalgo,2,2009,48.52
+Ciudad de México,CDMX (estatal),3,2009,50.31
+Ciudad de México,Gustavo A. Madero,3,2009,51.26
+Ciudad de México,Iztapalapa,3,2009,52.04
+Ciudad de México,Benito Juárez,3,2009,49.46
+Ciudad de México,Cuauhtémoc,3,2009,49.17
+Ciudad de México,Miguel Hidalgo,3,2009,48.63
+Ciudad de México,CDMX (estatal),4,2009,50.55
+Ciudad de México,Gustavo A. Madero,4,2009,51.45
+Ciudad de México,Iztapalapa,4,2009,52.31
+Ciudad de México,Benito Juárez,4,2009,49.81
+Ciudad de México,Cuauhtémoc,4,2009,49.61
+Ciudad de México,Miguel Hidalgo,4,2009,48.88
+Ciudad de México,CDMX (estatal),1,2010,51.3
+Ciudad de México,Gustavo A. Madero,1,2010,52.19
+Ciudad de México,Iztapalapa,1,2010,53.12
+Ciudad de México,Benito Juárez,1,2010,50.65
+Ciudad de México,Cuauhtémoc,1,2010,50.5
+Ciudad de México,Miguel Hidalgo,1,2010,49.64
+Ciudad de México,CDMX (estatal),2,2010,52.29
+Ciudad de México,Gustavo A. Madero,2,2010,53.18
+Ciudad de México,Iztapalapa,2,2010,54.21
+Ciudad de México,Benito Juárez,2,2010,51.68
+Ciudad de México,Cuauhtémoc,2,2010,51.63
+Ciudad de México,Miguel Hidalgo,2,2010,50.63
+Ciudad de México,CDMX (estatal),3,2010,53.29
+Ciudad de México,Gustavo A. Madero,3,2010,54.27
+Ciudad de México,Iztapalapa,3,2010,55.43
+Ciudad de México,Benito Juárez,3,2010,52.71
+Ciudad de México,Cuauhtémoc,3,2010,52.81
+Ciudad de México,Miguel Hidalgo,3,2010,51.68
+Ciudad de México,CDMX (estatal),4,2010,54.06
+Ciudad de México,Gustavo A. Madero,4,2010,55.15
+Ciudad de México,Iztapalapa,4,2010,56.39
+Ciudad de México,Benito Juárez,4,2010,53.4
+Ciudad de México,Cuauhtémoc,4,2010,53.66
+Ciudad de México,Miguel Hidalgo,4,2010,52.45
+Ciudad de México,CDMX (estatal),1,2011,55.09
+Ciudad de México,Gustavo A. Madero,1,2011,56.36
+Ciudad de México,Iztapalapa,1,2011,57.55
+Ciudad de México,Benito Juárez,1,2011,54.29
+Ciudad de México,Cuauhtémoc,1,2011,54.57
+Ciudad de México,Miguel Hidalgo,1,2011,53.39
+Ciudad de México,CDMX (estatal),2,2011,56.16
+Ciudad de México,Gustavo A. Madero,2,2011,57.71
+Ciudad de México,Iztapalapa,2,2011,58.75
+Ciudad de México,Benito Juárez,2,2011,55.18
+Ciudad de México,Cuauhtémoc,2,2011,55.46
+Ciudad de México,Miguel Hidalgo,2,2011,54.35
+Ciudad de México,CDMX (estatal),3,2011,57.31
+Ciudad de México,Gustavo A. Madero,3,2011,59.13
+Ciudad de México,Iztapalapa,3,2011,60.02
+Ciudad de México,Benito Juárez,3,2011,56.17
+Ciudad de México,Cuauhtémoc,3,2011,56.47
+Ciudad de México,Miguel Hidalgo,3,2011,55.38
+Ciudad de México,CDMX (estatal),4,2011,58.33
+Ciudad de México,Gustavo A. Madero,4,2011,60.34
+Ciudad de México,Iztapalapa,4,2011,61.12
+Ciudad de México,Benito Juárez,4,2011,57.03
+Ciudad de México,Cuauhtémoc,4,2011,57.31
+Ciudad de México,Miguel Hidalgo,4,2011,56.28
+Ciudad de México,CDMX (estatal),1,2012,59.43
+Ciudad de México,Gustavo A. Madero,1,2012,61.54
+Ciudad de México,Iztapalapa,1,2012,62.33
+Ciudad de México,Benito Juárez,1,2012,58.06
+Ciudad de México,Cuauhtémoc,1,2012,58.38
+Ciudad de México,Miguel Hidalgo,1,2012,57.34
+Ciudad de México,CDMX (estatal),2,2012,60.29
+Ciudad de México,Gustavo A. Madero,2,2012,62.46
+Ciudad de México,Iztapalapa,2,2012,63.35
+Ciudad de México,Benito Juárez,2,2012,58.89
+Ciudad de México,Cuauhtémoc,2,2012,59.27
+Ciudad de México,Miguel Hidalgo,2,2012,58.18
+Ciudad de México,CDMX (estatal),3,2012,61.35
+Ciudad de México,Gustavo A. Madero,3,2012,63.54
+Ciudad de México,Iztapalapa,3,2012,64.51
+Ciudad de México,Benito Juárez,3,2012,59.97
+Ciudad de México,Cuauhtémoc,3,2012,60.4
+Ciudad de México,Miguel Hidalgo,3,2012,59.2
+Ciudad de México,CDMX (estatal),4,2012,62.12
+Ciudad de México,Gustavo A. Madero,4,2012,64.13
+Ciudad de México,Iztapalapa,4,2012,65.17
+Ciudad de México,Benito Juárez,4,2012,60.91
+Ciudad de México,Cuauhtémoc,4,2012,61.39
+Ciudad de México,Miguel Hidalgo,4,2012,60.07
+Ciudad de México,CDMX (estatal),1,2013,63.29
+Ciudad de México,Gustavo A. Madero,1,2013,65.16
+Ciudad de México,Iztapalapa,1,2013,66.19
+Ciudad de México,Benito Juárez,1,2013,62.19
+Ciudad de México,Cuauhtémoc,1,2013,62.72
+Ciudad de México,Miguel Hidalgo,1,2013,61.31
+Ciudad de México,CDMX (estatal),2,2013,64.85
+Ciudad de México,Gustavo A. Madero,2,2013,66.57
+Ciudad de México,Iztapalapa,2,2013,67.59
+Ciudad de México,Benito Juárez,2,2013,63.82
+Ciudad de México,Cuauhtémoc,2,2013,64.43
+Ciudad de México,Miguel Hidalgo,2,2013,63.01
+Ciudad de México,CDMX (estatal),3,2013,66.09
+Ciudad de México,Gustavo A. Madero,3,2013,67.73
+Ciudad de México,Iztapalapa,3,2013,68.72
+Ciudad de México,Benito Juárez,3,2013,65.05
+Ciudad de México,Cuauhtémoc,3,2013,65.7
+Ciudad de México,Miguel Hidalgo,3,2013,64.37
+Ciudad de México,CDMX (estatal),4,2013,67.03
+Ciudad de México,Gustavo A. Madero,4,2013,68.67
+Ciudad de México,Iztapalapa,4,2013,69.7
+Ciudad de México,Benito Juárez,4,2013,65.98
+Ciudad de México,Cuauhtémoc,4,2013,66.63
+Ciudad de México,Miguel Hidalgo,4,2013,65.4
+Ciudad de México,CDMX (estatal),1,2014,68.46
+Ciudad de México,Gustavo A. Madero,1,2014,70.14
+Ciudad de México,Iztapalapa,1,2014,71.24
+Ciudad de México,Benito Juárez,1,2014,67.37
+Ciudad de México,Cuauhtémoc,1,2014,67.93
+Ciudad de México,Miguel Hidalgo,1,2014,66.82
+Ciudad de México,CDMX (estatal),2,2014,69.54
+Ciudad de México,Gustavo A. Madero,2,2014,71.48
+Ciudad de México,Iztapalapa,2,2014,72.72
+Ciudad de México,Benito Juárez,2,2014,68.37
+Ciudad de México,Cuauhtémoc,2,2014,68.88
+Ciudad de México,Miguel Hidalgo,2,2014,67.81
+Ciudad de México,CDMX (estatal),3,2014,70.72
+Ciudad de México,Gustavo A. Madero,3,2014,72.92
+Ciudad de México,Iztapalapa,3,2014,74.27
+Ciudad de México,Benito Juárez,3,2014,69.51
+Ciudad de México,Cuauhtémoc,3,2014,69.93
+Ciudad de México,Miguel Hidalgo,3,2014,68.91
+Ciudad de México,CDMX (estatal),4,2014,72.67
+Ciudad de México,Gustavo A. Madero,4,2014,75.04
+Ciudad de México,Iztapalapa,4,2014,76.43
+Ciudad de México,Benito Juárez,4,2014,71.43
+Ciudad de México,Cuauhtémoc,4,2014,71.81
+Ciudad de México,Miguel Hidalgo,4,2014,70.8
+Ciudad de México,CDMX (estatal),1,2015,74.59
+Ciudad de México,Gustavo A. Madero,1,2015,76.96
+Ciudad de México,Iztapalapa,1,2015,78.34
+Ciudad de México,Benito Juárez,1,2015,73.41
+Ciudad de México,Cuauhtémoc,1,2015,73.78
+Ciudad de México,Miguel Hidalgo,1,2015,72.77
+Ciudad de México,CDMX (estatal),2,2015,78.26
+Ciudad de México,Gustavo A. Madero,2,2015,80.32
+Ciudad de México,Iztapalapa,2,2015,81.64
+Ciudad de México,Benito Juárez,2,2015,77.28
+Ciudad de México,Cuauhtémoc,2,2015,77.62
+Ciudad de México,Miguel Hidalgo,2,2015,76.66
+Ciudad de México,CDMX (estatal),3,2015,81.77
+Ciudad de México,Gustavo A. Madero,3,2015,83.39
+Ciudad de México,Iztapalapa,3,2015,84.61
+Ciudad de México,Benito Juárez,3,2015,81.01
+Ciudad de México,Cuauhtémoc,3,2015,81.41
+Ciudad de México,Miguel Hidalgo,3,2015,80.46
+Ciudad de México,CDMX (estatal),4,2015,84.16
+Ciudad de México,Gustavo A. Madero,4,2015,85.44
+Ciudad de México,Iztapalapa,4,2015,86.48
+Ciudad de México,Benito Juárez,4,2015,83.61
+Ciudad de México,Cuauhtémoc,4,2015,84.15
+Ciudad de México,Miguel Hidalgo,4,2015,83.06
+Ciudad de México,CDMX (estatal),1,2016,86.11
+Ciudad de México,Gustavo A. Madero,1,2016,87.03
+Ciudad de México,Iztapalapa,1,2016,87.75
+Ciudad de México,Benito Juárez,1,2016,85.68
+Ciudad de México,Cuauhtémoc,1,2016,86.53
+Ciudad de México,Miguel Hidalgo,1,2016,85.23
+Ciudad de México,CDMX (estatal),2,2016,88.42
+Ciudad de México,Gustavo A. Madero,2,2016,89.38
+Ciudad de México,Iztapalapa,2,2016,90.13
+Ciudad de México,Benito Juárez,2,2016,87.93
+Ciudad de México,Cuauhtémoc,2,2016,88.74
+Ciudad de México,Miguel Hidalgo,2,2016,87.49
+Ciudad de México,CDMX (estatal),3,2016,90.6
+Ciudad de México,Gustavo A. Madero,3,2016,91.55
+Ciudad de México,Iztapalapa,3,2016,92.12
+Ciudad de México,Benito Juárez,3,2016,90.12
+Ciudad de México,Cuauhtémoc,3,2016,90.71
+Ciudad de México,Miguel Hidalgo,3,2016,89.65
+Ciudad de México,CDMX (estatal),4,2016,92.37
+Ciudad de México,Gustavo A. Madero,4,2016,93.11
+Ciudad de México,Iztapalapa,4,2016,93.49
+Ciudad de México,Benito Juárez,4,2016,91.98
+Ciudad de México,Cuauhtémoc,4,2016,92.27
+Ciudad de México,Miguel Hidalgo,4,2016,91.6
+Ciudad de México,CDMX (estatal),1,2017,95.7
+Ciudad de México,Gustavo A. Madero,1,2017,96.17
+Ciudad de México,Iztapalapa,1,2017,96.41
+Ciudad de México,Benito Juárez,1,2017,95.37
+Ciudad de México,Cuauhtémoc,1,2017,95.61
+Ciudad de México,Miguel Hidalgo,1,2017,95.25
+Ciudad de México,CDMX (estatal),2,2017,98.75
+Ciudad de México,Gustavo A. Madero,2,2017,99.04
+Ciudad de México,Iztapalapa,2,2017,99.06
+Ciudad de México,Benito Juárez,2,2017,98.55
+Ciudad de México,Cuauhtémoc,2,2017,98.58
+Ciudad de México,Miguel Hidalgo,2,2017,98.5
+Ciudad de México,CDMX (estatal),3,2017,101.65
+Ciudad de México,Gustavo A. Madero,3,2017,101.52
+Ciudad de México,Iztapalapa,3,2017,101.46
+Ciudad de México,Benito Juárez,3,2017,101.74
+Ciudad de México,Cuauhtémoc,3,2017,101.62
+Ciudad de México,Miguel Hidalgo,3,2017,101.81
+Ciudad de México,CDMX (estatal),4,2017,103.9
+Ciudad de México,Gustavo A. Madero,4,2017,103.27
+Ciudad de México,Iztapalapa,4,2017,103.07
+Ciudad de México,Benito Juárez,4,2017,104.34
+Ciudad de México,Cuauhtémoc,4,2017,104.18
+Ciudad de México,Miguel Hidalgo,4,2017,104.43
+Ciudad de México,CDMX (estatal),1,2018,106.55
+Ciudad de México,Gustavo A. Madero,1,2018,105.55
+Ciudad de México,Iztapalapa,1,2018,105.26
+Ciudad de México,Benito Juárez,1,2018,107.33
+Ciudad de México,Cuauhtémoc,1,2018,107.1
+Ciudad de México,Miguel Hidalgo,1,2018,107.35
+Ciudad de México,CDMX (estatal),2,2018,109.05
+Ciudad de México,Gustavo A. Madero,2,2018,107.83
+Ciudad de México,Iztapalapa,2,2018,107.51
+Ciudad de México,Benito Juárez,2,2018,110.04
+Ciudad de México,Cuauhtémoc,2,2018,109.73
+Ciudad de México,Miguel Hidalgo,2,2018,109.99
+Ciudad de México,CDMX (estatal),3,2018,112.19
+Ciudad de México,Gustavo A. Madero,3,2018,110.63
+Ciudad de México,Iztapalapa,3,2018,110.01
+Ciudad de México,Benito Juárez,3,2018,113.35
+Ciudad de México,Cuauhtémoc,3,2018,112.83
+Ciudad de México,Miguel Hidalgo,3,2018,113.36
+Ciudad de México,CDMX (estatal),4,2018,115.36
+Ciudad de México,Gustavo A. Madero,4,2018,113.63
+Ciudad de México,Iztapalapa,4,2018,112.88
+Ciudad de México,Benito Juárez,4,2018,116.64
+Ciudad de México,Cuauhtémoc,4,2018,115.94
+Ciudad de México,Miguel Hidalgo,4,2018,116.65
+Ciudad de México,CDMX (estatal),1,2019,118.99
+Ciudad de México,Gustavo A. Madero,1,2019,116.86
+Ciudad de México,Iztapalapa,1,2019,116.04
+Ciudad de México,Benito Juárez,1,2019,120.42
+Ciudad de México,Cuauhtémoc,1,2019,119.76
+Ciudad de México,Miguel Hidalgo,1,2019,120.77
+Ciudad de México,CDMX (estatal),2,2019,122.28
+Ciudad de México,Gustavo A. Madero,2,2019,119.73
+Ciudad de México,Iztapalapa,2,2019,118.74
+Ciudad de México,Benito Juárez,2,2019,123.99
+Ciudad de México,Cuauhtémoc,2,2019,123.18
+Ciudad de México,Miguel Hidalgo,2,2019,124.43
+Ciudad de México,CDMX (estatal),3,2019,123.24
+Ciudad de México,Gustavo A. Madero,3,2019,120.32
+Ciudad de México,Iztapalapa,3,2019,119.44
+Ciudad de México,Benito Juárez,3,2019,125.24
+Ciudad de México,Cuauhtémoc,3,2019,124.46
+Ciudad de México,Miguel Hidalgo,3,2019,125.68
+Ciudad de México,CDMX (estatal),4,2019,123.77
+Ciudad de México,Gustavo A. Madero,4,2019,120.41
+Ciudad de México,Iztapalapa,4,2019,119.56
+Ciudad de México,Benito Juárez,4,2019,126.08
+Ciudad de México,Cuauhtémoc,4,2019,125.24
+Ciudad de México,Miguel Hidalgo,4,2019,126.65
+Ciudad de México,CDMX (estatal),1,2020,125.4
+Ciudad de México,Gustavo A. Madero,1,2020,121.92
+Ciudad de México,Iztapalapa,1,2020,120.91
+Ciudad de México,Benito Juárez,1,2020,127.78
+Ciudad de México,Cuauhtémoc,1,2020,126.81
+Ciudad de México,Miguel Hidalgo,1,2020,128.49
+Ciudad de México,CDMX (estatal),2,2020,124.65
+Ciudad de México,Gustavo A. Madero,2,2020,120.64
+Ciudad de México,Iztapalapa,2,2020,119.58
+Ciudad de México,Benito Juárez,2,2020,127.36
+Ciudad de México,Cuauhtémoc,2,2020,126.43
+Ciudad de México,Miguel Hidalgo,2,2020,128.17
+Ciudad de México,CDMX (estatal),3,2020,122.87
+Ciudad de México,Gustavo A. Madero,3,2020,118.4
+Ciudad de México,Iztapalapa,3,2020,117.31
+Ciudad de México,Benito Juárez,3,2020,125.85
+Ciudad de México,Cuauhtémoc,3,2020,125.12
+Ciudad de México,Miguel Hidalgo,3,2020,126.72
+Ciudad de México,CDMX (estatal),4,2020,123.06
+Ciudad de México,Gustavo A. Madero,4,2020,118.25
+Ciudad de México,Iztapalapa,4,2020,117.2
+Ciudad de México,Benito Juárez,4,2020,126.24
+Ciudad de México,Cuauhtémoc,4,2020,125.73
+Ciudad de México,Miguel Hidalgo,4,2020,127.12
+Ciudad de México,CDMX (estatal),1,2021,124.97
+Ciudad de México,Gustavo A. Madero,1,2021,120.54
+Ciudad de México,Iztapalapa,1,2021,119.12
+Ciudad de México,Benito Juárez,1,2021,128.06
+Ciudad de México,Cuauhtémoc,1,2021,126.97
+Ciudad de México,Miguel Hidalgo,1,2021,129.4
+Ciudad de México,CDMX (estatal),2,2021,127.6
+Ciudad de México,Gustavo A. Madero,2,2021,123.05
+Ciudad de México,Iztapalapa,2,2021,121.65
+Ciudad de México,Benito Juárez,2,2021,130.74
+Ciudad de México,Cuauhtémoc,2,2021,129.69
+Ciudad de México,Miguel Hidalgo,2,2021,132.03
+Ciudad de México,CDMX (estatal),3,2021,130.53
+Ciudad de México,Gustavo A. Madero,3,2021,125.75
+Ciudad de México,Iztapalapa,3,2021,124.18
+Ciudad de México,Benito Juárez,3,2021,133.86
+Ciudad de México,Cuauhtémoc,3,2021,132.84
+Ciudad de México,Miguel Hidalgo,3,2021,135.07
+Ciudad de México,CDMX (estatal),4,2021,131.94
+Ciudad de México,Gustavo A. Madero,4,2021,126.92
+Ciudad de México,Iztapalapa,4,2021,125.14
+Ciudad de México,Benito Juárez,4,2021,135.42
+Ciudad de México,Cuauhtémoc,4,2021,134.47
+Ciudad de México,Miguel Hidalgo,4,2021,136.5
+Ciudad de México,CDMX (estatal),1,2022,133.29
+Ciudad de México,Gustavo A. Madero,1,2022,127.88
+Ciudad de México,Iztapalapa,1,2022,126.01
+Ciudad de México,Benito Juárez,1,2022,137.04
+Ciudad de México,Cuauhtémoc,1,2022,136.1
+Ciudad de México,Miguel Hidalgo,1,2022,137.9
+Ciudad de México,CDMX (estatal),2,2022,136.58
+Ciudad de México,Gustavo A. Madero,2,2022,131.04
+Ciudad de México,Iztapalapa,2,2022,129.21
+Ciudad de México,Benito Juárez,2,2022,140.57
+Ciudad de México,Cuauhtémoc,2,2022,139.7
+Ciudad de México,Miguel Hidalgo,2,2022,141.29
+Ciudad de México,CDMX (estatal),3,2022,141.14
+Ciudad de México,Gustavo A. Madero,3,2022,135.62
+Ciudad de México,Iztapalapa,3,2022,133.76
+Ciudad de México,Benito Juárez,3,2022,145.31
+Ciudad de México,Cuauhtémoc,3,2022,144.51
+Ciudad de México,Miguel Hidalgo,3,2022,145.82
+Ciudad de México,CDMX (estatal),4,2022,144.63
+Ciudad de México,Gustavo A. Madero,4,2022,139.27
+Ciudad de México,Iztapalapa,4,2022,137.49
+Ciudad de México,Benito Juárez,4,2022,148.92
+Ciudad de México,Cuauhtémoc,4,2022,148.41
+Ciudad de México,Miguel Hidalgo,4,2022,149.28
+Ciudad de México,CDMX (estatal),1,2023,150.38
+Ciudad de México,Gustavo A. Madero,1,2023,145.43
+Ciudad de México,Iztapalapa,1,2023,143.9
+Ciudad de México,Benito Juárez,1,2023,154.53
+Ciudad de México,Cuauhtémoc,1,2023,155.12
+Ciudad de México,Miguel Hidalgo,1,2023,154.55
+Ciudad de México,CDMX (estatal),2,2023,154.05
+Ciudad de México,Gustavo A. Madero,2,2023,149.15
+Ciudad de México,Iztapalapa,2,2023,147.47
+Ciudad de México,Benito Juárez,2,2023,158.35
+Ciudad de México,Cuauhtémoc,2,2023,159.17
+Ciudad de México,Miguel Hidalgo,2,2023,158.2
+Ciudad de México,CDMX (estatal),3,2023,155.57
+Ciudad de México,Gustavo A. Madero,3,2023,150.61
+Ciudad de México,Iztapalapa,3,2023,148.97
+Ciudad de México,Benito Juárez,3,2023,159.9
+Ciudad de México,Cuauhtémoc,3,2023,161.18
+Ciudad de México,Miguel Hidalgo,3,2023,159.88
+Ciudad de México,CDMX (estatal),4,2023,156.75
+Ciudad de México,Gustavo A. Madero,4,2023,151.27
+Ciudad de México,Iztapalapa,4,2023,149.6
+Ciudad de México,Benito Juárez,4,2023,161.48
+Ciudad de México,Cuauhtémoc,4,2023,162.77
+Ciudad de México,Miguel Hidalgo,4,2023,161.39
+Ciudad de México,CDMX (estatal),1,2024,160.08
+Ciudad de México,Gustavo A. Madero,1,2024,154.3
+Ciudad de México,Iztapalapa,1,2024,152.7
+Ciudad de México,Benito Juárez,1,2024,165.07
+Ciudad de México,Cuauhtémoc,1,2024,166.78
+Ciudad de México,Miguel Hidalgo,1,2024,164.99
+Ciudad de México,CDMX (estatal),2,2024,162.36
+Ciudad de México,Gustavo A. Madero,2,2024,156.58
+Ciudad de México,Iztapalapa,2,2024,155.46
+Ciudad de México,Benito Juárez,2,2024,167.62
+Ciudad de México,Cuauhtémoc,2,2024,170.07
+Ciudad de México,Miguel Hidalgo,2,2024,167.35
+Ciudad de México,CDMX (estatal),3,2024,164.59
+Ciudad de México,Gustavo A. Madero,3,2024,158.77
+Ciudad de México,Iztapalapa,3,2024,158.12
+Ciudad de México,Benito Juárez,3,2024,170.13
+Ciudad de México,Cuauhtémoc,3,2024,173.12
+Ciudad de México,Miguel Hidalgo,3,2024,169.58
+Ciudad de México,CDMX (estatal),4,2024,165.74
+Ciudad de México,Gustavo A. Madero,4,2024,160.57
+Ciudad de México,Iztapalapa,4,2024,160.58
+Ciudad de México,Benito Juárez,4,2024,171.01
+Ciudad de México,Cuauhtémoc,4,2024,174.96
+Ciudad de México,Miguel Hidalgo,4,2024,170.41
+Ciudad de México,CDMX (estatal),1,2025,167.71
+Ciudad de México,Gustavo A. Madero,1,2025,163.24
+Ciudad de México,Iztapalapa,1,2025,164.64
+Ciudad de México,Benito Juárez,1,2025,171.95
+Ciudad de México,Cuauhtémoc,1,2025,176.84
+Ciudad de México,Miguel Hidalgo,1,2025,172.36
+Ciudad de México,CDMX (estatal),2,2025,170.11
+Ciudad de México,Gustavo A. Madero,2,2025,166.16
+Ciudad de México,Iztapalapa,2,2025,167.84
+Ciudad de México,Benito Juárez,2,2025,174.07
+Ciudad de México,Cuauhtémoc,2,2025,179.43
+Ciudad de México,Miguel Hidalgo,2,2025,174.48
+Ciudad de México,CDMX (estatal),3,2025,171.6
+Ciudad de México,Gustavo A. Madero,3,2025,168.1
+Ciudad de México,Iztapalapa,3,2025,169.98
+Ciudad de México,Benito Juárez,3,2025,175.42
+Ciudad de México,Cuauhtémoc,3,2025,181.02
+Ciudad de México,Miguel Hidalgo,3,2025,175.76
+Ciudad de México,CDMX (estatal),4,2025,173
+Ciudad de México,Gustavo A. Madero,4,2025,169.37
+Ciudad de México,Iztapalapa,4,2025,171.19
+Ciudad de México,Benito Juárez,4,2025,177.09
+Ciudad de México,Cuauhtémoc,4,2025,182.61
+Ciudad de México,Miguel Hidalgo,4,2025,177.36
+Ciudad de México,CDMX (estatal),1,2026,175.2
+Ciudad de México,Gustavo A. Madero,1,2026,171.3
+Ciudad de México,Iztapalapa,1,2026,173.12
+Ciudad de México,Benito Juárez,1,2026,179.68
+Ciudad de México,Cuauhtémoc,1,2026,185.2
+Ciudad de México,Miguel Hidalgo,1,2026,180.01

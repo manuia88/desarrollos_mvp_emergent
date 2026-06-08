@@ -102,7 +102,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 |---|---|---|---|
 | ING.1 | SIG WFS predios → **valor catastral oficial del suelo $/m² por colonia** (`sig_catastro_engine`: vsuelo/área · banda percentil · botón superadmin + en valuación del comprador) | ✅ | 16 colonias vivas · crece al sincronizar; `vsuelo` = total del lote, $/m² = vsuelo/área |
 | ING.2 | **Modelo valor del suelo → precio comercial** (`comercial_value_model`: regresión `comercial = a + b·catastral` ajustada con ventas reales + R² · estima la cola larga SOLO si es fiable · cada venta lo recalibra = flywheel) | 🟡 | motor + UI listos · HOY en stub honesto (0 ventas → no estima, suelo queda como piso) · se enciende solo al acumular cierres. Verificado E2E: 8 zonas→R² alto→estima Narvarte desde su suelo. Resta: valores unitarios 2026 (Gaceta) opcionales |
-| ING.3 | SHF índice plusvalía (XLSX gob.mx · `shf_engine`) | ✅ | Valle de México +5.1% anual · en valuación del comprador (NO Banxico — corregido) |
+| ING.3 | SHF índice plusvalía **por alcaldía** + serie 2005–2026 (`shf_engine` · CSV repo + parser XLSX real) | ✅ | 5 alcaldías con índice propio + CDMX +4.5% para las otras 11 · gráfica de historia en la ficha del comprador · botón superadmin. Corrige +5.1% (era ZM Valle de México c/Edomex, no CDMX) |
 
 ---
 

@@ -225,16 +225,38 @@ async def superadmin_colonias_sync_seguridad(
 
 @router.get("/api/superadmin/shf")
 async def superadmin_shf(request: Request):
-    """Índice SHF (plusvalía OFICIAL) — el dato y su apreciación por región (ING.3)."""
+    """Índice SHF (plusvalía OFICIAL) — snapshot + plusvalía por alcaldía CDMX (ING.3). Las 5
+    alcaldías con índice propio + el promedio estatal que heredan las otras 11."""
     await _sa(request)
     import shf_engine as shf
     db = request.app.state.db
-    return {"indice": await shf.ensure_shf(db), "cdmx": await shf.get_appreciation(db)}
+    doc = await shf.ensure_shf(db)
+    alcaldias = doc.get("alcaldias") or {}
+    tabla = [{"alcaldia": k, **v, "es_propio": True} for k, v in alcaldias.items()]
+    tabla.sort(key=lambda r: -(r.get("plusvalia_anual_pct") or 0))
+    est = doc.get("cdmx_estatal") or {}
+    serie_n = await db.shf_series.count_documents({})
+    return {
+        "snapshot": {k: doc.get(k) for k in
+                     ("periodo", "fuente", "nacional_anual_pct", "nueva_anual_pct",
+                      "usada_anual_pct", "avaluo_mediana", "zm_valle_mexico_anual_pct")},
+        "cdmx_estatal": {"alcaldia": "Promedio CDMX", **est, "es_propio": False},
+        "alcaldias": tabla, "serie_filas": serie_n,
+    }
+
+
+@router.get("/api/superadmin/shf/serie")
+async def superadmin_shf_serie(request: Request, alcaldia: Optional[str] = Query(None)):
+    """Serie histórica trimestral del índice SHF (para la gráfica de plusvalía)."""
+    await _sa(request)
+    import shf_engine as shf
+    return await shf.get_series(request.app.state.db, alcaldia=alcaldia, desde_anio=2005)
 
 
 @router.post("/api/superadmin/shf/refresh")
 async def superadmin_shf_refresh(request: Request):
-    """Refresca el índice SHF desde el XLSX oficial. Honesto si el CDN no es alcanzable."""
+    """Refresca SHF desde el XLSX oficial (snapshot + serie por alcaldía). Si el CDN no es
+    alcanzable, conserva el valor oficial sembrado + la serie del repo (honesto)."""
     await _sa(request)
     import shf_engine as shf
     return await shf.refresh_from_xlsx(request.app.state.db)

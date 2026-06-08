@@ -105,3 +105,19 @@ export const getCalibracionComercial = async (city = 'CDMX') => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · plusvalía oficial SHF por alcaldía (5 propias + promedio CDMX).
+export const getShf = async () => {
+  const r = await fetch(`${API}/api/superadmin/shf`, { credentials: 'include' });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
+
+// Superadmin · refresca SHF desde el XLSX oficial (trimestral · snapshot + serie por alcaldía).
+export const refreshShf = async () => {
+  const r = await fetch(`${API}/api/superadmin/shf/refresh`, { method: 'POST', credentials: 'include' });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
