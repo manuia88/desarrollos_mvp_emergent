@@ -255,3 +255,17 @@ async def compliance_audit_trail(
         },
         "days": days,
     }
+
+
+# ─── Centro de Seguridad · Aislamiento entre Cuentas (portal Dev) ──────────────
+@router.get("/api/superadmin/compliance/cross-org")
+async def compliance_cross_org(
+    request: Request,
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(100, ge=1, le=500),
+):
+    """Intentos BLOQUEADOS de una cuenta por ver datos de otra (portal Dev) + verdicto de anomalía.
+    Lo normal es 0; alimenta el Centro de Seguridad del superadmin."""
+    await _sa(request)
+    from dev_guard import cross_org_denials
+    return await cross_org_denials(_db(request), days=days, limit=limit)

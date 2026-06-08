@@ -21,6 +21,9 @@ export const paymentQuote = (projectId, body) => post(`/api/dev/projects/${proje
 export const quotePdf = (projectId, body) => post(`/api/dev/projects/${projectId}/quote-pdf`, body);
 export const ASSET_BASE = API; // para armar URL pública del PDF
 
+// Endurecimiento · "Seguridad de tus Datos" (aislamiento entre cuentas + intentos bloqueados)
+export const getSecuritySummary = () => j('/api/desarrollador/security/summary');
+
 // Phase 4 Batch 14 — Developer dashboard
 export const getDashboard = () => j('/api/desarrollador/dashboard');
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)

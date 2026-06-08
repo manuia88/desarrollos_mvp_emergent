@@ -68,8 +68,10 @@ async def dashboard(request: Request):
     revenue_pipeline = sum(u["price"] for u in my_units if u["status"] == "reservado")
 
     db = get_db(request)
-    pricing_alerts = await db.developer_pricing_suggestions.count_documents({"status": "pending"})
-    competitor_alerts = await db.developer_competitor_alerts.count_documents({"acked": {"$ne": True}})
+    # Contadores SCOPED al dueño (antes contaban global → un dev veía el total de todos).
+    _own = {"owner_id": user.user_id}
+    pricing_alerts = await db.developer_pricing_suggestions.count_documents({"status": "pending", **_own})
+    competitor_alerts = await db.developer_competitor_alerts.count_documents({"acked": {"$ne": True}, "user_id": user.user_id})
 
     return {
         "developments_count": len(my_devs),
@@ -838,6 +840,9 @@ class UnitStatusPatch(BaseModel):
 async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     user = await require_dev_admin(request)
     db = get_db(request)
+    # Candado de pertenencia (cierra el IDOR: no editas unidades de otra desarrolladora) + bitácora.
+    from dev_guard import guard_project
+    await guard_project(db, user, payload.dev_id, "inventario/unit-status")
     if payload.status not in ("disponible", "apartado", "reservado", "vendido", "bloqueado"):
         raise HTTPException(400, "status inválido")
     # Capture old status for history before upsert
@@ -967,6 +972,8 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     """Edita campos de una unidad y los persiste como override (se mezclan en list_inventory)."""
     user = await require_dev_admin(request)
     db = get_db(request)
+    from dev_guard import guard_project
+    await guard_project(db, user, payload.dev_id, "inventario/unit-fields")
     fields = _build_unit_fields(payload)
     if not fields:
         raise HTTPException(400, "Nada que actualizar")
@@ -988,6 +995,8 @@ async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     """Llenado masivo: aplica campos a muchas unidades de un solo click."""
     user = await require_dev_admin(request)
     db = get_db(request)
+    from dev_guard import guard_project
+    await guard_project(db, user, payload.dev_id, "inventario/unit-fields-bulk")
     if not payload.unit_ids:
         raise HTTPException(400, "Sin unidades seleccionadas")
     fields = _build_unit_fields(payload)
@@ -1347,3 +1356,14 @@ async def audit_log(request: Request, limit: int = 100):
     db = get_db(request)
     items = await db.developer_audit.find({"user_id": user.user_id}, {"_id": 0}).sort("ts", -1).limit(limit).to_list(limit)
     return items
+
+
+# ─── Seguridad de tus datos (aislamiento entre cuentas · lenguaje de persona) ──
+@router.get("/security/summary")
+async def security_summary(request: Request):
+    """Confirma al dev que sus datos están aislados + cuántos intentos de otras cuentas se
+    bloquearon. Cierra el ciclo: el candado registra, aquí se ve."""
+    user = await require_dev_admin(request)
+    db = get_db(request)
+    from dev_guard import dev_security_summary
+    return await dev_security_summary(db, user)

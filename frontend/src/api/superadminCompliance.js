@@ -57,3 +57,14 @@ export async function getComplianceAuditTrail({ api_key_id, endpoint, days = 30,
   if (!r.ok) throw new Error(data.detail || 'Error en audit trail');
   return data;
 }
+
+// Centro de Seguridad · intentos bloqueados de una cuenta por ver datos de otra (portal Dev).
+export async function getCrossOrgSecurity({ days = 30, limit = 100 } = {}) {
+  const params = new URLSearchParams({ days, limit });
+  const r = await fetch(`${API}/api/superadmin/compliance/cross-org?${params}`, {
+    credentials: 'include',
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error en el Centro de Seguridad');
+  return data;
+}

@@ -8,11 +8,13 @@ import {
   listDsrRequests,
   processDsr,
   getComplianceAuditTrail,
+  getCrossOrgSecurity,
 } from '../../api/superadminCompliance';
 
 const TABS = [
   { id: 'dsr',   label: 'Solicitudes DSR' },
   { id: 'audit', label: 'Audit Trail' },
+  { id: 'crossorg', label: 'Aislamiento entre Cuentas' },
 ];
 
 const DSR_STATUSES = [
@@ -52,6 +54,15 @@ export default function SuperadminCompliance() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEndpoint, setFilterEndpoint] = useState('');
   const [days, setDays] = useState(30);
+  const [crossOrg, setCrossOrg] = useState({ items: [], kpis: {}, por_cuenta: [], anomalia: {} });
+
+  const loadCrossOrg = async () => {
+    try {
+      setCrossOrg(await getCrossOrgSecurity({ days, limit: 100 }));
+    } catch (e) {
+      console.error('[compliance] cross-org load error:', e.message);
+    }
+  };
 
   const loadDsr = async () => {
     try {
@@ -77,7 +88,7 @@ export default function SuperadminCompliance() {
   const refresh = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadDsr(), loadAudit()]);
+      await Promise.all([loadDsr(), loadAudit(), loadCrossOrg()]);
     } finally {
       setLoading(false);
     }
@@ -323,6 +334,70 @@ export default function SuperadminCompliance() {
             <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 10 }}>
               Mostrando {auditData.items?.length} de {auditData.total_matching} registros. Ajusta el rango de días o filtra por endpoint.
             </p>
+          )}
+        </>
+      )}
+
+      {/* ── AISLAMIENTO ENTRE CUENTAS (Centro de Seguridad) ── */}
+      {tab === 'crossorg' && (
+        <>
+          {/* Verdicto de anomalía (IA · stub honesto) */}
+          <div data-testid="crossorg-verdict" style={{
+            marginBottom: 16, padding: 14, borderRadius: 12,
+            border: `1px solid ${crossOrg.anomalia?.hay_anomalia ? 'rgba(245,158,11,0.35)' : 'rgba(34,197,94,0.3)'}`,
+            background: crossOrg.anomalia?.hay_anomalia ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.06)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Shield size={18} color={crossOrg.anomalia?.hay_anomalia ? '#f59e0b' : '#22c55e'} />
+            <div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
+                {crossOrg.anomalia?.verdicto || 'Sin anomalías — el aislamiento opera normal.'}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>
+                {crossOrg.leyenda}
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs */}
+          <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: 16 }}>
+            {kpiCard('Intentos Bloqueados', crossOrg.kpis?.intentos_bloqueados ?? 0, `Últimos ${days} días`)}
+            {kpiCard('Cuentas Distintas', crossOrg.kpis?.cuentas_distintas ?? 0, 'Que intentaron cruzar')}
+            {kpiCard('Cuenta con Más Intentos', crossOrg.kpis?.cuenta_top || '—', 'A vigilar si crece')}
+          </div>
+
+          {loading ? (
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>Cargando…</p>
+          ) : !crossOrg.items?.length ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 14 }}>
+              <Shield size={32} style={{ opacity: 0.3, margin: '0 auto 12px', display: 'block' }} />
+              Cero intentos de una cuenta por ver datos de otra. El aislamiento está activo.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    {['Cuándo', 'Cuenta', 'Usuario', 'Proyecto intentado', 'Dónde'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {crossOrg.items.map((row, i) => (
+                    <tr key={row.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                      <td style={{ padding: '7px 10px', color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
+                        {row.ts ? new Date(row.ts).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                      </td>
+                      <td style={{ padding: '7px 10px', color: 'var(--cream-2)', fontWeight: 700 }}>{row.tenant || '—'}</td>
+                      <td style={{ padding: '7px 10px', color: 'var(--cream-3)' }}><code style={{ fontSize: 11 }}>{row.user_id || '—'}</code></td>
+                      <td style={{ padding: '7px 10px', color: 'var(--cream-3)' }}>{row.dev_id || '—'}</td>
+                      <td style={{ padding: '7px 10px', color: 'var(--cream-3)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.endpoint}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}

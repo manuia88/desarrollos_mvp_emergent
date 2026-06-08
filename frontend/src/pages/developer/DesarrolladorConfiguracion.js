@@ -36,6 +36,8 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
   const [area, setArea] = useState('general');   // V2: general | citas
   const [erpEvents, setErpEvents] = useState({});
 
+  const [security, setSecurity] = useState(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -43,6 +45,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
       setOrgSettings(settings || {});
       setWebhooks(whs || []);
     } finally { setLoading(false); }
+    api.getSecuritySummary().then(setSecurity).catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -126,6 +129,30 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
 
           {/* Configuración inicial (onboarding) — solo aparece si falta algún paso */}
           <SetupChecklist />
+
+          {/* Seguridad de tus Datos — aislamiento entre cuentas (lenguaje de persona) */}
+          {security && (
+            <Card data-testid="dev-security">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <CheckCircle size={16} color={security.intentos_bloqueados ? '#f59e0b' : '#22c55e'} />
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>Seguridad de tus Datos</div>
+                <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 9999, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}>
+                  Aislado
+                </span>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>{security.mensaje}</div>
+              <div style={{ display: 'flex', gap: 22, marginTop: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{security.proyectos_propios}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>Tus proyectos</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: security.intentos_bloqueados ? '#f59e0b' : 'var(--cream)' }}>{security.intentos_bloqueados}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>Intentos bloqueados de otras cuentas</div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Org settings */}
           <Card>

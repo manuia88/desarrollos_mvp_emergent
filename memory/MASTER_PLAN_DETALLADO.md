@@ -2,7 +2,7 @@
 
 **Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel que aprende de ventas · hoy en stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅). **Pendiente real:** endurecer Dev (aislamiento cross-org) · valores unitarios 2026 (Gaceta) opcional.
+**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF por alcaldía ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel · stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅ + **aislamiento cross-org ✅**: candado central `dev_guard` + bitácora + Centro de Seguridad superadmin + red-team 16/16). **Pendiente real:** QA día-del-dev · conectar dato falso→real restante · valores unitarios 2026 (Gaceta) opcional.
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
 
@@ -33,7 +33,7 @@
 | DEV-B — Menú V2 (7 secciones claras) | ✅ |
 | DEV-C — 7 upgrades IA-first (Inicio·MisProyectos·CRM·Inteligencia·Pricing·Red·Marketing·Reportes) | ✅ (2026-06-06, verificado en app) |
 | Conectar dato FALSO→REAL: **Pricing por unidad → valuación REAL (cierres)** ✅ · **Demanda** ✅ (ya era dato real `compute_demand`; le sumé **banda honesta** "Alta/Media/Baja" + **"Sin Búsquedas Aún"** donde no hay señal + aviso "demanda por confirmar" + quité "0-100"). Audit "random" estaba viejo. | ✅ hecho (2026-06-08) |
-| Hardening Fase 1-4 (aislamiento cross-dev-org + QA) | ⏳ (= Bloque 3) |
+| Hardening · aislamiento cross-org del portal Dev (candado central + bitácora + Centro de Seguridad + red-team) | ✅ candados+UI+test · ⏳ resta QA día-del-dev |
 | Deuda menor (link Cash Flow roto · tabs fantasma CRM Citas/Slots/Brokers · prender suite IA por flag) | ⏳ |
 
 ### ⚫ Resto (después del Dev)
@@ -135,7 +135,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 |---|---|---|---|
 | 3.1 | Aislamiento entre desarrolladoras (cada endpoint filtra por dev_org — riesgo #1) | L | ⏳ |
 | 3.2 | Atomicidad (reserva de unidad sin doble-reserva) + índices | M | ⏳ |
-| 3.3 | QA "día del desarrollador" + red-team de aislamiento | M | ⏳ |
+| 3.3 | QA "día del desarrollador" + red-team de aislamiento | M | 🟡 red-team ✅ (`dev_redteam_test.py` 16/16) · QA día-del-dev ⏳ |
 
 ### BLOQUE 4 — Completar catálogo + pulido
 | # | Qué | Tamaño | Estado |
