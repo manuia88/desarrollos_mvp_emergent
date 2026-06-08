@@ -221,3 +221,16 @@ async def superadmin_colonias_sync_seguridad(
     await _sa(request)
     import colonias_catalog as cc
     return await cc.sync_seguridad(request.app.state.db, city=city)
+
+
+@router.post("/api/superadmin/colonias/fill-chunk")
+async def superadmin_colonias_fill_chunk(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad"),
+    chunk: int = Query(40, ge=5, le=120, description="cuántas colonias por lote"),
+):
+    """Llena un lote de colonias (comercios OSM + seguridad FGJ + scores). El cron sigue solo
+    cada 12 min. Sirve para arrancar el llenado ahora y ver el avance."""
+    await _sa(request)
+    import zone_data_cron as zc
+    return await zc.run_zone_data_chunk(request.app.state.db, city=city, chunk=chunk)

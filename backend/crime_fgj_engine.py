@@ -149,6 +149,43 @@ async def sync_crime_for_city(db, city: str = "CDMX", period_years: int = 2, lim
     return {"ok": True, "city": city, "fuente": "fgj", "matched": len(rows), "radius_m": _RADIUS_M}
 
 
+async def rescore_safety(db, city: str = "CDMX") -> int:
+    """Recalcula el score de seguridad (percentil) sobre TODAS las colonias con dato crudo
+    (`incidentes_ponderados`). Barato (sin llamadas externas) — lo usa el cron tras cada lote
+    para que el ranking se estabilice conforme se sincronizan más colonias."""
+    rows = [d async for d in db.crime_zone_colonia.find(
+        {}, {"_id": 0, "zone_id": 1, "incidentes_ponderados": 1})]
+    vals = [r["incidentes_ponderados"] for r in rows if r.get("incidentes_ponderados") is not None]
+    if not vals:
+        return 0
+    sorted_vals = (_mn.dist_from_values(vals).get("_sorted") or [])
+    for r in rows:
+        p = r.get("incidentes_ponderados")
+        if p is None:
+            continue
+        pr = _mn.percentile_rank(p, sorted_vals)
+        await db.crime_zone_colonia.update_one(
+            {"zone_id": r["zone_id"]}, {"$set": {"safety_score": round((1.0 - pr) * 100)}})
+    return len(rows)
+
+
+async def store_raw_incidents(db, zone_id: str, lat: float, lng: float, year_from: int) -> bool:
+    """Trae y guarda el incidente ponderado CRUDO de una colonia (sin score · lo pone rescore)."""
+    data = await fetch_weighted_incidents(lat, lng, year_from)
+    if data is None:
+        return False
+    top = sorted(data["by_category"].items(), key=lambda kv: -kv[1])[:3]
+    await db.crime_zone_colonia.update_one(
+        {"zone_id": zone_id},
+        {"$set": {
+            "zone_id": zone_id, "incidentes_ponderados": data["ponderado"],
+            "by_category": dict(top), "radius_m": _RADIUS_M, "source": "fgj", "last_synced": _iso(),
+        }},
+        upsert=True,
+    )
+    return True
+
+
 async def ensure_indexes(db) -> None:
     try:
         await db.crime_zone_colonia.create_index("zone_id", unique=True, name="crime_col_zone_uniq")

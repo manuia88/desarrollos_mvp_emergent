@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -49,6 +49,18 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al sincronizar comercios.' });
+    }
+  };
+
+  const llenarTodo = async () => {
+    setIngest({ busy: true, msg: 'Llenando un lote (comercios + seguridad)… puede tardar un minuto. El resto se llena solo cada 12 min.' });
+    try {
+      const r = await fillChunk('CDMX', 40);
+      const hechas = (r.total_colonias || 0) - (r.faltan_sin_tocar || 0);
+      setIngest({ busy: false, msg: `Lote listo: ${r.procesadas} colonias (${r.con_comercio} con comercios · ${r.con_seguridad} con seguridad). Avance: ${hechas} de ${r.total_colonias} tocadas · ${r.con_scores_reales} con scores reales. El cron sigue solo.` });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al llenar el lote.' });
     }
   };
 
@@ -150,6 +162,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-sync-seguridad" onClick={sincronizarSeguridad} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Seguridad
+            </button>
+            <button data-testid="ix-llenar-todo" onClick={llenarTodo} disabled={ingest.busy} style={{ ...btnSecondary, borderColor: 'rgba(var(--theme-rgb),0.5)', opacity: ingest.busy ? 0.6 : 1 }}>
+              Llenar Todo (Auto)
             </button>
             <button data-testid="ix-computar-scores" onClick={computarScores} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Computar Scores Reales

@@ -65,3 +65,13 @@ export const syncSeguridad = async (city = 'CDMX') => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · llenar un lote de colonias (comercios + seguridad + scores). El cron sigue solo.
+export const fillChunk = async (city = 'CDMX', chunk = 40) => {
+  const r = await fetch(`${API}/api/superadmin/colonias/fill-chunk?city=${encodeURIComponent(city)}&chunk=${chunk}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};

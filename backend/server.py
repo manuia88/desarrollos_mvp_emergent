@@ -1951,6 +1951,11 @@ async def startup():
     # Phase 4 Batch 4.3 — register reminder + post-cita jobs on same scheduler
     if sched:
         try:
+            from zone_data_cron import schedule_zone_data_cron
+            schedule_zone_data_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[zone_data] cron register failed: {e}")
+        try:
             register_batch4_3_jobs(sched, db)
         except Exception as e:
             logging.warning(f"batch4.3 scheduler register failed: {e}")
