@@ -173,6 +173,12 @@ async def buy_signal(
     # Valuación 4-fuentes de la zona (ventas reales + reventa + obra nueva + estimado · C.3)
     base_pm2 = float((_col or {}).get("price_m2_num") or 0) or None
     valuacion_zona = await colonia_valuation(db, colonia_slug, obra_pm2=peers_pm2, base_pm2=base_pm2)
+    # Plusvalía OFICIAL (Índice SHF · ING.3) — apreciación anual real de la zona metropolitana.
+    try:
+        import shf_engine as _shf
+        valuacion_zona["plusvalia_oficial"] = await _shf.get_appreciation(db)
+    except Exception:
+        pass
 
     # ── Buen Momento (ciclo + índices) ──
     timing: Optional[Dict[str, Any]] = None

@@ -223,6 +223,23 @@ async def superadmin_colonias_sync_seguridad(
     return await cc.sync_seguridad(request.app.state.db, city=city)
 
 
+@router.get("/api/superadmin/shf")
+async def superadmin_shf(request: Request):
+    """Índice SHF (plusvalía OFICIAL) — el dato y su apreciación por región (ING.3)."""
+    await _sa(request)
+    import shf_engine as shf
+    db = request.app.state.db
+    return {"indice": await shf.ensure_shf(db), "cdmx": await shf.get_appreciation(db)}
+
+
+@router.post("/api/superadmin/shf/refresh")
+async def superadmin_shf_refresh(request: Request):
+    """Refresca el índice SHF desde el XLSX oficial. Honesto si el CDN no es alcanzable."""
+    await _sa(request)
+    import shf_engine as shf
+    return await shf.refresh_from_xlsx(request.app.state.db)
+
+
 @router.post("/api/superadmin/colonias/fill-chunk")
 async def superadmin_colonias_fill_chunk(
     request: Request,

@@ -18,7 +18,7 @@
 | Tanda B.2 — resto a banda (gentrificación·ciclo·calidad·demanda viva·fit/match) ✅ | ✅ |
 | Tanda B.3 — Sello honesto en los 4 portales | ✅ |
 | Tanda C — Valuación (C.1 cierres · C.2 atípicos · C.3 4-fuentes · C.4 base honesta) | ✅ |
-| Ingesta oficial — SIG predios + valores unitarios 2026 + SHF | ⏳ diferible (la valuación ya jala) |
+| Ingesta oficial — **SHF** (plusvalía) ✅ · SIG predios (vsuelo) + valor comercial diferible | 🟡 SHF ✅ · resto diferible |
 | EX.1 — Catálogo 16→1,352 (derivado del FGJ) | ✅ |
 | EX.2 — Scores reales **7/7 dimensiones** por colonia | ✅ |
 | EX.2b/c/d — OSM comercios · FGJ seguridad · cron auto | ✅ |

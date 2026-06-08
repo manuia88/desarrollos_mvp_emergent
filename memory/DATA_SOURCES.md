@@ -55,7 +55,14 @@ La fuente OFICIAL del valor catastral (guía Catastro CDMX, PDF predial):
 |---|---|---|---|---|
 | **SIG WFS predios** | Capa `predios2022sig_local` (6.89M predios · `vsuelo` $/m² · uso) | Registrada (hoy `catastro_cdmx` = manual_upload) → **API WFS = upgrade pendiente** | `IE_SIG_WFS_URL` | piso de valor de suelo por predio |
 | **Valores unitarios 2026** | Tablas oficiales $/m² suelo + construcción por zona | Pendiente cargar (PDF/tabla Gaceta) | `IE_VALORES_UNITARIOS_2026_URL` | base catastral → se calibra a comercial (~+15–40%) |
-| **SHF Índice precios vivienda** | Índice oficial de plusvalía residencial | Conectada vía INEGI BIE serie **736183** / Banxico SIE (token ya puesto) | (reusa `IE_INEGI_TOKEN`/`IE_BANXICO_TOKEN`) | benchmark de apreciación vs DRPI propio |
+| **SHF Índice precios vivienda** ✅ | Plusvalía OFICIAL (avalúos de todo crédito hipotecario) | **HECHO** (`shf_engine` · sembrado oficial 1T2026 + pipe refresh XLSX) | `IE_SHF_XLSX_URL` (default gob.mx) | plusvalía oficial CDMX +5.1% · surfaceada en valuación del comprador |
+
+### ⚠️ CORRECCIÓN CLAVE (reporte verificado founder 2026-06-07)
+- **SHF NO existe en el SIE de Banxico** (cualquier serie ID es inventada). Solo XLSX en gob.mx (trimestral feb/may/ago/nov). 1T2026: nacional +8.7% · Valle de México +5.1% · nueva +9.1%/usada +8.3% · avalúo mediana $1,331,000. XLSX: `gob.mx/cms/uploads/attachment/file/1077618/Indice_SHF_datos_abiertos_1_trim_2026.xlsx`.
+- **No existe precio de CIERRE público** (RPP/notarías no publican). Proxies: INCOIN/Softec (obra nueva, pago) + créditos SNIIV. Por eso el moat = nuestros cierres del asesor (C.1).
+- **Catastro vsuelo** (valores unitarios): SIG WFS `geoserver/ows` capa `geonode:predios2022sig_local` (6,886,398 predios · campos clave/vsuelo/ayocon) — verificado. Modelo valor comercial = `vsuelo(2022) × factor_SHF(alcaldía) × ratio comercial/catastral(colonia)`.
+- **SNIIV API** (sin token): `sniiv.sedatu.gob.mx/api/CuboAPI/` (GetInfonavit/GetCNBV/GetInventario…) → créditos + inventario por municipio. CDMX = cve 09.
+- **Renta corta**: AirROI (~$10 pay-as-you-go, por colonia) fase 2.
 
 ## D) Dónde caen los datos (colecciones Mongo) — estado real HOY
 | Colección | Conteo (2026-06-07) | Qué guarda |

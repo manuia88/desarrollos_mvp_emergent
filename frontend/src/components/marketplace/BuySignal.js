@@ -121,6 +121,12 @@ export default function BuySignal({ devId }) {
               ))}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>{vz.leyenda}</div>
+            {vz.plusvalia_oficial && vz.plusvalia_oficial.plusvalia_anual_pct != null && (
+              <div style={{ marginTop: 6, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--ok, #1FA06A)' }}>
+                Plusvalía oficial (SHF): +{vz.plusvalia_oficial.plusvalia_anual_pct}% anual
+                <span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · {vz.plusvalia_oficial.region} · {vz.plusvalia_oficial.periodo}</span>
+              </div>
+            )}
           </div>
         )}
 
