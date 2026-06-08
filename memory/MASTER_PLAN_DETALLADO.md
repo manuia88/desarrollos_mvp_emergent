@@ -15,7 +15,7 @@
 |---|---|
 | Tanda A — Honestidad (tasas oficiales, sintéticos, tokens, bug env) | ✅ |
 | Tanda B.1 — Regla central (percentiles) + 5 índices + DENUE unificado | ✅ |
-| Tanda B.2 — resto a banda (gentrificación·ciclo·calidad ✅ · **demanda viva + fit/match**) | 🟡 **falta demanda viva + fit/match** |
+| Tanda B.2 — resto a banda (gentrificación·ciclo·calidad ✅ · **demanda viva** ✅ · fit/match ⏳) | 🟡 falta solo fit/match |
 | Tanda B.3 — Sello honesto en los 4 portales | ✅ |
 | Tanda C — Valuación (C.1 cierres · C.2 atípicos · C.3 4-fuentes · C.4 base honesta) | ✅ |
 | Ingesta oficial — SIG predios + valores unitarios 2026 + SHF | ⏳ diferible (la valuación ya jala) |
@@ -32,7 +32,7 @@
 | DEV-A — Descubrir features ocultas | ✅ |
 | DEV-B — Menú V2 (7 secciones claras) | ✅ |
 | DEV-C — 7 upgrades IA-first (Inicio·MisProyectos·CRM·Inteligencia·Pricing·Red·Marketing·Reportes) | ✅ (2026-06-06, verificado en app) |
-| Conectar dato FALSO→REAL: **Pricing por unidad → valuación REAL anclada a cierres** ✅ (la sugerencia compara vs lo que de verdad se pagó, no vs la mediana de lista inflada · sello "Anclado a Ventas Reales" + confianza · verificado: 111k lista→90k real). **Falta:** Demanda (random→forecast/dato real) | 🟡 Pricing ✅ · Demanda ⏳ |
+| Conectar dato FALSO→REAL: **Pricing por unidad → valuación REAL (cierres)** ✅ · **Demanda** ✅ (ya era dato real `compute_demand`; le sumé **banda honesta** "Alta/Media/Baja" + **"Sin Búsquedas Aún"** donde no hay señal + aviso "demanda por confirmar" + quité "0-100"). Audit "random" estaba viejo. | ✅ hecho (2026-06-08) |
 | Hardening Fase 1-4 (aislamiento cross-dev-org + QA) | ⏳ (= Bloque 3) |
 | Deuda menor (link Cash Flow roto · tabs fantasma CRM Citas/Slots/Brokers · prender suite IA por flag) | ⏳ |
 

@@ -27,13 +27,24 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
         sub="Búsquedas reales en DesarrollosMX, demanda no atendida y forecast 30/60/90 días con Claude Sonnet."
       />
 
+      {/* B.2 · Demanda Viva honesta: dice si el dato es real o aún por confirmar */}
+      {legacy && legacy.lectura && (
+        <div data-testid="demand-honesty" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12,
+          background: legacy.es_estimado ? 'rgba(226,152,46,0.08)' : 'rgba(31,160,106,0.07)',
+          border: `1px solid ${legacy.es_estimado ? 'rgba(226,152,46,0.30)' : 'rgba(31,160,106,0.28)'}` }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: legacy.es_estimado ? 'var(--warm, #E2982E)' : 'var(--ok, #1FA06A)' }}>
+            {legacy.es_estimado ? '◐ ' : '● '}{legacy.lectura}
+          </span>
+        </div>
+      )}
+
       {/* ─── Mapbox choropleth (Batch 6 · 4.17) ─── */}
       <Card data-testid="demand-heatmap-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <div className="eyebrow" style={{ marginBottom: 4 }}>HEATMAP GEOGRÁFICO · LEADS + CITAS + BÚSQUEDAS</div>
             <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: 0 }}>
-              Score normalizado 0–100 por colonia. Click en polígono para foco.
+              Intensidad de demanda por colonia (búsquedas + leads + citas). Click en el polígono para foco.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>

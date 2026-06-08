@@ -98,6 +98,27 @@ async def compute_demand(db) -> Dict[str, Any]:
 
     unmet = [c for c in by_colonia if c["supply_count"] == 0 and c["searches_30d"] > 0][:6]
 
+    # B.2 · Demanda Viva HONESTA: banda en palabra (no número crudo) por percentil real de la
+    # demanda neta. Donde NO hay búsquedas aún → "Sin Búsquedas Aún" (no es "demanda fría", es
+    # falta de señal). Global "estimado" si todavía hay muy pocas búsquedas. Cero deuda.
+    try:
+        import metric_normalizer as _mn
+        net_vals = [c["net_demand"] for c in by_colonia if c["searches_30d"] > 0 and c["net_demand"] > 0]
+        dist = _mn.dist_from_values(net_vals) if net_vals else {"n": 0}
+        for c in by_colonia:
+            if c["searches_30d"] <= 0:
+                c["banda"], c["etiqueta"] = "sin_dato", "Sin Búsquedas Aún"
+            else:
+                sig = _mn.band_from_dist(dist, c["net_demand"])
+                c["banda"], c["etiqueta"] = sig["nivel"], sig["etiqueta"]
+    except Exception as e:
+        log.warning(f"[demand] banda honesta fail-open: {e}")
+
+    MIN_BUSQUEDAS = 10
+    es_estimado = total_busq_30d < MIN_BUSQUEDAS
+    lectura = ("Aún sin búsquedas suficientes — la demanda se confirma conforme entran búsquedas reales."
+               if es_estimado else f"Demanda viva con {total_busq_30d} búsquedas reales (últimos 30 días).")
+
     return {
         "by_colonia": by_colonia,
         "top_queries": top_queries,
@@ -105,5 +126,7 @@ async def compute_demand(db) -> Dict[str, Any]:
         "forecast": forecast,
         "unmet_demand": unmet,
         "data_source": "real",      # honesto: ya no es sintético
+        "es_estimado": es_estimado,
+        "lectura": lectura,
         "sample_size": total_busq_30d,
     }
