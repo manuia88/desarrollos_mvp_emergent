@@ -65,14 +65,19 @@
 
 ## 3. DESPUÉS DEL AVM — Orden Maestro (Bloques 1-5)
 
-### BLOQUE 1 — Terminar portal del Dev (Paso C) · va primero
-| # | Qué | Tamaño | Estado |
-|---|---|---|---|
-| 1.0 | C.1.0 Lista = centro de mando | — | ✅ hecho |
-| 1.1 | Inicio del dev — cerrar los 4 upgrades a medias | S | ⏳ |
-| 1.2 | CRM & Leads — Embudo · Leads · Ficha (reusar board Mis Leads del asesor) | M | ⏳ |
-| 1.3 | Inteligencia del dev — bajar inteligencias Dev-Master filtradas a SUS proyectos | M | ⏳ |
-| 1.4-1.7 | Pricing (Tabla·Lab) · Red Comercial · Marketing · Reportes/Finanzas | M c/u | ⏳ |
+### BLOQUE 1 — Portal del Dev (Paso C) · ✅ HECHO (corregido 2026-06-08 · fuente: `DEV_REDESIGN_TRACKER.md`)
+> ⚠️ Estas filas estaban DESACTUALIZADAS (decían ⏳). El rediseño del Dev se completó en Batch DEV-C el 2026-06-06: las 7 secciones con su upgrade IA-first, tema claro, verificado en app. La fuente de verdad es `DEV_REDESIGN_TRACKER.md`.
+| # | Qué | Estado |
+|---|---|---|
+| 1.0 | Mis Proyectos = centro de mando (C.1.0) | ✅ |
+| 1.1 | Inicio — "La Lectura del Portafolio" (C.1) | ✅ |
+| 1.2 | CRM & Leads — Cockpit de Leads + Ficha + fix cable (C.2) | ✅ |
+| 1.3 | Inteligencia — "Qué Frena Tus Ventas" (C.3) | ✅ |
+| 1.4 | Pricing — "Precio Inteligente" (C.4) | ✅ |
+| 1.5 | Red Comercial — "Salud de tu Red" (C.5) | ✅ |
+| 1.6 | Marketing — "Qué Promocionar Hoy" (C.6) | ✅ |
+| 1.7 | Reportes — "Resumen Ejecutivo del Mes" (C.7) | ✅ |
+| **Pendiente real** | (a) **Hardening Fase 1-4** (aislamiento cross-dev-org + QA = BLOQUE 3) · (b) **conectar el dato FALSO del dev al REAL** que acabamos de construir: Demanda (era random→forecast/dato real) + Pricing por unidad (era heurística Haiku→AVM/valuación real) · (c) deuda menor: link Cash Flow roto, tabs fantasma CRM (Citas/Slots/Brokers), prender suite IA (flag) | ⏳ |
 
 ### BLOQUE 2 — Quick-wins de dato real (Tier 1 catálogo) · *reusa Tanda B*
 | # | Qué | Tamaño | Estado |
