@@ -2,7 +2,7 @@
 
 **Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** capa de datos casi cerrada (Tandas A/C ✅, B 90%, EX catálogo+7/7 dims ✅, 1,352 colonias llenándose). Portal Dev (Paso C) ✅ hecho. **Siguiente:** cerrar B.2 (demanda viva) → conectar el dato REAL al Dev (Demanda/Pricing) → endurecer.
+**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Portal Dev (Paso C ✅ + dato falso→real ✅). **Pendiente real:** ingesta oficial (SIG/valores unitarios diferible · SHF si alcanzable) → endurecer Dev (aislamiento cross-org).
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
 
@@ -85,7 +85,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 |---|---|---|---|---|
 | B.1 | Regla central `metric_normalizer` (percentiles reales → bandas) + 5 índices DMX honestos + sello `SenalDMX` en dev V2 + DENUE unificado (3000/500→500) + 12 tests | Back+Front | S | ✅ **hecho 2026-06-07** |
 | B.1 nota | Las bandas son RELATIVAS a la población comparada (hoy 16 colonias premium del seed → zonas premium pueden salir "Media/Baja" entre sí). Honesto + leyenda lo explica. Mejora: ampliar el set de colonias (dato) para una distribución más representativa. | — | — | ⚠️ a afinar en B.2 |
-| B.2 | Pasar por la regla los índices inventados + sello en sus superficies. **Hecho:** gentrificación (D05) + ciclo + 5 índices honestos por ciudad + sello en Ciclo y Renta (dev V2). **Falta:** demanda viva, score inversión, fit/match, y extender el sello al comprador/superadmin. | Back+Front | M | 🟡 parcial (2026-06-07) |
+| B.2 | Índices inventados → banda honesta: gentrificación·ciclo·5 índices·**demanda viva** (Sin Búsquedas Aún)·**fit/match** (Muy Compatible/…) — todo a banda + sello en sus superficies. | Back+Front | M | ✅ **100% (2026-06-08)** |
 | B.3 | Sello honesto en lenguaje normal (no "69/100") aplicado en los 4 portales ✅: **dev** (índices+ciclo) · **comprador** (ZoneScoreStrip en Barrios/Ficha/Inteligencia → palabra; ZoneScoreBadge tooltip; ComplianceBadge modal) · **asesor** (calidad del lead + buyer_score en Ficha360 → palabra) · **superadmin** (etiqueta honesta en el terminal). | Front | M | ✅ **hecho 2026-06-07** |
 | B.4 | Verificar: test del normalizador + barrido de números crudos + revisión logueado en la app real. | Ambos | S | ⏳ |
 
