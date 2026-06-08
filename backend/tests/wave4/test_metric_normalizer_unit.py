@@ -220,6 +220,36 @@ def test_osm_keys_compatibles_con_lifestyle():
         assert any(token in k for token in LIFESTYLE_CATEGORIES), f"{k} no lo detecta lifestyle"
 
 
+def test_resale_filtra_atipicos():
+    """Tanda C: la referencia de reventa excluye precios inflados (MAD robusto)."""
+    import resale_data as rd
+    dentro, atip = rd._split_outliers([48000, 50000, 52000, 49000, 51000, 200000])
+    assert len(atip) == 1 and 200000 not in dentro
+    assert round(rd._median(dentro)) == 50000   # no lo arrastra el inflado
+    # con <4 puntos no filtra (sin base estadística)
+    d2, a2 = rd._split_outliers([50000, 999999])
+    assert len(a2) == 0
+
+
+def test_resale_clasifica_precio():
+    """Tanda C: clasifica el precio del asesor vs el rango típico (honesto, palabra)."""
+    import resale_data as rd
+    ref = {"pm2": 50000, "rango_bajo": 48500, "rango_alto": 51500, "fuente": "captaciones"}
+    assert rd.clasificar_precio(50000, ref)["banda"] == "en_rango"
+    assert rd.clasificar_precio(58000, ref)["banda"] == "alto"
+    assert rd.clasificar_precio(75000, ref)["banda"] == "muy_alto"
+    assert rd.clasificar_precio(30000, ref)["banda"] == "muy_bajo"
+    assert rd.clasificar_precio(50000, {"fuente": "insuficiente"})["banda"] == "sin_referencia"
+
+
+def test_resale_confianza_por_n():
+    import resale_data as rd
+    assert rd._confianza(8) == "alta"
+    assert rd._confianza(4) == "media"
+    assert rd._confianza(2) == "baja"
+    assert rd._confianza(1) == "insuficiente"
+
+
 def test_bandas_no_mezclan_ciudades():
     """Una colonia de otra ciudad se compara solo contra su ciudad (no contra CDMX)."""
     import dmx_indices_engine as ix

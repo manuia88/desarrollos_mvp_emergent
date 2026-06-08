@@ -2749,12 +2749,14 @@ async def captacion_estimate(
     estado_conservacion: Optional[str] = Query(None),
     vista: Optional[str] = Query(None),
     n_amenidades: int = Query(0, ge=0),
+    precio: Optional[float] = Query(None, description="precio que el asesor quiere poner (para avisar si está fuera de rango)"),
 ):
     """Valor estimado de una captación (reventa) según sus atributos + la reventa real de la
-    zona. Cierra el ciclo del asesor: ve el valor mientras captura, sube con cada detalle."""
+    zona. Cierra el ciclo del asesor: ve el valor mientras captura, sube con cada detalle.
+    Si manda `precio`, le avisamos honestamente si está fuera del rango típico de la colonia."""
     await require_advisor(request)
     db = get_db(request)
-    from resale_data import resale_reference
+    from resale_data import resale_reference, clasificar_precio
     from captacion_value_engine import estimate_resale_value
     try:
         from data_seed import COLONIAS_BY_ID
@@ -2762,6 +2764,8 @@ async def captacion_estimate(
     except Exception:
         col = None
     rref = await resale_reference(db, colonia_id)
+    # Guard de atípicos: ¿el precio que quiere poner está dentro del rango típico?
+    precio_status = clasificar_precio((precio / m2) if (precio and m2) else None, rref)
     out = estimate_resale_value(
         col,
         {"m2": m2, "recamaras": recamaras, "condicion": condicion,
@@ -2769,7 +2773,8 @@ async def captacion_estimate(
          "vista": vista, "n_amenidades": n_amenidades},
         resale_pm2=rref.get("pm2"), resale_n=rref.get("n", 0),
     )
-    return {"ok": True, "colonia_id": colonia_id, "reventa_zona": rref, **out}
+    return {"ok": True, "colonia_id": colonia_id, "reventa_zona": rref,
+            "precio_status": precio_status, **out}
 
 
 @router.post("/captaciones")

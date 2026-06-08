@@ -184,10 +184,11 @@ function CreateCaptForm({ onCreated, onError }) {
         colonia_id: f.colonia_id, m2: +f.m2_construidos, recamaras: +f.recamaras,
         condicion: f.condicion, antiguedad_anos: f.antiguedad_anos, estado_conservacion: f.estado_conservacion,
         vista: f.vista, n_amenidades: f.amenity_keys.length,
+        precio: f.precio_sugerido ? +f.precio_sugerido : undefined,   // guard de atípicos
       }).then(setEstimate).catch(() => setEstimate(null));
     }, 350);
     return () => clearTimeout(id);
-  }, [f.colonia_id, f.m2_construidos, f.recamaras, f.condicion, f.antiguedad_anos, f.estado_conservacion, f.vista, f.amenity_keys.length]);
+  }, [f.colonia_id, f.m2_construidos, f.recamaras, f.condicion, f.antiguedad_anos, f.estado_conservacion, f.vista, f.amenity_keys.length, f.precio_sugerido]);
 
   const submit = async () => {
     if (!ready) return;
@@ -301,6 +302,24 @@ function CreateCaptForm({ onCreated, onError }) {
           {estimate.fuente === 'reventa_real'
             ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--ok, #1FA06A)', marginTop: 4, fontWeight: 700 }}>● Con reventa real de la zona</div>
             : <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--warm, #E2982E)', marginTop: 4 }}>● Referencia estimada — se afina cuando hay más captaciones en la zona</div>}
+
+          {/* Guard de atípicos: ¿el precio que pone el asesor está dentro del rango típico? */}
+          {estimate.precio_status && f.precio_sugerido && estimate.precio_status.banda !== 'sin_referencia' && (
+            <div style={{ marginTop: 9, padding: '8px 11px', borderRadius: 10,
+              background: estimate.precio_status.banda === 'en_rango' ? 'rgba(31,160,106,0.08)' : (estimate.precio_status.banda === 'muy_alto' || estimate.precio_status.banda === 'muy_bajo') ? 'rgba(242,99,91,0.08)' : 'rgba(226,152,46,0.08)',
+              border: `1px solid ${estimate.precio_status.banda === 'en_rango' ? 'rgba(31,160,106,0.30)' : (estimate.precio_status.banda === 'muy_alto' || estimate.precio_status.banda === 'muy_bajo') ? 'rgba(242,99,91,0.32)' : 'rgba(226,152,46,0.32)'}` }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12,
+                color: estimate.precio_status.banda === 'en_rango' ? 'var(--ok, #1FA06A)' : (estimate.precio_status.banda === 'muy_alto' || estimate.precio_status.banda === 'muy_bajo') ? 'var(--hot, #F2635B)' : 'var(--warm, #E2982E)' }}>
+                Tu precio: {estimate.precio_status.etiqueta}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 2, lineHeight: 1.4 }}>{estimate.precio_status.mensaje}</div>
+            </div>
+          )}
+          {estimate.reventa_zona && estimate.reventa_zona.fuente === 'captaciones' && (
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 6 }}>
+              Confianza de la zona: <b style={{ color: 'var(--cream-2)', textTransform: 'capitalize' }}>{estimate.reventa_zona.confianza}</b> · {estimate.reventa_zona.n_usadas} captaciones{estimate.reventa_zona.n_atipicas ? ` (${estimate.reventa_zona.n_atipicas} atípicas excluidas)` : ''}
+            </div>
+          )}
         </div>
       )}
 

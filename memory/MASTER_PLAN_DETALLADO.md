@@ -50,7 +50,7 @@
 | Chunk | Qué | Estado |
 |---|---|---|
 | C.1 | AVM anclado a **cierres reales** (`on_deal_closed` ya cableado), no solo captaciones — lección Monopolio/DD360 | ⏳ |
-| C.2 | **Guard de atípicos** en captación: precio fuera de rango vs colonia → etiqueta "fuera de rango" (no borra) + sello de confianza | ⏳ |
+| C.2 | **Guard de atípicos + confianza** ✅: `resale_reference` ahora filtra precios inflados (MAD robusto · no se ensucia la mediana) + reporta rango típico + confianza (alta/media/baja por n). `clasificar_precio` avisa al asesor "Dentro/Arriba/Abajo del Rango Típico" (no borra, no bloquea). Cableado en el captador (AsesorCaptaciones): al poner precio ve el aviso honesto + confianza de la zona. Verificado: inflado de 180k excluido, mediana robusta 50k · 25 tests verde. | ✅ hecho (2026-06-08) |
 | C.3 | Mezcla de comparables estilo 4-fuentes (obra nueva + usada + cierres + base propia) con confianza | ⏳ |
 | C.4 | Afinar avm fallback / price_context / margin contra comparables reales (percentiles, no topes) | ⏳ |
 
