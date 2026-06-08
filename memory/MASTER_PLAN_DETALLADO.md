@@ -15,7 +15,7 @@
 |---|---|
 | Tanda A — Honestidad (tasas oficiales, sintéticos, tokens, bug env) | ✅ |
 | Tanda B.1 — Regla central (percentiles) + 5 índices + DENUE unificado | ✅ |
-| Tanda B.2 — resto a banda (gentrificación·ciclo·calidad ✅ · **demanda viva** ✅ · fit/match ⏳) | 🟡 falta solo fit/match |
+| Tanda B.2 — resto a banda (gentrificación·ciclo·calidad·demanda viva·fit/match) ✅ | ✅ |
 | Tanda B.3 — Sello honesto en los 4 portales | ✅ |
 | Tanda C — Valuación (C.1 cierres · C.2 atípicos · C.3 4-fuentes · C.4 base honesta) | ✅ |
 | Ingesta oficial — SIG predios + valores unitarios 2026 + SHF | ⏳ diferible (la valuación ya jala) |

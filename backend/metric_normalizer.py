@@ -149,6 +149,20 @@ def dist_from_values(values: Sequence[float]) -> Dict[str, Any]:
     return percentiles(values)
 
 
+# Banda honesta para scores de fit/match (compatibilidad lead↔propiedad · palabra, no "/100").
+def fit_band(score: Optional[float]) -> Dict[str, Any]:
+    s = max(0.0, min(100.0, float(score or 0)))
+    if s >= 80:
+        nivel, et, color = "muy_alta", "Muy Compatible", "verde"
+    elif s >= 62:
+        nivel, et, color = "alta", "Compatible", "verde"
+    elif s >= 48:
+        nivel, et, color = "media", "Compatibilidad Media", "ambar"
+    else:
+        nivel, et, color = "baja", "Poco Compatible", "rojo"
+    return {"nivel": nivel, "etiqueta": et, "color": color}
+
+
 # ── Distribuciones desde datos reales (cacheadas en proceso) ─────────────────
 _CACHE: Dict[str, Dict[str, Any]] = {}
 

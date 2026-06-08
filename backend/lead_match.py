@@ -106,6 +106,12 @@ def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, liste
 
     score = max(45, min(97, int(round(score))))
     out = {"score": score, "reasons": reasons[:4]}
+    # B.2 · banda honesta (palabra, no "/100"): qué tan compatible es para el comprador
+    try:
+        import metric_normalizer as _mn
+        out.update(_mn.fit_band(score))   # nivel · etiqueta (Muy Compatible/…) · color
+    except Exception:
+        pass
     if taste:
         out["confidence"] = taste.get("confidence")
         out["confidence_label"] = taste.get("confidence_label")

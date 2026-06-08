@@ -77,6 +77,15 @@ def test_etiquetas_son_title_case_humano():
         assert et in {"Muy Baja", "Baja", "Media", "Alta", "Muy Alta"}
 
 
+def test_fit_band_compatibilidad():
+    """B.2 fit/match: el score de compatibilidad se muestra como palabra, no '/100'."""
+    assert mn.fit_band(95)["etiqueta"] == "Muy Compatible"
+    assert mn.fit_band(70)["etiqueta"] == "Compatible"
+    assert mn.fit_band(55)["nivel"] == "media"
+    assert mn.fit_band(30)["etiqueta"] == "Poco Compatible"
+    assert mn.fit_band(None)["nivel"] == "baja"
+
+
 def test_denue_ref_es_fuente_unica():
     assert mn.DENUE_DENSITY_REF == 500.0  # ya no 3000; única fuente
 

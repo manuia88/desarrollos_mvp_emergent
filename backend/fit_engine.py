@@ -647,6 +647,8 @@ async def compute_fit_score(
             if top_zone[1] >= 80:
                 reasons.append(f"Zona destaca en {top_zone[0]} {int(top_zone[1])}/100")
 
+    import metric_normalizer as _mn
+    fit_b = _mn.fit_band(overall)   # B.2 · banda honesta (palabra, no "/100")
     out = {
         "fit_key": fit_key,
         "lead_id": lead_id,
@@ -654,6 +656,7 @@ async def compute_fit_score(
         "property_title": prop.get("name"),
         "photo_url": prop.get("photo_url"),
         "score": int(overall),
+        "nivel": fit_b["nivel"], "etiqueta": fit_b["etiqueta"], "color": fit_b["color"],
         "confidence": confidence,
         "breakdown": scores,
         "cross_batch_aux": scores_breakdown_aux,

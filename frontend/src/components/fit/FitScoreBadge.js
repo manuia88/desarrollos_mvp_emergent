@@ -68,7 +68,7 @@ export default function FitScoreBadge({
       data-score={safe}
       data-confidence={confidence}
       onClick={interactive ? onClick : undefined}
-      aria-label={`Fit ${safe}%`}
+      aria-label={`Compatibilidad ${safe >= 80 ? 'Muy Alta' : safe >= 62 ? 'Alta' : safe >= 48 ? 'Media' : 'Baja'}`}
       style={{
         position: 'relative',
         width: cfg.box,
@@ -96,12 +96,12 @@ export default function FitScoreBadge({
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'Outfit, sans-serif',
-          fontWeight: 700,
-          fontSize: cfg.font,
+          fontWeight: 800,
+          fontSize: Math.max(8, (cfg.font || 12) - 3),
           color: CREAM,
           letterSpacing: '-0.01em',
         }}
-      >{safe}%</span>
+      >{safe >= 80 ? 'Top' : safe >= 62 ? 'Alta' : safe >= 48 ? 'Media' : 'Baja'}</span>
 
       {confidence === 'tentativa' && (
         <span
