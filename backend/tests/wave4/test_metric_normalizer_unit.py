@@ -176,6 +176,18 @@ def test_osm_clasifica_pois_a_categorias_dmx():
     assert osm._classify({"highway": "residential"}) is None        # no es comercio
 
 
+def test_fgj_pesa_por_gravedad():
+    """Seguridad FGJ: lo violento pesa mucho, el bajo impacto poco, lo no-delictivo nada."""
+    import crime_fgj_engine as fgj
+    assert fgj._weight("HOMICIDIO DOLOSO") == 6.0
+    assert fgj._weight("VIOLACIÓN") == 6.0
+    assert fgj._weight("DELITO DE BAJO IMPACTO") == 1.0
+    assert fgj._weight("HECHO NO DELICTIVO") == 0.0
+    assert fgj._weight("ROBO DE OBJETOS") == 2.0          # otros → medio
+    # lo violento pesa más que el bajo impacto (no castiga a la zona concurrida por hurto menor)
+    assert fgj._weight("HOMICIDIO DOLOSO") > fgj._weight("DELITO DE BAJO IMPACTO")
+
+
 def test_osm_keys_compatibles_con_lifestyle():
     """Las categorías de vida de OSM deben matchear el detector de lifestyle (vida)."""
     import osm_engine as osm

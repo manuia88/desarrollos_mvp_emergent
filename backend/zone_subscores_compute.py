@@ -64,9 +64,20 @@ async def compute_lifestyle(db, zone_slug: str) -> Dict[str, Any]:
         return STUB
 
 
-# ─── Seguridad (SESNSP crime data) ──────────────────────────────────────────
+# ─── Seguridad (FGJ por colonia · preferido · SESNSP por alcaldía de respaldo) ──
 
 async def compute_seguridad(db, zone_slug: str) -> Dict[str, Any]:
+    # 1) FGJ por COLONIA (dato fino real · score por percentil de la ciudad)
+    try:
+        doc = await db.crime_zone_colonia.find_one(
+            {"zone_id": zone_slug}, {"_id": 0, "safety_score": 1, "incidents_total": 1, "source": 1},
+        )
+        if doc and doc.get("safety_score") is not None:
+            return _wrap(float(doc["safety_score"]), doc.get("source") or "fgj",
+                         sample_size=int(doc.get("incidents_total") or 0))
+    except Exception as e:
+        log.warning(f"[subscores] seguridad FGJ {zone_slug}: {e}")
+    # 2) SESNSP por ALCALDÍA (respaldo)
     try:
         from crime_data_engine import aggregate_crime_zone
         data = await aggregate_crime_zone(db, zone_slug, period_months=6)

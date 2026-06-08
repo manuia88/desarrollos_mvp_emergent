@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -49,6 +49,20 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al sincronizar comercios.' });
+    }
+  };
+
+  const sincronizarSeguridad = async () => {
+    setIngest({ busy: true, msg: 'Sincronizando seguridad (FGJ)… puede tardar un minuto.' });
+    try {
+      const r = await syncSeguridad('CDMX');
+      const base = r.ok
+        ? `${r.con_seguridad_real} colonias con seguridad real · ${r.scores?.con_scores_reales ?? 0} con scores reales.`
+        : 'No se pudo sincronizar.';
+      setIngest({ busy: false, msg: r.nota ? `${base} ${r.nota}` : base });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al sincronizar seguridad.' });
     }
   };
 
@@ -133,6 +147,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-sync-comercios" onClick={sincronizarComercios} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Comercios
+            </button>
+            <button data-testid="ix-sync-seguridad" onClick={sincronizarSeguridad} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Sincronizar Seguridad
             </button>
             <button data-testid="ix-computar-scores" onClick={computarScores} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Computar Scores Reales

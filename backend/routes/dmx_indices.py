@@ -209,3 +209,15 @@ async def superadmin_colonias_sync_comercios(
     await _sa(request)
     import colonias_catalog as cc
     return await cc.sync_business_density(request.app.state.db, city=city, source=source)
+
+
+@router.post("/api/superadmin/colonias/sync-seguridad")
+async def superadmin_colonias_sync_seguridad(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a sincronizar"),
+):
+    """Sincroniza seguridad real por colonia (FGJ CDMX · carpetas de investigación) + recalcula
+    scores. Score por percentil de incidentes de la ciudad. Cierra el ciclo dato→score."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.sync_seguridad(request.app.state.db, city=city)

@@ -253,6 +253,23 @@ async def sync_business_density(db, city: str = "CDMX", source: str = "osm",
     }
 
 
+async def sync_seguridad(db, city: str = "CDMX", period_years: int = 2) -> Dict[str, Any]:
+    """Sincroniza seguridad real por colonia (FGJ) + recalcula scores. Cierra el ciclo dato→score.
+    Honesto: si FGJ no responde o no empareja colonias, lo reporta."""
+    import crime_fgj_engine as fgj
+    res = await fgj.sync_crime_for_city(db, city, period_years=period_years)
+    if not res.get("ok"):
+        return {"ok": False, "city": city, "con_seguridad_real": 0, "nota": res.get("reason"),
+                "cobertura": await coverage(db)}
+    scores = await compute_catalog_scores(db, city)
+    return {
+        "ok": True, "city": city, "fuente": "fgj",
+        "con_seguridad_real": res["matched"],
+        "scores": {"con_scores_reales": scores["con_scores_reales"], "pendientes": scores["pendientes"]},
+        "nota": None, "cobertura": scores["cobertura"],
+    }
+
+
 async def ingest_official_catalog(db, city: str = "CDMX") -> Dict[str, Any]:
     """Carga el catálogo oficial de colonias de una ciudad. Fuentes (en orden):
       1) CKAN  → env `IE_COLONIAS_CDMX_RESOURCE_ID` (datos.cdmx datastore_search)

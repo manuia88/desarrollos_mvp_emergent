@@ -55,3 +55,13 @@ export const syncComercios = async (city = 'CDMX', source = 'osm') => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · sincronizar seguridad real por colonia (FGJ) + recalcular (cierra ciclo dato→score)
+export const syncSeguridad = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/sync-seguridad?city=${encodeURIComponent(city)}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
