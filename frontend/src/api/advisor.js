@@ -87,6 +87,8 @@ export const captacionEstimate = (params) => {
 };
 export const createCaptacion = (b) => post('/api/asesor/captaciones', b);
 export const moveCaptacion = (id, stage, payload) => patch(`/api/asesor/captaciones/${id}/stage`, { stage, payload });
+// C.1 · marcar vendida → registra el cierre real (ancla del AVM)
+export const venderCaptacion = (id, precio_cierre) => post(`/api/asesor/captaciones/${id}/vender`, { precio_cierre });
 export const getCaptacion = (id) => j(`/api/asesor/captaciones/${id}`);
 
 // Tareas · scope (comportamiento previo) o contacto_id (perfil-hub · additive)

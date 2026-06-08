@@ -46,6 +46,19 @@ export default function AsesorCaptaciones({ user, onLogout, embedded }) {
     catch { setToast({ kind: 'error', text: 'Error al mover' }); load(); }
   };
 
+  // C.1 · marcar vendida → registra el CIERRE REAL (ancla del AVM)
+  const vender = async (c) => {
+    const v = window.prompt(`Precio final de venta de "${c.direccion}" (vacío = usar el sugerido):`, c.precio_sugerido || '');
+    if (v === null) return;
+    const precio = v.trim() === '' ? null : Number(v);
+    if (precio !== null && (!Number.isFinite(precio) || precio <= 0)) { setToast({ kind: 'error', text: 'Precio inválido' }); return; }
+    try {
+      const r = await api.venderCaptacion(c.id, precio);
+      setItems(p => p.map(x => x.id === c.id ? { ...x, vendida: true } : x));
+      setToast({ kind: 'success', text: r.cierre_registrado ? `Vendida · cierre real registrado${r.pm2 ? ` ($${r.pm2.toLocaleString('es-MX')}/m²)` : ''}` : 'Vendida' });
+    } catch { setToast({ kind: 'error', text: 'Error al marcar vendida' }); }
+  };
+
   const body = (
     <>
       <PageHeader
@@ -106,6 +119,12 @@ export default function AsesorCaptaciones({ user, onLogout, embedded }) {
                           {c.urgencia === 'alta' && <Badge tone="bad">Urgente</Badge>}
                           <Badge tone="brand">{c.comision_pct || 4}% comisión</Badge>
                         </div>
+                        {c.vendida
+                          ? <div style={{ marginTop: 8 }}><Badge tone="ok">Vendida ✓</Badge></div>
+                          : <button onClick={(e) => { e.stopPropagation(); vender(c); }} data-testid={`capt-vender-${c.id}`}
+                              style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, background: 'rgba(31,160,106,0.10)', border: '1px solid rgba(31,160,106,0.30)', color: 'var(--ok, #1FA06A)', cursor: 'pointer' }}>
+                              Marcar Vendida
+                            </button>}
                       </PremiumCard>
                     ))}
                   </div>

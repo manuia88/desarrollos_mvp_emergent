@@ -61,40 +61,102 @@ def _confianza(n_usadas: int) -> str:
     return "insuficiente"
 
 
-async def resale_reference(db, colonia_slug: str) -> Dict[str, Any]:
-    """Mediana ROBUSTA de $/m² de la reventa captada en la colonia (atípicos filtrados).
-
-    Filtra precios inflados/erróneos (MAD) para que la referencia no se ensucie, y reporta
-    el rango típico + la confianza (alta/media/baja) según cuántas captaciones reales hay.
-    """
-    if not colonia_slug:
-        return {"pm2": None, "n": 0, "confianza": "insuficiente", "fuente": "insuficiente"}
-    pm2s: List[float] = []
+async def _pm2s_captaciones(db, colonia_slug: str) -> List[float]:
+    out: List[float] = []
     try:
-        cursor = db.asesor_captaciones.find(
+        cur = db.asesor_captaciones.find(
             {"colonia_id": colonia_slug, "tipo_operacion": "venta",
              "m2_construidos": {"$gt": 0}, "precio_sugerido": {"$gt": 0}},
             {"_id": 0, "m2_construidos": 1, "precio_sugerido": 1},
         )
-        async for c in cursor:
-            m2 = c.get("m2_construidos") or 0
-            price = c.get("precio_sugerido") or 0
+        async for c in cur:
+            m2, price = c.get("m2_construidos") or 0, c.get("precio_sugerido") or 0
             if m2 and price:
-                pm2s.append(price / m2)
+                out.append(price / m2)
     except Exception:
         pass
+    return out
 
-    dentro, atipicos = _split_outliers(pm2s)
+
+async def _pm2s_cierres(db, colonia_slug: str) -> List[float]:
+    out: List[float] = []
+    try:
+        cur = db.cierres_reales.find(
+            {"colonia_id": colonia_slug, "pm2": {"$gt": 0}}, {"_id": 0, "pm2": 1})
+        async for c in cur:
+            if c.get("pm2"):
+                out.append(float(c["pm2"]))
+    except Exception:
+        pass
+    return out
+
+
+async def resale_reference(db, colonia_slug: str) -> Dict[str, Any]:
+    """Referencia ROBUSTA de $/m² de la colonia, ANCLADA a CIERRES REALES cuando los hay.
+
+    Jerarquía de confianza (lección Monopolio/DD360): un precio de CIERRE (lo que de verdad se
+    pagó) vale más que uno de lista (captación). Si hay cierres, la referencia se ancla a ellos;
+    las captaciones solo amplían el rango. Sin cierres, cae a captaciones (atípicos filtrados).
+    """
+    if not colonia_slug:
+        return {"pm2": None, "n": 0, "confianza": "insuficiente", "fuente": "insuficiente", "anclado_cierres": False}
+
+    cierres = await _pm2s_cierres(db, colonia_slug)
+    capt = await _pm2s_captaciones(db, colonia_slug)
+
+    if cierres:
+        dentro, atip = _split_outliers(cierres)
+        med = _median(dentro)
+        # rango: de los cierres si hay ≥3; si no, se amplía con captaciones
+        pool = dentro if len(dentro) >= 3 else (dentro + _split_outliers(capt)[0])
+        conf = "alta" if len(dentro) >= 3 else "media"
+        return {
+            "pm2": round(med) if med else None,
+            "rango_bajo": round(_pctl(pool, 0.25)) if pool else None,
+            "rango_alto": round(_pctl(pool, 0.75)) if pool else None,
+            "n": len(cierres) + len(capt), "n_cierres": len(cierres), "n_captaciones": len(capt),
+            "n_usadas": len(dentro), "n_atipicas": len(atip),
+            "confianza": conf, "fuente": "cierres" if not capt else "cierres+captaciones",
+            "anclado_cierres": True,
+        }
+
+    # Sin cierres → captaciones (robusto, como antes)
+    dentro, atip = _split_outliers(capt)
     med = _median(dentro)
-    n, n_usadas = len(pm2s), len(dentro)
+    n_usadas = len(dentro)
     return {
         "pm2": round(med) if med else None,
         "rango_bajo": round(_pctl(dentro, 0.25)) if dentro else None,
         "rango_alto": round(_pctl(dentro, 0.75)) if dentro else None,
-        "n": n, "n_usadas": n_usadas, "n_atipicas": len(atipicos),
+        "n": len(capt), "n_cierres": 0, "n_captaciones": len(capt),
+        "n_usadas": n_usadas, "n_atipicas": len(atip),
         "confianza": _confianza(n_usadas),
         "fuente": "captaciones" if (med and n_usadas >= MIN_REAL) else "insuficiente",
+        "anclado_cierres": False,
     }
+
+
+async def registrar_cierre(db, *, colonia_id: str, m2: float, precio: float,
+                           owner_id: Optional[str] = None, org_id: Optional[str] = None,
+                           captacion_id: Optional[str] = None, fecha: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Registra un CIERRE REAL (una propiedad que se vendió a un precio final). Es el dato de
+    mayor confianza para el AVM. Honesto: sin colonia/m²/precio válidos, no registra nada."""
+    import secrets
+    from datetime import datetime, timezone
+    if not colonia_id or not m2 or not precio or m2 <= 0 or precio <= 0:
+        return None
+    doc = {
+        "id": "cierre_" + secrets.token_urlsafe(8),
+        "colonia_id": colonia_id, "m2": float(m2), "precio": float(precio),
+        "pm2": round(precio / m2), "owner_id": owner_id, "org_id": org_id,
+        "captacion_id": captacion_id,
+        "fecha": fecha or datetime.now(timezone.utc).isoformat(), "source": "cierre",
+    }
+    try:
+        await db.cierres_reales.insert_one(dict(doc))
+    except Exception:
+        return None
+    return doc
 
 
 # Bandas de comunicación cuando un precio se compara con la referencia de la colonia.

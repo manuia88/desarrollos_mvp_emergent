@@ -2811,6 +2811,45 @@ async def move_captacion(cid: str, payload: CaptacionStage, request: Request):
     return {"ok": True, "stage": payload.stage}
 
 
+class VenderCaptacion(BaseModel):
+    precio_cierre: Optional[float] = None   # precio final real; si falta, usa el sugerido
+
+
+@router.post("/captaciones/{cid}/vender")
+async def vender_captacion(cid: str, payload: VenderCaptacion, request: Request):
+    """Marca una captación como VENDIDA y registra el CIERRE REAL (precio final) — el dato de
+    mayor confianza para el AVM. Ancla la referencia de la colonia y reentrena la valuación de
+    la zona (Cerebro E6). Cierra el ciclo: lo que de verdad se vende afina el AVM."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    capt = await db.asesor_captaciones.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
+    if not capt:
+        raise HTTPException(404, "No encontrada")
+    precio = payload.precio_cierre or capt.get("precio_sugerido")
+    m2 = capt.get("m2_construidos")
+    colonia = capt.get("colonia_id")
+    if not (precio and m2 and colonia):
+        raise HTTPException(400, "Faltan precio, m² o colonia en la captación para registrar el cierre")
+    await db.asesor_captaciones.update_one(
+        {"id": cid, "owner_id": user.user_id},
+        {"$set": {"vendida": True, "precio_cierre": precio, "fecha_cierre": _now(), "updated_at": _now()}})
+    from resale_data import registrar_cierre
+    cierre = await registrar_cierre(
+        db, colonia_id=colonia, m2=m2, precio=precio,
+        owner_id=user.user_id, org_id=getattr(user, "tenant_id", None), captacion_id=cid)
+    # Cerebro E6: el cierre reentrena la valuación de la zona (fail-open · solo si está prendido)
+    try:
+        import os
+        if os.environ.get("CEREBRO_ENABLED") == "true":
+            import cerebro
+            await cerebro.on_deal_closed(db, user, ref=cid, outcome="won",
+                                         deal={"sale_price": precio}, level="project", zone=colonia)
+    except Exception as e:
+        logging.getLogger("dmx.advisor").info(f"[cerebro] vender hook no aplicó: {e}")
+    return {"ok": True, "vendida": True, "cierre_registrado": cierre is not None,
+            "pm2": cierre.get("pm2") if cierre else None}
+
+
 @router.get("/captaciones/{cid}")
 async def get_captacion(cid: str, request: Request):
     user = await require_advisor(request)
