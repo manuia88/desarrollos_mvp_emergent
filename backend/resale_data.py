@@ -221,6 +221,51 @@ async def colonia_valuation(db, colonia_slug: str, *,
     }
 
 
+def obra_nueva_pm2_map() -> Dict[str, List[float]]:
+    """$/m² de obra nueva por colonia (del inventario de desarrollos)."""
+    out: Dict[str, List[float]] = {}
+    try:
+        from data_developments import DEVELOPMENTS
+        for d in DEVELOPMENTS:
+            col = d.get("colonia_id") or (d.get("colonia") or "").lower().replace(" ", "-")
+            mr = d.get("m2_range") or [0]
+            pm2 = (d.get("price_from") or 0) / mr[0] if (mr and mr[0]) else 0
+            if col and pm2 > 0:
+                out.setdefault(col, []).append(pm2)
+    except Exception:
+        pass
+    return out
+
+
+async def precio_rescore(db, city: str = "CDMX") -> int:
+    """7ª dimensión (precio/plusvalía): para cada colonia con fuente REAL de precio, calcula su
+    $/m² mezclado y lo guarda como `precio_score` (percentil del valor de la ciudad). Solo cuenta
+    si hay dato real (cierres/reventa/obra nueva), no el estimado de zona. Barato (local + obra map).
+    """
+    import metric_normalizer as _mn
+    try:
+        from data_seed import COLONIAS_BY_ID
+    except Exception:
+        COLONIAS_BY_ID = {}
+    obra = obra_nueva_pm2_map()
+    rows: List[Dict[str, Any]] = []
+    async for c in db.colonias.find({"city": city}, {"_id": 0, "id": 1}):
+        zid = c["id"]
+        base = (COLONIAS_BY_ID.get(zid) or {}).get("price_m2_num")
+        val = await colonia_valuation(db, zid, obra_pm2=obra.get(zid), base_pm2=base)
+        # solo REAL (no "estimado"/"insuficiente"): debe tener cierres/reventa/obra
+        if val.get("pm2") and val.get("confianza") in ("alta", "media", "baja"):
+            rows.append({"id": zid, "pm2": val["pm2"]})
+    if not rows:
+        return 0
+    sorted_vals = (_mn.dist_from_values([r["pm2"] for r in rows]).get("_sorted") or [])
+    for r in rows:
+        pr = _mn.percentile_rank(r["pm2"], sorted_vals)
+        await db.colonias.update_one(
+            {"id": r["id"]}, {"$set": {"precio_pm2": r["pm2"], "precio_score": round(pr * 100)}})
+    return len(rows)
+
+
 # Bandas de comunicación cuando un precio se compara con la referencia de la colonia.
 _BANDAS_PRECIO = {
     "muy_alto":   ("Bastante Arriba del Rango", "Este precio está bastante arriba de lo que se capta en la colonia — revísalo o respáldalo con su valor diferencial."),

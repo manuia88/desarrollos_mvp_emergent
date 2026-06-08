@@ -63,8 +63,13 @@ async def run_zone_data_chunk(db, city: str = "CDMX", chunk: int = DEFAULT_CHUNK
         await asyncio.sleep(THROTTLE_S)
         procesadas += 1
 
-    # Recalcula seguridad (percentil sobre todas) + scores del catálogo (barato · local)
+    # Recalcula seguridad + precio/valor (percentil sobre todas · barato · local) + scores
     await fgj.rescore_safety(db, city)
+    try:
+        import resale_data as rd
+        await rd.precio_rescore(db, city)
+    except Exception as e:
+        log.warning(f"[zone_data] precio_rescore: {e}")
     scores = await cc.compute_catalog_scores(db, city)
 
     faltan = await db.colonias.count_documents(

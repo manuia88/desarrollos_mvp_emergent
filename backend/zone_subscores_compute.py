@@ -201,8 +201,16 @@ async def _drpi_median(db) -> Optional[float]:
 
 
 async def compute_precio(db, zone_slug: str) -> Dict[str, Any]:
-    """Score=100 si zona ≤ mediana (mejor precio/calidad). Escala lineal hasta 0
-    cuando zona es 2× mediana (zona premium = peor precio/calidad)."""
+    """Nivel de valor de la zona ($/m²) por percentil real (de la valuación 4-fuentes) — preferido.
+    Respaldo: DRPI vs mediana. El valor mayor = score mayor (zona de mayor valor)."""
+    # 1) Valuación REAL por colonia (cierres/reventa/obra · C.3) → precio_score guardado
+    try:
+        c = await db.colonias.find_one({"id": zone_slug}, {"_id": 0, "precio_score": 1})
+        if c and c.get("precio_score") is not None:
+            return _wrap(float(c["precio_score"]), "valuacion", sample_size=1)
+    except Exception as e:
+        log.warning(f"[subscores] precio valuacion {zone_slug}: {e}")
+    # 2) DRPI (respaldo)
     try:
         snap = await db.drpi_snapshots.find_one(
             {"zone_id": zone_slug, "available": True},

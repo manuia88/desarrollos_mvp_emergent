@@ -242,6 +242,17 @@ def test_resale_clasifica_precio():
     assert rd.clasificar_precio(50000, {"fuente": "insuficiente"})["banda"] == "sin_referencia"
 
 
+def test_obra_nueva_map_y_robust_median():
+    """7ª dimensión: obra nueva por colonia (de DEVELOPMENTS) + mediana robusta."""
+    import resale_data as rd
+    m = rd.obra_nueva_pm2_map()
+    assert isinstance(m, dict)
+    for col, vals in m.items():
+        assert all(v > 0 for v in vals)   # $/m² positivos
+    # mediana robusta ignora el inflado
+    assert round(rd._robust_median([50000, 51000, 49000, 52000, 999999])) in (50000, 50500, 51000)
+
+
 def test_resale_confianza_por_n():
     import resale_data as rd
     assert rd._confianza(8) == "alta"
