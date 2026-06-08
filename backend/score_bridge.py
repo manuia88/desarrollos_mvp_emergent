@@ -28,9 +28,10 @@ _DIM_MAP = {
     "seguridad": "seguridad",
     "comercio": "amenidades",
     "plusvalia": "precio",
+    "educacion": "educacion",
     "riesgo": "seguridad",   # zona segura → riesgo (score, mayor=mejor) alto
 }
-# Las 7 dimensiones que consume el motor de índices (educacion aún sin fuente fina).
+# Las 7 dimensiones que consume el motor de índices.
 _DIMS = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion", "riesgo"]
 
 # Fuentes que NO cuentan como "real": 'stub' (sin dato) y 'seed_proxy' (el valor a mano de la

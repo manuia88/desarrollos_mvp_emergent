@@ -95,24 +95,56 @@ async def compute_seguridad(db, zone_slug: str) -> Dict[str, Any]:
         return STUB
 
 
-# ─── Transporte (proxy desde seed COLONIAS o stub) ──────────────────────────
+# ─── Transporte (OSM: estaciones/paradas · seed como respaldo) ──────────────
+
+# Referencia: ~12 puntos de transporte (Metro/Metrobús/paradas) a 700 m → muy conectada.
+TRANSPORTE_REF = 12.0
+
 
 async def compute_transporte(db, zone_slug: str) -> Dict[str, Any]:
-    """No existe GTFS engine: usamos `scores.movilidad` del seed como proxy.
-    Decisión conservadora: source='seed_proxy' (no stub) cuando el seed tiene
-    el dato; stub 50 si la colonia no está en el seed.
-    """
+    """Movilidad real desde OSM: estaciones de Metro + paradas dentro de ~700 m.
+    Respaldo: `scores.movilidad` del seed (marcado seed_proxy, no cuenta como real fino)."""
+    try:
+        doc = await db.denue_zone_density.find_one(
+            {"zone_id": zone_slug}, {"_id": 0, "by_category": 1, "source": 1},
+        )
+        transit = int(((doc or {}).get("by_category") or {}).get("transporte") or 0)
+        if doc and doc.get("source") == "osm":
+            score = min(100.0, (transit / TRANSPORTE_REF) * 100.0)
+            return _wrap(score, "osm", sample_size=transit)
+    except Exception as e:
+        log.warning(f"[subscores] transporte OSM {zone_slug}: {e}")
+    # Respaldo: seed
     try:
         from data_seed import COLONIAS_BY_ID
-        rec = COLONIAS_BY_ID.get(zone_slug) or {}
-        seed_scores = rec.get("scores") or {}
-        v = seed_scores.get("movilidad")
+        v = ((COLONIAS_BY_ID.get(zone_slug) or {}).get("scores") or {}).get("movilidad")
         if v is None:
-            log.warning(f"[subscores] transporte stub {zone_slug}: seed missing")
             return STUB
         return _wrap(float(v), "seed_proxy", sample_size=1)
     except Exception as e:
         log.warning(f"[subscores] transporte error {zone_slug}: {e}")
+        return STUB
+
+
+# ─── Educación (OSM: escuelas dentro de ~700 m) ─────────────────────────────
+
+# Referencia: ~8 escuelas a 700 m → oferta educativa muy alta.
+EDUCACION_REF = 8.0
+
+
+async def compute_educacion(db, zone_slug: str) -> Dict[str, Any]:
+    """Oferta educativa real desde OSM: escuelas/universidades dentro de ~700 m."""
+    try:
+        doc = await db.denue_zone_density.find_one(
+            {"zone_id": zone_slug}, {"_id": 0, "by_category": 1, "source": 1},
+        )
+        if not doc or doc.get("source") != "osm":
+            return STUB
+        escuelas = int((doc.get("by_category") or {}).get("escuela") or 0)
+        score = min(100.0, (escuelas / EDUCACION_REF) * 100.0)
+        return _wrap(score, "osm", sample_size=escuelas)
+    except Exception as e:
+        log.warning(f"[subscores] educacion {zone_slug}: {e}")
         return STUB
 
 
@@ -278,9 +310,10 @@ async def compute_all_subscores(db, zone_slug: str) -> Dict[str, Dict[str, Any]]
         compute_amenidades(db, zone_slug),
         compute_precio(db, zone_slug),
         compute_vibe(db, zone_slug),
+        compute_educacion(db, zone_slug),
     ]
     results = await asyncio.gather(*coros, return_exceptions=True)
-    keys = ["lifestyle", "seguridad", "transporte", "amenidades", "precio", "vibe"]
+    keys = ["lifestyle", "seguridad", "transporte", "amenidades", "precio", "vibe", "educacion"]
     out: Dict[str, Dict[str, Any]] = {}
     for k, r in zip(keys, results):
         if isinstance(r, Exception):

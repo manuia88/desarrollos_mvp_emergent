@@ -36,6 +36,13 @@ def _classify(tags: Dict[str, Any]) -> Optional[str]:
     a = (tags.get("amenity") or "").lower()
     s = (tags.get("shop") or "").lower()
     le = (tags.get("leisure") or "").lower()
+    rw = (tags.get("railway") or "").lower()
+    hw = (tags.get("highway") or "").lower()
+    pt = (tags.get("public_transport") or "").lower()
+    # Transporte (Metro/Metrobús/paradas) — para la dimensión de movilidad
+    if (rw in ("station", "subway_entrance", "tram_stop", "halt")
+            or hw == "bus_stop" or pt in ("station", "stop_position") or a == "bus_station"):
+        return "transporte"
     if a in ("restaurant", "fast_food", "food_court"):
         return "restaurante"
     if a in ("bar", "pub", "biergarten"):
@@ -76,6 +83,8 @@ async def fetch_osm_pois(lat: float, lng: float, radius_m: int = 700, *, retries
         f'node["amenity"](around:{radius_m},{lat},{lng});way["amenity"](around:{radius_m},{lat},{lng});'
         f'node["shop"](around:{radius_m},{lat},{lng});way["shop"](around:{radius_m},{lat},{lng});'
         f'node["leisure"](around:{radius_m},{lat},{lng});way["leisure"](around:{radius_m},{lat},{lng});'
+        f'node["railway"~"station|subway_entrance|tram_stop|halt"](around:{radius_m},{lat},{lng});'
+        f'node["highway"="bus_stop"](around:{radius_m},{lat},{lng});'
         f');out tags;'
     )
     for attempt in range(retries + 1):

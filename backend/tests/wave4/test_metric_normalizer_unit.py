@@ -188,6 +188,29 @@ def test_fgj_pesa_por_gravedad():
     assert fgj._weight("HOMICIDIO DOLOSO") > fgj._weight("DELITO DE BAJO IMPACTO")
 
 
+def test_osm_clasifica_transporte_y_educacion():
+    """OSM clasifica transporte (Metro/paradas) y escuelas → dimensiones movilidad + educación."""
+    import osm_engine as osm
+    assert osm._classify({"railway": "station"}) == "transporte"
+    assert osm._classify({"railway": "subway_entrance"}) == "transporte"
+    assert osm._classify({"highway": "bus_stop"}) == "transporte"
+    assert osm._classify({"amenity": "bus_station"}) == "transporte"
+    assert osm._classify({"amenity": "school"}) == "escuela"
+    assert osm._classify({"amenity": "university"}) == "escuela"
+
+
+def test_bridge_mapea_movilidad_y_educacion():
+    """El puente mapea movilidad←transporte y educacion←educacion."""
+    import score_bridge as sb
+    sub = {
+        "transporte": {"value": 80, "source": "osm"},   # → movilidad real
+        "educacion":  {"value": 70, "source": "osm"},   # → educacion real
+    }
+    r = sb.map_subscores(sub)
+    assert r["scores"].get("movilidad") == 80
+    assert r["scores"].get("educacion") == 70
+
+
 def test_osm_keys_compatibles_con_lifestyle():
     """Las categorías de vida de OSM deben matchear el detector de lifestyle (vida)."""
     import osm_engine as osm
