@@ -252,6 +252,30 @@ async def superadmin_colonias_sync_catastro(
     return await sig.sync_vsuelo_for_city(request.app.state.db, city=city)
 
 
+@router.post("/api/superadmin/colonias/recalibrate-comercial")
+async def superadmin_colonias_recalibrate_comercial(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a recalibrar"),
+):
+    """Recalibra el modelo del valor del SUELO al valor COMERCIAL (ING.2): aprende la relación con
+    las colonias que tienen valor catastral Y ventas reales, y mide su fiabilidad (R²). Honesto:
+    con pocas ventas no estima, solo deja el suelo como piso. Cada venta lo afina (flywheel)."""
+    await _sa(request)
+    import comercial_value_model as cvm
+    return await cvm.recalibrate(request.app.state.db, city=city)
+
+
+@router.get("/api/superadmin/colonias/calibracion-comercial")
+async def superadmin_colonias_calibracion(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad"),
+):
+    """Estado del modelo suelo→comercial (coeficientes, R², confianza, muestras)."""
+    await _sa(request)
+    import comercial_value_model as cvm
+    return await cvm.get_calibration(request.app.state.db, city=city)
+
+
 @router.post("/api/superadmin/colonias/fill-chunk")
 async def superadmin_colonias_fill_chunk(
     request: Request,

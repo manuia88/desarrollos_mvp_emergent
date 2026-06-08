@@ -156,6 +156,12 @@ async def registrar_cierre(db, *, colonia_id: str, m2: float, precio: float,
         await db.cierres_reales.insert_one(dict(doc))
     except Exception:
         return None
+    # Flywheel: una venta nueva recalibra el modelo suelo→comercial (ING.2) — fail-open.
+    try:
+        import comercial_value_model as cvm
+        await cvm.recalibrate(db, city="CDMX")
+    except Exception:
+        pass
     return doc
 
 
@@ -197,8 +203,22 @@ async def colonia_valuation(db, colonia_slug: str, *,
         m = _median(vals)
         if m:
             fuentes.append({"tipo": "obra_nueva", "etiqueta": "Obra Nueva", "pm2": round(m), "n": len(vals), "peso": 2})
-    if base_pm2 and base_pm2 > 0:
-        fuentes.append({"tipo": "estimado", "etiqueta": "Estimado de Zona", "pm2": round(base_pm2), "n": 0, "peso": 1})
+    # Estimado de zona — preferimos el ANCLADO al valor oficial del suelo (catastral × modelo
+    # calibrado con ventas reales · ING.2) sobre la heurística. Solo si el modelo es fiable.
+    estimado_src = None
+    try:
+        import comercial_value_model as cvm
+        ce = await cvm.estimate_commercial_pm2(db, colonia_slug)
+        if ce and ce.get("pm2"):
+            estimado_src = {"tipo": "estimado", "etiqueta": "Estimado del Valor Oficial del Suelo",
+                            "pm2": ce["pm2"], "n": 0, "peso": 1, "base": "catastral",
+                            "catastral": ce.get("catastral"), "leyenda": ce.get("leyenda")}
+    except Exception:
+        estimado_src = None
+    if estimado_src is None and base_pm2 and base_pm2 > 0:
+        estimado_src = {"tipo": "estimado", "etiqueta": "Estimado de Zona", "pm2": round(base_pm2), "n": 0, "peso": 1}
+    if estimado_src:
+        fuentes.append(estimado_src)
 
     if not fuentes:
         return {"pm2": None, "confianza": "insuficiente", "anclado": None, "fuentes": [],

@@ -5,18 +5,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
+const mmx = (n) => (n == null ? '—' : `$${Math.round(n).toLocaleString('es-MX')}`);
 
 export default function SuperadminIndices() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('');
   const [ingest, setIngest] = useState({ busy: false, msg: '' });
+  const [calib, setCalib] = useState(null);
 
   const refrescar = () => listIndices({ tier: tier || undefined, limit: 200 }).then(setData).catch(() => {});
+  const refrescarCalib = () => getCalibracionComercial('CDMX').then(setCalib).catch(() => {});
 
   const cargarCatalogo = async () => {
     setIngest({ busy: true, msg: '' });
@@ -90,6 +93,17 @@ export default function SuperadminIndices() {
     }
   };
 
+  const recalibrarValorComercial = async () => {
+    setIngest({ busy: true, msg: 'Aprendiendo la relación entre el valor del suelo y el precio comercial con las ventas reales…' });
+    try {
+      const r = await recalibrarComercial('CDMX');
+      setCalib(r);
+      setIngest({ busy: false, msg: r.leyenda || `Modelo recalibrado con ${r.n} zonas.` });
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al recalibrar el valor comercial.' });
+    }
+  };
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -99,6 +113,8 @@ export default function SuperadminIndices() {
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [tier]);
+
+  useEffect(() => { refrescarCalib(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = useMemo(() => (data && data.items) || [], [data]);
   const leyenda = (data && data.leyenda) || [];
@@ -178,6 +194,9 @@ export default function SuperadminIndices() {
             <button data-testid="ix-sync-catastro" onClick={sincronizarCatastro} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Valor del Suelo
             </button>
+            <button data-testid="ix-recalibrar-comercial" onClick={recalibrarValorComercial} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Recalibrar Valor Comercial
+            </button>
             <button data-testid="ix-llenar-todo" onClick={llenarTodo} disabled={ingest.busy} style={{ ...btnSecondary, borderColor: 'rgba(var(--theme-rgb),0.5)', opacity: ingest.busy ? 0.6 : 1 }}>
               Llenar Todo (Auto)
             </button>
@@ -189,6 +208,35 @@ export default function SuperadminIndices() {
           <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>
             Crece al cargar el catálogo oficial CDMX (~1,800) y nuevas ciudades. Las señales se comparan por ciudad. Los scores reales de cada colonia llegan al correr las recetas (siguiente paso).
           </div>
+
+          {/* Modelo del valor del suelo al precio comercial (ING.2 · aprende de las ventas reales) */}
+          {calib && (
+            <div data-testid="ix-calib-comercial" style={{ marginTop: 14, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'rgba(var(--cream-rgb),0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>Del Valor del Suelo al Precio Comercial</span>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 9999,
+                  background: calib.estima ? 'rgba(31,160,106,0.12)' : 'rgba(252,165,165,0.10)',
+                  border: `1px solid ${calib.estima ? 'rgba(31,160,106,0.30)' : 'rgba(252,165,165,0.30)'}`,
+                  color: calib.estima ? 'var(--ok,#1FA06A)' : '#fca5a5', textTransform: 'capitalize' }}>
+                  Confianza: {calib.confianza}
+                </span>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+                  {calib.n} {calib.n === 1 ? 'zona' : 'zonas'} con valor del suelo y ventas reales
+                  {calib.r2 != null && ` · ajuste ${Math.round(calib.r2 * 100)}%`}
+                </span>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 7, lineHeight: 1.45 }}>{calib.leyenda}</div>
+              {calib.estima && (calib.muestras || []).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                  {(calib.muestras || []).slice(0, 8).map((m, i) => (
+                    <span key={i} title={`${m.fuente}`} style={{ fontFamily: 'DM Sans', fontSize: 10.5, padding: '3px 9px', borderRadius: 9999, border: '1px solid var(--border)', color: 'var(--cream-2)' }}>
+                      {m.colonia}: suelo {mmx(m.catastral)} → comercial {mmx(m.comercial)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

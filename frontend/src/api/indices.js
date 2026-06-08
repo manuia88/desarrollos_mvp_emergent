@@ -85,3 +85,23 @@ export const syncCatastro = async (city = 'CDMX') => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · recalibra el modelo del valor del suelo al valor comercial (ING.2 · aprende de ventas reales).
+export const recalibrarComercial = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/recalibrate-comercial?city=${encodeURIComponent(city)}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
+
+// Superadmin · estado del modelo suelo→comercial (coeficientes, fiabilidad, muestras).
+export const getCalibracionComercial = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/calibracion-comercial?city=${encodeURIComponent(city)}`, {
+    credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};

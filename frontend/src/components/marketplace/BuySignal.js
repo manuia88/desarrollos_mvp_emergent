@@ -133,6 +133,11 @@ export default function BuySignal({ devId }) {
                 <span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · base oficial SIG CDMX · es el piso, no el precio de venta</span>
               </div>
             )}
+            {(vz.fuentes || []).some(f => f.base === 'catastral' && f.leyenda) && (
+              <div style={{ marginTop: 4, fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>
+                {(vz.fuentes || []).find(f => f.base === 'catastral' && f.leyenda).leyenda}
+              </div>
+            )}
           </div>
         )}
 
