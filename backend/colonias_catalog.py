@@ -270,12 +270,66 @@ async def sync_seguridad(db, city: str = "CDMX", period_years: int = 2) -> Dict[
     }
 
 
-async def ingest_official_catalog(db, city: str = "CDMX") -> Dict[str, Any]:
-    """Carga el catálogo oficial de colonias de una ciudad. Fuentes (en orden):
-      1) CKAN  → env `IE_COLONIAS_CDMX_RESOURCE_ID` (datos.cdmx datastore_search)
-      2) GeoJSON → env `IE_COLONIAS_CDMX_URL`
-    Sin fuente configurada → no-op HONESTO con instrucción (cero deuda · build for endstate).
+async def ingest_catalog_from_fgj(db, city: str = "CDMX", period_years: int = 3, min_incidents: int = 15) -> Dict[str, Any]:
+    """Deriva el catálogo de colonias del propio dataset FGJ (que ya tiene cada colonia con
+    coordenadas) — sin esperar el GeoJSON oficial. El centro es el promedio de ubicaciones
+    (aproximado, se afina al cargar polígonos oficiales). Cero deuda · build for endstate."""
+    rid = os.environ.get("IE_FGJ_CDMX_RESOURCE_ID")
+    if not rid:
+        return {"ok": False, "reason": "Falta IE_FGJ_CDMX_RESOURCE_ID.", "cargadas": 0, "cobertura": await coverage(db)}
+    import re as _re
+    from datetime import datetime as _dt, timezone as _tz
+    year_from = _dt.now(_tz.utc).year - period_years
+    base = _ckan_base()
+    sql = (f'SELECT "colonia_catalogo", "alcaldia_catalogo", AVG("latitud") AS lat, '
+           f'AVG("longitud") AS lng, COUNT(*) AS n FROM "{rid}" '
+           f'WHERE "anio_hecho" >= {year_from} AND "latitud" BETWEEN 19 AND 20 '
+           f'AND "longitud" BETWEEN -100 AND -98 AND "colonia_catalogo" != \'\' '
+           f'GROUP BY "colonia_catalogo", "alcaldia_catalogo" HAVING COUNT(*) > {min_incidents}')
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=110) as c:
+            r = await c.get(f"{base}/datastore_search_sql", params={"sql": sql})
+        if r.status_code != 200 or not r.json().get("success"):
+            return {"ok": False, "reason": "FGJ no respondió.", "cargadas": 0, "cobertura": await coverage(db)}
+        rows = r.json().get("result", {}).get("records", [])
+    except Exception as e:
+        log.warning(f"[colonias_catalog] fgj catalog: {e}")
+        return {"ok": False, "reason": str(e), "cargadas": 0, "cobertura": await coverage(db)}
+
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        name = (row.get("colonia_catalogo") or "").strip()
+        alc = (row.get("alcaldia_catalogo") or "").strip()
+        if not name:
+            continue
+        # title case suave (respeta nombres ya formateados, arregla MAYÚSCULAS)
+        if name.isupper():
+            name = name.title()
+        if alc.isupper():
+            alc = alc.title()
+        try:
+            lat, lng = float(row["lat"]), float(row["lng"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        cid = _slugify(f"{name}-{alc}" if alc else name)
+        items.append({"id": cid, "name": name, "city": city, "alcaldia": alc or None,
+                      "center": [lng, lat], "source": "fgj_derivado"})
+    items = list({m["id"]: m for m in items}.values())
+    n = await upsert_colonias(db, city, items) if items else 0
+    return {"ok": True, "fuente": "fgj", "leidas": len(rows), "cargadas": n, "city": city,
+            "cobertura": await coverage(db)}
+
+
+async def ingest_official_catalog(db, city: str = "CDMX", source: str = "fgj") -> Dict[str, Any]:
+    """Carga el catálogo de colonias de una ciudad. Fuentes:
+      - "fgj" (DEFAULT): deriva las colonias del dataset FGJ (ya conectado · ~1,244 con coords).
+      - CKAN  → env `IE_COLONIAS_CDMX_RESOURCE_ID`
+      - GeoJSON → env `IE_COLONIAS_CDMX_URL`
+    Sin nada configurado → no-op HONESTO con instrucción (cero deuda · build for endstate).
     """
+    if source == "fgj":
+        return await ingest_catalog_from_fgj(db, city)
     rid = os.environ.get("IE_COLONIAS_CDMX_RESOURCE_ID")
     url = os.environ.get("IE_COLONIAS_CDMX_URL")
     try:
