@@ -1,10 +1,53 @@
 # DMX · PLAN MAESTRO DETALLADO (estado + pendientes · fuente única)
 
-**Actualizado**: 2026-06-07 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
+**Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** terminando el **AVM** (fundamentación de datos) → en **Tanda B**. Al cerrar el AVM, retomamos por el **BLOQUE 1** (portal del Dev, Paso C).
+**📍 DÓNDE ESTAMOS:** capa de datos casi cerrada (Tandas A/C ✅, B 90%, EX catálogo+7/7 dims ✅, 1,352 colonias llenándose). Portal Dev (Paso C) ✅ hecho. **Siguiente:** cerrar B.2 (demanda viva) → conectar el dato REAL al Dev (Demanda/Pricing) → endurecer.
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
+
+---
+
+## 0. CHECKLIST CONSOLIDADO (al 2026-06-08)
+
+### 🔵 Capa de Datos / Honestidad (antes de Dev)
+| Item | Estado |
+|---|---|
+| Tanda A — Honestidad (tasas oficiales, sintéticos, tokens, bug env) | ✅ |
+| Tanda B.1 — Regla central (percentiles) + 5 índices + DENUE unificado | ✅ |
+| Tanda B.2 — resto a banda (gentrificación·ciclo·calidad ✅ · **demanda viva + fit/match**) | 🟡 **falta demanda viva + fit/match** |
+| Tanda B.3 — Sello honesto en los 4 portales | ✅ |
+| Tanda C — Valuación (C.1 cierres · C.2 atípicos · C.3 4-fuentes · C.4 base honesta) | ✅ |
+| Ingesta oficial — SIG predios + valores unitarios 2026 + SHF | ⏳ diferible (la valuación ya jala) |
+| EX.1 — Catálogo 16→1,352 (derivado del FGJ) | ✅ |
+| EX.2 — Scores reales **7/7 dimensiones** por colonia | ✅ |
+| EX.2b/c/d — OSM comercios · FGJ seguridad · cron auto | ✅ |
+| EX.3 / EX.4 — Dimensión `city` · percentiles por ciudad | ✅ |
+| Llenado de las 1,352 con dato real | 🔄 corriendo (background ~3-4h + cron) |
+| EX.5 / EX.6 — Conector local por ciudad · rollout multi-ciudad (GDL/MTY/QRO…) | ⏳ después de CDMX |
+
+### 🟣 Módulo Dev (portal del desarrollador · Paso C)
+| Item | Estado |
+|---|---|
+| DEV-A — Descubrir features ocultas | ✅ |
+| DEV-B — Menú V2 (7 secciones claras) | ✅ |
+| DEV-C — 7 upgrades IA-first (Inicio·MisProyectos·CRM·Inteligencia·Pricing·Red·Marketing·Reportes) | ✅ (2026-06-06, verificado en app) |
+| Conectar dato FALSO→REAL: Demanda (random→forecast) · Pricing por unidad (heurística→AVM/valuación real) | ⏳ **siguiente lógico** |
+| Hardening Fase 1-4 (aislamiento cross-dev-org + QA) | ⏳ (= Bloque 3) |
+| Deuda menor (link Cash Flow roto · tabs fantasma CRM Citas/Slots/Brokers · prender suite IA por flag) | ⏳ |
+
+### ⚫ Resto (después del Dev)
+| Item | Estado |
+|---|---|
+| Bloque 2 — Quick-wins dato real (absorción·ciclo·5 índices·recipes) · *gran parte ya en Tanda B/EX* | ⏳ |
+| Bloque 4 — Catálogo+pulido (Tier 2/3 calculadoras · Amenity ROI · Asesor P6) | ⏳ |
+| Bloque 5 — Prender (llaves OpenAI/WhatsApp/gov · subir flags a usuarios reales) | ⏳ ops |
+
+### 🟢 Ya hecho (base) ✅
+Waves 1-5 · Cerebro E0-E6 (agéntico) · Tiers T0-T4 · Feature Visibility
+
+### 🔑 Ops del founder ⏳
+Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) · Dubai (50+ props) · WhatsApp QR · DNS Cloudflare · W6 diferidos (47h)
 
 ---
 
