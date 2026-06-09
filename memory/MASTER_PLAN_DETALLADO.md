@@ -2,7 +2,7 @@
 
 **Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF por alcaldía ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel · stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅ + **aislamiento cross-org ✅**: candado central `dev_guard` + bitácora + Centro de Seguridad superadmin + red-team 16/16). **Pendiente real:** QA día-del-dev (🟡 EN CURSO · ya cayeron 2 bugs: doble-click login + jerga del Diagnóstico). Cero deuda: dato falso→real cerrado (incl. Competidores + IE breakdown sin "/100") · "deuda menor" revisada = ya estaba hecha/era el switch del founder · ING.2b conector stub listo (OCR de la tabla 2026 diferido a backlog).
+**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF por alcaldía ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel · stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅ + **aislamiento cross-org ✅**: candado central `dev_guard` + bitácora + Centro de Seguridad superadmin + red-team 16/16). **QA del Portal Dev ✅ Ola 1 (5 áreas usuario: honestidad·pantallas·lenguaje·móvil·coherencia) + Ola 2 (técnico: seguridad/3 fugas IDOR, arranque resiliente, atomicidad/CAS, 4 portales conectados) + cola bajo riesgo (CAS+índice, rate-limit IA, Pydantic).** Scorecard en `memory/DEV_QA_SCORECARD.md`. **Pendiente real:** Cross-Portal v2 (📦 3 items conectividad documentados con plan: asesor lee efectivo · fotos dev→comprador · overlay en listados) · luego Bloque 4/5 (prender llaves + abrir a usuarios). Cero deuda: ING.2b conector stub listo (OCR tabla 2026 en backlog).
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
 
@@ -36,7 +36,7 @@
 | Dato FALSO→REAL · **Competidores** (absorción/disponibilidad random→inventario real · tendencia random→plusvalía SHF real de la alcaldía · prensa inventada→boletines reales/vacío honesto) | ✅ (2026-06-08) |
 | Sin "/100" · **Comparativa del proyecto (IE breakdown)** → banda honesta ("Muy Baja"…"Muy Alta") + wired a los 12 `ie_scores` REALES (mapa N1..P6→IE_PROY_*/IE_COL_* · 12/12 reales) + nombres en lenguaje de persona | ✅ (2026-06-08) |
 | Hardening · aislamiento cross-org del portal Dev (candado central + bitácora + Centro de Seguridad + red-team 16/16) | ✅ candados+UI+test |
-| **QA "día del desarrollador"** (recorrer el portal logueado como dev real) | 🟡 EN CURSO · hechos: fix doble-click login (confirma sesión antes de entrar) + Diagnóstico en lenguaje claro (37 checks + módulos + términos) |
+| **QA del Portal Dev** (Ola 1 usuario + Ola 2 técnico + cola) | ✅ Ola 1 (B honestidad·C pantallas·A lenguaje·D móvil·F coherencia) + Ola 2 (seguridad/IDOR·arranque·atomicidad·4 portales) + cola bajo riesgo. 📦 resta Cross-Portal v2 (3 items). Scorecard: `memory/DEV_QA_SCORECARD.md` |
 | ~~Deuda menor~~ → REVISADA (cero deuda es la política): tabs fantasma CRM ✅ ya son páginas reales · link Cash Flow ✅ cableado (Insights + Legajo, ruta viva) · Suite IA = **switch del founder** (flag `agentic_enabled`, no es deuda · prender al final) | ✅ sin deuda |
 | ING.2b — Valores Unitarios oficiales 2026 (Gaceta) | ✅ conector STUB construido (`valores_unitarios_engine` + botón superadmin + ancla preferente en valuación) · 📦 OCR de la tabla DIFERIDO a backlog (links 2026 ya localizados · PDF escaneado · opcional, el modelo aprende de ventas) |
 
@@ -124,7 +124,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 | 1.5 | Red Comercial — "Salud de tu Red" (C.5) | ✅ |
 | 1.6 | Marketing — "Qué Promocionar Hoy" (C.6) | ✅ |
 | 1.7 | Reportes — "Resumen Ejecutivo del Mes" (C.7) | ✅ |
-| **Pendiente real** | (a) Hardening aislamiento cross-org ✅ (candado+bitácora+Centro de Seguridad+red-team) · QA día-del-dev ⏳ · (b) **dato FALSO→REAL** ✅: Demanda (random→forecast) · Competidores (absorción/disponibilidad random→inventario REAL · tendencia random→plusvalía SHF real de la alcaldía · recortes prensa inventados→boletines reales/honesto vacío) · IE breakdown + peer benchmark (random.randint→ancla DETERMINISTA de dato real, marcado is_stub) · Pricing unidad ya usa AVM real (`/avm`) · (c) deuda menor: link Cash Flow, tabs fantasma CRM, suite IA (flag) ⏳ · (d) ✅ IE breakdown → banda honesta ("Muy Baja"…"Muy Alta", sin "/100") + wired a los 12 ie_scores REALES (mapa N1..P6→IE_PROY_*/IE_COL_* · 12/12 reales) + nombres en lenguaje de persona | ✅ dato falso→real cerrado |
+| **Pendiente real** | (a) Hardening aislamiento cross-org ✅ + **QA del Dev ✅ (Ola 1 usuario + Ola 2 técnico + cola bajo riesgo · resta Cross-Portal v2 📦)** · (b) **dato FALSO→REAL** ✅: Demanda (random→forecast) · Competidores (absorción/disponibilidad random→inventario REAL · tendencia random→plusvalía SHF real de la alcaldía · recortes prensa inventados→boletines reales/honesto vacío) · IE breakdown + peer benchmark (random.randint→ancla DETERMINISTA de dato real, marcado is_stub) · Pricing unidad ya usa AVM real (`/avm`) · (c) deuda menor: link Cash Flow, tabs fantasma CRM, suite IA (flag) ⏳ · (d) ✅ IE breakdown → banda honesta ("Muy Baja"…"Muy Alta", sin "/100") + wired a los 12 ie_scores REALES (mapa N1..P6→IE_PROY_*/IE_COL_* · 12/12 reales) + nombres en lenguaje de persona | ✅ dato falso→real cerrado |
 
 ### BLOQUE 2 — Quick-wins de dato real (Tier 1 catálogo) · *reusa Tanda B*
 | # | Qué | Tamaño | Estado |
@@ -139,7 +139,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 |---|---|---|---|
 | 3.1 | Aislamiento entre desarrolladoras (cada endpoint filtra por dev_org — riesgo #1) | L | ⏳ |
 | 3.2 | Atomicidad (reserva de unidad sin doble-reserva) + índices | M | ⏳ |
-| 3.3 | QA "día del desarrollador" + red-team de aislamiento | M | 🟡 red-team ✅ (`dev_redteam_test.py` 16/16) · QA día-del-dev ⏳ |
+| 3.3 | QA "día del desarrollador" + red-team de aislamiento | M | ✅ red-team 16/16 + Ola 1 (usuario) + Ola 2 (técnico) + cola bajo riesgo · 📦 resta Cross-Portal v2 |
 
 ### BLOQUE 4 — Completar catálogo + pulido
 | # | Qué | Tamaño | Estado |
