@@ -43,7 +43,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = AsyncIOMotorClient(MONGO_URL)
+# Pool acotado + timeouts (C1 Escala): sin tope, las conexiones se acumulan y
+# bajo carga se encadenan timeouts. Valores conservadores, configurables por env.
+client = AsyncIOMotorClient(
+    MONGO_URL,
+    maxPoolSize=int(os.environ.get("MONGO_MAX_POOL_SIZE", "50")),
+    minPoolSize=int(os.environ.get("MONGO_MIN_POOL_SIZE", "5")),
+    serverSelectionTimeoutMS=int(os.environ.get("MONGO_SERVER_SELECTION_MS", "5000")),
+    connectTimeoutMS=int(os.environ.get("MONGO_CONNECT_TIMEOUT_MS", "10000")),
+    socketTimeoutMS=int(os.environ.get("MONGO_SOCKET_TIMEOUT_MS", "45000")),
+)
 db = client[DB_NAME]
 app.state.db = db
 
@@ -600,6 +609,7 @@ from routes.dev_channel_intel import router as dev_channel_intel_router, ensure_
 app.include_router(dev_channel_intel_router)
 
 from routes.dev_project_full import router as dev_project_full_router, ensure_project_full_indexes
+from dev_scale_indexes import ensure_dev_scale_indexes  # C1 Escala — índices faltantes del portal Dev
 app.include_router(dev_project_full_router)
 
 from routes.asesor_playbook import router as asesor_playbook_router  # B3.1 · playbook dev→asesor
@@ -1657,6 +1667,7 @@ async def startup():
         ("channel_intel", ensure_channel_intel_indexes),
         ("project_full", ensure_project_full_indexes),
         ("batch8", ensure_batch8_indexes),
+        ("dev_scale", ensure_dev_scale_indexes),
     ):
         try:
             await _fn(db)

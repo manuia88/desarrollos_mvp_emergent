@@ -60,7 +60,7 @@ async def ensure_asesor_indexes(db) -> None:
     for coll, indexes in _SPECS.items():
         for keys in indexes:
             try:
-                await db[coll].create_index(keys)
+                await db[coll].create_index(keys, background=True)
                 created += 1
             except Exception as exc:
                 log.warning(f"[asesor_indexes] {coll} {keys} warning: {exc}")

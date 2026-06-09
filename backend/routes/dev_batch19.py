@@ -368,11 +368,11 @@ async def patch_presentation_mode(payload: PresentationModePatch, request: Reque
 
 async def ensure_batch19_indexes(db) -> None:
     try:
-        await db.user_preferences.create_index("user_id", unique=True)
-        await db.organizations.create_index("tenant_id", unique=True)
-        await db.cross_portal_events.create_index("org_id")
-        await db.cross_portal_events.create_index([("org_id", 1), ("created_at", -1)])
-        await db.cross_portal_events.create_index("event_type")
+        await db.user_preferences.create_index("user_id", unique=True, background=True)
+        await db.organizations.create_index("tenant_id", unique=True, background=True)
+        await db.cross_portal_events.create_index("org_id", background=True)
+        await db.cross_portal_events.create_index([("org_id", 1), ("created_at", -1)], background=True)
+        await db.cross_portal_events.create_index("event_type", background=True)
     except Exception:
         pass
     log.info("[batch19] indexes OK")

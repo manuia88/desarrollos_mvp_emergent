@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
 
+from services.query_limits import bounded_to_list  # C1 Escala — tope explícito + aviso
+
 log = logging.getLogger("dmx.batch6")
 router = APIRouter(tags=["batch6"])
 
@@ -127,7 +129,9 @@ async def demand_heatmap(
             leads_q["dev_org_id"] = org
         elif user.role.startswith("inmobiliaria_"):
             leads_q["inmobiliaria_id"] = getattr(user, "inmobiliaria_id", None) or "default"
-    leads = await db.leads.find(leads_q, {"_id": 0, "project_id": 1}).limit(10000).to_list(10000)
+    leads = await bounded_to_list(
+        db.leads.find(leads_q, {"_id": 0, "project_id": 1}), cap=10000, label="dev_batch6.leads_by_colonia"
+    )
     leads_by_colonia = Counter(project_to_colonia.get(ld.get("project_id"), "_") for ld in leads)
 
     # Aggregate appointments
@@ -137,7 +141,9 @@ async def demand_heatmap(
             appts_q["dev_org_id"] = org
         elif user.role.startswith("inmobiliaria_"):
             appts_q["inmobiliaria_id"] = getattr(user, "inmobiliaria_id", None) or "default"
-    appts = await db.appointments.find(appts_q, {"_id": 0, "project_id": 1}).limit(10000).to_list(10000)
+    appts = await bounded_to_list(
+        db.appointments.find(appts_q, {"_id": 0, "project_id": 1}), cap=10000, label="dev_batch6.appts_by_colonia"
+    )
     appts_by_colonia = Counter(project_to_colonia.get(a.get("project_id"), "_") for a in appts)
 
     # Aggregate marketplace searches if available
@@ -148,10 +154,13 @@ async def demand_heatmap(
             count_existing = await db.marketplace_searches.count_documents({})
             if count_existing > 0:
                 has_searches = True
-                rows = await db.marketplace_searches.find(
-                    {"created_at": {"$gte": period_from, "$lte": period_to}},
-                    {"_id": 0, "colonia_id": 1, "filters": 1},
-                ).limit(20000).to_list(20000)
+                rows = await bounded_to_list(
+                    db.marketplace_searches.find(
+                        {"created_at": {"$gte": period_from, "$lte": period_to}},
+                        {"_id": 0, "colonia_id": 1, "filters": 1},
+                    ),
+                    cap=20000, label="dev_batch6.marketplace_searches",
+                )
                 for r in rows:
                     cid = r.get("colonia_id") or (r.get("filters") or {}).get("colonia_id")
                     if cid:
@@ -308,23 +317,29 @@ async def engagement_units(
         return {"items": [], "totals": {"units": 0}, "recommendations": [], "_no_units": True}
 
     # Aggregations
-    leads = await db.leads.find(
-        {"project_id": project_id, "created_at": {"$gte": period_from, "$lte": period_to}},
-        {"_id": 0, "id": 1, "status": 1, "target_units": 1, "unit_id": 1},
-    ).limit(5000).to_list(5000)
-    appts = await db.appointments.find(
-        {"project_id": project_id, "created_at": {"$gte": period_from, "$lte": period_to}},
-        {"_id": 0, "lead_id": 1, "unit_id": 1, "status": 1},
-    ).limit(5000).to_list(5000)
+    leads = await bounded_to_list(
+        db.leads.find(
+            {"project_id": project_id, "created_at": {"$gte": period_from, "$lte": period_to}},
+            {"_id": 0, "id": 1, "status": 1, "target_units": 1, "unit_id": 1},
+        ), cap=5000, label="dev_batch6.engagement.leads",
+    )
+    appts = await bounded_to_list(
+        db.appointments.find(
+            {"project_id": project_id, "created_at": {"$gte": period_from, "$lte": period_to}},
+            {"_id": 0, "lead_id": 1, "unit_id": 1, "status": 1},
+        ), cap=5000, label="dev_batch6.engagement.appts",
+    )
 
     # ml_training_events for views
     views_by_unit: Counter = Counter()
     try:
-        events = await db.ml_training_events.find(
-            {"event_type": "unit_viewed", "context.project_id": project_id,
-             "created_at": {"$gte": period_from, "$lte": period_to}},
-            {"_id": 0, "context": 1},
-        ).limit(20000).to_list(20000)
+        events = await bounded_to_list(
+            db.ml_training_events.find(
+                {"event_type": "unit_viewed", "context.project_id": project_id,
+                 "created_at": {"$gte": period_from, "$lte": period_to}},
+                {"_id": 0, "context": 1},
+            ), cap=20000, label="dev_batch6.unit_views",
+        )
         for e in events:
             uid = (e.get("context") or {}).get("unit_id")
             if uid:

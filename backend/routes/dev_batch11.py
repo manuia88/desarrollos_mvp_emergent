@@ -107,7 +107,10 @@ async def _claude_haiku(db, dev_org_id: str, system: str, user_text: str,
             session_id=session_id,
             system_message=system + "\n\nResponde EXCLUSIVAMENTE con JSON válido sin markdown ni backticks.",
         ).with_model("anthropic", CLAUDE_HAIKU_MODEL)
-        raw = await chat.send_message(UserMessage(text=user_text[:6000]))
+        from services.llm_guard import send_with_timeout
+        raw = await send_with_timeout(
+            chat, UserMessage(text=user_text[:6000]), label=f"dev_batch11.{call_type}", timeout=25.0
+        )
         if raw:
             t_in = (len(system) + len(user_text[:6000])) // 4
             t_out = len(raw) // 4

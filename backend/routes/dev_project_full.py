@@ -393,4 +393,19 @@ async def publish_project(project_id: str, request: Request):
 
 
 async def ensure_project_full_indexes(db):
+    """Índices de las sub-colecciones de la ficha del proyecto (antes vacío →
+    full-scan en cada apertura de ficha). FAIL-OPEN por índice."""
+    specs = {
+        "project_amenities": [[("project_id", 1)]],
+        "project_commercialization": [[("project_id", 1)]],
+        "project_construction_progress": [[("project_id", 1)]],
+        "project_legal": [[("project_id", 1)]],
+        "project_payment_schemes": [[("project_id", 1)]],
+    }
+    for coll, idxs in specs.items():
+        for keys in idxs:
+            try:
+                await db[coll].create_index(keys, background=True)
+            except Exception:
+                pass
     return None

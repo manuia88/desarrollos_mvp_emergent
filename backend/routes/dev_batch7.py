@@ -27,6 +27,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 
+from services.query_limits import bounded_to_list  # C1 Escala — tope explícito + aviso
+
 log = logging.getLogger("dmx.batch7")
 router = APIRouter(tags=["batch7"])
 
@@ -333,7 +335,9 @@ async def _candidate_zones(db, inputs: StudyInputs) -> List[Dict]:
     leads_by_colonia: Dict[str, int] = {}
     project_to_colonia = {d["id"]: d.get("colonia_id") for d in DEVELOPMENTS}
     try:
-        leads = await db.leads.find({}, {"_id": 0, "project_id": 1}).limit(10000).to_list(10000)
+        leads = await bounded_to_list(
+            db.leads.find({}, {"_id": 0, "project_id": 1}), cap=10000, label="dev_batch7.leads_density"
+        )
         for ld in leads:
             cid = project_to_colonia.get(ld.get("project_id"))
             if cid:

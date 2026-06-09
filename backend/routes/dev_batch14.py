@@ -400,7 +400,10 @@ async def _generate_weekly_brief(user_id: str, inmobiliaria_id: str, db) -> Dict
                     "Sé conciso, sin emojis, con tono ejecutivo."
                 ),
             ).with_model("anthropic", CLAUDE_HAIKU_MODEL)
-            raw = await chat.send_message(UserMessage(text=stats_text))
+            from services.llm_guard import send_with_timeout
+            raw = await send_with_timeout(
+                chat, UserMessage(text=stats_text), label="dev_batch14.weekly_brief", timeout=25.0
+            )
             if raw:
                 raw = raw.strip().strip("```json").strip("```").strip()
                 parsed = json.loads(raw)
