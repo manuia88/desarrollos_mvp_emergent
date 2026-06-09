@@ -121,3 +121,17 @@ export const refreshShf = async () => {
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// Superadmin · Valores Unitarios oficiales 2026 (Gaceta · ING.2b · stub-ready).
+export const getValoresUnitarios = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/valores-unitarios?city=${encodeURIComponent(city)}`, { credentials: 'include' });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
+export const ingestValoresUnitarios = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/valores-unitarios/ingest?city=${encodeURIComponent(city)}`, { method: 'POST', credentials: 'include' });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};

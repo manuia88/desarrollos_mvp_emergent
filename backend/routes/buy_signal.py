@@ -177,7 +177,8 @@ async def buy_signal(
     _colrec = None
     try:
         _colrec = await db.colonias.find_one(
-            {"id": colonia_slug}, {"_id": 0, "alcaldia": 1, "vsuelo_pm2_catastral": 1})
+            {"id": colonia_slug}, {"_id": 0, "alcaldia": 1, "vsuelo_pm2_catastral": 1,
+                                   "valor_unitario_suelo": 1})
     except Exception:
         _colrec = None
     _alcaldia = (_colrec or {}).get("alcaldia")
@@ -191,10 +192,15 @@ async def buy_signal(
             valuacion_zona["plusvalia_serie"] = _serie["serie"][-12:]  # últimos ~3 años trimestrales
     except Exception:
         pass
-    # Valor catastral OFICIAL del suelo ($/m² · SIG · ING.1/2) — ancla/piso oficial granular.
+    # Valor oficial del suelo ($/m²): prefiere el Valor Unitario 2026 (Gaceta · ING.2b) si está
+    # cargado; si no, el catastral del SIG 2022 (ING.1). Ancla/piso oficial granular.
     try:
-        if _colrec and _colrec.get("vsuelo_pm2_catastral"):
+        if _colrec and _colrec.get("valor_unitario_suelo"):
+            valuacion_zona["valor_catastral_suelo"] = _colrec["valor_unitario_suelo"]
+            valuacion_zona["valor_suelo_fuente"] = "Valor Unitario Oficial 2026"
+        elif _colrec and _colrec.get("vsuelo_pm2_catastral"):
             valuacion_zona["valor_catastral_suelo"] = _colrec["vsuelo_pm2_catastral"]
+            valuacion_zona["valor_suelo_fuente"] = "Valor Catastral SIG"
     except Exception:
         pass
 

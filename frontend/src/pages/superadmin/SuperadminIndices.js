@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial, getShf, refreshShf } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial, getShf, refreshShf, getValoresUnitarios, ingestValoresUnitarios } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -106,6 +106,16 @@ export default function SuperadminIndices() {
       refrescarShf();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al refrescar la plusvalía.' });
+    }
+  };
+
+  const cargarValoresUnitarios = async () => {
+    setIngest({ busy: true, msg: 'Buscando la tabla oficial de Valores Unitarios 2026…' });
+    try {
+      const r = await ingestValoresUnitarios('CDMX');
+      setIngest({ busy: false, msg: r.ok ? `Cargadas ${r.cargadas} colonias con valor unitario oficial.` : (r.reason || 'No se pudo cargar.') });
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al cargar los valores unitarios.' });
     }
   };
 
@@ -215,6 +225,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-refrescar-shf" onClick={refrescarPlusvalia} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Refrescar Plusvalía (SHF)
+            </button>
+            <button data-testid="ix-valores-unitarios" onClick={cargarValoresUnitarios} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Cargar Valores Unitarios 2026
             </button>
             <button data-testid="ix-llenar-todo" onClick={llenarTodo} disabled={ingest.busy} style={{ ...btnSecondary, borderColor: 'rgba(var(--theme-rgb),0.5)', opacity: ingest.busy ? 0.6 : 1 }}>
               Llenar Todo (Auto)

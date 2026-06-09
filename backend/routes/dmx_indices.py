@@ -298,6 +298,22 @@ async def superadmin_colonias_calibracion(
     return await cvm.get_calibration(request.app.state.db, city=city)
 
 
+@router.get("/api/superadmin/colonias/valores-unitarios")
+async def superadmin_valores_unitarios_status(request: Request, city: str = Query("CDMX")):
+    """Estado del conector de Valores Unitarios oficiales 2026 (ING.2b · stub-ready)."""
+    await _sa(request)
+    import valores_unitarios_engine as vu
+    return await vu.status(request.app.state.db, city=city)
+
+
+@router.post("/api/superadmin/colonias/valores-unitarios/ingest")
+async def superadmin_valores_unitarios_ingest(request: Request, city: str = Query("CDMX")):
+    """Carga la tabla oficial 2026 desde la fuente configurada (Gaceta). Honesto si no hay URL."""
+    await _sa(request)
+    import valores_unitarios_engine as vu
+    return await vu.ingest_from_source(request.app.state.db, city=city)
+
+
 @router.post("/api/superadmin/colonias/fill-chunk")
 async def superadmin_colonias_fill_chunk(
     request: Request,

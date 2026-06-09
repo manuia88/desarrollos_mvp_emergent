@@ -2,7 +2,7 @@
 
 **Actualizado**: 2026-06-08 · Absorbe MASTER_BUILD_ORDER + Tandas de fundamentación + status de waves/F/B/tiers/Cerebro.
 
-**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF por alcaldía ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel · stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅ + **aislamiento cross-org ✅**: candado central `dev_guard` + bitácora + Centro de Seguridad superadmin + red-team 16/16). **Pendiente real:** QA día-del-dev · conectar dato falso→real restante · valores unitarios 2026 (Gaceta) opcional.
+**📍 DÓNDE ESTAMOS:** capa de datos cerrada (Tandas A/B/C ✅ · B.2 100% incl. fit/match · EX 7/7 dims · 1,352 llenándose). Ingesta oficial: SHF por alcaldía ✅ + SIG valor catastral del suelo $/m² ✅ + modelo suelo→comercial ✅ (flywheel · stub honesto). Portal Dev (Paso C ✅ + dato falso→real ✅ + **aislamiento cross-org ✅**: candado central `dev_guard` + bitácora + Centro de Seguridad superadmin + red-team 16/16). **Pendiente real:** QA día-del-dev. (Cero deuda: dato falso→real cerrado · "deuda menor" revisada = ya estaba hecha/era el switch del founder · ING.2b conector stub construido esperando la tabla.)
 
 **Leyenda:** ✅ hecho · 🟡 en curso / siguiente · ⏳ pendiente · 📦 diferido (espera dato/escala) · ❌ cancelado
 
@@ -34,7 +34,8 @@
 | DEV-C — 7 upgrades IA-first (Inicio·MisProyectos·CRM·Inteligencia·Pricing·Red·Marketing·Reportes) | ✅ (2026-06-06, verificado en app) |
 | Conectar dato FALSO→REAL: **Pricing por unidad → valuación REAL (cierres)** ✅ · **Demanda** ✅ (ya era dato real `compute_demand`; le sumé **banda honesta** "Alta/Media/Baja" + **"Sin Búsquedas Aún"** donde no hay señal + aviso "demanda por confirmar" + quité "0-100"). Audit "random" estaba viejo. | ✅ hecho (2026-06-08) |
 | Hardening · aislamiento cross-org del portal Dev (candado central + bitácora + Centro de Seguridad + red-team) | ✅ candados+UI+test · ⏳ resta QA día-del-dev |
-| Deuda menor (link Cash Flow roto · tabs fantasma CRM Citas/Slots/Brokers · prender suite IA por flag) | ⏳ |
+| ~~Deuda menor~~ → REVISADA (cero deuda es la política): tabs fantasma CRM ✅ ya son páginas reales en el menú · link Cash Flow ✅ cableado (Insights inline + Legajo, ruta viva) · Suite IA = **switch del founder** (flag `agentic_enabled`, no es deuda · prender al final) | ✅ sin deuda |
+| ING.2b — Valores Unitarios oficiales 2026 (Gaceta) | ✅ conector STUB construido (`valores_unitarios_engine` + botón superadmin + ancla preferente en valuación) · espera la tabla |
 
 ### ⚫ Resto (después del Dev)
 | Item | Estado |
