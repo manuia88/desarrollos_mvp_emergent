@@ -126,14 +126,16 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     }).catch(() => { if (alive) setDev(null); });
     // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
     trackPropertyView(id, 'marketplace');
-    // Phase 7.6 / B2.1: superpone fotos reales del comprador (dev_assets) si existen.
+    // Cross-Portal v2 · fotos REALES del dev (dev_assets) sobre el seed. El endpoint ya filtra
+    // del lado servidor a solo tipos de marketing (planos técnicos bloqueados), así que el front
+    // confía en lo que llega. Tipos de foto para el carrusel (tour/video/brochure son otra UI).
     const API = process.env.REACT_APP_BACKEND_URL;
     fetchDevelopmentAssets(id)
       .then((data) => {
         if (!alive || !data) return;
-        const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo'];
+        const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo', 'foto_avance'];
         const realPhotos = (data.assets || [])
-          .filter(a => photoTypes.includes(a.asset_type))
+          .filter(a => photoTypes.includes(a.asset_type) && a.public_url)
           .map(a => `${API}${a.public_url}`);
         if (realPhotos.length > 0) {
           setDev((prev) => prev ? { ...prev, photos: realPhotos } : prev);

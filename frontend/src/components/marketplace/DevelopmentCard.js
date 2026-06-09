@@ -92,8 +92,10 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const [saved, setSaved] = useState(() => isFavorite(dev.id));
   const [imgError, setImgError] = useState({});
   const [rank, setRank] = useState(null);
-  const [assetPhotos, setAssetPhotos] = useState([]);
-  const photos = assetPhotos.length > 0 ? assetPhotos : (dev.photos || []);
+  // Cross-Portal v2 · la foto de portada REAL del dev viene en el listado (batch · sin fetch por
+  // tarjeta = ruta caliente). Si la subió, va primero; el resto del carrusel usa las del seed.
+  const seedPhotos = dev.photos || [];
+  const photos = dev.hero_photo ? [`${API}${dev.hero_photo}`, ...seedPhotos] : seedPhotos;
   const hue = dev.developer?.logo_hue || 231;
   const stageCfg = STAGE_COLORS[dev.stage] || STAGE_COLORS.preventa;
 
@@ -102,15 +104,6 @@ export default function DevelopmentCard({ dev, index = 0 }) {
     fetch(`${API}/api/developments/${dev.id}/rank`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (alive && d) setRank(d); })
-      .catch(() => {});
-    fetch(`${API}/api/developments/${dev.id}/assets`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive || !d?.assets) return;
-        const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo'];
-        const photos = d.assets.filter(a => photoTypes.includes(a.asset_type)).map(a => `${API}${a.public_url}`);
-        if (photos.length) setAssetPhotos(photos);
-      })
       .catch(() => {});
     return () => { alive = false; };
   }, [dev.id]);
@@ -261,6 +254,16 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             </div>
           ))}
         </div>
+
+        {/* Cross-Portal v2 · amenidades enriquecidas (del proyecto del dev · viene en el batch) */}
+        {dev.amenidades_count > 0 && (
+          <div data-testid="card-amenidades" style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+            <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>{dev.amenidades_count} amenidades</span>
+            {(dev.servicios_top || []).length > 0 && (
+              <span>· {(dev.servicios_top || []).map(s => String(s).replace(/_/g, ' ')).join(' · ')}</span>
+            )}
+          </div>
+        )}
 
         {/* Footer: developer + probability badge */}
         <div style={{

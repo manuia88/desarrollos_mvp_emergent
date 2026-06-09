@@ -866,10 +866,16 @@ public_router = APIRouter(tags=["assets_public"])
 @public_router.get("/api/developments/{dev_id}/assets")
 async def list_dev_assets_public(dev_id: str, request: Request,
                                  asset_type: Optional[str] = Query(None)):
+    """Fotos PÚBLICAS (marketing) de un desarrollo. Candado del lado servidor: solo devuelve los
+    tipos de la allow-list (foto/render/tour/video/brochure/avance). Los planos técnicos y cualquier
+    tipo interno NUNCA se exponen, aunque el front los pida."""
+    from dev_assets import PUBLIC_ASSET_TYPES
     db = _get_db(request)
     query: Dict[str, Any] = {"development_id": dev_id}
-    if asset_type and asset_type in ASSET_TYPES:
-        query["asset_type"] = asset_type
+    if asset_type and asset_type in PUBLIC_ASSET_TYPES:
+        query["asset_type"] = asset_type            # tipo específico, pero solo si es público
+    else:
+        query["asset_type"] = {"$in": list(PUBLIC_ASSET_TYPES)}  # candado: solo tipos seguros
     cursor = db.dev_assets.find(query).sort([("asset_type", 1), ("order_index", 1)])
     items = [sanitize_asset(a) async for a in cursor]
     return {"development_id": dev_id, "count": len(items), "assets": items}

@@ -81,6 +81,54 @@ def _dev_public(d: dict, include_units: bool = False) -> dict:
     return out
 
 
+async def _enrich_listing(db, devs: list) -> list:
+    """Enriquece las tarjetas del listado con dato FRESCO del dev, en BATCH (3 queries con $in ·
+    no llamada por-item · ruta caliente). Cierra el ciclo: lo que el dev edita (precio/unidades/
+    amenidades/foto) aparece en el listado del comprador, no solo en la ficha.
+      1) overlays → precio/unidades frescas (calienta el cache que usa _apply_overlay)
+      2) project_amenities → amenidades + servicios enriquecidos
+      3) foto de portada REAL del dev (hero) si la subió."""
+    ids = [d["id"] for d in devs]
+    if not ids:
+        return [_dev_public(d) for d in devs]
+    # 1) overlays (calienta cache)
+    try:
+        async for o in db.dev_overlays.find({"development_id": {"$in": ids}}, {"_id": 0}):
+            _dev_overlay_cache[o.get("development_id")] = o
+    except Exception:
+        pass
+    # 2) amenidades enriquecidas
+    amen_by: Dict[str, Any] = {}
+    try:
+        async for a in db.project_amenities.find(
+                {"project_id": {"$in": ids}}, {"_id": 0, "project_id": 1, "amenities": 1, "servicios": 1}):
+            amen_by[a.get("project_id")] = a
+    except Exception:
+        pass
+    # 3) foto de portada real del dev (batch)
+    hero_by: Dict[str, str] = {}
+    try:
+        from dev_assets import public_hero_map
+        hero_by = await public_hero_map(db, ids)
+    except Exception:
+        hero_by = {}
+    out = []
+    for d in devs:
+        card = _dev_public(d)
+        am = amen_by.get(d["id"]) or {}
+        rich = am.get("amenities") or card.get("amenities") or []
+        card["amenities"] = rich
+        card["amenidades_count"] = len(rich)
+        serv = am.get("servicios") if isinstance(am.get("servicios"), dict) else {}
+        card["servicios_top"] = [k for k, v in serv.items() if v][:2]
+        hero = hero_by.get(d["id"])
+        if hero:
+            card["hero_photo"] = hero          # foto real del dev (marketing, ya filtrada segura)
+            card["foto_fuente"] = "dev"
+        out.append(card)
+    return out
+
+
 def _colonia_public(c: dict) -> dict:
     return {k: v for k, v in c.items() if k != "_id"}
 
@@ -358,7 +406,8 @@ async def list_developments(
         results.sort(key=lambda d: -d["price_from"])
     elif sort == "sqm_desc":
         results.sort(key=lambda d: -d["m2_range"][1])
-    return [_dev_public(d) for d in results[:limit]]
+    # Enriquecimiento en batch (precio fresco + amenidades + foto real del dev) · cierra ciclo.
+    return await _enrich_listing(request.app.state.db, results[:limit])
 
 
 @router.get("/api/developments/{dev_id}")

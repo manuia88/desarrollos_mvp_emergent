@@ -28,6 +28,12 @@ ASSET_MAX_FILE_BYTES = 12 * 1024 * 1024  # 12 MB per image
 ASSET_MAX_BATCH = 20
 
 ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "plano_thumbnail", "tour_360", "video", "brochure", "foto_avance"}
+# Allow-list de tipos SEGUROS para el comprador (marketing). Lo que no esté aquí (planos
+# técnicos, futuros tipos internos) NUNCA se expone al público. Candado del lado servidor:
+# no se confía en que el front pida el tipo correcto.
+PUBLIC_ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "tour_360", "video", "brochure", "foto_avance"}
+# Orden de preferencia para elegir la foto de portada (hero) que se muestra en los listados.
+HERO_PREFERENCE = ("foto_hero", "foto_render", "foto_unidad_modelo", "foto_avance")
 AI_CATEGORIES = {"sala", "cocina", "recamara", "bano", "fachada", "exterior", "amenidad", "plano"}
 
 ALLOWED_IMG_EXT = {"jpg", "jpeg", "png", "webp"}
@@ -206,6 +212,65 @@ def sanitize_asset(a: dict) -> dict:
         # Surface a public URL hint (served by FastAPI static)
         out["public_url"] = f"/api/assets-static/{Path(sp).name}"
     return out
+
+
+def _public_url(a: dict) -> Optional[str]:
+    sp = a.get("storage_path")
+    return f"/api/assets-static/{Path(sp).name}" if sp else None
+
+
+async def public_photos_for_dev(db, dev_id: str) -> List[Dict[str, Any]]:
+    """Fotos SEGURAS (marketing) de un desarrollo para el comprador, ya filtradas por la allow-list.
+    Cada foto trae su URL + el caption de IA (auto-tag) como texto accesible. Cierra el ciclo:
+    el dev sube → la IA la clasifica → el comprador la ve etiquetada."""
+    out: List[Dict[str, Any]] = []
+    try:
+        cur = db.dev_assets.find(
+            {"development_id": dev_id, "asset_type": {"$in": list(PUBLIC_ASSET_TYPES)}},
+            {"_id": 0, "asset_type": 1, "storage_path": 1, "order_index": 1,
+             "ai_caption": 1, "ai_category": 1, "tour_url": 1},
+        ).sort([("asset_type", 1), ("order_index", 1)])
+        async for a in cur:
+            url = _public_url(a) or a.get("tour_url")
+            if not url:
+                continue
+            out.append({
+                "url": url, "tipo": a.get("asset_type"),
+                "descripcion": a.get("ai_caption") or "",   # alt-text accesible (IA)
+                "categoria": a.get("ai_category") or None,
+            })
+    except Exception as e:
+        log.warning(f"[assets] public_photos_for_dev {dev_id}: {e}")
+    return out
+
+
+async def public_hero_map(db, dev_ids: List[str]) -> Dict[str, str]:
+    """Mapa dev_id → URL de la foto de portada (hero) REAL del dev, en BATCH para los listados
+    (una sola query con $in · no llamada por-item). Elige el mejor tipo según HERO_PREFERENCE."""
+    best: Dict[str, tuple] = {}   # dev_id → (rank, order_index, url)
+    if not dev_ids:
+        return {}
+    try:
+        cur = db.dev_assets.find(
+            {"development_id": {"$in": list(dev_ids)}, "asset_type": {"$in": list(HERO_PREFERENCE)}},
+            {"_id": 0, "development_id": 1, "asset_type": 1, "storage_path": 1, "order_index": 1},
+        )
+        async for a in cur:
+            url = _public_url(a)
+            if not url:
+                continue
+            did = a.get("development_id")
+            try:
+                rank = HERO_PREFERENCE.index(a.get("asset_type"))
+            except ValueError:
+                continue
+            oi = a.get("order_index") or 0
+            cur_best = best.get(did)
+            if cur_best is None or (rank, oi) < (cur_best[0], cur_best[1]):
+                best[did] = (rank, oi, url)
+    except Exception as e:
+        log.warning(f"[assets] public_hero_map: {e}")
+    return {did: v[2] for did, v in best.items()}
 
 
 # ─── Plano thumbnail generation from plano_arquitectonico docs ────────────────
