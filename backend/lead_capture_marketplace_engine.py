@@ -444,9 +444,11 @@ async def generate_personalized_pdf(
         c.setFont("Helvetica", 7)
         c.setFillColor(GRAY)
         lead_name = (lead_data or {}).get("name") or "Prospecto"
+        # C6 · fecha visible en hora CDMX (no UTC) — cerca de medianoche daba el día equivocado.
+        from cdmx_time import today_cdmx_str
         c.drawString(
             M, 11 * mm,
-            f"Generado para {lead_name} · {_now().strftime('%Y-%m-%d')} · DesarrollosMX",
+            f"Generado para {lead_name} · {today_cdmx_str()} · DesarrollosMX",
         )
         c.save()
         pdf_bytes = buf.getvalue()

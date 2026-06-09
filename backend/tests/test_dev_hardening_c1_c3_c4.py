@@ -225,6 +225,21 @@ def test_is_sold_vocabulario_unico():
         assert is_sold(s) is False, s
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# C6 · Correctitud (hora CDMX para lo que ve el usuario)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_cdmx_time_convierte_utc_a_cdmx():
+    from datetime import datetime, timezone
+    import cdmx_time
+    # 2026-06-09 02:00 UTC = 2026-06-08 20:00 CDMX (UTC-6) → el DÍA cambia
+    utc_dt = datetime(2026, 6, 9, 2, 0, tzinfo=timezone.utc)
+    cdmx = cdmx_time.to_cdmx(utc_dt)
+    # En CDMX sigue siendo día 8 (no 9) — exactamente el bug que evita en los PDFs.
+    assert cdmx.day == 8
+    assert isinstance(cdmx_time.today_cdmx_str(), str) and len(cdmx_time.today_cdmx_str()) == 10
+
+
 @pytest.mark.asyncio
 async def test_audit_inmutable_redacta_pii(mock_db):
     """El log inmutable jamás debe guardar email/teléfono crudos para entidades con PII."""

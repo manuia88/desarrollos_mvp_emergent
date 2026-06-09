@@ -286,7 +286,8 @@ async def list_projects_with_stats(request: Request):
             "colonia": p.get("colonia", ""),
             "stage": p.get("stage", "preventa"),
             "price_from": int(p.get("price_from") or 0),
-            "price_to": int(p.get("price_from") or 0),
+            # C6 · bug: leía price_from → el rango salía plano. Ahora usa price_to real.
+            "price_to": int(p.get("price_to") or p.get("price_from") or 0),
             "units_total": total_units,
             "units_by_status": by_status,
             "construction_pct": 0,
