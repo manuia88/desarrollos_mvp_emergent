@@ -8,7 +8,7 @@
 | A · Lenguaje | ✅ RESUELTO (2026-06-09) | "/100" → palabra (helper `scoreWord` reusable) · Selección de Sitio traducida · leak "Superadmin/recompute" tapado · eyebrows y nombres de modelo en español |
 | B · Honestidad de datos | ✅ RESUELTO (2026-06-09) | Las 3 fabricaciones quitadas y conectadas a su dato real (ver abajo) |
 | C · Estados de pantalla | ✅ RESUELTO (2026-06-09) | Las 4 pantallas 🔴 ahora muestran error claro + "Reintentar" (reusa `ErrorState`, reporta a observabilidad). Quedan 2 🟡 menores (error disfrazado de vacío) |
-| D · Móvil | 🟡 Ámbar | El chasis aguanta (menú colapsa), pero Inventario y 2 ventanas se salen de la pantalla en celular |
+| D · Móvil | ✅ RESUELTO (2026-06-09) | Toda tabla con scroll horizontal + minWidth · modales/drawers con `min(Npx,100vw)` · grids fijos → auto-fit. Patrón estandarizado |
 | F · Coherencia entre portales | 🟡 Ámbar | La ZONA ya está unificada; el $/m² de un DESARROLLO tiene 3 fórmulas conviviendo (dev y comprador pueden ver cifras distintas) |
 
 ---

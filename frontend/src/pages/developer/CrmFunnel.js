@@ -232,7 +232,7 @@ export function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, o
         }}>
           <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 8,
                          letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Breakdown por fuente UTM
+            Desglose por fuente (UTM)
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>

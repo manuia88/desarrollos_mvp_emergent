@@ -192,7 +192,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                     </div>
                   </div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }} data-testid="inv-units-table">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', minWidth: 820 }} data-testid="inv-units-table">
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Estado', 'Apartado', 'Acciones'].map(c => (
@@ -309,7 +309,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
       {/* Hold modal */}
       {holdModal && (
         <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(var(--bg-rgb),0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 400, background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 'min(400px, 100%)', background: 'linear-gradient(180deg, #1c2233, #11151f)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Clock size={16} color="#f59e0b" />
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', letterSpacing: '-0.01em' }}>

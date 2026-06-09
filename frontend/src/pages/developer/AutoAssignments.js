@@ -24,7 +24,7 @@ const POLICY_LABELS = {
 
 function KPIStrip({ kpis, loading }) {
   if (loading) return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 18 }}>
       {[1,2,3,4].map(i => <div key={i} style={{ height: 72, borderRadius: 10, background: 'rgba(var(--cream-rgb),0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
     </div>
   );

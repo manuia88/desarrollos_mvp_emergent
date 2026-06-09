@@ -345,7 +345,7 @@ export default function DeveloperBattleCard({ user, onLogout }) {
       </div>
 
       {/* Main grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
         {/* Columna izquierda: Gauge + Ranking */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Score gauge */}
@@ -394,7 +394,7 @@ export default function DeveloperBattleCard({ user, onLogout }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* 5 dimensiones */}
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10,
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10,
           }}>
             {DIM_KEYS.map(dim => (
               <DimCard

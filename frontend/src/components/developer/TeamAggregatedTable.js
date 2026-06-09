@@ -301,7 +301,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
            }} />
       <aside data-testid={`asesor-drawer-${asesor.asesor_id}`}
              style={{
-               position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
+               position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(480px, 100vw)',
                background: 'var(--bg, #06080F)',
                borderLeft: '1px solid var(--border, rgba(var(--cream-rgb),0.12))',
                zIndex: Z.STICKY, padding: 24, overflow: 'auto', fontFamily: 'DM Sans',

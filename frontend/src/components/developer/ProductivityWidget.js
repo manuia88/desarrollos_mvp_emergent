@@ -189,7 +189,7 @@ export default function ProductivityWidget({ period = '30d' }) {
       {/* Per-asesor sortable table */}
       <div style={{
         borderRadius: 14, border: '1px solid var(--border, rgba(var(--cream-rgb),0.1))',
-        overflow: 'hidden',
+        overflowX: 'auto',
       }}>
         <table data-testid="productivity-table"
                style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>

@@ -514,8 +514,8 @@ function LoadingSkeleton({ viewMode }) {
 
 function ListaView({ projects, onSelect, onDuplicate }) {
   return (
-    <div style={{ border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, overflow: 'hidden' }}>
-      <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div style={{ border: '1px solid rgba(var(--cream-rgb),0.12)', borderRadius: 10, overflowX: 'auto' }}>
+      <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
         <thead>
           <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
             {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud', ''].map((h, i) => (

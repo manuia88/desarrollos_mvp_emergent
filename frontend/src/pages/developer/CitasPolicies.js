@@ -22,7 +22,8 @@ const DAY_LABELS = { mon: 'Lun', tue: 'Mar', wed: 'Mié', thu: 'Jue', fri: 'Vie'
 
 function WorkingHoursGrid({ hours, onChange }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+    <div style={{ overflowX: 'auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))', gap: 6, minWidth: 560 }}>
       {DAYS.map(day => {
         const active = !!hours[day];
         const range = hours[day] || [9, 18];
@@ -58,6 +59,7 @@ function WorkingHoursGrid({ hours, onChange }) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
