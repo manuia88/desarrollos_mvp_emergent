@@ -55,6 +55,34 @@
 - **"~200h de valor oculto / prender flags"**: sobreestimado — DEV V2 ya está prendido (Paso C hecho), Cerebro es el switch del founder (no deuda).
 - **"Falta await"** (developer.py:208,363,376,496): el backend corre sano → casi seguro falsos.
 
+---
+
+## AUDITORÍA 3 (3ª pasada · 6 lentes más profundos · 2026-06-09)
+**Cada hallazgo top VERIFICADO contra el código. 2 de los 4 "🔴" resultaron sobredimensionados (la disciplina paga).**
+
+### ✅ VERIFICADO REAL (nuevo · audits 1-2 no lo cazaron)
+| # | Hallazgo | Dónde | Sev | Nota de verificación |
+|---|---|---|---|---|
+| A3.1 | **Bug `price_to = price_from`** (los proyectos del wizard muestran precio fijo, no rango) | dev_batch10.py:289 (`"price_to": int(p.get("price_from"))`) | 🟡 | VERIFICADO: copy-paste real. Fix de 1 línea (`price_to`). |
+| A3.2 | **Mapa de datos forkeado (completo)** · `development_id`↔`project_id`↔`dev_id` por colección · vocab de estado vendido/ganado/won · 3 fuentes de unidad (seed/units_overlay/developer_unit_overrides) sin orden de merge definido · timestamps mixtos | dev_batch10/4/1 · auto_sync | 🟡 | RAÍZ (igual que asesor). Causa A3.3 y divergencias de número. |
+| A3.3 | **Cobertura de índices: ~15 faltantes críticos** (leads.development_id, count por development_id+status, appointments.created_at, marketplace_searches, ie_scores, dev_assets, etc.) + `ensure_project_full_indexes` vacío + N+1 en list-with-stats/cockpit | varios + dev_project_full.py:395 | 🔴 | Con dato real: endpoints 10-20s. EXHAUSTIVO en el scorecard de perf. |
+| A3.4 | **Inyección en IA sin sanitizar** (inventario completo): Atlax `sample_query` (atlax_persona.py:235) · zone['name'] (dev_batch7:284) · lead nombre (cerebro/executors:99) · property titulo (public.py:269) · custom_facts | varios LLM calls | 🔴 | Entradas controlables van directo al prompt. ~10 llamadas LLM sin sanitizar. |
+| A3.5 | **Costo IA sin tope de sesión** en varias llamadas (narrativas, studio copy, intel brief, Atlax) — `ai_budget` existe pero no rechaza antes | varios | 🟡 | Confirma O3.3 y lo amplía a más motores. |
+| A3.6 | **`except: pass` que tragan errores SIN log** (~11 sitios de audit_log + auto_sync loop + dev_guard) → mutaciones sin rastro / overlay vacío en silencio | dev_batch1 (354,436,1108,1134,1253,1330,1443,1481,1499) · auto_sync (77,429,481,521) | 🟡 | Patrón "auditoría es opcional". Real. |
+| A3.7 | **Confianza de IA no honesta**: el brief de inteligencia muestra `confidence_pct=35` (stub) igual que `80` (real) sin marcar `is_fallback` | intelligence_insights_engine | 🟡 | El dev no distingue IA real de fallback heurístico. |
+| A3.8 | **Primer día / onboarding / idioma (NUEVO lente)**: empty states sin botón de acción (Inventario/Leads/Dashboard) · wizard NuevoProyecto con jerga ("slug", "Construction cost" en inglés, "NSE", "absorción") y sin paso de resumen · "under_review" sin salida visible · apartado sin countdown si no carga el hold | pages/developer/* (NuevoProyecto, Inventario, Leads, Dashboard, Citas) | 🟡 | Real y alineado a la regla de lenguaje del founder. Lo que un dev nota el primer día. |
+| A3.9 | **Accesibilidad débil**: ~5% de cobertura de aria-label (botones de ícono sin nombre), modales sin devolver foco, tablas sin semántica | pages/developer/* | 🟡 | Real (a11y). |
+| A3.10 | **Tier gating por rol, no por plan**: features premium (Battle Card) pasan si el rol es dev, aunque el plan sea free | battle_card.py:66-75 | 🟡 | El backend confía en el rol; un dev con plan free ve premium. |
+| A3.11 | **Unidad vendida no dispara on_deal_closed desde el portal dev** (el cierre del asesor sí; el patch del dev a "vendido" no marca histórico/lead/Cerebro) | dev_batch1 patch_unit_status | 🟡 | Cierra-ciclo a medias: el Cerebro no aprende de las ventas marcadas por el dev. |
+
+### ⚠️ CORREGIDOS por verificación (sobredimensionados por el auditor)
+- **"db.units sin dev_org_id = fuga cross-tenant 🔴"** → en realidad 🟡: la query filtra por `project_id` de proyectos YA scopeados por org; el riesgo solo existe si dos orgs comparten `project_id` (slugs únicos lo evitan). Fix = filtrar también por org (defensa en profundidad).
+- **"`_decrypt` fail-open devuelve plaintext 🔴"** → en realidad 🟡: sin `IE_FERNET_KEY` todo es plaintext (encrypt y decrypt passthrough, consistente); el decrypt fallido devuelve el cifrado, no fuga. Real = avisar/fail-closed si falta la llave.
+- **"unit hold queda atascado 🔴"** → la función `auto_release_expired_holds` SÍ existe (dev_batch1:1174); falta confirmar que un cron la llame (si no, sí se atasca → 🟡).
+- **"~200h de valor oculto, prender flags"** (repetido de Ola 3) → V2 ya prendido, Cerebro es el switch del founder.
+
+**Estado: vamos en la AUDITORÍA 3 de 5.** Temas CONVERGIENDO: (1) raíz datos forkeados, (2) índices/escala, (3) inyección+costo IA, (4) except:pass/observabilidad, (5) primer-día/lenguaje/a11y.
+
 ## Resumen (semáforo por área)
 
 | Área | Veredicto | En una línea |
