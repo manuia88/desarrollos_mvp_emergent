@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+import metric_normalizer as _mn
+
 router = APIRouter(prefix="/api/dev", tags=["dev-batch2"])
 
 
@@ -497,6 +499,45 @@ SCORE_CATEGORIES = {
     "sentiment": ["N6", "P5", "P6"],
 }
 
+# Etiquetas en lenguaje de persona (antes en inglés técnico).
+_CAT_LABELS = {
+    "fundamentals": "Fundamentos", "market": "Mercado",
+    "risk": "Riesgo", "sentiment": "Percepción de la Zona",
+}
+
+# Mapa de cada indicador a los scores REALES del motor IE (antes los códigos N1..P6 no casaban
+# con nada → todo salía estimado). Solo códigos en rango 0-100 (se excluyen días/ROI crudos).
+_CODE_MAP = {
+    "N1": ["IE_COL_DEMOGRAFIA_FAMILIA", "IE_COL_DEMOGRAFIA_INGRESO", "IE_PROY_PRESALES_RATIO"],
+    "N2": ["IE_PROY_ABSORCION_VELOCIDAD", "IE_PROY_LISTING_HEALTH"],
+    "P1": ["IE_PROY_LISTING_HEALTH", "IE_PROY_QUALITY_DOCS"],
+    "N3": ["IE_COL_PLUSVALIA_HIST", "IE_COL_PLUSVALIA_PROYECTADA"],
+    "N4": ["IE_PROY_ABSORCION_VELOCIDAD", "IE_PROY_PRESALES_RATIO"],
+    "P2": ["IE_PROY_PRECIO_VS_MERCADO", "IE_PROY_PRECIO_RANK_PERCENTIL"],
+    "N5": ["IE_COL_DEMOGRAFIA_ESTABILIDAD", "IE_PROY_COMPETITION_PRESSURE"],
+    "P3": ["IE_PROY_DEVELOPER_TRUST", "IE_PROY_DEVELOPER_CONCENTRATION"],
+    "P4": ["IE_PROY_DEVELOPER_DELIVERY_HIST"],
+    "N6": ["IE_PROY_SCORE_VS_COLONIA", "IE_COL_EDUCACION"],
+    "P5": ["IE_PROY_MARCA_TRUST", "IE_PROY_BADGE_TOP"],
+    "P6": ["IE_PROY_AMENIDADES"],
+}
+
+
+def _avg_real(d: dict, codes: list):
+    """Promedio (clamp 0-100) de los scores reales presentes para un indicador. None si ninguno."""
+    vals = [max(0.0, min(100.0, d[rc])) for rc in codes if rc in d]
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
+def _vs_zona(value: float, benchmark: float) -> dict:
+    """Lectura CUALITATIVA del proyecto vs su colonia (sin número crudo · más accionable)."""
+    d = (value or 0) - (benchmark or 0)
+    if d >= 5:
+        return {"texto": "Por Encima de la Zona", "color": "verde"}
+    if d <= -5:
+        return {"texto": "Por Debajo de la Zona", "color": "rojo"}
+    return {"texto": "En Línea con la Zona", "color": "ambar"}
+
 
 @router.get("/ie/projects/{project_id}/breakdown")
 async def ie_project_breakdown(project_id: str, request: Request):
@@ -508,16 +549,18 @@ async def ie_project_breakdown(project_id: str, request: Request):
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 
-    # Pull real scores if available
-    project_scores = {}
-    colonia_scores = {}
-    async for s in db.ie_scores.find({"zone_id": project_id, "is_stub": False}, {"_id": 0}):
-        project_scores[s["code"]] = s
-    async for s in db.ie_scores.find({"zone_id": dev["colonia_id"], "is_stub": False}, {"_id": 0}):
-        colonia_scores[s["code"]] = s
+    # Scores REALES del motor IE — proyecto (IE_PROY_*) + colonia (IE_COL_*), por código real.
+    proj_v: Dict[str, float] = {}
+    colo_v: Dict[str, float] = {}
+    async for s in db.ie_scores.find({"zone_id": project_id, "is_stub": False}, {"_id": 0, "code": 1, "value": 1}):
+        if s.get("value") is not None:
+            proj_v[s["code"]] = float(s["value"])
+    async for s in db.ie_scores.find({"zone_id": dev["colonia_id"], "is_stub": False}, {"_id": 0, "code": 1, "value": 1}):
+        if s.get("value") is not None:
+            colo_v[s["code"]] = float(s["value"])
+    merged = {**colo_v, **proj_v}  # el proyecto pesa sobre la colonia
 
-    # Ancla DETERMINISTA para los sub-scores que aún no tienen dato (antes era random.randint).
-    # Se basa en dato REAL de la zona/proyecto: absorción real + señales reales de la colonia.
+    # Ancla DETERMINISTA para los indicadores que aún no tienen dato real (antes era random.randint).
     from data_developments import inventory_stats
     _inv = inventory_stats(dev)
     _colrec = await db.colonias.find_one(
@@ -526,20 +569,12 @@ async def ie_project_breakdown(project_id: str, request: Request):
                                  _colrec.get("vsuelo_score")) if v is not None]
     anchor = round(sum(_anchor_parts) / len(_anchor_parts), 1) if _anchor_parts else 50.0
 
-    # Build 12 scores grouped by category
+    # Nombres en lenguaje de persona (antes en jerga).
     score_names = {
-        "N1": "Demanda estructural",
-        "N2": "Oferta disponible",
-        "P1": "Fundamentals proyecto",
-        "N3": "Dinámica de mercado",
-        "N4": "Predicción absorción",
-        "P2": "Posicionamiento pricing",
-        "N5": "Riesgo geográfico",
-        "P3": "Riesgo desarrollador",
-        "P4": "Riesgo entrega",
-        "N6": "Sentimiento colonia",
-        "P5": "Brand equity",
-        "P6": "Competitividad amenidades",
+        "N1": "Demanda de la Zona", "N2": "Ritmo de Venta", "P1": "Salud del Proyecto",
+        "N3": "Plusvalía de la Zona", "N4": "Velocidad de Absorción", "P2": "Precio vs el Mercado",
+        "N5": "Estabilidad de la Zona", "P3": "Confianza del Desarrollador", "P4": "Cumplimiento de Entrega",
+        "N6": "Posición vs la Colonia", "P5": "Marca y Reputación", "P6": "Amenidades",
     }
 
     categories = []
@@ -547,43 +582,42 @@ async def ie_project_breakdown(project_id: str, request: Request):
     for cat_name, codes in SCORE_CATEGORIES.items():
         scores_in_cat = []
         for code in codes:
-            proj = project_scores.get(code)
-            colo = colonia_scores.get(code)
-            if proj and proj.get("value") is not None:
-                value = float(proj["value"])
+            real_codes = _CODE_MAP.get(code, [])
+            v = _avg_real(merged, real_codes)        # valor real del proyecto/zona
+            if v is not None:
+                value = v
                 is_real = True
             else:
-                # Sin dato real de este sub-score → ancla determinista de la zona (NO random).
-                value = anchor
+                value = anchor                        # sin dato real → ancla determinista (estimado)
                 is_real = False
+            b = _avg_real(colo_v, real_codes)          # referencia real de la colonia
+            benchmark = b if b is not None else value
 
-            benchmark = None
-            if colo and colo.get("value") is not None:
-                benchmark = float(colo["value"])
-            else:
-                benchmark = value  # sin benchmark real → neutro (antes era random)
-
-            delta = round(value - benchmark, 1)
-            tier = "excellent" if value >= 75 else "good" if value >= 60 else "fair" if value >= 40 else "poor"
+            # Banda HONESTA ("Muy Baja"…"Muy Alta", sin "/100"). Si es estimado, se marca.
+            band = _mn.band_from_abs(value)
             scores_in_cat.append({
                 "code": code,
                 "name": score_names.get(code, code),
-                "value": round(value, 1),
-                "benchmark_colonia": round(benchmark, 1),
-                "delta_vs_colonia": delta,
-                "tier": tier,
-                "confidence": proj.get("confidence", "low") if proj else "synthetic",
-                "is_stub": not is_real,
+                "nivel": band["nivel"], "etiqueta": band["etiqueta"], "color": band["color"],
+                "vs_zona": _vs_zona(value, benchmark),
+                "es_estimado": not is_real,
+                "valor_barra": round(value, 1),   # solo para el ancho de la barra (no se muestra como "/100")
             })
             overall_scores.append(value)
+        cat_avg = round(sum(s["valor_barra"] for s in scores_in_cat) / len(scores_in_cat), 1)
+        cat_band = _mn.band_from_abs(cat_avg)
         categories.append({
             "key": cat_name,
-            "label": cat_name.capitalize(),
+            "label": _CAT_LABELS.get(cat_name, cat_name.capitalize()),
             "scores": scores_in_cat,
-            "avg": round(sum(s["value"] for s in scores_in_cat) / len(scores_in_cat), 1),
+            "nivel": cat_band["nivel"], "etiqueta": cat_band["etiqueta"], "color": cat_band["color"],
+            "es_estimado": any(s["es_estimado"] for s in scores_in_cat),
+            "valor_barra": cat_avg,
         })
 
     overall = round(sum(overall_scores) / len(overall_scores), 1) if overall_scores else 0
+    overall_band = _mn.band_from_abs(overall if overall_scores else None)
+    any_estimado = any(s["es_estimado"] for c in categories for s in c["scores"])
 
     # ML event
     try:
@@ -601,8 +635,13 @@ async def ie_project_breakdown(project_id: str, request: Request):
         "project_id": project_id,
         "project_name": dev["name"],
         "colonia": dev["colonia"],
-        "overall_score": overall,
-        "overall_tier": "excellent" if overall >= 75 else "good" if overall >= 60 else "fair" if overall >= 40 else "poor",
+        "overall_nivel": overall_band["nivel"],
+        "overall_etiqueta": overall_band["etiqueta"],
+        "overall_color": overall_band["color"],
+        "overall_valor_barra": overall,
+        "es_estimado": any_estimado,
+        "leyenda": ("Lectura de la zona en bandas — es una guía, no una calificación exacta."
+                    + (" Algunos indicadores aún se estiman con el dato real de la zona." if any_estimado else "")),
         "categories": categories,
         "generated_at": _now().isoformat(),
     }
@@ -1044,6 +1083,8 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
         k: round(sum(p[k] for p in peer_cats) / n, 1)
         for k in ("fundamentals", "market", "risk", "sentiment", "overall")
     }
+    # Banda honesta del promedio de la zona (sin "/100").
+    bandas_zona = {k: {**_mn.band_from_abs(v), "valor_barra": v} for k, v in score_avg.items()}
 
     # ML event
     try:
@@ -1062,6 +1103,8 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
         "colonia": dev["colonia"],
         "projects_count": n,
         "score_avg": score_avg,
+        "bandas_zona": bandas_zona,
+        "es_estimado": True,  # benchmark anclado a inventario real, pero estimación de zona
     }
 
 

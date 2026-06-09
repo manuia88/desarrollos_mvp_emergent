@@ -1,27 +1,40 @@
-// /desarrollador/desarrollos/:slug/ie — Phase 4.16
-// 12 IE scores breakdown + drill-down + benchmark comparison + AI recommendations
+// /desarrollador/desarrollos/:slug/ie — Lectura de la Zona en BANDAS (sin "/100")
+// 12 indicadores agrupados en 4 categorías, cada uno en banda honesta (Muy Baja…Muy Alta).
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
-import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
+import { Card, Badge } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import { Sparkle, ArrowRight, X, Target, Activity, TrendUp, TrendDown } from '../../components/icons';
+import { Sparkle, ArrowRight, X } from '../../components/icons';
 import DiagnosticPanel from '../../components/developer/DiagnosticPanel';
 import { Z } from '../../styles/zIndex';
 
-const TIER_COLORS = {
-  excellent: { fg: '#86efac', bg: 'rgba(21,128,61,0.97)', bd: 'rgba(34,197,94,0.35)' },
-  good:      { fg: '#fef08a', bg: 'rgba(234,179,8,0.14)', bd: 'rgba(234,179,8,0.35)' },
-  fair:      { fg: '#fdba74', bg: 'rgba(249,115,22,0.14)', bd: 'rgba(249,115,22,0.35)' },
-  poor:      { fg: '#fca5a5', bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.35)' },
+// Color por banda (token del backend → estilo). Nada de "/100".
+const BAND_COLORS = {
+  verde:  { fg: '#86efac', bg: 'rgba(34,197,94,0.12)',  bd: 'rgba(34,197,94,0.32)' },
+  ambar:  { fg: '#fcd34d', bg: 'rgba(245,158,11,0.12)', bd: 'rgba(245,158,11,0.32)' },
+  rojo:   { fg: '#fca5a5', bg: 'rgba(239,68,68,0.12)',  bd: 'rgba(239,68,68,0.32)' },
+  neutro: { fg: 'var(--cream-3)', bg: 'rgba(255,255,255,0.04)', bd: 'var(--border)' },
 };
+const bandOf = (token) => BAND_COLORS[token] || BAND_COLORS.neutro;
 
-const CAT_LABELS = {
-  fundamentals: 'Fundamentales',
-  market:       'Mercado',
-  risk:         'Riesgo',
-  sentiment:    'Sentimiento',
-};
+function BandPill({ etiqueta, color, size = 12.5 }) {
+  const c = bandOf(color);
+  return (
+    <span style={{
+      fontFamily: 'DM Sans', fontWeight: 700, fontSize: size, padding: '3px 11px',
+      borderRadius: 9999, background: c.bg, border: `1px solid ${c.bd}`, color: c.fg, whiteSpace: 'nowrap',
+    }}>{etiqueta}</span>
+  );
+}
+
+// Lectura comparativa cualitativa (sin número): mi banda vs la banda de la zona.
+function cmpReading(mineVal, colVal) {
+  const d = (mineVal || 0) - (colVal || 0);
+  if (d >= 5) return { texto: 'Mejor que la Zona', color: 'verde' };
+  if (d <= -5) return { texto: 'Bajo la Zona', color: 'rojo' };
+  return { texto: 'En Línea con la Zona', color: 'ambar' };
+}
 
 export default function DesarrolladorIEDetail({ user, onLogout }) {
   const { slug } = useParams();
@@ -46,133 +59,107 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
   };
 
   if (!data) return <DeveloperLayout user={user} onLogout={onLogout}><div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</div></DeveloperLayout>;
-  if (data.error) return <DeveloperLayout user={user} onLogout={onLogout}><Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Error cargando IE</Card></DeveloperLayout>;
+  if (data.error) return <DeveloperLayout user={user} onLogout={onLogout}><Card style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>No se pudo cargar la lectura.</Card></DeveloperLayout>;
 
-  const tier = TIER_COLORS[data.overall_tier] || TIER_COLORS.fair;
+  const oc = bandOf(data.overall_color);
+  const totalScores = (data.categories || []).reduce((a, c) => a + c.scores.length, 0);
 
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div style={{ marginBottom: 22 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>
-          <Link to="/desarrollador/inventario" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>
-            Inventario
-          </Link>
+          <Link to="/desarrollador/inventario" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>Inventario</Link>
           {' / '}
-          <Link to={`/desarrollador/desarrollos/${slug}/legajo`} style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>
-            {data.project_name}
-          </Link>
-          {' / IE Score detallado'}
+          <Link to={`/desarrollador/desarrollos/${slug}/legajo`} style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>{data.project_name}</Link>
+          {' / Lectura de la zona'}
         </div>
-        <h1 data-testid="ie-h1" style={{
-          fontFamily: 'Outfit', fontWeight: 800, fontSize: 30,
-          color: 'var(--cream)', letterSpacing: '-0.025em', margin: '4px 0 6px',
-        }}>
-          IE Score · {data.project_name}
+        <h1 data-testid="ie-h1" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.025em', margin: '4px 0 6px' }}>
+          Lectura de la Zona · {data.project_name}
         </h1>
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 720, lineHeight: 1.55 }}>
-          Inteligencia Espacial: 12 scores agrupados en 4 categorías. Click en cualquier score para recomendaciones IA para mejorarlo.
+          12 indicadores en 4 grupos, cada uno en su banda (Muy Baja a Muy Alta). Toca cualquiera para ver cómo mejorarlo.
         </p>
       </div>
 
-      {/* Overall score card */}
-      <Card data-testid="ie-overall" style={{ marginBottom: 18, background: `linear-gradient(140deg, ${tier.bg}, transparent)`, border: `1px solid ${tier.bd}` }}>
+      {/* Lectura general (banda, no número) */}
+      <Card data-testid="ie-overall" style={{ marginBottom: 12, background: `linear-gradient(140deg, ${oc.bg}, transparent)`, border: `1px solid ${oc.bd}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
           <div>
-            <div className="eyebrow">SCORE GENERAL IE · {data.colonia}</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 58, color: tier.fg, letterSpacing: '-0.04em', lineHeight: 1, marginTop: 4 }}>
-              {data.overall_score}
+            <div className="eyebrow">LECTURA GENERAL · {data.colonia}</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 40, color: oc.fg, letterSpacing: '-0.03em', lineHeight: 1.05, marginTop: 6 }}>
+              {data.overall_etiqueta}
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', marginTop: 6 }}>
-              Tier: <strong style={{ color: tier.fg, textTransform: 'capitalize' }}>{data.overall_tier}</strong> · {data.categories.reduce((a, c) => a + c.scores.length, 0)} scores analizados
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 6 }}>
+              {data.es_estimado ? 'Incluye indicadores estimados con el dato real de la zona' : 'Basado en señales reales de la zona'} · {totalScores} indicadores
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {data.categories.map(c => (
-              <div key={c.key} style={{ padding: '10px 14px', background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)', borderRadius: 12, minWidth: 110 }}>
-                <div className="eyebrow" style={{ marginBottom: 3, fontSize: 9 }}>{CAT_LABELS[c.key] || c.label}</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>{c.avg}</div>
+              <div key={c.key} style={{ padding: '10px 14px', background: 'rgba(var(--bg-rgb),0.6)', border: '1px solid var(--border)', borderRadius: 12, minWidth: 120 }}>
+                <div className="eyebrow" style={{ marginBottom: 6, fontSize: 9 }}>{c.label}</div>
+                <BandPill etiqueta={c.etiqueta} color={c.color} />
               </div>
             ))}
           </div>
         </div>
       </Card>
+      {data.leyenda && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 18 }}>{data.leyenda}</div>
+      )}
 
-      {/* Colonia benchmark card (Batch 2.1) */}
+      {/* Comparativa vs la zona */}
       {benchmark && !benchmark.error && benchmark.projects_count > 0 && (
         <ColoniaBenchmarkCard myData={data} benchmark={benchmark} />
       )}
 
-      {/* W4.1A Diagnostic Panel */}
       <DiagnosticPanel devId={slug} devName={data.project_name} />
 
-      {/* Categories */}
+      {/* Categorías */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14 }}>
         {data.categories.map(cat => (
           <Card key={cat.key} data-testid={`ie-cat-${cat.key}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-              <div>
-                <div className="eyebrow">{CAT_LABELS[cat.key] || cat.label}</div>
-                <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: '4px 0 0' }}>
-                  Promedio {cat.avg}
-                </h3>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div className="eyebrow">{cat.label}</div>
+              <BandPill etiqueta={cat.etiqueta} color={cat.color} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {cat.scores.map(s => {
-                const t = TIER_COLORS[s.tier] || TIER_COLORS.fair;
-                return (
-                  <button
-                    key={s.code}
-                    data-testid={`ie-score-${s.code}`}
-                    onClick={() => openDrill(s)}
-                    style={{
-                      width: '100%', textAlign: 'left', cursor: 'pointer',
-                      padding: 12, borderRadius: 10,
-                      background: 'rgba(var(--cream-rgb),0.02)',
-                      border: '1px solid var(--border)',
-                      display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 10,
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.02)'}
-                  >
-                    <div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>
-                        {s.name} <span style={{ color: 'var(--cream-3)', fontWeight: 400, fontFamily: 'DM Mono, monospace', fontSize: 10 }}>· {s.code}</span>
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>
-                        vs colonia {s.benchmark_colonia} · delta{' '}
-                        <span style={{ color: s.delta_vs_colonia > 0 ? '#86efac' : s.delta_vs_colonia < 0 ? '#fca5a5' : 'var(--cream-3)' }}>
-                          {s.delta_vs_colonia > 0 ? '+' : ''}{s.delta_vs_colonia}
-                        </span>
-                        {s.is_stub && <span style={{ marginLeft: 6, padding: '1px 5px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: 'var(--amber)', fontSize: 9 }}>PILOTO</span>}
-                      </div>
+              {cat.scores.map(s => (
+                <button
+                  key={s.code}
+                  data-testid={`ie-score-${s.code}`}
+                  onClick={() => openDrill(s)}
+                  style={{
+                    width: '100%', textAlign: 'left', cursor: 'pointer', padding: 12, borderRadius: 10,
+                    background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)',
+                    display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 10, transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(var(--cream-rgb),0.02)'}
+                >
+                  <div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{s.name}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: bandOf(s.vs_zona?.color).fg }}>{s.vs_zona?.texto}</span>
+                      {s.es_estimado && <span style={{ padding: '1px 6px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: 'var(--amber, #fcd34d)', fontSize: 9 }}>Estimado</span>}
                     </div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: t.fg }}>
-                      {s.value}
-                    </div>
-                    <ArrowRight size={13} color="var(--cream-3)" />
-                  </button>
-                );
-              })}
+                  </div>
+                  <BandPill etiqueta={s.etiqueta} color={s.color} />
+                  <ArrowRight size={13} color="var(--cream-3)" />
+                </button>
+              ))}
             </div>
           </Card>
         ))}
       </div>
 
       {drillScore && (
-        <DrillDownModal
-          score={drillScore}
-          data={drillData}
-          onClose={() => { setDrillScore(null); setDrillData(null); }}
-        />
+        <DrillDownModal score={drillScore} data={drillData} onClose={() => { setDrillScore(null); setDrillData(null); }} />
       )}
     </DeveloperLayout>
   );
 }
 
 function DrillDownModal({ score, data, onClose }) {
-  const tier = TIER_COLORS[score.tier] || TIER_COLORS.fair;
   return (
     <div
       data-testid="ie-drill-modal"
@@ -184,60 +171,43 @@ function DrillDownModal({ score, data, onClose }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
-            <div className="eyebrow">DRILL-DOWN · {score.code}</div>
-            <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '4px 0 0' }}>
-              {score.name}
-            </h3>
+            <div className="eyebrow">CÓMO MEJORAR</div>
+            <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '4px 0 0' }}>{score.name}</h3>
           </div>
           <button onClick={onClose} data-testid="ie-drill-close" style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-          <MiniMetric label="Mi proyecto" v={score.value} color={tier.fg} />
-          <MiniMetric label="Colonia benchmark" v={score.benchmark_colonia} color="var(--cream-2)" />
-          <MiniMetric
-            label="Delta"
-            v={`${score.delta_vs_colonia > 0 ? '+' : ''}${score.delta_vs_colonia}`}
-            color={score.delta_vs_colonia > 0 ? '#86efac' : score.delta_vs_colonia < 0 ? '#fca5a5' : 'var(--cream-2)'}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 18 }}>
+          <MiniBand label="Tu proyecto" etiqueta={score.etiqueta} color={score.color} />
+          <MiniBand label="Vs la zona" etiqueta={score.vs_zona?.texto} color={score.vs_zona?.color} />
         </div>
 
-        {!data ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando recomendaciones IA…</div>
-         : data.error ? <div style={{ padding: 20, color: 'var(--red)' }}>Error al cargar recomendaciones.</div>
+        {!data ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando recomendaciones…</div>
+         : data.error ? <div style={{ padding: 20, color: 'var(--red)' }}>No se pudieron cargar las recomendaciones.</div>
          : (
           <>
             <div style={{ padding: 14, background: 'linear-gradient(140deg, rgba(236,72,153,0.08), transparent)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <Sparkle size={13} color="#f9a8d4" />
-                <div className="eyebrow" style={{ marginBottom: 0 }}>NARRATIVA IA</div>
+                <div className="eyebrow" style={{ marginBottom: 0 }}>LO QUE VEO</div>
               </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6 }}>
-                {data.narrative_stub}
-              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6 }}>{data.narrative_stub}</div>
             </div>
 
-            <div className="eyebrow" style={{ marginBottom: 10 }}>CÓMO MEJORAR ESTE SCORE</div>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>QUÉ HACER PARA SUBIRLO</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {data.recommendations.map((r, i) => (
-                <div key={i} data-testid={`ie-rec-${i}`} style={{
-                  padding: 14, borderRadius: 12,
-                  background: 'rgba(var(--cream-rgb),0.03)',
-                  border: '1px solid var(--border)',
-                }}>
+                <div key={i} data-testid={`ie-rec-${i}`} style={{ padding: 14, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', flex: 1 }}>
-                      {r.title}
-                    </div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', flex: 1 }}>{r.title}</div>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <Badge tone={r.impact === 'alto' ? 'ok' : 'neutral'}>Impacto {r.impact}</Badge>
                       <Badge tone={r.effort === 'baja' ? 'ok' : r.effort === 'alta' ? 'bad' : 'warn'}>Esfuerzo {r.effort}</Badge>
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.55 }}>
-                    {r.detail}
-                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.55 }}>{r.detail}</div>
                 </div>
               ))}
             </div>
@@ -248,27 +218,29 @@ function DrillDownModal({ score, data, onClose }) {
   );
 }
 
-function MiniMetric({ label, v, color }) {
+function MiniBand({ label, etiqueta, color }) {
   return (
-    <div style={{ padding: 10, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-      <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color }}>{v}</div>
+    <div style={{ padding: 12, background: 'rgba(var(--cream-rgb),0.03)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+      <div className="eyebrow" style={{ fontSize: 9, marginBottom: 6 }}>{label}</div>
+      <BandPill etiqueta={etiqueta || '—'} color={color} />
     </div>
   );
 }
 
 function ColoniaBenchmarkCard({ myData, benchmark }) {
-  const CATS = [
-    { key: 'fundamentals', label: 'Fundamentales' },
-    { key: 'market',       label: 'Mercado' },
-    { key: 'risk',         label: 'Riesgo' },
-    { key: 'sentiment',    label: 'Sentimiento' },
-  ];
   const myCats = {};
-  (myData.categories || []).forEach(c => { myCats[c.key] = c.avg; });
-  const myOverall = myData.overall_score;
-  const colOverall = benchmark.score_avg.overall;
-  const overallDelta = myOverall != null && colOverall != null ? +(myOverall - colOverall).toFixed(1) : 0;
+  (myData.categories || []).forEach(c => { myCats[c.key] = c; });
+  const zb = benchmark.bandas_zona || {};
+  const myOverallVal = (myData.categories || []).reduce((a, c) => a + (c.valor_barra || 0), 0) / Math.max(1, (myData.categories || []).length);
+  const colOverallVal = (zb.overall && zb.overall.valor_barra) || 0;
+  const overallCmp = cmpReading(myOverallVal, colOverallVal);
+
+  const CATS = [
+    { key: 'fundamentals', label: 'Fundamentos' },
+    { key: 'market', label: 'Mercado' },
+    { key: 'risk', label: 'Riesgo' },
+    { key: 'sentiment', label: 'Percepción de la Zona' },
+  ];
 
   return (
     <div data-testid="ie-colonia-benchmark" style={{
@@ -277,52 +249,30 @@ function ColoniaBenchmarkCard({ myData, benchmark }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
         <div>
-          <div className="eyebrow">VS BENCHMARK COLONIA</div>
+          <div className="eyebrow">VS EL PROMEDIO DE LA ZONA</div>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '4px 0 2px', letterSpacing: '-0.018em' }}>
-            {myData.project_name} vs promedio {benchmark.colonia}
+            {myData.project_name} vs {benchmark.colonia}
           </h3>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-            Comparado con {benchmark.projects_count} proyecto{benchmark.projects_count === 1 ? '' : 's'} en {benchmark.colonia}
+            Comparado con {benchmark.projects_count} proyecto{benchmark.projects_count === 1 ? '' : 's'} de la zona · estimación
           </div>
         </div>
-        <div style={{
-          padding: '8px 14px', borderRadius: 10,
-          background: overallDelta >= 0 ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
-          border: `1px solid ${overallDelta >= 0 ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
-          color: overallDelta >= 0 ? '#86efac' : '#fca5a5',
-          fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }} data-testid="ie-bench-overall-delta">
-          {overallDelta >= 0 ? <TrendUp size={13} /> : <TrendDown size={13} />}
-          Δ overall: {overallDelta >= 0 ? '+' : ''}{overallDelta}
-        </div>
+        <BandPill etiqueta={overallCmp.texto} color={overallCmp.color} size={13} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         {CATS.map(c => {
-          const mine = myCats[c.key] ?? 0;
-          const col = benchmark.score_avg[c.key] ?? 0;
-          const d = +(mine - col).toFixed(1);
-          const positive = d >= 0;
+          const mine = myCats[c.key];
+          const zone = zb[c.key];
+          const reading = cmpReading(mine?.valor_barra, zone?.valor_barra);
           return (
-            <div key={c.key} data-testid={`ie-bench-${c.key}`} style={{
-              padding: 12, borderRadius: 12,
-              background: 'rgba(var(--bg-rgb),0.55)', border: '1px solid var(--border)',
-            }}>
-              <div className="eyebrow" style={{ marginBottom: 4, fontSize: 9 }}>{c.label}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{mine}</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-3)' }}>· col {col}</div>
+            <div key={c.key} data-testid={`ie-bench-${c.key}`} style={{ padding: 12, borderRadius: 12, background: 'rgba(var(--bg-rgb),0.55)', border: '1px solid var(--border)' }}>
+              <div className="eyebrow" style={{ marginBottom: 6, fontSize: 9 }}>{c.label}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                <BandPill etiqueta={mine?.etiqueta || '—'} color={mine?.color} size={11.5} />
+                <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>zona: {zone?.etiqueta || '—'}</span>
               </div>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '2px 8px', borderRadius: 9999,
-                background: positive ? 'rgba(21,128,61,0.97)' : 'rgba(239,68,68,0.14)',
-                color: positive ? '#86efac' : '#fca5a5',
-                fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
-              }}>
-                {positive ? '+' : ''}{d}
-              </div>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: bandOf(reading.color).fg }}>{reading.texto}</span>
             </div>
           );
         })}
