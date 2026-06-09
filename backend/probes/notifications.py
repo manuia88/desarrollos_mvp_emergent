@@ -30,8 +30,8 @@ async def _bell_counter(db, project_id, user):
 
 
 functional_probe("notifications_collection_writeable", "notifications", "high",
-                 "Colección notifications escribible",
+                 "Los avisos se pueden guardar",
                  _notifications_writeable, "wiring_broken")
 functional_probe("bell_counter_endpoints_respond", "notifications", "low",
-                 "Bell counter responde con count válido",
+                 "El contador de la campanita funciona",
                  _bell_counter, "wiring_broken")

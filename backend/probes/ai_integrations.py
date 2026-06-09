@@ -58,11 +58,11 @@ async def _site_studies_complete(db, project_id, user):
 
 
 functional_probe("claude_calls_within_budget", "ai_integrations", "critical",
-                 "AI budget within limits + EMERGENT_LLM_KEY presente",
+                 "El asistente de IA tiene saldo y está conectado",
                  _claude_within_budget, "ai_failure")
 functional_probe("cash_flow_forecast_generated", "ai_integrations", "medium",
-                 "Cash flow generado para el proyecto",
+                 "El flujo de dinero del proyecto está calculado",
                  _cash_flow_generated, "stale_data")
 functional_probe("site_selection_studies_complete", "ai_integrations", "low",
-                 "Site selection studies no estancados",
+                 "Los estudios de dónde construir están al día",
                  _site_studies_complete, "ai_failure")

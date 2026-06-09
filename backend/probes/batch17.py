@@ -60,9 +60,9 @@ async def _undo_system_health(db, project_id, user):
 
 
 functional_probe("inline_edit_audit", "engagement", "medium",
-                 "Inline edit audit: mutations generate activity log + undo entries",
+                 "Los cambios rápidos quedan registrados y se pueden deshacer",
                  _inline_edit_audit, "wiring_broken")
 
 functional_probe("undo_system_health", "notifications", "high",
-                 "Undo system: collection healthy + purge cron operational",
+                 "El botón de deshacer funciona",
                  _undo_system_health, "performance")

@@ -76,12 +76,12 @@ async def _narratives_work(db, project_id, user):
 
 
 functional_probe("ie_score_calculated_recent", "ie_engine", "high",
-                 "IE score calculado en últimos 7 días", _ie_score_recent, "stale_data")
+                 "Los indicadores del proyecto están al día", _ie_score_recent, "stale_data")
 functional_probe("heat_score_per_lead_calculated", "ie_engine", "medium",
-                 "Leads tienen heat_score asignado", _heat_per_lead, "ai_failure")
+                 "Cada lead tiene su nivel de interés calculado", _heat_per_lead, "ai_failure")
 functional_probe("ai_summary_cached_or_generatable", "ie_engine", "low",
-                 "AI briefing cache disponible o generable",
+                 "El resumen con IA del proyecto está disponible",
                  _ai_summary_cache, "stale_data")
 functional_probe("narratives_generation_works", "ie_engine", "low",
-                 "Narrativas del proyecto generadas",
+                 "Las descripciones del proyecto están generadas",
                  _narratives_work, "ai_failure")

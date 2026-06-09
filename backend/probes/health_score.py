@@ -89,9 +89,9 @@ async def _weekly_brief_generator(db, project_id, user):
 
 
 functional_probe("health_score_engine", "ai_integrations", "high",
-                 "Health Score Engine computa scores válidos y cachea correctamente",
+                 "El medidor de interés de los leads funciona",
                  _health_score_engine, "wiring_broken")
 
 functional_probe("weekly_brief_generator", "ai_integrations", "medium",
-                 "Weekly Brief Generator registrado y generando briefs frescos",
+                 "El resumen semanal se está generando",
                  _weekly_brief_generator, "stale_data")

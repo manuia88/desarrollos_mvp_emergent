@@ -17,16 +17,35 @@ const SEVERITY_COLOR = {
 };
 
 const ERROR_TYPE_LABELS = {
-  schema_integrity: 'Integridad de esquema',
-  wiring_broken: 'Cableado roto',
-  sync_failure: 'Falla de sync',
-  stale_data: 'Dato desactualizado',
-  ai_failure: 'Falla IA',
-  permission_issue: 'Problema de permisos',
-  performance: 'Rendimiento',
-  integration_external: 'Integración externa',
-  data_quality: 'Calidad de datos',
-  orphan_record: 'Registro huérfano',
+  schema_integrity: 'Datos completos',
+  wiring_broken: 'Conexión rota',
+  sync_failure: 'No se sincronizó',
+  stale_data: 'Dato sin actualizar',
+  ai_failure: 'Falla del asistente',
+  permission_issue: 'Permisos',
+  performance: 'Velocidad',
+  integration_external: 'Servicio externo',
+  data_quality: 'Calidad del dato',
+  orphan_record: 'Archivo suelto',
+};
+
+// Nombres de cada grupo en lenguaje de persona (antes salían en slug técnico: "ie engine"…).
+const MODULE_LABELS = {
+  schema: 'Datos del Proyecto',
+  ie_engine: 'Inteligencia y Predicciones',
+  marketplace: 'Página Pública',
+  cross_portal: 'Conexión con Asesores',
+  engagement: 'Actividad y Registro',
+  ai_integrations: 'Asistentes y Automatización',
+  integrations_external: 'Servicios Externos',
+  performance: 'Velocidad',
+  notifications: 'Avisos',
+};
+const moduleLabel = (m) => MODULE_LABELS[m] || (m || '').replace(/_/g, ' ');
+
+// Cómo se disparó la revisión, en lenguaje normal (antes: "scheduled"/"manual").
+const TRIGGER_LABELS = {
+  scheduled: 'automático', manual: 'a mano', auto: 'automático', cron: 'automático',
 };
 
 function SeverityBadge({ severity }) {
@@ -95,7 +114,7 @@ function ProbeRow({ probe, devId, onRefresh }) {
           </div>
           {probe.recurrence_count > 1 && !probe.passed && (
             <div style={{ fontSize: 10, color: 'var(--cream-3)', marginTop: 1 }}>
-              Recurrente · {probe.recurrence_count}× · último: {
+              Ya había aparecido · {probe.recurrence_count} veces · visto: {
                 probe.last_detected ? new Date(probe.last_detected).toLocaleDateString('es-MX') : '—'
               }
             </div>
@@ -301,7 +320,7 @@ export default function DiagnosticReportContent({ devId, user }) {
           <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>Última ejecución</div>
           <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 2 }}>
             {runAt.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
-            &nbsp;·&nbsp;<span style={{ color: 'var(--cream-3)', fontSize: 11 }}>{diag.trigger}</span>
+            &nbsp;·&nbsp;<span style={{ color: 'var(--cream-3)', fontSize: 11 }}>{TRIGGER_LABELS[diag.trigger] || diag.trigger}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -370,7 +389,7 @@ export default function DiagnosticReportContent({ devId, user }) {
               borderRadius: 5, padding: '2px 8px', fontSize: 10, cursor: 'pointer',
               fontWeight: moduleFilter === m ? 700 : 400,
             }}>
-            {m.replace('_', ' ')}
+            {moduleLabel(m)}
           </button>
         ))}
       </div>
@@ -381,7 +400,7 @@ export default function DiagnosticReportContent({ devId, user }) {
           <h4 style={{ margin: '0 0 6px', fontSize: 10, color: 'var(--cream-3)',
             fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
           }}>
-            {mod.replace('_', ' ')} ({list.filter(p => p.passed).length}/{list.length})
+            {moduleLabel(mod)} ({list.filter(p => p.passed).length}/{list.length})
           </h4>
           {list.map(p => (
             <ProbeRow key={p.probe_id} probe={p} devId={devId} onRefresh={load} />

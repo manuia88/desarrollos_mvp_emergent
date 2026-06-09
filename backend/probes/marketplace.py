@@ -57,11 +57,11 @@ async def _asset_urls_resolve(db, project_id, user):
 
 
 functional_probe("public_listing_renders_correctly", "marketplace", "high",
-                 "Listing público del proyecto renderiza",
+                 "La página pública del proyecto se ve bien",
                  _public_listing_renders, "wiring_broken")
 functional_probe("public_endpoints_respond_200", "marketplace", "medium",
-                 "Endpoints públicos del proyecto OK",
+                 "La información pública del proyecto responde",
                  _public_endpoints_ok, "wiring_broken")
 functional_probe("asset_urls_resolve", "marketplace", "medium",
-                 "Fotos/assets públicos tienen URL válida",
+                 "Las fotos del proyecto cargan bien",
                  _asset_urls_resolve, "data_quality")

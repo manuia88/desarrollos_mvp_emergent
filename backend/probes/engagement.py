@@ -59,11 +59,11 @@ async def _badge_counters_match(db, project_id, user):
 
 
 functional_probe("posthog_events_emitting", "engagement", "high",
-                 "PostHog/ml_events emitiendo en últimos 7d",
+                 "Se está registrando la actividad de la app",
                  _posthog_events_emitting, "integration_external")
 functional_probe("audit_log_captures_mutations", "engagement", "medium",
-                 "audit_log captura mutaciones del proyecto",
+                 "Cada cambio queda guardado en la bitácora",
                  _audit_captures, "wiring_broken")
 functional_probe("badge_counters_match_actual_data", "engagement", "low",
-                 "Contadores UI coinciden con data real",
+                 "Los números en pantalla coinciden con los datos",
                  _badge_counters_match, "data_quality")

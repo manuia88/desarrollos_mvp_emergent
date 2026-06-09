@@ -58,14 +58,14 @@ async def _inegi_cached(db, project_id, user):
 
 
 functional_probe("sentry_capturing", "integrations_external", "low",
-                 "Sentry SDK inicializado y capturando",
+                 "El detector de errores está activo",
                  _sentry_capturing, "integration_external")
 functional_probe("resend_email_sendable", "integrations_external", "low",
-                 "Resend API key configurada",
+                 "El envío de correos está configurado",
                  _resend_sendable, "integration_external")
 functional_probe("mapbox_renders", "integrations_external", "high",
-                 "Mapbox token configurado",
+                 "Los mapas están configurados",
                  _mapbox_renders, "integration_external")
 functional_probe("inegi_demographics_cached_or_callable", "integrations_external", "low",
-                 "INEGI cache disponible para colonia del proyecto",
+                 "Los datos de población de la zona están disponibles",
                  _inegi_cached, "integration_external")

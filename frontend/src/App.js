@@ -439,9 +439,13 @@ function AuthProvider({ children }) {
             tenant_slug: u?.tenant_slug || u?.tenant_id,
           });
         } catch {}
-      } else setUser(null);
+        return u;
+      }
+      setUser(null);
+      return null;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -478,7 +482,7 @@ function AuthProvider({ children }) {
       <AuthModal
         open={authOpen}
         onClose={closeAuth}
-        onSuccess={(u) => {
+        onSuccess={async (u) => {
           setUser(u);
           setAuthOpen(false);
           // Phase F0.11 — identify after login
@@ -491,11 +495,16 @@ function AuthProvider({ children }) {
               tenant_slug: u?.tenant_slug || u?.tenant_id,
             });
           } catch {}
+          // Confirma la sesión leyendo la cookie ya escrita (evita el doble-click: solo
+          // entramos al portal cuando /api/auth/me confirma la sesión). Cae al user del
+          // login si la confirmación tardara.
+          let confirmed = u;
+          try { const fresh = await checkAuth(); if (fresh) confirmed = fresh; else setUser(u); } catch { setUser(u); }
           // Phase: redirect to role-specific portal after login.
           // If URL has ?next=... (set by AdvisorRoute on protected redirect), honour it.
           const params = new URLSearchParams(window.location.search);
           const next = params.get('next');
-          const dest = next || portalForRole(u?.role);
+          const dest = next || portalForRole(confirmed?.role);
           // Avoid redirect if already inside that portal subtree (preserve deep links).
           const here = window.location.pathname;
           const portalRoot = dest.split('/')[1] || '';

@@ -69,9 +69,9 @@ async def _auto_assign_engine(db, project_id, user):
 
 
 functional_probe("oauth_calendar_health", "integrations_external", "high",
-                 "OAuth Calendar: conexiones activas + tokens válidos no expirados",
+                 "La conexión con el calendario está activa",
                  _oauth_calendar_health, "stale_data")
 
 functional_probe("auto_assign_engine", "ai_integrations", "medium",
-                 "Auto-assign Engine: políticas válidas + motor de asignación operativo",
+                 "El reparto automático de leads funciona",
                  _auto_assign_engine, "data_quality")

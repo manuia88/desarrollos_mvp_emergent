@@ -89,17 +89,17 @@ async def _cross_portal_sync_health(db, project_id, user):
 
 
 functional_probe("asesor_brokers_see_project_if_whitelist", "cross_portal", "high",
-                 "Brokers activos cuando política lo requiere",
+                 "Los asesores externos ven el proyecto cuando deben",
                  _asesor_brokers_see, "wiring_broken")
 functional_probe("asesor_inhouse_see_assigned_projects", "cross_portal", "medium",
-                 "Pre-asignaciones in-house configuradas",
+                 "Tu equipo interno tiene proyectos asignados",
                  _asesor_inhouse_see, "wiring_broken")
 functional_probe("inmobiliaria_admin_sees_org_data", "cross_portal", "low",
-                 "Inmobiliaria dashboard visible",
+                 "El tablero de la inmobiliaria se ve",
                  _inmobiliaria_sees_org, "permission_issue")
 functional_probe("tracking_cookie_attribution_works", "cross_portal", "medium",
-                 "Atribución de asesor en leads",
+                 "Cada lead queda ligado a su asesor",
                  _tracking_attribution, "wiring_broken")
 functional_probe("cross_portal_sync_health", "cross_portal", "high",
-                 "Coherencia entre fuentes de proyectos (legacy + wizard)",
+                 "La información del proyecto es la misma en todos lados",
                  _cross_portal_sync_health, "sync_failure")

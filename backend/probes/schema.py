@@ -83,17 +83,17 @@ async def _commercialization_valid(db, project_id, user):
 
 
 functional_probe("project_required_fields_complete", "schema", "critical",
-                 "Proyecto tiene campos requeridos completos",
+                 "El proyecto tiene sus datos básicos completos",
                  _project_required_fields, "schema_integrity")
 functional_probe("units_have_required_fields", "schema", "high",
-                 "Unidades tienen unit_number y prototype",
+                 "Las unidades tienen número y tipo",
                  _units_required_fields, "schema_integrity")
 functional_probe("project_assets_not_orphaned", "schema", "medium",
-                 "Assets del proyecto sin referencias huérfanas",
+                 "Las fotos y archivos están bien ligados",
                  _assets_not_orphaned, "orphan_record")
 functional_probe("project_documents_not_orphaned", "schema", "medium",
-                 "Documentos legales sin referencias huérfanas",
+                 "Los documentos legales están bien ligados",
                  _documents_not_orphaned, "orphan_record")
 functional_probe("commercialization_config_valid", "schema", "high",
-                 "Configuración comercial válida",
+                 "Los precios y comisiones están bien configurados",
                  _commercialization_valid, "schema_integrity")

@@ -31,8 +31,8 @@ async def _bundle_size_check(db, project_id, user):
 
 
 functional_probe("heavy_endpoints_under_2s", "performance", "medium",
-                 "Endpoints pesados responden <2s",
+                 "Las pantallas pesadas cargan rápido",
                  _heavy_endpoints_fast, "performance")
 functional_probe("bundle_initial_size_under_threshold", "performance", "low",
-                 "Bundle inicial bajo umbral",
+                 "La app carga ligera al inicio",
                  _bundle_size_check, "performance")
