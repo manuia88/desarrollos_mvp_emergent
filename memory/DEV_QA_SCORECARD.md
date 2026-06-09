@@ -83,6 +83,30 @@
 
 **Estado: vamos en la AUDITORÍA 3 de 5.** Temas CONVERGIENDO: (1) raíz datos forkeados, (2) índices/escala, (3) inyección+costo IA, (4) except:pass/observabilidad, (5) primer-día/lenguaje/a11y.
 
+---
+
+## AUDITORÍA 4 (4ª pasada · dinero + consistencia 4-portales + frentes NUEVOS: público/legal/integraciones/formato/tests · 2026-06-09)
+**Verificada. Esta vez los hallazgos aguantaron mejor (los 4 top verificados son reales). Hay un hallazgo LEGAL.**
+
+### ✅ VERIFICADO REAL · nuevo
+| # | Hallazgo | Dónde | Sev | Verificación |
+|---|---|---|---|---|
+| A4.1 | **SIN consentimiento de privacidad (LFPDPPP)** — los formularios de captura de lead NO piden aceptar el aviso de privacidad antes de guardar datos personales | lead_capture_engine / lead_capture_marketplace (grep de consent = vacío) | 🔴 legal | VERIFICADO: no existe captura de consentimiento. Incumplimiento LFPDPPP Art. 8. |
+| A4.2 | **PDF de lead público + PII en texto plano** — `GET /api/lead-capture/pdf/{id}` es público (sin auth), sirve un PDF con nombre/WhatsApp/datos del comprador, guardado base64 sin cifrar | lead_capture_marketplace.py:172 | 🟡→🔴 | VERIFICADO: link de capacidad con PII; cifrar en reposo + token efímero. |
+| A4.3 | **Casi cero tests en el portal del dev** (API `/desarrollador/*`, auto-sync, cálculo de pagos del cotizador) | backend/tests (0 dev) · frontend (0 dev) | 🔴 red | Sin red ante regresiones; una regresión tumba el portal sin avisar. |
+| A4.4 | **Secreto HMAC del webhook devuelto en CADA GET** (debería mostrarse una sola vez al crear) | partners.py:292 | 🟡 | VERIFICADO: `"hmac_secret": p.get(...)` en la respuesta. (superadmin, no público) |
+| A4.5 | **Bug de zona horaria en "meses hasta entrega"/cotizador** — usa la hora del navegador, no CDMX → off por un mes cerca de frontera o en otra zona | PaymentQuoter.js:64 · PublicCotizador.js:16 | 🟡 | VERIFICADO: `new Date()` local, no America/Mexico_City. |
+| A4.6 | **Divergencia cross-portal**: `maps_cross_engine` lee el SEED (no la DB real) → el comparador puede mostrar absorción/unidades viejas · y usa fórmula propia de $/m² (no la canónica `dev_price_m2`) | maps_cross_engine.py:65,336 | 🟡 | El comprador en el comparador ve número distinto del real. |
+| A4.7 | **PII de lead sin cifrar en reposo + sin k-anon en dev** — emails/teléfonos en texto plano en Mongo · `contact_name` en timeline de unidad sin k-anonimidad · demand_heatmap sin gate k | leads schema · dev_batch6:460,96 | 🟡 | Si la BD se compromete, PII expuesta. |
+| A4.8 | **Notificaciones/email salientes**: `emit_notification` no valida que el tenant sea del usuario (fuga cross-org) · email sin escaping (XSS/CRLF en nombre de proyecto/asesor) · sin rate-limit de email | notifications_engine.py:207 · resend_engine.py:37,64 | 🟡 | Cross-tenant + inyección en correo. |
+| A4.9 | **price_to = price_from** (confirma A3.1) + publicar sin validar completitud (readiness 80% no se fuerza) · cotizador desaparece sin aviso si no hay formas de pago · sitemap hardcodeado (proyectos nuevos invisibles a Google) | dev_batch10:289 · dev_project_full:162 · PublicCotizador:49 · sitemap.xml | 🟡 | Publicación incompleta visible al comprador. |
+
+### ✅ TRANQUILIZADOR (auditoría honesta, no todo es malo)
+- **Finanzas 95% correctas**: revenue/margen/ROI/TIR/comisiones con guards correctos, SIN errores críticos de dinero ni doble-conteo. Solo 2 micro-precisiones (🟡): `int()` trunca en flujo proyectado (pierde ~0.2-0.5% en pipelines >$100M) · amplificador `0.5+heat` en pipeline ponderado sin documentar.
+- **Webhooks: SSRF YA protegido** (workflow_engine bloquea loopback/RFC1918/link-local) + HMAC + timeout. Bien hecho.
+
+**Estado: AUDITORÍA 4 de 5 lista.** Convergencia confirmada + 1 frente legal NUEVO (consentimiento/PII) que ninguna pasada previa tocó.
+
 ## Resumen (semáforo por área)
 
 | Área | Veredicto | En una línea |
