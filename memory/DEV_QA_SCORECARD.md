@@ -19,12 +19,12 @@
 - ✅ CAS en patch_unit_status (filtro por estado actual + 409) + **índice único** en developer_unit_overrides.unit_id (evita filas duplicadas en carrera). Verificado: A gana / B pierde.
 - ✅ Rate-limit en el reporte Sonnet (~1/min por usuario · el param `month` ya no fuerza repetir la IA).
 - ✅ Pydantic en `ack_alert` (validación + max_length).
-- 📦 **Cross-Portal v2 (3 items · pasada dedicada, NO deuda oculta — tocan ruta caliente/módulo asesor):**
-  - #15 asesor lee el seed crudo en 6 sitios en vez del `get_effective_dev` (overlay+overrides) → ve precio/unidades menos frescos que el comprador. Plan: helper `_effective_dev` + swap por sitio CON QA del asesor (no romper su board).
-  - #16 fotos del dev (`dev_assets`) no llegan al comprador. Plan: exponer SOLO los roles de foto/galería (no documentos internos) en `project_public_overlay` → riesgo de filtrar archivos privados si se hace a ciegas.
-  - #17 overlay rico (amenidades) solo en la ficha, no en los listados del marketplace. Plan: cachear/batch los overlays (no llamada por-item) para no frenar la lista (ruta caliente).
+- ✅ **Cross-Portal v2 — LOS 3 CERRADOS (2026-06-09 · front+back, verificado E2E):**
+  - ✅ #15 asesor ve el dato FRESCO del dev: nuevos helpers batch `get_effective_devs_map/list` (auto_sync_engine, una query $in) · swap en 7 sitios de advisor.py (galería·búsquedas·ficha lead·tablero·AVM·argumentario·RAG) + 2 de mini_market. El pitch IA y los matches citan precio/amenidades reales. (playbook se queda en seed: solo lee org_id inmutable.)
+  - ✅ #16 fotos dev→comprador CON CANDADO: allow-list `PUBLIC_ASSET_TYPES` (solo marketing) + candado server-side en GET /developments/{id}/assets (planos técnicos NUNCA salen, aunque el front los pida) · `public_photos_for_dev` con caption IA como alt-text · ficha + listado muestran la foto real del dev.
+  - ✅ #17 amenidades + foto en LISTADOS sin frenar: `_enrich_listing` (3 queries batch: overlays→precio fresco · project_amenities · `public_hero_map`) · la tarjeta usa hero del batch (quité el fetch por-tarjeta = fin de N llamadas) + chip "N amenidades · servicios".
 
-**Baseline:** red-team de aislamiento 16/16 (sigue verde tras los nuevos candados).
+**Baseline:** red-team de aislamiento 16/16 (sigue verde tras Cross-Portal v2).
 
 ## Resumen (semáforo por área)
 
