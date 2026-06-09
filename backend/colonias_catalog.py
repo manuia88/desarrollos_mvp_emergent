@@ -140,7 +140,10 @@ async def sync_zonificacion_for_city(db, city: str = "CDMX", alcaldias: Optional
             slug = _slugify(f"{col}-{alc_title}")
             d = by_col.setdefault(slug, {
                 "name": (col.title() if col.isupper() else col), "alcaldia": alc_title,
-                "uso": [], "al": [], "niv": [], "dens": []})
+                "uso": [], "al": [], "niv": [], "dens": [], "lng": [], "lat": []})
+            plng, plat = _zf(rm.get("longitud")), _zf(rm.get("latitud"))
+            if plng is not None and plat is not None and -100 < plng < -98 and 19 < plat < 20:
+                d["lng"].append(plng); d["lat"].append(plat)
             uso = r.get("uso_suelo_categoria") or rm.get("uso_descri")
             if uso and str(uso) != "n/d":
                 d["uso"].append(str(uso))
@@ -163,14 +166,17 @@ async def sync_zonificacion_for_city(db, city: str = "CDMX", alcaldias: Optional
         dens_modal = max(set(d["dens"]), key=d["dens"].count) if d["dens"] else None
         cos = round(1 - (al_med / 100.0), 3) if al_med is not None else None  # COS = 1 − %área libre
         cus = round(cos * niv_med, 2) if (cos is not None and niv_med) else None
+        center = [round(statistics.median(d["lng"]), 6), round(statistics.median(d["lat"]), 6)] if d["lng"] and d["lat"] else None
         upd = {"zonif_uso": uso_modal, "zonif_area_libre_pct": al_med, "zonif_niveles": niv_med,
                "zonif_densidad": dens_modal, "cos": cos, "cus": cus,
                "zonif_n": len(d["niv"] or d["al"]), "zonif_synced_at": iso()}
+        if center:
+            upd["center"] = center  # centroide REAL del SIG (promedio de predios) → habilita el match por cercanía
         await db.colonias.update_one(
             {"id": slug},
             {"$set": {k: v for k, v in upd.items() if v is not None},
              "$setOnInsert": {"id": slug, "city": city, "name": d["name"],
-                              "alcaldia": d["alcaldia"], "source": "sigcdmx_zonif", "center": None}},
+                              "alcaldia": d["alcaldia"], "source": "sigcdmx_zonif"}},
             upsert=True)
         escritas += 1
         if cos is not None and cus is not None:
@@ -178,6 +184,117 @@ async def sync_zonificacion_for_city(db, city: str = "CDMX", alcaldias: Optional
     return {"ok": True, "city": city, "alcaldias_procesadas": alc_ok,
             "colonias_con_zonificacion": escritas, "con_cos_cus": con_coscus,
             "cobertura": await coverage(db)}
+
+
+async def dedupe_colonias(db, city: str = "CDMX", max_km: float = 1.6) -> Dict[str, Any]:
+    """F1.0 · Unifica el padrón: la misma colonia real venía DUPLICADA (catálogo de uso de suelo
+    vs catálogo de delito, con nombres distintos). Las fusiona en UNA por colonia real (mismo
+    nombre normalizado + centroides cercanos ≤ max_km), conservando TODO el dato. Idempotente.
+    Prioridad de superviviente: seed (ids curados que usa la app) > con COS/CUS > con valor de suelo.
+    Guarda los ids fusionados en `aliases` (no se pierde ninguna referencia · cero deuda)."""
+    import math
+    import unicodedata as _ud
+    import re as _re
+    from datetime import datetime, timezone
+    from collections import defaultdict
+
+    def _norm(s: Any) -> str:
+        s = _ud.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().lower()
+        s = _re.sub(r"[^a-z0-9 ]", " ", s)
+        s = _re.sub(r"\b(col|colonia|u h|unidad habitacional|ampliacion|ampl|fraccionamiento|fracc)\b", " ", s)
+        return _re.sub(r"\s+", " ", s).strip()
+
+    def _km(a, b) -> float:
+        if not (isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)) and len(a) == 2 and len(b) == 2):
+            return 9999.0
+        return math.hypot((a[1] - b[1]) * 111.0, (a[0] - b[0]) * 105.0)
+
+    def _rank(c: Dict[str, Any]) -> int:
+        r = 0
+        if c.get("source") == "seed":
+            r += 100000
+        if (c.get("cus") or 0) > 0:
+            r += 10000
+        if (c.get("vsuelo_pm2_catastral") or 0) > 0:
+            r += 5000
+        if (c.get("scores_cobertura_pct") or 0) > 0:
+            r += 1000
+        return r + sum(1 for v in c.values() if v not in (None, 0, ""))
+
+    iso = datetime.now(timezone.utc).isoformat()
+    _MERGE = ["vsuelo_pm2_catastral", "vsuelo_n", "vsuelo_score", "vsuelo_synced_at",
+              "cos", "cus", "zonif_uso", "zonif_area_libre_pct", "zonif_niveles",
+              "zonif_densidad", "zonif_n", "zonif_synced_at", "scores_reales", "scores_fuentes",
+              "scores_cobertura_pct", "scores_es_estimado", "precio_pm2", "precio_score",
+              "center", "alcaldia", "tier"]
+    cols: List[Dict[str, Any]] = []
+    async for c in db.colonias.find({"city": city}, {"_id": 0}):
+        cols.append(c)
+    groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for c in cols:
+        groups[_norm(c.get("name"))].append(c)
+    fusionados = eliminadas = 0
+    for name, members in groups.items():
+        if not name or len(members) < 2:
+            continue
+        clusters: List[List[Dict[str, Any]]] = []
+        for c in members:
+            for cl in clusters:
+                if _km(c.get("center"), cl[0].get("center")) <= max_km:
+                    cl.append(c)
+                    break
+            else:
+                clusters.append([c])
+        for cl in clusters:
+            if len(cl) < 2:
+                continue
+            cl.sort(key=_rank, reverse=True)
+            survivor = cl[0]
+            patch: Dict[str, Any] = {}
+            for f in _MERGE:
+                if survivor.get(f) in (None, 0, ""):
+                    for sib in cl[1:]:
+                        if sib.get(f) not in (None, 0, ""):
+                            patch[f] = sib[f]
+                            break
+            patch["aliases"] = sorted(set((survivor.get("aliases") or []) + [s["id"] for s in cl[1:]]))
+            patch["deduped_at"] = iso
+            await db.colonias.update_one({"id": survivor["id"]}, {"$set": patch})
+            res = await db.colonias.delete_many({"id": {"$in": [s["id"] for s in cl[1:]]}})
+            eliminadas += res.deleted_count
+            fusionados += 1
+    # Pass 2 · cross-source por cercanía: una colonia SIN COS/CUS muy cerca de una CON COS/CUS
+    # (≤ prox_thr, misma alcaldía) = la misma colonia que el otro catálogo nombró distinto →
+    # fusiona la de delito en la de uso de suelo (que es la canónica para el Valor Residual).
+    prox_thr = 0.45  # km
+    con_cos = [c async for c in db.colonias.find(
+        {"city": city, "cus": {"$gt": 0}, "center": {"$ne": None}}, {"_id": 0})]
+    sin_cos = [c async for c in db.colonias.find(
+        {"city": city, "cus": {"$exists": False}, "center": {"$ne": None}, "source": {"$ne": "seed"}}, {"_id": 0})]
+    for s in sin_cos:
+        best, bestd = None, 9999.0
+        sa = _norm(s.get("alcaldia"))
+        for c in con_cos:
+            if sa and _norm(c.get("alcaldia")) and sa != _norm(c.get("alcaldia")):
+                continue
+            dkm = _km(s["center"], c["center"])
+            if dkm < bestd:
+                best, bestd = c, dkm
+        if best and bestd <= prox_thr:
+            patch: Dict[str, Any] = {}
+            for f in ["scores_reales", "scores_fuentes", "scores_cobertura_pct",
+                      "scores_es_estimado", "precio_pm2", "precio_score",
+                      "vsuelo_pm2_catastral", "vsuelo_n", "vsuelo_score", "vsuelo_synced_at"]:
+                if best.get(f) in (None, 0, "") and s.get(f) not in (None, 0, ""):
+                    patch[f] = s[f]
+            patch["aliases"] = sorted(set((best.get("aliases") or []) + [s["id"]]))
+            patch["deduped_at"] = iso
+            await db.colonias.update_one({"id": best["id"]}, {"$set": patch})
+            await db.colonias.delete_one({"id": s["id"]})
+            fusionados += 1
+            eliminadas += 1
+    return {"ok": True, "city": city, "grupos_fusionados": fusionados,
+            "colonias_eliminadas": eliminadas, "cobertura": await coverage(db)}
 
 
 async def coverage(db) -> Dict[str, Any]:

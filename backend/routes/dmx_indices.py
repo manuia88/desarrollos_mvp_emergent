@@ -286,6 +286,18 @@ async def superadmin_colonias_sync_zonificacion(
     return await cc.sync_zonificacion_for_city(request.app.state.db, city=city)
 
 
+@router.post("/api/superadmin/colonias/dedupe")
+async def superadmin_colonias_dedupe(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a deduplicar"),
+):
+    """F1.0 · Unifica el padrón de colonias: fusiona las que vienen duplicadas de dos catálogos
+    oficiales (uso de suelo + delito) en UNA por colonia real, conservando todo el dato. Idempotente."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.dedupe_colonias(request.app.state.db, city=city)
+
+
 @router.post("/api/superadmin/colonias/recalibrate-comercial")
 async def superadmin_colonias_recalibrate_comercial(
     request: Request,

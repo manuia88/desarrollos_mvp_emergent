@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, syncZonificacion, recalibrarComercial, getCalibracionComercial, getShf, refreshShf, ingestValoresUnitarios } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, syncZonificacion, dedupeColonias, recalibrarComercial, getCalibracionComercial, getShf, refreshShf, ingestValoresUnitarios } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -105,6 +105,19 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al sincronizar la zonificación.' });
+    }
+  };
+
+  // F1.0 · Unifica el padrón (fusiona la misma colonia que venía duplicada de dos catálogos).
+  const unificarPadron = async () => {
+    setIngest({ busy: true, msg: 'Unificando el padrón de colonias (fusionando duplicados)…' });
+    try {
+      const r = await dedupeColonias('CDMX');
+      const cob = r.cobertura || {};
+      setIngest({ busy: false, msg: `Listo: ${r.colonias_eliminadas} duplicados fusionados · ${cob.total_colonias} colonias únicas · ${cob.total_con_zonificacion} con COS/CUS.` });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al unificar el padrón.' });
     }
   };
 
@@ -240,6 +253,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-sync-zonificacion" onClick={sincronizarZonificacion} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Zonificación (COS/CUS)
+            </button>
+            <button data-testid="ix-dedupe" onClick={unificarPadron} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Unificar Padrón (Dedupe)
             </button>
             <button data-testid="ix-recalibrar-comercial" onClick={recalibrarValorComercial} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Recalibrar Valor Comercial
