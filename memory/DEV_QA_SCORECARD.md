@@ -131,8 +131,37 @@
 
 ---
 
-## 🎯 CONSOLIDADO DE LAS 5 AUDITORÍAS (plan de corrección · solo lo VERIFICADO real)
-**Dedupe + priorizado. Lo que se corrige tras 5 pasadas. (Los falsos positivos NO entran.)**
+## AUDITORÍA 6 (FINAL · 7 lentes = matriz A–K + 8 familias + 7 olas + producción · 2026-06-09)
+**Objetivo: dejar el plan LISTO PARA CORREGIR (archivo:línea + fix exacto) y profundizar la 5. No reveló una raíz nueva: CONFIRMÓ el cluster de la 5 con detalle accionable y cazó 3 falsos positivos más. La disciplina sigue valiendo (~mitad de los "🔴" no resisten).**
+
+### ✅ CONFIRMA + vuelve accionable (lista de corrección exacta)
+| Cluster (ya conocido) | Detalle exacto NUEVO (para corregir directo) | Sev |
+|---|---|---|
+| C1 Escala (A5.1) | Pool: `server.py:46` sin `maxPoolSize/serverSelectionTimeoutMS` (confirmado) · `ensure_project_full_indexes` = `return None` (vacío, confirmado dev_project_full.py:395) · índices faltantes con `create_index(..., background=True)`: ie_scores `[zone_id,code,is_stub]` · projects `[dev_org_id]` · units `[project_id,status]` · dev_assets `[development_id]` · appointments `[dev_org_id,created_at]` · unit_engagement `[dev_id,unit_id]` · `to_list(10000)` a paginar: dev_batch6:130,140 · dev_batch7:336 · `background=True` faltante: asesor_indexes:63 + dev_batch19:371-375 | 🔴 |
+| C4 IA/seguridad (A5.2/A5.5) | SSRF confirmado dev_batch1:631 (y es `follow_redirects=True`, peor de lo reportado) → validar URL (bloquear localhost/RFC1918/169.254) · `re.escape(colonia)` confirmado dev_batch4_1:692 · **NUEVO: 6 llamadas LLM sin tope de costo ANTES** (dev_batch6:248, dev_batch14:403, dev_batch5:761, dev_batch7:293, dev_batch8:365, dev_batch4_4:120) — solo dev_batch11 ya lo tiene · timeout LLM faltante dev_batch14:403 + dev_batch11:106 (`asyncio.wait_for`) | 🟡-🔴 |
+| C5 Observabilidad (A5.6) | Inventario exhaustivo de `except: pass` SIN log con impacto: dev_batch1 audit-log silencioso x9 (354,436,1108,1134,1253,1330,1443,1481,1499) → `log.warning` · ErrorBoundary faltante en `DeveloperLayout.js` (un hijo que crashea tumba la ficha) | 🟡 |
+| C3 Privacidad (A5.4) | Detalle por colección: cifrar PII en escritura (leads/asesor_contacts/whatsapp_messages, reusar Fernet de `document_intelligence`) · `redact_pii` (ya existe en cerebro/memory) antes de LLM en lead_enrichment:300 · PDF público: token efímero + TTL + cifrar bytes (lead_capture_marketplace) · +6 colecciones al DSR `_PII_COLLECTIONS` (compliance_engine:176) | 🔴 legal |
+
+### ✅ NUEVO genuino (la 6 sí agregó esto — refina C7/C9)
+| # | Hallazgo | Dónde | Sev |
+|---|---|---|---|
+| A6.1 | **Permisos premium solo en front**: features de IA/T3 (weekly brief, site selection, cash flow, engagement recs) sin gate de tier en backend (solo escondidas en UI) → un T0 con la ruta las consume | dev_batch14/7/8/6 (endpoints LLM) | 🟡 → C9 |
+| A6.2 | **a11y**: botones de ícono sin `aria-label` (masivo) + sin `:focus` outline (navegación por teclado rota) | components/developer/* | 🟡 → C7 |
+| A6.3 | **Primer día**: dashboard hace 3 fetch EN SERIE (3-5s sin skeleton) → `Promise.all` + skeleton · wizard no deja "próximo paso" al terminar · MisProyectos/FichaHome sin empty-state con acción | DesarrolladorDashboard.js:30-115 · MisProyectos · FichaHome | 🟡 → C7 |
+| A6.4 | **Perf percibida**: `DesarrolladorReportes` monolito ~1300 líneas, todos los tabs renderizan sin lazy/memo | DesarrolladorReportes.js | 🟡 → C7 |
+
+### ❌ FALSOS POSITIVOS nuevos (verificados uno por uno)
+- **"competitors price-sim sin gate de rol 🔴 BLOCKER"** → FALSO: dev_batch2:1224 SÍ tiene `if user.role not in ("developer_admin","superadmin"): raise 403`.
+- **"`invalidate_dev_overlay_cache` nunca se llama / comprador ve precio viejo 🔴"** → SOBREDIMENSIONADO: SÍ se llama (auto_sync_engine:428,480) en el path de overlay. Las ediciones por-unidad usan otra colección (`developer_unit_overrides`) que NO está en ese cache → no hay prueba de dato rancio. Queda 🟡 "verificar que ningún write directo de overlay salte la invalidación" dentro de C5.
+- **"`on_deal_closed` nunca dispara del dev / Cerebro no aprende 🔴"** → FALSO: dev_batch4.py:398 lo dispara al cerrar lead (y advisor.py x3). El Cerebro SÍ está cableado al cierre.
+- **"falta `assert_dev_project` en release de hold"** → FALSO: dev_batch1:1115 ya lo valida.
+
+**Veredicto Auditoría 6:** el plan C1–C10 estaba COMPLETO. La 6 no abre frente nuevo de raíz — lo vuelve **accionable** (archivo:línea + fix) y suma a C7 (a11y/primer-día/perf) y C9 (gate de tier en backend). **6 auditorías cerradas.**
+
+---
+
+## 🎯 CONSOLIDADO DE LAS 6 AUDITORÍAS (plan de corrección · solo lo VERIFICADO real)
+**Dedupe + priorizado. Lo que se corrige tras 6 pasadas. (Los falsos positivos NO entran.)**
 
 | # | Tema (raíz/cluster) | Severidad | Qué incluye | Esfuerzo |
 |---|---|---|---|---|
@@ -142,14 +171,14 @@
 | **C4** | **IA: inyección + costo + confianza** | 🔴/🟡 | sanitizar entradas a LLM (lead_name/unit_number/colonia/título) · `re.escape` en regex · CRLF en filenames · tope de costo ANTES de la llamada · SSRF en fotos · marcar confianza/stub honesto · Cerebro `is_example` | M |
 | **C5** | **Observabilidad / fallas silenciosas** | 🟡-🔴 | reemplazar `except: pass` por `log.warning` + flag de error (los ~6 con impacto: cache, on_deal_closed, demanda en 0) · invalidar cache al editar · fail-closed donde aplica | S-M |
 | **C6** | **Correctitud** | 🟡 | bug `price_to=price_from` · zona horaria en fechas (CDMX) · divergencia cross-portal (maps_cross lee seed) · formato MXN | S |
-| **C7** | **Primer día / UX / a11y / lenguaje** | 🟡 | empty states con acción · jerga del wizard (+resumen) · estados atascados (under_review) · aria-labels · tablas/modales | M |
+| **C7** | **Primer día / UX / a11y / lenguaje / perf percibida** | 🟡 | empty states con acción (MisProyectos/FichaHome) · jerga del wizard (+resumen) · wizard sin "próximo paso" al terminar · estados atascados (under_review) · **aria-labels en botones de ícono + `:focus` outline** (A6.2) · tablas/modales · **dashboard 3 fetch serie → `Promise.all`+skeleton** (A6.3) · **DesarrolladorReportes monolito → lazy/memo** (A6.4) | M |
 | **C8** | **Red de pruebas** | 🔴 (red) | tests del portal dev (dashboard/auth/pagos/auto-sync) · el red-team de aislamiento ya existe (16/16) | M |
-| **C9** | **Permisos por plan** | 🟡 | gating de premium por tier (no solo rol) · revisar flags agentic en backend | S |
+| **C9** | **Permisos por plan** | 🟡 | **gate de tier EN BACKEND para features premium de IA** (weekly brief/site selection/cash flow/engagement recs — hoy solo escondidas en front, A6.1) · revisar flags agentic en backend | S |
 | **C10** | **Higiene** | 🟢 | `DesarrolladorInventario.js` sin ruta · componentes/API sin uso · redirects viejos | S |
 
 **Puntos ciegos que el crítico de completitud marcó (no auditados aún):** websockets/broadcast · CSRF · rotación de tokens · S3 ACL/cifrado · retry/dead-letter de jobs · race conditions de escritura concurrente · versionado de API. (Backlog de auditoría futura.)
 
-**Las 5 auditorías están CERRADAS. Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
+**Las 6 auditorías están CERRADAS (la 6 confirmó el plan y lo volvió accionable con archivo:línea + fix). Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
 
 ## Resumen (semáforo por área)
 
