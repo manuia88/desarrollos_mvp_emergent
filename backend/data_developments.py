@@ -647,3 +647,25 @@ def _build_dev(dev_raw: dict) -> dict:
 DEVELOPMENTS = [_build_dev(d) for d in DEVELOPMENTS_RAW]
 DEVELOPMENTS_BY_ID = {d["id"]: d for d in DEVELOPMENTS}
 ALL_UNITS = [u for d in DEVELOPMENTS for u in d["units"]]
+
+
+def inventory_stats(dev: dict) -> dict:
+    """Estadística REAL de inventario de un desarrollo (antes los competidores se fabricaban con
+    random). Prefiere la lista de unidades; cae a los agregados. Fuente única reusable."""
+    units = dev.get("units") or []
+    if units:
+        total = len(units)
+        sold = sum(1 for u in units if u.get("status") == "vendido")
+        reserved = sum(1 for u in units if u.get("status") in ("reservado", "apartado"))
+        available = sum(1 for u in units if u.get("status") == "disponible")
+    else:
+        total = int(dev.get("units_total") or 0)
+        sold = int(dev.get("units_sold") or 0)
+        reserved = int(dev.get("units_reserved") or 0)
+        available = int(dev.get("units_available") or max(0, total - sold - reserved))
+    return {
+        "units_total": total, "units_sold": sold,
+        "units_reserved": reserved, "units_available": available,
+        "absorption_pct": round(100 * sold / total, 1) if total else 0.0,
+        "availability_pct": round(100 * available / total, 1) if total else 0.0,
+    }

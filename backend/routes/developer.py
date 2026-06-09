@@ -7,7 +7,6 @@ Built atop mocked developments in data_developments.py plus runtime state in Mon
 import os
 import uuid
 import hashlib
-import random
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -1292,7 +1291,6 @@ async def competitor_radar(request: Request, dev_id: Optional[str] = None, radiu
     competitors_raw = [d for d in DEVELOPMENTS if d["id"] != mine["id"] and d["alcaldia"] == mine["alcaldia"]][:8]
 
     competitors = []
-    rng = random.Random(hash(mine["id"]) % 2**32)
     for c in competitors_raw:
         c_lat, c_lon = c["center"]
         # Rough distance in km (haversine approximation)
@@ -1300,7 +1298,10 @@ async def competitor_radar(request: Request, dev_id: Optional[str] = None, radiu
         if dist_km > radius_km * 3: continue  # wider tolerance for mock
         c_price_sqm = c["price_from"] / c["m2_range"][0]
         delta = round(100 * (c_price_sqm - my_price_sqm) / my_price_sqm, 1)
-        absorption = rng.randint(30, 78)
+        # Absorción REAL del competidor (inventario vendido/total · antes era random).
+        from data_developments import inventory_stats
+        _inv = inventory_stats(c)
+        absorption = _inv["absorption_pct"]
         competitors.append({
             "id": c["id"], "name": c["name"], "developer_id": c["developer_id"],
             "colonia": c["colonia"], "stage": c["stage"],

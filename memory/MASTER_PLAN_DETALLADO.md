@@ -120,7 +120,7 @@ Verificar `IE_DENUE_TOKEN` (DENUE quedó de respaldo · OSM ya cubre comercios) 
 | 1.5 | Red Comercial — "Salud de tu Red" (C.5) | ✅ |
 | 1.6 | Marketing — "Qué Promocionar Hoy" (C.6) | ✅ |
 | 1.7 | Reportes — "Resumen Ejecutivo del Mes" (C.7) | ✅ |
-| **Pendiente real** | (a) **Hardening Fase 1-4** (aislamiento cross-dev-org + QA = BLOQUE 3) · (b) **conectar el dato FALSO del dev al REAL** que acabamos de construir: Demanda (era random→forecast/dato real) + Pricing por unidad (era heurística Haiku→AVM/valuación real) · (c) deuda menor: link Cash Flow roto, tabs fantasma CRM (Citas/Slots/Brokers), prender suite IA (flag) | ⏳ |
+| **Pendiente real** | (a) Hardening aislamiento cross-org ✅ (candado+bitácora+Centro de Seguridad+red-team) · QA día-del-dev ⏳ · (b) **dato FALSO→REAL** ✅: Demanda (random→forecast) · Competidores (absorción/disponibilidad random→inventario REAL · tendencia random→plusvalía SHF real de la alcaldía · recortes prensa inventados→boletines reales/honesto vacío) · IE breakdown + peer benchmark (random.randint→ancla DETERMINISTA de dato real, marcado is_stub) · Pricing unidad ya usa AVM real (`/avm`) · (c) deuda menor: link Cash Flow, tabs fantasma CRM, suite IA (flag) ⏳ · (d) ⏳ pendiente real: IE breakdown sigue en escala 0-100 (conversión a banda honesta = chunk futuro) | 🟡 |
 
 ### BLOQUE 2 — Quick-wins de dato real (Tier 1 catálogo) · *reusa Tanda B*
 | # | Qué | Tamaño | Estado |

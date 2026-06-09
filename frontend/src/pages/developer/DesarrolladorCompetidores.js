@@ -252,8 +252,13 @@ export default function DesarrolladorCompetidores({ user, onLogout, embedded }) 
                 </div>
               )}
 
-            {/* Press clips */}
-            <div className="eyebrow" style={{ marginBottom: 8 }}>RECORTES DE PRENSA · últimos 30 días (resumen IA)</div>
+            {/* Noticias de la zona (boletines reales de la alcaldía · honesto si aún no hay) */}
+            <div className="eyebrow" style={{ marginBottom: 8 }}>NOTICIAS DE LA ZONA · boletines de tu alcaldía</div>
+            {data.press_clips_note && (
+              <div data-testid="press-empty" style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', padding: '14px 16px', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: 8 }}>
+                {data.press_clips_note}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
               {(data.press_clips || []).map(clip => (
                 <Card key={clip.id} data-testid={`press-${clip.id}`}>

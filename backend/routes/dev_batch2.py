@@ -16,7 +16,6 @@ All mutations call audit_log.log_mutation + observability.emit_ml_event.
 """
 from __future__ import annotations
 
-import random
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -370,65 +369,81 @@ async def competitors_enriched(request: Request, dev_id: Optional[str] = None, r
         {"dev_org_id": _tenant(user)}, {"_id": 0}
     ) or {"price_delta_threshold_pct": 5, "absorption_threshold_pct": 65, "notify_email": True, "notify_inapp": True}
 
-    # Press clips stub (deterministic)
-    rng = random.Random(hash(dev_id or "default") % 2**32)
-    press_clips = []
-    headlines = [
-        "Mercado preventa CDMX cierra Q1 con +8.2% absorción",
-        "Alcaldías premium registran nueva ola de torres boutique",
-        "Costos de construcción se estabilizan tras 11 meses de inflación",
-        "Inversión extranjera en vivienda LATAM alcanza USD 3.4B",
-        "Nuevo reglamento de uso de suelo en Miguel Hidalgo",
-        "Banxico mantiene tasa, proyecciones 2026 optimistas para desarrolladores",
-    ]
-    for i in range(min(6, len(headlines))):
-        days_ago = rng.randint(1, 28)
-        press_clips.append({
-            "id": _uid("clip"),
-            "title": headlines[i],
-            "source": rng.choice(["El Financiero", "Expansión", "Real Estate Market", "The Real Deal", "Obras"]),
-            "published_at": (_now() - timedelta(days=days_ago)).strftime("%Y-%m-%d"),
-            "url": "#",
-            "ai_summary": f"Impacto potencial: {rng.choice(['alto', 'medio', 'bajo'])}. Relevancia para tu portfolio: {rng.choice(['directa', 'indirecta'])}. Recomendación: {rng.choice(['monitorear', 'ajustar pricing', 'evaluar exposición', 'sin acción inmediata'])}.",
-            "sentiment": rng.choice(["positive", "neutral", "negative"]),
-        })
+    # Noticias de la zona — REAL desde los boletines DMX de la alcaldía (antes se fabricaban con
+    # random). Honesto: si aún no hay boletines de esa zona, queda vacío (no inventa titulares).
+    press_clips: List[dict] = []
+    try:
+        mine = (base.get("my_project") or {})
+        alc = None
+        from data_developments import DEVELOPMENTS_BY_ID
+        d0 = DEVELOPMENTS_BY_ID.get(mine.get("id"))
+        if d0:
+            alc = d0.get("alcaldia")
+        q = {"$or": [{"alcaldia": alc}, {"scope": "ciudad"}]} if alc else {"scope": "ciudad"}
+        cur = db.market_bulletins.find(q, {"_id": 0}).sort("published_at", -1).limit(6)
+        async for b in cur:
+            press_clips.append({
+                "id": b.get("id") or _uid("clip"),
+                "title": b.get("title"), "source": b.get("source") or "Boletín DMX",
+                "published_at": b.get("published_at"), "url": b.get("url") or "#",
+                "ai_summary": b.get("summary") or "", "sentiment": b.get("sentiment") or "neutral",
+            })
+    except Exception:
+        press_clips = []
 
     return {
         **base,
         "alert_config": cfg,
         "press_clips": press_clips,
+        "press_clips_note": (None if press_clips else
+                             "Aún no hay noticias de esta zona. Aquí aparecerán los boletines de mercado de tu alcaldía."),
     }
 
 
 @router.get("/competitors/{competitor_id}/history")
 async def competitor_history(competitor_id: str, request: Request):
-    """Price history 12 months for a specific competitor dev."""
+    """Tendencia de precio del competidor ANCLADA a la plusvalía OFICIAL de su zona (SHF · ING.3) —
+    antes se fabricaba con random. El precio actual es real (lista); la trayectoria sigue el índice
+    SHF real de la alcaldía (2005–2026). Honesto: es estimación con dato oficial de zona, no un
+    histórico transaccional. Absorción/disponibilidad = inventario REAL del competidor."""
     await _auth(request)
-    from data_developments import DEVELOPMENTS_BY_ID
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID, inventory_stats
     comp = DEVELOPMENTS_BY_ID.get(competitor_id)
     if not comp:
         raise HTTPException(404, "Competidor no encontrado")
 
-    rng = random.Random(hash(competitor_id) % 2**32)
-    base_price_sqm = comp["price_from"] / max(1, comp["m2_range"][0])
-    history = []
-    today = _now()
-    price = base_price_sqm * 0.88
-    for i in range(12):
-        m = (today.replace(day=1) - timedelta(days=30 * (11 - i)))
-        price = price * rng.uniform(0.99, 1.018)
-        history.append({
-            "month": m.strftime("%Y-%m"),
-            "price_sqm_mxn": int(price),
-            "availability_pct": rng.randint(15, 92),
-        })
+    cur_price_sqm = int(comp["price_from"] / max(1, comp["m2_range"][0]))
+    inv = inventory_stats(comp)
+    # Serie del índice SHF de la alcaldía (real). Reconstruye el precio hacia atrás con el índice.
+    serie = []
+    try:
+        from shf_engine import get_series
+        s = await get_series(db, alcaldia=comp.get("alcaldia"), desde_anio=2023)
+        serie = s.get("serie") or []
+    except Exception:
+        serie = []
 
+    if serie:
+        idx_now = serie[-1]["indice"] or 1.0
+        history = [{"month": p["t"], "price_sqm_mxn": int(cur_price_sqm * (p["indice"] / idx_now))}
+                   for p in serie[-12:]]
+        fuente = "Tendencia estimada con la plusvalía oficial de la zona (SHF)."
+    else:
+        history = [{"month": "Actual", "price_sqm_mxn": cur_price_sqm}]
+        fuente = "Sin historial de zona aún — se muestra el precio actual."
+
+    first, last = history[0]["price_sqm_mxn"], history[-1]["price_sqm_mxn"]
+    delta = round(100 * (last - first) / first, 1) if (len(history) > 1 and first) else 0.0
     return {
         "competitor_id": competitor_id,
         "competitor_name": comp["name"],
-        "current_price_sqm": int(history[-1]["price_sqm_mxn"]),
+        "current_price_sqm": cur_price_sqm,
+        "absorption_pct": inv["absorption_pct"],     # REAL (inventario)
+        "availability_pct": inv["availability_pct"],  # REAL (inventario)
         "history": history,
-        "delta_12m_pct": round(100 * (history[-1]["price_sqm_mxn"] - history[0]["price_sqm_mxn"]) / history[0]["price_sqm_mxn"], 1),
+        "delta_12m_pct": delta,
+        "fuente": fuente,
     }
 
 
@@ -493,8 +508,6 @@ async def ie_project_breakdown(project_id: str, request: Request):
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 
-    rng = random.Random(hash(project_id) % 2**32)
-
     # Pull real scores if available
     project_scores = {}
     colonia_scores = {}
@@ -502,6 +515,16 @@ async def ie_project_breakdown(project_id: str, request: Request):
         project_scores[s["code"]] = s
     async for s in db.ie_scores.find({"zone_id": dev["colonia_id"], "is_stub": False}, {"_id": 0}):
         colonia_scores[s["code"]] = s
+
+    # Ancla DETERMINISTA para los sub-scores que aún no tienen dato (antes era random.randint).
+    # Se basa en dato REAL de la zona/proyecto: absorción real + señales reales de la colonia.
+    from data_developments import inventory_stats
+    _inv = inventory_stats(dev)
+    _colrec = await db.colonias.find_one(
+        {"id": dev.get("colonia_id")}, {"_id": 0, "precio_score": 1, "vsuelo_score": 1}) or {}
+    _anchor_parts = [v for v in (_inv["absorption_pct"], _colrec.get("precio_score"),
+                                 _colrec.get("vsuelo_score")) if v is not None]
+    anchor = round(sum(_anchor_parts) / len(_anchor_parts), 1) if _anchor_parts else 50.0
 
     # Build 12 scores grouped by category
     score_names = {
@@ -530,16 +553,15 @@ async def ie_project_breakdown(project_id: str, request: Request):
                 value = float(proj["value"])
                 is_real = True
             else:
-                # Honest synthetic: anchored to project fundamentals
-                seed_base = 55 + rng.randint(-12, 28)
-                value = max(0, min(100, seed_base))
+                # Sin dato real de este sub-score → ancla determinista de la zona (NO random).
+                value = anchor
                 is_real = False
 
             benchmark = None
             if colo and colo.get("value") is not None:
                 benchmark = float(colo["value"])
             else:
-                benchmark = max(0, min(100, value + rng.randint(-15, 15)))
+                benchmark = value  # sin benchmark real → neutro (antes era random)
 
             delta = round(value - benchmark, 1)
             tier = "excellent" if value >= 75 else "good" if value >= 60 else "fair" if value >= 40 else "poor"
@@ -1002,22 +1024,21 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
             "score_avg": {"fundamentals": None, "market": None, "risk": None, "sentiment": None, "overall": None},
         }
 
-    # Helper: compute mock score per (project, category) using same deterministic RNG as breakdown
-    def _peer_cat_scores(peer_id: str) -> Dict[str, float]:
-        peer_rng = random.Random(hash(peer_id) % 2**32)
-        cats: Dict[str, float] = {}
-        all_vals: List[float] = []
-        for cat_name, codes in SCORE_CATEGORIES.items():
-            vals = []
-            for _code in codes:
-                base = 55 + peer_rng.randint(-12, 28)
-                vals.append(max(0, min(100, base)))
-            cats[cat_name] = round(sum(vals) / len(vals), 1) if vals else 0
-            all_vals.extend(vals)
-        cats["overall"] = round(sum(all_vals) / len(all_vals), 1) if all_vals else 0
+    # Benchmark de pares anclado a DATO REAL (antes era random): absorción real del par +
+    # señales reales de la colonia (compartida por todos los pares). Determinista, sin invención.
+    from data_developments import inventory_stats
+    _colrec = await db.colonias.find_one(
+        {"id": dev.get("colonia_id")}, {"_id": 0, "precio_score": 1, "vsuelo_score": 1}) or {}
+    _colparts = [v for v in (_colrec.get("precio_score"), _colrec.get("vsuelo_score")) if v is not None]
+
+    def _peer_cat_scores(peer: dict) -> Dict[str, float]:
+        parts = [inventory_stats(peer)["absorption_pct"]] + _colparts
+        anchor = round(sum(parts) / len(parts), 1) if parts else 50.0
+        cats = {cat: anchor for cat in SCORE_CATEGORIES}
+        cats["overall"] = anchor
         return cats
 
-    peer_cats = [_peer_cat_scores(p["id"]) for p in peers]
+    peer_cats = [_peer_cat_scores(p) for p in peers]
     n = len(peer_cats)
     score_avg = {
         k: round(sum(p[k] for p in peer_cats) / n, 1)

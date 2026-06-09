@@ -59,8 +59,11 @@ Segundo catálogo: `feature_flags_engine.py` mapea features dev a planes/precios
 ═══════════════════════════════════════════════════════════════════
 ## C · PANTALLAS CON DATOS FALSOS TENIENDO EL MOTOR REAL (🔴 calidad)
 ═══════════════════════════════════════════════════════════════════
-1. **Demanda/Pronóstico** muestra al dev un forecast fabricado con `random.Random(1729)` (`dev_batch2.py:199`) — mientras `forecast_engine.py` (ARIMA real, CI95, 6/12/24m) ya existe y alimenta las páginas públicas. **El dev ve números inventados con el motor real a un cable de distancia.**
-2. **Predicción de precio por unidad** (`dev_batch11.py:566`) usa una llamada a Claude Haiku (texto libre + fallback heurístico) en vez de los motores calibrados `avm_public_engine`+`fsd_engine`+`avm_explain_engine` (valuación hedónica + intervalo + "por qué este precio").
+1. ✅ RESUELTO **Demanda/Pronóstico** — ya usa el forecast real (comentarios "antes era random→REAL" en dev_batch2 absorción/forecast).
+2. ✅ RESUELTO **Precio por unidad** — el front usa `/units/{dev}/{unit}/avm` (avm_public_engine + FSD + explain + persist), no el Haiku. (`/ai-prediction` Haiku queda solo para prob. de cierre cualitativa.)
+3. ✅ RESUELTO **Competidores** (2026-06-08): absorción/disponibilidad `random.randint`→ inventario REAL (`inventory_stats`) · tendencia de precio `random.uniform`→ trayectoria con la plusvalía SHF REAL de la alcaldía · recortes de prensa inventados→ boletines reales (`market_bulletins`) o vacío honesto.
+4. ✅ RESUELTO **IE breakdown + peer benchmark** (`/ie/projects/*/breakdown` + `/colonia-benchmark`): el `55 + random.randint(-12,28)`→ ancla DETERMINISTA de dato real (absorción real + señales reales de la colonia), marcada `is_stub`. `import random` eliminado de developer.py y dev_batch2.py.
+   ⏳ PENDIENTE (chunk futuro): el IE breakdown sigue en escala 0-100 con tiers → convertir a banda honesta ("Muy Baja"…"Muy Alta", sin "/100") reusando `metric_normalizer`.
 
 ═══════════════════════════════════════════════════════════════════
 ## D · MOTORES DE INTELIGENCIA SIN PANTALLA PARA EL DEV (10 · priorizados)
