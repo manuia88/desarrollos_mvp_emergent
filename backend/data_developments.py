@@ -649,15 +649,60 @@ DEVELOPMENTS_BY_ID = {d["id"]: d for d in DEVELOPMENTS}
 ALL_UNITS = [u for d in DEVELOPMENTS for u in d["units"]]
 
 
+# ── Vocabulario CANÓNICO de estatus (un solo set para dev + comprador + superadmin) ──
+# Antes divergían: el dev contaba solo "vendido"; el cubo del comprador contaba vendido/sold/
+# cerrado/closed. Con datos reales eso daba absorciones distintas del MISMO proyecto.
+SOLD_STATUSES = ("vendido", "sold", "cerrado", "closed")
+RESERVED_STATUSES = ("reservado", "reserved", "apartado")
+AVAILABLE_STATUSES = ("disponible", "available")
+
+
+def _unit_price_val(u: dict):
+    p = u.get("price") or u.get("price_mxn")
+    try:
+        return float(p) if p else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _unit_m2(u: dict):
+    return (u.get("m2_privative") or u.get("m2_total") or u.get("size_m2")
+            or u.get("area_total") or u.get("area"))
+
+
+def units_price_m2(units: list):
+    """$/m² CANÓNICO de una lista de unidades: promedio de (precio/m²) por unidad. Fuente ÚNICA
+    para los 4 portales (antes había 3 fórmulas distintas → cifras que no cuadraban)."""
+    vals = []
+    for u in (units or []):
+        p, m2 = _unit_price_val(u), _unit_m2(u)
+        if p and m2 and m2 > 0:
+            vals.append(p / m2)
+    return round(sum(vals) / len(vals)) if vals else None
+
+
+def dev_price_m2(dev: dict):
+    """$/m² CANÓNICO de un desarrollo (promedio real por unidad). Si no hay unidades con dato,
+    cae al precio DE ENTRADA (price_from / m² mínimo)."""
+    pm2 = units_price_m2(dev.get("units") or [])
+    if pm2:
+        return pm2
+    pf, mr = dev.get("price_from"), (dev.get("m2_range") or [])
+    if pf and mr and mr[0]:
+        return round(pf / mr[0])
+    return None
+
+
 def inventory_stats(dev: dict) -> dict:
     """Estadística REAL de inventario de un desarrollo (antes los competidores se fabricaban con
-    random). Prefiere la lista de unidades; cae a los agregados. Fuente única reusable."""
+    random). Prefiere la lista de unidades; cae a los agregados. Fuente única reusable.
+    Usa el vocabulario CANÓNICO de estatus → la absorción cuadra con la del cubo del comprador."""
     units = dev.get("units") or []
     if units:
         total = len(units)
-        sold = sum(1 for u in units if u.get("status") == "vendido")
-        reserved = sum(1 for u in units if u.get("status") in ("reservado", "apartado"))
-        available = sum(1 for u in units if u.get("status") == "disponible")
+        sold = sum(1 for u in units if (u.get("status") or "").lower() in SOLD_STATUSES)
+        reserved = sum(1 for u in units if (u.get("status") or "").lower() in RESERVED_STATUSES)
+        available = sum(1 for u in units if (u.get("status") or "").lower() in AVAILABLE_STATUSES)
     else:
         total = int(dev.get("units_total") or 0)
         sold = int(dev.get("units_sold") or 0)

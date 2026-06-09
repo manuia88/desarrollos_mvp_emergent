@@ -1045,8 +1045,9 @@ async def generate_report(request: Request, month: Optional[str] = None):
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
     my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
 
+    from data_developments import SOLD_STATUSES
     total_units = len(my_units)
-    sold = sum(1 for u in my_units if u["status"] == "vendido")
+    sold = sum(1 for u in my_units if (u.get("status") or "").lower() in SOLD_STATUSES)
     absorbed = round(100 * sold / total_units, 1) if total_units else 0
     avg_price = int(sum(u["price"] for u in my_units) / total_units) if total_units else 0
 
@@ -1282,10 +1283,12 @@ async def competitor_radar(request: Request, dev_id: Optional[str] = None, radiu
     if not my_devs:
         return {"my_project": None, "competitors": [], "alerts": []}
 
+    from data_developments import dev_price_m2
     mine = my_devs[0] if dev_id else my_devs[0]
     my_lat, my_lon = mine["center"]
     my_m2 = (mine["m2_range"][0] + mine["m2_range"][1]) / 2
-    my_price_sqm = mine["price_from"] / mine["m2_range"][0]
+    # $/m² CANÓNICO del proyecto (mismo que ve el comprador) · cae al precio de entrada si no hay unidades.
+    my_price_sqm = dev_price_m2(mine) or (mine["price_from"] / mine["m2_range"][0])
 
     # Find competitor developments in same/adjacent colonias (approximation of radius filter)
     competitors_raw = [d for d in DEVELOPMENTS if d["id"] != mine["id"] and d["alcaldia"] == mine["alcaldia"]][:8]
@@ -1296,7 +1299,7 @@ async def competitor_radar(request: Request, dev_id: Optional[str] = None, radiu
         # Rough distance in km (haversine approximation)
         dist_km = ((my_lat - c_lat) ** 2 + (my_lon - c_lon) ** 2) ** 0.5 * 111
         if dist_km > radius_km * 3: continue  # wider tolerance for mock
-        c_price_sqm = c["price_from"] / c["m2_range"][0]
+        c_price_sqm = dev_price_m2(c) or (c["price_from"] / c["m2_range"][0])
         delta = round(100 * (c_price_sqm - my_price_sqm) / my_price_sqm, 1)
         # Absorción REAL del competidor (inventario vendido/total · antes era random).
         from data_developments import inventory_stats

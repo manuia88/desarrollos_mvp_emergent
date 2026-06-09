@@ -1,5 +1,6 @@
 # Scorecard QA del Portal Dev — Ola 1: Áreas del Usuario
 **2026-06-08 · 5 auditores en paralelo (verificado contra código actual).**
+**2026-06-09 · LAS 5 ÁREAS RESUELTAS (B·C·A·D·F ✅). Ola 1 cerrada.**
 
 ## Resumen (semáforo por área)
 
@@ -9,7 +10,7 @@
 | B · Honestidad de datos | ✅ RESUELTO (2026-06-09) | Las 3 fabricaciones quitadas y conectadas a su dato real (ver abajo) |
 | C · Estados de pantalla | ✅ RESUELTO (2026-06-09) | Las 4 pantallas 🔴 ahora muestran error claro + "Reintentar" (reusa `ErrorState`, reporta a observabilidad). Quedan 2 🟡 menores (error disfrazado de vacío) |
 | D · Móvil | ✅ RESUELTO (2026-06-09) | Toda tabla con scroll horizontal + minWidth · modales/drawers con `min(Npx,100vw)` · grids fijos → auto-fit. Patrón estandarizado |
-| F · Coherencia entre portales | 🟡 Ámbar | La ZONA ya está unificada; el $/m² de un DESARROLLO tiene 3 fórmulas conviviendo (dev y comprador pueden ver cifras distintas) |
+| F · Coherencia entre portales | ✅ RESUELTO (2026-06-09) | Helper canónico único (`dev_price_m2`/`units_price_m2` + `SOLD_STATUSES`) usado por dev, comprador y superadmin → mismo $/m² y misma absorción del mismo proyecto en todos lados. Verificado: cuadran |
 
 ---
 

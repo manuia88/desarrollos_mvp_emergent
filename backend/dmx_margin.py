@@ -83,13 +83,7 @@ async def compute_margins(projects: List[Dict[str, Any]]) -> Dict[str, Dict[str,
 
 
 def project_price_m2(units_list: List[Dict[str, Any]]) -> Optional[float]:
-    """Precio/m² promedio del proyecto desde sus unidades (price / m2_privative)."""
-    vals = []
-    for u in units_list:
-        price = u.get("price")
-        m2 = u.get("m2_privative") or u.get("m2_total")
-        if price and m2 and m2 > 0:
-            vals.append(price / m2)
-    if not vals:
-        return None
-    return sum(vals) / len(vals)
+    """Precio/m² promedio del proyecto. Delega al helper CANÓNICO (fuente única para los 4
+    portales · antes cada lado tenía su propia fórmula y las cifras no cuadraban)."""
+    from data_developments import units_price_m2
+    return units_price_m2(units_list)

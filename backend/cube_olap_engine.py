@@ -167,8 +167,9 @@ def _aggregate_units(units: List[Dict[str, Any]]) -> Dict[str, Any]:
     prices = [p for p in prices if p and p > 0]
     avg_price = round(sum(prices) / len(prices), 2) if prices else None
     m2_vals = [(u.get("m2_privative") or u.get("size_m2"), _unit_price(u)) for u in units]
-    ppm2_vals = [(p / m2) for m2, p in m2_vals if m2 and p and m2 > 0]
-    avg_ppm2 = round(sum(ppm2_vals) / len(ppm2_vals), 2) if ppm2_vals else None
+    # $/m² CANÓNICO (mismo helper que el dev/superadmin → cifras que cuadran entre portales).
+    from data_developments import units_price_m2
+    avg_ppm2 = units_price_m2(units)
     denom = n_sold + n_available + n_reserved
     conv = round((n_sold / denom) * 100, 2) if denom > 0 else None
     # Medidas ricas (Fase 1): absorción, inventario por cobrar, m² promedio
