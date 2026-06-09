@@ -22,6 +22,12 @@ from typing import Any, Dict, List, Optional
 
 _log = logging.getLogger("dmx.audit_immutable")
 
+# C3 Privacidad · entidades cuyo before/after se redacta (PII) antes de encadenar.
+_PII_ENTITY_TYPES = {
+    "lead", "contact", "advisor", "lead_capture", "conversation",
+    "asesor_contact", "asesor_contacto", "buyer", "client",
+}
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,6 +82,17 @@ async def log(
 
     actor_user_id = actor.get("user_id", "system")
     actor_role = actor.get("role", "system")
+
+    # C3 Privacidad · el log inmutable NO se puede borrar; por eso jamás debe
+    # guardar PII cruda. Para entidades con datos personales, redactamos
+    # email/teléfono de before/after antes de encadenar el checksum.
+    if entity_type in _PII_ENTITY_TYPES:
+        try:
+            from cerebro.memory import redact_pii
+            before = redact_pii(before) if before is not None else None
+            after = redact_pii(after) if after is not None else None
+        except Exception:
+            pass
 
     audit_id = _uid()
     ts = _now()

@@ -36,6 +36,20 @@ router = APIRouter(prefix="/api/public/landing", tags=["public-landings"])
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def _landing_consent(consents, request):
+    """Bloque de consentimiento LFPDPPP (fail-soft) para el lead de landing."""
+    try:
+        from compliance_consent import build_consent_record
+        return build_consent_record(
+            consents=consents if isinstance(consents, dict) else None,
+            request=request,
+            purpose="landing_inventory_alert",
+            channel="landing_web",
+        )
+    except Exception:
+        return {"privacy_notice_shown": True, "privacy_consent_type": "implied_on_submit"}
+
+
 # ─── Colonia landing ──────────────────────────────────────────────────────────
 @router.get("/colonia/{slug}")
 async def get_colonia_landing(slug: str, request: Request) -> Dict[str, Any]:
@@ -194,6 +208,7 @@ class LandingLeadIn(BaseModel):
     zone_interest: str = Field(..., description="zone-{slug} | alcaldia-{slug} | intent-{slug}")
     notes: Optional[str] = ""
     source_url: Optional[str] = ""
+    consents: Optional[Dict[str, Any]] = None  # C3 Privacidad · {privacy_policy?, marketing?}
 
 
 @router.post("/lead", status_code=201)
@@ -226,6 +241,8 @@ async def submit_landing_lead(body: LandingLeadIn, request: Request) -> Dict[str
         "ip_hash": _hash_ip(request),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "pending_inventory",
+        # C3 Privacidad · registro de consentimiento LFPDPPP
+        "consent": _landing_consent(body.consents, request),
         **utm_fields,
     }
     try:

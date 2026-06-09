@@ -80,6 +80,7 @@ class CaptureBody(BaseModel):
     behavioral_score: Optional[int] = Field(default=0, ge=0, le=100)
     utm: Optional[Dict[str, Any]] = None
     interes: Optional[Dict[str, Any]] = None   # B2 upgrade · plan de pago que el comprador eligió en el cotizador
+    consents: Optional[Dict[str, Any]] = None  # C3 Privacidad · {privacy_policy?: bool, marketing?: bool}
 
     @validator("whatsapp")
     def _wa_format(cls, v):
@@ -181,8 +182,25 @@ async def get_pdf(file_id: str, request: Request):
         raise HTTPException(status_code=503, detail="pdf_lookup_failed")
     if not doc:
         raise HTTPException(status_code=404, detail="pdf_not_found")
+    # C3 Privacidad · caducidad: un PDF vencido ya no se sirve.
+    exp = doc.get("expires_at")
+    if exp is not None:
+        try:
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
+            if getattr(exp, "tzinfo", None) is None and hasattr(exp, "replace"):
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp < now:
+                raise HTTPException(status_code=410, detail="pdf_expired")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
     try:
-        pdf_bytes = base64.b64decode(doc.get("bytes_b64") or "")
+        raw = base64.b64decode(doc.get("bytes_b64") or "")
+        # C3 Privacidad · los bytes se guardan cifrados en reposo; se descifran al servir.
+        from pii_crypto import try_decrypt_bytes
+        pdf_bytes = try_decrypt_bytes(raw, was_encrypted=bool(doc.get("bytes_encrypted")))
     except Exception:
         raise HTTPException(status_code=503, detail="pdf_decode_failed")
     return Response(

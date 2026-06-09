@@ -55,6 +55,7 @@ export default function LeadCaptureModal({
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState('');
   const [success, setSuccess] = useState(null);
+  const [marketingOptIn, setMarketingOptIn] = useState(false); // C3 Privacidad · opt-in expreso (opcional)
 
   // Listener evento global
   useEffect(() => {
@@ -111,6 +112,9 @@ export default function LeadCaptureModal({
         visitor_session_id: sessionId,
         behavioral_score: behavioralScore,
         interes: intent || undefined,
+        // C3 Privacidad · el aviso se muestra junto al botón (consentimiento informado).
+        // privacy_policy: tácito al enviar · marketing: opt-in expreso (casilla).
+        consents: { privacy_policy: true, marketing: marketingOptIn },
       });
       setSuccess(r || {});
       setStep('confirmation');
@@ -207,6 +211,31 @@ export default function LeadCaptureModal({
                   color: CREAM, fontSize: 12,
                 }}>{err}</div>
               )}
+
+              {/* C3 Privacidad · opt-in de marketing (opcional) + aviso informado */}
+              <label data-testid="lc-marketing-optin" style={{
+                display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer',
+                fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: MUTED, lineHeight: 1.5,
+              }}>
+                <input
+                  type="checkbox"
+                  checked={marketingOptIn}
+                  onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: INDIGO, width: 15, height: 15, flexShrink: 0 }}
+                />
+                <span>Quiero recibir novedades y oportunidades por WhatsApp o correo (opcional).</span>
+              </label>
+              <p style={{
+                margin: 0, fontFamily: 'DM Sans, sans-serif', fontSize: 11.5,
+                color: MUTED, lineHeight: 1.55,
+              }}>
+                Al continuar, tus datos se usan solo para que tu asesor te contacte sobre esta
+                propiedad. Consulta el{' '}
+                <a href="/comprador/privacidad" target="_blank" rel="noopener noreferrer"
+                   style={{ color: CREAM, textDecoration: 'underline' }}>Aviso de Privacidad</a>.
+                Puedes pedir tus datos o su eliminación cuando quieras.
+              </p>
+
               <button
                 type="submit"
                 data-testid="lc-submit"

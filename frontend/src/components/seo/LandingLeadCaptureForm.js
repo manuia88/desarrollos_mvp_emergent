@@ -40,6 +40,8 @@ export default function LandingLeadCaptureForm({
           zone_interest: zoneInterest,
           notes: notes.trim().slice(0, 500),
           source_url: sourceUrl || (typeof window !== 'undefined' ? window.location.pathname : ''),
+          // C3 Privacidad · el aviso se muestra junto al botón (consentimiento informado)
+          consents: { privacy_policy: true, marketing: true },
         }),
       });
       if (!res.ok) {
@@ -170,6 +172,17 @@ export default function LandingLeadCaptureForm({
         >
           {status === 'loading' ? 'Registrando…' : 'Avísame cuando haya inventario'}
         </button>
+
+        {/* C3 Privacidad · aviso informado */}
+        <p style={{
+          margin: '2px 0 0', fontFamily: 'DM Sans', fontSize: 11,
+          color: 'var(--cream-2)', lineHeight: 1.5,
+        }}>
+          Usamos tu correo solo para avisarte de inventario en esta zona. Consulta el{' '}
+          <a href="/comprador/privacidad" target="_blank" rel="noopener noreferrer"
+             style={{ color: 'var(--cream)', textDecoration: 'underline' }}>Aviso de Privacidad</a>.
+          Cancela cuando quieras.
+        </p>
       </div>
     </form>
   );

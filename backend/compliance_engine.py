@@ -189,6 +189,98 @@ _PII_COLLECTIONS: List[tuple] = [
 _ANON_PLACEHOLDER = "[eliminado_dsr]"
 
 
+# ─── DSR · colecciones que NO se llavean por email (van por lead_id/teléfono) ──
+# El borrado por email no las alcanza. Resolvemos los identificadores del titular
+# (lead_ids + teléfonos) desde sus leads/contactos y limpiamos estas colecciones.
+# Cada una deja EVIDENCIA con su conteo → la cobertura es honesta (no silenciosa).
+
+
+async def _resolve_subject_identifiers(db, subject_email: str) -> Dict[str, Any]:
+    """Desde el email del titular, junta sus lead_ids y teléfonos para alcanzar
+    las colecciones llaveadas por esos identificadores. FAIL-OPEN."""
+    lead_ids: set = set()
+    phones: set = set()
+    # Colecciones con email + posibles id/teléfono del titular.
+    sources = [
+        ("leads", ("lead_id", "id"), ("phone", "whatsapp")),
+        ("asesor_contacts", ("id", "lead_id", "contacto_id"), ("phone", "whatsapp", "telefono")),
+        ("contacts", ("id", "lead_id"), ("phone", "whatsapp")),
+    ]
+    for coll, id_fields, phone_fields in sources:
+        try:
+            cursor = db[coll].find({"email": subject_email}, {"_id": 0})
+            async for doc in cursor:
+                for f in id_fields:
+                    if doc.get(f):
+                        lead_ids.add(doc[f])
+                for f in phone_fields:
+                    if doc.get(f):
+                        phones.add(str(doc[f]))
+        except Exception as exc:
+            log.warning("[compliance] resolve identifiers %s: %s", coll, exc)
+    return {"lead_ids": list(lead_ids), "phones": list(phones)}
+
+
+async def _clear_identifier_collections(
+    db, dsr_id: str, lead_ids: List[str], phones: List[str]
+) -> Dict[str, Any]:
+    """Limpia/anonimiza colecciones llaveadas por lead_id o teléfono. Devuelve
+    evidencia por colección. FAIL-OPEN por colección."""
+    ev: Dict[str, Any] = {}
+    stamp = {"pii_cleared_dsr": dsr_id, "pii_cleared_at": _iso()}
+    # (colección, lista de filtros $or, set de campos a limpiar, borrar_duro)
+    specs = [
+        # captura marketplace: por lead_id o teléfono(whatsapp)
+        ("lead_captures",
+         [{"lead_id": {"$in": lead_ids}}, {"whatsapp": {"$in": phones}}],
+         {"name": _ANON_PLACEHOLDER, "whatsapp": None, "whatsapp_link": None}, False),
+        # PDF personalizado: borrado duro (ya no tiene valor sin el titular)
+        ("lead_capture_pdfs",
+         [{"lead_id": {"$in": lead_ids}}], None, True),
+        # mensajes de WhatsApp: por lead_id o por número (from/to)
+        ("whatsapp_messages",
+         [{"lead_id": {"$in": lead_ids}}, {"from_number": {"$in": phones}}, {"to_number": {"$in": phones}}],
+         {"from_number": None, "to_number": None, "body_text": _ANON_PLACEHOLDER}, False),
+        # conversación: por lead_id (contenido puede traer PII)
+        ("conversation_messages",
+         [{"lead_id": {"$in": lead_ids}}], {"content": _ANON_PLACEHOLDER}, False),
+        # enriquecimiento + perfilamiento + score: por lead_id
+        ("lead_enrichment_cache",
+         [{"lead_id": {"$in": lead_ids}}], {"enriched_fields": {}}, False),
+        ("taste_profile",
+         [{"lead_id": {"$in": lead_ids}}], {"swipes": []}, False),
+        ("buyer_scores",
+         [{"lead_id": {"$in": lead_ids}}], {"lead_id": _ANON_PLACEHOLDER}, False),
+    ]
+    for coll, filters, scrub, hard_delete in specs:
+        # Quita filtros vacíos (si no hay lead_ids ni phones, no consultar de más).
+        active = []
+        for f in filters:
+            (_field, cond), = f.items()
+            vals = cond.get("$in") if isinstance(cond, dict) else None
+            if vals:  # lista no vacía
+                active.append(f)
+        if not active:
+            ev[coll] = {"action": "skipped", "reason": "sin_identificadores"}
+            continue
+        q = {"$or": active}
+        try:
+            count = await db[coll].count_documents(q)
+            if count == 0:
+                ev[coll] = {"action": "none", "count": 0}
+                continue
+            if hard_delete:
+                res = await db[coll].delete_many(q)
+                ev[coll] = {"action": "deleted", "count": res.deleted_count}
+            else:
+                res = await db[coll].update_many(q, {"$set": {**(scrub or {}), **stamp}})
+                ev[coll] = {"action": "anonymized", "count": res.modified_count}
+        except Exception as exc:
+            log.warning("[compliance] DSR identifier clear %s: %s", coll, exc)
+            ev[coll] = {"action": "error", "error": str(exc)}
+    return ev
+
+
 async def process_dsr_deletion(db, dsr_id: str) -> dict:
     """Execute PII deletion / anonymization for a DSR.
 
@@ -250,6 +342,20 @@ async def process_dsr_deletion(db, dsr_id: str) -> dict:
         except Exception as exc:
             log.warning("[compliance] process_dsr error on %s: %s", coll_name, exc)
             evidence[coll_name] = {"action": "error", "error": str(exc)}
+
+    # C3 Privacidad · segunda pasada: colecciones llaveadas por lead_id/teléfono
+    # (no por email). Cierra el ciclo del borrado para conversaciones, WhatsApp,
+    # PDFs, enriquecimiento, perfil de gusto y scores. Evidencia por colección.
+    try:
+        ids = await _resolve_subject_identifiers(db, subject_email)
+        id_ev = await _clear_identifier_collections(db, dsr_id, ids["lead_ids"], ids["phones"])
+        evidence["_by_identifier"] = {
+            "resolved": {"lead_ids": len(ids["lead_ids"]), "phones": len(ids["phones"])},
+            "collections": id_ev,
+        }
+    except Exception as exc:
+        log.warning("[compliance] DSR identifier pass failed: %s", exc)
+        evidence["_by_identifier"] = {"action": "error", "error": str(exc)}
 
     # Mark DSR completed
     await db[_DSR_COLL].update_one(

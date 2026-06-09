@@ -302,6 +302,13 @@ async def _lookup_ai_research_summary(
         f"Datos enriquecidos:\n{ctx_block}\n\n"
         "Genera el resumen profesional (2-3 oraciones)."
     )
+    # C3 Privacidad · minimización: NO mandamos email/teléfono crudos a un tercero
+    # (Anthropic). redact_pii limpia identificadores directos del prompt antes de salir.
+    try:
+        from cerebro.memory import redact_pii
+        user_prompt = redact_pii(user_prompt)
+    except Exception:
+        pass
 
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore

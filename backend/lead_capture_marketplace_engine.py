@@ -33,6 +33,7 @@ COLLECTION_LEADS = "lead_captures"
 COLLECTION_EVENTS = "lead_capture_events"
 COLLECTION_PDFS = "lead_capture_pdfs"
 EVENT_TTL_DAYS = 7
+PDF_TTL_DAYS = 30  # C3 Privacidad · el PDF personalizado caduca (no vive para siempre)
 
 DMX_FALLBACK_PHONE = "+525512345678"
 DMX_FALLBACK_NAME = "Equipo DesarrollosMX"
@@ -453,18 +454,26 @@ async def generate_personalized_pdf(
         log.warning(f"[lead_capture] PDF render failed: {e}")
         return None, None
 
-    # Persist
+    # Persist — C3 Privacidad: el file_id (uuid4, 122 bits) ya es la "llave"
+    # imposible de adivinar; además ciframos los bytes en reposo (un volcado de DB
+    # no expone el PDF personalizado), ponemos caducidad (no vive para siempre) y
+    # NO guardamos el nombre del lead en claro (ya vive en el lead).
     file_id = uuid.uuid4().hex
     if db is not None:
         try:
+            from pii_crypto import try_encrypt_bytes
+            enc_bytes, encrypted = try_encrypt_bytes(pdf_bytes)
+            expires_at = _now() + timedelta(days=PDF_TTL_DAYS)
             await db[COLLECTION_PDFS].insert_one({
                 "file_id": file_id,
                 "property_id": property_id,
-                "lead_name": (lead_data or {}).get("name"),
-                "bytes_b64": base64.b64encode(pdf_bytes).decode("ascii"),
+                "lead_id": (lead_data or {}).get("lead_id"),
+                "bytes_b64": base64.b64encode(enc_bytes).decode("ascii"),
+                "bytes_encrypted": encrypted,
                 "content_type": "application/pdf",
                 "size_bytes": len(pdf_bytes),
                 "created_at": _now(),
+                "expires_at": expires_at,
             })
         except Exception as e:  # noqa: BLE001
             log.warning(f"[lead_capture] PDF persist failed: {e}")
@@ -486,6 +495,20 @@ def _normalize_whatsapp_e164(raw: str) -> Optional[str]:
     if cleaned.startswith("+52"):
         return cleaned
     return f"+52{cleaned}"
+
+
+def _consent_record(consents, request):
+    """Bloque de consentimiento LFPDPPP (fail-soft: nunca rompe la captura)."""
+    try:
+        from compliance_consent import build_consent_record
+        return build_consent_record(
+            consents=consents if isinstance(consents, dict) else None,
+            request=request,
+            purpose="marketplace_lead_capture",
+            channel="marketplace_web",
+        )
+    except Exception:
+        return {"privacy_notice_shown": True, "privacy_consent_type": "implied_on_submit"}
 
 
 async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, Any]:
@@ -546,6 +569,8 @@ async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, An
         "utm": payload.get("utm") if isinstance(payload.get("utm"), dict) else None,
         # B2 upgrade · plan de pago elegido en el cotizador → el asesor sabe qué ofrecer (cierra el ciclo)
         "interes": payload.get("interes") if isinstance(payload.get("interes"), dict) else None,
+        # C3 Privacidad · registro de consentimiento (LFPDPPP) junto al lead
+        "consent": _consent_record(payload.get("consents"), request),
         "created_at": _now(),
         "status": "new",
     }
