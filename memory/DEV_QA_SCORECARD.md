@@ -15,7 +15,14 @@
 | Robustez (500s/except:pass) | ✅ | dev_batch3 export geo: `float()` con try/except (era 500) · 2 `except: pass` que ocultaban fallos (audit de unit-status + insert de cierre) → `log.warning` · resale_data ahora tiene logger. |
 | Rutas/contrato/crons | ✅ verde | 0 endpoints huérfanos · contrato front↔back sano · crons protegidos. (El único 🔴 era el arranque, ya resuelto.) |
 
-**Cola menor 🟡 (documentada, no rompe):** CAS en patch_unit_status + índice único en developer_unit_overrides · asesor lee inventario del seed en vez del overlay efectivo (#15) · fotos del dev no llegan al comprador (#16) · overlay solo en la ficha, no en los listados (#17) · rate-limit en el reporte Sonnet · Pydantic en ack_alert.
+**Cola menor — estado (2026-06-09):**
+- ✅ CAS en patch_unit_status (filtro por estado actual + 409) + **índice único** en developer_unit_overrides.unit_id (evita filas duplicadas en carrera). Verificado: A gana / B pierde.
+- ✅ Rate-limit en el reporte Sonnet (~1/min por usuario · el param `month` ya no fuerza repetir la IA).
+- ✅ Pydantic en `ack_alert` (validación + max_length).
+- 📦 **Cross-Portal v2 (3 items · pasada dedicada, NO deuda oculta — tocan ruta caliente/módulo asesor):**
+  - #15 asesor lee el seed crudo en 6 sitios en vez del `get_effective_dev` (overlay+overrides) → ve precio/unidades menos frescos que el comprador. Plan: helper `_effective_dev` + swap por sitio CON QA del asesor (no romper su board).
+  - #16 fotos del dev (`dev_assets`) no llegan al comprador. Plan: exponer SOLO los roles de foto/galería (no documentos internos) en `project_public_overlay` → riesgo de filtrar archivos privados si se hace a ciegas.
+  - #17 overlay rico (amenidades) solo en la ficha, no en los listados del marketplace. Plan: cachear/batch los overlays (no llamada por-item) para no frenar la lista (ruta caliente).
 
 **Baseline:** red-team de aislamiento 16/16 (sigue verde tras los nuevos candados).
 

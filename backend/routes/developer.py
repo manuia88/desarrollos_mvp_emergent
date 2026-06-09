@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 router = APIRouter(prefix="/api/desarrollador", tags=["desarrollador"])
@@ -855,15 +855,21 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
             if u.get("id") == payload.unit_id:
                 old_status = u.get("status")
                 break
-    await db.developer_unit_overrides.update_one(
-        {"unit_id": payload.unit_id},
-        {"$set": {
-            "unit_id": payload.unit_id, "dev_id": payload.dev_id,
-            "status": payload.status, "reason": payload.reason or "",
-            "updated_by": user.user_id, "updated_at": _now(),
-        }},
-        upsert=True,
-    )
+    _set_doc = {
+        "unit_id": payload.unit_id, "dev_id": payload.dev_id,
+        "status": payload.status, "reason": payload.reason or "",
+        "updated_by": user.user_id, "updated_at": _now(),
+    }
+    if prev:
+        # CAS: solo si el estado no cambió desde que lo leímos (evita doble-venta/sobre-escritura en carrera).
+        _r = await db.developer_unit_overrides.update_one(
+            {"unit_id": payload.unit_id, "status": prev.get("status")}, {"$set": _set_doc})
+        if _r.modified_count != 1:
+            raise HTTPException(409, "La unidad ya cambió de estado · recarga e intenta de nuevo")
+    else:
+        # Primer override (desde el seed) — protegido por el índice único en unit_id.
+        await db.developer_unit_overrides.update_one(
+            {"unit_id": payload.unit_id}, {"$set": _set_doc}, upsert=True)
     # Audit log
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
@@ -1057,6 +1063,22 @@ async def generate_report(request: Request, month: Optional[str] = None):
     cached = await db.developer_reports.find_one({"owner_id": user.user_id, "month": month_key}, {"_id": 0})
     if cached:
         return cached
+
+    # Rate-limit: el param `month` permite forzar cache-miss; tope a ~1 reporte/min por usuario
+    # para no disparar el costo de la IA. (No bloquea el cache hit de arriba.)
+    recent = await db.developer_reports.find_one(
+        {"owner_id": user.user_id}, {"_id": 0, "generated_at": 1}, sort=[("generated_at", -1)])
+    if recent and recent.get("generated_at"):
+        try:
+            _last = datetime.fromisoformat(recent["generated_at"])
+            if _last.tzinfo is None:
+                _last = _last.replace(tzinfo=timezone.utc)
+            if (datetime.now(timezone.utc) - _last).total_seconds() < 60:
+                raise HTTPException(429, "Espera un momento antes de generar otro reporte.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
 
     summary_text = None
     try:
@@ -1343,13 +1365,17 @@ async def competitor_radar(request: Request, dev_id: Optional[str] = None, radiu
     }
 
 
+class AlertAck(BaseModel):
+    competitor_id: Optional[str] = Field(None, max_length=120)
+
+
 @router.post("/competidores/alert-ack")
-async def ack_alert(request: Request, payload: dict):
+async def ack_alert(payload: AlertAck, request: Request):
     user = await require_dev_admin(request)
     db = get_db(request)
     await db.developer_competitor_alerts.insert_one({
         "id": _uid("ackalr"), "user_id": user.user_id,
-        "competitor_id": payload.get("competitor_id"),
+        "competitor_id": payload.competitor_id,
         "acked": True, "ts": _now(),
     })
     return {"ok": True}

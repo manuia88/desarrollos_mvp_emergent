@@ -599,5 +599,6 @@ async def get_project_summary(project_id: str, request: Request):
 
 
 async def ensure_batch10_indexes(db):
-    """No new collections needed for batch 10."""
-    pass
+    """Índice ÚNICO en developer_unit_overrides.unit_id → evita filas duplicadas del mismo override
+    bajo escrituras concurrentes (el upsert por unit_id no es atómico sin índice único)."""
+    await db.developer_unit_overrides.create_index("unit_id", unique=True, background=True)
