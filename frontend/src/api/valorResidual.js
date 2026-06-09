@@ -24,3 +24,10 @@ export const calcularResidual = (body) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
   });
+
+export const dueDiligence = (body) =>
+  j('/api/dev/valor-residual/due-diligence', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });

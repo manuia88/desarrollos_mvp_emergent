@@ -74,6 +74,27 @@ async def colonias(request: Request, q: Optional[str] = Query(None), city: str =
     return {"items": items, "total": len(items)}
 
 
+class DueDiligenceIn(BaseModel):
+    colonia_id: Optional[str] = None
+    superficie_m2: Optional[float] = Field(None, gt=0, le=1_000_000)
+    city: str = "CDMX"
+
+
+@router.post("/due-diligence")
+async def due_diligence(request: Request, body: DueDiligenceIn):
+    """F1.3 · Revisión completa del predio antes de comprar (zonificación + riesgos + legal +
+    factibilidades + Norma 3). Cada ítem con estado y origen del dato."""
+    await _auth(request)
+    from predio_due_diligence_engine import generar_due_diligence
+    try:
+        return await generar_due_diligence(
+            _db(request), colonia_id=body.colonia_id,
+            superficie_m2=body.superficie_m2, city=body.city)
+    except Exception as e:
+        log.exception("[valor-residual] due-diligence falló")
+        raise HTTPException(500, f"No se pudo generar: {e}")
+
+
 @router.post("/calcular")
 async def calcular(request: Request, body: CalculoIn):
     """Calcula la oferta máxima por el terreno (método residual) con el origen de cada dato."""

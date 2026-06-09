@@ -46,6 +46,7 @@ export default function DesarrolladorValorTerreno() {
   const [precioManual, setPrecioManual] = useState('');
   const [costoManual, setCostoManual] = useState('');
   const [res, setRes] = useState(null);
+  const [dd, setDd] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBreak, setShowBreak] = useState(false);
   const [err, setErr] = useState('');
@@ -68,7 +69,7 @@ export default function DesarrolladorValorTerreno() {
   };
 
   const calcular = useCallback(async () => {
-    setErr(''); setLoading(true); setRes(null);
+    setErr(''); setLoading(true); setRes(null); setDd(null);
     try {
       const body = {
         terreno_m2: Number(terreno),
@@ -78,8 +79,12 @@ export default function DesarrolladorValorTerreno() {
       if (margen !== '') body.margen_objetivo = Number(margen) / 100;
       if (precioManual !== '') body.precio_venta_pm2_manual = Number(precioManual);
       if (costoManual !== '') body.costo_obra_pm2_manual = Number(costoManual);
-      const d = await api.calcularResidual(body);
-      setRes(d);
+      // Cierra el ciclo: oferta máxima + qué revisar antes de comprar (en paralelo).
+      const [d, ddRes] = await Promise.all([
+        api.calcularResidual(body),
+        api.dueDiligence({ colonia_id: colonia?.id || null, superficie_m2: Number(terreno) }).catch(() => null),
+      ]);
+      setRes(d); setDd(ddRes);
     } catch (e) {
       setErr(e.message || 'No se pudo calcular');
     } finally {
@@ -272,6 +277,9 @@ export default function DesarrolladorValorTerreno() {
                   </div>
                 )}
               </Card>
+
+              {/* ── Due Diligence (F1.3) · cierra el ciclo: qué revisar antes de comprar ── */}
+              {dd && <DueDiligence dd={dd} />}
             </>
           )}
         </div>
@@ -292,6 +300,76 @@ function InsumoRow({ label, value, sub, origen }) {
         <OrigenTag o={origen} />
       </div>
     </div>
+  );
+}
+
+const ESTADO = {
+  ok:        { dot: '#22c55e', label: 'OK',         tone: 'ok' },
+  alerta:    { dot: '#f59e0b', label: 'Atención',   tone: 'warn' },
+  pendiente: { dot: '#94a3b8', label: 'Por revisar', tone: 'neutral' },
+  info:      { dot: '#6366f1', label: 'Info',       tone: 'brand' },
+};
+
+function DueDiligence({ dd }) {
+  const [open, setOpen] = useState(true);
+  const sem = SEMAFORO[dd.semaforo] || SEMAFORO.amarillo;
+  const c = dd.conteo || {};
+  return (
+    <Card style={{ padding: 18, marginTop: 14 }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%',
+        background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ChevronDown size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s', color: '#94a3b8' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Antes de comprar, revisa el predio</span>
+        </span>
+        <span style={{ display: 'flex', gap: 6 }}>
+          {c.alertas > 0 && <Badge tone="warn">{c.alertas} atención</Badge>}
+          <Badge tone="neutral">{c.pendientes} por revisar</Badge>
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, padding: '10px 12px',
+            borderRadius: 10, background: sem.bg, border: `1px solid ${sem.border}`, marginBottom: 14 }}>
+            {dd.resumen}
+          </div>
+
+          {dd.secciones.filter(s => (s.items || []).length > 0).map(s => (
+            <div key={s.clave} style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase',
+                letterSpacing: '0.05em', marginBottom: 8 }}>{s.titulo}</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {s.items.map(it => {
+                  const e = ESTADO[it.estado] || ESTADO.info;
+                  return (
+                    <div key={it.clave} style={{ display: 'flex', gap: 10, alignItems: 'flex-start',
+                      padding: '10px 12px', borderRadius: 10, background: 'rgba(15,23,42,0.4)',
+                      border: '1px solid rgba(148,163,184,0.12)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: e.dot,
+                        flexShrink: 0, marginTop: 6 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#e2e8f0' }}>{it.titulo}</span>
+                          <Badge tone={e.tone}>{e.label}</Badge>
+                        </div>
+                        {it.detalle && <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, lineHeight: 1.45 }}>{it.detalle}</div>}
+                        {it.accion && <div style={{ fontSize: 12.5, color: '#a5b4fc', marginTop: 4, lineHeight: 1.45 }}>→ {it.accion}</div>}
+                        {it.fuente && <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Fuente: {it.fuente}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <div style={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.5, marginTop: 4 }}>{dd.nota}</div>
+        </div>
+      )}
+    </Card>
   );
 }
 
