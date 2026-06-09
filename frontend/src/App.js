@@ -210,6 +210,7 @@ const InmobiliariaSignup             = lazy(() => import('./pages/auth/Inmobilia
 const DesarrolladorCRM               = lazy(() => import('./pages/developer/DesarrolladorCRM'));
 const DesarrolladorPricingLab        = lazy(() => import('./pages/developer/DesarrolladorPricingLab'));
 const DesarrolladorSiteSelection     = lazy(() => import('./pages/developer/DesarrolladorSiteSelection'));
+const DesarrolladorValorTerreno      = lazy(() => import('./pages/developer/DesarrolladorValorTerreno'));
 const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/DesarrolladorCashFlow'));
 // Phase 4 Batch 10 — Mis Proyectos + CRM Shell
 const MisProyectos                   = lazy(() => import('./pages/developer/MisProyectos'));
@@ -830,6 +831,7 @@ function AppRouter() {
       <Route path="/desarrollador/desarrollos/:slug/pricing-lab" element={<AdvisorRoute Page={DesarrolladorPricingLab} />} />
       <Route path="/desarrollador/desarrollos/:slug/cash-flow" element={<AdvisorRoute Page={DesarrolladorCashFlow} />} />
       <Route path="/desarrollador/site-selection" element={<AdvisorRoute Page={DesarrolladorSiteSelection} />} />
+      <Route path="/desarrollador/valor-terreno" element={<AdvisorRoute Page={DesarrolladorValorTerreno} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/cita/:token" element={<PublicCitaPage />} />
       <Route path="/reservar/:slug" element={<PublicBookingPage />} />

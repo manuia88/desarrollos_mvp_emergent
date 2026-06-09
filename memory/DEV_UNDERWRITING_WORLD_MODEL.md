@@ -167,5 +167,9 @@ El frontend **NO** es una cantidad absurda de elementos que confunde. Es **limpi
 ---
 
 ## 13. Secuencia de fases (gate por fase · cada índice se prende solo cuando su back-test mide error aceptable)
-**F1.0 (PRIMER chunk, prerrequisito de todo): poblar el SIG catastral de las ~1,800 colonias de CDMX** — sembrar colonias (centroide/polígono del SIGCDMX) + correr el sync completo de valor de suelo + arreglar y correr la ingesta de uso/densidad/niveles (hoy en 0) + mapear % área libre → COS/CUS. Sin esto, el Valor Residual no funciona fuera de las 16 colonias muestra.
-Luego: F1 Valor Residual → F2 Autopiloto de Memorándum → F3 Gemelo Digital + Predicción↔Realidad → F4 Modelo del Mundo (3 índices, shadow→validado) → F5 Utilidad de Datos e Infraestructura. Transversal: 4 portales (Cerebro) + UX/UI limpio + Doctrina de Datos en cada chunk.
+**F1.0 ✅ HECHO (prerrequisito): poblar el SIG catastral de CDMX** — 1,524 colonias deduplicadas; ~90% con COS/CUS oficial (SIG); ~91% con valor de suelo catastral. Endpoints superadmin: sync-zonificacion + dedupe.
+
+**F1.2 ✅ HECHO: Motor de Valor Residual del Terreno** — responde "¿cuánto máximo pago por este terreno?" método residual (Ingreso − Obra − Costos blandos − Utilidad exigida). Reutiliza colonias (CUS/precio/vsuelo), `comercial_value_model` (suelo→comercial) y `construction_cost_engine` (BANXICO/INEGI). Cada insumo trae ORIGEN (dato/benchmark/estimado/supuesto) + banda + avisos honestos (Doctrina). Backend `valor_residual_engine.py` + `routes/dev_valor_residual.py` (`/api/dev/valor-residual/{categorias,colonias,calcular}`). Frontend dev `/desarrollador/valor-terreno` (una pantalla: número grande + semáforo + desglose colapsable). Calibrado vs Puente Alvarado.
+
+Pendiente: F1.1 Doctrina explícita en UI → F1.3 Due Diligence del predio → F1.4 detector Norma 3 → F1.5 1-pantalla integrada → F1.6 calibración formal vs Puente Alvarado.
+Luego: F2 Autopiloto de Memorándum → F3 Gemelo Digital + Predicción↔Realidad → F4 Modelo del Mundo (3 índices, shadow→validado) → F5 Utilidad de Datos e Infraestructura. Transversal: 4 portales (Cerebro) + UX/UI limpio + Doctrina de Datos en cada chunk.

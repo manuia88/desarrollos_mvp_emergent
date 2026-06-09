@@ -625,6 +625,10 @@ app.include_router(superadmin_devmaster_router)
 from routes.dev_market import router as dev_market_router
 app.include_router(dev_market_router)
 
+# F1.2 · Motor de Valor Residual del Terreno ("¿cuánto pago por este terreno?")
+from routes.dev_valor_residual import router as dev_valor_residual_router
+app.include_router(dev_valor_residual_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)

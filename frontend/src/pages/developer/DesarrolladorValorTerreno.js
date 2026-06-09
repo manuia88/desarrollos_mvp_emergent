@@ -1,0 +1,309 @@
+/**
+ * DesarrolladorValorTerreno — F1.2 · Motor de Valor Residual del Terreno.
+ * Una sola pantalla: el dev elige colonia + m² + categoría → "Tu oferta máxima por este lote".
+ * Método residual (estándar mundial). Cada número trae su origen (Doctrina de Datos).
+ */
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import DeveloperLayout from '../../components/developer/DeveloperLayout';
+import { PageHeader, Card, Badge, fmtMXN, fmt0 } from '../../components/advisor/primitives';
+import { MapPin, AlertTriangle, ChevronDown, Search, Sparkle } from '../../components/icons';
+import * as api from '../../api/valorResidual';
+
+const SEMAFORO = {
+  verde:    { tone: 'ok',    bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.40)',  label: 'Margen sano' },
+  amarillo: { tone: 'neutral', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.45)', label: 'Margen ajustado' },
+  rojo:     { tone: 'bad',     bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.45)',  label: 'No cierra' },
+};
+
+const ORIGEN = {
+  dato:      { tone: 'ok',    label: 'Dato real' },
+  benchmark: { tone: 'ok',    label: 'Índice oficial' },
+  estimado:  { tone: 'neutral', label: 'Estimado' },
+  supuesto:  { tone: 'neutral', label: 'Supuesto' },
+};
+
+function OrigenTag({ o }) {
+  const cfg = ORIGEN[o?.origen] || ORIGEN.supuesto;
+  return <Badge tone={cfg.tone}>{cfg.label}</Badge>;
+}
+
+const lbl = { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, display: 'block' };
+const inp = {
+  width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.25)',
+  background: 'rgba(15,23,42,0.6)', color: '#e2e8f0', fontSize: 14, outline: 'none',
+};
+
+export default function DesarrolladorValorTerreno() {
+  const [categorias, setCategorias] = useState([]);
+  const [terreno, setTerreno] = useState(1000);
+  const [categoria, setCategoria] = useState('residencial');
+  const [colonia, setColonia] = useState(null);     // {id,name,alcaldia,cus,precio_pm2,vsuelo_pm2_catastral}
+  const [query, setQuery] = useState('');
+  const [opts, setOpts] = useState([]);
+  const [openList, setOpenList] = useState(false);
+  const [adv, setAdv] = useState(false);
+  const [margen, setMargen] = useState('');         // %
+  const [precioManual, setPrecioManual] = useState('');
+  const [costoManual, setCostoManual] = useState('');
+  const [res, setRes] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showBreak, setShowBreak] = useState(false);
+  const [err, setErr] = useState('');
+  const debounce = useRef(null);
+
+  useEffect(() => {
+    api.getCategorias().then(d => setCategorias(d.categorias || [])).catch(() => {});
+  }, []);
+
+  const search = useCallback((q) => {
+    setQuery(q); setOpenList(true);
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      api.buscarColonias(q).then(d => setOpts(d.items || [])).catch(() => setOpts([]));
+    }, 220);
+  }, []);
+
+  const pick = (c) => {
+    setColonia(c); setQuery(c.name); setOpenList(false);
+  };
+
+  const calcular = useCallback(async () => {
+    setErr(''); setLoading(true); setRes(null);
+    try {
+      const body = {
+        terreno_m2: Number(terreno),
+        categoria,
+        colonia_id: colonia?.id || null,
+      };
+      if (margen !== '') body.margen_objetivo = Number(margen) / 100;
+      if (precioManual !== '') body.precio_venta_pm2_manual = Number(precioManual);
+      if (costoManual !== '') body.costo_obra_pm2_manual = Number(costoManual);
+      const d = await api.calcularResidual(body);
+      setRes(d);
+    } catch (e) {
+      setErr(e.message || 'No se pudo calcular');
+    } finally {
+      setLoading(false);
+    }
+  }, [terreno, categoria, colonia, margen, precioManual, costoManual]);
+
+  const sem = res ? (SEMAFORO[res.respuesta?.semaforo] || SEMAFORO.amarillo) : null;
+
+  return (
+    <DeveloperLayout>
+      <PageHeader
+        eyebrow="Underwriting · Valor de Terreno"
+        title="¿Cuánto pago por este terreno?"
+        sub="Te decimos el máximo que puedes pagar sin perder tu utilidad — con lo que la norma te deja construir y el precio de venta de la zona."
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 420px) 1fr', gap: 18, alignItems: 'start' }}>
+        {/* ── ENTRADAS ── */}
+        <Card style={{ padding: 18 }}>
+          <div style={{ position: 'relative', marginBottom: 16 }}>
+            <label style={lbl}>Colonia / zona</label>
+            <div style={{ position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: 11, top: 12, color: '#64748b' }} />
+              <input
+                style={{ ...inp, paddingLeft: 34 }}
+                placeholder="Busca tu colonia…"
+                value={query}
+                onChange={e => search(e.target.value)}
+                onFocus={() => query && setOpenList(true)}
+              />
+            </div>
+            {openList && opts.length > 0 && (
+              <div style={{
+                position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 4,
+                background: '#0f172a', border: '1px solid rgba(148,163,184,0.25)', borderRadius: 10,
+                maxHeight: 260, overflowY: 'auto', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+              }}>
+                {opts.map(c => (
+                  <button key={c.id} onClick={() => pick(c)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
+                    padding: '9px 12px', background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: '#e2e8f0', textAlign: 'left', borderBottom: '1px solid rgba(148,163,184,0.08)',
+                  }}>
+                    <span><MapPin size={12} style={{ color: '#64748b', marginRight: 6 }} />
+                      {c.name} <span style={{ color: '#64748b', fontSize: 12 }}>· {c.alcaldia}</span></span>
+                    {(c.precio_pm2 || 0) > 0
+                      ? <span style={{ fontSize: 11, color: '#22c55e' }}>precio real</span>
+                      : <span style={{ fontSize: 11, color: '#64748b' }}>CUS {c.cus}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {colonia && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                <Badge tone="ok">CUS {colonia.cus}</Badge>
+                {(colonia.precio_pm2 || 0) > 0 && <Badge tone="ok">Venta {fmtMXN(colonia.precio_pm2)}/m²</Badge>}
+                {(colonia.vsuelo_pm2_catastral || 0) > 0 && <Badge tone="neutral">Suelo {fmtMXN(colonia.vsuelo_pm2_catastral)}/m²</Badge>}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={lbl}>Tamaño del terreno (m²)</label>
+            <input type="number" min="1" style={inp} value={terreno}
+              onChange={e => setTerreno(e.target.value)} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={lbl}>Tipo de producto</label>
+            <select style={inp} value={categoria} onChange={e => setCategoria(e.target.value)}>
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+
+          {/* Avanzado (colapsado por defecto · lo técnico, chico y abajo) */}
+          <button onClick={() => setAdv(v => !v)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none',
+            color: '#94a3b8', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0', marginBottom: adv ? 12 : 0,
+          }}>
+            <ChevronDown size={14} style={{ transform: adv ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
+            Ajustes finos (opcional)
+          </button>
+          {adv && (
+            <div style={{ display: 'grid', gap: 12, marginBottom: 4 }}>
+              <div>
+                <label style={lbl}>Utilidad que exiges (%)</label>
+                <input type="number" style={inp} placeholder="20" value={margen}
+                  onChange={e => setMargen(e.target.value)} />
+              </div>
+              <div>
+                <label style={lbl}>Precio de venta $/m² (si tienes tu dato)</label>
+                <input type="number" style={inp} placeholder="auto (zona)" value={precioManual}
+                  onChange={e => setPrecioManual(e.target.value)} />
+              </div>
+              <div>
+                <label style={lbl}>Costo de obra $/m² (si tienes tu dato)</label>
+                <input type="number" style={inp} placeholder="auto (índice)" value={costoManual}
+                  onChange={e => setCostoManual(e.target.value)} />
+              </div>
+            </div>
+          )}
+
+          <button onClick={calcular} disabled={loading || !terreno} style={{
+            width: '100%', marginTop: 16, padding: '12px', borderRadius: 12, border: 'none',
+            background: loading ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'default' : 'pointer',
+          }}>
+            {loading ? 'Calculando…' : 'Calcular oferta máxima'}
+          </button>
+          {err && <div style={{ color: '#f87171', fontSize: 13, marginTop: 10 }}>{err}</div>}
+        </Card>
+
+        {/* ── RESPUESTA ── */}
+        <div>
+          {!res && !loading && (
+            <Card style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+              <Sparkle size={28} style={{ color: '#6366f1', marginBottom: 12 }} />
+              <div style={{ fontSize: 15 }}>Elige una colonia y el tamaño del terreno, y te decimos
+                cuánto máximo te conviene pagar.</div>
+            </Card>
+          )}
+
+          {res && (
+            <>
+              {/* Número grande */}
+              <Card style={{ padding: 28, background: sem.bg, border: `1px solid ${sem.border}`, marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>Tu oferta máxima por este lote</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Badge tone={sem.tone}>{sem.label}</Badge>
+                    <Badge tone={res.confianza === 'alta' ? 'good' : res.confianza === 'media' ? 'neutral' : 'bad'}>
+                      Confianza {res.confianza}
+                    </Badge>
+                  </div>
+                </div>
+                <div style={{ fontSize: 42, fontWeight: 800, color: '#f1f5f9', marginTop: 6, lineHeight: 1.1 }}>
+                  {fmtMXN(res.respuesta.oferta_maxima_terreno)}
+                </div>
+                <div style={{ fontSize: 15, color: '#cbd5e1', marginTop: 4 }}>
+                  ≈ {fmtMXN(res.respuesta.oferta_pm2_terreno)} / m² de terreno
+                </div>
+                <div style={{ fontSize: 13.5, color: '#cbd5e1', marginTop: 12, lineHeight: 1.5 }}>{res.respuesta.lectura}</div>
+              </Card>
+
+              {/* Avisos honestos */}
+              {(res.avisos || []).map((a, i) => (
+                <Card key={i} style={{ padding: 12, marginBottom: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
+                  <div style={{ fontSize: 13, color: '#fcd34d', display: 'flex', gap: 8 }}>
+                    <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />{a}
+                  </div>
+                </Card>
+              ))}
+
+              {/* De dónde salen los números (los 3 insumos clave + su origen) */}
+              <Card style={{ padding: 16, marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>Con qué lo calculamos</div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <InsumoRow label="Cuánto deja construir (CUS)" value={`${res.supuestos.cus}×`}
+                    sub={`${fmt0(res.desglose.m2_construibles)} m² construibles`} origen={res.supuestos.cus_origen} />
+                  <InsumoRow label="Precio de venta de la zona" value={`${fmtMXN(res.supuestos.precio_venta_pm2)}/m²`}
+                    sub={res.supuestos.precio_origen?.fuente} origen={res.supuestos.precio_origen} />
+                  <InsumoRow label="Costo de obra" value={`${fmtMXN(res.supuestos.costo_obra_pm2)}/m²`}
+                    sub={res.supuestos.costo_origen?.fuente} origen={res.supuestos.costo_origen} />
+                </div>
+              </Card>
+
+              {/* Desglose completo (colapsado) */}
+              <Card style={{ padding: 16 }}>
+                <button onClick={() => setShowBreak(v => !v)} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none',
+                  color: '#e2e8f0', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, width: '100%',
+                }}>
+                  <ChevronDown size={15} style={{ transform: showBreak ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
+                  Ver el desglose completo
+                </button>
+                {showBreak && (
+                  <div style={{ marginTop: 14, display: 'grid', gap: 7 }}>
+                    <Row k="Ingreso por venta" v={res.desglose.ingreso_por_venta} strong plus />
+                    <Row k="− Costo de obra" v={-res.desglose.costo_obra} />
+                    <Row k="− Indirectos (licencias, proyecto, legal)" v={-res.desglose.indirectos} />
+                    <Row k="− Gerencia de desarrollo" v={-res.desglose.gerencia_desarrollo} />
+                    <Row k="− Imprevistos" v={-res.desglose.imprevistos} />
+                    <Row k="− Comisión de ventas" v={-res.desglose.comision_ventas} />
+                    <Row k="− Publicidad" v={-res.desglose.publicidad} />
+                    <Row k="− Tu utilidad requerida" v={-res.desglose.utilidad_requerida} />
+                    <div style={{ borderTop: '1px solid rgba(148,163,184,0.2)', margin: '4px 0' }} />
+                    <Row k="= Oferta máxima por el terreno" v={res.respuesta.oferta_maxima_terreno} strong />
+                    <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 8, lineHeight: 1.5 }}>{res.metodo}</div>
+                  </div>
+                )}
+              </Card>
+            </>
+          )}
+        </div>
+      </div>
+    </DeveloperLayout>
+  );
+}
+
+function InsumoRow({ label, value, sub, origen }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>{label}</div>
+        {sub && <div style={{ fontSize: 11.5, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{value}</span>
+        <OrigenTag o={origen} />
+      </div>
+    </div>
+  );
+}
+
+function Row({ k, v, strong, plus }) {
+  const neg = v < 0;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: strong ? 13.5 : 13, color: strong ? '#e2e8f0' : '#94a3b8', fontWeight: strong ? 700 : 500 }}>{k}</span>
+      <span style={{ fontSize: strong ? 14 : 13, fontWeight: strong ? 800 : 600,
+        color: strong ? '#f1f5f9' : neg ? '#fca5a5' : plus ? '#86efac' : '#cbd5e1', whiteSpace: 'nowrap' }}>
+        {neg ? '−' : ''}{fmtMXN(Math.abs(v))}
+      </span>
+    </div>
+  );
+}

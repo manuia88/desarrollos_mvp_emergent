@@ -50,6 +50,7 @@ const DEV_NAV = [
       { key: 'reportes',     to: '/desarrollador/reportes',          label: 'Reportes IA',    Icon: LineChart },
       { key: 'demanda',      to: '/desarrollador/demanda',           label: 'Demanda',        Icon: BarChart3 },
       { key: 'site',         to: '/desarrollador/site-selection',    label: 'Site Selection', Icon: MapPin },
+      { key: 'valor-terreno',to: '/desarrollador/valor-terreno',     label: 'Valor de Terreno', Icon: DollarSign },
       { key: 'pricing',      to: '/desarrollador/pricing',           label: 'Precios IA',     Icon: TrendingUp },
       { key: 'competidores', to: '/desarrollador/competidores',      label: 'Competidores',   Icon: Target },
     ],
