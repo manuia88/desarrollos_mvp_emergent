@@ -12,6 +12,7 @@ import SiteSelectionWizard from '../../components/developer/SiteSelectionWizard'
 import SiteSelectionMap from '../../components/developer/SiteSelectionMap';
 import RadarChart from '../../components/developer/RadarChart';
 import CompareTab from '../../components/developer/CompareTab';
+import { bandWord } from '../../lib/scoreWord';
 import ExpansionSimulatorModal from '../../components/developer/ExpansionSimulatorModal';
 import DemographicsSection from '../../components/developer/DemographicsSection';
 import { Z } from '../../styles/zIndex';
@@ -72,8 +73,8 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
         {/* Headline KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.32)', borderRadius: 10 }}>
-            <div className="eyebrow" style={{ marginBottom: 2 }}>FEASIBILITY</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{zone.feasibility_score}</div>
+            <div className="eyebrow" style={{ marginBottom: 2 }}>VIABILIDAD</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{bandWord(zone.feasibility_score)}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)', borderRadius: 10 }}>
             <div className="eyebrow" style={{ marginBottom: 2 }}>ROI 5y</div>
@@ -87,7 +88,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
 
         {/* Radar */}
         <Card style={{ marginBottom: 14, padding: 16 }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>SUB-SCORES</div>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>DETALLE POR FACTOR</div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <RadarChart data={sub} size={240} />
           </div>
@@ -97,7 +98,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
         <Card style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04) 60%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Sparkle size={13} color="#f9a8d4" />
-            <div className="eyebrow" style={{ color: 'var(--rose)' }}>NARRATIVE IA · CLAUDE HAIKU</div>
+            <div className="eyebrow" style={{ color: 'var(--rose)' }}>ANÁLISIS ESCRITO POR IA</div>
           </div>
           <p data-testid="site-zone-narrative" style={{ fontFamily: 'DM Sans', fontSize: 13.2, color: 'var(--cream)', lineHeight: 1.55, margin: 0 }}>
             {zone.narrative || '—'}
@@ -176,7 +177,7 @@ function StudiesTab({ studies, onOpen, onNew }) {
             Tu primer estudio en 4 pasos
           </div>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 480, margin: '6px auto 14px', lineHeight: 1.55 }}>
-            Define criterios y presupuesto. La IA evalúa zonas candidatas, calcula feasibility 0-100, ROI proyectado y narrative honesta con pros/cons.
+            Define tus criterios y presupuesto. La IA evalúa zonas candidatas, calcula qué tan viable es cada una, el retorno estimado y un resumen honesto con pros y contras.
           </p>
           <button data-testid="site-empty-cta" onClick={onNew} style={{
             padding: '9px 18px', borderRadius: 9999,
@@ -268,7 +269,7 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
           </div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)' }}>Motor IA en ejecución…</div>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 460, margin: '6px auto 0', lineHeight: 1.55 }}>
-            Filtrando 16 colonias, calculando feasibility, llamando Claude haiku para narrative + pros/cons. ETA ~30-90s.
+            Analizando 16 colonias y escribiendo el resumen con pros y contras. Tarda ~1 minuto.
           </p>
         </Card>
       )}
@@ -290,7 +291,7 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
                     <span style={{ color: 'var(--cream-3)', marginRight: 6, fontSize: 11 }}>#{z._rank}</span>
                     {z.colonia}
                   </div>
-                  <Badge tone={z.feasibility_score > 75 ? 'brand' : z.feasibility_score > 50 ? 'ok' : 'neutral'}>{z.feasibility_score}</Badge>
+                  <Badge tone={z.feasibility_score > 75 ? 'brand' : z.feasibility_score > 50 ? 'ok' : 'neutral'}>{bandWord(z.feasibility_score)}</Badge>
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 5 }}>
                   ROI 5y {z.estimated_roi_5y}% · {z.target_units_estimate} unidades · ${fmt0(z.target_price_range?.min || 0)}/m²
@@ -379,7 +380,7 @@ export default function DesarrolladorSiteSelection({ user, onLogout, embedded })
       <PageHeader
         eyebrow="4.22 · SITE SELECTION AI"
         title="Selección de zonas"
-        sub="Motor IA recomendación de colonias candidatas con feasibility 0-100, ROI proyectado y narrative Claude haiku para nuevos proyectos."
+        sub="La IA recomienda colonias para tu próximo proyecto: qué tan viable es cada una, el retorno estimado y un resumen con pros y contras."
       />
 
       {/* Tabs */}
@@ -397,7 +398,7 @@ export default function DesarrolladorSiteSelection({ user, onLogout, embedded })
       {tab === 'create' && (
         <Card style={{ padding: 28, textAlign: 'center' }}>
           <Target size={28} color="#f9a8d4" />
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginTop: 10 }}>Wizard 4 pasos</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginTop: 10 }}>Asistente en 4 pasos</div>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 480, margin: '6px auto 14px', lineHeight: 1.55 }}>
             Define el alcance del estudio, presupuesto y features deseadas/evitar. La IA hace el resto.
           </p>

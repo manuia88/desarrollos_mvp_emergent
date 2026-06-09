@@ -5,7 +5,7 @@
 
 | Área | Veredicto | En una línea |
 |---|---|---|
-| A · Lenguaje | 🟡 Ámbar | El grueso ya está en español claro, pero quedan "/100" de salud, una pantalla (Selección de Sitio) llena de jerga, y términos internos ("Superadmin/recompute") asomándose al dev |
+| A · Lenguaje | ✅ RESUELTO (2026-06-09) | "/100" → palabra (helper `scoreWord` reusable) · Selección de Sitio traducida · leak "Superadmin/recompute" tapado · eyebrows y nombres de modelo en español |
 | B · Honestidad de datos | ✅ RESUELTO (2026-06-09) | Las 3 fabricaciones quitadas y conectadas a su dato real (ver abajo) |
 | C · Estados de pantalla | ✅ RESUELTO (2026-06-09) | Las 4 pantallas 🔴 ahora muestran error claro + "Reintentar" (reusa `ErrorState`, reporta a observabilidad). Quedan 2 🟡 menores (error disfrazado de vacío) |
 | D · Móvil | 🟡 Ámbar | El chasis aguanta (menú colapsa), pero Inventario y 2 ventanas se salen de la pantalla en celular |
@@ -20,11 +20,12 @@ Competidores, IE, Demanda y Pricing ya estaban limpios. El QA destapó 3 más, a
 3. ✅ **Engagement por unidad** (`dev_batch11`): se quitó el stub con `hash(unit_id)`. Usa `unit_engagement` real; si no hay → ceros + `sin_datos` flag (ya no "ESTIMADO" con números aleatorios). Front muestra "Aún no hay visitas ni interacciones registradas". Se autollena con el pipeline de eventos.
 - 🟡 Pendientes menores (cola): sparkline de pipeline 90d con random (etiquetado demo) · GeoJSON con offset ±50m fabricado.
 
-## A · Lenguaje — 🟡
-- 🔴 `IeUnitScoreCard.js:156` expone "recompute / Superadmin / scores" al dev → "Estos datos se generan automáticamente; aún no están listos".
-- 🔴 "/100" de salud crudos: `ProyectoDetail.js:115,528` · `MisProyectos.js:206` · `InsightsIntel.js:85` · `InsightsComparables.js:167` · `RiskScoreBreakdown.js:81` · `ZoneScoreBreakdown.js:140` · `BattleCardScoreGauge.js:73` → nivel en palabra, sin "/100".
-- 🔴 Pantalla **Selección de Sitio** (`DesarrolladorSiteSelection.js` + `SiteSelectionWizard.js` + `CompareTab.js`): "feasibility / narrative / Claude Haiku / SUB-SCORES / Wizard / AI" → traducir todo.
-- 🟡 Eyebrows en inglés en Reportes/Demanda (FORECAST/HEATMAP/COHORT/TOP QUERIES) · nombre del modelo "Claude Haiku/Sonnet" visible → "IA".
+## A · Lenguaje — ✅ RESUELTO (2026-06-09 · helper reusable, no parche por spot)
+- ✅ Helper único `frontend/src/lib/scoreWord.js` (`scoreWord`/`riskWord`/`bandWord`/`tierLabel`) → fuente única, evita que el "/100" reaparezca.
+- ✅ Todos los "/100" de salud → palabra ("Va muy bien"…): `ProyectoDetail` (x2) · `MisProyectos` · `InsightsIntel` · `InsightsComparables` · `RiskScoreBreakdown` (riesgo) · `ZoneScoreBreakdown` (banda) · `BattleCardScoreGauge` (gauge sin "/100").
+- ✅ Leak `IeUnitScoreCard`: "recompute/Superadmin/scores" → "Esta calificación se genera automáticamente; aún no está lista".
+- ✅ **Selección de Sitio** (`DesarrolladorSiteSelection` + `SiteSelectionWizard` + `CompareTab` + mapas): feasibility→viabilidad (en banda) · narrative→análisis escrito por IA · Claude Haiku/Sonnet→IA · SUB-SCORES→detalle por factor · Wizard→Asistente · Demand Heatmap→Mapa de Demanda.
+- ✅ Eyebrows Reportes/Demanda (FORECAST/HEATMAP/COHORT/TOP QUERIES → Pronóstico/Mapa de calor/Grupos/Búsquedas) · `tier` crudo → palabra (Premium/Medio/Económico).
 
 ## C · Estados de pantalla — ✅ RESUELTO (2026-06-09 · patrón reusable, no parche por pantalla)
 Se reusó el componente compartido `ErrorState` (con botón "Reintentar") + `captureEvent` a

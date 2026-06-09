@@ -22,9 +22,9 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
-        eyebrow="D6 · DEMAND HEATMAP"
+        eyebrow="MAPA DE DEMANDA"
         title="Demanda de mercado"
-        sub="Búsquedas reales en DesarrollosMX, demanda no atendida y forecast 30/60/90 días con Claude Sonnet."
+        sub="Búsquedas reales en DesarrollosMX, demanda no atendida y pronóstico a 30/60/90 días con IA."
       />
 
       {/* B.2 · Demanda Viva honesta: dice si el dato es real o aún por confirmar */}
@@ -42,7 +42,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
       <Card data-testid="demand-heatmap-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>HEATMAP GEOGRÁFICO · LEADS + CITAS + BÚSQUEDAS</div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>MAPA DE CALOR · LEADS + CITAS + BÚSQUEDAS</div>
             <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: 0 }}>
               Intensidad de demanda por colonia (búsquedas + leads + citas). Click en el polígono para foco.
             </p>
@@ -110,16 +110,16 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 22 }}>
               <Card>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>FORECAST 30D</div>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>PRONÓSTICO 30 DÍAS</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)' }}>{fmt0(legacy.forecast.d30)}</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>búsquedas estimadas</div>
               </Card>
               <Card>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>FORECAST 60D</div>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>PRONÓSTICO 60 DÍAS</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)' }}>{fmt0(legacy.forecast.d60)}</div>
               </Card>
               <Card>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>FORECAST 90D</div>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>PRONÓSTICO 90 DÍAS</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)' }}>{fmt0(legacy.forecast.d90)}</div>
               </Card>
               <Card>
@@ -131,7 +131,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }} className="dem-grid">
               <Card>
-                <div className="eyebrow" style={{ marginBottom: 12 }}>HEATMAP POR COLONIA</div>
+                <div className="eyebrow" style={{ marginBottom: 12 }}>MAPA DE CALOR POR COLONIA</div>
                 {legacy.by_colonia.slice(0, 12).map(c => (
                   <div key={c.colonia_id} data-testid={`heat-${c.colonia_id}`} style={{
                     display: 'grid', gridTemplateColumns: '1fr 1fr 80px 60px',
@@ -158,7 +158,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
               </Card>
 
               <Card>
-                <div className="eyebrow" style={{ marginBottom: 12 }}>TOP QUERIES IA · 30D</div>
+                <div className="eyebrow" style={{ marginBottom: 12 }}>BÚSQUEDAS MÁS FRECUENTES · 30 DÍAS</div>
                 {legacy.top_queries.map((q, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>"{q.q}"</div>

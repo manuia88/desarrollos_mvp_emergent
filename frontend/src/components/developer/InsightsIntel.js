@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { getInsightsIntel } from '../../api/developer';
 import { fmtMXN, fmtFull, grid, Block, Stat, BigCard } from './cockpitUI';
+import { scoreWord } from '../../lib/scoreWord';
 import PriceHistory from './PriceHistory';
 
 export default function InsightsIntel({ slug }) {
@@ -82,7 +83,7 @@ export default function InsightsIntel({ slug }) {
       {sc.score != null && (
         <Block title="Salud del activo" hint="el número que funde todo">
           <div style={grid(190)}>
-            <Stat label="Salud" value={sc.score} unit={`/100 · ${sc.grade || ''}`}
+            <Stat label="Salud" value={scoreWord(sc.score)} unit=""
               tone={sc.score >= 70 ? 'green' : sc.score >= 45 ? 'amber' : 'red'}
               framing="funde ventas, margen, obra y demanda" />
             <Stat label="Lo que más resta" value={sc.arrastra || '—'} tone="amber"

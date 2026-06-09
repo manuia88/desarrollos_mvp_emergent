@@ -111,7 +111,7 @@ export default function SiteSelectionMap({ zones = [], selectedId, onSelect, hei
             popupRef.current.setLngLat(e.lngLat).setHTML(`
               <div style="font-family:DM Sans;color:#06080F;padding:4px 4px 0;min-width:140px;">
                 <div style="font-family:Outfit;font-weight:700;font-size:12px;">${p.colonia}</div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;"><span>Feasibility</span><b>${p.feasibility}</b></div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;"><span>Viabilidad</span><b>${p.feasibility}</b></div>
                 <div style="display:flex;justify-content:space-between;font-size:11px;"><span>ROI 5y</span><b>${p.roi}%</b></div>
               </div>`).addTo(map);
           });

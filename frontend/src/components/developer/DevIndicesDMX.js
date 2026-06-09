@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { getDevIndices } from '../../api/developer';
 import { Sparkle } from '../icons';
 import SenalDMX, { SenalLeyenda } from '../shared/SenalDMX';
+import { tierLabel } from '../../lib/scoreWord';
 
 const BAND_COL = { verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', neutro: 'var(--cream-3)' };
 const card = { background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: 16, boxShadow: 'var(--asr-shadow, none)' };
@@ -57,7 +58,7 @@ export default function DevIndicesDMX() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{z.zona}</div>
-              <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{z.tier} · ${(z.price_m2 / 1000).toFixed(0)}k/m²</div>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{tierLabel(z.tier)} · ${(z.price_m2 / 1000).toFixed(0)}k/m²</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700, marginBottom: 4 }}>Índice DMX</div>

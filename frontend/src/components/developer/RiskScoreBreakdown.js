@@ -1,6 +1,7 @@
 // W3.4A — RiskScoreBreakdown (drawer with 4 component cards)
 import React, { useEffect, useState } from 'react';
 import { fetchRiskScore } from '../../api/riskScore';
+import { riskWord } from '../../lib/scoreWord';
 
 const CAT_LABELS = {
   robo_casa_habitacion: 'Robo a casa habitación',
@@ -78,7 +79,7 @@ export default function RiskScoreBreakdown({ zoneId }) {
         }}>{data.score_letter}</span>
         {data.score_numeric != null && (
           <span style={{ fontFamily: 'DM Sans', color: 'var(--cream-2)', fontSize: 14 }}>
-            {data.score_numeric.toFixed(1)} / 100
+            {riskWord(data.score_numeric)}
           </span>
         )}
       </div>

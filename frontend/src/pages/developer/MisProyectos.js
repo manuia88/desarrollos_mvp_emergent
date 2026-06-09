@@ -199,11 +199,10 @@ function ProjectCard({ project, onClick, onDuplicate }) {
           </p>
           {/* "1 número" — Full Project Score (V2) · comparable entre proyectos */}
           {DEV_V2 && project.full_score && project.full_score.score != null && (
-            <div data-testid={`score-${project.id}`} title={`Score del proyecto ${project.full_score.score}/100 · funde salud, margen, absorción, ritmo y demanda`}
+            <div data-testid={`score-${project.id}`} title="Salud del proyecto · funde salud, margen, absorción, ritmo y demanda"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: SCORE_COLOR(project.full_score.grade), flexShrink: 0 }} />
               <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 13.5, color: SCORE_COLOR(project.full_score.grade) }}>{SCORE_WORD(project.full_score.score)}</span>
-              <span style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>· {project.full_score.score}/100</span>
             </div>
           )}
         </div>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Activity } from 'lucide-react';
 import { getZoneScore } from '../../api/phase5Foundation';
+import { bandWord } from '../../lib/scoreWord';
 import { Z } from '../../styles/zIndex';
 
 const LETTER_COLOR = {
@@ -137,7 +138,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
                 color, letterSpacing: '-0.03em',
               }}>{letter}</span>
               <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream-2)' }}>
-                {numeric}/100
+                {bandWord(numeric)}
               </span>
             </div>
           </div>

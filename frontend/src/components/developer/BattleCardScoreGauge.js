@@ -70,7 +70,7 @@ export function BattleCardScoreGauge({ score, delta_pp, week_iso }) {
             fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
             fontSize: 11, color: 'rgba(var(--cream-rgb),0.5)', marginTop: 1,
           }}>
-            {t('battle_card.title.score_label', { defaultValue: '/ 100' })}
+            {t('battle_card.title.score_label', { defaultValue: 'fortaleza' })}
           </span>
         </div>
       </div>

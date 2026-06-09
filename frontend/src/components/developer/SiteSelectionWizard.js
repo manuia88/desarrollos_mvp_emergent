@@ -210,7 +210,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>SITE SELECTION AI · NUEVO ESTUDIO</div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>SELECCIÓN DE SITIO · NUEVO ESTUDIO</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)' }}>
               Paso {step} de 4
             </div>
@@ -232,8 +232,8 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
             }}>
               <MapPin size={14} color="var(--cream)" />
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', lineHeight: 1.5 }}>
-                <b>Pre-llenado desde Demand Heatmap:</b> {prefillColonia}, {prefillState || 'CDMX'}.{' '}
-                <span style={{ color: 'var(--cream-3)' }}>Ajusta otros criterios para evaluar feasibility de un proyecto en esta zona.</span>
+                <b>Pre-llenado desde el Mapa de Demanda:</b> {prefillColonia}, {prefillState || 'CDMX'}.{' '}
+                <span style={{ color: 'var(--cream-3)' }}>Ajusta los demás criterios para evaluar qué tan viable es un proyecto en esta zona.</span>
               </div>
             </div>
           )}

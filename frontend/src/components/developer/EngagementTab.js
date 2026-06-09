@@ -135,7 +135,7 @@ export default function EngagementTab({ devId }) {
         <Card data-testid="engagement-recommendations" style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.08), rgba(var(--theme-rgb),0.04) 60%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <Sparkle size={14} color="#f9a8d4" />
-            <div className="eyebrow" style={{ color: 'var(--rose)' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
+            <div className="eyebrow" style={{ color: 'var(--rose)' }}>RECOMENDACIONES IA</div>
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.recommendations.map((r, i) => (

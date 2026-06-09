@@ -175,7 +175,7 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
           }}>
             <AlertTriangle size={14} color="#fcd34d" />
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-              <b style={{ color: 'var(--amber)' }}>Estimaciones honestas:</b> basadas en benchmarks de mercado MX por NSE + demand_score (B6) + feasibility (B7). Refinará con tu data histórica de cierres reales.
+              <b style={{ color: 'var(--amber)' }}>Estimaciones honestas:</b> basadas en referencias de mercado por nivel socioeconómico + señales de demanda y viabilidad de la zona. Se afina con tu historial de ventas reales.
             </div>
           </div>
 

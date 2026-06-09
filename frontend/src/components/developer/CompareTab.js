@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Badge, fmt0 } from '../advisor/primitives';
 import { Sparkle, Check, ArrowRight } from '../icons';
 import RadarChart from './RadarChart';
+import { bandWord } from '../../lib/scoreWord';
 import * as api from '../../api/developer';
 
 const SUB_LABEL = {
@@ -32,8 +33,8 @@ function StudyColumn({ study, winners, idx }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
         <div style={{ padding: '6px 8px', background: 'rgba(var(--cream-rgb),0.04)', borderRadius: 8 }}>
-          <div className="eyebrow" style={{ fontSize: 9 }}>FEASIBILITY AVG</div>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{study.avg_feasibility}</div>
+          <div className="eyebrow" style={{ fontSize: 9 }}>VIABILIDAD PROMEDIO</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{bandWord(study.avg_feasibility)}</div>
           {winners.avg_feasibility === study.id && (
             <Badge tone="brand" data-testid={`winner-${study.id}-avg_feasibility`}>WINNER</Badge>
           )}
@@ -66,7 +67,7 @@ function StudyColumn({ study, winners, idx }) {
       </table>
 
       <div style={{ marginTop: 12 }}>
-        <div className="eyebrow" style={{ marginBottom: 6 }}>RADAR · AVG SUB-SCORES</div>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>RADAR · PROMEDIO POR FACTOR</div>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <RadarChart data={study.avg_sub_scores || {}} size={200} color={tint} />
         </div>
@@ -175,7 +176,7 @@ export default function CompareTab() {
           <Card style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.06) 60%, transparent)', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Sparkle size={13} color="#f9a8d4" />
-              <div className="eyebrow" style={{ color: 'var(--rose)' }}>DIFERENCIA CLAVE · CLAUDE HAIKU</div>
+              <div className="eyebrow" style={{ color: 'var(--rose)' }}>DIFERENCIA CLAVE · IA</div>
             </div>
             <p data-testid="compare-narrative" style={{ fontFamily: 'DM Sans', fontSize: 13.2, color: 'var(--cream)', lineHeight: 1.55, margin: 0 }}>
               {result.diff_matrix.narrative_diff}

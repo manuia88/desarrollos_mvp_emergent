@@ -130,18 +130,18 @@ export default function IeUnitScoreCard({ unitId }) {
         marginBottom: 14,
         textTransform: 'uppercase',
       }}>
-        Scores IE
+        Calificación de la Unidad
       </div>
 
       {loading && (
         <div data-testid="ie-unit-score-loading" style={{ fontSize: 12, color: 'var(--cream-3)', padding: '8px 0' }}>
-          Calculando scores…
+          Calculando…
         </div>
       )}
 
       {!loading && error && (
         <div data-testid="ie-unit-score-error" style={{ fontSize: 12, color: '#FB7185', padding: '8px 0' }}>
-          No se pudieron cargar los scores: {error}
+          No se pudo cargar la calificación.
         </div>
       )}
 
@@ -152,8 +152,8 @@ export default function IeUnitScoreCard({ unitId }) {
             compact
             testId="ie-unit-score-empty"
             overrides={{
-              title: 'Aún sin señal IE para esta unidad',
-              body: 'Los scores se calculan al primer recompute. Ejecuta "Recalcular scores" desde Superadmin para verlos aquí.',
+              title: 'Aún no hay datos para esta unidad',
+              body: 'Esta calificación se genera automáticamente con la actividad de la unidad. Aún no está lista.',
               ctas: [],
             }}
           />

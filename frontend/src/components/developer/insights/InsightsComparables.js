@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { getInsightsComparables, downloadComparables } from '../../../api/insights';
 import { TrendUp, TrendDown, Download } from '../../icons';
+import { scoreWord } from '../../../lib/scoreWord';
 
 const fmtM = (v) => {
   if (!v) return '—';
@@ -163,8 +164,8 @@ export default function InsightsComparables({ projectId }) {
             <b>{fmtM(cur.price_per_m2)}</b>
           </div>
           <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>
-            <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>Health</div>
-            <b>{cur.health_score}/100</b>
+            <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>Salud</div>
+            <b>{scoreWord(cur.health_score)}</b>
           </div>
           <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>
             <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>Velocidad</div>

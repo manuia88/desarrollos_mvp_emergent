@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { getDevCicloRenta } from '../../api/developer';
 import { Sparkle } from '../icons';
 import SenalDMX, { SenalLeyenda } from '../shared/SenalDMX';
+import { tierLabel } from '../../lib/scoreWord';
 
 const FASE_COL = { azul: 'var(--theme, #6D4AFF)', verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)' };
 const card = { background: 'var(--surface, #fff)', border: '1px solid var(--border-2, var(--border))', borderRadius: 14, padding: 16, boxShadow: 'var(--asr-shadow, none)' };
@@ -33,7 +34,7 @@ export default function DevCicloRenta() {
             <div key={i} data-testid="cr-zona" style={{ ...card, padding: 15, borderLeft: `4px solid ${fc}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{z.zona}</span>
-                <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{z.tier} · ${(z.price_m2 / 1000).toFixed(0)}k/m²</span>
+                <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{tierLabel(z.tier)} · ${(z.price_m2 / 1000).toFixed(0)}k/m²</span>
               </div>
 
               {/* Ciclo */}

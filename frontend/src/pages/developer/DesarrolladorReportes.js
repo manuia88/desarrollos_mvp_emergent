@@ -96,7 +96,7 @@ function ExecutiveTab({ onToast }) {
     try {
       const r = await api.generateReport();
       setActive(r); load();
-      onToast({ kind: 'success', text: 'Reporte generado con Claude Sonnet 4.5' });
+      onToast({ kind: 'success', text: 'Reporte generado con IA' });
     } catch { onToast({ kind: 'error', text: 'Error al generar' }); }
     finally { setGenerating(false); }
   };
@@ -139,7 +139,7 @@ function ExecutiveTab({ onToast }) {
                   Desempeño del portafolio
                 </h2>
               </div>
-              <Badge tone="brand"><Sparkle size={9} /> Claude Sonnet 4.5</Badge>
+              <Badge tone="brand"><Sparkle size={9} /> IA</Badge>
             </div>
 
             <div style={{ padding: 18, background: 'linear-gradient(140deg, rgba(236,72,153,0.06), transparent)', border: '1px solid var(--border)', borderRadius: 14, marginBottom: 18 }}>
@@ -196,7 +196,7 @@ function AbsorptionTab() {
       <Card style={{ gridColumn: '1 / -1' }} data-testid="abs-cohort">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div className="eyebrow">COHORT MATRIX · 12 meses</div>
+            <div className="eyebrow">GRUPOS POR MES · 12 MESES</div>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '4px 0 0', letterSpacing: '-0.018em' }}>
               Captación × Cierre por mes
             </h3>
@@ -210,7 +210,7 @@ function AbsorptionTab() {
 
       {/* Heatmap YTD */}
       <Card data-testid="abs-heatmap">
-        <div className="eyebrow">HEATMAP YTD · Ventas por día</div>
+        <div className="eyebrow">MAPA DE CALOR DEL AÑO · VENTAS POR DÍA</div>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: '4px 0 10px', letterSpacing: '-0.018em' }}>
           Calendario de cierres
         </h3>
@@ -274,7 +274,7 @@ function ForecastTab() {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
           <div>
-            <div className="eyebrow">FORECAST · target vs actual</div>
+            <div className="eyebrow">PRONÓSTICO · META VS REAL</div>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '4px 0 0', letterSpacing: '-0.018em' }}>
               Ventas planificadas vs reales
             </h3>

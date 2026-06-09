@@ -8,6 +8,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { ErrorState } from '../../components/shared/LoadingState';
 import { captureEvent } from '../../observability';
+import { scoreWord } from '../../lib/scoreWord';
 import { KPIStrip } from '../../components/shared/KPIStrip';
 import HealthScore from '../../components/shared/HealthScore';
 import VentasTab from '../../components/developer/VentasTab';
@@ -111,10 +112,9 @@ function AssetOpCockpit({ slug, summary }) {
                 ))}
               </div>
             </div>
-            {/* el número, como referencia secundaria (comparar entre proyectos) */}
-            <div title="Score del proyecto · funde salud, margen, absorción, ritmo y demanda" style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
-              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 30, color: SCORE_COLOR(score.grade), lineHeight: 1 }}>{score.score}</span>
-              <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>/100</span>
+            {/* salud del proyecto en palabra (funde salud, margen, absorción, ritmo y demanda) */}
+            <div title="Salud del proyecto · funde salud, margen, absorción, ritmo y demanda" style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 18, color: SCORE_COLOR(score.grade), lineHeight: 1.1 }}>{scoreWord(score.score)}</span>
             </div>
           </div>
         );
@@ -548,7 +548,7 @@ export default function ProyectoDetail({ user, onLogout }) {
             { key: 'ventas', label: 'Ventas', stat: `${summary.sold_pct ?? 0}% vendido`, accent: 'var(--ok, #1FA06A)' },
             { key: 'comercializacion', label: 'Pagos y brokers', stat: `${summary.leads_active ?? 0} leads activos`, accent: 'var(--theme, #6D4AFF)' },
             { key: 'avance', label: 'Avance de obra', stat: 'Ver progreso', accent: 'var(--warm, #E2982E)' },
-            { key: 'insights', label: 'Insights', stat: `Salud ${summary.health_score ?? '—'}/100`, accent: 'var(--theme, #6D4AFF)' },
+            { key: 'insights', label: 'Insights', stat: `Salud: ${summary.health_score != null ? scoreWord(summary.health_score) : '—'}`, accent: 'var(--theme, #6D4AFF)' },
           ] },
           { group: 'Ficha del proyecto', cards: [
             { key: 'contenido', label: 'Contenido', stat: 'Fotos y descripción', accent: 'var(--cream-3)' },
