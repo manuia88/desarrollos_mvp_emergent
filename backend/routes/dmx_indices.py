@@ -349,3 +349,22 @@ async def superadmin_colonias_fill_chunk(
     await _sa(request)
     import zone_data_cron as zc
     return await zc.run_zone_data_chunk(request.app.state.db, city=city, chunk=chunk)
+
+
+# ─── F1.6 · Calibración de motores contra casos reales (Puente Alvarado) ───────
+@router.get("/api/superadmin/calibracion/terreno")
+async def superadmin_calibracion_terreno(request: Request):
+    """Corre el examen: compara lo que predicen nuestras fórmulas del terreno contra el caso
+    real Puente Alvarado. Devuelve cada chequeo calibrado/ajustar + sugerencias."""
+    await _sa(request)
+    import golden_calibration_engine as gc
+    return await gc.calibrar(request.app.state.db)
+
+
+@router.post("/api/superadmin/calibracion/terreno/aplicar")
+async def superadmin_calibracion_terreno_aplicar(request: Request):
+    """Cierra el ciclo: aplica los valores documentados de la metodología real al motor de
+    valor residual (los lee en la siguiente corrida)."""
+    await _sa(request)
+    import golden_calibration_engine as gc
+    return await gc.aplicar_calibracion(request.app.state.db)

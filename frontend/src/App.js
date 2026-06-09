@@ -315,6 +315,7 @@ const SuperadminTransactionNetwork   = lazy(() => import('./pages/superadmin/Sup
 // W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
 const SuperadminDRPI                 = lazy(() => import('./pages/superadmin/SuperadminDRPI'));
 const SuperadminIndices              = lazy(() => import('./pages/superadmin/SuperadminIndices'));
+const SuperadminCalibracion          = lazy(() => import('./pages/superadmin/SuperadminCalibracion'));
 const SuperadminRecipesCoverage      = lazy(() => import('./pages/superadmin/SuperadminRecipesCoverage'));
 const SuperadminBulletins            = lazy(() => import('./pages/superadmin/SuperadminBulletins'));
 const SuperadminInvestmentExplorer   = lazy(() => import('./pages/superadmin/SuperadminInvestmentExplorer'));
@@ -928,6 +929,7 @@ function AppRouter() {
       {/* W3.3 ZZ.3 — DRPI / Bulletins / Investment Explorer */}
       <Route path="/superadmin/drpi" element={<SuperadminRoute Page={SuperadminDRPI} />} />
       <Route path="/superadmin/indices" element={<SuperadminRoute Page={SuperadminIndices} />} />
+      <Route path="/superadmin/calibracion" element={<SuperadminRoute Page={SuperadminCalibracion} />} />
       <Route path="/superadmin/recipes-coverage" element={<SuperadminRoute Page={SuperadminRecipesCoverage} />} />
       <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
       <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />

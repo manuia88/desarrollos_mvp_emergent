@@ -70,6 +70,25 @@ DEFAULTS = {
 }
 
 
+async def get_effective_defaults(db) -> Dict[str, Any]:
+    """Defaults del motor con la calibración aplicada (F1.6) si existe. Fuente única: arranca de
+    los DEFAULTS del código y los sobreescribe con lo guardado en db.calibracion_terreno
+    (lo que la calibración contra Puente Alvarado dejó). Fail-open: si no hay, usa el código."""
+    eff = dict(DEFAULTS)
+    eff["_calibrado"] = False
+    try:
+        doc = await db.calibracion_terreno.find_one({"_id": "terreno"})
+        if doc:
+            for k in ("margen_objetivo", "pct_indirectos", "pct_gerencia", "pct_imprevistos",
+                      "pct_comision", "pct_publicidad", "eficiencia"):
+                if doc.get(k) is not None:
+                    eff[k] = float(doc[k])
+            eff["_calibrado"] = True
+    except Exception as e:
+        log.warning(f"[residual] calibracion_terreno: {e}")
+    return eff
+
+
 async def _resolver_colonia(db, colonia_id: Optional[str], city: str) -> Optional[Dict[str, Any]]:
     if not colonia_id:
         return None
@@ -146,8 +165,9 @@ async def calcular_residual(
     el desglose completo con el origen de cada dato (Doctrina). Nunca crashea."""
     avisos = []
     cat_def = CATEGORIAS.get(categoria, CATEGORIAS["media"])
-    eficiencia = float(eficiencia) if eficiencia else DEFAULTS["eficiencia"]
-    margen_objetivo = float(margen_objetivo) if margen_objetivo is not None else DEFAULTS["margen_objetivo"]
+    eff = await get_effective_defaults(db)   # F1.6 · usa los valores calibrados si existen
+    eficiencia = float(eficiencia) if eficiencia else eff["eficiencia"]
+    margen_objetivo = float(margen_objetivo) if margen_objetivo is not None else eff["margen_objetivo"]
 
     colonia = await _resolver_colonia(db, colonia_id, city)
     zone_id = _slug(colonia["name"]) if colonia else _slug(categoria)
@@ -187,11 +207,11 @@ async def calcular_residual(
     ingreso = m2_vendibles * precio["pm2"]
 
     costo_obra = m2_construibles * costo["pm2"]
-    indirectos = costo_obra * DEFAULTS["pct_indirectos"]
-    gerencia = costo_obra * DEFAULTS["pct_gerencia"]
-    imprevistos = costo_obra * DEFAULTS["pct_imprevistos"]
-    comision = ingreso * DEFAULTS["pct_comision"]
-    publicidad = ingreso * DEFAULTS["pct_publicidad"]
+    indirectos = costo_obra * eff["pct_indirectos"]
+    gerencia = costo_obra * eff["pct_gerencia"]
+    imprevistos = costo_obra * eff["pct_imprevistos"]
+    comision = ingreso * eff["pct_comision"]
+    publicidad = ingreso * eff["pct_publicidad"]
     costos_blandos = indirectos + gerencia + imprevistos + comision + publicidad
 
     utilidad_requerida = ingreso * margen_objetivo

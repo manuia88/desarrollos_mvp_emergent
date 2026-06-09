@@ -14,8 +14,8 @@ import {
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
-  AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
-  Share2, Video, MessageCircle, HelpCircle, FlaskConical,
+  AlertTriangle, Key, Package, Mail, GitMerge, ShieldCheck, Swords,
+  Share2, Video, MessageCircle, HelpCircle, FlaskConical, Gauge,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -218,6 +218,7 @@ const SUPERADMIN_NAV = [
       { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
       { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
       { key: 'indices-dmx',       to: '/superadmin/indices',           label: 'Índices DMX',       Icon: LineChart },
+      { key: 'calibracion',       to: '/superadmin/calibracion',       label: 'Calibración',       Icon: Gauge },
       { key: 'risk-score',        to: '/superadmin/risk-score',        label: 'Risk Score',        Icon: AlertTriangle },
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer', Icon: DollarSign },
       { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },
