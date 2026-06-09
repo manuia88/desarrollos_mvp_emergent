@@ -1305,7 +1305,8 @@ async def get_lead_board(cid: str, request: Request):
     # B5.3+B5.4 · match explicable por item (zona/precio/cuestionario + gusto visual) · FAIL-OPEN.
     try:
         from lead_match import aggregate_signals, match_for
-        from data_developments import DEVELOPMENTS_BY_ID as _MDEVS
+        from auto_sync_engine import get_effective_devs_map  # #15 · dato fresco del dev (batch)
+        _MDEVS = await get_effective_devs_map(db, [it.get("dev_id") for it in items if it.get("dev_id")])
         _sig = aggregate_signals(items)
         _prof = await db.asesor_swipe_profiles.find_one({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
         # tags de fotos por dev (para el gusto visual de la Capa 4)
@@ -1329,7 +1330,8 @@ async def get_lead_board(cid: str, request: Request):
     if oferta_items:
         try:
             from avm_public_engine import avm_quick_async
-            from data_developments import DEVELOPMENTS_BY_ID as _DEVS
+            from auto_sync_engine import get_effective_devs_map  # #15 · dato fresco del dev
+            _DEVS = await get_effective_devs_map(db, [it.get("dev_id") for it in oferta_items if it.get("dev_id")])
             for it in oferta_items:
                 dev = _DEVS.get(it.get("dev_id")) or {}
                 col = dev.get("colonia_id") or dev.get("colonia")
@@ -1443,7 +1445,10 @@ async def lead_suggestions(cid: str, request: Request):
     out = []
     try:
         from lead_match import aggregate_signals, match_for
-        from data_developments import DEVELOPMENTS
+        # Cross-Portal v2 (#15): el asesor ve el dato FRESCO del dev (precio/unidades editadas),
+        # igual que el comprador. Batch (una query de overlays), drop-in con la misma forma.
+        from auto_sync_engine import get_effective_devs_list
+        _devs = await get_effective_devs_list(db)
         sig = aggregate_signals(items)
         prof = await db.asesor_swipe_profiles.find_one(
             {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
@@ -1457,11 +1462,11 @@ async def lead_suggestions(cid: str, request: Request):
         tags_by = {}
         try:
             from photo_tagger import tag_from_url
-            for _d in DEVELOPMENTS:
+            for _d in _devs:
                 tags_by[_d.get("id")] = [tag_from_url(u) for u in (_d.get("photos") or [])[:6]]
         except Exception:
             pass
-        for d in DEVELOPMENTS:
+        for d in _devs:
             if d.get("id") in on_board:
                 continue
             try:
@@ -2031,7 +2036,7 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     rec = None
     try:
         from lead_match import aggregate_signals, match_for
-        from data_developments import DEVELOPMENTS
+        from auto_sync_engine import get_effective_devs_list  # #15 · dato fresco del dev
         from photo_tagger import tag_from_url
         items = await db.asesor_lead_properties.find(
             {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
@@ -2045,7 +2050,7 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
         except Exception:
             taste = None
         best = None
-        for d in DEVELOPMENTS:
+        for d in await get_effective_devs_list(db):
             if d.get("id") in on_board:
                 continue
             try:
@@ -2528,14 +2533,16 @@ async def register_offer(bid: str, request: Request):
 async def busqueda_matches(bid: str, request: Request):
     """Matcher determinista: precio 28 + zona 22 + amenidades 16 + recámaras 12 + baños 8
     + estacionamiento 6 + m² 4 + urgencia 4. Honra mascotas y no-negociables."""
-    from data_developments import DEVELOPMENTS
     user = await require_advisor(request)
     db = get_db(request)
     b = await db.asesor_busquedas.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
     if not b: raise HTTPException(404, "No encontrada")
 
+    # Cross-Portal v2 (#15): matchea contra el dato FRESCO del dev (precio/inventario editado).
+    from auto_sync_engine import get_effective_devs_list
+    _devs = await get_effective_devs_list(db)
     out = []
-    for d in DEVELOPMENTS:
+    for d in _devs:
         score = 0
         rationale = []
         max_beds = (d.get("bedrooms_range") or [0, 0])[1]
@@ -3131,13 +3138,13 @@ async def comisiones_summary(request: Request):
 # ─── Argumentario AI (Claude Sonnet 4.5) ──────────────────────────────────────
 @router.post("/argumentario")
 async def generate_argumentario(payload: ArgumentarioIn, request: Request):
-    from data_developments import DEVELOPMENTS_BY_ID
+    from auto_sync_engine import get_effective_dev  # #15 · el pitch IA usa precio/amenidades frescas
     user = await require_advisor(request)
     db = get_db(request)
 
     contact = await db.asesor_contactos.find_one({"id": payload.contacto_id, "owner_id": user.user_id}, {"_id": 0})
     if not contact: raise HTTPException(404, "Contacto no encontrado")
-    dev = DEVELOPMENTS_BY_ID.get(payload.desarrollo_id)
+    dev = await get_effective_dev(db, payload.desarrollo_id)
     if not dev: raise HTTPException(404, "Desarrollo no encontrado")
 
     cache_key = hashlib.md5(f"{payload.contacto_id}|{payload.desarrollo_id}|{payload.objetivo}|{_now().strftime('%Y-W%V')}".encode()).hexdigest()
@@ -3232,8 +3239,8 @@ async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request
 
     dev = None
     if payload.development_id:
-        from data_developments import DEVELOPMENTS_BY_ID
-        dev = DEVELOPMENTS_BY_ID.get(payload.development_id)
+        from auto_sync_engine import get_effective_dev  # #15 · RAG con dato fresco del dev
+        dev = await get_effective_dev(db, payload.development_id)
         if not dev:
             raise HTTPException(404, "Desarrollo no encontrado")
 

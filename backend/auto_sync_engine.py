@@ -505,6 +505,38 @@ async def get_effective_dev(db, dev_id: str) -> Dict[str, Any]:
     return seed
 
 
+async def get_effective_devs_map(db, dev_ids: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]]:
+    """Mapa dev_id → effective dev (seed + overlay), en BATCH (una sola query de overlays con $in).
+    Para los lugares que recorren VARIOS/TODOS los desarrollos (galería, búsquedas, mini-market del
+    asesor) sin pegarle a la DB por-item. Misma forma que `get_effective_dev`, drop-in."""
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    if dev_ids is None:
+        seeds = {d["id"]: dict(d) for d in DEVELOPMENTS}
+    else:
+        seeds = {i: dict(DEVELOPMENTS_BY_ID[i]) for i in dev_ids if i in DEVELOPMENTS_BY_ID}
+    overlays: Dict[str, Any] = {}
+    try:
+        async for o in db.dev_overlays.find({"development_id": {"$in": list(seeds.keys())}}, {"_id": 0}):
+            overlays[o.get("development_id")] = o
+    except Exception:
+        pass
+    for did, seed in seeds.items():
+        ov = overlays.get(did) or {}
+        for k, v in (ov.get("fields") or {}).items():
+            if k in PRIVATE_FIELDS:
+                continue
+            seed[k] = v
+        if ov.get("units_overlay"):
+            seed["units"] = ov["units_overlay"]
+    return seeds
+
+
+async def get_effective_devs_list(db) -> List[Dict[str, Any]]:
+    """Lista de TODOS los desarrollos en su versión effective (seed+overlay) · batch. Reemplaza
+    `for d in DEVELOPMENTS` cuando el asesor necesita el dato fresco (precio/unidades editadas)."""
+    return list((await get_effective_devs_map(db)).values())
+
+
 async def get_audit(db, dev_id: str, limit: int = 200) -> List[Dict[str, Any]]:
     overlay = await get_overlay(db, dev_id)
     audit = overlay.get("audit") or []

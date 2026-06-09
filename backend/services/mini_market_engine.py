@@ -42,9 +42,9 @@ async def compute_mini_market_dev(db, user_id: str) -> List[Dict[str, Any]]:
     # Get dev org settings (allow_external_inventory)
     allow_external = await _get_allow_external(db, "dev", dev_org_id)
 
-    # Pull all static developments
-    from data_developments import DEVELOPMENTS
-    all_projects = [dict(d) for d in DEVELOPMENTS]
+    # Cross-Portal v2 (#15): inventario con dato FRESCO del dev (precio/unidades editadas) · batch.
+    from auto_sync_engine import get_effective_devs_list
+    all_projects = await get_effective_devs_list(db)
 
     # Filter by org membership
     org_projects = [p for p in all_projects if (p.get("developer_id") or p.get("dev_org_id")) == dev_org_id]
