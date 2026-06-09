@@ -7,7 +7,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -43,50 +43,34 @@ def _user_dev_ids(user) -> List[str]:
     return user_dev_ids(user)
 
 
-def _generate_weekly_sales(project_id: str, sold_total: int, stage: str) -> List[int]:
-    """
-    Deterministic 8-week sales sparkline seeded from project_id.
-    Generates a realistic absorption curve:
-    - Preventa: crescente (ramp-up hacia semanas recientes)
-    - En_construccion: relativamente plano con ligero descenso final
-    - Entrega: spike en semanas anteriores, bajo ahora
-    """
-    if sold_total == 0:
-        return [0] * 8
-
-    # LCG seeded by project string hash for determinism
-    seed = abs(hash(project_id)) % (2 ** 31)
-    def lcg_next(s):
-        return (1664525 * s + 1013904223) % (2 ** 32)
-
-    # Generate 8 raw values [0, 1)
-    raw = []
-    s = seed
-    for _ in range(8):
-        s = lcg_next(s)
-        raw.append(s / (2 ** 32))
-
-    # Apply stage-specific weight curve (index 0 = oldest week, 7 = latest)
-    if stage in ("preventa", "en_construccion"):
-        # Ramp-up: more weight on recent weeks
-        weights = [0.04, 0.06, 0.08, 0.10, 0.14, 0.18, 0.20, 0.20]
-    elif stage in ("entrega_inmediata",):
-        # Spike mid-history, lower now
-        weights = [0.05, 0.18, 0.22, 0.20, 0.15, 0.10, 0.07, 0.03]
-    else:
-        weights = [0.12, 0.13, 0.12, 0.14, 0.12, 0.13, 0.12, 0.12]
-
-    # Scale each week = weight * sold_total + noise
-    scaled = [w * sold_total * (0.7 + raw[i] * 0.6) for i, w in enumerate(weights)]
-
-    # Normalize so sum ≈ sold_total
-    total_raw = sum(scaled)
-    if total_raw > 0:
-        scaled = [v * sold_total / total_raw for v in scaled]
-
-    # Round to integers, ensure non-negative
-    result = [max(0, round(v)) for v in scaled]
-    return result
+async def _real_weekly_sales_map(db, dev_ids: List[str]) -> Dict[str, List[int]]:
+    """Ventas REALES por semana (últimas 8) por desarrollo, desde `units_history`: cada vez que una
+    unidad pasa a estado "vendido" queda registrada con fecha. Cierra el ciclo: marcar una unidad
+    como vendida en el portal alimenta esta curva. Antes se INVENTABA con un generador sembrado.
+    Solo devuelve desarrollos con ventas reales en la ventana; los demás → estado vacío honesto."""
+    if not dev_ids:
+        return {}
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(weeks=8)
+    out: Dict[str, List[int]] = {}
+    try:
+        cur = db.units_history.find(
+            {"development_id": {"$in": dev_ids}, "field_changed": "status",
+             "new_value": "vendido", "changed_at": {"$gte": start.isoformat()}},
+            {"_id": 0, "development_id": 1, "changed_at": 1})
+        async for h in cur:
+            try:
+                ts = datetime.fromisoformat(str(h["changed_at"]).replace("Z", "+00:00"))
+            except Exception:
+                continue
+            wk = int((now - ts).days // 7)
+            if wk < 0 or wk > 7:
+                continue
+            arr = out.setdefault(h["development_id"], [0] * 8)
+            arr[7 - wk] += 1   # índice 7 = semana más reciente
+    except Exception:
+        pass
+    return out
 
 
 def _compute_health_score(
@@ -188,6 +172,9 @@ async def list_projects_with_stats(request: Request):
         if asset["development_id"] not in cover_photos:
             cover_photos[asset["development_id"]] = asset.get("url")
 
+    # Ventas reales por semana (units_history) — antes se inventaban.
+    weekly_map = await _real_weekly_sales_map(db, dev_ids)
+
     # Build result
     results = []
     for dev in DEVELOPMENTS:
@@ -233,8 +220,8 @@ async def list_projects_with_stats(request: Request):
         avg_price = (price_from + price_to) / 2 if price_to > price_from else price_from
         revenue_mtd_est = int(sold_units * avg_price) if avg_price else 0
 
-        # Weekly sales sparkline (last 8 weeks, deterministic from project seed)
-        weekly_sales = _generate_weekly_sales(dev["id"], sold_units, stage)
+        # Ventas por semana REALES (últimas 8) desde units_history · vacío si no hay ventas registradas.
+        weekly_sales = weekly_map.get(dev["id"], [])
 
         # leads_30d, conversion_pct, days_listed
         total_leads_for_dev = leads_agg.get(dev["id"], 0) + leads_closed_agg.get(dev["id"], 0)
@@ -306,7 +293,7 @@ async def list_projects_with_stats(request: Request):
             "health_score": 65,  # neutral default for fresh projects
             "leads_active": 0,
             "revenue_mtd_est": 0,
-            "weekly_sales": [0] * 8,
+            "weekly_sales": [],
             "cover_photo": None,
             "developer_id": p.get("developer_id"),
             "delivery_estimate": None,

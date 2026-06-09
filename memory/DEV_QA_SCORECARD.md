@@ -6,19 +6,19 @@
 | Área | Veredicto | En una línea |
 |---|---|---|
 | A · Lenguaje | 🟡 Ámbar | El grueso ya está en español claro, pero quedan "/100" de salud, una pantalla (Selección de Sitio) llena de jerga, y términos internos ("Superadmin/recompute") asomándose al dev |
-| B · Honestidad de datos | 🔴 Rojo | Siguen vivas 3 fabricaciones que llegan a pantalla como real — una en la métrica más visible (ventas por semana) |
+| B · Honestidad de datos | ✅ RESUELTO (2026-06-09) | Las 3 fabricaciones quitadas y conectadas a su dato real (ver abajo) |
 | C · Estados de pantalla | 🟡 Ámbar | 4 pantallas clave se quedan en "Cargando…" para siempre o se rompen si la API falla |
 | D · Móvil | 🟡 Ámbar | El chasis aguanta (menú colapsa), pero Inventario y 2 ventanas se salen de la pantalla en celular |
 | F · Coherencia entre portales | 🟡 Ámbar | La ZONA ya está unificada; el $/m² de un DESARROLLO tiene 3 fórmulas conviviendo (dev y comprador pueden ver cifras distintas) |
 
 ---
 
-## B · Honestidad de datos — 🔴 (lo más urgente)
-Ojo: Competidores, IE, Demanda y Pricing SÍ quedaron limpios (confirmado). Pero el QA destapó 3 que se nos pasaron:
-1. 🔴 **Ventas por semana fabricadas** (`dev_batch10.py:46-90` `_generate_weekly_sales`): inventa la curva de las últimas 8 semanas. Contamina **Inicio, Mis Proyectos, Ficha y Cockpit** ("+N esta semana", ritmo, meses para agotar, flecha de tendencia). → mostrar el reparto real o "Sin historial semanal aún".
-2. 🔴 **Historial de precio de la unidad fabricado** (`dev_batch11.py:506-532`): inventa 6 cambios de precio con fechas/autor; marca `synthetic:true` pero el front lo ignora (`UnitDrawerContent.js:166`). → respetar el flag y mostrar "Sin historial aún".
-3. 🔴 **Engagement por unidad fabricado** (`dev_batch11.py:921-967`): vistas/clicks/funnel con `hash(unit_id)`. Etiquetado "ESTIMADO" pero son aleatorios. → "Sin datos de engagement aún".
-- 🟡 Menores: sparkline de pipeline 90d con random (etiquetado demo) · GeoJSON con offset ±50m fabricado.
+## B · Honestidad de datos — ✅ RESUELTO (2026-06-09 · front+back, dato real + estado vacío honesto, cierra ciclo)
+Competidores, IE, Demanda y Pricing ya estaban limpios. El QA destapó 3 más, ahora arregladas:
+1. ✅ **Ventas por semana** (`dev_batch10`): se quitó el generador `_generate_weekly_sales`. Ahora `_real_weekly_sales_map` cuenta las ventas REALES de `units_history` (cada unidad que pasa a "vendido" queda con fecha) en las últimas 8 semanas. Vacío honesto si no hay ventas. **Cierra ciclo**: marcar una unidad vendida en el portal alimenta la curva. Front: FichaHome muestra "Sin ventas registradas aún", MisProyectos oculta el sparkline, Cockpit muestra ceros reales. Verificado E2E (siembra→curva→limpio).
+2. ✅ **Historial de precio de unidad** (`dev_batch11`): se eliminó el bloque que inventaba 6 cambios. Devuelve solo cambios REALES + `sin_historial` flag. Front (`UnitDrawerContent`) muestra "Sin cambios de precio registrados aún". **Cierra ciclo**: editar el precio en el portal queda en units_history y aparece.
+3. ✅ **Engagement por unidad** (`dev_batch11`): se quitó el stub con `hash(unit_id)`. Usa `unit_engagement` real; si no hay → ceros + `sin_datos` flag (ya no "ESTIMADO" con números aleatorios). Front muestra "Aún no hay visitas ni interacciones registradas". Se autollena con el pipeline de eventos.
+- 🟡 Pendientes menores (cola): sparkline de pipeline 90d con random (etiquetado demo) · GeoJSON con offset ±50m fabricado.
 
 ## A · Lenguaje — 🟡
 - 🔴 `IeUnitScoreCard.js:156` expone "recompute / Superadmin / scores" al dev → "Estos datos se generan automáticamente; aún no están listos".

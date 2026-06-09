@@ -503,32 +503,10 @@ async def get_unit_price_history(dev_id: str, unit_id: str, request: Request):
                 "reason": after.get("price_change_reason", ""),
             })
 
-    # Deterministic synthetic history if none (so UI always has data)
+    # Honesto: si no hay cambios de precio REALES registrados, NO inventamos (antes se fabricaban
+    # 6 ajustes con fechas/autor falsos). Se devuelve vacío → el front muestra "Sin historial aún".
+    # Cierra el ciclo: al editar el precio de la unidad en el portal queda en units_history y aparece.
     dev, unit = _get_unit(dev_id, unit_id)
-    if not history and unit and unit.get("price"):
-        seed = abs(hash(f"{dev_id}{unit_id}")) % 1000
-        base_price = unit["price"]
-        from datetime import date
-        today = _now()
-        for i in range(6, 0, -1):
-            delta = 1 + (seed * i % 5) / 100
-            month = today - timedelta(days=30 * i)
-            history.append({
-                "date": month.isoformat(),
-                "price_before": int(base_price / delta),
-                "price_after": int(base_price / (delta * 0.99)),
-                "changed_by": "sistema",
-                "reason": "Ajuste de mercado",
-                "synthetic": True,
-            })
-        history.append({
-            "date": today.isoformat(),
-            "price_before": history[-1]["price_after"],
-            "price_after": base_price,
-            "changed_by": "sistema",
-            "reason": "Precio actual",
-            "synthetic": True,
-        })
 
     colonia_avg = None
     if dev and unit and unit.get("price"):
@@ -553,6 +531,8 @@ async def get_unit_price_history(dev_id: str, unit_id: str, request: Request):
         "area": unit.get("area_total") or unit.get("area") if unit else None,
         "colonia_avg_price_m2": colonia_avg,
         "history": history,
+        "sin_historial": len(history) == 0,
+        "nota": None if history else "Sin cambios de precio registrados aún. Aparecerán al editar el precio de la unidad.",
     }
 
 
@@ -929,41 +909,29 @@ async def get_unit_engagement(dev_id: str, unit_id: str, request: Request):
     if dev_id not in dev_ids:
         raise HTTPException(403)
 
-    # Try real engagement from PostHog-style event tracking if implemented
+    # Engagement REAL desde el seguimiento de eventos (se llena con el pipeline omnicanal).
     real = await db.unit_engagement.find_one({"dev_id": dev_id, "unit_id": unit_id}, {"_id": 0})
     if real:
-        return real
+        return {**real, "sin_datos": False}
 
-    # Deterministic stub seeded by unit_id for consistent demo data
-    seed = abs(hash(f"{dev_id}{unit_id}")) % 997
-    base = (seed % 80) + 20
+    # Honesto: aún SIN eventos para esta unidad → ceros + bandera (antes se fabricaban con hash).
+    # Cierra el ciclo: cuando entren visitas/clicks/citas reales, `unit_engagement` los llena solo.
+    _campos_asesor = ("vistas", "clicks_fotos", "clicks_precios", "tiempo_promedio_seg",
+                      "compartidos", "citas_agendadas", "mensajes_caya", "intent_score")
+    _campos_cliente = ("busquedas", "vistas", "clicks_fotos", "guardados_favoritos",
+                       "tiempo_promedio_seg", "compartidos", "intent_score_avg")
     return {
-        "unit_id": unit_id, "dev_id": dev_id, "is_stub": True,
-        "asesores": {
-            "vistas": base,
-            "clicks_fotos": int(base * 0.7),
-            "clicks_precios": int(base * 0.4),
-            "tiempo_promedio_seg": 45 + seed % 60,
-            "compartidos": seed % 8,
-            "citas_agendadas": seed % 4,
-            "mensajes_caya": seed % 6,
-            "intent_score": round(30 + (seed % 50), 1),
-        },
-        "clientes": {
-            "busquedas": int(base * 1.4),
-            "vistas": int(base * 0.9),
-            "clicks_fotos": int(base * 0.5),
-            "guardados_favoritos": seed % 10,
-            "tiempo_promedio_seg": 30 + seed % 45,
-            "compartidos": seed % 5,
-            "intent_score_avg": round(25 + (seed % 45), 1),
-        },
+        "unit_id": unit_id, "dev_id": dev_id, "sin_datos": True,
+        "nota": "Aún no hay visitas ni interacciones registradas para esta unidad. "
+                "Se llenará solo cuando entren eventos reales.",
+        "asesores": {k: 0 for k in _campos_asesor},
+        "clientes": {k: 0 for k in _campos_cliente},
         "funnel": [
-            {"stage": "Impresiones", "count": base * 4},
-            {"stage": "Vistas", "count": base},
-            {"stage": "Interés", "count": int(base * 0.45)},
-            {"stage": "Contacto", "count": int(base * 0.15)},
-            {"stage": "Cita", "count": seed % 5},
+            {"stage": "Impresiones", "count": 0},
+            {"stage": "Vistas", "count": 0},
+            {"stage": "Interés", "count": 0},
+            {"stage": "Contacto", "count": 0},
+            {"stage": "Cita", "count": 0},
         ],
     }
 

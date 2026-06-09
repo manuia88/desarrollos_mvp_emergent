@@ -195,6 +195,12 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
           )}
         </div>
       )}
+      {/* Estado vacío honesto (antes se inventaban 6 cambios de precio) */}
+      {!loading && priceData && !(priceData.history?.length > 0) && (
+        <div style={{ fontSize: 11.5, color: 'var(--cream-3)', padding: '8px 0' }}>
+          {priceData.nota || 'Sin cambios de precio registrados aún.'}
+        </div>
+      )}
     </div>
   );
 }
@@ -209,6 +215,8 @@ function EngagementSection({ unit, devId }) {
   }, [devId, unit]);
 
   if (!data) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Sin datos de engagement todavía.</div>;
+  // Honesto: aún sin eventos reales → mensaje claro, NO una tabla de ceros (antes eran números inventados).
+  if (data.sin_datos) return <div style={{ fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>{data.nota || 'Aún no hay visitas ni interacciones registradas para esta unidad.'}</div>;
 
   const MetricRow = ({ label, asesor, cliente }) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 12, padding: '5px 0', borderBottom: '1px solid rgba(var(--cream-rgb),0.05)' }}>

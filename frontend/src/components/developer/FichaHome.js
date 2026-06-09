@@ -151,6 +151,7 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
   const by = stats?.units_by_status || summary.units_by_status || {};
   const avail = by.disponible ?? (summary.units_total - (summary.sold_units || 0) - (summary.reserved_units || 0));
   const ws = stats?.weekly_sales || [];
+  const hasWeekly = ws.length > 0;   // honesto: sin ventas registradas no inventamos ritmo
   const rate = ws.length ? ws.slice(-4).reduce((a, b) => a + b, 0) / Math.min(4, ws.slice(-4).length) : 0;
   const prevRate = ws.length >= 8 ? ws.slice(-8, -4).reduce((a, b) => a + b, 0) / 4 : rate;
   const months = rate > 0 ? Math.round(avail / (rate * 4.33)) : null;
@@ -283,7 +284,7 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
       {/* 1 · Inventario y ritmo */}
       <Section n="1" title="Inventario y ritmo">
         <Metric label="% Vendido" value={summary.sold_pct ?? 0} unit="%" tone="green" cmp={`${summary.sold_units ?? 0} de ${summary.units_total} unidades`} onClick={onOpenInsights} />
-        <Metric label="Ritmo de venta" value={rate.toFixed(1)} unit=" uds/sem" tone={rateTrend} cmp={rate > prevRate ? '↑ subiendo' : rate < prevRate ? '↓ bajando' : '→ estable'} spark={ws.length ? ws.slice(-8) : null} onClick={onOpenInsights} />
+        <Metric label="Ritmo de venta" value={hasWeekly ? rate.toFixed(1) : '—'} unit={hasWeekly ? ' uds/sem' : ''} tone={hasWeekly ? rateTrend : 'flat'} cmp={hasWeekly ? (rate > prevRate ? '↑ subiendo' : rate < prevRate ? '↓ bajando' : '→ estable') : 'Sin ventas registradas aún'} spark={hasWeekly ? ws.slice(-8) : null} onClick={onOpenInsights} />
         <Metric label="Se agota en" value={months != null ? months : '—'} unit={months != null ? ' meses' : ''} tone={agotaTone} cmp={agotaCmp} onClick={onOpenInsights} />
         <Metric label="Avance de obra" value={obra?.overall_percent ?? summary.construction_pct ?? 0} unit="%" tone={(obra?.overall_percent ?? summary.construction_pct ?? 0) > 0 ? 'green' : 'flat'}
           cmp={obra?.current_stage ? `En tiempo · ${String(obra.current_stage).replace(/_/g, ' ')}` : 'En tiempo según calendario'} onClick={onOpenInsights} />
