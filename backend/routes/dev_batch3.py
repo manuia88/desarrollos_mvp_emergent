@@ -300,14 +300,17 @@ async def export_project_geojson(project_id: str, request: Request):
     if not meta or meta.get("lat") is None or meta.get("lng") is None:
         raise HTTPException(422, "Geolocalización no configurada — edita la ubicación antes de exportar")
 
-    base_lat = float(meta["lat"])
-    base_lng = float(meta["lng"])
+    try:
+        base_lat = float(meta["lat"])
+        base_lng = float(meta["lng"])
+    except (TypeError, ValueError):
+        raise HTTPException(422, "La geolocalización guardada no es válida — corrige la ubicación antes de exportar")
 
     # Pull construction progress for per-unit percent_complete + current_stage.
     prog = await db.project_construction_progress.find_one(
         {"project_id": project_id, "dev_org_id": tenant_id}, {"_id": 0}
     )
-    units_progress = {u["unit_id"]: u for u in (prog or {}).get("units", [])}
+    units_progress = {u.get("unit_id"): u for u in (prog or {}).get("units", []) if u.get("unit_id")}
 
     # Pull IE overall (best-effort).
     ie_overall: Optional[float] = None

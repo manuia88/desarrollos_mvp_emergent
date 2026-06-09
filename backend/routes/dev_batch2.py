@@ -548,6 +548,8 @@ async def ie_project_breakdown(project_id: str, request: Request):
     dev = DEVELOPMENTS_BY_ID.get(project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # candado: no leer la calificación IE de proyecto ajeno
 
     # Scores REALES del motor IE — proyecto (IE_PROY_*) + colonia (IE_COL_*), por código real.
     proj_v: Dict[str, float] = {}
@@ -663,6 +665,8 @@ async def ie_improve_recommendations(project_id: str, request: Request, code: st
     dev = DEVELOPMENTS_BY_ID.get(project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # candado: no leer recomendaciones de proyecto ajeno
 
     score_name_map = {
         "N1": "Demanda estructural", "N2": "Oferta disponible", "P1": "Fundamentals proyecto",
@@ -1051,6 +1055,8 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
     dev = DEVELOPMENTS_BY_ID.get(project_id)
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # candado: no comparar desde un proyecto ajeno
 
     # Find peers in same colonia (by colonia_id)
     from data_developments import DEVELOPMENTS

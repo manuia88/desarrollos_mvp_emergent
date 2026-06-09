@@ -891,7 +891,9 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
                            request=request)
         await emit_ml_event(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
                             context={"entity_type": "unit", "action": "update"}, ai_decision={}, user_action={})
-    except Exception: pass
+    except Exception as _ae:
+        import logging as _lg
+        _lg.getLogger("dmx.developer").warning(f"[unit-status] audit/ml log falló (no bloquea): {_ae}")
     return {"ok": True, "status": payload.status}
 
 

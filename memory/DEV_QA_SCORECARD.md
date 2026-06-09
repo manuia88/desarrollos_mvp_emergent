@@ -2,6 +2,23 @@
 **2026-06-08 · 5 auditores en paralelo (verificado contra código actual).**
 **2026-06-09 · LAS 5 ÁREAS RESUELTAS (B·C·A·D·F ✅). Ola 1 cerrada.**
 
+---
+
+## OLA 2 · QA Técnico (2026-06-09 · 5 auditores: seguridad/robustez/atomicidad/rutas/4-portales)
+
+| Frente | Veredicto | Arreglado |
+|---|---|---|
+| Seguridad (IDOR/auth/mass-assign/injection) | ✅ | 3 fugas cross-tenant cerradas con `assert_dev_project`: dev_batch6 engagement-units+timeline (fuga de PII de leads ajenos) · dev_batch2 IE breakdown/improve/colonia-benchmark (inteligencia competitiva) · dev_batch5 patch_distribution (pausaba la distribución de otra dev → +filtro `dev_org_id`). NoSQL/mass-assign: ya limpios. |
+| Arranque resiliente | ✅ | server.py: el bloque de índices del dev iba SIN red → un conflicto de índice tumbaba todo el server. Ahora cada índice en su try/except (loggea y continúa). |
+| Atomicidad | ✅ | `vender_captacion` con CAS (`vendida:{$ne:true}` + modified_count) → ya no registra cierres dobles que ensuciaban el AVM. (operaciones/status ya tenía CAS.) |
+| Cross-portal · cierra ciclo | ✅ | (1) Asesor cierra venta de unidad → marca la unidad VENDIDA (units_history `sale_closed`) → sube al ritmo del dev (weekly_sales) + ficha pública + cubo. (2) Ediciones manuales del dev (developer_unit_overrides) → ahora se fusionan en lo que ve el COMPRADOR. Verificado E2E. |
+| Robustez (500s/except:pass) | ✅ | dev_batch3 export geo: `float()` con try/except (era 500) · 2 `except: pass` que ocultaban fallos (audit de unit-status + insert de cierre) → `log.warning` · resale_data ahora tiene logger. |
+| Rutas/contrato/crons | ✅ verde | 0 endpoints huérfanos · contrato front↔back sano · crons protegidos. (El único 🔴 era el arranque, ya resuelto.) |
+
+**Cola menor 🟡 (documentada, no rompe):** CAS en patch_unit_status + índice único en developer_unit_overrides · asesor lee inventario del seed en vez del overlay efectivo (#15) · fotos del dev no llegan al comprador (#16) · overlay solo en la ficha, no en los listados (#17) · rate-limit en el reporte Sonnet · Pydantic en ack_alert.
+
+**Baseline:** red-team de aislamiento 16/16 (sigue verde tras los nuevos candados).
+
 ## Resumen (semáforo por área)
 
 | Área | Veredicto | En una línea |

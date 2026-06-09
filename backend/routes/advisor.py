@@ -2830,9 +2830,12 @@ async def vender_captacion(cid: str, payload: VenderCaptacion, request: Request)
     colonia = capt.get("colonia_id")
     if not (precio and m2 and colonia):
         raise HTTPException(400, "Faltan precio, m² o colonia en la captación para registrar el cierre")
-    await db.asesor_captaciones.update_one(
-        {"id": cid, "owner_id": user.user_id},
+    # CAS: solo si AÚN no está vendida → evita doble cierre (doble-click/carrera) que ensuciaría el AVM.
+    upd = await db.asesor_captaciones.update_one(
+        {"id": cid, "owner_id": user.user_id, "vendida": {"$ne": True}},
         {"$set": {"vendida": True, "precio_cierre": precio, "fecha_cierre": _now(), "updated_at": _now()}})
+    if upd.modified_count != 1:
+        return {"ok": True, "vendida": True, "cierre_registrado": False, "ya_estaba_vendida": True, "pm2": None}
     from resale_data import registrar_cierre
     cierre = await registrar_cierre(
         db, colonia_id=colonia, m2=m2, precio=precio,
@@ -3020,6 +3023,25 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                     deal={"sale_price": op.get("precio") or op.get("valor_cierre")})
         except Exception as _ce:
             logging.getLogger("dmx.advisor").info(f"[cerebro] hook venta-proyecto no aplicó: {_ce}")
+        # Cierra el ciclo asesor→dev→comprador: si la operación trae unidad, márcala VENDIDA →
+        # sube al ritmo de venta del dev (weekly_sales), a la ficha pública y al cubo del superadmin.
+        try:
+            _uid = op.get("unidad_id")
+            _did = op.get("desarrollo_id") or op.get("dev_id") or op.get("project_id")
+            if _uid and _did:
+                from units_history import record_unit_change
+                await record_unit_change(
+                    db, unit_id=_uid, development_id=_did, field_changed="status",
+                    old_value=None, new_value="vendido",
+                    changed_by_user_id=user.user_id, source="sale_closed",
+                    extra={"operacion_id": oid})
+                await db.developer_unit_overrides.update_one(
+                    {"unit_id": _uid},
+                    {"$set": {"unit_id": _uid, "dev_id": _did, "status": "vendido",
+                              "reason": "Venta cerrada por asesor", "updated_by": user.user_id,
+                              "updated_at": _now()}}, upsert=True)
+        except Exception as _ue:
+            logging.getLogger("dmx.advisor").warning(f"[operacion] marcar unidad vendida falló: {_ue}")
     # Phase F0.11 — ML training event on status transition
     try:
         from observability import emit_ml_event

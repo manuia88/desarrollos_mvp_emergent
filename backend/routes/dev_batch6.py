@@ -290,6 +290,8 @@ async def engagement_units(
     user = await _auth(request)
     if user.role not in ("developer_admin", "developer_director", "superadmin"):
         raise HTTPException(403, "Rol no autorizado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # candado: no leer engagement/leads de proyecto ajeno
     db = _db(request)
     period_from, period_to = _parse_dates(from_date, to_date)
 
@@ -430,6 +432,8 @@ async def engagement_unit_timeline(
     user = await _auth(request)
     if user.role not in ("developer_admin", "developer_director", "superadmin"):
         raise HTTPException(403, "Rol no autorizado")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # candado: no leer engagement/leads de proyecto ajeno
     db = _db(request)
     period_from, period_to = _parse_dates(from_date, to_date)
 

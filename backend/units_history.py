@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 
 log = logging.getLogger("dmx.units_history")
 
-ALLOWED_SOURCES = {"manual_edit", "auto_sync", "drive_sheets", "drive_webhook", "bulk_upload", "system"}
+ALLOWED_SOURCES = {"manual_edit", "auto_sync", "drive_sheets", "drive_webhook", "bulk_upload", "system", "sale_closed"}
 
 
 def _now() -> datetime:

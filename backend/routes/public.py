@@ -402,6 +402,18 @@ async def list_dev_units(
     await _ensure_overlay_loaded(dev_id, request.app.state.db)
     d = _apply_overlay(d)
     units = list(d.get("units", []))
+    # Fusiona las ediciones MANUALES del dev (developer_unit_overrides) → el comprador ve el dato
+    # actualizado (precio/estado/m²), no solo el seed. Cierra el ciclo dev→comprador.
+    try:
+        ov_map = {}
+        async for ov in request.app.state.db.developer_unit_overrides.find({"dev_id": dev_id}, {"_id": 0}):
+            ov_map[ov.get("unit_id")] = ov
+        if ov_map:
+            _skip = {"unit_id", "dev_id", "updated_by", "updated_at", "reason"}
+            units = [({**u, **{k: v for k, v in (ov_map.get(u.get("id")) or {}).items()
+                               if k not in _skip and v is not None}}) for u in units]
+    except Exception:
+        pass
     if status:
         units = [u for u in units if u.get("status") == status]
     if beds is not None:

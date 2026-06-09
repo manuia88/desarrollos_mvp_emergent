@@ -917,7 +917,10 @@ async def patch_distribution(dist_id: str, request: Request):
     if not update:
         raise HTTPException(422, "Nada que actualizar")
     update["updated_at"] = _now().isoformat()
-    r = await db.report_distributions.update_one({"id": dist_id}, {"$set": update})
+    # Candado: solo tu propia distribución (antes un dev podía pausar la de otra desarrolladora).
+    org = getattr(user, "tenant_id", None) or "default"
+    scope = {"id": dist_id} if user.role == "superadmin" else {"id": dist_id, "dev_org_id": org}
+    r = await db.report_distributions.update_one(scope, {"$set": update})
     if r.matched_count == 0:
         raise HTTPException(404, "Distribución no encontrada")
     return {"ok": True, **update}

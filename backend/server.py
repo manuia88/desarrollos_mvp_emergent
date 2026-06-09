@@ -1590,19 +1590,28 @@ async def startup():
         await seed_demo_offers(db)
     except Exception as e:
         logging.warning(f"[startup] W3.8 cross-sell seed failed: {e}")
-    # Phase 4 Batch 1 — Dev Portal indexes
-    await ensure_dev_batch1_indexes(db)
-    # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
-    await ensure_dev_batch2_indexes(db)
-    # Phase 4 Batch 3 — Internal users + GeoJSON export indexes
-    await ensure_dev_batch3_indexes(db)
-    # Phase 4 Batch 4 — Sales / CRM core indexes
-    await ensure_dev_batch4_indexes(db)
-    # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
-    await ensure_batch4_1_indexes(db)
-    await seed_dmx_inmobiliaria(db)
+    # Phase 4 — Índices del portal Dev (RESILIENTE: un índice que falle loggea pero NO tumba el
+    # arranque · antes un IndexOptionsConflict o duplicados en un unique dejaban el server sin levantar).
+    for _n, _fn in (
+        ("dev_batch1", ensure_dev_batch1_indexes),
+        ("dev_batch2", ensure_dev_batch2_indexes),
+        ("dev_batch3", ensure_dev_batch3_indexes),
+        ("dev_batch4", ensure_dev_batch4_indexes),
+        ("batch4_1", ensure_batch4_1_indexes),
+    ):
+        try:
+            await _fn(db)
+        except Exception as exc:
+            logging.warning(f"[startup] índices {_n} fallaron (continúa): {exc}")
+    try:
+        await seed_dmx_inmobiliaria(db)
+    except Exception as exc:
+        logging.warning(f"[startup] seed_dmx_inmobiliaria falló (continúa): {exc}")
     # W5.11 Parte 3 — Disputes
-    await ensure_disputes_indexes(db)
+    try:
+        await ensure_disputes_indexes(db)
+    except Exception as exc:
+        logging.warning(f"[startup] índices disputes fallaron (continúa): {exc}")
     # W5.12 Parte 1 — Knowledge Graph: health check + constraints (best-effort)
     try:
         from knowledge_graph_engine import health_check, ensure_kg_constraints, NODE_TYPES, EDGE_TYPES
@@ -1626,35 +1635,33 @@ async def startup():
             logging.warning(f"[KG anomaly] ensure indexes failed: {exc}")
     except Exception as exc:
         logging.warning(f"[KG] startup hook failed: {exc}")
-    # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications
+    # Phase 18 + Phase 4 — más índices (mismo patrón resiliente: cada uno aislado).
     from services.inmobiliaria_relationships import ensure_inmobiliaria_relationship_indexes
-    await ensure_inmobiliaria_relationship_indexes(db)
-    # Phase 4 Batch 4.2 — Universal LeadKanban + Permission Tiers
-    await ensure_batch4_2_indexes(db)
-    # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
-    await ensure_batch4_3_indexes(db)
-    # Phase 4 Batch 4.4 — AI Engine + Analytics
-    await ensure_batch4_4_indexes(db)
-    # Phase 4 Batch 5 — Dynamic Pricing A/B + Branded PDF Reports
-    await ensure_batch5_indexes(db)
-    # Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
-    await ensure_batch6_indexes(db)
-    # Phase 4 Batch 7 — Site Selection AI Standalone
-    await ensure_batch7_indexes(db)
-    # Phase 4 Batch 7.2 — INEGI Real Demographics
-    await ensure_batch7_2_indexes(db)
-    # Phase 4 Batch 8 — Cash Flow Forecast IA
-    await ensure_batch11_indexes(db)
-    await ensure_batch10_indexes(db)
-    await ensure_location_intel_indexes(db)
-    await ensure_sales_intel_indexes(db)
-    await ensure_insights_intel_indexes(db)
-    await ensure_amenity_intel_indexes(db)
-    await ensure_broker_intel_indexes(db)
-    await ensure_price_history_indexes(db)
-    await ensure_channel_intel_indexes(db)
-    await ensure_project_full_indexes(db)
-    await ensure_batch8_indexes(db)
+    for _n, _fn in (
+        ("inmobiliaria_relationships", ensure_inmobiliaria_relationship_indexes),
+        ("batch4_2", ensure_batch4_2_indexes),
+        ("batch4_3", ensure_batch4_3_indexes),
+        ("batch4_4", ensure_batch4_4_indexes),
+        ("batch5", ensure_batch5_indexes),
+        ("batch6", ensure_batch6_indexes),
+        ("batch7", ensure_batch7_indexes),
+        ("batch7_2", ensure_batch7_2_indexes),
+        ("batch11", ensure_batch11_indexes),
+        ("batch10", ensure_batch10_indexes),
+        ("location_intel", ensure_location_intel_indexes),
+        ("sales_intel", ensure_sales_intel_indexes),
+        ("insights_intel", ensure_insights_intel_indexes),
+        ("amenity_intel", ensure_amenity_intel_indexes),
+        ("broker_intel", ensure_broker_intel_indexes),
+        ("price_history", ensure_price_history_indexes),
+        ("channel_intel", ensure_channel_intel_indexes),
+        ("project_full", ensure_project_full_indexes),
+        ("batch8", ensure_batch8_indexes),
+    ):
+        try:
+            await _fn(db)
+        except Exception as exc:
+            logging.warning(f"[startup] índices {_n} fallaron (continúa): {exc}")
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)
     await ensure_preferences_indexes(db)

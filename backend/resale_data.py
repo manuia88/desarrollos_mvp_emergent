@@ -11,7 +11,10 @@ mañana cualquier feed de reventa real se suma aquí.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
+
+log = logging.getLogger("dmx.resale_data")
 
 MIN_REAL = 2          # captaciones mínimas para considerar la referencia "real"
 _MAD_K = 3.5          # umbral robusto de atípico (mediana ± K·MAD)
@@ -154,7 +157,8 @@ async def registrar_cierre(db, *, colonia_id: str, m2: float, precio: float,
     }
     try:
         await db.cierres_reales.insert_one(dict(doc))
-    except Exception:
+    except Exception as _ie:
+        log.warning(f"[registrar_cierre] no se pudo guardar el cierre (dato clave del AVM): {_ie}")
         return None
     # Flywheel: una venta nueva recalibra el modelo suelo→comercial (ING.2) — fail-open.
     try:
