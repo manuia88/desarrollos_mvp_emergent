@@ -6,6 +6,17 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🔐 CIFRADO DE email/teléfono EN REPOSO (índice ciego) — DIFERIDO de C3 (2026-06-09)
+
+Origen: corrección C3 (Privacidad/LFPDPPP) de las 6 auditorías QA del portal Dev. En C3 se cifró lo que NO rompe (bytes del PDF, texto-libre) y se construyó el helper `pii_crypto.py`. Lo que falta:
+- **Qué es:** cifrar en reposo `email`/`phone`/`whatsapp` en `leads`, `asesor_contacts`, `lead_captures`, `whatsapp_messages` (campos PII en texto plano hoy).
+- **Por qué se difirió:** esos campos son LLAVE de búsqueda/JOIN — unen los dos universos de leads (`db.leads` ↔ `asesor_contactos` por email) y el borrado DSR empareja por email. Cifrarlos a secas ROMPE los JOIN y el DSR.
+- **Cómo hacerlo bien (necesita migración):** patrón de **índice ciego** = guardar el valor cifrado (Fernet) + un `email_hash`/`phone_hash` determinista (HMAC-SHA256 con sal del sistema) para los matches/dedup/DSR. Migración one-shot que recorre las colecciones, cifra el valor y calcula el hash. Actualizar todos los read-paths para descifrar bajo demanda y todos los match-paths para usar el hash.
+- **Costo estimado:** ~10-14h (migración + helper hash + swap de ~15-20 read/match sites + tests). Necesita ESCALA/migración de datos reales → por eso es batch propio, no inline.
+- **Estado:** helper `pii_crypto.py` ya existe (reutilizable). Falta el hash determinista + la migración + el swap.
+
+---
+
 ## 🏛️ VALORES UNITARIOS DE SUELO 2026 — OCR de la tabla oficial (2026-06-08 · ING.2b)
 
 Origen: ING.2b. El conector ya está construido (`valores_unitarios_engine` · status + ingest + `get_valor_unitario` + botón superadmin "Cargar Valores Unitarios 2026" + ancla preferente en la valuación del comprador sobre el SIG 2022). **Solo falta el DATO.**
