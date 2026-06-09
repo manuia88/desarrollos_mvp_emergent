@@ -6,6 +6,19 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🏛️ VALORES UNITARIOS DE SUELO 2026 — OCR de la tabla oficial (2026-06-08 · ING.2b)
+
+Origen: ING.2b. El conector ya está construido (`valores_unitarios_engine` · status + ingest + `get_valor_unitario` + botón superadmin "Cargar Valores Unitarios 2026" + ancla preferente en la valuación del comprador sobre el SIG 2022). **Solo falta el DATO.**
+- **Qué es:** tablas oficiales del valor del suelo $/m² por zona (área de valor) que publica la Gaceta CDMX en el Código Fiscal 2026 (vigente desde 1-ene-2026). Base del predial.
+- **Links 2026 LOCALIZADOS (oficiales · Finanzas CDMX · verificados live 2026-06-08):**
+  - Parte 1: `https://transparencia.finanzas.cdmx.gob.mx/repositorio/public/upload/repositorio/Tesoreria/70/XLVIII/a/Criterio_5/valores_unitarios_cfcdmx_2026_parte1.pdf`
+  - Parte 2: `.../valores_unitarios_cfcdmx_2026_parte2.pdf` (mismo path · puede haber más partes)
+- **Por qué diferido:** los PDFs traen las tablas como IMÁGENES escaneadas → requieren OCR (cientos de páginas de códigos área-de-valor → colonia/$/m²) con revisión de errores. Es trabajo real.
+- **Por qué OPCIONAL (no bloquea):** el modelo suelo→comercial (ING.2) ya APRENDE el valor de mercado de las ventas reales. El valor catastral es un PISO (~40-65% del comercial), refuerzo no needle-mover. Founder lo dejó en backlog (2026-06-08).
+- **Cómo encenderlo cuando se quiera:** OCR de los 2 PDFs → CSV {colonia_id, valor_suelo_m2} → `valores_unitarios_engine.ingest_rows` (o poner `IE_VALORES_UNITARIOS_2026_URL` con una tabla limpia y usar el botón). El sistema lo prefiere automáticamente sobre el SIG 2022.
+
+---
+
 ## 💳 RECOMENDADOR DE FORMAS DE PAGO — reglas → ML/mercado (2026-06-05 · B1.4)
 
 Origen: B1.4 (asistente `suggest_schemes` en payment_schemes.py). Hoy es **rule-based** (playbook por segmento/etapa/precio CDMX) — honesto, sin ML. Construido para enriquecerse SIN cambiar el contrato del endpoint (`POST /api/dev/wizard/suggest-schemes` ya devuelve `{schemes, rationale, confidence, basado_en}`).
