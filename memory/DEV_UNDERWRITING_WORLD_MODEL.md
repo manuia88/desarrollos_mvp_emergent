@@ -141,9 +141,16 @@ El frontend **NO** es una cantidad absurda de elementos que confunde. Es **limpi
 ---
 
 ## 12. Qué ya existe vs net-new (no partimos de cero · ~60% latente)
-| Calculadora / pieza | Ya en repo (latente) | Net-new |
+
+> **Estado REAL del dato SIG (verificado 2026-06-09 · disciplina verify-don't-trust):** tenemos los TUBOS, no el AGUA.
+> - `sig_catastro_engine.py` (ING.1): valor de suelo $/m² catastral · capa `predios2022sig_local` (6.8M predios = toda la ciudad). El motor puede jalar CUALQUIER colonia por lat/lng. **Pero la DB solo tiene 16 colonias sembradas** (muestra: Polanco $1,409/m², etc.), todas con su valor SIG.
+> - `data_sources/sigcdmx_engine.py` (W4.18): uso de suelo + densidad + niveles máx por predio (16 alcaldías, `lookup(cuenta_catastral)`, guarda `raw_metadata` con 18 campos crudos). **Pero `sigcdmx_uso_suelo` = 0 docs poblados** (la ingesta no ha corrido o el CSV oficial cambió de formato/URL).
+> - **COS/CUS explícito** (% área libre) NO está mapeado (probablemente vive en `raw_metadata`).
+> - **Conclusión:** la FUENTE SIGCDMX sí tiene toda la ciudad; NOSOTROS tenemos 16 colonias y la zonificación en cero. Poblar todo es OPERATIVO (el motor existe), no construir desde cero.
+
+| Calculadora / pieza | Ya en repo (latente) | Net-new / falta |
 |---|---|---|
-| Valor suelo / catastro | ING.1, AVM, `comercial_value_model` | fusionar con COS/CUS por predio |
+| Valor suelo / catastro | ING.1 motor OK · AVM · `comercial_value_model` | **poblar las ~1,800 colonias** (hoy 16) · fusionar con COS/CUS por predio |
 | Due Diligence del predio | IE / POI | checklist legal/factibilidades del doc 01 |
 | Generador de producto (HBU) | `dev_batch7` (site selection) | el motor "generador OFICIAL" (fórmulas reales) |
 | Paramétrico de obra | — | partidas Neodata + curva S del WBS |
@@ -160,4 +167,5 @@ El frontend **NO** es una cantidad absurda de elementos que confunde. Es **limpi
 ---
 
 ## 13. Secuencia de fases (gate por fase · cada índice se prende solo cuando su back-test mide error aceptable)
-F1 Cimiento de Datos + Valor Residual → F2 Autopiloto de Memorándum → F3 Gemelo Digital + Predicción↔Realidad → F4 Modelo del Mundo (3 índices, shadow→validado) → F5 Utilidad de Datos e Infraestructura. Transversal: los 4 portales conectados (Cerebro) + UX/UI limpio + Doctrina de Datos en cada chunk. (Checklist detallado de batches/chunks: ver el mensaje de chat que acompaña este doc / `DEV_QA_SCORECARD.md` para el formato.)
+**F1.0 (PRIMER chunk, prerrequisito de todo): poblar el SIG catastral de las ~1,800 colonias de CDMX** — sembrar colonias (centroide/polígono del SIGCDMX) + correr el sync completo de valor de suelo + arreglar y correr la ingesta de uso/densidad/niveles (hoy en 0) + mapear % área libre → COS/CUS. Sin esto, el Valor Residual no funciona fuera de las 16 colonias muestra.
+Luego: F1 Valor Residual → F2 Autopiloto de Memorándum → F3 Gemelo Digital + Predicción↔Realidad → F4 Modelo del Mundo (3 índices, shadow→validado) → F5 Utilidad de Datos e Infraestructura. Transversal: 4 portales (Cerebro) + UX/UI limpio + Doctrina de Datos en cada chunk.
