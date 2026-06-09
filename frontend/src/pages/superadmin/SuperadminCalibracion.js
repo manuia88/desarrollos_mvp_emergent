@@ -5,7 +5,7 @@
  * Cierra el ciclo: botón para aplicar los valores documentados al motor de valor residual.
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { Gauge, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Gauge, CheckCircle, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card } from '../../components/advisor/primitives';
 import { getCalibracionTerreno, aplicarCalibracionTerreno } from '../../api/indices';
@@ -13,6 +13,7 @@ import { getCalibracionTerreno, aplicarCalibracionTerreno } from '../../api/indi
 const ESTADO = {
   calibrado: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)', border: 'rgba(34,197,94,0.35)', label: 'Calibrado', Icon: CheckCircle },
   ajustar:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.38)', label: 'Por ajustar', Icon: AlertTriangle },
+  info:      { color: '#818cf8', bg: 'rgba(129,140,248,0.08)', border: 'rgba(129,140,248,0.35)', label: 'Referencia', Icon: Info },
 };
 const GLOBAL = {
   calibrado: { color: '#22c55e', label: 'Calibrado' },

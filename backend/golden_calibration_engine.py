@@ -98,19 +98,16 @@ async def calibrar(db) -> Dict[str, Any]:
     if estado_b != "calibrado":
         sugerencias.append({"que": "Comisión de ventas", "de": f"{com_eng:.1f}%", "a": f"{com_bm:.1f}%"})
 
-    # ── Check C · Honorarios de desarrollo (developer fee + gerencia) ──
+    # ── Check C · Honorarios de desarrollo (referencia · editable por el dev) ──
+    # No hay un estándar único de CDMX confirmado (ruling founder): se muestra como REFERENCIA,
+    # no como aprobado/reprobado. La metodología documenta 16% (fee 10% + gerencia 6%).
     fee_bm = (SOFT_COST_BENCHMARK["developer_fee_pct"] + SOFT_COST_BENCHMARK["gerencia_pct"]) * 100
     ger_eng = eff["pct_gerencia"] * 100
-    err_c = (ger_eng - fee_bm) / fee_bm * 100
-    estado_c = "calibrado" if abs(err_c) <= 20 else "ajustar"
     checks.append(_check(
-        "honorarios", "Honorarios de desarrollo (fee + gerencia)",
-        f"{fee_bm:.0f}%", f"{ger_eng:.0f}%", error_pct=err_c, tolerancia_pct=20,
-        estado=estado_c,
-        detalle="La metodología documenta developer fee 10% + gerencia 6% = 16% sobre obra.",
-        sugerencia="" if estado_c == "calibrado" else "Subir honorarios a 16% (fee 10% + gerencia 6%)."))
-    if estado_c != "calibrado":
-        sugerencias.append({"que": "Honorarios de desarrollo", "de": f"{ger_eng:.0f}%", "a": f"{fee_bm:.0f}%"})
+        "honorarios", "Honorarios de desarrollo (referencia)",
+        f"{fee_bm:.0f}%", f"{ger_eng:.0f}%", estado="info",
+        detalle="Referencia de la metodología: developer fee 10% + gerencia 6% = 16% sobre obra. "
+                "Editable por el dev — no hay un estándar único de CDMX."))
 
     # ── Check D · Costo de obra/m² vs Neodata (referencia económica) ──
     obra_eng = None
@@ -142,12 +139,15 @@ async def calibrar(db) -> Dict[str, Any]:
     terreno_implicito = g["costo_total_mxn"] - obra - blandos
     incidencia = terreno_implicito / g["ventas_mxn"] * 100 if g["ventas_mxn"] else 0
     lo, hi = g["incidencia_terreno_band"]
-    estado_e = "calibrado" if lo <= incidencia <= hi else "ajustar"
+    en_banda = lo <= incidencia <= hi
+    # Lectura DERIVADA (depende de un precio supuesto), no una fórmula nuestra → referencia.
     checks.append(_check(
         "incidencia", "Incidencia del terreno (% del valor de venta)",
-        f"{lo:.0f}%–{hi:.0f}%", f"{incidencia:.0f}%", estado=estado_e, unidad="%",
+        f"{lo:.0f}%–{hi:.0f}%", f"{incidencia:.0f}%", estado="info", unidad="%",
         detalle=f"Con obra ~${obra/1e6:.0f}M + blandos ~${blandos/1e6:.0f}M, el terreno implícito "
-                f"es ~${terreno_implicito/1e6:.0f}M. (Usa precio de venta ref ${g['precio_venta_pm2_ref']/1000:.0f}k/m² · supuesto.)"))
+                f"es ~${terreno_implicito/1e6:.0f}M → {incidencia:.0f}% del valor de venta "
+                f"({'dentro' if en_banda else 'cerca'} del rango típico {lo:.0f}–{hi:.0f}%). "
+                f"Depende del precio de venta ref ${g['precio_venta_pm2_ref']/1000:.0f}k/m² (supuesto)."))
 
     # ── Veredicto global ──
     n_ajustar = sum(1 for c in checks if c["estado"] == "ajustar")

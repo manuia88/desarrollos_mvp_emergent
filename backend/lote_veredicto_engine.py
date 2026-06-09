@@ -52,6 +52,7 @@ async def analizar_lote(
     margen_objetivo: Optional[float] = None,
     eficiencia: Optional[float] = None,
     comision_pct_manual: Optional[float] = None,
+    honorarios_pct_manual: Optional[float] = None,
     city: str = "CDMX",
 ) -> Dict[str, Any]:
     """Corre las 3 herramientas y arma el veredicto único. Nunca crashea."""
@@ -61,7 +62,8 @@ async def analizar_lote(
         db, terreno_m2=terreno_m2, categoria=categoria, colonia_id=colonia_id,
         cus_manual=cus_manual, precio_venta_pm2_manual=precio_venta_pm2_manual,
         costo_obra_pm2_manual=costo_obra_pm2_manual, margen_objetivo=margen_objetivo,
-        eficiencia=eficiencia, comision_pct_manual=comision_pct_manual, city=city)
+        eficiencia=eficiencia, comision_pct_manual=comision_pct_manual,
+        honorarios_pct_manual=honorarios_pct_manual, city=city)
 
     # 2) Due Diligence (qué revisar) — fail-open.
     dd = None
