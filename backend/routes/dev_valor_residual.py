@@ -95,6 +95,24 @@ async def due_diligence(request: Request, body: DueDiligenceIn):
         raise HTTPException(500, f"No se pudo generar: {e}")
 
 
+@router.post("/analizar")
+async def analizar(request: Request, body: CalculoIn):
+    """F1.5 · Veredicto único del lote: corre las 3 herramientas (residual + due diligence +
+    Norma 3) y las sintetiza en una sola lectura. El frontend hace UNA llamada."""
+    await _auth(request)
+    from lote_veredicto_engine import analizar_lote
+    try:
+        return await analizar_lote(
+            _db(request),
+            terreno_m2=body.terreno_m2, categoria=body.categoria, colonia_id=body.colonia_id,
+            cus_manual=body.cus_manual, precio_venta_pm2_manual=body.precio_venta_pm2_manual,
+            costo_obra_pm2_manual=body.costo_obra_pm2_manual, margen_objetivo=body.margen_objetivo,
+            eficiencia=body.eficiencia, city=body.city)
+    except Exception as e:
+        log.exception("[valor-residual] analizar falló")
+        raise HTTPException(500, f"No se pudo analizar: {e}")
+
+
 class Norma3In(BaseModel):
     colonia_id: str
     terreno_m2: float = Field(1000, gt=0, le=1_000_000)

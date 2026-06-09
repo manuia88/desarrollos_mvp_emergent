@@ -37,6 +37,7 @@ export default function DesarrolladorValorTerreno() {
   const [res, setRes] = useState(null);
   const [dd, setDd] = useState(null);
   const [n3, setN3] = useState(null);
+  const [veredicto, setVeredicto] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBreak, setShowBreak] = useState(false);
   const [err, setErr] = useState('');
@@ -59,7 +60,8 @@ export default function DesarrolladorValorTerreno() {
   };
 
   const calcular = useCallback(async () => {
-    setErr(''); setLoading(true); setRes(null); setDd(null); setN3(null);
+    setErr(''); setLoading(true); setRes(null); setDd(null); setN3(null); setVeredicto(null);
+    setShowBreak(false);
     try {
       const body = {
         terreno_m2: Number(terreno),
@@ -69,15 +71,12 @@ export default function DesarrolladorValorTerreno() {
       if (margen !== '') body.margen_objetivo = Number(margen) / 100;
       if (precioManual !== '') body.precio_venta_pm2_manual = Number(precioManual);
       if (costoManual !== '') body.costo_obra_pm2_manual = Number(costoManual);
-      // Cierra el ciclo: oferta máxima + qué revisar + oportunidad de fusión (en paralelo).
-      const [d, ddRes, n3Res] = await Promise.all([
-        api.calcularResidual(body),
-        api.dueDiligence({ colonia_id: colonia?.id || null, superficie_m2: Number(terreno) }).catch(() => null),
-        colonia?.id
-          ? api.detectarNorma3({ colonia_id: colonia.id, terreno_m2: Number(terreno), categoria }).catch(() => null)
-          : Promise.resolve(null),
-      ]);
-      setRes(d); setDd(ddRes); setN3(n3Res);
+      // F1.5 · una sola llamada: el asistente lee el lote completo y lo sintetiza.
+      const d = await api.analizarLote(body);
+      setVeredicto(d.veredicto || null);
+      setRes(d.residual || null);
+      setDd(d.due_diligence || null);
+      setN3(d.norma3 || null);
     } catch (e) {
       setErr(e.message || 'No se pudo calcular');
     } finally {
@@ -204,6 +203,9 @@ export default function DesarrolladorValorTerreno() {
 
           {res && (
             <>
+              {/* ── Veredicto del asistente (F1.5) · la lectura de todo el lote, primero ── */}
+              {veredicto && <Veredicto v={veredicto} />}
+
               {/* Número grande */}
               <Card style={{ padding: 28, background: sem.bg, border: `1px solid ${sem.border}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
@@ -308,7 +310,7 @@ const ESTADO = {
 };
 
 function DueDiligence({ dd }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const sem = SEMAFORO[dd.semaforo] || SEMAFORO.amarillo;
   const c = dd.conteo || {};
   return (
@@ -370,8 +372,37 @@ function DueDiligence({ dd }) {
   );
 }
 
+function Veredicto({ v }) {
+  const sem = SEMAFORO[v.semaforo] || SEMAFORO.amarillo;
+  const temaColor = { Precio: '#86efac', Revisión: '#a5b4fc', Oportunidad: '#fcd34d', Confianza: '#94a3b8' };
+  return (
+    <Card style={{ padding: 22, marginBottom: 14, background: sem.bg, border: `1px solid ${sem.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <Sparkle size={16} style={{ color: '#a5b4fc' }} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Lo que vi en este lote
+        </span>
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', lineHeight: 1.2 }}>{v.titular}</div>
+      <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>{v.resumen_corto}</div>
+
+      <div style={{ display: 'grid', gap: 9, marginTop: 14 }}>
+        {(v.lo_que_vi || []).map((b, i) => (
+          <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+            <span style={{ flexShrink: 0, marginTop: 5, width: 7, height: 7, borderRadius: 999,
+              background: temaColor[b.tema] || '#94a3b8' }} />
+            <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 }}>
+              <b style={{ color: '#e2e8f0' }}>{b.tema}:</b> {b.texto}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function Norma3({ n3 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const best = n3.oportunidades[0];
   return (
     <Card style={{ padding: 18, marginTop: 14, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.28)' }}>

@@ -38,3 +38,11 @@ export const detectarNorma3 = (body) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
   });
+
+// F1.5 · una sola llamada: veredicto + las 3 herramientas sintetizadas.
+export const analizarLote = (body) =>
+  j('/api/dev/valor-residual/analizar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
