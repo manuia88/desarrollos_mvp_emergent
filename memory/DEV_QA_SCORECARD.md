@@ -168,17 +168,23 @@
 | **C1** ✅ HECHO (2026-06-09) | **Escala / rendimiento** | 🔴→✅ | `maxPoolSize`/timeouts en server.py · `dev_scale_indexes.py` (índices faltantes background=True) · `ensure_project_full_indexes` lleno · `background=True` en dev_batch19+asesor_indexes · `bounded_to_list` (tope explícito+aviso, sin truncado silencioso) en dev_batch6/7 · `llm_guard.send_with_timeout` en weekly brief+habitabilidad. Verificado: arranca limpio, health 200. **Falta (cola 🟢):** convertir barridos a agregación Mongo (optimización) · N+1 batch $in restantes | M |
 | **C2** | **Raíz: datos forkeados** | 🟡 (causa C1 y divergencias) | unificar `development_id`→`project_id` (queries+índices) · 1 helper de merge de unidad (override>overlay>seed) · 1 vocabulario de estado vendido · timestamps ISO | M |
 | **C3** ✅ HECHO (2026-06-09) | **Privacidad / LFPDPPP** | 🔴→✅ | `compliance_consent.py` (registro consentimiento) + UI aviso+opt-in en LeadCaptureModal y LandingLeadCaptureForm (front+back) · `pii_crypto.py` (cifrado reposo fail-soft) · PDF público cifrado+TTL+sin nombre claro · `redact_pii` antes de la IA (lead_enrichment) · audit_immutable redacta PII · DSR 2ª pasada por lead_id/teléfono (conversación/WhatsApp/PDF/enrichment/taste/scores) con evidencia. Verificado E2E. **DIFERIDO (batch propio):** cifrar email/teléfono en reposo = rompe JOINs → necesita migración con índice ciego (hash) | M-L |
-| **C4** | **IA: inyección + costo + confianza** | 🔴/🟡 | sanitizar entradas a LLM (lead_name/unit_number/colonia/título) · `re.escape` en regex · CRLF en filenames · tope de costo ANTES de la llamada · SSRF en fotos · marcar confianza/stub honesto · Cerebro `is_example` | M |
+| **C4** ✅ HECHO (2026-06-09) | **IA: inyección + costo + confianza** | 🔴→✅ | `services/ai_safety.py` (sanitize_llm_input/safe_filename/escape_regex/is_public_url_safe · emite evento → Sala de Seguridad) · SSRF en fotos (dev_batch1, follow_redirects=False) · re.escape en regex (dev_batch4_1) · safe_filename en 4 exports · tope de costo+timeout en las 7 llamadas LLM (send_with_timeout) · Cerebro `is_example` excluido de la calibración. Verificado con tests | M |
 | **C5** | **Observabilidad / fallas silenciosas** | 🟡-🔴 | reemplazar `except: pass` por `log.warning` + flag de error (los ~6 con impacto: cache, on_deal_closed, demanda en 0) · invalidar cache al editar · fail-closed donde aplica | S-M |
 | **C6** | **Correctitud** | 🟡 | bug `price_to=price_from` · zona horaria en fechas (CDMX) · divergencia cross-portal (maps_cross lee seed) · formato MXN | S |
 | **C7** | **Primer día / UX / a11y / lenguaje / perf percibida** | 🟡 | empty states con acción (MisProyectos/FichaHome) · jerga del wizard (+resumen) · wizard sin "próximo paso" al terminar · estados atascados (under_review) · **aria-labels en botones de ícono + `:focus` outline** (A6.2) · tablas/modales · **dashboard 3 fetch serie → `Promise.all`+skeleton** (A6.3) · **DesarrolladorReportes monolito → lazy/memo** (A6.4) | M |
-| **C8** | **Red de pruebas** | 🔴 (red) | tests del portal dev (dashboard/auth/pagos/auto-sync) · el red-team de aislamiento ya existe (16/16) | M |
+| **C8** ✅ PARCIAL (2026-06-09) | **Red de pruebas** | 🔴→🟡 | `tests/test_dev_hardening_c1_c3_c4.py` (26 tests · C1+C3+C4) + red-team aislamiento (16/16) existente. **Falta (cola):** tests de dashboard/auth/pagos/auto-sync end-to-end del portal | M |
 | **C9** | **Permisos por plan** | 🟡 | **gate de tier EN BACKEND para features premium de IA** (weekly brief/site selection/cash flow/engagement recs — hoy solo escondidas en front, A6.1) · revisar flags agentic en backend | S |
 | **C10** | **Higiene** | 🟢 | `DesarrolladorInventario.js` sin ruta · componentes/API sin uso · redirects viejos | S |
 
 **Puntos ciegos que el crítico de completitud marcó (no auditados aún):** websockets/broadcast · CSRF · rotación de tokens · S3 ACL/cifrado · retry/dead-letter de jobs · race conditions de escritura concurrente · versionado de API. (Backlog de auditoría futura.)
 
 **Las 6 auditorías están CERRADAS (la 6 confirmó el plan y lo volvió accionable con archivo:línea + fix). Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
+
+### ✅ PROGRESO DE CORRECCIÓN (2026-06-09)
+- **C1 Escala** ✅ HECHO · **C3 Privacidad** ✅ HECHO · **C4 Seguridad IA** ✅ HECHO · **C8 Pruebas** 🟡 PARCIAL (26 tests nuevos · falta E2E dashboard/auth/pagos)
+- Checkpoints: `checkpoint-c1-escala-done` · `checkpoint-c3-privacidad-done` · `checkpoint-c4-c8-done`
+- **Quedan:** C2 (raíz datos forkeados) · C5 (fallas silenciosas + invalidar cache) · C6 (correctitud) · C7 (primer-día/a11y/perf) · C9 (permisos por plan) · C10 (higiene) · cola C8 (E2E)
+- Diferido a batch propio (en BACKLOG_ENHANCEMENTS): cifrado email/teléfono en reposo (índice ciego · necesita migración)
 
 ## Resumen (semáforo por área)
 
