@@ -107,6 +107,50 @@
 
 **Estado: AUDITORÍA 4 de 5 lista.** Convergencia confirmada + 1 frente legal NUEVO (consentimiento/PII) que ninguna pasada previa tocó.
 
+---
+
+## AUDITORÍA 5 (la más profunda · 7 lentes, persiguiendo las pistas de 1-4 · 2026-06-09)
+**La que más reveló Y la que más FALSOS POSITIVOS tuvo (los auditores cavan más hondo pero pierden contexto reciente / buscan nombres viejos). Verificado uno por uno.**
+
+### ✅ VERIFICADO REAL · nuevo
+| # | Hallazgo | Dónde | Sev |
+|---|---|---|---|
+| A5.1 | **Modos de falla a ESCALA (cluster)**: pool de Mongo SIN tope (`AsyncIOMotorClient(MONGO_URL)` default) · `to_list(5000/10000/20000)` en varios endpoints (OOM con 50k leads) · N+1 (find_one por appointment) · 428 `create_index` sin `background=True` (arranque lento/bloqueo) · sin timeout/circuit-breaker en AVM/IA | server.py:46 · dev_batch2:134, dev_batch6:130-154, dev_batch4:687 | 🔴 a escala |
+| A5.2 | **SSRF en fetch de fotos**: el server hace `httpx.get(u)` sobre URLs sin validar localhost/RFC1918/169.254 + `follow_redirects=True` | dev_batch1.py:629 | 🟡 (hoy seed-controlado) |
+| A5.3 | **Cerebro: envenenamiento por stub** — las predicciones no se marcan `is_example`/`is_demo` → el coach puede calibrar/reentrenar con stubs | cerebro/executors.py:379 · coach.py:113 | 🟡 (Cerebro off por flag) |
+| A5.4 | **PII a la IA sin redactar + DSR incompleto + audit_immutable guarda PII** (extiende A4): emails/teléfonos viajan a Anthropic en prompts sin redacción · el borrado DSR no alcanza ~10 colecciones (conversations, lead_capture_pdfs, embeddings, KG, audit) · `audit_immutable` guarda before/after con PII (nunca se borra) | conversation_engine · compliance_engine:176 · audit_immutable_engine:98 | 🔴 legal |
+| A5.5 | **Más inyección (mapa completo)**: `$regex` con colonia sin `re.escape` (ReDoS) · CRLF en `Content-Disposition filename` (4 endpoints) · `q_search` sin max_len (DoS) · NoSQL operator si el body no se valida | dev_batch4_1:692 · dev_batch7:799, dev_batch5:834, dev_batch8:836 | 🟡 |
+| A5.6 | **Fallas silenciosas con impacto real**: `except: pass` que dejan: cache público sin invalidar al editar unidad (comprador ve precio viejo) · `on_deal_closed` tragado (el Cerebro no aprende) · demanda/engagement en 0 falso (health_score ficticio) · audit de bulk/location sin registrar | dev_batch11:650 · dev_batch4:400 · dev_batch10:551,56 | 🟡-🔴 |
+| A5.7 | **Más instancias de patrones**: `db.leads.find({})` sin `dev_org_id` (dev_batch7:336) · IndexError sin guard (`rows[0]`, `m2_range[0]`) · publicar sin endpoint claro de publish | dev_batch7:336 · dev_batch2:300,1240 · dev_batch6:341 | 🟡 |
+
+### ❌ FALSOS POSITIVOS (verificación · los auditores profundos fallaron MÁS)
+- **"El asesor ignora el overlay / lee seed"** → FALSO: advisor.py tiene 14 usos de `get_effective_dev` (Cross-Portal v2 #15). El auditor buscó `project_public_overlay` y no vio el cambio reciente.
+- **"El flujo de apartados NO existe"** → FALSO: dev_batch1 tiene `unit_holds` + `auto_release_expired_holds` + endpoints (17 matches). El auditor buscó `db.holds` (nombre equivocado).
+- **"weekly_sales nunca se calcula"** → FALSO: `_real_weekly_sales_map` existe (dev_batch10:46→176→224) y cuenta ventas reales de units_history.
+- **"TeamAggregatedTable random sin marcador 🔴"** → FALSO: SÍ está etiquetado "demo/demostrativa" (líneas 336,349). Es stub honesto.
+
+---
+
+## 🎯 CONSOLIDADO DE LAS 5 AUDITORÍAS (plan de corrección · solo lo VERIFICADO real)
+**Dedupe + priorizado. Lo que se corrige tras 5 pasadas. (Los falsos positivos NO entran.)**
+
+| # | Tema (raíz/cluster) | Severidad | Qué incluye | Esfuerzo |
+|---|---|---|---|---|
+| **C1** | **Escala / rendimiento** | 🔴 (con dato real) | ~15 índices faltantes + `ensure_project_full_indexes` vacío + `create_index` con `background=True` + cambiar `to_list(N)` grandes a cursor/paginar + quitar N+1 (batch $in) + `maxPoolSize` + timeout en AVM/IA | M |
+| **C2** | **Raíz: datos forkeados** | 🟡 (causa C1 y divergencias) | unificar `development_id`→`project_id` (queries+índices) · 1 helper de merge de unidad (override>overlay>seed) · 1 vocabulario de estado vendido · timestamps ISO | M |
+| **C3** | **Privacidad / LFPDPPP** | 🔴 legal | consentimiento en formularios · cifrar PII en reposo · redactar PII antes de la IA · cerrar el PDF público · DSR completo (todas las colecciones) · audit sin PII cruda | M-L |
+| **C4** | **IA: inyección + costo + confianza** | 🔴/🟡 | sanitizar entradas a LLM (lead_name/unit_number/colonia/título) · `re.escape` en regex · CRLF en filenames · tope de costo ANTES de la llamada · SSRF en fotos · marcar confianza/stub honesto · Cerebro `is_example` | M |
+| **C5** | **Observabilidad / fallas silenciosas** | 🟡-🔴 | reemplazar `except: pass` por `log.warning` + flag de error (los ~6 con impacto: cache, on_deal_closed, demanda en 0) · invalidar cache al editar · fail-closed donde aplica | S-M |
+| **C6** | **Correctitud** | 🟡 | bug `price_to=price_from` · zona horaria en fechas (CDMX) · divergencia cross-portal (maps_cross lee seed) · formato MXN | S |
+| **C7** | **Primer día / UX / a11y / lenguaje** | 🟡 | empty states con acción · jerga del wizard (+resumen) · estados atascados (under_review) · aria-labels · tablas/modales | M |
+| **C8** | **Red de pruebas** | 🔴 (red) | tests del portal dev (dashboard/auth/pagos/auto-sync) · el red-team de aislamiento ya existe (16/16) | M |
+| **C9** | **Permisos por plan** | 🟡 | gating de premium por tier (no solo rol) · revisar flags agentic en backend | S |
+| **C10** | **Higiene** | 🟢 | `DesarrolladorInventario.js` sin ruta · componentes/API sin uso · redirects viejos | S |
+
+**Puntos ciegos que el crítico de completitud marcó (no auditados aún):** websockets/broadcast · CSRF · rotación de tokens · S3 ACL/cifrado · retry/dead-letter de jobs · race conditions de escritura concurrente · versionado de API. (Backlog de auditoría futura.)
+
+**Las 5 auditorías están CERRADAS. Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
+
 ## Resumen (semáforo por área)
 
 | Área | Veredicto | En una línea |
