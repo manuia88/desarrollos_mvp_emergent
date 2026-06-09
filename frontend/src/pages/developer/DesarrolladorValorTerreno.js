@@ -7,6 +7,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, fmt0 } from '../../components/advisor/primitives';
 import { MapPin, AlertTriangle, ChevronDown, Search, Sparkle } from '../../components/icons';
+import { DataOrigin, DoctrineButton } from '../../components/shared/DataOrigin';
 import * as api from '../../api/valorResidual';
 
 const SEMAFORO = {
@@ -14,18 +15,6 @@ const SEMAFORO = {
   amarillo: { tone: 'neutral', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.45)', label: 'Margen ajustado' },
   rojo:     { tone: 'bad',     bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.45)',  label: 'No cierra' },
 };
-
-const ORIGEN = {
-  dato:      { tone: 'ok',    label: 'Dato real' },
-  benchmark: { tone: 'ok',    label: 'Índice oficial' },
-  estimado:  { tone: 'neutral', label: 'Estimado' },
-  supuesto:  { tone: 'neutral', label: 'Supuesto' },
-};
-
-function OrigenTag({ o }) {
-  const cfg = ORIGEN[o?.origen] || ORIGEN.supuesto;
-  return <Badge tone={cfg.tone}>{cfg.label}</Badge>;
-}
 
 const lbl = { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, display: 'block' };
 const inp = {
@@ -104,6 +93,7 @@ export default function DesarrolladorValorTerreno() {
         eyebrow="Underwriting · Valor de Terreno"
         title="¿Cuánto pago por este terreno?"
         sub="Te decimos el máximo que puedes pagar sin perder tu utilidad — con lo que la norma te deja construir y el precio de venta de la zona."
+        actions={<DoctrineButton />}
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 420px) 1fr', gap: 18, alignItems: 'start' }}>
@@ -304,7 +294,7 @@ function InsumoRow({ label, value, sub, origen }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{value}</span>
-        <OrigenTag o={origen} />
+        <DataOrigin origen={origen?.origen} fuente={origen?.fuente} />
       </div>
     </div>
   );
