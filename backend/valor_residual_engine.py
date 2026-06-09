@@ -65,7 +65,7 @@ DEFAULTS = {
     "pct_indirectos": 0.08,    # licencias, proyecto, supervisión, legal, fideicomiso (sobre obra)
     "pct_gerencia": 0.10,      # honorario de desarrollo / gerencia de proyecto (sobre obra)
     "pct_imprevistos": 0.05,   # contingencia (sobre obra)
-    "pct_comision": 0.05,      # comisión de comercialización (sobre ingreso)
+    "pct_comision": 0.02,      # comisión de comercialización (sobre ingreso) · estándar CDMX (editable)
     "pct_publicidad": 0.02,    # marketing / publicidad (sobre ingreso)
 }
 
@@ -159,6 +159,7 @@ async def calcular_residual(
     costo_obra_pm2_manual: Optional[float] = None,
     margen_objetivo: Optional[float] = None,
     eficiencia: Optional[float] = None,
+    comision_pct_manual: Optional[float] = None,
     city: str = "CDMX",
 ) -> Dict[str, Any]:
     """Calcula la oferta MÁXIMA por el terreno (método residual). Devuelve el número grande +
@@ -168,6 +169,8 @@ async def calcular_residual(
     eff = await get_effective_defaults(db)   # F1.6 · usa los valores calibrados si existen
     eficiencia = float(eficiencia) if eficiencia else eff["eficiencia"]
     margen_objetivo = float(margen_objetivo) if margen_objetivo is not None else eff["margen_objetivo"]
+    # Comisión de ventas editable · default estándar CDMX (2%).
+    pct_comision = float(comision_pct_manual) if comision_pct_manual is not None else eff["pct_comision"]
 
     colonia = await _resolver_colonia(db, colonia_id, city)
     zone_id = _slug(colonia["name"]) if colonia else _slug(categoria)
@@ -210,7 +213,7 @@ async def calcular_residual(
     indirectos = costo_obra * eff["pct_indirectos"]
     gerencia = costo_obra * eff["pct_gerencia"]
     imprevistos = costo_obra * eff["pct_imprevistos"]
-    comision = ingreso * eff["pct_comision"]
+    comision = ingreso * pct_comision
     publicidad = ingreso * eff["pct_publicidad"]
     costos_blandos = indirectos + gerencia + imprevistos + comision + publicidad
 
@@ -246,6 +249,7 @@ async def calcular_residual(
             "cus": round(cus, 2), "cus_origen": cus_src,
             "eficiencia": eficiencia,
             "margen_objetivo": margen_objetivo,
+            "pct_comision": pct_comision,
             "precio_venta_pm2": round(precio["pm2"]), "precio_origen": precio,
             "costo_obra_pm2": round(costo["pm2"]), "costo_origen": costo,
         },

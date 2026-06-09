@@ -39,7 +39,7 @@ PUENTE_ALVARADO: Dict[str, Any] = {
 SOFT_COST_BENCHMARK: Dict[str, float] = {
     "developer_fee_pct": 0.10,   # honorario del desarrollador
     "gerencia_pct": 0.06,        # gerencia de proyecto
-    "comision_pct": 0.035,       # comisión de comercialización (sobre ventas)
+    "comision_pct": 0.02,        # comisión de comercialización · estándar CDMX (founder)
     "publicidad_pct": 0.02,      # publicidad (sobre ventas)
 }
 
@@ -93,8 +93,8 @@ async def calibrar(db) -> Dict[str, Any]:
         f"comisión {com_bm:.1f}% · publicidad {pub_bm:.1f}%",
         f"comisión {com_eng:.1f}% · publicidad {pub_eng:.1f}%",
         error_pct=err_b, tolerancia_pct=5, estado=estado_b,
-        detalle="La plantilla documenta comisión 3.5% y publicidad 2% sobre ventas.",
-        sugerencia="" if estado_b == "calibrado" else "Ajustar comisión a 3.5% (hoy 5%)."))
+        detalle="Comisión 2% (estándar CDMX) y publicidad 2% sobre ventas.",
+        sugerencia="" if estado_b == "calibrado" else f"Ajustar comisión a {com_bm:.1f}%."))
     if estado_b != "calibrado":
         sugerencias.append({"que": "Comisión de ventas", "de": f"{com_eng:.1f}%", "a": f"{com_bm:.1f}%"})
 

@@ -34,6 +34,7 @@ export default function DesarrolladorValorTerreno() {
   const [margen, setMargen] = useState('');         // %
   const [precioManual, setPrecioManual] = useState('');
   const [costoManual, setCostoManual] = useState('');
+  const [comision, setComision] = useState('');     // % · default 2 (CDMX)
   const [res, setRes] = useState(null);
   const [dd, setDd] = useState(null);
   const [n3, setN3] = useState(null);
@@ -71,6 +72,7 @@ export default function DesarrolladorValorTerreno() {
       if (margen !== '') body.margen_objetivo = Number(margen) / 100;
       if (precioManual !== '') body.precio_venta_pm2_manual = Number(precioManual);
       if (costoManual !== '') body.costo_obra_pm2_manual = Number(costoManual);
+      if (comision !== '') body.comision_pct_manual = Number(comision) / 100;
       // F1.5 · una sola llamada: el asistente lee el lote completo y lo sintetiza.
       const d = await api.analizarLote(body);
       setVeredicto(d.veredicto || null);
@@ -82,7 +84,7 @@ export default function DesarrolladorValorTerreno() {
     } finally {
       setLoading(false);
     }
-  }, [terreno, categoria, colonia, margen, precioManual, costoManual]);
+  }, [terreno, categoria, colonia, margen, precioManual, costoManual, comision]);
 
   const sem = res ? (SEMAFORO[res.respuesta?.semaforo] || SEMAFORO.amarillo) : null;
 
@@ -177,6 +179,11 @@ export default function DesarrolladorValorTerreno() {
                 <label style={lbl}>Costo de obra $/m² (si tienes tu dato)</label>
                 <input type="number" style={inp} placeholder="auto (índice)" value={costoManual}
                   onChange={e => setCostoManual(e.target.value)} />
+              </div>
+              <div>
+                <label style={lbl}>Comisión de ventas (%)</label>
+                <input type="number" style={inp} placeholder="2 (estándar CDMX)" value={comision}
+                  onChange={e => setComision(e.target.value)} />
               </div>
             </div>
           )}
