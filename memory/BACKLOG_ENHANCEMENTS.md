@@ -6,6 +6,17 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🧩 UNIFICAR MODELO DE DATOS DEL DEV (raíz C2) — DIFERIDO (2026-06-09)
+
+Origen: corrección C2 de las 6 auditorías QA. En C2 se hizo el vocabulario único de "vendido" (`is_sold()`). Lo que falta (cada uno = migración, por eso batch propio):
+1. **`development_id` → `project_id`**: conviven los dos nombres para la misma cosa en queries/índices/colecciones. Unificar a uno solo. Necesita rename con cuidado (no romper queries vivas) + reindex. ~8-12h.
+2. **Fusionar los 2 sistemas de override de unidad**: el dev edita en `developer_unit_overrides` (por `unit_id`); el comprador lee de `dev_overlays.units_overlay` (por tipo/planta, lo llena auto_sync desde documentos). Hoy el detalle del comprador YA mezcla `developer_unit_overrides` en vivo (public.py:454), así que el ciclo cierra — pero tener DOS fuentes para "estado de la unidad" es deuda. Unificar en UN merge canónico (precedencia: edición manual del dev > overlay de documentos > seed) usado por dev, comprador y superadmin. ~8-10h.
+3. **Timestamps ISO consistentes** (algunos `datetime`, otros string) en las colecciones del dev. ~2h.
+
+Estado: el helper de vocabulario (`is_sold`/`is_available`) ya vive en data_developments. Lo demás necesita escala/migración de datos reales → batch propio.
+
+---
+
 ## 🔐 CIFRADO DE email/teléfono EN REPOSO (índice ciego) — DIFERIDO de C3 (2026-06-09)
 
 Origen: corrección C3 (Privacidad/LFPDPPP) de las 6 auditorías QA del portal Dev. En C3 se cifró lo que NO rompe (bytes del PDF, texto-libre) y se construyó el helper `pii_crypto.py`. Lo que falta:

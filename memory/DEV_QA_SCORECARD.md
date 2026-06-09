@@ -166,10 +166,10 @@
 | # | Tema (raíz/cluster) | Severidad | Qué incluye | Esfuerzo |
 |---|---|---|---|---|
 | **C1** ✅ HECHO (2026-06-09) | **Escala / rendimiento** | 🔴→✅ | `maxPoolSize`/timeouts en server.py · `dev_scale_indexes.py` (índices faltantes background=True) · `ensure_project_full_indexes` lleno · `background=True` en dev_batch19+asesor_indexes · `bounded_to_list` (tope explícito+aviso, sin truncado silencioso) en dev_batch6/7 · `llm_guard.send_with_timeout` en weekly brief+habitabilidad. Verificado: arranca limpio, health 200. **Falta (cola 🟢):** convertir barridos a agregación Mongo (optimización) · N+1 batch $in restantes | M |
-| **C2** | **Raíz: datos forkeados** | 🟡 (causa C1 y divergencias) | unificar `development_id`→`project_id` (queries+índices) · 1 helper de merge de unidad (override>overlay>seed) · 1 vocabulario de estado vendido · timestamps ISO | M |
+| **C2** ✅ PARCIAL (2026-06-09) | **Raíz: datos forkeados** | 🟡→🟢 | ✅ vocabulario único `is_sold()`/`is_available()` (data_developments) + ~8 sitios de developer.py migrados de `== "vendido"` hardcodeado. **DIFERIDO (migración):** unificar `development_id`→`project_id` (rename masivo) · fusionar los 2 sistemas de override de unidad (developer_unit_overrides ↔ dev_overlays.units_overlay) | M |
 | **C3** ✅ HECHO (2026-06-09) | **Privacidad / LFPDPPP** | 🔴→✅ | `compliance_consent.py` (registro consentimiento) + UI aviso+opt-in en LeadCaptureModal y LandingLeadCaptureForm (front+back) · `pii_crypto.py` (cifrado reposo fail-soft) · PDF público cifrado+TTL+sin nombre claro · `redact_pii` antes de la IA (lead_enrichment) · audit_immutable redacta PII · DSR 2ª pasada por lead_id/teléfono (conversación/WhatsApp/PDF/enrichment/taste/scores) con evidencia. Verificado E2E. **DIFERIDO (batch propio):** cifrar email/teléfono en reposo = rompe JOINs → necesita migración con índice ciego (hash) | M-L |
 | **C4** ✅ HECHO (2026-06-09) | **IA: inyección + costo + confianza** | 🔴→✅ | `services/ai_safety.py` (sanitize_llm_input/safe_filename/escape_regex/is_public_url_safe · emite evento → Sala de Seguridad) · SSRF en fotos (dev_batch1, follow_redirects=False) · re.escape en regex (dev_batch4_1) · safe_filename en 4 exports · tope de costo+timeout en las 7 llamadas LLM (send_with_timeout) · Cerebro `is_example` excluido de la calibración. Verificado con tests | M |
-| **C5** | **Observabilidad / fallas silenciosas** | 🟡-🔴 | reemplazar `except: pass` por `log.warning` + flag de error (los ~6 con impacto: cache, on_deal_closed, demanda en 0) · invalidar cache al editar · fail-closed donde aplica | S-M |
+| **C5** ✅ HECHO (2026-06-09) | **Observabilidad / fallas silenciosas** | 🟡→✅ | 9 `except: pass` de dev_batch1 ahora loguean · invalidación de cache movida DENTRO de `_save_overlay` (ningún caller la olvida) · `_owns_project` registra (fail-closed) · `_decrypt` ya no devuelve cifrado como claro · ErrorBoundary en DeveloperLayout. VERIFICADO: el ciclo edita-unidad→comprador ya cerraba (mezcla en vivo public.py:454, era falso positivo del audit) | S-M |
 | **C6** | **Correctitud** | 🟡 | bug `price_to=price_from` · zona horaria en fechas (CDMX) · divergencia cross-portal (maps_cross lee seed) · formato MXN | S |
 | **C7** | **Primer día / UX / a11y / lenguaje / perf percibida** | 🟡 | empty states con acción (MisProyectos/FichaHome) · jerga del wizard (+resumen) · wizard sin "próximo paso" al terminar · estados atascados (under_review) · **aria-labels en botones de ícono + `:focus` outline** (A6.2) · tablas/modales · **dashboard 3 fetch serie → `Promise.all`+skeleton** (A6.3) · **DesarrolladorReportes monolito → lazy/memo** (A6.4) | M |
 | **C8** ✅ PARCIAL (2026-06-09) | **Red de pruebas** | 🔴→🟡 | `tests/test_dev_hardening_c1_c3_c4.py` (26 tests · C1+C3+C4) + red-team aislamiento (16/16) existente. **Falta (cola):** tests de dashboard/auth/pagos/auto-sync end-to-end del portal | M |
@@ -181,10 +181,10 @@
 **Las 6 auditorías están CERRADAS (la 6 confirmó el plan y lo volvió accionable con archivo:línea + fix). Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
 
 ### ✅ PROGRESO DE CORRECCIÓN (2026-06-09)
-- **C1 Escala** ✅ HECHO · **C3 Privacidad** ✅ HECHO · **C4 Seguridad IA** ✅ HECHO · **C8 Pruebas** 🟡 PARCIAL (26 tests nuevos · falta E2E dashboard/auth/pagos)
-- Checkpoints: `checkpoint-c1-escala-done` · `checkpoint-c3-privacidad-done` · `checkpoint-c4-c8-done`
-- **Quedan:** C2 (raíz datos forkeados) · C5 (fallas silenciosas + invalidar cache) · C6 (correctitud) · C7 (primer-día/a11y/perf) · C9 (permisos por plan) · C10 (higiene) · cola C8 (E2E)
-- Diferido a batch propio (en BACKLOG_ENHANCEMENTS): cifrado email/teléfono en reposo (índice ciego · necesita migración)
+- **C1 Escala** ✅ · **C3 Privacidad** ✅ · **C4 Seguridad IA** ✅ · **C5 Fallas silenciosas** ✅ · **C2 Vocabulario** ✅ PARCIAL · **C8 Pruebas** 🟡 PARCIAL (27 tests)
+- Checkpoints: `checkpoint-c1-escala-done` · `checkpoint-c3-privacidad-done` · `checkpoint-c4-c8-done` · `checkpoint-c5-c2-done`
+- **Quedan:** C6 (correctitud: zona horaria/MXN) · C7 (primer-día/a11y/perf) · C9 (permisos por plan) · C10 (higiene) · cola C8 (E2E dashboard/auth/pagos)
+- Diferido a batch propio (en BACKLOG_ENHANCEMENTS): cifrado email/teléfono en reposo (índice ciego) · unificar development_id→project_id + fusionar los 2 sistemas de override de unidad (ambos = migración)
 
 ## Resumen (semáforo por área)
 
