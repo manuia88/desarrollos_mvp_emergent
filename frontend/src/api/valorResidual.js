@@ -31,3 +31,10 @@ export const dueDiligence = (body) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
   });
+
+export const detectarNorma3 = (body) =>
+  j('/api/dev/valor-residual/norma3', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });

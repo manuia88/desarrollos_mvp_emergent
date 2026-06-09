@@ -95,6 +95,28 @@ async def due_diligence(request: Request, body: DueDiligenceIn):
         raise HTTPException(500, f"No se pudo generar: {e}")
 
 
+class Norma3In(BaseModel):
+    colonia_id: str
+    terreno_m2: float = Field(1000, gt=0, le=1_000_000)
+    categoria: str = "media"
+    radio_km: float = Field(1.5, gt=0, le=5)
+    city: str = "CDMX"
+
+
+@router.post("/norma3")
+async def norma3(request: Request, body: Norma3In):
+    """F1.4 · Detecta colonias vecinas con mayor CUS y cuantifica el upside de fusión (Norma 3)."""
+    await _auth(request)
+    from norma3_engine import detectar_fusiones
+    try:
+        return await detectar_fusiones(
+            _db(request), colonia_id=body.colonia_id, terreno_m2=body.terreno_m2,
+            categoria=body.categoria, radio_km=body.radio_km, city=body.city)
+    except Exception as e:
+        log.exception("[valor-residual] norma3 falló")
+        raise HTTPException(500, f"No se pudo detectar: {e}")
+
+
 @router.post("/calcular")
 async def calcular(request: Request, body: CalculoIn):
     """Calcula la oferta máxima por el terreno (método residual) con el origen de cada dato."""

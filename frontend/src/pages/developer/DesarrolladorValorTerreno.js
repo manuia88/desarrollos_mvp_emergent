@@ -47,6 +47,7 @@ export default function DesarrolladorValorTerreno() {
   const [costoManual, setCostoManual] = useState('');
   const [res, setRes] = useState(null);
   const [dd, setDd] = useState(null);
+  const [n3, setN3] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBreak, setShowBreak] = useState(false);
   const [err, setErr] = useState('');
@@ -69,7 +70,7 @@ export default function DesarrolladorValorTerreno() {
   };
 
   const calcular = useCallback(async () => {
-    setErr(''); setLoading(true); setRes(null); setDd(null);
+    setErr(''); setLoading(true); setRes(null); setDd(null); setN3(null);
     try {
       const body = {
         terreno_m2: Number(terreno),
@@ -79,12 +80,15 @@ export default function DesarrolladorValorTerreno() {
       if (margen !== '') body.margen_objetivo = Number(margen) / 100;
       if (precioManual !== '') body.precio_venta_pm2_manual = Number(precioManual);
       if (costoManual !== '') body.costo_obra_pm2_manual = Number(costoManual);
-      // Cierra el ciclo: oferta máxima + qué revisar antes de comprar (en paralelo).
-      const [d, ddRes] = await Promise.all([
+      // Cierra el ciclo: oferta máxima + qué revisar + oportunidad de fusión (en paralelo).
+      const [d, ddRes, n3Res] = await Promise.all([
         api.calcularResidual(body),
         api.dueDiligence({ colonia_id: colonia?.id || null, superficie_m2: Number(terreno) }).catch(() => null),
+        colonia?.id
+          ? api.detectarNorma3({ colonia_id: colonia.id, terreno_m2: Number(terreno), categoria }).catch(() => null)
+          : Promise.resolve(null),
       ]);
-      setRes(d); setDd(ddRes);
+      setRes(d); setDd(ddRes); setN3(n3Res);
     } catch (e) {
       setErr(e.message || 'No se pudo calcular');
     } finally {
@@ -280,6 +284,9 @@ export default function DesarrolladorValorTerreno() {
 
               {/* ── Due Diligence (F1.3) · cierra el ciclo: qué revisar antes de comprar ── */}
               {dd && <DueDiligence dd={dd} />}
+
+              {/* ── Norma 3 (F1.4) · oportunidad de fusión para subir el CUS ── */}
+              {n3 && n3.disponible && (n3.oportunidades || []).length > 0 && <Norma3 n3={n3} />}
             </>
           )}
         </div>
@@ -367,6 +374,57 @@ function DueDiligence({ dd }) {
           ))}
 
           <div style={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.5, marginTop: 4 }}>{dd.nota}</div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function Norma3({ n3 }) {
+  const [open, setOpen] = useState(true);
+  const best = n3.oportunidades[0];
+  return (
+    <Card style={{ padding: 18, marginTop: 14, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.28)' }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%',
+        background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ChevronDown size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s', color: '#a5b4fc' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Oportunidad: subir el CUS por fusión (Norma 3)</span>
+        </span>
+        <Badge tone="brand">+{best.uplift_pct}% potencial</Badge>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 14 }}>{n3.resumen}</div>
+
+          <div style={{ display: 'grid', gap: 8 }}>
+            {n3.oportunidades.map((o, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                padding: '11px 13px', borderRadius: 10, background: 'rgba(15,23,42,0.45)',
+                border: '1px solid rgba(148,163,184,0.14)' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: '#e2e8f0' }}>
+                    {o.colonia_vecina} <span style={{ color: '#64748b', fontSize: 12 }}>· {o.dist_km} km</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                    CUS {o.cus_actual} → {o.cus_potencial} · +{fmt0(o.m2_construibles_extra)} m² construibles
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#86efac' }}>+{fmtMXN(o.uplift_mxn)}</div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>en valor de terreno</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12, lineHeight: 1.5 }}>{n3.como_funciona}</div>
+          <div style={{ fontSize: 11.5, color: '#fcd34d', marginTop: 8, lineHeight: 1.5, display: 'flex', gap: 7 }}>
+            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />{n3.advertencia}
+          </div>
         </div>
       )}
     </Card>
