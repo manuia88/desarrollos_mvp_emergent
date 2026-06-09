@@ -24,8 +24,12 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 import metric_normalizer as _mn
+from feature_gate_engine import requires_feature  # C9 · candado de planes
 
 router = APIRouter(prefix="/api/dev", tags=["dev-batch2"])
+
+# C9 · análisis de competidores = plan enterprise — requires_feature ya devuelve Depends
+_gate_competidores = requires_feature("competidores", fallback_tier="enterprise")
 
 
 def _now() -> datetime:
@@ -357,7 +361,7 @@ async def adjust_forecast(payload: ForecastAdjust, request: Request):
 # ═════════════════════════════════════════════════════════════════════════════
 # 4.13 COMPETITOR RADAR ENRICHED
 # ═════════════════════════════════════════════════════════════════════════════
-@router.get("/competitors/enriched")
+@router.get("/competitors/enriched", dependencies=[_gate_competidores])
 async def competitors_enriched(request: Request, dev_id: Optional[str] = None, radius_km: float = 2.0):
     """Alerts + history + press clips enrichment on top of base competitor radar."""
     user = await _auth(request)

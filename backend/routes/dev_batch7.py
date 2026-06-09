@@ -28,6 +28,10 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 
 from services.query_limits import bounded_to_list  # C1 Escala — tope explícito + aviso
+from feature_gate_engine import requires_feature  # C9 · candado de planes (aplica si está prendido)
+
+# C9 · candado de Site Selection (plan enterprise) — requires_feature ya devuelve un Depends
+_gate_site_selection = requires_feature("site_selection", fallback_tier="enterprise")
 
 log = logging.getLogger("dmx.batch7")
 router = APIRouter(tags=["batch7"])
@@ -512,7 +516,7 @@ async def _run_engine(db, study_id: str, inputs, dev_org_id: str = "default") ->
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
-@router.post("/api/dev/site-selection/studies", status_code=201)
+@router.post("/api/dev/site-selection/studies", status_code=201, dependencies=[_gate_site_selection])
 async def create_study(payload: CreateStudyPayload, request: Request):
     user = await _auth(request)
     if not _is_dev_admin(user):
@@ -541,7 +545,7 @@ async def create_study(payload: CreateStudyPayload, request: Request):
     return doc
 
 
-@router.post("/api/dev/site-selection/studies/{study_id}/run")
+@router.post("/api/dev/site-selection/studies/{study_id}/run", dependencies=[_gate_site_selection])
 async def run_study(study_id: str, request: Request):
     user = await _auth(request)
     if not _is_dev_admin(user):

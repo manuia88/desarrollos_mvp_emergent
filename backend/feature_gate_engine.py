@@ -17,6 +17,7 @@ Defensa en profundidad (W5_FF_FEATURE_VISIBILITY_SPEC.md §1):
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -29,6 +30,10 @@ _log = logging.getLogger("dmx.feature_gate_engine")
 
 CACHE_TTL_SECONDS = 60
 FAIL_OPEN_ENABLED = True
+# C9 · El candado de planes está COMPLETO y cableado, pero su APLICACIÓN va detrás de
+# este flag (default OFF). Pre-lanzamiento: registra la denegación pero PERMITE (no
+# rompe a nadie). El founder lo prende (FEATURE_GATING_ENFORCED=true) al vender planes.
+ENFORCEMENT_ENABLED = os.environ.get("FEATURE_GATING_ENFORCED", "false").lower() == "true"
 
 # (user_id, tenant_id) → {ts: monotonic, features: [keys]}
 _user_cache: Dict[Tuple[str, str], Dict[str, Any]] = {}
@@ -180,6 +185,16 @@ async def _audit_check(
 
 
 # ─── Dependency factory ───────────────────────────────────────────────────────
+async def _deny_or_soft(db, actor, feature_key, request, user, detail):
+    """C9 · Si la aplicación está PRENDIDA → 403. Si está APAGADA (pre-lanzamiento) →
+    registra la denegación (para telemetría) pero PERMITE, así no se rompe a nadie hoy."""
+    if ENFORCEMENT_ENABLED:
+        await _audit_check(db, actor, feature_key, False, "denied", request)
+        raise HTTPException(403, detail)
+    await _audit_check(db, actor, feature_key, True, "soft_allow_pre_launch", request)
+    return user
+
+
 def requires_feature(feature_key: str, fallback_tier: Optional[str] = None):
     """FastAPI dependency factory · FAIL-OPEN gate.
 
@@ -227,16 +242,16 @@ def requires_feature(feature_key: str, fallback_tier: Optional[str] = None):
                 if fallback_tier and _tier_meets(user_tier, fallback_tier):
                     await _audit_check(db, actor, feature_key, True, "legacy_tier", request)
                     return user
-                await _audit_check(db, actor, feature_key, False, "denied", request)
-                raise HTTPException(403, f"Feature '{feature_key}' no habilitada")
+                return await _deny_or_soft(db, actor, feature_key, request, user,
+                                           f"Tu plan no incluye '{feature_key}'. Mejora tu plan para usarla.")
 
             # NOT in catalog
             if fallback_tier:
                 if _tier_meets(user_tier, fallback_tier):
                     await _audit_check(db, actor, feature_key, True, "legacy_tier", request)
                     return user
-                await _audit_check(db, actor, feature_key, False, "denied", request)
-                raise HTTPException(403, f"Feature '{feature_key}' requiere tier {fallback_tier}")
+                return await _deny_or_soft(db, actor, feature_key, request, user,
+                                           f"'{feature_key}' requiere el plan {fallback_tier}.")
 
             if FAIL_OPEN_ENABLED:
                 await _audit_check(db, actor, feature_key, True, "fail_open", request)

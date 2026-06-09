@@ -188,6 +188,32 @@ async def test_dsr_borra_por_identificador(mock_db):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# C9 · Permisos por plan (candado completo, aplicación detrás de flag)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.asyncio
+async def test_c9_gate_soft_allow_pre_lanzamiento(mock_db, monkeypatch):
+    """Con la aplicación APAGADA (default), el candado registra pero PERMITE (no rompe)."""
+    import feature_gate_engine as fg
+    monkeypatch.setattr(fg, "ENFORCEMENT_ENABLED", False)
+    user = {"user_id": "u1"}
+    actor = {"user_id": "u1", "role": "developer_admin"}
+    out = await fg._deny_or_soft(mock_db, actor, "site_selection", None, user, "tu plan no incluye")
+    assert out is user  # permite
+
+
+@pytest.mark.asyncio
+async def test_c9_gate_enforce_bloquea(mock_db, monkeypatch):
+    """Con la aplicación PRENDIDA, el candado bloquea con 403."""
+    from fastapi import HTTPException
+    import feature_gate_engine as fg
+    monkeypatch.setattr(fg, "ENFORCEMENT_ENABLED", True)
+    actor = {"user_id": "u1", "role": "developer_admin"}
+    with pytest.raises(HTTPException):
+        await fg._deny_or_soft(mock_db, actor, "site_selection", None, {"user_id": "u1"}, "tu plan no incluye")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # C2 · Un solo vocabulario de datos
 # ══════════════════════════════════════════════════════════════════════════════
 

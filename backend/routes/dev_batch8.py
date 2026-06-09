@@ -26,8 +26,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from feature_gate_engine import requires_feature  # C9 · candado de planes
+
 log = logging.getLogger("dmx.batch8")
 router = APIRouter(tags=["batch8"])
+
+# C9 · cash flow = inteligencia de reportes (plan pro) — requires_feature ya devuelve Depends
+_gate_reportes = requires_feature("reportes_ia", fallback_tier="pro")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -539,7 +544,7 @@ class RecalcPayload(BaseModel):
     horizon_months: Optional[int] = Field(default=DEFAULT_HORIZON, ge=12, le=MAX_HORIZON)
 
 
-@router.post("/api/dev/projects/{project_id}/cash-flow/recalc")
+@router.post("/api/dev/projects/{project_id}/cash-flow/recalc", dependencies=[_gate_reportes])
 async def recalc(project_id: str, request: Request, payload: Optional[RecalcPayload] = None):
     user = await _auth(request)
     if not _is_admin_only(user):

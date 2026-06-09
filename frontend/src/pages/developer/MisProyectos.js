@@ -425,7 +425,7 @@ function MisProyectosV1({ user, onLogout }) {
         {loading ? (
           <LoadingSkeleton viewMode={viewMode} />
         ) : paged.length === 0 ? (
-          <EmptyState stageFilter={stageFilter} />
+          <EmptyState stageFilter={stageFilter} onCreate={() => navigate('/desarrollador/proyectos/nuevo')} />
         ) : viewMode === 'cards' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 'var(--d-gap-grid, 18px)' }}>
             {paged.map(p => (
@@ -483,16 +483,35 @@ const paginationBtnStyle = (disabled) => ({
   borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: disabled ? 'default' : 'pointer',
 });
 
-function EmptyState({ stageFilter }) {
+function EmptyState({ stageFilter, onCreate }) {
+  const sinProyectos = stageFilter === 'todos';
   return (
     <div style={{ textAlign: 'center', padding: '64px 24px' }}>
       <Building size={48} color="rgba(var(--cream-rgb),0.15)" style={{ marginBottom: 16 }} />
       <h3 style={{ margin: '0 0 8px', fontSize: 18, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-        {stageFilter !== 'todos' ? `No hay proyectos en "${STAGE_LABELS[stageFilter] || stageFilter}"` : 'No tienes proyectos aún'}
+        {!sinProyectos ? `No hay proyectos en "${STAGE_LABELS[stageFilter] || stageFilter}"` : 'No tienes proyectos aún'}
       </h3>
-      <p style={{ margin: 0, color: 'var(--cream-3)', fontSize: 13 }}>
-        Sube tu primer proyecto para comenzar a gestionar inventario, leads y reportes.
+      <p style={{ margin: '0 0 18px', color: 'var(--cream-3)', fontSize: 13 }}>
+        {!sinProyectos
+          ? 'Cambia el filtro o crea un proyecto nuevo.'
+          : 'Sube tu primer proyecto para comenzar a gestionar inventario, leads y reportes.'}
       </p>
+      {/* C7 · primer día: el usuario nuevo tiene un siguiente paso claro */}
+      {onCreate && (
+        <button
+          type="button"
+          data-testid="empty-create-project"
+          onClick={onCreate}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+            padding: '11px 22px', borderRadius: 10, border: 'none',
+            background: 'var(--indigo)', color: '#fff', fontSize: 14, fontWeight: 700,
+            fontFamily: 'DM Sans,sans-serif',
+          }}
+        >
+          <Building size={15} /> Crear Mi Primer Proyecto
+        </button>
+      )}
     </div>
   );
 }
