@@ -248,13 +248,17 @@ async def _claude_recommendations(units_summary: List[Dict], project_name: str, 
             api_key=key, session_id=f"unit_reco_{project_name}",
             system_message=system_message,
         ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        from services.ai_safety import sanitize_llm_input  # C4 · anti prompt-injection
         user_text = (
-            f"Proyecto: {project_name}. Top 5 unidades por engagement: "
+            f"Proyecto: {sanitize_llm_input(project_name, max_len=120)}. "
+            f"Top 5 unidades por engagement: "
             f"{json.dumps(units_summary[:5], ensure_ascii=False)}. "
             f"Genera recomendaciones."
         )
         msg = UserMessage(text=user_text)
-        raw = await chat.send_message(msg)
+        from services.llm_guard import send_with_timeout  # C4 · tope de costo + timeout
+        raw = await send_with_timeout(chat, msg, db=db, tenant_id=tenant_id,
+                                      label="dev_batch6.unit_reco", timeout=25.0)
         text = (raw or "").strip()
 
         # ── AI cost tracking (best-effort, fire-and-forget) ────────────

@@ -395,7 +395,9 @@ async def export_project_geojson(project_id: str, request: Request):
         pass
 
     body = json.dumps(geojson, ensure_ascii=False, indent=2).encode("utf-8")
-    filename = f"project-{dev.get('slug') or project_id}.geojson"
+    # C4 · el slug es controlable → saneo del nombre (evita CRLF/header injection)
+    from services.ai_safety import safe_filename
+    filename = safe_filename(f"project-{dev.get('slug') or project_id}", default="project") + ".geojson"
     return FastResponse(
         content=body,
         media_type="application/geo+json",

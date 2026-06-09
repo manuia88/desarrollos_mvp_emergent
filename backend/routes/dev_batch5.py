@@ -753,12 +753,16 @@ async def _claude_narrative(*, project_name: str, kpis: Dict, period: str,
                 "Usa los KPIs provistos. NO menciones que eres una IA."
             ),
         ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        from services.ai_safety import sanitize_llm_input  # C4 · anti prompt-injection
         prompt_text = (
-            f"Proyecto: {project_name}. Período: {period}. "
+            f"Proyecto: {sanitize_llm_input(project_name, max_len=120)}. "
+            f"Período: {sanitize_llm_input(period, max_len=40)}. "
             f"KPIs: {json.dumps(kpis)}. Genera el resumen ejecutivo."
         )
         msg = UserMessage(text=prompt_text)
-        text = await chat.send_message(msg)
+        from services.llm_guard import send_with_timeout  # C4 · tope de costo + timeout
+        text = await send_with_timeout(chat, msg, db=db, tenant_id=dev_org_id,
+                                       label="dev_batch5.exec_narrative", timeout=25.0)
         result = (text or "")[:1500]
         # Budget tracking
         if db is not None and result:
@@ -830,8 +834,10 @@ async def download_report(file_id: str, request: Request):
     from tenant_scope import assert_dev_org
     assert_dev_org(user, f.get("dev_org_id"))
     pdf = base64.b64decode(f["content_b64"])
+    from services.ai_safety import safe_filename  # C4 · nombre seguro (defensa en profundidad)
+    fn = safe_filename(f"report-{file_id}", default="report") + ".pdf"
     return Response(content=pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="report-{file_id}.pdf"'})
+                    headers={"Content-Disposition": f'attachment; filename="{fn}"'})
 
 
 # ─── Distributions ───────────────────────────────────────────────────────────

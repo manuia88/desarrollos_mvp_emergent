@@ -78,6 +78,8 @@ async def log_prediction(db, user, *, kind, predicted, ref=None, meta=None):
     now = _now()
     doc = {"id": _pid(), "tenant_id": tenant_of(user), "user_id": _uid(user),
            "kind": kind, "predicted": predicted, "ref": ref, "meta": meta or {},
+           # C4 · marca de ejemplo/demo: NO debe contaminar la calibración ni el reentreno
+           "is_example": bool((meta or {}).get("is_example", False)),
            "resolved": False, "actual": None, "hit": None, "error": None,
            "created_at": now.isoformat(), "expires_at": now + timedelta(days=_PRED_TTL_DAYS)}
     try:
@@ -130,7 +132,9 @@ async def calibration(db, user):
     for kind, spec in PRED_KINDS.items():
         hits, errs, n = 0, [], 0
         cur = db[CEREBRO_PREDICTIONS].find(
-            {"tenant_id": tenant_of(user), "kind": kind, "resolved": True},
+            # C4 · excluye predicciones de ejemplo/demo de la calibración honesta
+            {"tenant_id": tenant_of(user), "kind": kind, "resolved": True,
+             "is_example": {"$ne": True}},
             {"_id": 0, "hit": 1, "error": 1})
         async for p in cur:
             n += 1

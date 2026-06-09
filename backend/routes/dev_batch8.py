@@ -340,7 +340,9 @@ async def _claude_scenario_narrative(label: str, summary: Dict,
             f"breakeven mes {summary.get('breakeven_month')}, {summary['gap_count']} gaps. "
             f"Max negativo acumulado ${summary['max_negative_cumulative']:,}."
         )
-        raw = await chat.send_message(UserMessage(text=prompt))
+        from services.llm_guard import send_with_timeout  # C4 · tope de costo + timeout
+        raw = await send_with_timeout(chat, UserMessage(text=prompt), db=db, tenant_id=dev_org_id,
+                                      label="dev_batch8.scenario_narrative", timeout=25.0)
         result = (raw or "").strip()[:240] or fallback
         # Budget tracking
         if db is not None:
@@ -417,7 +419,9 @@ async def _claude_recommendations(*, base_summary: Dict, biggest_gap: Optional[D
             f"construction_cost ${project_inputs['construction_cost_total']:,}, "
             f"target_price_avg ${project_inputs['target_price_avg_per_unit']:,}."
         )
-        raw = await chat.send_message(UserMessage(text=prompt))
+        from services.llm_guard import send_with_timeout  # C4 · tope de costo + timeout
+        raw = await send_with_timeout(chat, UserMessage(text=prompt), db=db, tenant_id=dev_org_id,
+                                      label="dev_batch8.gaps_narrative", timeout=25.0)
         text = (raw or "").strip()
         if text.startswith("```"):
             text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S).strip()
@@ -832,8 +836,10 @@ async def download_pdf(project_id: str, file_id: str, request: Request):
     if not f:
         raise HTTPException(404, "Archivo no encontrado")
     pdf = base64.b64decode(f["pdf_b64"])
+    from services.ai_safety import safe_filename  # C4 · nombre seguro (defensa en profundidad)
+    fn = safe_filename(f"cash-flow-{file_id}", default="cash-flow") + ".pdf"
     return Response(content=pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="cash-flow-{file_id}.pdf"'})
+                    headers={"Content-Disposition": f'attachment; filename="{fn}"'})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

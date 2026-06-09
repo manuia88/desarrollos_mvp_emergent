@@ -627,8 +627,13 @@ async def _fetch_quote_images(db, project_id, dev, limit=2):
     if not raw:
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as c:
+            from services.ai_safety import is_public_url_safe
+            # C4 SSRF · sin redirects (evita rebote a un host interno) y validando
+            # que la URL apunte a un host público (no localhost/IP privada/metadata).
+            async with httpx.AsyncClient(timeout=6.0, follow_redirects=False) as c:
                 for u in (dev.get("photos") or [])[:cand]:
+                    if not is_public_url_safe(u, label="dev_photo_fetch"):
+                        continue
                     try:
                         r = await c.get(u)
                         if r.status_code == 200 and r.content:

@@ -687,9 +687,10 @@ async def _pick_best_inmobiliaria_asesor(db, inmobiliaria_id: str, colonia: str)
         uid = c.get("user_id") or c.get("id")
         sc = 0
         # +50 if past closed deals in colonia
+        from services.ai_safety import escape_regex  # C4 · evita ReDoS/inyección en $regex
         closed_in_col = await db.leads.count_documents({
             "asesor_id": uid, "status": "cerrado_ganado",
-            "colonia": {"$regex": colonia, "$options": "i"},
+            "colonia": {"$regex": escape_regex(colonia), "$options": "i"},
         })
         sc += 50 * min(closed_in_col, 1)
         # +30 if conversion_rate > 0.5

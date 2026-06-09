@@ -292,7 +292,9 @@ async def _claude_zone_narrative(
             "Genera evaluación específica para esta combinación."
         )
         msg = UserMessage(text=prompt)
-        raw = await chat.send_message(msg)
+        from services.llm_guard import send_with_timeout  # C4 · tope de costo + timeout
+        raw = await send_with_timeout(chat, msg, db=db, tenant_id=dev_org_id,
+                                      label="dev_batch7.zone_narrative", timeout=25.0)
         text = (raw or "").strip()
         if text.startswith("```"):
             import re
@@ -799,8 +801,10 @@ async def download_study_pdf(file_id: str, request: Request):
     if not f:
         raise HTTPException(404, "Archivo no encontrado")
     pdf = base64.b64decode(f["pdf_b64"])
+    from services.ai_safety import safe_filename  # C4 · nombre seguro (defensa en profundidad)
+    fn = safe_filename(f"site-selection-{file_id}", default="site-selection") + ".pdf"
     return Response(content=pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="site-selection-{file_id}.pdf"'})
+                    headers={"Content-Disposition": f'attachment; filename="{fn}"'})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -826,7 +830,8 @@ async def _compare_narrative(studies_summary: List[Dict]) -> str:
         msg = UserMessage(text=(
             "Estudios a comparar (resumen):\n" + json.dumps(studies_summary, ensure_ascii=False)
         ))
-        raw = await chat.send_message(msg)
+        from services.llm_guard import send_with_timeout  # C4 · timeout (no cuelga el worker)
+        raw = await send_with_timeout(chat, msg, label="dev_batch7.compare_narrative", timeout=25.0)
         text = (raw or "").strip()
         if text.startswith("```"):
             import re
@@ -1063,7 +1068,8 @@ async def _claude_scenario_narrative(label: str, scn: Dict) -> str:
             f"descuento {scn['discount_pct']}%, breakeven mes {scn['breakeven_month']}, "
             f"unidades {scn['total_units_sold']} de {scn['total_units_target']}."
         ))
-        raw = await chat.send_message(msg)
+        from services.llm_guard import send_with_timeout  # C4 · timeout (no cuelga el worker)
+        raw = await send_with_timeout(chat, msg, label="dev_batch7.scenario_narrative", timeout=25.0)
         text = (raw or "").strip()
         if text.startswith("```"):
             import re
