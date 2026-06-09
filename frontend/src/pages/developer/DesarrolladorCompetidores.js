@@ -6,10 +6,13 @@ import * as api from '../../api/developer';
 import { Radio, Bell, TrendUp, TrendDown, X, MessageCircle, Zap } from '../../components/icons';
 import { Check } from 'lucide-react';
 import { LineChart } from '../../components/developer/ChartPrimitives';
+import { ErrorState } from '../../components/shared/LoadingState';
+import { captureEvent } from '../../observability';
 import { Z } from '../../styles/zIndex';
 
 export default function DesarrolladorCompetidores({ user, onLogout, embedded }) {
   const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
   const [radius, setRadius] = useState(2);
   const [toast, setToast] = useState(null);
   const [historyFor, setHistoryFor] = useState(null);     // competitor dev {id,name}
@@ -24,10 +27,16 @@ export default function DesarrolladorCompetidores({ user, onLogout, embedded }) 
 
   const canSimulate = user && (user.role === 'developer_admin' || user.role === 'superadmin');
 
-  const load = () => api.getCompetitorsEnriched(null, radius).then(d => {
-    setData(d);
-    setCfg(d.alert_config);
-  });
+  const load = () => {
+    setErr(false);
+    return api.getCompetitorsEnriched(null, radius).then(d => {
+      setData(d);
+      setCfg(d.alert_config);
+    }).catch(() => {
+      setErr(true);
+      captureEvent('dev_screen_load_error', { screen: 'competidores' });
+    });
+  };
   const loadNotifs = () => api.listNotifications().then(setNotifs).catch(() => {});
 
   useEffect(() => { load(); loadNotifs(); /* eslint-disable-next-line */ }, [radius]);
@@ -142,7 +151,8 @@ export default function DesarrolladorCompetidores({ user, onLogout, embedded }) 
         }
       />
 
-      {!data || !data.my_project ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+      {err ? <ErrorState message="No pudimos cargar a tus competidores. Revisa tu conexión e intenta de nuevo." onRetry={load} />
+        : !data || !data.my_project ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
             {/* Alertas */}

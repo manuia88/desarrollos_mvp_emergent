@@ -3,6 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, Toast } from '../../components/advisor/primitives';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
+import { ErrorState } from '../../components/shared/LoadingState';
+import { captureEvent } from '../../observability';
 import * as api from '../../api/developer';
 import { Link } from 'react-router-dom';
 import { FileText, ArrowRight, Upload, Clock, X } from '../../components/icons';
@@ -51,6 +53,7 @@ function CountdownBadge({ expiresAt }) {
 export default function DesarrolladorInventario({ user, onLogout }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [toast, setToast] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -65,7 +68,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
   const [holds, setHolds] = useState({}); // unit_id → hold
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setLoading(true); setErr(false);
     try {
       const r = await api.listInventory();
       setItems(r);
@@ -77,6 +80,9 @@ export default function DesarrolladorInventario({ user, onLogout }) {
         (allHolds || []).forEach(h => { holdMap[h.unit_id] = h; });
         setHolds(holdMap);
       } catch {}
+    } catch (e) {
+      setErr(true);
+      captureEvent('dev_screen_load_error', { screen: 'inventario' });
     } finally { setLoading(false); }
   // eslint-disable-next-line
   }, []);
@@ -141,8 +147,16 @@ export default function DesarrolladorInventario({ user, onLogout }) {
         }
       />
 
-      {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
-        : (
+      {err ? <ErrorState message="No pudimos cargar tu inventario. Revisa tu conexión e intenta de nuevo." onRetry={load} />
+        : loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+        : items.length === 0 ? (
+          <Card style={{ padding: 48, textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 6 }}>Aún no tienes inventario</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+              Cuando crees un proyecto con sus unidades, aquí podrás ver y administrar cada una (precio, estado, fotos).
+            </div>
+          </Card>
+        ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 14 }} className="inv-grid">
             <Card style={{ padding: 8, height: 'fit-content' }}>
               {items.map(d => (

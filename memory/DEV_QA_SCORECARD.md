@@ -7,7 +7,7 @@
 |---|---|---|
 | A · Lenguaje | 🟡 Ámbar | El grueso ya está en español claro, pero quedan "/100" de salud, una pantalla (Selección de Sitio) llena de jerga, y términos internos ("Superadmin/recompute") asomándose al dev |
 | B · Honestidad de datos | ✅ RESUELTO (2026-06-09) | Las 3 fabricaciones quitadas y conectadas a su dato real (ver abajo) |
-| C · Estados de pantalla | 🟡 Ámbar | 4 pantallas clave se quedan en "Cargando…" para siempre o se rompen si la API falla |
+| C · Estados de pantalla | ✅ RESUELTO (2026-06-09) | Las 4 pantallas 🔴 ahora muestran error claro + "Reintentar" (reusa `ErrorState`, reporta a observabilidad). Quedan 2 🟡 menores (error disfrazado de vacío) |
 | D · Móvil | 🟡 Ámbar | El chasis aguanta (menú colapsa), pero Inventario y 2 ventanas se salen de la pantalla en celular |
 | F · Coherencia entre portales | 🟡 Ámbar | La ZONA ya está unificada; el $/m² de un DESARROLLO tiene 3 fórmulas conviviendo (dev y comprador pueden ver cifras distintas) |
 
@@ -26,13 +26,17 @@ Competidores, IE, Demanda y Pricing ya estaban limpios. El QA destapó 3 más, a
 - 🔴 Pantalla **Selección de Sitio** (`DesarrolladorSiteSelection.js` + `SiteSelectionWizard.js` + `CompareTab.js`): "feasibility / narrative / Claude Haiku / SUB-SCORES / Wizard / AI" → traducir todo.
 - 🟡 Eyebrows en inglés en Reportes/Demanda (FORECAST/HEATMAP/COHORT/TOP QUERIES) · nombre del modelo "Claude Haiku/Sonnet" visible → "IA".
 
-## C · Estados de pantalla — 🟡 (raíz: `try/finally` sin `catch`)
-- 🔴 **Ficha del proyecto** (`ProyectoDetail.js:356`): slug inválido/API caída → pantalla rota, sin "proyecto no encontrado".
-- 🔴 **Inicio/Dashboard** (`DesarrolladorDashboard.js:359`): error → "Cargando…" eterno.
-- 🔴 **Inventario** (`DesarrolladorInventario.js:67`): sin catch + falta estado vacío.
-- 🔴 **Competidores** (`DesarrolladorCompetidores.js:27`): error → "Cargando…" eterno.
-- 🟡 Mis Proyectos / Pricing / Reportes-Forecast: el error se disfraza de "no hay datos".
-- Patrón bueno a copiar: `DesarrolladorReportes.js:182` (ExecutiveTab) y `DesarrolladorDemanda.js:66`.
+## C · Estados de pantalla — ✅ RESUELTO (2026-06-09 · patrón reusable, no parche por pantalla)
+Se reusó el componente compartido `ErrorState` (con botón "Reintentar") + `captureEvent` a
+observabilidad. Cierra ciclo: error → mensaje claro → Reintentar → recupera; y queda registrado
+para el superadmin. Las 4 🔴:
+- ✅ **Ficha del proyecto** (`ProyectoDetail`): distingue 404 ("Proyecto no encontrado · no existe o
+  no es de tu cuenta") de fallo de carga (con Reintentar). Antes: pantalla rota con el slug crudo.
+- ✅ **Inicio/Dashboard**: error → mensaje + Reintentar (antes "Cargando…" eterno).
+- ✅ **Inventario**: se agregó el `catch` faltante + Reintentar + **estado VACÍO honesto** ("Aún no
+  tienes inventario…").
+- ✅ **Competidores**: error → mensaje + Reintentar (antes "Cargando…" eterno).
+- 🟡 Cola (menor, error disfrazado de "no hay datos", no rompe): `MisProyectos` · `DesarrolladorPricing` · `Reportes-Forecast`.
 
 ## D · Móvil — 🟡
 - 🔴 **Inventario**: tabla de 9 columnas sin scroll (`:181`) + modal "Apartar" se sale (`:298`).

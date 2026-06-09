@@ -6,6 +6,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
+import { ErrorState } from '../../components/shared/LoadingState';
+import { captureEvent } from '../../observability';
 import { KPIStrip } from '../../components/shared/KPIStrip';
 import HealthScore from '../../components/shared/HealthScore';
 import VentasTab from '../../components/developer/VentasTab';
@@ -308,6 +310,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);   // false | 'notfound' | 'error'
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBrochure, setShowBrochure] = useState(false);
   const [showAiSuggest, setShowAiSuggest] = useState(false);  // colapsado: no estorba
@@ -342,7 +345,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   };
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setLoading(true); setErr(false);
     try {
       const data = await getProjectSummary(slug);
       setSummary(data);
@@ -354,7 +357,9 @@ export default function ProyectoDetail({ user, onLogout }) {
         localStorage.setItem('dmx_recent_projects', JSON.stringify(next));
       } catch {}
     } catch (e) {
-      console.error('ProyectoDetail load error:', e);
+      // 404 = proyecto no existe / no es tuyo · resto = fallo de carga. Ambos honestos (antes: pantalla rota).
+      setErr(e?.status === 404 ? 'notfound' : 'error');
+      captureEvent('dev_screen_load_error', { screen: 'ficha_proyecto', status: e?.status });
     } finally {
       setLoading(false);
     }
@@ -381,6 +386,24 @@ export default function ProyectoDetail({ user, onLogout }) {
   const handleSwitchProject = (id) => {
     navigate(`/desarrollador/proyectos/${id}?tab=${activeTab}`);
   };
+
+  // Error / no-encontrado honesto (antes: pantalla rota con el slug crudo de título).
+  if (err) {
+    return (
+      <DeveloperLayout user={user} onLogout={onLogout}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 4px' }}>
+          <Link to="/desarrollador/proyectos" style={{ fontSize: 12, color: 'var(--cream-3)', textDecoration: 'none' }}>← Mis Proyectos</Link>
+          <ErrorState
+            title={err === 'notfound' ? 'Proyecto no encontrado' : 'No se pudo cargar el proyecto'}
+            message={err === 'notfound'
+              ? 'Este proyecto no existe o no es de tu cuenta.'
+              : 'Revisa tu conexión e intenta de nuevo.'}
+            onRetry={err === 'notfound' ? undefined : load}
+          />
+        </div>
+      </DeveloperLayout>
+    );
+  }
 
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>

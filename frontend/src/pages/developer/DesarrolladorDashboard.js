@@ -7,6 +7,8 @@ import { PageHeader, Card } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import * as docsApi from '../../api/documents';
 import { ActivityFeed } from '../../components/shared/ActivityFeed';
+import { ErrorState } from '../../components/shared/LoadingState';
+import { captureEvent } from '../../observability';
 import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar } from '../../components/icons';
@@ -348,6 +350,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
   const [syncPending, setSyncPending] = useState({ count: 0, items: [] });
   const [activeTab, setActiveTab] = useState('resumen');
   // Re-arquitectura: en V2 el Inicio es UN solo flujo (sin tabs). El chat se abre desde
@@ -355,10 +358,15 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
   const DEV_V2 = process.env.REACT_APP_DEV_V2 === 'true';
   const [chatOpen, setChatOpen] = useState(false);
 
-  useEffect(() => {
-    api.getDashboard().then(setData).catch(() => setData(null));
+  const load = React.useCallback(() => {
+    setErr(false);
+    api.getDashboard().then(setData).catch(() => {
+      setData(null); setErr(true);
+      captureEvent('dev_screen_load_error', { screen: 'inicio' });
+    });
     docsApi.getSyncPending('developer').then(setSyncPending).catch(() => {});
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   const totalPendingFields = syncPending.items?.reduce((acc, x) => acc + (x.synced_field_count || 0), 0) || 0;
   const pausedDevs = (syncPending.items || []).filter(x => x.auto_sync_paused_reason).length;
@@ -438,7 +446,8 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* TU NEGOCIO HOY — estado del negocio (hero IA) */}
       <WeeklyBriefWidget />
 
-      {!data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+      {err ? <ErrorState message="No pudimos cargar tu Inicio. Revisa tu conexión e intenta de nuevo." onRetry={load} />
+        : !data ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (
           <>
             {/* HOY · LO QUE MUEVE LA AGUJA — el Asistente protagonista ARRIBA (sintetiza el día);
