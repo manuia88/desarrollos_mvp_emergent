@@ -657,6 +657,16 @@ RESERVED_STATUSES = ("reservado", "reserved", "apartado")
 AVAILABLE_STATUSES = ("disponible", "available")
 
 
+def is_sold(status) -> bool:
+    """Vocabulario ÚNICO de 'vendido' (incluye sinónimos). Úsalo en TODO cálculo de
+    absorción/ingreso cobrado para que dev, comprador y superadmin cuadren."""
+    return (status or "").strip().lower() in SOLD_STATUSES
+
+
+def is_available(status) -> bool:
+    return (status or "").strip().lower() in AVAILABLE_STATUSES
+
+
 def _unit_price_val(u: dict):
     p = u.get("price") or u.get("price_mxn")
     try:

@@ -187,6 +187,18 @@ async def test_dsr_borra_por_identificador(mock_db):
     assert cap.get("name") == "[eliminado_dsr]"
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# C2 · Un solo vocabulario de datos
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_is_sold_vocabulario_unico():
+    from data_developments import is_sold
+    for s in ("vendido", "Vendido", "SOLD", "cerrado", "closed", " CERRADO "):
+        assert is_sold(s) is True, s
+    for s in ("disponible", "apartado", "reservado", None, ""):
+        assert is_sold(s) is False, s
+
+
 @pytest.mark.asyncio
 async def test_audit_inmutable_redacta_pii(mock_db):
     """El log inmutable jamás debe guardar email/teléfono crudos para entidades con PII."""

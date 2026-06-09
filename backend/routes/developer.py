@@ -13,6 +13,8 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from data_developments import is_sold  # C2 · vocabulario ÚNICO de "vendido" (absorción/ingreso)
+
 
 router = APIRouter(prefix="/api/desarrollador", tags=["desarrollador"])
 
@@ -59,11 +61,11 @@ async def dashboard(request: Request):
 
     available = sum(1 for u in my_units if u["status"] == "disponible")
     reserved  = sum(1 for u in my_units if u["status"] == "reservado")
-    sold      = sum(1 for u in my_units if u["status"] == "vendido")
+    sold      = sum(1 for u in my_units if is_sold(u.get("status")))
     total     = len(my_units)
     absorption = round(100 * sold / total, 1) if total else 0
 
-    revenue_booked = sum(u["price"] for u in my_units if u["status"] == "vendido")
+    revenue_booked = sum(u["price"] for u in my_units if is_sold(u.get("status")))
     revenue_pipeline = sum(u["price"] for u in my_units if u["status"] == "reservado")
 
     db = get_db(request)
@@ -120,7 +122,7 @@ async def portfolio_reading(request: Request):
     my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
 
     total = len(my_units)
-    sold = sum(1 for u in my_units if u["status"] == "vendido")
+    sold = sum(1 for u in my_units if is_sold(u.get("status")))
     avail = sum(1 for u in my_units if u["status"] == "disponible")
     resv = sum(1 for u in my_units if u["status"] == "reservado")
     absor = round(100 * sold / total) if total else 0
@@ -567,12 +569,12 @@ async def dev_reporte_ejecutivo(request: Request):
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
     my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
     total = len(my_units)
-    sold = sum(1 for u in my_units if u["status"] == "vendido")
+    sold = sum(1 for u in my_units if is_sold(u.get("status")))
     avail = sum(1 for u in my_units if u["status"] == "disponible")
     absor = round(100 * sold / total) if total else 0
     valor = sum(u.get("price", 0) for u in my_units)
     por_cobrar = sum(u.get("price", 0) for u in my_units if u["status"] == "disponible")
-    cobrado = sum(u.get("price", 0) for u in my_units if u["status"] == "vendido")
+    cobrado = sum(u.get("price", 0) for u in my_units if is_sold(u.get("status")))
 
     # Reusa los motores (scope-ados al dev)
     from routes.superadmin_devmaster import _stock_soldout, _comportamiento
@@ -723,7 +725,7 @@ async def dev_indices(request: Request):
         agg = abs_por_zona.setdefault(zn, {"sold": 0, "total": 0})
         units = d.get("units") or []
         if units:
-            agg["sold"] += sum(1 for u in units if u.get("status") == "vendido")
+            agg["sold"] += sum(1 for u in units if is_sold(u.get("status")))
             agg["total"] += len(units)
         else:
             agg["sold"] += int(d.get("units_sold") or 0)
@@ -739,7 +741,7 @@ async def dev_indices(request: Request):
         agg = city_abs.setdefault(zn, {"sold": 0, "total": 0})
         units = d.get("units") or []
         if units:
-            agg["sold"] += sum(1 for u in units if u.get("status") == "vendido")
+            agg["sold"] += sum(1 for u in units if is_sold(u.get("status")))
             agg["total"] += len(units)
         else:
             agg["sold"] += int(d.get("units_sold") or 0)
@@ -1120,7 +1122,7 @@ Tono: analítico, basado en datos, sin marketing vacío. Cierra con el insight a
         "avg_price": avg_price,
         "units_sold": sold,
         "units_total": total_units,
-        "revenue": sum(u["price"] for u in my_units if u["status"] == "vendido"),
+        "revenue": sum(u["price"] for u in my_units if is_sold(u.get("status"))),
     }
 
     report = {

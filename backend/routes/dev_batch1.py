@@ -92,8 +92,11 @@ def _decrypt(val: str) -> str:
     if f:
         try:
             return f.decrypt(val.encode()).decode()
-        except Exception:
-            pass
+        except Exception as e:
+            # C5 · si HAY llave pero el descifrado falla (token corrupto/llave equivocada),
+            # NO devolver el cifrado como si fuera texto claro: registrar y devolver vacío.
+            log.warning(f"[dev_batch1] _decrypt falló (token inválido para la llave actual): {e}")
+            return ""
     return val
 
 
@@ -351,7 +354,8 @@ async def bulk_commit(payload: BulkCommitPayload, request: Request):
         await emit_ml_event(db, "mutation_logged", user.user_id, _tenant(user), user.role,
                             context={"entity_type": "bulk_upload", "action": "commit", "rows": committed},
                             ai_decision={}, user_action={})
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
 
     return {
         "job_id": job_id,
@@ -433,7 +437,8 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
             ai_decision={},
             user_action={"lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom},
         )
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom}
 
 
@@ -1110,7 +1115,8 @@ async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
         await log_mutation(db, user, "create", "unit_hold", unit_id,
                            before=None, after={"hours": payload.hours, "expires_at": expires_at.isoformat()},
                            request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return hold
 
 
@@ -1136,7 +1142,8 @@ async def release_hold(unit_id: str, dev_id: str, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "delete", "unit_hold", unit_id,
                            before={"status": "active"}, after={"status": "released"}, request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return {"ok": True, "unit_id": unit_id, "status": "released"}
 
 
@@ -1255,7 +1262,8 @@ async def patch_org_settings(payload: OrgSettingsPatch, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "org_settings", _tenant(user),
                            before=None, after=patch, request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return doc
 
 
@@ -1332,7 +1340,8 @@ async def create_erp_webhook(payload: ERPWebhookConfig, request: Request):
         await log_mutation(db, user, "create", "erp_webhook", wid,
                            before=None, after={"provider": payload.provider, "endpoint": payload.endpoint},
                            request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return {**doc, "webhook_receiver_url": f"/api/dev/erp-webhooks/{payload.provider}/event"}
 
 
@@ -1445,7 +1454,8 @@ async def submit_content(payload: ContentUploadPayload, request: Request):
         await log_mutation(db, user, "create", "content_upload", doc["id"],
                            before=None, after={"project_id": payload.project_id, "type": payload.type},
                            request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return doc
 
 
@@ -1483,7 +1493,8 @@ async def approve_content(cid: str, payload: ContentActionPayload, request: Requ
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "content_upload", cid,
                            before={"status": "pending"}, after={"status": "approved"}, request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return {"ok": True, "status": "approved"}
 
 
@@ -1501,7 +1512,8 @@ async def reject_content(cid: str, payload: ContentActionPayload, request: Reque
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "content_upload", cid,
                            before={"status": "pending"}, after={"status": "rejected"}, request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning(f"[dev_batch1] bitácora/ML no crítica falló (no bloquea): {_e}")
     return {"ok": True, "status": "rejected"}
 
 

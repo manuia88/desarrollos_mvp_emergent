@@ -101,6 +101,13 @@ async def _save_overlay(db, dev_id: str, overlay: Dict[str, Any]):
     overlay["development_id"] = dev_id
     overlay["updated_at"] = _now()
     await db.dev_overlays.replace_one({"development_id": dev_id}, overlay, upsert=True)
+    # C5 · invalidar AQUÍ (no en cada caller) garantiza que el comprador vea el dato
+    # fresco tras CUALQUIER escritura de overlay — ningún caller lo puede olvidar.
+    try:
+        from server import invalidate_dev_overlay_cache
+        invalidate_dev_overlay_cache(dev_id)
+    except Exception:
+        pass
 
 
 async def is_pricing_paused(db, dev_id: str) -> bool:

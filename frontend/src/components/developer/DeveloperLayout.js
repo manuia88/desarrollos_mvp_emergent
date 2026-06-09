@@ -5,6 +5,7 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
 import { ProjectSwitcher } from '../shared/ProjectSwitcher';
 import RecommendationBanner from './RecommendationBanner';
+import ErrorBoundary from '../ErrorBoundary';
 
 const ROLES_OK = new Set(['developer_admin', 'developer_member', 'superadmin']);
 
@@ -12,7 +13,7 @@ export default function DeveloperLayout({ user, onLogout, children, bare = false
   const loc = useLocation();
 
   // Embebido (re-arquitectura): el host ya provee sidebar + padding → solo el contenido.
-  if (bare) return <>{children}</>;
+  if (bare) return <ErrorBoundary>{children}</ErrorBoundary>;
 
   if (!user) return <Navigate to="/?login=1" replace state={{ next: loc.pathname }} />;
   if (!ROLES_OK.has(user.role)) {
@@ -41,7 +42,8 @@ export default function DeveloperLayout({ user, onLogout, children, bare = false
     >
       {user.role === 'developer_admin' && <RecommendationBanner />}
       <div data-testid="dev-main" style={{ padding: '22px 28px 80px', maxWidth: 1500 }}>
-        {children}
+        {/* C5 · si una pantalla truena, muestra fallback amable (no tumba el portal ni deja blanco) */}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </div>
     </PortalLayout>
   );

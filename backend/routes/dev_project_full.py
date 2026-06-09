@@ -50,7 +50,10 @@ async def _owns_project(db, user, pid: str) -> bool:
     try:
         doc = (await db.projects.find_one({"id": pid}, {"_id": 0, "dev_org_id": 1})
                or await db.developments.find_one({"id": pid}, {"_id": 0, "dev_org_id": 1}))
-    except Exception:
+    except Exception as e:
+        # C5 · fail-CLOSED (niega acceso) pero lo registra (no se queda mudo si la DB falla).
+        import logging
+        logging.getLogger("dmx.dev_project_full").warning(f"[_owns_project] consulta falló, niega acceso: {e}")
         doc = None
     return bool(doc and doc.get("dev_org_id") and doc.get("dev_org_id") == tenant)
 
