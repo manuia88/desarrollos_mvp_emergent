@@ -170,22 +170,22 @@
 | **C3** ✅ HECHO (2026-06-09) | **Privacidad / LFPDPPP** | 🔴→✅ | `compliance_consent.py` (registro consentimiento) + UI aviso+opt-in en LeadCaptureModal y LandingLeadCaptureForm (front+back) · `pii_crypto.py` (cifrado reposo fail-soft) · PDF público cifrado+TTL+sin nombre claro · `redact_pii` antes de la IA (lead_enrichment) · audit_immutable redacta PII · DSR 2ª pasada por lead_id/teléfono (conversación/WhatsApp/PDF/enrichment/taste/scores) con evidencia. Verificado E2E. **DIFERIDO (batch propio):** cifrar email/teléfono en reposo = rompe JOINs → necesita migración con índice ciego (hash) | M-L |
 | **C4** ✅ HECHO (2026-06-09) | **IA: inyección + costo + confianza** | 🔴→✅ | `services/ai_safety.py` (sanitize_llm_input/safe_filename/escape_regex/is_public_url_safe · emite evento → Sala de Seguridad) · SSRF en fotos (dev_batch1, follow_redirects=False) · re.escape en regex (dev_batch4_1) · safe_filename en 4 exports · tope de costo+timeout en las 7 llamadas LLM (send_with_timeout) · Cerebro `is_example` excluido de la calibración. Verificado con tests | M |
 | **C5** ✅ HECHO (2026-06-09) | **Observabilidad / fallas silenciosas** | 🟡→✅ | 9 `except: pass` de dev_batch1 ahora loguean · invalidación de cache movida DENTRO de `_save_overlay` (ningún caller la olvida) · `_owns_project` registra (fail-closed) · `_decrypt` ya no devuelve cifrado como claro · ErrorBoundary en DeveloperLayout. VERIFICADO: el ciclo edita-unidad→comprador ya cerraba (mezcla en vivo public.py:454, era falso positivo del audit) | S-M |
-| **C6** | **Correctitud** | 🟡 | bug `price_to=price_from` · zona horaria en fechas (CDMX) · divergencia cross-portal (maps_cross lee seed) · formato MXN | S |
+| **C6** ✅ HECHO (2026-06-09) | **Correctitud** | 🟡→✅ | ✅ bug `price_to=price_from` arreglado (dev_batch10) · `cdmx_time.py` (hora CDMX para fechas visibles, aplicado al PDF del comprador). MXN ya consistente (122 usos, no se tocó). Cola: divergencia maps_cross (seed) | S |
 | **C7** ✅ PARCIAL (2026-06-09) | **Primer día / UX / a11y / perf percibida** | 🟡→🟢 | ✅ MisProyectos empty-state con CTA "Crear Mi Primer Proyecto" → wizard (front+back conectado). VERIFICADO falsos positivos del audit: dashboard YA paralelo (Promise.allSettled + widgets independientes) · `:focus-visible` global YA en index.css · wizard YA navega al ficha del proyecto nuevo. **Cola menor:** aria-labels en más botones de ícono · DesarrolladorReportes lazy/memo (perf, no urgente) | M |
 | **C8** ✅ PARCIAL (2026-06-09) | **Red de pruebas** | 🔴→🟡 | `tests/test_dev_hardening_c1_c3_c4.py` (26 tests · C1+C3+C4) + red-team aislamiento (16/16) existente. **Falta (cola):** tests de dashboard/auth/pagos/auto-sync end-to-end del portal | M |
 | **C9** ✅ HECHO (2026-06-09) | **Permisos por plan** | 🟡→✅ | candado `requires_feature` cableado a los endpoints premium CAROS (site-selection create+run · cash-flow recalc · competidores enriched) · aplicación detrás de flag `FEATURE_GATING_ENFORCED` (default OFF = pre-lanzamiento permite + registra; el founder lo prende al vender planes) · 403 en lenguaje humano · superadmin pasa siempre. GETs de alto tráfico NO gateados (inundarían el log inmutable) | S |
-| **C10** | **Higiene** | 🟢 | `DesarrolladorInventario.js` sin ruta · componentes/API sin uso · redirects viejos | S |
+| **C10** ✅ HECHO (2026-06-09) | **Higiene** | 🟢→✅ | ✅ borrado `DesarrolladorInventario.js` (381 líneas huérfanas · cero referencias). Verificado: la ruta /desarrollador/inventario NO está rota (redirige a /proyectos) = falso positivo del audit. Cola: barrido fino de otros componentes/API sin uso | S |
 
 **Puntos ciegos que el crítico de completitud marcó (no auditados aún):** websockets/broadcast · CSRF · rotación de tokens · S3 ACL/cifrado · retry/dead-letter de jobs · race conditions de escritura concurrente · versionado de API. (Backlog de auditoría futura.)
 
 **Las 6 auditorías están CERRADAS (la 6 confirmó el plan y lo volvió accionable con archivo:línea + fix). Siguiente paso acordado: corregir, empezando por C1 (escala) + C3 (legal) que son los de mayor riesgo real.**
 
-### ✅ PROGRESO DE CORRECCIÓN (2026-06-09)
-- **C1** ✅ · **C3** ✅ · **C4** ✅ · **C5** ✅ · **C9** ✅ · **C2** ✅ PARCIAL · **C7** ✅ PARCIAL · **C8** 🟡 PARCIAL (29 tests)
-- Checkpoints: c1-escala · c3-privacidad · c4-c8 · c5-c2 · c7-c9 (todos `-done`)
-- **Quedan:** C6 (correctitud: zona horaria/MXN) · C10 (higiene: rutas/código sin uso) · colas menores (C8 E2E · C7 aria-labels/lazy · C2 migración)
+### ✅ PLAN DE CORRECCIÓN COMPLETO — 10/10 temas atendidos (2026-06-09)
+- **C1** ✅ · **C3** ✅ · **C4** ✅ · **C5** ✅ · **C6** ✅ · **C9** ✅ · **C10** ✅ · **C2** ✅ PARCIAL · **C7** ✅ PARCIAL · **C8** 🟡 PARCIAL (30 tests)
+- Checkpoints: c1-escala · c3-privacidad · c4-c8 · c5-c2 · c7-c9 · c6-c10 (todos `-done`)
+- **Colas menores que quedan:** C8 (tests E2E dashboard/auth/pagos) · C7 (aria-labels extra · DesarrolladorReportes lazy/memo) · C2 (migración) · C10 (barrido fino de más código sin uso) · C6 (maps_cross lee seed)
 - Diferido a batch propio (en BACKLOG_ENHANCEMENTS): cifrado email/teléfono en reposo (índice ciego) · unificar development_id→project_id + fusionar los 2 sistemas de override de unidad (ambos = migración)
-- **Hallazgo transversal:** la corrección confirmó MUCHOS falsos positivos del audit (dashboard paralelo, focus global, cache de unidad, on_deal_closed, _owns_project) → el portal estaba más pulido de lo que el audit sugería. La disciplina verify-don't-trust evitó código redundante.
+- **Hallazgo transversal:** la corrección confirmó MUCHOS falsos positivos del audit (dashboard paralelo, focus global, cache de unidad, on_deal_closed, _owns_project, link inventario, wizard navega) → el portal estaba más pulido de lo que el audit sugería. La disciplina verify-don't-trust evitó ~10 cambios redundantes.
 
 ## Resumen (semáforo por área)
 
