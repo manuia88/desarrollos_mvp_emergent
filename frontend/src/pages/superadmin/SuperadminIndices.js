@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
-import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, recalibrarComercial, getCalibracionComercial, getShf, refreshShf, getValoresUnitarios, ingestValoresUnitarios } from '../../api/indices';
+import { listIndices, ingestColonias, computeColoniasScores, syncComercios, syncSeguridad, fillChunk, syncCatastro, syncZonificacion, recalibrarComercial, getCalibracionComercial, getShf, refreshShf, ingestValoresUnitarios } from '../../api/indices';
 
 const BAND = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const cellCol = (i) => BAND[i.color] || 'var(--cream-2)';
@@ -92,6 +92,19 @@ export default function SuperadminIndices() {
       refrescar();
     } catch (e) {
       setIngest({ busy: false, msg: 'Error al sincronizar el valor catastral.' });
+    }
+  };
+
+  // F1.0 · Calcula uso de suelo + COS + CUS por colonia (cuánto se puede construir).
+  const sincronizarZonificacion = async () => {
+    setIngest({ busy: true, msg: 'Calculando uso de suelo, COS y CUS por colonia (SIG CDMX)… puede tardar varios minutos.' });
+    try {
+      const r = await syncZonificacion('CDMX');
+      const base = `${r.colonias_con_zonificacion} colonias con zonificación · ${r.con_cos_cus} con COS y CUS oficiales.`;
+      setIngest({ busy: false, msg: base });
+      refrescar();
+    } catch (e) {
+      setIngest({ busy: false, msg: 'Error al sincronizar la zonificación.' });
     }
   };
 
@@ -199,6 +212,11 @@ export default function SuperadminIndices() {
                 <b style={{ color: 'var(--ok, #1FA06A)' }}>{cobertura.total_con_scores_reales}</b> con scores reales · <b style={{ color: 'var(--warm, #E2982E)' }}>{cobertura.total_pendientes}</b> pendientes
               </span>
             )}
+            {cobertura.total_con_valor_suelo != null && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                · <b style={{ color: 'var(--cream)' }}>{cobertura.total_con_valor_suelo}</b> con valor de suelo · <b style={{ color: 'var(--cream)' }}>{cobertura.total_con_zonificacion}</b> con COS/CUS
+              </span>
+            )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
               {(cobertura.ciudades || []).map(c => (
                 <span key={c.city} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', padding: '4px 10px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -219,6 +237,9 @@ export default function SuperadminIndices() {
             </button>
             <button data-testid="ix-sync-catastro" onClick={sincronizarCatastro} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Sincronizar Valor del Suelo
+            </button>
+            <button data-testid="ix-sync-zonificacion" onClick={sincronizarZonificacion} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
+              Sincronizar Zonificación (COS/CUS)
             </button>
             <button data-testid="ix-recalibrar-comercial" onClick={recalibrarValorComercial} disabled={ingest.busy} style={{ ...btnSecondary, opacity: ingest.busy ? 0.6 : 1 }}>
               Recalibrar Valor Comercial

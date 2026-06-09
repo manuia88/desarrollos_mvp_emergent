@@ -274,6 +274,18 @@ async def superadmin_colonias_sync_catastro(
     return await sig.sync_vsuelo_for_city(request.app.state.db, city=city)
 
 
+@router.post("/api/superadmin/colonias/sync-zonificacion")
+async def superadmin_colonias_sync_zonificacion(
+    request: Request,
+    city: str = Query("CDMX", description="ciudad a sincronizar"),
+):
+    """F1.0 · Sincroniza la ZONIFICACIÓN por colonia (uso de suelo + COS + CUS + niveles) agregando
+    los predios del SIG CDMX. Base para el Valor Residual ('¿cuánto puedo construir aquí?')."""
+    await _sa(request)
+    import colonias_catalog as cc
+    return await cc.sync_zonificacion_for_city(request.app.state.db, city=city)
+
+
 @router.post("/api/superadmin/colonias/recalibrate-comercial")
 async def superadmin_colonias_recalibrate_comercial(
     request: Request,

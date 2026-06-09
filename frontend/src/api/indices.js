@@ -86,6 +86,16 @@ export const syncCatastro = async (city = 'CDMX') => {
   return body;
 };
 
+// Superadmin · F1.0 · sincroniza la zonificación (uso de suelo + COS + CUS) por colonia desde el SIG.
+export const syncZonificacion = async (city = 'CDMX') => {
+  const r = await fetch(`${API}/api/superadmin/colonias/sync-zonificacion?city=${encodeURIComponent(city)}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
+  return body;
+};
+
 // Superadmin · recalibra el modelo del valor del suelo al valor comercial (ING.2 · aprende de ventas reales).
 export const recalibrarComercial = async (city = 'CDMX') => {
   const r = await fetch(`${API}/api/superadmin/colonias/recalibrate-comercial?city=${encodeURIComponent(city)}`, {

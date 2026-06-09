@@ -96,6 +96,90 @@ async def upsert_colonias(db, city: str, items: List[Dict[str, Any]]) -> int:
     return n
 
 
+def _zf(v):
+    try:
+        s = str(v).strip().replace("%", "")
+        return float(s) if s and s.replace(".", "", 1).replace("-", "", 1).isdigit() else None
+    except Exception:
+        return None
+
+
+def _zi(v):
+    f = _zf(v)
+    return int(f) if f is not None else None
+
+
+async def sync_zonificacion_for_city(db, city: str = "CDMX", alcaldias: Optional[List[str]] = None) -> Dict[str, Any]:
+    """F1.0 · Agrega la zonificación PREDIO a PREDIO (uso de suelo · área libre · niveles ·
+    densidad del SIG CDMX) → COS/CUS POR COLONIA. Reusa `SIGCDMXEngine.fetch_alcaldia`.
+    Fórmula oficial: COS = 1 − (%área libre); CUS ≈ COS × niveles. Honesto: la colonia que
+    no tenga predios con dato queda sin COS/CUS (cero deuda). Cada número es DATO real del SIG."""
+    import statistics
+    from datetime import datetime, timezone
+    from data_sources.sigcdmx_engine import SIGCDMXEngine, ALCALDIAS
+    iso = lambda: datetime.now(timezone.utc).isoformat()
+    eng = SIGCDMXEngine(db)
+    targets = alcaldias or ALCALDIAS
+    by_col: Dict[str, Dict[str, Any]] = {}
+    alc_ok = 0
+    for alc in targets:
+        try:
+            rows = await eng.fetch_alcaldia(alc)
+        except Exception as e:
+            log.warning(f"[zonif] {alc} fuente: {e}")
+            continue
+        if not rows:
+            continue
+        alc_ok += 1
+        alc_title = alc.replace("_", " ").title()
+        for r in rows:
+            rm = r.get("raw_metadata") or {}
+            col = (rm.get("colonia") or "").strip()
+            if not col:
+                continue
+            slug = _slugify(f"{col}-{alc_title}")
+            d = by_col.setdefault(slug, {
+                "name": (col.title() if col.isupper() else col), "alcaldia": alc_title,
+                "uso": [], "al": [], "niv": [], "dens": []})
+            uso = r.get("uso_suelo_categoria") or rm.get("uso_descri")
+            if uso and str(uso) != "n/d":
+                d["uso"].append(str(uso))
+            al = _zf(rm.get("area_libre"))
+            if al is not None and 0 <= al <= 100:
+                d["al"].append(al)
+            niv = r.get("niveles_max") or _zi(rm.get("niveles"))
+            if niv and 0 < niv < 80:
+                d["niv"].append(niv)
+            dens = rm.get("densidad_d") or r.get("densidad_permitida")
+            if dens and str(dens).upper() not in ("NA", "N/D", ""):
+                d["dens"].append(str(dens))
+    escritas = con_coscus = 0
+    for slug, d in by_col.items():
+        if not d["niv"] and not d["al"]:
+            continue
+        uso_modal = max(set(d["uso"]), key=d["uso"].count) if d["uso"] else None
+        al_med = round(statistics.median(d["al"]), 1) if d["al"] else None   # % área libre
+        niv_med = round(statistics.median(d["niv"])) if d["niv"] else None
+        dens_modal = max(set(d["dens"]), key=d["dens"].count) if d["dens"] else None
+        cos = round(1 - (al_med / 100.0), 3) if al_med is not None else None  # COS = 1 − %área libre
+        cus = round(cos * niv_med, 2) if (cos is not None and niv_med) else None
+        upd = {"zonif_uso": uso_modal, "zonif_area_libre_pct": al_med, "zonif_niveles": niv_med,
+               "zonif_densidad": dens_modal, "cos": cos, "cus": cus,
+               "zonif_n": len(d["niv"] or d["al"]), "zonif_synced_at": iso()}
+        await db.colonias.update_one(
+            {"id": slug},
+            {"$set": {k: v for k, v in upd.items() if v is not None},
+             "$setOnInsert": {"id": slug, "city": city, "name": d["name"],
+                              "alcaldia": d["alcaldia"], "source": "sigcdmx_zonif", "center": None}},
+            upsert=True)
+        escritas += 1
+        if cos is not None and cus is not None:
+            con_coscus += 1
+    return {"ok": True, "city": city, "alcaldias_procesadas": alc_ok,
+            "colonias_con_zonificacion": escritas, "con_cos_cus": con_coscus,
+            "cobertura": await coverage(db)}
+
+
 async def coverage(db) -> Dict[str, Any]:
     """Cobertura de colonias por ciudad (siembra perezosa si la colección está vacía)."""
     try:
@@ -107,15 +191,22 @@ async def coverage(db) -> Dict[str, Any]:
                 "_id": "$city",
                 "count": {"$sum": 1},
                 "con_reales": {"$sum": {"$cond": [{"$gt": ["$scores_cobertura_pct", 0]}, 1, 0]}},
+                "con_vsuelo": {"$sum": {"$cond": [{"$gt": ["$vsuelo_pm2_catastral", 0]}, 1, 0]}},
+                "con_zonif": {"$sum": {"$cond": [{"$gt": ["$cus", 0]}, 1, 0]}},
             }},
             {"$sort": {"count": -1}},
         ]):
             rows.append({"city": r["_id"] or "—", "colonias": r["count"],
-                         "con_scores_reales": r.get("con_reales", 0)})
+                         "con_scores_reales": r.get("con_reales", 0),
+                         "con_valor_suelo": r.get("con_vsuelo", 0),
+                         "con_zonificacion": r.get("con_zonif", 0)})
         total = sum(r["colonias"] for r in rows)
         con_reales = sum(r["con_scores_reales"] for r in rows)
+        con_vsuelo = sum(r["con_valor_suelo"] for r in rows)
+        con_zonif = sum(r["con_zonificacion"] for r in rows)
         return {"ciudades": rows, "total_colonias": total, "total_ciudades": len(rows),
-                "total_con_scores_reales": con_reales, "total_pendientes": total - con_reales}
+                "total_con_scores_reales": con_reales, "total_pendientes": total - con_reales,
+                "total_con_valor_suelo": con_vsuelo, "total_con_zonificacion": con_zonif}
     except Exception as e:  # fail-open: la cobertura nunca rompe la página
         log.warning(f"[colonias_catalog] coverage: {e}")
         return {"ciudades": [], "total_colonias": 0, "total_ciudades": 0}
