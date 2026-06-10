@@ -166,3 +166,45 @@ async def terminal_mercado(db, top_colonias: int = 8) -> Dict[str, Any]:
                     if not publicable else "Terminal de Mercado CDMX viva — agregados k-anónimos listos."),
         "fuente": "Terminal de Mercado DMX · fusiona Cubo (oferta) + Índices + Grafo (demanda) + Cerebro (aprendizaje)",
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F5.3 · Índices vivos — foto diaria + historial (memoria temporal del Modelo del Mundo)
+# ═══════════════════════════════════════════════════════════════════════════════
+async def snapshot_indices(db) -> Dict[str, Any]:
+    """Guarda la foto de HOY de los 3 índices + maestro (idempotente por día). Para la curva. FAIL-OPEN."""
+    from datetime import datetime, timezone
+    fecha = datetime.now(timezone.utc).date().isoformat()
+    try:
+        t = await terminal_mercado(db)
+        doc = {
+            "fecha": fecha,
+            "indice_maestro": (t.get("indice_maestro") or {}).get("valor"),
+            "indices": {i["key"]: i["valor"] for i in (t.get("indices_vendibles") or [])},
+            "n_proyectos": t.get("n_proyectos"),
+            "creado_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.market_index_snapshots.update_one(
+            {"fecha": fecha}, {"$set": doc}, upsert=True)
+        return {"ok": True, **doc}
+    except Exception as e:
+        log.warning(f"[terminal] snapshot_indices fail-open: {e}")
+        return {"ok": False}
+
+
+async def historial_indices(db, days: int = 90) -> Dict[str, Any]:
+    """Curva de los índices: últimas N fotos diarias (asc). FAIL-OPEN."""
+    try:
+        rows = await db.market_index_snapshots.find({}, {"_id": 0}).sort("fecha", -1).to_list(days)
+        rows = list(reversed(rows))
+        return {"serie": rows, "n": len(rows),
+                "lectura": ("Curva de los índices DMX en el tiempo." if rows
+                            else "Aún sin historial — guarda la primera foto para empezar la curva.")}
+    except Exception as e:
+        log.warning(f"[terminal] historial_indices fail-open: {e}")
+        return {"serie": [], "n": 0, "lectura": "Sin historial."}
+
+
+async def market_index_daily_snapshot(db) -> Dict[str, Any]:
+    """Entrypoint del cron diario (scheduler_ie)."""
+    return await snapshot_indices(db)

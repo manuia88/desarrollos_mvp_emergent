@@ -411,6 +411,14 @@ def start_scheduler(db):
         args=[db], id="watchlist_alerts", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # F5.3 — Foto diaria de los índices DMX (03:00 MX) para la curva/historial del Modelo del Mundo
+    from terminal_mercado_engine import market_index_daily_snapshot
+    _scheduler.add_job(
+        wrap_apscheduler_job(market_index_daily_snapshot, "market_index_snapshot"),
+        CronTrigger(hour=3, minute=0, timezone=TZ),
+        args=[db], id="market_index_snapshot", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     # Phase 7.11 — Drive watcher every 6h (FALLBACK; webhooks are realtime)
     from drive_engine import run_drive_watcher_once, renew_expiring_webhooks
     _scheduler.add_job(

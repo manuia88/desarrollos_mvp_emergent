@@ -35,6 +35,22 @@ async def terminal_mercado_ep(request: Request, top: int = Query(8, ge=3, le=30)
     return await terminal_mercado(_db(request), top_colonias=top)
 
 
+@router.get("/api/superadmin/indices-historial")
+async def indices_historial_ep(request: Request, days: int = Query(90, ge=2, le=365)):
+    """F5.3 · Curva (historial diario) de los 3 índices DMX + maestro."""
+    await _auth(request)
+    from terminal_mercado_engine import historial_indices
+    return await historial_indices(_db(request), days=days)
+
+
+@router.post("/api/superadmin/indices-historial/snapshot")
+async def indices_snapshot_ep(request: Request):
+    """F5.3 · Guarda la foto de hoy (build-for-endstate: arranca la curva sin esperar al cron)."""
+    await _auth(request)
+    from terminal_mercado_engine import snapshot_indices
+    return await snapshot_indices(_db(request))
+
+
 @router.get("/api/superadmin/bancabilidad")
 async def bancabilidad_ranking_ep(request: Request, top: int = Query(50, ge=1, le=200)):
     """F5.1 · Ranking de Bancabilidad de todos los proyectos (producto de datos para bancos/fondos)."""

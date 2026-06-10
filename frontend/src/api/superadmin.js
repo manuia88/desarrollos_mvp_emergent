@@ -18,6 +18,9 @@ export const getCerebroMercado     = ()           => j('/api/superadmin/cerebro-
 export const getTerminalMercado    = (top = 8)    => j(`/api/superadmin/terminal-mercado?top=${top}`);
 // F5.1 · Ranking de Bancabilidad de todos los proyectos (producto de datos para bancos/fondos).
 export const getBancabilidadRanking = (top = 50)  => j(`/api/superadmin/bancabilidad?top=${top}`);
+// F5.3 · Curva histórica de los índices DMX + guardar foto de hoy (memoria temporal).
+export const getIndicesHistorial   = (days = 90)  => j(`/api/superadmin/indices-historial?days=${days}`);
+export const snapshotIndices       = ()           => j('/api/superadmin/indices-historial/snapshot', { method: 'POST' });
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
 // Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla

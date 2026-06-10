@@ -8,7 +8,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { getTerminalMercado, getBancabilidadRanking } from '../../api/superadmin';
+import { getTerminalMercado, getBancabilidadRanking, getIndicesHistorial, snapshotIndices } from '../../api/superadmin';
 
 const LETRA_COLOR = { 'A+': '#22C55E', 'A': '#22C55E', 'B+': '#84CC16', 'B': '#84CC16', 'C+': '#E2982E', 'C': '#E2982E', 'D': '#ef4444' };
 const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('es-MX'));
@@ -18,11 +18,20 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(false);
   const [banca, setBanca] = useState(null);
+  const [hist, setHist] = useState(null);
+  const [snapBusy, setSnapBusy] = useState(false);
 
+  const loadHist = () => getIndicesHistorial(90).then(setHist).catch(() => setHist(null));
   useEffect(() => {
     getTerminalMercado(8).then(setData).catch(() => setErr(true));
     getBancabilidadRanking(10).then(setBanca).catch(() => setBanca(null));
+    loadHist();
   }, []);
+
+  const guardarFoto = async () => {
+    setSnapBusy(true);
+    try { await snapshotIndices(); await loadHist(); } catch { /* noop */ } finally { setSnapBusy(false); }
+  };
 
   const note = (t) => (
     <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-3)', padding: '24px 0', textAlign: 'center' }}>{t}</div>
@@ -83,6 +92,37 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ── Curva histórica de los índices (F5.3) ── */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={h}>Índices vivos · curva en el tiempo</div>
+              <button onClick={guardarFoto} disabled={snapBusy}
+                style={{ padding: '5px 10px', borderRadius: 8, fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer',
+                  border: '1px solid var(--border)', background: 'rgba(var(--cream-rgb),0.04)', color: 'var(--cream)', opacity: snapBusy ? 0.6 : 1 }}>
+                {snapBusy ? 'Guardando…' : '📸 Guardar Foto de Hoy'}
+              </button>
+            </div>
+            {(() => {
+              const serie = hist?.serie || [];
+              if (serie.length < 2) return <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>◐ {serie.length === 1 ? 'Primer punto guardado — la curva crece con cada foto diaria (cron 03:00).' : (hist?.lectura || 'Aún sin historial.')}</div>;
+              const vals = serie.map(s => s.indice_maestro || 0);
+              const min = Math.min(...vals), max = Math.max(...vals), rng = (max - min) || 1;
+              const W = 320, H = 44;
+              const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * W},${H - ((v - min) / rng) * H}`).join(' ');
+              const first = vals[0], last = vals[vals.length - 1], d = Math.round((last - first) * 10) / 10;
+              return (
+                <div style={{ marginTop: 8 }}>
+                  <svg width={W} height={H} style={{ display: 'block', maxWidth: '100%' }}>
+                    <polyline points={pts} fill="none" stroke="#6366F1" strokeWidth="2" />
+                  </svg>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>
+                    Maestro: {first} → <b style={{ color: d >= 0 ? '#22C55E' : '#ef4444' }}>{last} ({d >= 0 ? '+' : ''}{d})</b> · {serie.length} fotos
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Oferta (cubo) ── */}

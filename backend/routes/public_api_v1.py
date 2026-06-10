@@ -296,6 +296,21 @@ async def v1_market_indices(request: Request, response: Response):
                           records=len(out.get("indices") or []), started=started)
 
 
+@router.get("/api/v1/market/indices/history")
+async def v1_market_indices_history(request: Request, response: Response,
+                                    days: int = Query(90, ge=2, le=365)):
+    """F5.3 · Curva histórica de los 3 índices DMX. Bundle indices_dmx_suite (pro+)."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "pro")
+    started = time.perf_counter()
+    db = _db(request)
+    from terminal_mercado_engine import historial_indices
+    h = await historial_indices(db, days=days)
+    out = {"available": bool(h.get("serie")), "serie": h.get("serie"), "n": h.get("n")}
+    return await _deliver(db, ctx, request, response, "/api/v1/market/indices/history", out,
+                          records=h.get("n", 0), started=started)
+
+
 @router.get("/api/v1/zones/{zone_id}/demand")
 async def v1_zone_demand(zone_id: str, request: Request, response: Response):
     """F5.2 · Grafo del Comprador (demanda anónima por colonia · k-anon). Bundle grafo_demanda_suite (enterprise)."""

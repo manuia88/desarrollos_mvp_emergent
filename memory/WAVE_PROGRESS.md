@@ -2,6 +2,21 @@
 
 ---
 
+## 💎 FASE F5 · MODELO DEL MUNDO / DATA UTILITY ✅ COMPLETA (2026-06-10)
+Vende DATOS, no servicios de terceros. HALLAZGO: el núcleo (Terminal vendible + 3 índices + Grafo producto + k-anon + API pública v1) ya vivo por F2.12. F5 añadió el diferenciador (Bancabilidad), la entrega real (API) y la memoria temporal (curva). Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
+
+| Chunk | Qué hace | Front + Back | Checkpoint |
+|---|---|---|---|
+| **F5.1** | Score de Bancabilidad A–F por proyecto (absorción + zona + venta esperada del Cerebro) + ranking | `bancabilidad_engine.py` + card en Reportes (dev) + sección en Terminal (SA) | `checkpoint-f5.1` |
+| **F5.2** | Entrega de índices/Grafo-demanda/Bancabilidad por la API v1 gated por tier (k-anon + uso) | 3 endpoints en public_api_v1 + endpoint visible en Terminal | `checkpoint-f5.2` |
+| **F5.3** | Índices vivos: foto diaria (cron 03:00) → curva/historial + sparkline + API | `terminal_mercado_engine` snapshot/historial + cron + Terminal | `checkpoint-f5.3` |
+
+**Cierra:** el Modelo del Mundo vende sus datos (bancabilidad/índices/grafo) por API con memoria temporal. Núcleo Terminal/Grafo-producto/k-anon ya vivo desde F2.12.
+
+🏁 **ROADMAP F0→F5 COMPLETO.** El "Modelo del Mundo DMX" punta a punta: aprende de la realidad → aplica lo aprendido → se vigila → vende sus datos. Cero deuda, reuso total, 4 portales.
+
+---
+
 ## 🔮 FASE F4 · CEREBRO DEL MERCADO — DIGITAL TWIN + PREDICCIÓN↔REALIDAD ✅ COMPLETA (2026-06-10)
 HALLAZGO de auditoría: el núcleo (registrar/resolver predicciones, calibración, **self-tuning REAL** de close_prob+AVM, loops venta/estudio) ya estaba vivo por F2.5+F3.4. F4 cierra el lado que faltaba: APLICAR lo aprendido + vigilar el propio modelo. Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
 

@@ -239,7 +239,20 @@ Lo que el roadmap nombra y NO existía: el **Score de Bancabilidad**.
   - `backend/terminal_mercado_engine.py` — vendible ahora trae `endpoint`+`tier` por producto.
   - Frontend: la sección "Productos vendibles" de SuperadminTerminalMercado muestra el endpoint API + tier de cada producto (la conexión visible).
   - Despierta lo desconectado: lo sellable de F2.12/F5.1 ahora se ENTREGA por la API que ya existía. Smoke real verde (bancabilidad_por_zona polanco D · server OK). Frontend 1 warning (limpio).
-- [ ] 5.3 Índices vivos con historial/curva (time series persistida) · 🔄
+**F5.3 Índices vivos — foto diaria + curva (memoria temporal)** — ✅ 2026-06-10
+- [x] 5.3 Snapshot diario de los 3 índices + maestro → historial/curva + API · Back+Front · ✅
+- ARCHIVOS F5.3:
+  - `backend/terminal_mercado_engine.py` — `snapshot_indices(db)` (upsert idempotente por día en db.market_index_snapshots) + `historial_indices(db, days)` + `market_index_daily_snapshot` (entrypoint cron).
+  - `backend/scheduler_ie.py` — cron diario 03:00 MX registrado (reusa wrap_apscheduler_job, mismo patrón que los demás jobs).
+  - Endpoints: GET /api/superadmin/indices-historial + POST /snapshot (build-for-endstate: arranca la curva sin esperar al cron) · GET /api/v1/market/indices/history (pro+).
+  - Frontend: sección "Índices vivos · curva en el tiempo" en SuperadminTerminalMercado (sparkline SVG del maestro + delta + botón "Guardar Foto de Hoy"). api.getIndicesHistorial + snapshotIndices.
+  - Cierra el Modelo del Mundo con memoria temporal. Smoke real verde (snapshot hoy IOB 64.9/IAB 14.1/IGE 14.1, idempotente). Frontend 1 warning (limpio).
+
+🎉 **FASE F5 COMPLETA — F5.1 a F5.3 (3 chunks) ✅ Data Utility: Score de Bancabilidad + entrega por API v1 (gated) + índices vivos con curva. Núcleo Terminal/Grafo-producto/k-anon ya vivo desde F2.12.**
+
+═══════════════════════════════════════════════════════════════════════════════
+🏁 **ROADMAP F0→F5 COMPLETO (2026-06-10)** — F0 Cimientos · F1 Underwriting · F2.x Cerebro del Mercado (demanda) · F3 Estudio/Memo autopiloto · F4 Digital Twin (palancas+drift) · F5 Data Utility (bancabilidad+API+curva). El "Modelo del Mundo DMX" punta a punta: aprende de la realidad, aplica lo aprendido, se vigila, y vende sus datos. Cero deuda, reuso total, 4 portales.
+═══════════════════════════════════════════════════════════════════════════════
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.
