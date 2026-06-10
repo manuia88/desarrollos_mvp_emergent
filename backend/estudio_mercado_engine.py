@@ -336,3 +336,68 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
                     if es_estimado else "Estudio vivo con demanda real en la zona."),
         "fuente": "Estudio de Mercado Vivo DMX · fusiona Grafo + EPRAV + Generador + oferta + zona",
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F3.2/F3.4 · Snapshot + guardado versionado (compartido por la ruta y el autopiloto)
+# ═══════════════════════════════════════════════════════════════════════════════
+def snapshot_estudio(est: dict) -> Dict[str, Any]:
+    """Foto de los números clave que el estudio PREDICE (para comparar luego vs la realidad)."""
+    s = est.get("secciones") or {}
+    dr = s.get("demanda_real") or {}
+    dp = s.get("demanda_potencial") or {}
+    prod = s.get("producto_recomendado") or {}
+    of = s.get("oferta") or {}
+    absn = s.get("absorcion") or {}
+    tono = (s.get("tono_marketing") or {}).get("dominante") or {}
+    dom = None
+    mezcla = prod.get("mezcla") or []
+    if mezcla:
+        dom = max(mezcla, key=lambda m: m.get("pct", 0) or 0)
+    return {
+        "demanda_total": dr.get("demanda_total"),
+        "gap_vertical": dp.get("gap_vertical"),
+        "captura_objetivo": dp.get("captura_objetivo"),
+        "producto_dominante": ({"tipologia": dom.get("tipologia"), "pct": dom.get("pct"),
+                                "m2": dom.get("m2_promedio"), "precio": dom.get("precio_tipico")} if dom else None),
+        "oferta_proyectos": of.get("proyectos"),
+        "oferta_unidades": of.get("unidades_disponibles"),
+        "absorcion_pct": absn.get("absorcion_pct") if isinstance(absn, dict) else None,
+        "tono_dominante": tono.get("nombre"),
+    }
+
+
+async def guardar_estudio(db, owner_id: str, colonia_id: str, categoria: str = "media") -> Dict[str, Any]:
+    """Guarda una versión fechada del estudio en db.developer_reports (type=estudio) + registra
+    la predicción de demanda en el Cerebro del Mercado. Reusado por la ruta y el autopiloto. FAIL-OPEN."""
+    from datetime import datetime as _dt, timezone as _tz
+    import uuid as _uuid
+    est = await generar_estudio(db, colonia_id, categoria)
+    prev = await db.developer_reports.count_documents(
+        {"owner_id": owner_id, "type": "estudio", "colonia_id": colonia_id})
+    doc = {
+        "id": f"est_{_uuid.uuid4().hex[:12]}",
+        "owner_id": owner_id,
+        "type": "estudio",
+        "colonia_id": colonia_id,
+        "colonia": est.get("colonia"),
+        "categoria": categoria,
+        "version": prev + 1,
+        "snapshot": snapshot_estudio(est),
+        "veredicto": (est.get("veredicto") or [])[:6],
+        "es_estimado": est.get("es_estimado", True),
+        "generated_at": _dt.now(_tz.utc).isoformat(),
+    }
+    await db.developer_reports.insert_one(dict(doc))
+    doc.pop("_id", None)
+    try:
+        from cerebro_mercado_engine import registrar_prediccion
+        dt_total = (doc["snapshot"] or {}).get("demanda_total")
+        if dt_total is not None:
+            await registrar_prediccion(db, kind="days_on_market", predicted=float(dt_total),
+                                       ref=f"estudio__{colonia_id}__v{doc['version']}",
+                                       meta={"colonia_id": colonia_id, "categoria": categoria,
+                                             "kind_real": "demanda_estudio"})
+    except Exception as e:
+        log.warning(f"[estudio.guardar] registrar_prediccion fail-open: {e}")
+    return doc

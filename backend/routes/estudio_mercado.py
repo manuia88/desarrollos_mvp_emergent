@@ -122,77 +122,32 @@ async def deseabilidad_ep(request: Request, dev_id: str, unit_id: str):
     return await score_deseabilidad(_db(request), unit, dev)
 
 
-def _snapshot_estudio(est: dict) -> dict:
-    """Foto de los números clave que el estudio PREDICE (para comparar luego vs la realidad)."""
-    s = est.get("secciones") or {}
-    dr = s.get("demanda_real") or {}
-    dp = s.get("demanda_potencial") or {}
-    prod = s.get("producto_recomendado") or {}
-    of = s.get("oferta") or {}
-    absn = s.get("absorcion") or {}
-    tono = (s.get("tono_marketing") or {}).get("dominante") or {}
-    dom = None
-    mezcla = prod.get("mezcla") or []
-    if mezcla:
-        dom = max(mezcla, key=lambda m: m.get("pct", 0) or 0)
-    return {
-        "demanda_total": dr.get("demanda_total"),
-        "gap_vertical": dp.get("gap_vertical"),
-        "captura_objetivo": dp.get("captura_objetivo"),
-        "producto_dominante": ({"tipologia": dom.get("tipologia"), "pct": dom.get("pct"),
-                                "m2": dom.get("m2_promedio"), "precio": dom.get("precio_tipico")} if dom else None),
-        "oferta_proyectos": of.get("proyectos"),
-        "oferta_unidades": of.get("unidades_disponibles"),
-        "absorcion_pct": absn.get("absorcion_pct") if isinstance(absn, dict) else None,
-        "tono_dominante": tono.get("nombre"),
-    }
-
-
 @router.post("/api/dev/estudio-mercado/guardar")
 async def estudio_mercado_guardar(request: Request,
                                   colonia_id: str = Query(...),
                                   categoria: str = Query("media")):
-    """Guarda una versión fechada del estudio (historial). Reusa db.developer_reports (type=estudio). FAIL-OPEN."""
+    """Guarda una versión fechada del estudio (historial). Reusa estudio_mercado_engine.guardar_estudio."""
     user = await _auth(request)
-    db = _db(request)
-    owner = getattr(user, "user_id", "") or ""
-    from estudio_mercado_engine import generar_estudio
-    est = await generar_estudio(db, colonia_id, categoria)
+    from estudio_mercado_engine import guardar_estudio
+    return await guardar_estudio(_db(request), getattr(user, "user_id", "") or "", colonia_id, categoria)
 
-    prev = await db.developer_reports.count_documents(
-        {"owner_id": owner, "type": "estudio", "colonia_id": colonia_id})
-    from datetime import datetime as _dt, timezone as _tz
-    import uuid as _uuid
-    doc = {
-        "id": f"est_{_uuid.uuid4().hex[:12]}",
-        "owner_id": owner,
-        "type": "estudio",
-        "colonia_id": colonia_id,
-        "colonia": est.get("colonia"),
-        "categoria": categoria,
-        "version": prev + 1,
-        "snapshot": _snapshot_estudio(est),
-        "veredicto": (est.get("veredicto") or [])[:6],
-        "es_estimado": est.get("es_estimado", True),
-        "generated_at": _dt.now(_tz.utc).isoformat(),
-    }
-    await db.developer_reports.insert_one(dict(doc))
-    doc.pop("_id", None)
 
-    # Cierra ciclo: registra la predicción de demanda en el Cerebro del Mercado (fail-open, deduped).
-    try:
-        from cerebro_mercado_engine import registrar_prediccion
-        dt_total = (doc["snapshot"] or {}).get("demanda_total")
-        if dt_total is not None:
-            await registrar_prediccion(db, kind="days_on_market",
-                                       predicted=float(dt_total),
-                                       ref=f"estudio__{colonia_id}__v{doc['version']}",
-                                       meta={"colonia_id": colonia_id, "categoria": categoria,
-                                             "kind_real": "demanda_estudio"})
-    except Exception as e:
-        log.warning(f"[estudio.guardar] registrar_prediccion fail-open: {e}")
+@router.get("/api/dev/estudio-mercado/propuestas")
+async def estudio_mercado_propuestas(request: Request):
+    """Autopiloto: el Cerebro detecta colonias cuyo dato cambió vs el último estudio guardado (F3.4)."""
+    user = await _auth(request)
+    from estudio_autopiloto_engine import detectar_cambios
+    return await detectar_cambios(_db(request), getattr(user, "user_id", "") or "")
 
-    return doc
+
+@router.post("/api/dev/estudio-mercado/regenerar")
+async def estudio_mercado_regenerar(request: Request,
+                                    colonia_id: str = Query(...),
+                                    categoria: str = Query("media")):
+    """Aprobar la jugada del Cerebro: resuelve la predicción previa vs la realidad y guarda versión nueva (F3.4)."""
+    user = await _auth(request)
+    from estudio_autopiloto_engine import regenerar
+    return await regenerar(_db(request), getattr(user, "user_id", "") or "", colonia_id, categoria)
 
 
 @router.get("/api/dev/estudio-mercado/historial")

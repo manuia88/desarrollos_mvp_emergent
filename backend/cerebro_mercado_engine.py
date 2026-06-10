@@ -60,6 +60,19 @@ async def on_unit_sold(db, ref: str, *, sold: bool = True,
         return {"resueltas": 0}
 
 
+async def resolver_estudio(db, ref: str, demanda_real) -> Dict[str, Any]:
+    """Resuelve la predicción de demanda de un estudio (ref) vs la demanda REAL de hoy → cierra el loop.
+    Reusa coach.resolve_predictions + dispara reentreno si resolvió algo. FAIL-OPEN."""
+    try:
+        n = await coach.resolve_predictions(db, _MARKET, ref, {"days_on_market": float(demanda_real)})
+        if n:
+            await coach.retrain_signal(db, _MARKET, trigger="estudio_regenerado", level="market")
+        return {"resueltas": n}
+    except Exception as e:
+        log.warning(f"[cerebro_mercado] resolver_estudio fail-open: {e}")
+        return {"resueltas": 0}
+
+
 async def aprender_palancas(db) -> Dict[str, Any]:
     """Qué feature mueve la venta: % vendido por nº de recámaras (vs base). Honesto si hay poco dato."""
     try:

@@ -36,11 +36,36 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
   const [historial, setHistorial] = useState([]);
   const [saveMsg, setSaveMsg] = useState('');
 
-  // F3.2 · carga el historial de versiones guardadas de esta colonia
+  const [propuesta, setPropuesta] = useState(null);  // F3.4 · jugada del Cerebro para esta colonia
+  const [regenBusy, setRegenBusy] = useState(false);
+
+  // F3.2/F3.4 · carga historial + jugada del Cerebro (si el dato cambió) de esta colonia
   useEffect(() => {
-    if (!colonia) { setHistorial([]); return; }
+    if (!colonia) { setHistorial([]); setPropuesta(null); return; }
     api.getEstudioHistorial(colonia.id).then(r => setHistorial(r.items || [])).catch(() => setHistorial([]));
+    api.getEstudioPropuestas()
+      .then(r => setPropuesta((r.propuestas || []).find(p => String(p.colonia_id) === String(colonia.id)) || null))
+      .catch(() => setPropuesta(null));
   }, [colonia]);
+
+  // F3.4 · aprobar la jugada del Cerebro: regenera (resuelve predicción vs realidad) + recarga
+  const aprobarRegenerar = async () => {
+    if (!colonia) return;
+    setRegenBusy(true);
+    try {
+      await api.regenerarEstudio(colonia.id, categoria);
+      setPropuesta(null);
+      const [est, hist] = await Promise.all([
+        api.getEstudioMercado(colonia.id, categoria),
+        api.getEstudioHistorial(colonia.id),
+      ]);
+      setData(est); setHistorial(hist.items || []);
+    } catch {
+      setSaveMsg('No se pudo regenerar');
+    } finally {
+      setRegenBusy(false);
+    }
+  };
 
   // F3.2 · guarda una foto fechada del estudio actual (versión)
   const saveEstudio = async () => {
@@ -219,6 +244,27 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
               </div>
               {(data.veredicto || []).map((v, i) => <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', padding: '3px 0' }}>· {v}</div>)}
             </Card>
+            {propuesta && (
+              <Card style={{ marginBottom: 12, border: '1px solid rgba(226,152,46,0.45)', background: 'linear-gradient(140deg, rgba(226,152,46,0.10), transparent)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>
+                      🧠 El Cerebro detectó cambios en esta zona
+                    </div>
+                    {(propuesta.motivos || []).map((m, i) => (
+                      <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 3 }}>· {m}</div>
+                    ))}
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 6 }}>
+                      Al regenerar, el Cerebro compara lo que predijo vs lo real y aprende.
+                    </div>
+                  </div>
+                  <button onClick={aprobarRegenerar} disabled={regenBusy} data-testid="estudio-regenerar"
+                    style={{ ...tabBtn(true), color: 'var(--cream)', whiteSpace: 'nowrap', opacity: regenBusy ? 0.6 : 1 }}>
+                    {regenBusy ? 'Regenerando…' : 'Regenerar (Aprobar)'}
+                  </button>
+                </div>
+              </Card>
+            )}
             {historial.length > 0 && (
               <Sec title={`HISTORIAL DE ESTUDIOS (${historial.length})`}>
                 {historial.slice(0, 8).map(h => (

@@ -69,6 +69,11 @@ export const guardarEstudio = (coloniaId, categoria) =>
   post(`/api/dev/estudio-mercado/guardar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
 export const getEstudioHistorial = (coloniaId) =>
   j(`/api/dev/estudio-mercado/historial${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F3.4 · Autopiloto: jugadas del Cerebro (zonas cuyo dato cambió) + regenerar con OK (cierra loop)
+export const getEstudioPropuestas = () =>
+  j('/api/dev/estudio-mercado/propuestas');
+export const regenerarEstudio = (coloniaId, categoria) =>
+  post(`/api/dev/estudio-mercado/regenerar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

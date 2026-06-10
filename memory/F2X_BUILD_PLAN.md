@@ -161,7 +161,15 @@ F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propue
 - ARCHIVOS F3.3:
   - `frontend/src/pages/developer/DesarrolladorReportes.js` — nuevo sub-tab "Estudios de Mercado" dentro de BrandedReportsTab (junto a Templates/Generar/Distribución) · componente `EstudiosSubtab` lista el historial (reusa api.getEstudioHistorial F3.2) con colonia/versión/fecha/snapshot + botón "Descargar PDF" (reusa endpoint /pdf F3.1).
   - Sin backend nuevo (todo reuso F3.1+F3.2). Despierta feature: los entregables se ven/bajan desde el hub de Reportes, no solo en la pantalla del Estudio. Frontend 1 warning (limpio).
-- [ ] 3.4 El Cerebro propone/regenera al cambiar el dato (agéntico, reusa F2.5) · 🔄
+**F3.4 Autopiloto del Estudio (agéntico · cierra loop predicción↔realidad)** — ✅ 2026-06-10
+- [x] 3.4 El Cerebro detecta deriva → propone regenerar (con OK) → resuelve predicción + reentrena · Back+Front · ✅
+- ARCHIVOS F3.4:
+  - `backend/estudio_autopiloto_engine.py` — `detectar_cambios(db, owner)` (recalcula snapshot HOY vs último guardado, umbrales demanda±3/oferta±1, motivos en lenguaje humano + severidad) + `regenerar(db, owner, colonia, cat)` (resuelve predicción previa vs demanda real → guarda versión nueva). REUSO: estudio_mercado_engine.generar_estudio/snapshot_estudio/guardar_estudio + cerebro_mercado_engine.resolver_estudio.
+  - `backend/cerebro_mercado_engine.py` — `resolver_estudio(db, ref, demanda_real)` reusa coach.resolve_predictions + retrain_signal (cierra el loop del estudio).
+  - REFACTOR cero-deuda: `snapshot_estudio` + `guardar_estudio` movidos a estudio_mercado_engine (la ruta F3.2 y el autopiloto los comparten, sin duplicar).
+  - Endpoints: GET /api/dev/estudio-mercado/propuestas · POST /api/dev/estudio-mercado/regenerar.
+  - Frontend: banner "🧠 El Cerebro detectó cambios" con motivos + botón "Regenerar (Aprobar)" en DesarrolladorEstudioMercado.js (human-in-the-loop) · api.getEstudioPropuestas + regenerarEstudio.
+  - Cierra ciclo (4 portales): DEV aprueba → Cerebro del Mercado (F2.5) califica predicho↔real y reentrena → SUPERADMIN lo ve en "Cómo Aprende el Mercado" (resueltas++). Smoke real verde (deriva detectada sev alta → regenerar v2 → 1 predicción resuelta). Frontend 1 warning (limpio).
 - [ ] 3.5 Lead inversionista → su memo en 1 clic (Ficha360, reusa memo) · ASESOR · 🔄
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
