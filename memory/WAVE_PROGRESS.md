@@ -2,6 +2,20 @@
 
 ---
 
+## 🔮 FASE F4 · CEREBRO DEL MERCADO — DIGITAL TWIN + PREDICCIÓN↔REALIDAD ✅ COMPLETA (2026-06-10)
+HALLAZGO de auditoría: el núcleo (registrar/resolver predicciones, calibración, **self-tuning REAL** de close_prob+AVM, loops venta/estudio) ya estaba vivo por F2.5+F3.4. F4 cierra el lado que faltaba: APLICAR lo aprendido + vigilar el propio modelo. Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
+
+| Chunk | Qué hace | Front + Back | Checkpoint |
+|---|---|---|---|
+| **F4.1** | Simulador de Palancas "Qué Pasaría Si" (recámaras) — aplica los lifts aprendidos hacia adelante | `simulador_palancas_engine.py` + panel en el Estudio | `checkpoint-f4.1` |
+| **F4.2** | Palancas de 6 factores (recámaras/terraza/bodega/estacionamiento/piso/precio) + simulador multi-factor · FIX is_sold canónico | `cerebro_mercado_engine.lifts_por_factor` + selector | `checkpoint-f4.2` |
+| **F4.3** | Las palancas aprendidas entran al Generador de Producto: % venta esperada por tipología | `generador_producto_engine` + chip en GeneradorProducto | `checkpoint-f4.3` |
+| **F4.4** | Autovigilancia: el Cerebro detecta su propio drift (acierto reciente vs histórico) y avisa a superadmin | `detectar_drift` + banner en SuperadminCerebroMercado | `checkpoint-f4.4` |
+
+**Cierra:** aprender → aplicar (Generador/Simulador) → vigilar (drift). IA-first sobre dato causal real, honesto sin dato (build-for-endstate). Núcleo predicción↔realidad + self-tuning ya vivo desde F2.5/F3.4.
+
+---
+
 ## 📄 FASE F3 · AUTOPILOTO DE MEMORÁNDUM + ESTUDIO DE MERCADO VIVO ✅ COMPLETA (2026-06-10)
 El entregable que 4S cobra carísimo, ahora automático, branded, versionado y agéntico. HALLAZGO de auditoría: F3 estaba ~80% ya construido (página Reportes, PDF reportlab, watermark, developer_reports) → se ENCHUFÓ el Estudio/Memo (antes aislados) al pipeline existente. Reuso total, cero deuda. Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
 

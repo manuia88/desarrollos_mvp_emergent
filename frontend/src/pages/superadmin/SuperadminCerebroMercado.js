@@ -38,6 +38,17 @@ export default function SuperadminCerebroMercado({ user, onLogout }) {
 
       {data && (
         <>
+          {data.drift && (
+            <div style={{ ...cardStyle, border: `1px solid ${data.drift.drift ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.35)'}`, background: data.drift.drift ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.06)' }}>
+              <div style={h}>Autovigilancia del modelo (drift)</div>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: data.drift.drift ? '#fca5a5' : 'var(--cream-2)', fontWeight: data.drift.drift ? 600 : 400 }}>
+                {data.drift.drift ? '⚠️ ' : '● '}{data.drift.lectura}
+              </div>
+              {(data.drift.señales || []).map((s, i) => (
+                <div key={i} style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>· {s.label}: {s.detalle} (recientes {s.n_reciente} vs histórico {s.n_baseline})</div>
+              ))}
+            </div>
+          )}
           <div style={cardStyle}>
             <div style={h}>Qué tan bien le atina (predicción ↔ realidad)</div>
             {(data.calibracion || []).map((c) => (

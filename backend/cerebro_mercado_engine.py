@@ -175,6 +175,63 @@ async def aprender_palancas(db) -> Dict[str, Any]:
     }
 
 
+async def detectar_drift(db, window: int = 10) -> Dict[str, Any]:
+    """El Cerebro se vigila a sí mismo: ¿su acierto RECIENTE empeoró vs el histórico? (F4.4).
+    Mismo patrón que drift_detector (reciente vs baseline + umbral). Honesto si falta historial. FAIL-OPEN."""
+    MIN = 5            # mínimo por ventana para que el aviso sea creíble
+    señales: List[Dict[str, Any]] = []
+    try:
+        for kind, spec in coach.PRED_KINDS.items():
+            metric = spec.get("metric")
+            cur = db[coach.CEREBRO_PREDICTIONS].find(
+                {"tenant_id": _TENANT, "kind": kind, "resolved": True, "is_example": {"$ne": True}},
+                {"_id": 0, "hit": 1, "error": 1, "resolved_at": 1}).sort("resolved_at", -1)
+            rows = await cur.to_list(500)
+            if len(rows) < MIN * 2:
+                continue
+            recientes, viejas = rows[:window], rows[window:]
+            if len(recientes) < MIN or len(viejas) < MIN:
+                continue
+
+            def _hr(rs):
+                h = [r for r in rs if r.get("hit") is not None]
+                return (sum(1 for r in h if r["hit"]) / len(h)) if h else None
+
+            def _err(rs):
+                e = [r["error"] for r in rs if r.get("error") is not None]
+                return (sum(e) / len(e)) if e else None
+
+            empeoro = False
+            detalle = ""
+            if metric in ("hit", "match"):
+                r_hr, b_hr = _hr(recientes), _hr(viejas)
+                if r_hr is not None and b_hr is not None and r_hr <= b_hr - 0.15:
+                    empeoro = True
+                    detalle = f"acierto bajó de {round(b_hr*100)}% a {round(r_hr*100)}%"
+            else:  # error_days / error_pct → más error = peor
+                r_e, b_e = _err(recientes), _err(viejas)
+                if r_e is not None and b_e is not None and b_e > 0 and r_e >= b_e * 1.3:
+                    unidad = "%" if metric == "error_pct" else " días"
+                    fmt = (lambda v: round(v*100)) if metric == "error_pct" else round
+                    empeoro = True
+                    detalle = f"error subió de {fmt(b_e)}{unidad} a {fmt(r_e)}{unidad}"
+            if empeoro:
+                señales.append({"kind": kind, "label": spec["label"], "detalle": detalle,
+                                "n_reciente": len(recientes), "n_baseline": len(viejas)})
+    except Exception as e:
+        log.warning(f"[cerebro_mercado] detectar_drift fail-open: {e}")
+
+    hay = len(señales) > 0
+    return {
+        "drift": hay,
+        "señales": señales,
+        "lectura": ("⚠️ El Cerebro está fallando más que antes en: "
+                    + "; ".join(f"{s['label']} ({s['detalle']})" for s in señales)
+                    + ". Conviene revisar/recalibrar."
+                    if hay else "El Cerebro mantiene su precisión — sin deterioro detectado."),
+    }
+
+
 async def aprendizaje_mercado(db) -> Dict[str, Any]:
     """Panel 'Cómo Aprende El Mercado': calibración + palancas + lecciones + conteos. FAIL-OPEN."""
     try:
@@ -196,10 +253,12 @@ async def aprendizaje_mercado(db) -> Dict[str, Any]:
         resueltas = await db[coach.CEREBRO_PREDICTIONS].count_documents({"tenant_id": _TENANT, "resolved": True})
     except Exception:
         pass
+    drift = await detectar_drift(db)   # F4.4 · el modelo que vigila al modelo
     return {
         "calibracion": cal,
         "palancas": pal,
         "lecciones": lecciones,
         "predicciones": {"abiertas": abiertas, "resueltas": resueltas},
+        "drift": drift,
         "lectura": "El Cerebro se califica solo: guarda lo que predice y lo compara con lo que pasa de verdad.",
     }
