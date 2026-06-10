@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 from typing import Optional
 
 log = logging.getLogger("dmx.auth")
@@ -78,6 +78,15 @@ class UserOut(BaseModel):
     role: str
     tenant_id: Optional[str] = None
     onboarded: Optional[bool] = None
+
+    @computed_field  # P1.12 · hash de analítica calculado en el backend (salt server-only)
+    @property
+    def analytics_id(self) -> Optional[str]:
+        try:
+            from server import analytics_id_for
+            return analytics_id_for(self.user_id)
+        except Exception:
+            return None
 
 
 class LoginIn(BaseModel):
@@ -237,6 +246,15 @@ async def logout(request: Request, response: Response):
     token = request.cookies.get("session_token")
     if token:
         await db.user_sessions.delete_one({"session_token": token})
+    # P1.11 · revoca los JWT (no solo borra cookies): el token deja de servir aunque alguien lo tenga.
+    try:
+        from server import _revoke_token_str
+        for ck in ("access_token", "refresh_token"):
+            tk = request.cookies.get(ck)
+            if tk:
+                await _revoke_token_str(tk)
+    except Exception:
+        pass
     response.delete_cookie("session_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)
     response.delete_cookie("access_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)
     response.delete_cookie("refresh_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)

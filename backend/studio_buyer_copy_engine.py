@@ -524,8 +524,25 @@ async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], langu
             _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring studio_copy] failed silent: {_rag_exc}")
             _rag_context_text = ""
 
+        # P1.14 · el RAG es contenido NO confiable → frontera explícita (datos, no instrucciones).
         if _rag_context_text:
-            prompt = f"{prompt}\n\n{_rag_context_text}"
+            try:
+                from llm_safety import wrap_untrusted
+                prompt = f"{prompt}{wrap_untrusted(_rag_context_text, 'contexto de mercado')}"
+            except Exception:
+                prompt = f"{prompt}\n\n{_rag_context_text}"
+
+        # P1.14 · TOPE de presupuesto ANTES de llamar al LLM (antes studio_copy no gateaba → costo sin límite).
+        try:
+            from ai_budget import is_within_budget
+            _job0 = await db.studio_copy_jobs.find_one({"id": job_id}, {"_id": 0, "tenant_id": 1}) or {}
+            _tenant0 = _job0.get("tenant_id") or "default"
+            if not await is_within_budget(db, _tenant0):
+                log.warning(f"[studio_copy] presupuesto IA agotado para {_tenant0} · job {job_id}")
+                return {"ok": False, "error": "budget_exceeded",
+                        "mensaje": "Se alcanzó el tope mensual de IA. Inténtalo el próximo periodo o sube tu plan."}
+        except Exception:
+            pass
 
         raw = await _call_with_fallback(prompt, job_id)
 

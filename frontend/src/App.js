@@ -440,6 +440,7 @@ function AuthProvider({ children }) {
         // W4.18.2A.0 — LFPDPPP-compliant identify (hash truncate 16 · sin PII raw)
         try {
           phIdentifyUser(u?.user_id || u?.id, {
+            analytics_id: u?.analytics_id,
             role: u?.role,
             tier: u?.tier,
             tenant_slug: u?.tenant_slug || u?.tenant_id,
@@ -496,6 +497,7 @@ function AuthProvider({ children }) {
           // W4.18.2A.0 — LFPDPPP-compliant identify (hash truncate 16 · sin PII raw)
           try {
             phIdentifyUser(u?.user_id || u?.id, {
+              analytics_id: u?.analytics_id,
               role: u?.role,
               tier: u?.tier,
               tenant_slug: u?.tenant_slug || u?.tenant_id,

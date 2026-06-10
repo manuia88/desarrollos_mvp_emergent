@@ -1,6 +1,7 @@
 import os
 import uuid
 import bcrypt
+import hashlib
 import logging
 import jwt as pyjwt
 import secrets
@@ -12,7 +13,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response, Depends, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 load_dotenv()
 
@@ -25,6 +26,16 @@ MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME   = os.environ.get("DB_NAME")
 JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+
+# P1.12 · salt de PII SOLO en el backend (antes el front lo traía en el bundle con default débil).
+LFPDPPP_SALT = os.environ.get("LFPDPPP_SALT") or secrets.token_hex(16)
+
+
+def analytics_id_for(user_id: Optional[str]) -> Optional[str]:
+    """ID pseudónimo para analítica (PostHog) — hash con salt de servidor, NO reversible desde el cliente."""
+    if not user_id:
+        return None
+    return hashlib.sha256(f"{user_id}:{LFPDPPP_SALT}".encode()).hexdigest()[:16]
 
 
 def _is_prod() -> bool:
@@ -1225,16 +1236,62 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 def create_access_token(user_id: str, email: str) -> str:
-    payload = {"sub": user_id, "email": email,
-               "exp": datetime.now(timezone.utc) + timedelta(hours=8),
-               "type": "access"}
+    now = datetime.now(timezone.utc)
+    payload = {"sub": user_id, "email": email, "iat": now,
+               "exp": now + timedelta(hours=8),
+               "type": "access", "jti": uuid.uuid4().hex}
     return pyjwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 def create_refresh_token(user_id: str) -> str:
-    payload = {"sub": user_id,
-               "exp": datetime.now(timezone.utc) + timedelta(days=30),
-               "type": "refresh"}
+    now = datetime.now(timezone.utc)
+    payload = {"sub": user_id, "iat": now,
+               "exp": now + timedelta(days=30),
+               "type": "refresh", "jti": uuid.uuid4().hex}
     return pyjwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+# ─── P1.11 · Lista de revocación de tokens (logout que SÍ invalida) ────────────
+# JWT es stateless: sin esto, un token sigue válido hasta expirar aunque el usuario
+# cierre sesión. Guardamos los `jti` revocados en BD (TTL auto-purga al expirar) y
+# en memoria para chequeo O(1) por request. (Multi-instancia: cada proceso carga de
+# BD al arrancar; revocaciones de otra instancia se ven tras recargar → mover a Redis.)
+_REVOKED_JTIS: set = set()
+_revoked_loaded = False
+
+
+async def _load_revoked_jtis():
+    global _revoked_loaded
+    try:
+        await db.revoked_tokens.create_index("exp_dt", expireAfterSeconds=0)
+        cur = db.revoked_tokens.find({}, {"_id": 0, "jti": 1})
+        async for d in cur:
+            if d.get("jti"):
+                _REVOKED_JTIS.add(d["jti"])
+    except Exception as e:
+        logging.getLogger("dmx.auth").warning(f"[revoked] load fail-open: {e}")
+    _revoked_loaded = True
+
+
+async def _revoke_token_str(token: str):
+    """Revoca un JWT por su jti (durable en BD + cache memoria). FAIL-OPEN."""
+    if not token:
+        return
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"],
+                               options={"verify_exp": False})
+        jti = payload.get("jti")
+        if not jti:
+            return
+        exp = payload.get("exp")
+        exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else datetime.now(timezone.utc) + timedelta(days=30)
+        _REVOKED_JTIS.add(jti)
+        await db.revoked_tokens.update_one(
+            {"jti": jti},
+            {"$set": {"jti": jti, "user_id": payload.get("sub"), "exp_dt": exp_dt}},
+            upsert=True,
+        )
+    except Exception as e:
+        logging.getLogger("dmx.auth").warning(f"[revoked] revoke fail-open: {e}")
 
 # ─── Models ───────────────────────────────────────────────────────────────────
 class UserOut(BaseModel):
@@ -1245,6 +1302,11 @@ class UserOut(BaseModel):
     role: str
     tenant_id: Optional[str] = None
     onboarded: Optional[bool] = None  # False = needs role-picker; None/True = done
+
+    @computed_field  # P1.12 · el front usa este hash (del backend) en vez de cargar el salt
+    @property
+    def analytics_id(self) -> Optional[str]:
+        return analytics_id_for(self.user_id)
 
 class LoginIn(BaseModel):
     email: str
@@ -1295,6 +1357,11 @@ async def get_current_user(request: Request) -> Optional[UserOut]:
         try:
             payload = pyjwt.decode(access_token, JWT_SECRET, algorithms=["HS256"])
             if payload.get("type") != "access": return None
+            # P1.11 · token revocado (logout) → sesión inválida aunque el JWT no haya expirado.
+            if not _revoked_loaded:
+                await _load_revoked_jtis()
+            if payload.get("jti") and payload["jti"] in _REVOKED_JTIS:
+                return None
             user_doc = await db.users.find_one({"user_id": payload["sub"]}, {"_id": 0})
             if user_doc:
                 user_doc.pop("password_hash", None)

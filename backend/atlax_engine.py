@@ -177,6 +177,14 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     ip = _extract_ip(request)
     ua = request.headers.get("user-agent", "")
 
+    # P1.14 · sanitiza la entrada PÚBLICA antes de que toque el LLM (anti prompt-injection directa).
+    try:
+        from llm_safety import sanitize_user_input
+        _clean_q = sanitize_user_input(payload.query, max_len=500)
+        payload.query = _clean_q or payload.query
+    except Exception:
+        pass
+
     # ─── 1. Phase Y check (vía start_session/chat lo hacen, pero adelantamos)
     from asistente_engine import AsistenteEngine, AsistenteDisabledError, AsistenteRateLimitError, AsistenteSessionCapError
     engine = AsistenteEngine(db)
@@ -326,9 +334,14 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     # Augment map_context (passed to engine.chat) with RAG content so the prompt
     # downstream picks it up via the system_prompt builder. NEVER replace existing
     # context — append only.
+    # P1.14 · el contexto RAG es contenido NO confiable → frontera explícita (datos, no órdenes).
     _augmented_map_context = ""
     if rag_context_text:
-        _augmented_map_context = rag_context_text
+        try:
+            from llm_safety import wrap_untrusted
+            _augmented_map_context = wrap_untrusted(rag_context_text, "contexto de mercado")
+        except Exception:
+            _augmented_map_context = rag_context_text
 
     # ─── 6. Llama AsistenteEngine.chat (LLM + 3 tools públicas + persiste asistente_messages)
     try:

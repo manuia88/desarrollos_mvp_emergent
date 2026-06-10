@@ -18,7 +18,8 @@ const PII_KEYS = new Set([
   'password', 'whatsapp', 'cellphone',
 ]);
 
-const SALT = process.env.REACT_APP_LFPDPPP_SALT || 'dmx-2026';
+// P1.12 · el hash de identidad (analytics_id) lo calcula el BACKEND con su salt.
+// El navegador ya NO carga ningún salt ni hashea PII.
 
 let _inited = false;
 
@@ -30,15 +31,6 @@ function consentGranted() {
   } catch {
     return false;
   }
-}
-
-async function sha256Hex(input) {
-  if (typeof window === 'undefined' || !window.crypto?.subtle) return String(input).slice(0, 16);
-  const enc = new TextEncoder().encode(input);
-  const buf = await window.crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
 }
 
 function stripPII(props = {}) {
@@ -96,16 +88,17 @@ export function initPostHog() {
   }
 }
 
-export async function identifyUser(userId, traits = {}) {
-  if (!_inited || !userId) return;
+export function identifyUser(userId, traits = {}) {
+  if (!_inited) return;
+  // P1.12 · usamos el hash del backend (analytics_id). Nunca enviamos el user_id crudo ni PII.
+  const id = traits.analytics_id || null;
+  if (!id) return;
   try {
-    const hash = (await sha256Hex(`${userId}:${SALT}`)).slice(0, 16);
-    const safe = stripPII({
+    posthog.identify(id, stripPII({
       role: traits.role,
       tier: traits.tier,
       tenant_slug: traits.tenant_slug,
-    });
-    posthog.identify(hash, safe);
+    }));
   } catch { /* silent */ }
 }
 

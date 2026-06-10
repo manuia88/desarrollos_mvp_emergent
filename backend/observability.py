@@ -134,14 +134,19 @@ def identify_user(user: Dict[str, Any]) -> None:
     if not _posthog_client or not user:
         return
     try:
+        # P1.12 · LFPDPPP: NUNCA mandar PII cruda (email/nombre) a PostHog. distinct_id = hash
+        # con salt de servidor; solo propiedades no-identificables (rol/tenant).
+        import os as _os, hashlib as _hl
+        salt = _os.environ.get("LFPDPPP_SALT") or "dmx_lfpdppp"
+        uid = str(user.get("user_id") or "")
+        did = user.get("analytics_id") or (
+            _hl.sha256(f"{uid}:{salt}".encode()).hexdigest()[:16] if uid else "anon")
         _posthog_client.identify(
-            distinct_id=str(user.get("user_id")),
+            distinct_id=did,
             properties={
-                "email": user.get("email"),
                 "role": user.get("role"),
                 "org_id": user.get("tenant_id"),
                 "tenant_id": user.get("tenant_id"),
-                "name": user.get("name"),
             },
         )
     except Exception:
