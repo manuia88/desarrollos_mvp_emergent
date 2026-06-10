@@ -3,8 +3,10 @@ Endpoints: /api/auth/{register,login,session,me,select-role,logout}
 Backward-compat: same URLs, same cookie behavior.
 """
 import os
+import time
 import uuid
 import logging
+from collections import defaultdict, deque
 from datetime import datetime, timezone, timedelta
 
 import httpx
@@ -32,6 +34,40 @@ COOKIE_SAMESITE = "lax" if _DEV_MODE else "none"
 
 def _db(request: Request):
     return request.app.state.db
+
+
+# ─── P1.9 · Freno a fuerza bruta en login (in-memory, sliding window) ──────────
+# Cuenta intentos FALLIDOS por (ip+email) y por ip; al éxito se limpia. Defiende sin
+# castigar al usuario legítimo que sí acierta. (Para multi-instancia, mover a Redis.)
+_LOGIN_FAILS = defaultdict(deque)
+LOGIN_MAX_FAILS = 8          # por (ip, email) en la ventana
+LOGIN_MAX_FAILS_IP = 40      # por ip (anti-spray a muchos correos)
+LOGIN_WINDOW_S = 300         # 5 minutos
+
+
+def _client_ip(request: Request) -> str:
+    fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return fwd or (request.client.host if request.client else "unknown")
+
+
+def _login_guard(ip: str, email: str) -> None:
+    now = time.time()
+    for key, limit in ((f"e:{ip}:{email}", LOGIN_MAX_FAILS), (f"i:{ip}", LOGIN_MAX_FAILS_IP)):
+        b = _LOGIN_FAILS[key]
+        while b and (now - b[0]) > LOGIN_WINDOW_S:
+            b.popleft()
+        if len(b) >= limit:
+            raise HTTPException(429, "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.")
+
+
+def _login_fail(ip: str, email: str) -> None:
+    now = time.time()
+    _LOGIN_FAILS[f"e:{ip}:{email}"].append(now)
+    _LOGIN_FAILS[f"i:{ip}"].append(now)
+
+
+def _login_ok(ip: str, email: str) -> None:
+    _LOGIN_FAILS.pop(f"e:{ip}:{email}", None)
 
 
 class UserOut(BaseModel):
@@ -99,12 +135,16 @@ async def login(payload: LoginIn, response: Response, request: Request):
     from server import verify_password, create_access_token, create_refresh_token
     db = _db(request)
     payload.email = payload.email.lower().strip()
+    ip = _client_ip(request)
+    _login_guard(ip, payload.email)  # P1.9 · bloquea fuerza bruta
     user_doc = await db.users.find_one({"email": payload.email})
     if not user_doc or not verify_password(payload.password, user_doc.get("password_hash", "")):
+        _login_fail(ip, payload.email)
         raise HTTPException(401, "Credenciales incorrectas")
     # W1.2 SA1.1 — Block suspended accounts before issuing session cookies
     if user_doc.get("account_blocked"):
         raise HTTPException(403, "Cuenta suspendida. Contactar soporte.")
+    _login_ok(ip, payload.email)
     user_id = user_doc["user_id"]
     access = create_access_token(user_id, payload.email)
     refresh = create_refresh_token(user_id)

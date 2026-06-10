@@ -1165,6 +1165,27 @@ async def private_beta_signup_gate(request, call_next):
         pass
     return await call_next(request)
 
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    """P1.13 · Cabeceras de seguridad en toda respuesta (antes solo había CORS).
+    HSTS solo en prod (requiere HTTPS). CSP estricta SOLO en respuestas JSON de API
+    (no toca HTML/archivos para no romper Swagger ni descargas)."""
+    resp = await call_next(request)
+    try:
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("Permissions-Policy", "geolocation=(self), microphone=(), camera=()")
+        if _is_prod():
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if "application/json" in (resp.headers.get("content-type") or ""):
+            resp.headers.setdefault("Content-Security-Policy",
+                                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+    except Exception:
+        pass
+    return resp
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes.asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)

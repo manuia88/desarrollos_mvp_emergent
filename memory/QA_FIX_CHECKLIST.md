@@ -38,14 +38,14 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 - [x] P1.6 · Concurrencia ✅ARREGLADO Tanda 6: (a) `cerebro_predictions` con índice único PARCIAL (tenant,ref,kind WHERE resolved:false) + log_prediction trata DuplicateKey como dedup idempotente → 2 concurrentes = 1 abierta (verificado). (b) `developer_reports` con índice único (owner,type,colonia,version) + CAS con reintento en guardar_estudio. Ambos índices verificados creados.
 - [~] P1.7 · "vendido" forkeado + "vendida" femenino [F6]. **PARCIAL Tanda 6:** ✅arreglado el femenino invisible — `SOLD_STATUSES`/`RESERVED_STATUSES` ahora incluyen vendida/cerrada/reservada/apartada (is_sold ya no subcontaba). Verificado. ⏸️ DIFERIDO Tanda 7: barrido de los ~20 sitios que comparan `== "vendido"` directo en vez de usar is_sold (la mayoría sobre seed donde el status es siempre "vendido").
 - [ ] P1.8 · Cubo congelado en seed (override no propaga: dev 23% vs cubo 14%) + 5 fórmulas de absorción [F1/F6]. ⏸️ DIFERIDO Tanda 7 (interrelacionado con migración seed→real).
-- [ ] P1.9 · 🆕 **Sin rate-limit en login** [F3/F10]: fuerza bruta. Reusar _rate_limit_check.
+- [x] P1.9 · 🆕 **Sin rate-limit en login** ✅ARREGLADO 2026-06-10 (Tanda 7): `auth._login_guard` (sliding window in-memory) cuenta intentos FALLIDOS por (ip+email)=8/5min y por ip=40/5min (anti-spray); al éxito limpia (`_login_ok`). Verificado: bloquea 429 en el intento 9, desbloquea tras éxito. (Multi-instancia → mover a Redis.)
 - [x] P1.10 · **JWT_SECRET default efímero** ✅ARREGLADO (Tanda 2): `_prod_env_guard` aborta en prod si falta JWT_SECRET.
 - [ ] P1.11 · 🆕 **Logout no invalida token** (JWT stateless) [F3]: blocklist/TTL corto + refresh rotación.
 - [ ] P1.12 · **Salt PII en el bundle** [F4]: posthog.js:21 + defaults. Mover hashing al backend.
-- [ ] P1.13 · 🆕 **Faltan headers de seguridad** [F10]: HSTS/CSP/X-Frame/X-Content-Type (solo CORS hoy). Middleware.
+- [x] P1.13 · 🆕 **Faltan headers de seguridad** ✅ARREGLADO 2026-06-10 (Tanda 7): middleware `security_headers` en server.py → X-Content-Type-Options nosniff · X-Frame-Options SAMEORIGIN · Referrer-Policy · Permissions-Policy en TODA respuesta; HSTS solo en prod (`_is_prod`); CSP estricta (`default-src 'none'; frame-ancestors 'none'`) SOLO en respuestas JSON (no rompe Swagger/descargas). Verificado vía ASGI.
 - [ ] P1.14 · Prompt injection directa+indirecta [F7/F11]: sanitizar input/RAG + frontera de confianza + guard presupuesto LLM (studio_copy sin tope).
 - [ ] P1.15 · 6 hermanos más del campo [F5]: last_synced_at→computed_at · hedonic coefficients · risk_scores_zone · denue safety_score.
-- [ ] P1.16 · 🆕 Cable FE roto: RepliesInbox → /api/asesor/leads (no existe, es /contactos) → 404 [F5].
+- [~] P1.16 · 🆕 Cable FE roto: RepliesInbox → /api/asesor/leads → 404 [F5]. ⏸️ DIFERIDO 2026-06-10 (Tanda 7) a la tranche de cableado del asesor [[asesor-wiring-plan]]: NO es rename simple — `reply.lead_id` puede ser id de `db.leads` (no `cid` de asesor_contactos) = el problema "dos universos de leads"; además `/watchlist` NO existe como endpoint. Renombrar a ciegas /leads→/contactos cambiaría un 404 ruidoso por una escritura silenciosa al registro equivocado. Requiere: resolver lead↔contacto + crear endpoint watchlist real.
 
 ## P2 — Fuentes, resolvedores, plomería, escala
 - [ ] P2.1 · Fuentes "DENUE escondidas" [F10/QA4]: osm_pois (GET→504), 6 IE "active"-stub (FGJ viva), Atlas, Studio Video stub.
