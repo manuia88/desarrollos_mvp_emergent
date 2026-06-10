@@ -62,10 +62,12 @@ def _period_prev(period: str) -> str:
 async def _zone_median_price_per_m2(db, zone_id: str, tier: str, period_days: int) -> Optional[float]:
     """Median observed close price/m² over period_days (used as level proxy)."""
     cutoff = (_now() - timedelta(days=period_days)).isoformat()
+    # P2.5 · sort por closed_at desc → toma las 2000 transacciones MÁS RECIENTES (antes sin
+    # orden = las 2000 más viejas por inserción → mediana sesgada hacia precios añejos).
     docs = await db.transactions.find(
         {"zone_id": zone_id, "tier": tier, "closed_at": {"$gte": cutoff}},
         {"_id": 0, "closing_price_mxn": 1, "m2": 1},
-    ).to_list(2000)
+    ).sort("closed_at", -1).to_list(2000)
     pm2 = [d["closing_price_mxn"] / d["m2"] for d in docs
            if d.get("closing_price_mxn") and d.get("m2") and d["m2"] > 0]
     if not pm2:

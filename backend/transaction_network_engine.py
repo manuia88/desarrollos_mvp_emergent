@@ -289,7 +289,8 @@ async def compute_price_index(
     if property_type != "all":
         q["property_type"] = property_type
 
-    docs = await db.transactions.find(q, {"_id": 0, "closing_price_mxn": 1, "m2": 1, "discount_pct": 1}).to_list(500)
+    # P2.5 · sort por closed_at desc → las 500 transacciones MÁS RECIENTES (antes sin orden = sesgo).
+    docs = await db.transactions.find(q, {"_id": 0, "closing_price_mxn": 1, "m2": 1, "discount_pct": 1}).sort("closed_at", -1).to_list(500)
 
     prices_per_m2 = [
         d["closing_price_mxn"] / d["m2"]

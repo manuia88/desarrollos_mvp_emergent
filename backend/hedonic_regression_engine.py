@@ -153,7 +153,11 @@ async def fit_hedonic_model(
     if tier:
         q["tier"] = tier
 
-    docs = await db.transactions.find(q, {"_id": 0}).to_list(2000)
+    # P2.5 · sort por closed_at desc → entrena con las 2000 transacciones MÁS RECIENTES
+    # (antes sin orden = las 2000 más viejas por inserción → modelo hedónico sesgado/añejo).
+    docs = await db.transactions.find(q, {"_id": 0}).sort("closed_at", -1).to_list(2000)
+    if len(docs) >= 2000:
+        log.warning(f"[hedonic] zone={zone_id} tier={tier} truncado a 2000 tx (sample reciente)")
 
     rows: List[Dict[str, float]] = []
     for d in docs:

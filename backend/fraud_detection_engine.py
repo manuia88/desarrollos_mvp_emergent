@@ -94,7 +94,9 @@ async def _train_model(db, zone_id: Optional[str] = None):
     if zone_id:
         q["zone_id"] = zone_id
 
-    docs = await db.transactions.find(q, {"_id": 0}).limit(2000).to_list(2000)
+    # P2.5 · sort por closed_at desc → las 2000 transacciones MÁS RECIENTES (antes sin orden =
+    # las 2000 más viejas por inserción → detección de fraude entrenada con datos añejos).
+    docs = await db.transactions.find(q, {"_id": 0}).sort("closed_at", -1).limit(2000).to_list(2000)
     rows: List[List[float]] = []
     for d in docs:
         f = _ml_features(d)

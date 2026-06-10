@@ -109,10 +109,23 @@ def _mode(vals: List):
     return c.most_common(1)[0][0] if c else None
 
 
+# P2.4 · caché TTL en memoria: el grafo hace full-scan de búsquedas/contactos; sin caché se
+# recomputaba idéntico en cada request. 120s mantiene fresco sin escanear por cada llamada.
+import time as _time
+_GRAFO_CACHE: Dict[str, tuple] = {}
+_GRAFO_TTL = 120
+# Tope de seguridad de escaneo (acota el peor caso si la colección crece mucho).
+_GRAFO_SCAN_CAP = 50000
+
+
 async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> Dict[str, Any]:
     """El Grafo del Comprador: por colonia × etapa de vida, qué producto quiere la demanda.
     colonia_id=None → todas (vista superadmin/mercado). colonia_id="polanco" → una (vista dev).
     Anónimo, banda honesta, k-anonimato. FAIL-OPEN: nunca crashea, devuelve lo que pueda."""
+    _ck = f"{colonia_id or 'all'}|{dias}"
+    _hit = _GRAFO_CACHE.get(_ck)
+    if _hit and (_time.time() - _hit[0]) < _GRAFO_TTL:
+        return _hit[1]
     try:
         from data_seed import COLONIAS, COLONIAS_BY_ID
     except Exception:
@@ -124,7 +137,7 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
     # 1. Tipo de contacto (para detectar inversionistas) — join ligero, fail-open.
     tipo_by_contacto: Dict[str, str] = {}
     try:
-        async for c in db.asesor_contactos.find({}, {"_id": 0, "id": 1, "tipo": 1}):
+        async for c in db.asesor_contactos.find({}, {"_id": 0, "id": 1, "tipo": 1}).limit(_GRAFO_SCAN_CAP):
             tipo_by_contacto[c.get("id")] = c.get("tipo")
     except Exception as e:
         log.warning(f"[grafo] tipos fail-open: {e}")
@@ -139,7 +152,7 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
         proj = {"_id": 0, "colonias": 1, "recamaras_min": 1, "banos_min": 1,
                 "estacionamientos_min": 1, "precio_min": 1, "precio_max": 1,
                 "m2_min": 1, "amenidades": 1, "contacto_id": 1, "created_at": 1}
-        async for b in db.asesor_busquedas.find({}, proj):
+        async for b in db.asesor_busquedas.find({}, proj).limit(_GRAFO_SCAN_CAP):
             ca = b.get("created_at")
             ca = ca.isoformat() if isinstance(ca, datetime) else str(ca or "")
             if ca and ca < since:
@@ -277,7 +290,7 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
 
     total_busq = sum(col_total.values())
     es_estimado = total_busq < 10
-    return {
+    _result = {
         "colonias": out_colonias,
         "segmentos_catalogo": SEGMENTS,
         "k_anonimato": K_MIN,
@@ -288,6 +301,11 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
                     if es_estimado else f"Grafo vivo con {total_busq} búsquedas reales (últimos {dias} días)."),
         "data_source": "real",
     }
+    _GRAFO_CACHE[_ck] = (_time.time(), _result)  # P2.4 · cachea el resultado (TTL 120s)
+    if len(_GRAFO_CACHE) > 200:  # evita crecer sin límite
+        _oldest = min(_GRAFO_CACHE, key=lambda k: _GRAFO_CACHE[k][0])
+        del _GRAFO_CACHE[_oldest]
+    return _result
 
 
 async def infer_contacto_segment(db, owner_id: str, contacto_id: str) -> Dict[str, Any]:
