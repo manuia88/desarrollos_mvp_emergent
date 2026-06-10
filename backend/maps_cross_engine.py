@@ -25,6 +25,16 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# P1.5 · meses que un proyecto lleva vendiendo por etapa (reusa la tabla de absorción).
+# Antes el "tiempo para agotar" asumía 12 meses fijos → velocidad ~3× optimista en maduros.
+_MESES_STAGE_REF = {"preventa": 6, "exclusiva": 6, "en_construccion": 18,
+                    "entrega_inmediata": 36, "entregado": 42}
+
+
+def _meses_en_mercado(d: dict) -> int:
+    return _MESES_STAGE_REF.get((d or {}).get("stage"), 24)
+
+
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     R = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
@@ -202,18 +212,12 @@ async def demand_supply_gap_geojson(db) -> Dict[str, Any]:
             continue
         supply_counts[cid] = supply_counts.get(cid, 0) + (d.get("units_available") or 1)
 
-    # Demand: behavioral_events count per colonia (W4.3) o usar inventory inverso si no hay data
-    demand_counts: Dict[str, int] = {}
-    try:
-        cursor = db.behavioral_events.aggregate([
-            {"$match": {"event_type": "view_zone", "ts": {"$gte": _now() - timedelta(days=30)}}},
-            {"$group": {"_id": "$colonia_id", "n": {"$sum": 1}}},
-        ])
-        async for row in cursor:
-            if row.get("_id"):
-                demand_counts[row["_id"]] = row["n"]
-    except Exception:
-        pass
+    # Demand per colonia · fuente canónica REUSADA (dmx_demand._zone_demand) — honesta:
+    # usa vistas reales de behavioral_events y, si no hay, marca proxy de inventario.
+    from dmx_demand import _zone_demand
+    demand_counts, demand_is_proxy = await _zone_demand(db)
+    dmax = max(demand_counts.values()) if demand_counts else 1.0
+    smax = max(supply_counts.values()) if supply_counts else 1.0
 
     features = []
     for c in COLONIAS:
@@ -225,9 +229,11 @@ async def demand_supply_gap_geojson(db) -> Dict[str, Any]:
         if not poly or len(poly) < 4:
             continue
         supply = supply_counts.get(cid, 0)
-        demand = demand_counts.get(cid, c.get("inventory", 50))  # fallback to inventory proxy
-        max_v = max(supply, demand, 1)
-        score = round((demand - supply) / max_v, 3)
+        demand = demand_counts.get(cid, 0)
+        # P1.5 · gap NORMALIZADO (antes mezclaba stock con flujo): demanda y oferta a escala [0,1].
+        dem_norm = (demand / dmax) if dmax else 0.0
+        sup_norm = (supply / smax) if smax else 0.0
+        score = round(dem_norm - sup_norm, 3)
         # Color: green (high demand low supply) → red (oversupply)
         if score > 0.3:
             color = "#22c55e"
@@ -255,7 +261,10 @@ async def demand_supply_gap_geojson(db) -> Dict[str, Any]:
                 "tier_label": tier_label,
             },
         })
-    return {"type": "FeatureCollection", "features": features}
+    return {"type": "FeatureCollection", "features": features,
+            "es_estimado": demand_is_proxy,
+            "lectura_datos": ("Demanda estimada (proxy de inventario) — aún sin vistas reales de zona"
+                              if demand_is_proxy else "Demanda con vistas reales de zona")}
 
 
 # ─── Sub-B · Save Zones (inversionista) ───────────────────────────────────────
@@ -354,8 +363,8 @@ async def battle_card(db, dev_id: str) -> Dict[str, Any]:
         d_units_total = d.get("units_total", 1) or 1
         d_units_sold = d.get("units_sold", 0)
         d_absorption = round(d_units_sold / d_units_total * 100, 1) if d_units_total else 0
-        # Time to sellout: meses estimados con absorción mensual = absorption_pct/12 * units
-        monthly_absorption = max(d_units_sold / 12, 1)
+        # Tiempo para agotar: velocidad = vendidas / meses REALES en mercado (por etapa).
+        monthly_absorption = max(d_units_sold / _meses_en_mercado(d), 0.1)
         time_to_sellout = round(max(0, d_units_total - d_units_sold) / monthly_absorption, 1)
         competitors.append({
             "dev_id": d["id"],
@@ -374,7 +383,7 @@ async def battle_card(db, dev_id: str) -> Dict[str, Any]:
     competitors.sort(key=lambda x: x["distance_km"])
     competitors = competitors[:5]
 
-    me_monthly = max(me_units_sold / 12, 1)
+    me_monthly = max(me_units_sold / _meses_en_mercado(me), 0.1)
     me_time_to_sellout = round(max(0, me_units_total - me_units_sold) / me_monthly, 1)
 
     return {

@@ -34,12 +34,22 @@ def _iso() -> str:
 
 
 async def _zone_demand(db) -> tuple:
-    """Demanda por colonia (view_zone 30d). Fallback proxy COLONIAS.inventory → is_proxy=True."""
+    """Demanda por colonia (vistas de zona últimos 30d). Fallback proxy COLONIAS.inventory → is_proxy=True.
+    P1.5 · reconexión a la forma canónica de behavioral_events (timestamp Date + metadata.zone_slug |
+    page público /colonia/<slug>); antes leía event_type='view_zone'/'ts' (campos inexistentes) → SIEMPRE
+    caía al proxy de inventario (mezclaba stock con flujo)."""
     demand: Dict[str, float] = {}
     try:
+        zone_expr = {"$ifNull": ["$metadata.zone_slug", {"$ifNull": ["$metadata.colonia_slug",
+            {"$let": {
+                "vars": {"m": {"$regexFind": {"input": {"$ifNull": ["$page", ""]},
+                                              "regex": "/colonia/([a-z0-9-]+)"}}},
+                "in": {"$arrayElemAt": [{"$ifNull": ["$$m.captures", []]}, 0]},
+            }}]}]}
         cur = db.behavioral_events.aggregate([
-            {"$match": {"event_type": "view_zone", "ts": {"$gte": _now() - timedelta(days=30)}}},
-            {"$group": {"_id": "$colonia_id", "n": {"$sum": 1}}},
+            {"$match": {"timestamp": {"$gte": _now() - timedelta(days=30)}}},
+            {"$group": {"_id": zone_expr, "n": {"$sum": 1}}},
+            {"$match": {"_id": {"$nin": [None, ""]}}},
         ])
         async for r in cur:
             if r.get("_id"):
