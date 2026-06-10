@@ -108,9 +108,12 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - Integrado: ranker en estudio (colonia), cuota por tipología en generador_producto. Front: secciones en DesarrolladorEstudioMercado + DesarrolladorValorTerreno.
 - REUSO (grep-antes): hedónico (precio) + MANT_PER_M2_MES (cuota). Honesto: filtro de coef. hedónicos absurdos + cuota por $/m² (no banda Monterrey). Compila limpio.
 **F2.10 Inversionista + Comercio PB (B8/B9)** — 🟡🔵 · M
-- [ ] 2.10.1 Memo de inversionista PDF · Back+Front · C·A · ▪️ (entregable)
-- [ ] 2.10.2 Perfil de inquilino objetivo · Back · ▪️
-- [ ] 2.10.3 Decisión comercio en PB (solo deptos vs con comercio) · Back+Front · D · 🔄
+- [x] 2.10.1 Memo de inversionista (REUSA compute_investor_yield + get_colonia_baseline) en el Estudio · exportable a PDF con el botón existente (print) · Back+Front · D·S · ▪️ — verificado 2026-06-09
+- [x] 2.10.2 Perfil de inquilino objetivo (por tier/NSE · estudio 4S: estudiantes 19-25 C+ / jóvenes 25-35 C+) · Back · ▪️ — verificado
+- [x] 2.10.3 Decisión comercio en PB (REUSA perfil_zona qué le falta + 53/47 del estudio) · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.10 COMPLETO**
+## ARCHIVOS (F2.10, hecho)
+- `backend/inversionista_engine.py` (memo_inversionista + perfil_inquilino + comercio_pb) · endpoints /api/dev/memo-inversionista y /api/dev/comercio-pb.
+- Integrado en estudio (sección "Para Inversionista + Comercio PB", usa el producto dominante). REUSO: compute_investor_yield + get_colonia_baseline + perfil_zona. Compila limpio.
 **F2.11 Marketplace "5 Opciones" + Psicográfico (B10)** — 🟡🔴 · M/B
 - [ ] 2.11.1 Ranking marketplace "5 opciones" (céntrica/vista) · Back+Front · C · 🔄
 - [ ] 2.11.2 Copy/tono de landings desde psicográfico · Back+Front · C · ▪️ (marketing)

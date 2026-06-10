@@ -295,6 +295,19 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
     except Exception as e:
         log.warning(f"[estudio] amenidades fail-open: {e}")
 
+    # 9 · Memo de inversionista (usa el producto dominante recomendado) (F2.10).
+    inversionista = None
+    try:
+        from inversionista_engine import memo_inversionista
+        precio_inv = m2_inv = None
+        if producto and producto.get("mezcla"):
+            dom = max(producto["mezcla"], key=lambda m: m.get("unidades", 0))
+            precio_inv = dom.get("precio_tipico")
+            m2_inv = dom.get("m2_promedio")
+        inversionista = await memo_inversionista(db, colonia_id, precio_inv, m2_inv)
+    except Exception as e:
+        log.warning(f"[estudio] inversionista fail-open: {e}")
+
     es_estimado = (dt < 10)
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": categoria,
@@ -305,6 +318,7 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
             "oferta": oferta,
             "absorcion": absorcion,
             "amenidades": amenidades_rank,
+            "inversionista": inversionista,
             "zona": zona,
         },
         "veredicto": veredicto,

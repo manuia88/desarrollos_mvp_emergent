@@ -209,6 +209,21 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {zo.que_le_falta?.lectura || 'Sin giros sub-atendidos detectados.'}</div>
               )}
             </Sec>
+            {s.inversionista && (
+              <Sec title="PARA INVERSIONISTA + COMERCIO PB">
+                {s.inversionista.rendimiento && (
+                  <>
+                    <KV k="Cap rate" v={`${s.inversionista.rendimiento.cap_rate_pct}%`} />
+                    <KV k="IRR (5 años)" v={`${s.inversionista.rendimiento.irr_pct}%`} tone="#22C55E" />
+                    {s.inversionista.rendimiento.renta_mensual_estimada ? <KV k="Renta estimada/mes" v={`$${Number(s.inversionista.rendimiento.renta_mensual_estimada).toLocaleString('es-MX')}`} /> : null}
+                  </>
+                )}
+                <KV k="Plusvalía base/año" v={s.inversionista.plusvalia_anual_pct != null ? `${s.inversionista.plusvalia_anual_pct}%` : '—'} />
+                <KV k="Rentar a" v={s.inversionista.perfil_inquilino?.perfil || '—'} />
+                <KV k="Comercio en PB" v={s.inversionista.comercio_pb?.recomendacion || '—'} tone={(s.inversionista.comercio_pb?.recomendacion || '').startsWith('Sí') ? '#22C55E' : 'var(--cream)'} />
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {s.inversionista.comercio_pb?.razon}</div>
+              </Sec>
+            )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{data.fuente}</div>
           </>
         );

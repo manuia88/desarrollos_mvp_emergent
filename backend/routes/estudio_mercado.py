@@ -56,6 +56,26 @@ async def perfil_zona_ep(request: Request, colonia_id: str = Query(...)):
     return await perfil_zona(_db(request), colonia_id)
 
 
+@router.get("/api/dev/memo-inversionista")
+async def memo_inversionista_ep(request: Request,
+                                colonia_id: str = Query(...),
+                                precio: Optional[float] = Query(None, ge=0),
+                                m2: Optional[float] = Query(None, ge=0),
+                                plazo_meses: int = Query(24, ge=6, le=360)):
+    """Memo de inversionista: rendimiento + perfil de inquilino + comercio PB (F2.10)."""
+    await _auth(request)
+    from inversionista_engine import memo_inversionista
+    return await memo_inversionista(_db(request), colonia_id, precio, m2, plazo_meses)
+
+
+@router.get("/api/dev/comercio-pb")
+async def comercio_pb_ep(request: Request, colonia_id: str = Query(...)):
+    """¿Conviene comercio en planta baja? (F2.10 · reusable)."""
+    await _auth(request)
+    from inversionista_engine import comercio_pb
+    return await comercio_pb(_db(request), colonia_id)
+
+
 @router.get("/api/dev/amenidades-ranker")
 async def amenidades_ranker_ep(request: Request, colonia_id: Optional[str] = Query(None)):
     """Ranker de amenidades en 2 ejes (precio hedónico + deseo de la demanda) (F2.9)."""
