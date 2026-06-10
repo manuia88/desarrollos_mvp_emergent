@@ -40,6 +40,14 @@ async def estudio_mercado(request: Request,
     return await generar_estudio(_db(request), colonia_id, categoria)
 
 
+@router.get("/api/dev/absorcion")
+async def absorcion(request: Request, colonia_id: str = Query(...)):
+    """Curva de absorción por cohorte + comparables de una colonia (F2.7 · reusable)."""
+    await _auth(request)
+    from absorcion_engine import curva_absorcion
+    return await curva_absorcion(_db(request), colonia_id=colonia_id)
+
+
 @router.get("/api/dev/estudio-mercado/radio")
 async def estudio_mercado_radio(request: Request,
                                 lat: float = Query(..., ge=-90, le=90),

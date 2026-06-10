@@ -130,6 +130,15 @@ async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
     except Exception as e:
         log.warning(f"[estudio radio] oferta fail-open: {e}")
 
+    # Absorción por cohorte + comparables agregados de la microzona (F2.7).
+    absorcion = None
+    try:
+        from absorcion_engine import curva_absorcion
+        names_set = {(c.get("name") or "").strip().lower() for c in cols}
+        absorcion = await curva_absorcion(db, col_names=names_set, col_ids=set(col_ids))
+    except Exception as e:
+        log.warning(f"[estudio radio] absorcion fail-open: {e}")
+
     demanda_representativa = demanda_total >= _UMBRAL_REPRESENTATIVO
     veredicto = []
     veredicto.append(f"Microzona de {round(radio_m)} m: {len(cols)} colonias ({', '.join(c['name'] for c in cols[:4])}{'…' if len(cols) > 4 else ''}).")
@@ -151,6 +160,7 @@ async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
         "demanda_potencial": {"poblacion": pob, "demanda_anual_total": fam, "demanda_vertical": vert,
                               "gap_vertical": round(gap), "captura_objetivo": round(capt)},
         "oferta": oferta,
+        "absorcion": absorcion,
         "veredicto": veredicto,
         "lectura": ("Microzona viva con demanda real." if demanda_representativa
                     else "Microzona preliminar: demanda activa aún escasa, se complementa con demografía."),
@@ -244,6 +254,14 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
     if not veredicto:
         veredicto.append(f"Aún con poco dato en {name}: el estudio se completa solo conforme entra demanda y oferta.")
 
+    # 7 · Absorción por cohorte + comparables (F2.7).
+    absorcion = None
+    try:
+        from absorcion_engine import curva_absorcion
+        absorcion = await curva_absorcion(db, colonia_id=colonia_id)
+    except Exception as e:
+        log.warning(f"[estudio] absorcion fail-open: {e}")
+
     es_estimado = (dt < 10)
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": categoria,
@@ -252,6 +270,7 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
             "demanda_potencial": demografica,
             "producto_recomendado": producto,
             "oferta": oferta,
+            "absorcion": absorcion,
             "zona": zona,
         },
         "veredicto": veredicto,

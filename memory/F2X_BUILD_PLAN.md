@@ -86,8 +86,11 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.6.2 Página dev "Estudio de Mercado" (selector de colonia + categoría + secciones + Exportar a PDF/print) + ruta dev/superadmin · Front · D·S · ▪️ — compila limpio 2026-06-09
 - [x] 2.6.3 Estudio por PUNTO + RADIO (microzona): geocodifica dirección/calle con Mapbox, compone colonias del círculo, compuerta de representatividad (oculta si no junta dato) · Back+Front · D·S · 🔄 — verificado + **fix de calidad**: dedup por NOMBRE (semilla vs catálogo SIG usaban ids distintos → doble-conteo, ej. Anzures) + radios afinados a 500m/1km/1.5km. Conteos corregidos Polanco: 500m=2·1km=5·1.5km=11. Cero duplicados. Compila limpio 2026-06-09 · **BATCH F2.6 COMPLETO**
 **F2.7 Competencia & Absorción por Cohorte (B4)** — 🟡 · A
-- [ ] 2.7.1 Curva de absorción por cohorte (nuevo 80% / 2-3a 51% / viejo 20%) · Back · 🔄
-- [ ] 2.7.2 Censo de comparables persistente + Front · D·S · 🔄
+- [x] 2.7.1 Curva de absorción por cohorte (absorcion_engine.py: preventa/construcción/entrega · % vendido · velocidad/mes · meses para agotar) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.7.2 Censo de comparables + secciones en el Estudio (colonia y radio) + endpoint reusable /api/dev/absorcion · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.7 COMPLETO** (snapshots time-series = backlog)
+## ARCHIVOS (F2.7, hecho)
+- `backend/absorcion_engine.py` (curva_absorcion por colonia o set/radio) · integrado en estudio_mercado_engine (colonia+radio) · endpoint GET /api/dev/absorcion.
+- Front: secciones "Absorción por Cohorte" en `DesarrolladorEstudioMercado.js` (ambos modos). Verificado Polanco: Preventa 14%/31m, Construcción 16%/73m. Compila limpio.
 **F2.8 Zona: Atributos + Qué Le Falta (B7)** — 🟡 · M
 - [ ] 2.8.1 Perfil de zona unificado + "qué le falta" desde DENUE · Back · 🔄
 - [ ] 2.8.2 Front: por qué se compra / ventajas-desventajas · D·C·S · 🔄

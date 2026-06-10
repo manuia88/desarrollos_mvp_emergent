@@ -173,6 +173,20 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
             <Sec title="OFERTA / COMPETENCIA">
               <KV k="Proyectos en la colonia" v={of.proyectos ?? 0} /><KV k="Unidades disponibles" v={of.unidades_disponibles ?? 0} /><KV k="Rango de precios" v={of.precio_desde ? `${money(of.precio_desde)} – ${money(of.precio_hasta)}` : '—'} />
             </Sec>
+            {s.absorcion && (
+              <Sec title="ABSORCIÓN POR COHORTE">
+                {(s.absorcion.curva || []).map(c => (
+                  <KV key={c.cohorte} k={`${c.cohorte} · ${c.proyectos} proy`} v={`${c.absorcion_pct}% vendido${c.meses_para_agotar ? ` · agota en ${c.meses_para_agotar} meses` : ''}`} tone={c.absorcion_pct >= 50 ? '#22C55E' : 'var(--cream)'} />
+                ))}
+                {(s.absorcion.curva || []).length === 0 && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin comparables aún en la zona.</div>}
+                {(s.absorcion.comparables || []).length > 0 && (
+                  <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
+                    Comparables: {s.absorcion.comparables.slice(0, 4).map(c => `${c.nombre} (${c.absorcion_pct}%)`).join(' · ')}
+                  </div>
+                )}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {s.absorcion.lectura}</div>
+              </Sec>
+            )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{data.fuente}</div>
           </>
         );
@@ -214,6 +228,14 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 ))}
               </div>
             </Sec>
+            {r.absorcion && (r.absorcion.curva || []).length > 0 && (
+              <Sec title="ABSORCIÓN POR COHORTE (AGREGADA)">
+                {r.absorcion.curva.map(c => (
+                  <KV key={c.cohorte} k={`${c.cohorte} · ${c.proyectos} proy`} v={`${c.absorcion_pct}% vendido${c.meses_para_agotar ? ` · agota en ${c.meses_para_agotar} meses` : ''}`} tone={c.absorcion_pct >= 50 ? '#22C55E' : 'var(--cream)'} />
+                ))}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {r.absorcion.lectura}</div>
+              </Sec>
+            )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{r.fuente}</div>
           </>
         );
