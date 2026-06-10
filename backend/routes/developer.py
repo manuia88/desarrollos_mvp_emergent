@@ -822,7 +822,7 @@ async def list_inventory(request: Request, dev_id: Optional[str] = None):
                 "disponible": sum(1 for u in units if u["status"] == "disponible"),
                 "apartado":   sum(1 for u in units if u["status"] == "apartado"),
                 "reservado":  sum(1 for u in units if u["status"] == "reservado"),
-                "vendido":    sum(1 for u in units if u["status"] == "vendido"),
+                "vendido":    sum(1 for u in units if is_sold(u.get("status"))),  # P1.7 · incluye sinónimos/femenino
                 "bloqueado":  sum(1 for u in units if u["status"] == "bloqueado"),
             },
             "units": units,

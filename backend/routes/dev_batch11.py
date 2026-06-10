@@ -586,7 +586,8 @@ async def get_unit_comparables(dev_id: str, unit_id: str, request: Request):
         for u in dev.get("units", [])
         if u.get("prototype") == proto
     ]
-    vendidas = [u for u in same_proto if u["status"] == "vendido"]
+    from data_developments import is_sold  # P1.7 · vocabulario único de "vendido"
+    vendidas = [u for u in same_proto if is_sold(u.get("status"))]
     avg_price = int(sum(u["price"] for u in vendidas if u["price"]) / len(vendidas)) if vendidas else None
 
     return {
@@ -755,8 +756,9 @@ async def get_unit_ai_prediction(dev_id: str, unit_id: str, request: Request):
     status = unit.get("status", "disponible")
 
     # Quick comparables for context
+    from data_developments import is_sold  # P1.7 · vocabulario único de "vendido"
     same_proto = [u for u in dev.get("units", []) if u.get("prototype") == unit.get("prototype")]
-    sold_count = sum(1 for u in same_proto if u.get("status") == "vendido")
+    sold_count = sum(1 for u in same_proto if is_sold(u.get("status")))
     total_proto = len(same_proto)
 
     user_text = (

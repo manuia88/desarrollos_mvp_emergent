@@ -58,7 +58,7 @@ async def _user_tier(request: Request) -> str:
 
 def _market_absorcion_by_colonia() -> Dict[str, Dict[str, int]]:
     """Absorción de mercado por colonia (vendido/total de TODOS los proyectos)."""
-    from data_developments import DEVELOPMENTS
+    from data_developments import DEVELOPMENTS, is_sold  # P1.7 · vocabulario único de "vendido"
     agg: Dict[str, Dict[str, int]] = {}
     for d in DEVELOPMENTS:
         zn = d.get("colonia")
@@ -67,7 +67,7 @@ def _market_absorcion_by_colonia() -> Dict[str, Dict[str, int]]:
         a = agg.setdefault(zn, {"sold": 0, "total": 0})
         units = d.get("units") or []
         if units:
-            a["sold"] += sum(1 for u in units if u.get("status") == "vendido")
+            a["sold"] += sum(1 for u in units if is_sold(u.get("status")))
             a["total"] += len(units)
         else:
             a["sold"] += int(d.get("units_sold") or 0)

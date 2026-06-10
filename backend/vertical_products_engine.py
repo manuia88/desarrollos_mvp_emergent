@@ -713,6 +713,10 @@ async def compute_investor_yield(
     # Breakeven months: equity / monthly cash flow (if positive)
     monthly_cf = cash_flow / 12
     breakeven_months = round(equity / monthly_cf, 1) if monthly_cf > 0 else None
+    # P1.1 · break-even honesto: si el flujo mensual no recupera el capital dentro del horizonte,
+    # se reporta None (la recuperación real viene de la venta, no del flujo). Evita "14k meses".
+    if breakeven_months is not None and breakeven_months > hold_years * 12:
+        breakeven_months = None
 
     # 5) Monte Carlo lite (p10/p50/p90 deterministic via ±2σ growth band)
     sigma = 0.025  # 2.5% std dev annual growth

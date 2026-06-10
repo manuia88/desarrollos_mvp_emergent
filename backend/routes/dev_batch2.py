@@ -240,7 +240,7 @@ async def absorption_analytics(request: Request, project_id: Optional[str] = Non
 async def forecast_analytics(request: Request, consolidated: bool = False):
     user = await _auth(request)
     dev_ids = _user_dev_ids(user)
-    from data_developments import DEVELOPMENTS_BY_ID, ALL_UNITS
+    from data_developments import DEVELOPMENTS_BY_ID, ALL_UNITS, is_sold  # P1.7 · vocabulario único
     my_devs = [DEVELOPMENTS_BY_ID[d] for d in dev_ids if d in DEVELOPMENTS_BY_ID]
     if not my_devs:
         return {"rows": [], "consolidated": None, "monthly_projection": []}
@@ -249,7 +249,7 @@ async def forecast_analytics(request: Request, consolidated: bool = False):
     # El forecast ahora compara META de absorción vs VENDIDO REAL y proyecta con el ritmo real.
     sold_by_dev = {}
     for u in ALL_UNITS:
-        if u.get("status") == "vendido":
+        if is_sold(u.get("status")):
             did = u.get("development_id")
             sold_by_dev[did] = sold_by_dev.get(did, 0) + 1
 

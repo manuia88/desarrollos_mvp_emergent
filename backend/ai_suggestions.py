@@ -109,9 +109,10 @@ async def _build_context(db, entity_type: str, entity_id: str) -> Dict[str, Any]
             from projects_unified import get_project_by_slug, get_units_for_project
             p = await get_project_by_slug(db, entity_id)
             if p:
+                from data_developments import is_sold  # P1.7 · vocabulario único de "vendido"
                 units = await get_units_for_project(db, p)
                 available = sum(1 for u in units if u.get("status") == "disponible")
-                sold = sum(1 for u in units if u.get("status") == "vendido")
+                sold = sum(1 for u in units if is_sold(u.get("status")))
                 ctx.update({
                     "name": p.get("name"),
                     "stage": p.get("stage"),

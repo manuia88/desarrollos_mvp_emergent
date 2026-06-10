@@ -34,7 +34,20 @@ async def fetch_family_data(db, dev: Dict[str, Any], zone: Optional[Dict[str, An
             out["transit_stops"] = (transit or {}).get("lines_count")
     except Exception as exc:
         log.warning(f"[fetch_family_data] amenities/transit failed (soft): {exc}")
-    out["safety_score"] = (zone or {}).get("safety_score") or 78
+    # P1.15 · safety_score REAL desde crime_zone_colonia (DENUE/FGJ) si el zone no lo trae →
+    # despierta la señal de seguridad en la landing (antes siempre caía al default 78).
+    safety = (zone or {}).get("safety_score")
+    if safety is None:
+        try:
+            colonia_slug = (dev.get("colonia") or "").lower().replace(" ", "-")
+            if colonia_slug:
+                cz = await db.crime_zone_colonia.find_one(
+                    {"zone_id": colonia_slug}, {"_id": 0, "safety_score": 1})
+                if cz and cz.get("safety_score") is not None:
+                    safety = cz["safety_score"]
+        except Exception:
+            pass
+    out["safety_score"] = safety if safety is not None else 78
     return out
 
 

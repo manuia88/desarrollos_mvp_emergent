@@ -171,14 +171,16 @@ def _compute_scenario(
     # TIR: usa flujo_neto (renta - costos_op - hipoteca) para TIR con venta final
     tir = _compute_tir_anualizada(inversion_inicial, cash_flow_monthly, precio_final, plazo_meses)
 
-    # Break-even: cuando plusvalía acumulada + rentas netas cubre inversión inicial
-    cumulative_renta = 0.0
-    break_even_months = plazo_meses
+    # Break-even HONESTO (P1.1): recuperas tu inversión cuando el flujo acumulado (que YA
+    # descuenta la hipoteca) + la plusvalía acumulada cubren lo que pusiste (enganche+cierre).
+    # Antes usaba renta_neta sin restar la hipoteca → break-even demasiado optimista.
+    cumulative_flujo = 0.0
+    break_even_months = None  # None = no se recupera vía flujo+plusvalía en el plazo (se recupera al vender)
     for mes, cf in enumerate(cash_flow_monthly, 1):
-        cumulative_renta += cf["renta_neta"]
+        cumulative_flujo += cf["flujo_neto"]
         val_actual = precio_entrada * ((1 + aprec_annual) ** (mes / 12))
         plusvalia_acum = val_actual - precio_entrada
-        if (plusvalia_acum + cumulative_renta - gastos_cierre) >= 0:
+        if (cumulative_flujo + plusvalia_acum) >= inversion_inicial:
             break_even_months = mes
             break
 

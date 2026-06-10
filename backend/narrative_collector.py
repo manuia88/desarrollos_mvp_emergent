@@ -118,10 +118,14 @@ async def collect_for_unit(db, unit_id: str) -> Dict[str, Any]:
     if dom is not None:
         out["days_on_market"] = _wrap(dom, "Listing W3.2")
 
-    # Risk score (W3.4)
-    risk = await _safe_find(db, "risk_scores", {"$or": [{"unit_id": unit_id}, {"colonia": colonia}]})
-    if risk and (risk.get("risk_score") is not None or risk.get("score") is not None):
-        out["risk_score"] = _wrap(risk.get("risk_score") or risk.get("score"), "Risk Layer W3.4")
+    # Risk score (W3.4) · P1.15 · la data real vive en risk_scores_zone (keyed zone_id, campo
+    # score_numeric); antes leía `risk_scores` con filtro unit_id/colonia y campo risk_score → vacío.
+    risk = await _safe_find(db, "risk_scores_zone", {"zone_id": colonia}) if colonia else None
+    if risk and (risk.get("score_numeric") is not None or risk.get("risk_score") is not None or risk.get("score") is not None):
+        _rs = risk.get("score_numeric")
+        if _rs is None:
+            _rs = risk.get("risk_score") or risk.get("score")
+        out["risk_score"] = _wrap(_rs, "Risk Layer W3.4")
 
     # Fees estimate aprox 5% precio (placeholder · F6 lo calcula real)
     if price:
