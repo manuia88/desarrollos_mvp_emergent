@@ -8,7 +8,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
-import { getTerminalMercado } from '../../api/superadmin';
+import { getTerminalMercado, getBancabilidadRanking } from '../../api/superadmin';
 
 const LETRA_COLOR = { 'A+': '#22C55E', 'A': '#22C55E', 'B+': '#84CC16', 'B': '#84CC16', 'C+': '#E2982E', 'C': '#E2982E', 'D': '#ef4444' };
 const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('es-MX'));
@@ -17,8 +17,12 @@ const money = (n) => (n == null ? '—' : `$${Number(n).toLocaleString('es-MX', 
 export default function SuperadminTerminalMercado({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(false);
+  const [banca, setBanca] = useState(null);
 
-  useEffect(() => { getTerminalMercado(8).then(setData).catch(() => setErr(true)); }, []);
+  useEffect(() => {
+    getTerminalMercado(8).then(setData).catch(() => setErr(true));
+    getBancabilidadRanking(10).then(setBanca).catch(() => setBanca(null));
+  }, []);
 
   const note = (t) => (
     <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-3)', padding: '24px 0', textAlign: 'center' }}>{t}</div>
@@ -127,6 +131,23 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
               {(apr.lecciones || []).slice(0, 3).map((l, i) => (
                 <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', padding: '4px 0' }}>· {l.text || l}</div>
               ))}
+            </div>
+          )}
+
+          {/* ── Score de Bancabilidad (ranking · F5.1) ── */}
+          {banca && (banca.ranking || []).length > 0 && (
+            <div style={cardStyle}>
+              <div style={h}>Score de Bancabilidad · qué tan financiable es cada proyecto (A–F)</div>
+              {(banca.ranking || []).slice(0, 10).map((b, i) => (
+                <div key={b.dev_id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>{b.nombre || b.dev_id}</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                    abs {b.componentes?.absorcion_pct ?? '—'}% · venta esp {b.componentes?.prob_venta_esperada_pct ?? '—'}%
+                    <b style={{ color: LETRA_COLOR[b.letra] || 'var(--cream)', marginLeft: 8 }}>{b.bancabilidad} · {b.letra}</b>
+                  </span>
+                </div>
+              ))}
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>◐ Calificación A–F por proyecto (absorción + zona + venta esperada). Producto de datos para bancos/fondos.</div>
             </div>
           )}
 

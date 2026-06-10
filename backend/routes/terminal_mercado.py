@@ -33,3 +33,11 @@ async def terminal_mercado_ep(request: Request, top: int = Query(8, ge=3, le=30)
     await _auth(request)
     from terminal_mercado_engine import terminal_mercado
     return await terminal_mercado(_db(request), top_colonias=top)
+
+
+@router.get("/api/superadmin/bancabilidad")
+async def bancabilidad_ranking_ep(request: Request, top: int = Query(50, ge=1, le=200)):
+    """F5.1 · Ranking de Bancabilidad de todos los proyectos (producto de datos para bancos/fondos)."""
+    await _auth(request)
+    from bancabilidad_engine import ranking_bancabilidad
+    return await ranking_bancabilidad(_db(request), top=top)

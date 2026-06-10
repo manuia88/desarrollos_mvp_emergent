@@ -218,6 +218,22 @@ APLICABA hacia adelante para guiar decisiones.
 
 🎉 **FASE F4 COMPLETA — F4.1 a F4.4 (4 chunks) ✅ Digital Twin: simular palancas (6 factores) + aplicarlas en el Generador + autovigilancia de drift. Núcleo predicción↔realidad + self-tuning ya vivo desde F2.5/F3.4.**
 
+## FASE F5 — Modelo del Mundo / Data Utility / Score de Bancabilidad
+HALLAZGO (auditoría repo): el núcleo de F5 ya está vivo por F2.12 (Terminal vendible + 3 índices
+Obra/Absorción/Gestión + Grafo como producto + k-anon + 2 bundles). Y la **API pública v1 ya existe**
+(routes/public_api_v1.py: snapshot/timeseries/zone-score/risk/drpi/comparables con api-key+k-anon+PII-strip).
+Lo que el roadmap nombra y NO existía: el **Score de Bancabilidad**.
+
+**F5.1 Score de Bancabilidad (A–F por proyecto)** — ✅ 2026-06-10
+- [x] 5.1 Calificación de qué tan financiable es un proyecto + ranking · Back+Front · ✅
+- ARCHIVOS F5.1:
+  - `backend/bancabilidad_engine.py` — `score_bancabilidad(db, dev)` (absorción real 45% + posición de zona 30% + venta esperada aprendida 25%, renormaliza sobre lo disponible, letra A–F, recomendaciones "qué la sube") + `portfolio_bancabilidad(dev_ids)` + `ranking_bancabilidad`. REUSO: is_sold canónico + get_colonia_baseline/risk_score_engine + lifts_por_factor (Cerebro F4). Honesto: zona=0 sin computar se trata como "sin dato" (no penaliza).
+  - Endpoints: GET /api/desarrollador/bancabilidad (dev, sus proyectos) + GET /api/superadmin/bancabilidad (ranking, producto de datos).
+  - Frontend: DEV → card "Score de Bancabilidad" arriba en DesarrolladorReportes · SUPERADMIN → sección ranking en SuperadminTerminalMercado. api.getDevBancabilidad + getBancabilidadRanking.
+  - IA-first (venta esperada del Cerebro) · cierra ciclo (consume absorción+zona+lifts) · 2 portales (DEV+Superadmin). Smoke real verde (18 proyectos rankeados, scores honestos por absorción real baja del demo). Frontend 1 warning (limpio).
+- [ ] 5.2 Servir los productos F2.12 (índices Obra/Absorción/Gestión + Grafo demanda + Bancabilidad) en la API v1 por bundle/scope · 🔄 (despierta desconectado)
+- [ ] 5.3 Índices vivos con historial/curva (time series persistida) · 🔄
+
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.
 - **F1 Underwriting del Terreno** ✅ — valor residual · due diligence · Norma 3 · veredicto · calibración Puente Alvarado.

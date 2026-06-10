@@ -16,6 +16,8 @@ export const getGrafoComprador     = (coloniaId) => j(`/api/superadmin/grafo-com
 export const getCerebroMercado     = ()           => j('/api/superadmin/cerebro-mercado');
 // F2.12 · La Terminal de Mercado CDMX (oferta + 3 índices vendibles + demanda + aprendizaje · k-anónimo).
 export const getTerminalMercado    = (top = 8)    => j(`/api/superadmin/terminal-mercado?top=${top}`);
+// F5.1 · Ranking de Bancabilidad de todos los proyectos (producto de datos para bancos/fondos).
+export const getBancabilidadRanking = (top = 50)  => j(`/api/superadmin/bancabilidad?top=${top}`);
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
 // Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla

@@ -34,6 +34,9 @@ export default function DesarrolladorReportes({ user, onLogout, embedded }) {
         sub="Resumen narrado por Claude + análisis de absorción por cohortes, heatmap de ventas y forecast por proyecto."
       />
 
+      {/* F5.1 · Score de Bancabilidad de tus proyectos (qué tan financiables son) */}
+      <BancabilidadCard />
+
       {/* Resumen Ejecutivo del Mes (IA · junta dinero+ventas+demanda+red+prioridades, compartible) */}
       {DEV_V2 && <DevReporteEjecutivo />}
 
@@ -607,6 +610,49 @@ function HeatCohortCard({ tag, total, won, close_rate, share_pct }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// F5.1 — Score de Bancabilidad de los proyectos del dev (qué tan financiables son)
+const LETRA_BC = { 'A+': '#22C55E', 'A': '#22C55E', 'B+': '#84CC16', 'B': '#84CC16', 'C+': '#E2982E', 'C': '#E2982E', 'D': '#ef4444' };
+function BancabilidadCard() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => { api.getDevBancabilidad().then(setData).catch(() => setErr(true)); }, []);
+  if (err || (data && (data.proyectos || []).length === 0)) return null;
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>Score de Bancabilidad</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>Qué tan financiables son tus proyectos</div>
+        </div>
+        {data?.promedio != null && (
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)' }}>{data.promedio}</span>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}> promedio</span>
+          </div>
+        )}
+      </div>
+      {!data && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>Calculando…</div>}
+      {(data?.proyectos || []).map(p => (
+        <div key={p.dev_id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)', fontWeight: 600 }}>{p.nombre}</span>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+              {p.etiqueta} · <b style={{ color: LETRA_BC[p.letra] || 'var(--cream)' }}>{p.bancabilidad} · {p.letra}</b>
+            </span>
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>
+            Absorción {p.componentes?.absorcion_pct ?? '—'}% · venta esperada {p.componentes?.prob_venta_esperada_pct ?? '—'}%{p.componentes?.posicion_zona != null ? ` · zona ${p.componentes.posicion_zona}` : ''}
+          </div>
+          {(p.recomendaciones || []).slice(0, 1).map((r, i) => (
+            <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#a5b4fc', marginTop: 2 }}>→ {r}</div>
+          ))}
+        </div>
+      ))}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>◐ Calificación A–F: absorción real + posición de zona + venta esperada aprendida por el Cerebro.</div>
+    </Card>
+  );
+}
+
 // BrandedReportsTab — Phase 4 Batch 5 · 4.21
 // ═════════════════════════════════════════════════════════════════════════════
 function BrandedReportsTab({ onToast }) {

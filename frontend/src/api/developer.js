@@ -46,6 +46,8 @@ export const getDevCicloRenta = () => j('/api/desarrollador/ciclo-renta');
 export const getDevIndices = () => j('/api/desarrollador/indices');
 // Reportes · "Resumen Ejecutivo del Mes" (junta dinero+ventas+demanda+red+prioridades, compartible)
 export const getDevReporteEjecutivo = () => j('/api/desarrollador/reporte-ejecutivo');
+// F5.1 · Score de Bancabilidad de los proyectos del dev (qué tan financiables son)
+export const getDevBancabilidad = () => j('/api/desarrollador/bancabilidad');
 
 // Fase 3.2 · lente del dev sobre el cubo (su slice + mercado anónimo)
 export const getDevBenchmark = () => j('/api/dev/market/benchmark');

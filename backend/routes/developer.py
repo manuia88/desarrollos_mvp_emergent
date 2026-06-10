@@ -1151,6 +1151,14 @@ async def list_reports(request: Request):
     return items
 
 
+@router.get("/bancabilidad")
+async def dev_bancabilidad(request: Request):
+    """F5.1 · Score de Bancabilidad de los proyectos del dev (qué tan financiables son)."""
+    user = await require_dev_admin(request)
+    from bancabilidad_engine import portfolio_bancabilidad
+    return await portfolio_bancabilidad(get_db(request), _user_dev_ids(user))
+
+
 # ─── D4: Dynamic Pricing AI ───────────────────────────────────────────────────
 @router.get("/pricing/suggestions")
 async def list_pricing_suggestions(request: Request):
