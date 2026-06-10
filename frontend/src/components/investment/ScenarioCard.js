@@ -25,8 +25,10 @@ export default function ScenarioCard({ tier, scenario, expanded: exProp, onExpan
   const expanded = exProp !== undefined ? exProp : localExpanded;
   const colors = SCENARIO_COLORS[tier] || SCENARIO_COLORS.base;
 
+  // P1.1 · dos perfiles de inversionista: al contado (sin hipoteca) y con hipoteca (apalancado).
   const kpis = [
-    { label: 'ROI total', value: fmtPct(scenario?.roi_pct) },
+    { label: 'ROI al contado', value: fmtPct(scenario?.roi_contado_pct ?? scenario?.roi_pct) },
+    { label: 'ROI con hipoteca', value: fmtPct(scenario?.roi_apalancado_pct ?? scenario?.roi_pct) },
     { label: 'TIR anual', value: fmtPct(scenario?.tir_anual_pct) },
     { label: 'Break-even', value: scenario?.break_even_meses ? `${scenario.break_even_meses} meses` : '—' },
     { label: 'Precio final', value: fmt(scenario?.precio_final) },

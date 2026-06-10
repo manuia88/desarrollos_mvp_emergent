@@ -147,11 +147,25 @@ def _compute_scenario(
             "flujo_neto": round(renta_neta - pago_mensual, 0),  # para TIR (incl. hipoteca)
         })
 
-    # ROI: plusvalía + rentas netas (sin hipoteca) / inversión inicial
-    # La hipoteca construye equity, no es un costo puro
+    # ── ROI · DOS perfiles de inversionista (founder ruling): al contado vs apalancado ──
+    # P1.1 · antes había UN solo ROI que mezclaba retornos estilo "contado" (rentas netas
+    # completas, sin restar hipoteca) sobre una base chica "apalancada" (solo enganche) →
+    # inflaba el número (+480% en recesión). Ahora cada perfil es internamente consistente.
     total_rentas_netas = (renta_mensual - costos_op_mensual) * plazo_meses
-    roi_abs = (plusvalia_abs - gastos_cierre + total_rentas_netas) / inversion_inicial
-    roi_pct = roi_abs * 100
+    sum_flujo_neto = sum(cf["flujo_neto"] for cf in cash_flow_monthly)  # incluye hipoteca
+
+    # 1) AL CONTADO (sin hipoteca): pagas todo el precio + cierre; ganas plusvalía + rentas netas.
+    inversion_contado = precio_entrada + gastos_cierre
+    roi_contado_pct = ((plusvalia_abs - gastos_cierre + total_rentas_netas)
+                       / inversion_contado) * 100 if inversion_contado > 0 else 0.0
+
+    # 2) APALANCADO (con hipoteca): inviertes solo enganche+cierre; el flujo neto YA descuenta
+    #    la hipoteca; al vender (crédito amortizado a `plazo`) recibes el precio final completo.
+    roi_apalancado_pct = ((sum_flujo_neto + precio_final - inversion_inicial)
+                          / inversion_inicial) * 100 if inversion_inicial > 0 else 0.0
+
+    # roi_pct (compat) = el del esquema elegido: apalancado si hay crédito, contado si no.
+    roi_pct = roi_apalancado_pct if financiamiento_pct > 0 else roi_contado_pct
 
     # TIR: usa flujo_neto (renta - costos_op - hipoteca) para TIR con venta final
     tir = _compute_tir_anualizada(inversion_inicial, cash_flow_monthly, precio_final, plazo_meses)
@@ -172,6 +186,9 @@ def _compute_scenario(
         "aprec_anual_pct": round(aprec_annual * 100, 2),
         "precio_final": round(precio_final, 0),
         "roi_pct": round(roi_pct, 2),
+        "roi_contado_pct": round(roi_contado_pct, 2),       # sin hipoteca (cash buyer)
+        "roi_apalancado_pct": round(roi_apalancado_pct, 2),  # con hipoteca (descuenta pagos)
+        "inversion_contado": round(inversion_contado, 0),
         "tir_anual_pct": round(tir * 100, 2) if tir else None,
         "break_even_meses": break_even_months,
         "pago_mensual_hipoteca": round(pago_mensual, 0),
