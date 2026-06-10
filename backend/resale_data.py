@@ -251,7 +251,8 @@ def obra_nueva_pm2_map() -> Dict[str, List[float]]:
     try:
         from data_developments import DEVELOPMENTS
         for d in DEVELOPMENTS:
-            col = d.get("colonia_id") or (d.get("colonia") or "").lower().replace(" ", "-")
+            from data_developments import colonia_slug as _cs  # P2.2
+            col = d.get("colonia_id") or _cs(d.get("colonia"))
             mr = d.get("m2_range") or [0]
             pm2 = (d.get("price_from") or 0) / mr[0] if (mr and mr[0]) else 0
             if col and pm2 > 0:

@@ -704,6 +704,53 @@ def dev_price_m2(dev: dict):
     return None
 
 
+# ── P2.2 · Resolvedor CANÓNICO de slug/colonia (fuente ÚNICA) ──────────────────
+# Antes había ~15 implementaciones distintas de slugify y varios `.lower().replace(" ","-")`
+# inline. Las acentuadas NO cuadraban: "Juárez"→"juárez" ≠ id "juarez" → lookups rotos en
+# 5 de 16 colonias (juarez/cuauhtemoc/napoles/escandon/coyoacan). Esto lo arregla + dedup.
+def slugify(text) -> str:
+    """Slug canónico: minúsculas, SIN acentos, símbolos/espacios → guiones."""
+    if not text:
+        return ""
+    import unicodedata as _ud, re as _re
+    s = str(text).strip().lower()
+    s = "".join(ch for ch in _ud.normalize("NFD", s) if _ud.category(ch) != "Mn")
+    return _re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+
+
+_COLONIA_ALIAS_MAP = None
+
+
+def _colonia_alias_map() -> dict:
+    """{slug-de-id e slug-de-nombre} → id canónico del catálogo. Cacheado."""
+    global _COLONIA_ALIAS_MAP
+    if _COLONIA_ALIAS_MAP is None:
+        _COLONIA_ALIAS_MAP = {}
+        try:
+            from data_seed import COLONIAS
+            for c in COLONIAS:
+                cid = c.get("id")
+                if not cid:
+                    continue
+                _COLONIA_ALIAS_MAP[cid] = cid
+                nm_slug = slugify(c.get("name", ""))
+                if nm_slug:
+                    _COLONIA_ALIAS_MAP[nm_slug] = cid
+        except Exception:
+            pass
+    return _COLONIA_ALIAS_MAP
+
+
+def colonia_slug(value) -> str:
+    """Resuelve un nombre/slug de colonia al id CANÓNICO del catálogo (corrige acentos y nombres
+    largos: 'Juárez'→'juarez', 'Lomas de Chapultepec'→'lomas-chapultepec'). Fallback: slug normalizado.
+    Úsalo en TODO lookup cross-engine por colonia para que dev/asesor/superadmin/comprador cuadren."""
+    if not value:
+        return ""
+    s = slugify(value)
+    return _colonia_alias_map().get(s, s)
+
+
 def inventory_stats(dev: dict) -> dict:
     """Estadística REAL de inventario de un desarrollo (antes los competidores se fabricaban con
     random). Prefiere la lista de unidades; cae a los agregados. Fuente única reusable.

@@ -132,7 +132,8 @@ async def buy_signal(
     dev = await _load_dev(db, dev_id)
     if not dev:
         raise HTTPException(404, "desarrollo_no_encontrado")
-    colonia_slug = dev.get("colonia_id") or (dev.get("colonia") or "").lower().replace(" ", "-")
+    from data_developments import colonia_slug as _canon_colonia  # P2.2
+    colonia_slug = dev.get("colonia_id") or _canon_colonia(dev.get("colonia"))
 
     rep = _representative_unit(dev)
     u_price = float(price or rep["price"] or 0)
@@ -251,7 +252,8 @@ async def ownership(
     dev = await _load_dev(db, dev_id)
     if not dev:
         raise HTTPException(404, "desarrollo_no_encontrado")
-    colonia_slug = dev.get("colonia_id") or (dev.get("colonia") or "").lower().replace(" ", "-")
+    from data_developments import colonia_slug as _canon_colonia  # P2.2
+    colonia_slug = dev.get("colonia_id") or _canon_colonia(dev.get("colonia"))
     rep = _representative_unit(dev)
     u_price = float(price or rep["price"] or 0)
     u_m2 = float(m2 or rep["m2"] or 80)

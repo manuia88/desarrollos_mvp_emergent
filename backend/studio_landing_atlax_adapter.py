@@ -39,7 +39,8 @@ async def fetch_family_data(db, dev: Dict[str, Any], zone: Optional[Dict[str, An
     safety = (zone or {}).get("safety_score")
     if safety is None:
         try:
-            colonia_slug = (dev.get("colonia") or "").lower().replace(" ", "-")
+            from data_developments import colonia_slug as _canon_colonia  # P2.2
+            colonia_slug = _canon_colonia(dev.get("colonia"))
             if colonia_slug:
                 cz = await db.crime_zone_colonia.find_one(
                     {"zone_id": colonia_slug}, {"_id": 0, "safety_score": 1})
@@ -54,7 +55,8 @@ async def fetch_family_data(db, dev: Dict[str, Any], zone: Optional[Dict[str, An
 async def fetch_investor_data(db, dev: Dict[str, Any]) -> Dict[str, Any]:
     """Investor template: ROI · cap rate · gross/net yield · DRPI · Forecast · Battle Card."""
     out: Dict[str, Any] = {}
-    colonia_slug = (dev.get("colonia") or "").lower().replace(" ", "-")
+    from data_developments import colonia_slug as _canon_colonia  # P2.2
+    colonia_slug = _canon_colonia(dev.get("colonia"))
     price_from = dev.get("price_from") or 0
     try:
         from asistente_engine import _tool_investment_simulate, _tool_get_zone_forecast

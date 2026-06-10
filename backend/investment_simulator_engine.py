@@ -308,7 +308,8 @@ async def simulate(
         }
     else:
         # Override base with known colonia default if available
-        slug_clean = colonia_slug.lower().replace(" ", "-")
+        from data_developments import colonia_slug as _canon_colonia  # P2.2 · resolvedor canónico
+        slug_clean = _canon_colonia(colonia_slug)
         if slug_clean in COLONIA_DEFAULTS:
             base = COLONIA_DEFAULTS[slug_clean]
             rates = {
@@ -443,14 +444,16 @@ async def get_colonia_baseline(db, colonia_slug: str) -> Dict[str, Any]:
 
     if not avg_pm2:
         # Fallback from known colonias
-        slug_clean = colonia_slug.lower().replace(" ", "-")
+        from data_developments import colonia_slug as _canon_colonia  # P2.2 · resolvedor canónico
+        slug_clean = _canon_colonia(colonia_slug)
         default_rates = {
             "polanco": 85000, "condesa": 72000, "roma": 65000, "narvarte": 50000,
             "del-valle": 45000, "santa-fe": 55000, "coyoacan": 48000,
         }
         avg_pm2 = default_rates.get(slug_clean, 40000)
 
-    slug_clean = colonia_slug.lower().replace(" ", "-")
+    from data_developments import colonia_slug as _canon_colonia  # P2.2 · resolvedor canónico
+    slug_clean = _canon_colonia(colonia_slug)
     base_aprec = COLONIA_DEFAULTS.get(slug_clean, APREC_RATES.get(tier, DEFAULT_RATES)["base"])
 
     return {
