@@ -449,6 +449,16 @@ async def test_connection_route(source_id: str, request: Request):
         }]
         update_doc["error_log"] = err_log[-10:]
     update_doc["status"] = _post_test_status(src, creds, ok)
+    # P2.1 · HONESTIDAD: un ping OK no significa datos reales. Si el conector devuelve filas
+    # STUB (sintéticas), el estado es "stub", no "active" (consistente con el sync). Antes 6
+    # motores reportaban "active" siendo stub. Fail-soft: si el probe falla, deja el status del test.
+    if ok and update_doc["status"] == "active":
+        try:
+            sample = await connector.fetch()
+            if sample and all(o.get("is_stub") for o in sample):
+                update_doc["status"] = "stub"
+        except Exception:
+            pass
     await db.ie_data_sources.update_one({"id": source_id}, {"$set": update_doc})
     await audit(user.user_id, "ie_test_connection", source_id, {"ok": ok})
 

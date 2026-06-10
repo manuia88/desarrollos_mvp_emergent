@@ -21,6 +21,17 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.osm_engine")
 
+# P2.1 · resiliencia: Overpass se satura seguido (504/429). Cacheamos el último resultado bueno
+# por punto y, si la API falla, servimos ese caché (≤24h) en vez de None → la densidad de zona
+# sigue funcionando durante caídas externas. (In-memory; multi-instancia → mover a colección/Redis.)
+import time as _time
+_OSM_CACHE: Dict[str, tuple] = {}
+_OSM_CACHE_TTL = 86400  # 24h
+
+
+def _osm_key(lat: float, lng: float, radius_m: int) -> str:
+    return f"{round(lat, 4)}|{round(lng, 4)}|{radius_m}"
+
 
 def _endpoint() -> str:
     return os.environ.get("IE_OSM_OVERPASS_URL") or "https://overpass-api.de/api/interpreter"
@@ -87,6 +98,7 @@ async def fetch_osm_pois(lat: float, lng: float, radius_m: int = 700, *, retries
         f'node["highway"="bus_stop"](around:{radius_m},{lat},{lng});'
         f');out tags;'
     )
+    key = _osm_key(lat, lng, radius_m)
     for attempt in range(retries + 1):
         try:
             async with httpx.AsyncClient(timeout=45) as c:
@@ -94,11 +106,18 @@ async def fetch_osm_pois(lat: float, lng: float, radius_m: int = 700, *, retries
                                  headers={"User-Agent": "DMX/1.0 (densidad de zona)"})
             ctype = (r.headers.get("content-type") or "").lower()
             if r.status_code == 200 and "json" in ctype:
-                return r.json().get("elements", [])
+                elements = r.json().get("elements", [])
+                _OSM_CACHE[key] = (_time.time(), elements)  # P2.1 · guarda el último bueno
+                return elements
             # 504/429 = instancia saturada → reintenta
             log.warning(f"[osm] Overpass HTTP {r.status_code} (intento {attempt + 1})")
         except Exception as e:
             log.warning(f"[osm] error de red (intento {attempt + 1}): {e}")
+    # P2.1 · Overpass falló todos los intentos → sirve el último resultado bueno cacheado (≤24h).
+    hit = _OSM_CACHE.get(key)
+    if hit and (_time.time() - hit[0]) < _OSM_CACHE_TTL:
+        log.warning(f"[osm] sirviendo caché ({len(hit[1])} POIs) tras fallo de Overpass para {key}")
+        return hit[1]
     return None
 
 
