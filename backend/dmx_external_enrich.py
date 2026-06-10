@@ -73,11 +73,16 @@ async def enrich_zone(db, zone_id: str) -> Dict[str, Any]:
     ext["transit"] = {"lineas": lineas, "estaciones": estaciones, "is_stub": gt.get("is_stub", True)}
     stub_flags["gtfs_cdmx"] = gt.get("is_stub", True)
 
-    # DENUE — densidad de negocios (dormido si no hay conector/token)
-    den = await _fetch_source("denue", zone_id)
-    ext["denue"] = {"negocios": _first_num(den.get("payloads", []), "negocios", "count"),
-                    "is_stub": den.get("is_stub", True)}
-    stub_flags["denue"] = den.get("is_stub", True)
+    # Densidad de negocios — OSM (la API de DENUE nunca funcionó · eliminada).
+    try:
+        import osm_engine as _osm
+        _dens = await _osm.get_zone_density(db, zone_id)
+    except Exception:
+        _dens = None
+    ext["negocios"] = {"total": (_dens or {}).get("businesses_count_total"),
+                       "por_km2": (_dens or {}).get("businesses_per_km2"),
+                       "source": "osm", "is_stub": not bool(_dens)}
+    stub_flags["negocios"] = not bool(_dens)
 
     # Catastro — dormido (placeholder)
     ext["catastro"] = {"is_stub": True, "dormant": True}

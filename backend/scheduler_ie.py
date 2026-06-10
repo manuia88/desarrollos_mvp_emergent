@@ -533,12 +533,8 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_intelligence_insights_error", error=str(e))
 
-    # W3.1A Phase 5 — DENUE sync weekly (Mon 05:00 MX)
-    try:
-        from denue_engine import schedule_denue_sync_cron
-        schedule_denue_sync_cron(_scheduler, db)
-    except Exception as e:
-        _emit("scheduler_denue_sync_error", error=str(e))
+    # Densidad de negocios: la cubre el cron OSM (zone_data_cron). El cron DENUE se eliminó
+    # (la API de DENUE nunca funcionó; OSM es la fuente viva).
 
     # W3.1A Phase 5 — Construction Costs monthly (1ro mes 07:00 MX)
     try:

@@ -132,3 +132,37 @@ async def compute_zone_density_osm(
         return {"ok": False, "zone_id": zone_id, "reason": str(e)}
 
     return {"ok": True, "zone_id": zone_id, "total": total, "density": density, "by_category": by_cat}
+
+
+# ─── Compat / reuso (reemplazo de denue_engine, que nunca funcionó) ───────────
+async def get_zone_density(db, zone_id: str):
+    """Densidad cacheada de la zona (poblada por OSM). Drop-in del antiguo denue_engine."""
+    return await db.denue_zone_density.find_one({"zone_id": zone_id}, {"_id": 0})
+
+
+async def compute_zone_density(db, zone_id: str, tier: str = "colonia",
+                               radius_m: int = 700, lat=None, lng=None):
+    """Compat (misma firma que el viejo denue): resuelve lat/lng (colonia.center o cube)
+    y calcula la densidad por OSM. Sustituye la API de DENUE muerta."""
+    if lat is None or lng is None:
+        col = await db.colonias.find_one({"id": zone_id}, {"_id": 0, "center": 1})
+        ctr = (col or {}).get("center")
+        if isinstance(ctr, (list, tuple)) and len(ctr) == 2:
+            lng, lat = float(ctr[0]), float(ctr[1])
+        else:
+            cube = await db.cube_aggregations.find_one(
+                {"tier_id": zone_id, "period": "current"}, {"_id": 0, "geo": 1})
+            geo = (cube or {}).get("geo") or {}
+            lat = lat if lat is not None else geo.get("lat")
+            lng = lng if lng is not None else geo.get("lng")
+    if lat is None or lng is None:
+        return {"ok": False, "zone_id": zone_id, "reason": "sin coordenadas"}
+    return await compute_zone_density_osm(db, zone_id, float(lat), float(lng), radius_m=radius_m, tier=tier)
+
+
+async def ensure_indexes(db) -> None:
+    """Índice de la colección de densidad (OSM). Reemplaza ensure_indexes de denue_engine."""
+    try:
+        await db.denue_zone_density.create_index("zone_id", unique=True, name="density_zone_uniq")
+    except Exception as e:
+        log.warning(f"[osm] ensure_indexes: {e}")

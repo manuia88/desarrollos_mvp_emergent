@@ -6,7 +6,7 @@ Junta, con NÚMEROS REALES y fail-open por bloque:
   · ROI por estrategia (renta tradicional / Airbnb derivado / reventa)  ← investment_simulator_engine
   · Plusvalía proyectada + 3 escenarios                                 ← investment_simulator_engine
   · Precio de la zona (mediana $/m²)                                    ← drpi_engine (fallback seed)
-  · Negocios cercanos por categoría                                     ← denue_engine (stub si no hay token)
+  · Negocios cercanos por categoría                                     ← OSM (osm_engine)
   · Forecast de apreciación 6/12/24m                                    ← forecast_engine
   · Demanda viva (leads/citas reales del proyecto)                      ← db.leads
   · Perfil del comprador (ingreso/familia/conectividad)                 ← db.ie_scores (score 0-100)
@@ -110,20 +110,20 @@ async def _drpi_block(db, slug: str) -> Dict[str, Any]:
 
 
 async def _denue_block(db, slug: str) -> Dict[str, Any]:
-    import denue_engine as denue
+    import osm_engine as denue  # DENUE muerto → OSM (get_zone_density)
     cached = await denue.get_zone_density(db, slug)
-    cats = ("restaurants", "schools", "hospitals", "markets", "pharmacies", "banks", "gyms")
+    cats = ("restaurante", "cafe", "mercado", "escuela", "hospital", "farmacia", "banco", "gimnasio", "recreacion")
     if cached and cached.get("businesses_count_total", 0) > 0:
         bc = cached.get("by_category", {}) or {}
-        return {"available": True, "source": "DENUE · INEGI",
+        return {"available": True, "source": "OSM · OpenStreetMap",
                 "total": cached["businesses_count_total"],
                 "by_category": {k: bc.get(k, 0) for k in cats},
                 "per_km2": round(cached.get("businesses_per_km2") or 0),
-                "radius_m": cached.get("radius_m", 2000)}
+                "radius_m": cached.get("radius_m", 700)}
     return {"available": False, "reason": "sin_sincronizar",
-            "source": "censo de negocios INEGI · se conecta al sincronizar",
+            "source": "censo de negocios OSM · se conecta al sincronizar",
             "total": 0, "by_category": {k: 0 for k in cats},
-            "per_km2": 0, "radius_m": 2000}
+            "per_km2": 0, "radius_m": 700}
 
 
 async def _forecast_block(db, slug: str) -> Dict[str, Any]:

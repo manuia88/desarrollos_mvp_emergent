@@ -31,7 +31,7 @@ FEATURE_LABELS_ES = {
     "antiguedad_anos": "Antigüedad",
     "floor": "Piso",
     "proximity_metro_m": "Cercanía a Metro",
-    "denue_density": "Densidad comercial (DENUE)",
+    "denue_density": "Densidad comercial (OSM)",
     "construction_cost_index": "Costo de construcción",
     "colonia_score": "Score colonia",
 }

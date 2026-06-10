@@ -53,7 +53,7 @@ function buildFaqs(zone) {
     },
     {
       question: `¿Qué fuentes usa DesarrollosMX para los datos de ${name}?`,
-      answer: `DesarrollosMX integra fuentes oficiales para ${name}: INEGI (demografía), SESNSP (delictivo), CENAPRED (riesgos naturales), ENVIPE (percepción), DENUE (comercios), SHF/INFONAVIT/RPP (transacciones), y nuestro DRPI (índice hedónico propietario). Todos los outputs son LFPDPPP-compliant y k-anonymizados (k≥5).`,
+      answer: `DesarrollosMX integra fuentes oficiales para ${name}: INEGI (demografía), SESNSP (delictivo), CENAPRED (riesgos naturales), ENVIPE (percepción), OpenStreetMap (comercios), SHF/INFONAVIT/RPP (transacciones), y nuestro DRPI (índice hedónico propietario). Todos los outputs son LFPDPPP-compliant y k-anonymizados (k≥5).`,
     },
   ];
 }

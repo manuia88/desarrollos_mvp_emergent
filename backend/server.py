@@ -435,7 +435,7 @@ app.include_router(superadmin_intelligence_hub_router)
 
 # W3.1A Phase 5 Foundation — DENUE + Construction Cost + Zone Score
 from routes.phase5_foundation import router as phase5_router, pub_router as phase5_pub_router
-from denue_engine import ensure_indexes as ensure_denue_indexes
+from osm_engine import ensure_indexes as ensure_denue_indexes  # DENUE muerto → OSM
 from construction_cost_engine import ensure_indexes as ensure_cost_indexes
 from zone_score_engine import ensure_indexes as ensure_zone_score_indexes
 app.include_router(phase5_router)

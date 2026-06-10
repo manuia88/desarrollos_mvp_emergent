@@ -16,7 +16,7 @@ const DIMENSIONS = [
   { key: 'demand',        label: 'Crecimiento demanda', tooltip: 'Variación de leads e interés de búsqueda en los últimos 30d.' },
   { key: 'risk',          label: 'Riesgo',              tooltip: 'Score multi-fuente. Placeholder hasta W3.4.' },
   { key: 'yield_score',   label: 'Yield estimado',      tooltip: 'Rendimiento esperado: renta anual / precio mediano × 100.' },
-  { key: 'denue_density', label: 'Densidad DENUE',      tooltip: 'Negocios por km² en la zona según INEGI DENUE.' },
+  { key: 'denue_density', label: 'Densidad Comercial',      tooltip: 'Negocios por km² en la zona (OpenStreetMap).' },
 ];
 
 function DimBar({ value }) {

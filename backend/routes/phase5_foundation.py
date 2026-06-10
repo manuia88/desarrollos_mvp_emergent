@@ -28,7 +28,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
-import denue_engine as denue
+import osm_engine as denue  # DENUE muerto → OSM (misma firma: compute_zone_density/get_zone_density)
 import construction_cost_engine as cost_engine
 import zone_score_engine as score_engine
 

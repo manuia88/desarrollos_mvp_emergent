@@ -15,7 +15,7 @@ const FRIENDLY = {
   year_built: 'Año construcción',
   floor: 'Piso',
   proximity_metro_m: 'Proximidad metro (m)',
-  denue_density: 'Densidad DENUE',
+  denue_density: 'Densidad Comercial',
   construction_cost_index: 'Índice costo construcción',
 };
 

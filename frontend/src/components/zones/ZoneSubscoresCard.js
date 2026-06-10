@@ -21,7 +21,7 @@ const DEFAULT_DEFINITIONS = {
   lifestyle: 'Calidad de vida diaria: parques, gastronomía, cultura.',
   seguridad: 'Incidencia delictiva normalizada y percepción ciudadana.',
   transporte: 'Cercanía a Metro, Metrobús y conectividad vial.',
-  amenidades: 'Densidad comercial y servicios DENUE en 1 km.',
+  amenidades: 'Densidad comercial y servicios (OSM) en 1 km.',
   precio: 'Plusvalía esperada y costo / m² competitivo.',
   vibe: 'Carácter cultural y atractivo de barrio.',
 };

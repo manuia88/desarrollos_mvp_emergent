@@ -58,7 +58,7 @@ async def compute_lifestyle(db, zone_slug: str) -> Dict[str, Any]:
                         if any(token in (k or "").lower() for token in LIFESTYLE_CATEGORIES))
         # Normaliza con cap 200 POIs recreativos → 100 score
         score = min(100.0, (rec_count / 200.0) * 100.0)
-        return _wrap(score, doc.get("source") or "denue", sample_size=rec_count)
+        return _wrap(score, doc.get("source") or "osm", sample_size=rec_count)
     except Exception as e:
         log.warning(f"[subscores] lifestyle error {zone_slug}: {e}")
         return STUB
@@ -162,7 +162,7 @@ async def compute_amenidades(db, zone_slug: str) -> Dict[str, Any]:
         # Referencia ÚNICA de densidad (negocios/km², Polanco ~400) — fuente en metric_normalizer.
         from metric_normalizer import DENUE_DENSITY_REF
         score = min(100.0, (density / DENUE_DENSITY_REF) * 100.0)
-        return _wrap(score, doc.get("source") or "denue", sample_size=int(doc.get("businesses_count_total") or 0))
+        return _wrap(score, doc.get("source") or "osm", sample_size=int(doc.get("businesses_count_total") or 0))
     except Exception as e:
         log.warning(f"[subscores] amenidades error {zone_slug}: {e}")
         return STUB
@@ -292,7 +292,7 @@ async def compute_vibe(db, zone_slug: str) -> Dict[str, Any]:
 
         # Mix
         cultural_norm = min(100.0, (cultural / 50.0) * 100.0)
-        sources = ["denue"]
+        sources = ["osm"]
         if trends_val is not None:
             sources.append("trends")
             score = (cultural_norm * 0.5) + (trends_val * 0.5)

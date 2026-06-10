@@ -423,7 +423,7 @@ async def sync_business_density(db, city: str = "CDMX", source: str = "osm",
     """Sincroniza la densidad real de comercios de cada colonia usando SU centro, luego
     recalcula los scores. Una acción que cierra el ciclo dato→score.
 
-    `source`: "osm" (OpenStreetMap Overpass · gratis y confiable · default) | "denue" (INEGI · respaldo).
+    `source`: "osm" (OpenStreetMap Overpass · única fuente · DENUE eliminado).
     Honesto: si la fuente no responde, no inventa — reporta cuántas quedaron con datos.
     `limit` acota la corrida del botón; el cron cubre el catálogo completo."""
     sincronizadas = con_datos = 0
@@ -438,12 +438,9 @@ async def sync_business_density(db, city: str = "CDMX", source: str = "osm",
             continue
         lng, lat = float(ctr[0]), float(ctr[1])   # el catálogo guarda [lng, lat]
         try:
-            if source == "denue":
-                import denue_engine as de
-                d = await de.compute_zone_density(db, c["id"], "colonia", radius_m=rad, lat=lat, lng=lng)
-            else:
-                import osm_engine as osm
-                d = await osm.compute_zone_density_osm(db, c["id"], lat, lng, radius_m=rad)
+            # Densidad SIEMPRE por OSM (la API de DENUE nunca funcionó · se eliminó).
+            import osm_engine as osm
+            d = await osm.compute_zone_density_osm(db, c["id"], lat, lng, radius_m=rad)
             sincronizadas += 1
             if (d.get("businesses_count_total") or d.get("total") or 0) > 0:
                 con_datos += 1
@@ -451,7 +448,7 @@ async def sync_business_density(db, city: str = "CDMX", source: str = "osm",
             log.warning(f"[colonias_catalog] sync densidad {c.get('id')}: {e}")
     # Recalcula scores con la densidad nueva (cierra el ciclo)
     scores = await compute_catalog_scores(db, city)
-    fuente_txt = "OpenStreetMap" if source == "osm" else "DENUE"
+    fuente_txt = "OpenStreetMap"  # DENUE eliminado · siempre OSM
     nota = None if con_datos else (f"{fuente_txt} no devolvió comercios — reintenta en un momento "
                                    "(la instancia gratis puede estar saturada) o revisa la red del servidor.")
     return {
