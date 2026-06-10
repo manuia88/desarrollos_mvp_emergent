@@ -12,7 +12,7 @@ import { buscarColonias } from '../../api/valorResidual';
 const money = (n) => (n ? `$${(n / 1e6).toFixed(1)}M` : '—');
 const num = (n) => (n != null ? Number(n).toLocaleString('es-MX') : '—');
 const CATS = [{ id: 'economica', label: 'Económica' }, { id: 'media', label: 'Media' }, { id: 'premium', label: 'Premium' }];
-const RADIOS = [{ m: 500, label: '500 m' }, { m: 1000, label: '1 km' }, { m: 2000, label: '2 km' }];
+const RADIOS = [{ m: 500, label: '500 m' }, { m: 1000, label: '1 km' }, { m: 1500, label: '1.5 km' }];
 
 export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }) {
   const [mode, setMode] = useState('colonia');

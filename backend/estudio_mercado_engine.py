@@ -33,30 +33,39 @@ async def colonias_en_radio(db, lat: float, lng: float, radio_m: float) -> List[
         return []
     punto = [float(lng), float(lat)]   # formato [lng, lat] (igual que colonia.center)
     radio_km = float(radio_m) / 1000.0
-    out: Dict[str, Dict[str, Any]] = {}
-    # 1) colonias del catálogo en DB (con centroide).
+    # Dedup por NOMBRE (no por id): la semilla y el catálogo SIG usan ids distintos para la misma
+    # colonia (ej. "anzures" vs "anzures-miguel-hidalgo") → antes se doble-contaba. Se queda la más cercana.
+    by_name: Dict[str, Dict[str, Any]] = {}
+
+    def _add(cid, name, alc, center):
+        if not center:
+            return
+        d = _haversine_km(punto, center)
+        if d is None or d > radio_km:
+            return
+        key = (name or cid or "").strip().lower()
+        if not key:
+            return
+        dist_m = round(d * 1000)
+        prev = by_name.get(key)
+        if prev is None or dist_m < prev["dist_m"]:
+            by_name[key] = {"id": cid, "name": name, "alcaldia": alc, "dist_m": dist_m}
+
+    # 1) catálogo SIG en DB.
     try:
         async for c in db.colonias.find({"center": {"$exists": True}},
                                         {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "center": 1}):
-            d = _haversine_km(punto, c.get("center"))
-            if d is not None and d <= radio_km:
-                out[c["id"]] = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia"),
-                                "dist_m": round(d * 1000)}
+            _add(c.get("id"), c.get("name"), c.get("alcaldia"), c.get("center"))
     except Exception as e:
         log.warning(f"[estudio] colonias_en_radio db fail-open: {e}")
-    # 2) fallback/seed (por si la DB aún no tiene centroides).
+    # 2) semilla (rellena nombres que no estén ya en el catálogo).
     try:
         from data_seed import COLONIAS
         for c in COLONIAS:
-            if c["id"] in out or not c.get("center"):
-                continue
-            d = _haversine_km(punto, c["center"])
-            if d is not None and d <= radio_km:
-                out[c["id"]] = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia"),
-                                "dist_m": round(d * 1000)}
+            _add(c.get("id"), c.get("name"), c.get("alcaldia"), c.get("center"))
     except Exception:
         pass
-    return sorted(out.values(), key=lambda x: x["dist_m"])
+    return sorted(by_name.values(), key=lambda x: x["dist_m"])
 
 
 async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
