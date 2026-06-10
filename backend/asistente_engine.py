@@ -334,7 +334,7 @@ TOOLS Y PARAMS:
 43. query_gov_data_mx
     params: {{ "mode": "sources"|"upload-list"|"stats" (default "sources"), "limit": int? (mode=upload-list default 50), "offset": int? (mode=upload-list default 0) }}
     devuelve: depende mode · "sources": {{sources[] con source_id+label+status+fetched_at+expires_at, total, counts {{ok,error,skipped,stale,missing}}}} · "upload-list": {{items[], total, limit, offset}} · "stats": {{track_a, track_b_raw_total, track_c_uploads_active, cache_entries}}
-    Usar cuando: superadmin pregunta estado de fuentes GOV MX (INEGI DENUE · BANXICO SIE · DataMéxico · CONAVI · SESNSP · CENAPRED) · cuántos uploads se han subido · si una fuente está stale/missing · stats agregados tracks A/B/C · W6.MOV.2 fuentes mexicanas (distinto a query_global_insights tool #21 que cubre BIS/OECD/IMF globales).
+    Usar cuando: superadmin pregunta estado de fuentes GOV MX (BANXICO SIE · DataMéxico · CONAVI · SESNSP · CENAPRED) · cuántos uploads se han subido · si una fuente está stale/missing · stats agregados tracks A/B/C · W6.MOV.2 fuentes mexicanas (distinto a query_global_insights tool #21 que cubre BIS/OECD/IMF globales).
 
 44. query_soc_franchise
     params: {{ "mode": "leaderboard"|"my_score"|"admin_stats" (default "leaderboard"), "user_id": str? (mode=my_score · si vacío usa caller user_id), "level": "bronze"|"silver"|"gold"|"platinum"? (filtro leaderboard), "limit": int? (default 20) }}

@@ -4,7 +4,7 @@ Daily ETL at 03:00 MX:
   1. Aggregate previous day developments+units+leads+ai_usage per (zone_id, tier)
   2. UPSERT into `db.facts_daily_zone` time-series collection
   3. Refresh metrics_cube_aggregations (W2.5) for all periods
-  4. Refresh dim_zones metadata (preserve last if INEGI DENUE unavailable)
+  4. Refresh dim_zones metadata (preserve last if INEGI source unavailable)
   5. INSERT etl_runs entry; on failure → system_alert critical
 """
 from __future__ import annotations

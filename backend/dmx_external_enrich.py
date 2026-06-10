@@ -1,7 +1,7 @@
 """
 DMX · Fase 1.4 — CONECTORES EXTERNOS → ZONA (listos y dormidos)
 ═══════════════════════════════════════════════════════════════════════════════
-Cablea las fuentes externas (AirROI renta-corta, GTFS transporte, DENUE negocios,
+Cablea las fuentes externas (AirROI renta-corta, GTFS transporte, OSM negocios,
 catastro) a la Zona (dmx_zones). Reusa el patrón connectors_ie (get_connector +
 fetch() que devuelve obs con is_stub=True cuando no hay API key) → el conector está
 CONECTADO pero DORMIDO: entrega valores estimados/stub hasta que se configure la key,
@@ -18,9 +18,9 @@ from dmx_unit_schema import COLLECTIONS
 
 ZONES = COLLECTIONS["zones"]
 
-# Fuentes que alimentan la zona. (airroi/gtfs_cdmx ya son conectores; denue/catastro
+# Fuentes que alimentan la zona. (airroi/gtfs_cdmx ya son conectores; osm/catastro
 # quedan declarados dormidos hasta tener conector/ token.)
-ZONE_SOURCES = ["airroi", "gtfs_cdmx", "denue", "catastro"]
+ZONE_SOURCES = ["airroi", "gtfs_cdmx", "osm", "catastro"]
 
 
 def _iso() -> str:

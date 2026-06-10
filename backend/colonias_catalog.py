@@ -390,7 +390,7 @@ async def _fetch_geojson(url: str) -> List[Dict[str, Any]]:
 
 
 async def compute_catalog_scores(db, city: str = "CDMX", limit: int = 2500) -> Dict[str, Any]:
-    """Calcula scores REALES (puente score_bridge → SESNSP/DENUE/DRPI) para cada colonia del
+    """Calcula scores REALES (puente score_bridge → SESNSP/OSM/DRPI) para cada colonia del
     catálogo de la ciudad y los guarda en su doc. EX.2 · data-driven. Lo que no tenga dato
     queda pendiente (honesto, cero deuda). `limit` = tope de seguridad para corridas grandes."""
     import score_bridge as sb

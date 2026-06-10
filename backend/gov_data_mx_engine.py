@@ -1,7 +1,7 @@
 """W6.MOV.2 — Gov Data MX Engine · 3 tracks consolidados.
 
 Track A · API auto-pull (6 connectors gov MX):
-  1. INEGI DENUE             · businesses by zone (sin token)
+  (negocios por zona: OSM · osm_engine · DENUE eliminado)
   2. BANXICO SIE             · series macro (IE_BANXICO_TOKEN env)
   3. DataMéxico SE           · econ indicators (sin token)
   4. CONAVI vivienda         · HTML scrape fail-soft
