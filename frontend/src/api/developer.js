@@ -58,6 +58,9 @@ export const getUnitInsights = (devId, unitId) => j(`/api/dev/units/${devId}/${u
 // F2.4 · Demanda demográfica (EPRAV · demanda potencial sin búsquedas)
 export const getDemandaDemografica = (coloniaId, categoria) =>
   j(`/api/dev/demanda-demografica?categoria=${categoria || 'media'}${coloniaId ? `&colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F2.6 · Estudio de Mercado Vivo (entregable auto-generado por colonia)
+export const getEstudioMercado = (coloniaId, categoria) =>
+  j(`/api/dev/estudio-mercado?categoria=${categoria || 'media'}${coloniaId ? `&colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

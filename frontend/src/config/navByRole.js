@@ -48,6 +48,7 @@ const DEV_NAV = [
     items: [
       { key: 'mercado',      to: '/desarrollador/mercado',           label: 'Inteligencia de Mercado', Icon: Activity },
       { key: 'reportes',     to: '/desarrollador/reportes',          label: 'Reportes IA',    Icon: LineChart },
+      { key: 'estudio-mercado', to: '/desarrollador/estudio-mercado', label: 'Estudio de Mercado', Icon: FileText },
       { key: 'demanda',      to: '/desarrollador/demanda',           label: 'Demanda',        Icon: BarChart3 },
       { key: 'site',         to: '/desarrollador/site-selection',    label: 'Site Selection', Icon: MapPin },
       { key: 'valor-terreno',to: '/desarrollador/valor-terreno',     label: 'Valor de Terreno', Icon: DollarSign },

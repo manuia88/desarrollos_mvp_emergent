@@ -82,8 +82,8 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.5.3 Aprendiz de palancas causales (% vendido por feature vs base) · Back · 🔄 — verificado
 - [x] 2.5.4 Panel "Cómo Aprende El Mercado" (superadmin) · Front · S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.5 COMPLETO** (KILLER) · alimenta estimadores compartidos del generador
 **F2.6 Estudio de Mercado Vivo (B5)** — 🔵🟣 · A
-- [ ] 2.6.1 Generador del estudio (fusiona Grafo+oferta+absorción+zona) · Back · ▪️ (entregable)
-- [ ] 2.6.2 Export PDF + Front dev/superadmin · D·S · ▪️
+- [x] 2.6.1 Generador del estudio (estudio_mercado_engine.py fusiona Grafo+EPRAV+Generador+oferta+zona+veredicto) · Back · ▪️ — verificado 2026-06-09
+- [x] 2.6.2 Página dev "Estudio de Mercado" (selector de colonia + categoría + secciones + Exportar a PDF/print) + ruta dev/superadmin · Front · D·S · ▪️ — compila limpio 2026-06-09 · **BATCH F2.6 COMPLETO**
 **F2.7 Competencia & Absorción por Cohorte (B4)** — 🟡 · A
 - [ ] 2.7.1 Curva de absorción por cohorte (nuevo 80% / 2-3a 51% / viejo 20%) · Back · 🔄
 - [ ] 2.7.2 Censo de comparables persistente + Front · D·S · 🔄

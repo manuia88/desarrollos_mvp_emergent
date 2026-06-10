@@ -649,6 +649,10 @@ app.include_router(demanda_demografica_router)
 from routes.cerebro_mercado import router as cerebro_mercado_router
 app.include_router(cerebro_mercado_router)
 
+# F2.6 · El Estudio de Mercado Vivo (entregable auto-generado · dev/superadmin)
+from routes.estudio_mercado import router as estudio_mercado_router
+app.include_router(estudio_mercado_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)
