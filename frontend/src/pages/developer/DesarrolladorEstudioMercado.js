@@ -32,6 +32,31 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
   const [radioData, setRadioData] = useState(null);
   const [radioLoading, setRadioLoading] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [historial, setHistorial] = useState([]);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  // F3.2 · carga el historial de versiones guardadas de esta colonia
+  useEffect(() => {
+    if (!colonia) { setHistorial([]); return; }
+    api.getEstudioHistorial(colonia.id).then(r => setHistorial(r.items || [])).catch(() => setHistorial([]));
+  }, [colonia]);
+
+  // F3.2 · guarda una foto fechada del estudio actual (versión)
+  const saveEstudio = async () => {
+    if (!colonia) return;
+    setSaveBusy(true); setSaveMsg('');
+    try {
+      const doc = await api.guardarEstudio(colonia.id, categoria);
+      setSaveMsg(`Guardado v${doc.version}`);
+      const r = await api.getEstudioHistorial(colonia.id);
+      setHistorial(r.items || []);
+    } catch {
+      setSaveMsg('No se pudo guardar');
+    } finally {
+      setSaveBusy(false);
+    }
+  };
 
   // F3.1 · Descarga el Estudio + Memo como PDF con marca (modo colonia). Radio → impresión.
   const downloadPdf = async () => {
@@ -120,6 +145,12 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
           {CATS.map(c => (
             <button key={c.id} onClick={() => setCategoria(c.id)} style={{ ...tabBtn(categoria === c.id), padding: '8px 12px', fontSize: 12 }}>{c.label}</button>
           ))}
+          {mode === 'colonia' && data && (
+            <button onClick={saveEstudio} disabled={saveBusy} data-testid="estudio-guardar"
+              style={{ ...tabBtn(false), color: 'var(--cream)', opacity: saveBusy ? 0.6 : 1 }}>
+              {saveBusy ? 'Guardando…' : (saveMsg || 'Guardar Versión')}
+            </button>
+          )}
           {hasResult && (
             <button onClick={downloadPdf} disabled={pdfBusy} data-testid="estudio-pdf"
               style={{ ...tabBtn(false), color: 'var(--cream)', opacity: pdfBusy ? 0.6 : 1 }}>
@@ -188,6 +219,17 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
               </div>
               {(data.veredicto || []).map((v, i) => <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', padding: '3px 0' }}>· {v}</div>)}
             </Card>
+            {historial.length > 0 && (
+              <Sec title={`HISTORIAL DE ESTUDIOS (${historial.length})`}>
+                {historial.slice(0, 8).map(h => (
+                  <KV key={h.id}
+                    k={`v${h.version} · ${(h.generated_at || '').slice(0, 10)} · ${(h.categoria || '').toString().charAt(0).toUpperCase()}${(h.categoria || '').toString().slice(1)}`}
+                    v={`${num((h.snapshot || {}).demanda_total)} búsq · hueco ${num((h.snapshot || {}).gap_vertical)}`}
+                    tone="#a5b4fc" />
+                ))}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 6 }}>◐ Cada versión es una foto fechada — se compara con lo que pasa de verdad para que el Cerebro aprenda.</div>
+              </Sec>
+            )}
             <Sec title="DEMANDA REAL (BÚSQUEDAS)">
               <KV k="Búsquedas activas" v={dr.demanda_total ?? 0} /><KV k="Nivel de demanda" v={dr.etiqueta || '—'} /><KV k="Segmento dominante" v={dr.segmento_dominante_label || '—'} />
             </Sec>

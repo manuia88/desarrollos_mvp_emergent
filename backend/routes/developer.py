@@ -1145,7 +1145,9 @@ Tono: analítico, basado en datos, sin marketing vacío. Cierra con el insight a
 async def list_reports(request: Request):
     user = await require_dev_admin(request)
     db = get_db(request)
-    items = await db.developer_reports.find({"owner_id": user.user_id}, {"_id": 0}).sort("month", -1).to_list(24)
+    # Excluye los estudios de mercado versionados (type=estudio · F3.2) — tienen su propio historial.
+    items = await db.developer_reports.find(
+        {"owner_id": user.user_id, "type": {"$ne": "estudio"}}, {"_id": 0}).sort("month", -1).to_list(24)
     return items
 
 

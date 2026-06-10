@@ -64,6 +64,11 @@ export const getEstudioMercado = (coloniaId, categoria) =>
 // F2.6.3 · Estudio de microzona por punto + radio (compone colonias del círculo)
 export const getEstudioMercadoRadio = ({ lat, lng, radio_m, categoria }) =>
   j(`/api/dev/estudio-mercado/radio?lat=${lat}&lng=${lng}&radio_m=${radio_m || 1000}&categoria=${categoria || 'media'}`);
+// F3.2 · Guardar versión fechada del estudio + listar historial (reusa db.developer_reports type=estudio)
+export const guardarEstudio = (coloniaId, categoria) =>
+  post(`/api/dev/estudio-mercado/guardar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
+export const getEstudioHistorial = (coloniaId) =>
+  j(`/api/dev/estudio-mercado/historial${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

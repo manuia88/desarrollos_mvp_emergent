@@ -149,7 +149,13 @@ F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propue
   - `backend/estudio_pdf_renderer.py` — `render_estudio_pdf(db, colonia_id, categoria, user_id)` 2 páginas A4 (portada+síntesis+demanda+producto · memo+tono+zona). REUSO TOTAL del stack del CMA (cma_pdf_renderer: paleta/fuentes/_draw_kpi_card/_draw_score_bar/_wrap_text/_fetch_asesor_profile) + contenido de estudio_mercado_engine.generar_estudio. Fallback de fuentes FAIL-OPEN (alias CMA*→nativas si faltan las Liberation TTF en dev).
   - Endpoint GET /api/dev/estudio-mercado/pdf?colonia_id=&categoria= → StreamingResponse application/pdf (mismo patrón que routes/cma.py).
   - Frontend: botón "Descargar PDF" en DesarrolladorEstudioMercado.js (modo colonia descarga el branded; modo radio cae a window.print). Smoke real verde (Polanco, 5.2KB, magic %PDF). Frontend 1 warning (limpio).
-- [ ] 3.2 Guardado versionado del estudio/memo (historial) · extender db.developer_reports · 🔄
+**F3.2 Guardado versionado del estudio (historial)** — ✅ 2026-06-10
+- [x] 3.2 Guardar "foto fechada" con versión + historial · Back+Front · ✅
+- ARCHIVOS F3.2:
+  - `routes/estudio_mercado.py` — POST /api/dev/estudio-mercado/guardar (versión auto-incremental por owner+colonia, snapshot de números clave demanda/gap/captura/producto dominante/oferta/absorción/tono) + GET /api/dev/estudio-mercado/historial. REUSO: `db.developer_reports` con discriminador `type=estudio` (NO colección nueva). `_snapshot_estudio()` extrae lo predicho.
+  - Cierra ciclo: al guardar registra la predicción de demanda en el Cerebro del Mercado (registrar_prediccion, fail-open, deduped) → luego comparable vs realidad.
+  - `routes/developer.py` — /reportes excluye `type=estudio` (el tab mensual queda limpio).
+  - Frontend: botón "Guardar Versión" + panel "Historial de Estudios" (versiones, fecha, snapshot) en DesarrolladorEstudioMercado.js · api/developer.guardarEstudio + getEstudioHistorial. Smoke real verde (v1/v2 versionado). Frontend 1 warning (limpio).
 - [ ] 3.3 Aparece en tab "Reportes Branded" existente · conectar tipo nuevo · ▪️
 - [ ] 3.4 El Cerebro propone/regenera al cambiar el dato (agéntico, reusa F2.5) · 🔄
 - [ ] 3.5 Lead inversionista → su memo en 1 clic (Ficha360, reusa memo) · ASESOR · 🔄
