@@ -179,6 +179,26 @@ F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propue
 
 🎉 **FASE F3 COMPLETA — F3.1 a F3.5 (5 chunks) ✅ Autopiloto de Memorándum + Estudio de Mercado Vivo branded, versionado, agéntico y cross-portal.**
 
+## FASE F4 — Cerebro del Mercado: Digital Twin + Predicción↔Realidad
+HALLAZGO (auditoría repo, evita overengineer): el NÚCLEO de F4 ya está vivo y cableado por F2.5+F3.4.
+YA existe (NO se reconstruye): registrar/resolver predicciones (coach), calibración, palancas
+(aprendizaje), **self-tuning REAL** (retrain_signal → close_probability_tuning.tune + avm_retrain,
+no stub), panel "Cómo Aprende El Mercado", loop venta-del-dev→resuelve (patch_unit→on_unit_sold),
+loop estudio→resuelve (F3.4). El hueco real: lo aprendido (palancas) solo se MOSTRABA, nunca se
+APLICABA hacia adelante para guiar decisiones.
+
+**F4.1 Simulador de Palancas — "Qué Pasaría Si"** — ✅ 2026-06-10
+- [x] 4.1 Aplica los lifts causales aprendidos para proyectar el impacto de un cambio de producto · Back+Front · ✅
+- ARCHIVOS F4.1:
+  - `backend/simulador_palancas_engine.py` — `simular(db, factor, de, a)` proyecta venta esperada de un cambio (ej. 3→2 recámaras) usando los lifts REALES de cerebro_mercado_engine.aprender_palancas (NO recalcula). Honesto: si no hay venta suficiente lo dice y muestra solo lo observado.
+  - `backend/cerebro_mercado_engine.py` — aprender_palancas ahora expone `base_pct` + `n_total` (no-breaking, para el simulador).
+  - Endpoint GET /api/dev/simulador-palancas?factor=&de=&a= (routes/estudio_mercado.py).
+  - Frontend: panel "🧠 Qué Pasaría Si" (selector recámaras de→a + impacto en puntos + mejor opción) bajo Producto Recomendado en DesarrolladorEstudioMercado.js · api.getSimuladorPalancas.
+  - Cierra el lado que faltaba del loop: aprender→APLICAR (lo aprendido guía la decisión, ya no es dato muerto). Smoke real verde (496 unidades, base 14%, 3→2 = −2 pts). IA-first (dato causal aprendido). Frontend 1 warning (limpio).
+- [ ] 4.2 Palancas más ricas (terraza/amenidades/piso/precio) cuando el dato exista · build-for-endstate · 🔄
+- [ ] 4.3 Despertar: cablear el Simulador al Generador de Producto (F2.2) — impacto de la mezcla recomendada · 🔄
+- [ ] 4.4 Drift/alertas: cuando la calibración empeora, avisa a superadmin · 🔄
+
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.
 - **F1 Underwriting del Terreno** ✅ — valor residual · due diligence · Norma 3 · veredicto · calibración Puente Alvarado.

@@ -74,6 +74,9 @@ export const getEstudioPropuestas = () =>
   j('/api/dev/estudio-mercado/propuestas');
 export const regenerarEstudio = (coloniaId, categoria) =>
   post(`/api/dev/estudio-mercado/regenerar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
+// F4.1 · Qué Pasaría Si: proyecta el impacto de un cambio de producto con las palancas aprendidas
+export const getSimuladorPalancas = ({ factor = 'recamaras', de, a }) =>
+  j(`/api/dev/simulador-palancas?factor=${factor}&a=${a}${de != null ? `&de=${de}` : ''}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

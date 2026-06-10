@@ -14,6 +14,60 @@ const num = (n) => (n != null ? Number(n).toLocaleString('es-MX') : '—');
 const CATS = [{ id: 'economica', label: 'Económica' }, { id: 'media', label: 'Media' }, { id: 'premium', label: 'Premium' }];
 const RADIOS = [{ m: 500, label: '500 m' }, { m: 1000, label: '1 km' }, { m: 1500, label: '1.5 km' }];
 
+// F4.1 · "Qué Pasaría Si" — aplica las palancas que el Cerebro aprendió a una decisión de producto.
+function SimuladorPalancas() {
+  const RECS = [1, 2, 3, 4, 5];
+  const [de, setDe] = useState(3);
+  const [a, setA] = useState(2);
+  const [res, setRes] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setBusy(true);
+    api.getSimuladorPalancas({ factor: 'recamaras', de, a })
+      .then(r => { if (alive) setRes(r); })
+      .catch(() => { if (alive) setRes(null); })
+      .finally(() => { if (alive) setBusy(false); });
+    return () => { alive = false; };
+  }, [de, a]);
+  const pill = (v, sel, on) => (
+    <button key={v} onClick={on} style={{ padding: '5px 10px', borderRadius: 8, fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer',
+      border: `1px solid ${sel ? 'rgba(99,102,241,0.6)' : 'var(--border)'}`, background: sel ? 'rgba(99,102,241,0.14)' : 'transparent', color: sel ? 'var(--cream)' : 'var(--cream-3)' }}>{v}</button>
+  );
+  const delta = res?.delta_pp;
+  const dColor = delta > 0 ? '#22C55E' : (delta < 0 ? '#ef4444' : 'var(--cream-2)');
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'rgba(var(--cream-rgb),0.03)', padding: '14px 16px', marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>🧠 Qué Pasaría Si (palancas aprendidas)</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+        <span>Cambiar de</span>
+        <span style={{ display: 'flex', gap: 4 }}>{RECS.map(v => pill(v, v === de, () => setDe(v)))}</span>
+        <span>a</span>
+        <span style={{ display: 'flex', gap: 4 }}>{RECS.map(v => pill(v, v === a, () => setA(v)))}</span>
+        <span>recámaras</span>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        {busy && <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>Calculando…</span>}
+        {!busy && res && res.disponible && (
+          <div>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: dColor }}>
+              {delta > 0 ? '+' : ''}{delta} pts
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--cream-2)', marginLeft: 8 }}>
+              ({res.vendido_de_pct}% → {res.vendido_a_pct}% de venta esperada)
+            </span>
+            <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 4 }}>◐ {res.lectura}</div>
+            {res.mejor_opcion && <div style={{ fontSize: 11.5, color: '#a5b4fc', marginTop: 2 }}>Lo que más se vende hoy: {res.mejor_opcion}.</div>}
+          </div>
+        )}
+        {!busy && res && !res.disponible && (
+          <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.85)' }}>◐ {res.lectura}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }) {
   const [mode, setMode] = useState('colonia');
   const [categoria, setCategoria] = useState('media');
@@ -286,6 +340,7 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
               {(pr.mezcla || []).map(m => <KV key={m.recamaras} k={m.tipologia} v={`${m.pct}% · ${m.m2_promedio} m²`} />)}
               {(!pr.mezcla || pr.mezcla.length === 0) && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin dato suficiente.</div>}
             </Sec>
+            <SimuladorPalancas />
             <Sec title="OFERTA / COMPETENCIA">
               <KV k="Proyectos en la colonia" v={of.proyectos ?? 0} /><KV k="Unidades disponibles" v={of.unidades_disponibles ?? 0} /><KV k="Rango de precios" v={of.precio_desde ? `${money(of.precio_desde)} – ${money(of.precio_hasta)}` : '—'} />
             </Sec>

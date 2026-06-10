@@ -132,6 +132,17 @@ async def estudio_mercado_guardar(request: Request,
     return await guardar_estudio(_db(request), getattr(user, "user_id", "") or "", colonia_id, categoria)
 
 
+@router.get("/api/dev/simulador-palancas")
+async def simulador_palancas_ep(request: Request,
+                                factor: str = Query("recamaras"),
+                                de: Optional[int] = Query(None),
+                                a: int = Query(...)):
+    """Qué Pasaría Si: proyecta el impacto de un cambio de producto con las palancas aprendidas (F4.1)."""
+    await _auth(request)
+    from simulador_palancas_engine import simular
+    return await simular(_db(request), factor, de, a)
+
+
 @router.get("/api/dev/estudio-mercado/propuestas")
 async def estudio_mercado_propuestas(request: Request):
     """Autopiloto: el Cerebro detecta colonias cuyo dato cambió vs el último estudio guardado (F3.4)."""

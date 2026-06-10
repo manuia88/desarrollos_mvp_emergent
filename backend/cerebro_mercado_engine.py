@@ -102,6 +102,8 @@ async def aprender_palancas(db) -> Dict[str, Any]:
         suficiente = tot_all >= 12 and sold_all >= 4
         return {
             "palancas": palancas[:6],
+            "base_pct": round(base * 100),          # F4.1 · tasa base de venta (para el simulador)
+            "n_total": tot_all,
             "suficiente_dato": suficiente,
             "lectura": ("Palancas detectadas por % de venta real."
                         if suficiente else
