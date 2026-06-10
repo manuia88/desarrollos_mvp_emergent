@@ -316,9 +316,12 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
     except Exception as e:
         log.warning(f"[estudio] tono_marketing fail-open: {e}")
 
-    es_estimado = (dt < 10)
+    es_estimado = (dt < 30)   # P0.11 · umbral más honesto (10 búsquedas no es "vivo")
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(db)
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": categoria,
+        "data_basis": "real" if real else "demo",
         "secciones": {
             "demanda_real": grafo,
             "demanda_potencial": demografica,
@@ -333,7 +336,9 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
         "veredicto": veredicto,
         "es_estimado": es_estimado,
         "lectura": ("Estudio preliminar: se afina solo conforme entra dato real."
-                    if es_estimado else "Estudio vivo con demanda real en la zona."),
+                    if es_estimado else
+                    ("Estudio vivo con demanda real en la zona." if real
+                     else "Estudio con demanda real (búsquedas); oferta/absorción del catálogo de ejemplo (DEMO).")),
         "fuente": "Estudio de Mercado Vivo DMX · fusiona Grafo + EPRAV + Generador + oferta + zona",
     }
 

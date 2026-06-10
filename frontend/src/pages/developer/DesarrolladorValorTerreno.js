@@ -521,7 +521,7 @@ function GeneradorProducto({ gen }) {
                     ({m.lift_pp > 0 ? '+' : ''}{m.lift_pp} pts vs promedio)
                   </span>
                 )}
-                <span style={{ color: '#64748b' }}>· según ventas reales</span>
+                <span style={{ color: '#64748b' }}>· {gen.data_basis === 'real' ? 'según ventas reales' : 'estimado del catálogo (demo)'}</span>
               </div>
             )}
           </div>

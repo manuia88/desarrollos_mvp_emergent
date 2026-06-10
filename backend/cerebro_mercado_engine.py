@@ -147,13 +147,19 @@ async def lifts_por_factor(db, factor: str) -> Dict[str, Any]:
                              "lift_pp": round((rate - base) * 100), "n": b["total"]})
         opciones.sort(key=lambda x: -x["vendido_pct"])
         suficiente = tot_all >= 12 and sold_all >= 4 and len(opciones) >= 2
+        from data_doctrine import has_real_sales
+        real = await has_real_sales(db)
+        if not suficiente:
+            lectura = "Aprendiendo: aún con pocas ventas para confirmar este factor."
+        elif real:
+            lectura = "Lifts detectados por % de venta real."
+        else:
+            lectura = "Lifts del catálogo de ejemplo (DEMO · aún sin ventas reales en la plataforma)."
         return {
             "factor": factor, "nombre": _FACTOR_NOMBRE.get(factor, factor),
             "opciones": opciones, "base_pct": round(base * 100), "n_total": tot_all,
-            "suficiente_dato": suficiente,
-            "lectura": ("Lifts detectados por % de venta real."
-                        if suficiente else
-                        "Aprendiendo: aún con pocas ventas reales para confirmar este factor."),
+            "suficiente_dato": suficiente, "data_basis": "real" if real else "demo",
+            "lectura": lectura,
         }
     except Exception as e:
         log.warning(f"[cerebro_mercado] lifts_por_factor fail-open: {e}")

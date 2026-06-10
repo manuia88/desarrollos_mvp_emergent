@@ -105,17 +105,23 @@ async def curva_absorcion(db, *, colonia_id: Optional[str] = None,
     comparables.sort(key=lambda x: -x["absorcion_pct"])
     n_proy = sum(c["proyectos"] for c in curva)
     es_estimado = n_proy < 3
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(db)
     if not curva:
         lectura = "Aún sin proyectos comparables en la zona — la curva se llena conforme entra oferta."
     elif es_estimado:
         lectura = f"Curva preliminar ({n_proy} proyectos): se afina con más oferta."
+    elif real:
+        lectura = f"Curva de absorción con {n_proy} proyectos comparables (ventas reales)."
     else:
-        lectura = f"Curva real de absorción con {n_proy} proyectos comparables."
+        lectura = f"Curva de absorción del catálogo de ejemplo ({n_proy} proyectos · DEMO, aún sin ventas reales)."
     return {
         "curva": curva,
         "comparables": comparables[:12],
         "n_proyectos": n_proy,
         "es_estimado": es_estimado,
+        "data_basis": "real" if real else "demo",
         "lectura": lectura,
-        "fuente": "Absorción por cohorte DMX · oferta real (vs reporte trimestral estático)",
+        "fuente": ("Absorción por cohorte DMX · oferta real (vs reporte trimestral estático)" if real
+                   else "Absorción por cohorte DMX · catálogo de ejemplo (DEMO · aún sin ventas reales)"),
     }

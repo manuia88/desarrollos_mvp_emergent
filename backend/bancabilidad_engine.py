@@ -113,6 +113,13 @@ async def score_bancabilidad(db, dev: dict) -> Dict[str, Any]:
     if not recos:
         recos.append("Perfil sólido — mantén el ritmo de venta y documenta la zona para el banco.")
 
+    # P0.11 · honestidad: hoy el catálogo es seed (md5), no ventas reales → etiqueta honesta y data-driven.
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(db)
+    fuente = ("Score de Bancabilidad DMX · absorción real + posición de zona + venta esperada aprendida"
+              if real else
+              "Score de Bancabilidad DMX (DEMO · catálogo de ejemplo, aún sin ventas reales) · "
+              "absorción del catálogo + zona + venta esperada")
     return {
         "dev_id": dev.get("id"), "nombre": dev.get("name"), "colonia": dev.get("colonia"),
         "disponible": True,
@@ -126,7 +133,8 @@ async def score_bancabilidad(db, dev: dict) -> Dict[str, Any]:
         "pesos": {k: round(v * 100) for k, v in _PESOS.items()},
         "recomendaciones": recos,
         "es_estimado": prob is None or zona is None,
-        "fuente": "Score de Bancabilidad DMX · absorción real + posición de zona + venta esperada aprendida",
+        "data_basis": "real" if real else "demo",   # la UI muestra badge "datos de ejemplo" si demo
+        "fuente": fuente,
     }
 
 
@@ -173,5 +181,9 @@ async def ranking_bancabilidad(db, top: int = 50) -> Dict[str, Any]:
         if s.get("disponible"):
             out.append(s)
     out.sort(key=lambda x: -x.get("bancabilidad", 0))
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(db)
     return {"ranking": out[:top], "total": len(out),
-            "fuente": "Ranking de Bancabilidad DMX · score A–F por proyecto"}
+            "data_basis": "real" if real else "demo",
+            "fuente": ("Ranking de Bancabilidad DMX · score A–F por proyecto" if real
+                       else "Ranking de Bancabilidad DMX · DEMO (catálogo de ejemplo, aún sin ventas reales)")}

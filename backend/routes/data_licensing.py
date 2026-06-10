@@ -204,7 +204,15 @@ class PatchSubscriptionBody(BaseModel):
 async def list_bundle_templates(request: Request):
     """List the 5 preset bundle templates."""
     await _sa(request)
-    return {"items": BUNDLE_TEMPLATES, "count": len(BUNDLE_TEMPLATES)}
+    # P0.11 · honestidad: marca los bundles como DEMO/beta mientras no haya ventas reales en la
+    # plataforma (auto-cambia a vendible cuando units_history/transactions tengan dato).
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(request.app.state.db)
+    items = [{**b, "data_basis": "real" if real else "demo",
+              "sellable": real,
+              "demo_notice": None if real else "BETA · datos de ejemplo · no licenciar hasta tener ventas reales"}
+             for b in BUNDLE_TEMPLATES]
+    return {"items": items, "count": len(items), "data_basis": "real" if real else "demo"}
 
 
 @router.get("/api/superadmin/data-licensing/subscriptions")

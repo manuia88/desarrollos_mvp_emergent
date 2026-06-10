@@ -177,7 +177,9 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
           {/* ── Score de Bancabilidad (ranking · F5.1) ── */}
           {banca && (banca.ranking || []).length > 0 && (
             <div style={cardStyle}>
-              <div style={h}>Score de Bancabilidad · qué tan financiable es cada proyecto (A–F)</div>
+              <div style={h}>Score de Bancabilidad · qué tan financiable es cada proyecto (A–F)
+                {banca.data_basis !== 'real' && <span style={{ marginLeft: 8, fontSize: 10, color: '#E2982E', border: '1px solid rgba(226,152,46,0.4)', borderRadius: 6, padding: '1px 6px' }}>DATOS DE EJEMPLO</span>}
+              </div>
               {(banca.ranking || []).slice(0, 10).map((b, i) => (
                 <div key={b.dev_id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>{b.nombre || b.dev_id}</span>
@@ -187,7 +189,7 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
                   </span>
                 </div>
               ))}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>◐ Calificación A–F por proyecto (absorción + zona + venta esperada). Producto de datos para bancos/fondos.</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>◐ Calificación A–F por proyecto (absorción + zona + venta esperada). {banca.data_basis === 'real' ? 'Producto de datos para bancos/fondos.' : 'DEMO sobre catálogo de ejemplo — no licenciar a bancos hasta tener ventas reales.'}</div>
             </div>
           )}
 

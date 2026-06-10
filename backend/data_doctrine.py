@@ -13,7 +13,42 @@ Cero deuda: un solo lugar define los tipos; si cambia, cambia en toda la platafo
 """
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any, Dict, List, Optional
+
+_log = logging.getLogger("dmx.data_doctrine")
+
+# ─── Base de datos: ¿demo (seed) o real? — fuente ÚNICA para etiquetas honestas (P0.11) ──
+# El catálogo seed (data_developments) genera estatus de venta con md5 → NO son ventas reales.
+# Este helper detecta si ya hay ventas/transacciones REALES. Las etiquetas de los motores lo
+# consultan para no decir "según ventas reales / para bancos" sobre datos de ejemplo, y para
+# AUTO-cambiar a "real" cuando llegue el dato (build-for-endstate). Cache 5 min (barato).
+_real_sales_cache = {"val": None, "ts": 0.0}
+
+
+async def has_real_sales(db) -> bool:
+    """True si la plataforma tiene ventas/cierres REALES (units_history o transactions), no solo seed."""
+    now = time.time()
+    if _real_sales_cache["val"] is not None and (now - _real_sales_cache["ts"]) < 300:
+        return _real_sales_cache["val"]
+    val = False
+    try:
+        if await db.units_history.estimated_document_count() > 0:
+            val = True
+        elif await db.transactions.estimated_document_count() > 0:
+            val = True
+    except Exception as e:
+        _log.warning(f"[data_doctrine] has_real_sales fail-open: {e}")
+        val = False
+    _real_sales_cache.update(val=val, ts=now)
+    return val
+
+
+async def honest_label(db, real_phrase: str, demo_phrase: str) -> str:
+    """Devuelve la frase real si hay ventas reales, si no la frase de demo. Cierra P0.11 sin borrar
+    los números del demo: solo etiqueta con la verdad y se vuelve 'real' solo al poblar."""
+    return real_phrase if await has_real_sales(db) else demo_phrase
 
 # ─── Los 5 tipos de origen (de más a menos confiable) ─────────────────────────
 # orden = jerarquía de confianza. color/icono para la UI; definición en lenguaje simple.

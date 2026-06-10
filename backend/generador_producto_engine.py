@@ -177,11 +177,13 @@ async def generar_producto(db, colonia_id: Optional[str], terreno_m2: float,
         dom = max(mezcla, key=lambda m: m["unidades"]) if mezcla else None
         if dom:
             rationale.append(f"La demanda de la zona pide sobre todo {dom['tipologia'].lower()} — son el {dom['pct']}% de la mezcla sugerida.")
-        rationale.append(f"{demanda_total} compradores reales en esta colonia encajan con este producto (pre-validación de demanda).")
+        rationale.append(f"{demanda_total} búsquedas reales de compradores en esta colonia encajan con este producto (señal de demanda, no ventas).")
     else:
         rationale.append("Aún sin búsquedas suficientes en la zona: mezcla por defecto del segmento. Se afina sola conforme entra demanda real.")
     rationale.append(f"Potencial: {round(m2_vendible):,} m² vendibles (terreno {round(terreno_m2):,} m² × CUS {cus} × {int(efic*100)}% eficiencia).")
 
+    from data_doctrine import has_real_sales
+    _real = await has_real_sales(db)
     return {
         "colonia_id": colonia_id, "terreno_m2": terreno_m2,
         "cus": cus, "cus_origen": cus_origen, "eficiencia": efic,
@@ -194,4 +196,5 @@ async def generar_producto(db, colonia_id: Optional[str], terreno_m2: float,
         "es_estimado": es_estimado,
         "rationale": rationale,
         "data_source": "real" if not es_estimado else "default",
+        "data_basis": "real" if _real else "demo",   # venta_esperada de la mezcla viene de lifts (seed) hasta tener ventas reales
     }

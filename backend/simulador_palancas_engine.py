@@ -79,11 +79,14 @@ async def simular(db, factor: str, de, a, colonia_id: Optional[str] = None) -> D
     vendido_de = p_de["vendido_pct"] if p_de else base
     delta = round((vendido_a or 0) - (vendido_de or 0))
     signo = "sube" if delta > 0 else ("baja" if delta < 0 else "no cambia")
+    from data_doctrine import has_real_sales
+    real = await has_real_sales(db)
+    basis = "lo aprendido de ventas reales" if real else "el catálogo de ejemplo (DEMO · aún sin ventas reales)"
     return {
-        **payload, "disponible": True, "suficiente_dato": True,
+        **payload, "disponible": True, "suficiente_dato": True, "data_basis": "real" if real else "demo",
         "vendido_de_pct": vendido_de, "vendido_a_pct": vendido_a, "delta_pp": delta,
         "mejor_opcion": max(opciones, key=lambda p: p.get("vendido_pct", 0)).get("valor") if opciones else None,
         "lectura": (f"Cambiar de «{lbl_de}» a «{lbl_a}» ({nombre}): la venta esperada {signo} "
-                    f"{abs(delta)} puntos ({vendido_de}% → {vendido_a}%), según lo aprendido de ventas reales."),
-        "fuente": "Simulador de Palancas DMX · aplica los lifts causales aprendidos por el Cerebro del Mercado",
+                    f"{abs(delta)} puntos ({vendido_de}% → {vendido_a}%), según {basis}."),
+        "fuente": "Simulador de Palancas DMX · aplica los lifts del Cerebro del Mercado",
     }
