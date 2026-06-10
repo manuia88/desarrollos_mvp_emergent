@@ -119,3 +119,133 @@ async def comparables_endpoint(slug: str, request: Request, precio: float = 3_00
     db = _db(request)
     alts = await eng.compare_alternatives(db, slug, precio)
     return JSONResponse({"ok": True, "alternatives": alts})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CALCULADORA COMPLETA — análisis brutal (contado + apalancado), comparar, autofill,
+# renta mínima, captura de lead, guardar/compartir, analíticas (protegido).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AnalyzeBody(BaseModel):
+    precio: float
+    colonia_slug: Optional[str] = None
+    anios_tenencia: int = 10
+    financiamiento_pct: float = 0.80
+    plazo_credito_anios: float = 20
+    tasa_credito: Optional[float] = None          # decimal (0.115). None → tasa oficial
+    apreciacion_anual: Optional[float] = None      # decimal (0.05)
+    renta_mensual: Optional[float] = None
+    rental_yield_anual: Optional[float] = None
+    crecimiento_renta_anual: Optional[float] = None
+    isr_renta_pct: Optional[float] = None
+    isr_ganancia_pct: Optional[float] = None
+    cetes_anual: Optional[float] = None
+    vacancia_pct: Optional[float] = None
+
+
+def _params_from(body: AnalyzeBody) -> dict:
+    return {k: v for k, v in body.dict().items() if v is not None}
+
+
+@router.post("/api/investment-simulator/analyze")
+async def analyze_endpoint(body: AnalyzeBody, request: Request):
+    """Análisis COMPLETO: corre al contado y con hipoteca, da veredicto y guarda la huella anónima."""
+    ip = _client_ip(request)
+    _rate_limit(ip)
+    if body.precio <= 0:
+        raise HTTPException(422, "precio_invalido")
+    db = _db(request)
+    params = _params_from(body)
+    apalancado = eng.analizar_inversion(params, financiar=True)
+    contado = eng.analizar_inversion(params, financiar=False)
+    veredicto = eng.interpretar_resultado(apalancado, contado)
+    # Capa 4 · huella anónima (no rompe la respuesta si falla)
+    await eng.registrar_simulacion(db, params, apalancado, ip_hash=_ip_hash(ip))
+    return JSONResponse({"ok": True, "apalancado": apalancado, "contado": contado, "veredicto": veredicto})
+
+
+@router.post("/api/investment-simulator/compare")
+async def compare_endpoint(request: Request):
+    _rate_limit(_client_ip(request))
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(422, "invalid_json")
+    lista = body.get("opciones") or body.get("items") or []
+    if not isinstance(lista, list) or not lista:
+        raise HTTPException(422, "opciones_requeridas")
+    return JSONResponse({"ok": True, **eng.comparar_inversiones(lista)})
+
+
+@router.post("/api/investment-simulator/min-rent")
+async def min_rent_endpoint(body: AnalyzeBody, request: Request):
+    _rate_limit(_client_ip(request))
+    if body.precio <= 0:
+        raise HTTPException(422, "precio_invalido")
+    return JSONResponse({"ok": True, **eng.renta_minima(_params_from(body))})
+
+
+@router.get("/api/investment-simulator/colonia/{slug}/autofill")
+async def autofill_endpoint(slug: str, request: Request, precio: Optional[float] = None, m2: float = 80.0):
+    _rate_limit(_client_ip(request))
+    db = _db(request)
+    return JSONResponse({"ok": True, **await eng.autofill_calculadora(db, slug, precio, m2)})
+
+
+class CaptureLeadBody(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    consent: bool = False
+    params: dict = {}
+    resultado: dict = {}
+
+
+@router.post("/api/investment-simulator/capture-lead")
+async def capture_lead_endpoint(body: CaptureLeadBody, request: Request):
+    _rate_limit(_client_ip(request))
+    if not body.consent:
+        raise HTTPException(422, "consentimiento_requerido")
+    db = _db(request)
+    contacto = {"name": body.name, "email": body.email, "phone": body.phone, "consent": True}
+    res = await eng.capturar_lead_simulacion(db, contacto, body.params or {}, body.resultado or {})
+    if not res.get("ok"):
+        raise HTTPException(400, res.get("reason") or "no_capturado")
+    return JSONResponse({"ok": True, **res})
+
+
+@router.post("/api/investment-simulator/save")
+async def save_scenario_endpoint(request: Request):
+    _rate_limit(_client_ip(request))
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(422, "invalid_json")
+    db = _db(request)
+    return JSONResponse({"ok": True, **await eng.guardar_escenario(db, body.get("params") or {}, body.get("resultado") or {})})
+
+
+@router.get("/api/investment-simulator/scenario/{token}")
+async def get_scenario_endpoint(token: str, request: Request):
+    _rate_limit(_client_ip(request))
+    db = _db(request)
+    res = await eng.obtener_escenario(db, token)
+    if not res.get("ok"):
+        raise HTTPException(404, "escenario_no_encontrado")
+    return JSONResponse({"ok": True, **res})
+
+
+_ANALYTICS_ROLES = {"superadmin", "admin", "developer", "desarrollador", "dev_admin", "dev"}
+
+
+@router.get("/api/investment-simulator/analytics")
+async def analytics_endpoint(request: Request, dias: int = 90):
+    """Demanda revelada de inversionistas (inteligencia de negocio) — solo dev/superadmin."""
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    if str(getattr(user, "role", "")).lower() not in _ANALYTICS_ROLES:
+        raise HTTPException(403, "Acceso restringido")
+    db = _db(request)
+    return JSONResponse({"ok": True, **await eng.analiticas_simulaciones(db, dias=max(1, min(365, dias)))})
