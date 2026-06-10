@@ -53,6 +53,8 @@ export const getDevAmenityRanker = (colonia) => j(`/api/dev/market/amenity-ranke
 export const getDevDemandGap = (top = 8) => j(`/api/dev/market/demand-gap?top=${top}`);
 // F2.1 · El Grafo del Comprador (qué quiere la demanda por colonia × etapa de vida)
 export const getGrafoComprador = (coloniaId) => j(`/api/dev/grafo-comprador${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F2.3 · Insights por unidad (prob_venta v2 + inversión + días en mercado · prende campos del átomo)
+export const getUnitInsights = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/insights`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

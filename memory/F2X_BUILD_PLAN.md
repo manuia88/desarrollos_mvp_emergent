@@ -69,9 +69,9 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.2.1 Motor HBU (generador_producto_engine.py: terreno+CUS → mezcla calibrada por Grafo · cajones · eficiencia) + ruta /api/dev/generador-producto · Back · 🔄 — verificado 2026-06-09
 - [x] 2.2.2 "Qué Construir Aquí" cableado en Valor del Terreno (mismos inputs, debajo del veredicto) + pre-venta ("N compradores encajan") · Front · D · 🔄 — compila limpio 2026-06-09 · **BATCH F2.2 COMPLETO**
 **F2.3 Prender Campos Apagados (millimétrico)** — 🟡 · A
-- [ ] 2.3.1 prob_venta v2 (ajuste de producto del Grafo) · Back · 🔄
-- [ ] 2.3.2 Cablear UnitInvestment por unidad (desde simulador) · Back · 🔄
-- [ ] 2.3.3 Días en mercado + reservas caídas + tarjetas de unidad · Back+Front · D·A·C · 🔄
+- [x] 2.3.1 prob_venta v2 (encaje de producto del Grafo) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.3.2 Inversión por unidad (renta/yield/plusvalía/ROI reusando simulador) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.3.3 Días en mercado + sección "Termómetro de Venta" en ficha de unidad (dev) · Back+Front · D · 🔄 — compila limpio 2026-06-09 · **BATCH F2.3 COMPLETO** (reservas caídas = backlog menor)
 **F2.4 Demanda Demográfica EPRAV (B3)** — 🔵 · A
 - [ ] 2.4.1 Unir NSE oficial a colonias (AMAI→colonia) · Back · 🔄
 - [ ] 2.4.2 Motor demográfico (crec.+NSE+verticalización+captura) para zonas sin señal · Back · 🔄
@@ -168,6 +168,10 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - `backend/generador_producto_engine.py` (motor HBU) · `backend/routes/generador_producto.py` (GET /api/dev/generador-producto) · registrado en `server.py`.
 - `frontend/src/api/valorResidual.js` (getGeneradorProducto) · sección "Qué Construir Aquí" en `frontend/src/pages/developer/DesarrolladorValorTerreno.js`
   (componente GeneradorProducto, fetch tras analizarLote con mismos inputs). Reusa CUS/eficiencia de F1 + Grafo de F2.1. Verificado backend + compila limpio.
+## ARCHIVOS (F2.3, hecho)
+- `backend/unidad_insights_engine.py` (prob_venta v2 + inversión + días) · endpoint GET /api/dev/units/{dev}/{unit}/insights en `routes/dev_batch11.py`.
+- `frontend/src/api/developer.js` (getUnitInsights) · sección "Termómetro de Venta" en `frontend/src/components/developer/UnitDrawerContent.js`.
+- Reusa Grafo (F2.1) para el encaje de producto + investment_simulator (get_colonia_baseline + RENTAL_YIELDS) para la inversión. Verificado: unidad real Polanco → ROI 11%, renta $43k/mes. Compila limpio.
 
 ## NOTAS
 - ~70% del trabajo = prender campos que ya existen (estimadores calibrados por el estudio), no crear de cero.

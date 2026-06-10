@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getUnitPriceHistory, getUnitComparables, getUnitMarketComparables,
-  getUnitAIPrediction, patchUnit, getUnitEngagement, getUnitAvm,
+  getUnitAIPrediction, patchUnit, getUnitEngagement, getUnitAvm, getUnitInsights,
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
@@ -267,6 +267,54 @@ function EngagementSection({ unit, devId }) {
 }
 
 // ─── Section 3: Comparables internos ─────────────────────────────────────
+// ─── F2.3 · Termómetro de venta (prob_venta v2 + inversión + días) ───
+function TermometroVentaSection({ unit, devId }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    if (!unit) return;
+    getUnitInsights(devId, unit.id || unit.unit_number).then(setData).catch(() => setErr(true));
+  }, [devId, unit]);
+
+  if (err) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>No se pudo calcular.</div>;
+  if (!data) return <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Calculando…</div>;
+
+  const p = data.prob_venta || {};
+  const inv = data.inversion;
+  const colorMap = { verde: '#22C55E', ambar: '#E2982E', rojo: '#ef4444' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Probabilidad de venta</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: colorMap[p.color] || 'var(--cream-2)' }}>{p.etiqueta} · {p.valor}%</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 3, background: 'rgba(var(--cream-rgb),0.08)' }}>
+          <div style={{ height: '100%', borderRadius: 3, width: `${p.valor || 0}%`, background: colorMap[p.color] || '#6366F1', transition: 'width .4s' }} />
+        </div>
+        {(p.factores || []).map((f, i) => (
+          <div key={i} style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>· {f}</div>
+        ))}
+        {p.es_estimado && <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.8)', marginTop: 4 }}>◐ Estimado · se afina con más búsquedas reales</div>}
+      </div>
+      {inv && (
+        <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.06)', paddingTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Para inversionista</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12.5 }}>
+            <div><span style={{ color: 'var(--cream-3)' }}>Renta est./mes</span><br /><b style={{ color: 'var(--cream)' }}>{fmtMXN(inv.renta_mensual_estimada)}</b></div>
+            <div><span style={{ color: 'var(--cream-3)' }}>ROI anual</span><br /><b style={{ color: '#22C55E' }}>{inv.roi_anual_pct}%</b></div>
+            <div><span style={{ color: 'var(--cream-3)' }}>Yield bruto</span><br /><b style={{ color: 'var(--cream-2)' }}>{inv.yield_bruto_anual_pct}%</b></div>
+            <div><span style={{ color: 'var(--cream-3)' }}>Plusvalía/año</span><br /><b style={{ color: 'var(--cream-2)' }}>{inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : '—'}</b></div>
+          </div>
+        </div>
+      )}
+      <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.06)', paddingTop: 10, fontSize: 12.5, color: 'var(--cream-2)' }}>
+        Días en mercado: <b style={{ color: 'var(--cream)' }}>{data.dias_en_mercado != null ? `${data.dias_en_mercado} días` : 'Sin dato aún'}</b>
+      </div>
+    </div>
+  );
+}
+
 function ComparablesInternosSection({ unit, devId }) {
   const [data, setData] = useState(null);
   useEffect(() => {
@@ -634,6 +682,10 @@ export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) 
 
       <DrawerSection id="engagement" title="Engagement">
         <EngagementSection unit={unit} devId={devId} />
+      </DrawerSection>
+
+      <DrawerSection id="venta-inversion" title="Termómetro de venta" defaultOpen>
+        <TermometroVentaSection unit={unit} devId={devId} />
       </DrawerSection>
 
       <DrawerSection id="comparables-internos" title="Comparables internos">

@@ -483,6 +483,20 @@ def _get_unit(dev_id: str, unit_id: str):
     return dev, unit
 
 
+@router.get("/units/{dev_id}/{unit_id}/insights")
+async def get_unit_insights(dev_id: str, unit_id: str, request: Request):
+    """F2.3 · Prende los campos del átomo: prob_venta v2 (encaje con el Grafo) + inversión
+    (renta/plusvalía/ROI) + días en mercado. Reusa motores existentes. FAIL-OPEN."""
+    user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)
+    dev, unit = _get_unit(dev_id, unit_id)
+    if not dev or not unit:
+        raise HTTPException(404, "Unidad no encontrada")
+    from unidad_insights_engine import unit_insights
+    return await unit_insights(_db(request), dev, unit)
+
+
 @router.get("/units/{dev_id}/{unit_id}/price-history")
 async def get_unit_price_history(dev_id: str, unit_id: str, request: Request):
     user = await _auth(request)
