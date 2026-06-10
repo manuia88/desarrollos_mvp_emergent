@@ -173,6 +173,7 @@ const DesarrolladorDisputas = lazy(() => import('./pages/developer/Desarrollador
 const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/SuperadminKnowledgeGraph'));
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
+const SuperadminGrafoComprador = lazy(() => import('./pages/superadmin/SuperadminGrafoComprador'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
 const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
@@ -971,6 +972,7 @@ function AppRouter() {
       <Route path="/superadmin/social-cards" element={<SuperadminRoute Page={SuperadminSocialCards} />} />
       <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
+      <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<SuperadminRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}

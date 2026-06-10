@@ -10,6 +10,8 @@ const j = async (url, opts = {}) => {
   return r.json();
 };
 
+// F2.1 · El Grafo del Comprador agregado de toda la ciudad (todos los devs, anónimo · k-anonimato).
+export const getGrafoComprador     = (coloniaId) => j(`/api/superadmin/grafo-comprador${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
 // Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla

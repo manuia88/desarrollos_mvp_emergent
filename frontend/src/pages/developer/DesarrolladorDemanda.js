@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmt0 } from '../../components/advisor/primitives';
 import DemandHeatmapMap from '../../components/developer/DemandHeatmapMap';
+import GrafoCompradorCard from '../../components/developer/GrafoCompradorCard';
 import * as api from '../../api/developer';
 
 export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
@@ -103,6 +104,9 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
           </div>
         )}
       </Card>
+
+      {/* F2.1.2 · Qué Quiere La Demanda Aquí — Grafo del Comprador (reacciona a la colonia seleccionada) */}
+      <GrafoCompradorCard coloniaId={selectedColonia?.colonia_id} coloniaName={selectedColonia?.colonia} />
 
       {!legacy ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : legacy._err ? null

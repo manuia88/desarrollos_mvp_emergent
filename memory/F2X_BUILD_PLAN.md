@@ -62,9 +62,9 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 ### FASE 2 — Lado Demanda + Cerebro del Mercado · EN CURSO
 **F2.1 Grafo del Comprador (B1)** — 🟡🟣 · A
 - [x] 2.1.1 Motor + 3 rutas (dev/asesor/superadmin) · Back · 🔄 · VERIFICADO 2026-06-09
-- [ ] 2.1.2 Tarjeta dev "Qué Quiere La Demanda Aquí" · Front · D · 🔄
-- [ ] 2.1.3 Distintivo de Etapa de Vida en el lead · Front · A · 🔄
-- [ ] 2.1.4 Vista Agregada de Ciudad · Front · S · 🔄
+- [x] 2.1.2 Tarjeta dev "Qué Quiere La Demanda Aquí" (reacciona a colonia del mapa, en /desarrollador/demanda) · Front · D · 🔄 — compila limpio 2026-06-09
+- [x] 2.1.3 Distintivo de Etapa de Vida en el lead (pill en cabecera de Ficha360, % confianza + razones) · Front · A · 🔄 — compila limpio 2026-06-09
+- [x] 2.1.4 Vista Agregada de Ciudad (página /superadmin/grafo-comprador, menú Inteligencia, toda la ciudad anónima) · Front · S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.1 COMPLETO**
 **F2.2 Generador de Producto / HBU (B2)** — 🔵 · A
 - [ ] 2.2.1 Motor HBU (terreno+CUS → mezcla óptima calibrada por Grafo+absorción · ratio cajones · eficiencia) · Back · 🔄
 - [ ] 2.2.2 "Diseña Tu Producto" + pre-venta ("N compradores encajan") · Front · D · 🔄
@@ -155,6 +155,15 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 ## ARCHIVOS (F2.1.1, hecho)
 - `backend/grafo_comprador_engine.py` · `backend/routes/grafo_comprador.py` · registrado en `server.py`.
 - Lee `asesor_busquedas`+`asesor_contactos`+`data_seed.COLONIAS`; banda honesta vía `metric_normalizer`. K_MIN=3.
+## ARCHIVOS (F2.1.2, hecho)
+- `frontend/src/components/developer/GrafoCompradorCard.js` (tarjeta) · `frontend/src/api/developer.js` (getGrafoComprador) ·
+  conectada en `frontend/src/pages/developer/DesarrolladorDemanda.js` (reacciona a `selectedColonia` del mapa). Compila limpio, cero warnings nuevos.
+## ARCHIVOS (F2.1.3, hecho)
+- `frontend/src/api/advisor.js` (getEtapaVida) · distintivo "Etapa de Vida" en cabecera de `frontend/src/components/asesor/design/Ficha360.js`
+  (state etapaVida + fetch en el efecto de carga + pill con % de confianza y razones en tooltip). Compila limpio, cero warnings nuevos.
+## ARCHIVOS (F2.1.4, hecho · cierra batch F2.1)
+- `frontend/src/pages/superadmin/SuperadminGrafoComprador.js` (página vista-ciudad) · `frontend/src/api/superadmin.js` (getGrafoComprador) ·
+  ruta en `App.js` · menú en `config/navByRole.js` (Inteligencia) · tema en `components/superadmin/SuperadminLayout.js`. Compila limpio.
 
 ## NOTAS
 - ~70% del trabajo = prender campos que ya existen (estimadores calibrados por el estudio), no crear de cero.

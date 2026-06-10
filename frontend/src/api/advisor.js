@@ -45,6 +45,8 @@ export const addTimelineEntry = (id, b) => post(`/api/asesor/contactos/${id}/tim
 export const getContactoOverview = (id) => j(`/api/asesor/contactos/${id}/overview`);
 // B2 · Inteligencia del lead (DISC · riesgo de enfriamiento · brief) desde motores reales · FAIL-OPEN.
 export const getContactoIntel = (id) => j(`/api/asesor/contactos/${id}/intel`);
+// F2.1 · Etapa de vida inferida del lead (Grafo del Comprador) · {segmento,label,confianza,razones}.
+export const getEtapaVida = (id) => j(`/api/asesor/grafo/contacto/${id}`);
 // B2 · Insights de conversación (ánimo/sentiment + próxima acción) · reusa compute_client_insights.
 export const getLeadInsights = (id) => j(`/api/asesor/lead/${id}/insights`);
 

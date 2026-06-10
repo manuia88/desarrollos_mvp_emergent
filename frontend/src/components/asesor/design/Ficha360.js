@@ -338,6 +338,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
   const [intel, setIntel] = useState(null);   // B2 · DISC/riesgo/brief reales (FAIL-OPEN)
+  const [etapaVida, setEtapaVida] = useState(null);   // F2.1 · etapa de vida inferida (Grafo del Comprador)
   const [tareas, setTareas] = useState([]);
   const [busquedas, setBusquedas] = useState([]);
   const [profBusy, setProfBusy] = useState(false); // E2 · guardando perfil de compra
@@ -388,8 +389,10 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
+    setEtapaVida(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
+    api.getEtapaVida(cid).then(setEtapaVida).catch(() => setEtapaVida(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
     api.listTareas({ contacto_id: cid }).then((t) => setTareas(t || [])).catch(() => setTareas([]));
     api.listBusquedas()
@@ -720,6 +723,22 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                 <TemperaturePill temp={c.temperatura} size="sm" />
                 <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)' }}>· {etapaMeta(etapaActual).label}</span>
                 {c.tipo && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)', textTransform: 'capitalize' }}>· {c.tipo}</span>}
+                {/* F2.1.3 · Etapa de vida inferida (Grafo del Comprador) · honesto: % de confianza + razones en tooltip */}
+                {!demo && etapaVida && (
+                  <span data-testid="etapa-vida-pill"
+                    title={(etapaVida.razones && etapaVida.razones.length) ? `Por qué: ${etapaVida.razones.join(' · ')}` : 'Aún sin señal suficiente para definir la etapa de vida'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
+                      padding: '3px 10px', borderRadius: 9999,
+                      background: etapaVida.confianza > 0 ? 'rgba(99,102,241,0.14)' : 'rgba(var(--cream-rgb),0.05)',
+                      border: '1px solid var(--border)',
+                      color: etapaVida.confianza > 0 ? 'var(--cream)' : 'var(--cream-3)',
+                    }}>
+                    🧭 {etapaVida.confianza > 0 ? etapaVida.label : 'Etapa: Sin Definir'}
+                    {etapaVida.confianza > 0 && <span style={{ color: 'var(--cream-3)', fontWeight: 500 }}> · {etapaVida.confianza}%</span>}
+                  </span>
+                )}
                 {demo?.assignedToYou && (
                   <span className="asr-assignee">· <span className="asr-assignee__av">TÚ</span> Asignada a ti</span>
                 )}
