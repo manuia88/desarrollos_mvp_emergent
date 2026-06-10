@@ -633,6 +633,10 @@ app.include_router(dev_valor_residual_router)
 from routes.data_doctrine import router as data_doctrine_router
 app.include_router(data_doctrine_router)
 
+# F2.1 · El Grafo del Comprador (lado demanda del Modelo del Mundo · cross-portal)
+from routes.grafo_comprador import router as grafo_comprador_router
+app.include_router(grafo_comprador_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)
