@@ -55,6 +55,9 @@ export const getDevDemandGap = (top = 8) => j(`/api/dev/market/demand-gap?top=${
 export const getGrafoComprador = (coloniaId) => j(`/api/dev/grafo-comprador${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 // F2.3 · Insights por unidad (prob_venta v2 + inversión + días en mercado · prende campos del átomo)
 export const getUnitInsights = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/insights`);
+// F2.4 · Demanda demográfica (EPRAV · demanda potencial sin búsquedas)
+export const getDemandaDemografica = (coloniaId, categoria) =>
+  j(`/api/dev/demanda-demografica?categoria=${categoria || 'media'}${coloniaId ? `&colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

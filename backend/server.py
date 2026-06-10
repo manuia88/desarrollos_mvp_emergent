@@ -641,6 +641,10 @@ app.include_router(grafo_comprador_router)
 from routes.generador_producto import router as generador_producto_router
 app.include_router(generador_producto_router)
 
+# F2.4 · Demanda Demográfica (modelo EPRAV · demanda potencial sin búsquedas · dev/superadmin)
+from routes.demanda_demografica import router as demanda_demografica_router
+app.include_router(demanda_demografica_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)

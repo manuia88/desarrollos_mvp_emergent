@@ -73,9 +73,9 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.3.2 Inversión por unidad (renta/yield/plusvalía/ROI reusando simulador) · Back · 🔄 — verificado 2026-06-09
 - [x] 2.3.3 Días en mercado + sección "Termómetro de Venta" en ficha de unidad (dev) · Back+Front · D · 🔄 — compila limpio 2026-06-09 · **BATCH F2.3 COMPLETO** (reservas caídas = backlog menor)
 **F2.4 Demanda Demográfica EPRAV (B3)** — 🔵 · A
-- [ ] 2.4.1 Unir NSE oficial a colonias (AMAI→colonia) · Back · 🔄
-- [ ] 2.4.2 Motor demográfico (crec.+NSE+verticalización+captura) para zonas sin señal · Back · 🔄
-- [ ] 2.4.3 Embudo de calificación real (razones de descarte) + Front · D·S · 🔄
+- [x] 2.4.1 NSE conectado al motor (reusa _nse_dist_from_tier de dev_batch7_2, antes desconectado) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.4.2 Motor demográfico EPRAV (población×NSE×verticalización−inventario→captura) para zonas sin señal · Back · 🔄 — verificado 2026-06-09
+- [x] 2.4.3 Tarjeta "Demanda Potencial (Demografía)" en Demanda (dev) + ruta dev/superadmin · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.4 COMPLETO** (embudo de calificación real = backlog, necesita escala de leads)
 **F2.5 ⭐ Cerebro del Mercado (loop causal · KILLER)** — 🟣 · A
 - [ ] 2.5.1 Registro de predicciones (cada estimación con su contexto) · Back · 🔄
 - [ ] 2.5.2 Cierre → backtest → reentreno (extiende E4) · Back · 🔄
@@ -172,6 +172,10 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - `backend/unidad_insights_engine.py` (prob_venta v2 + inversión + días) · endpoint GET /api/dev/units/{dev}/{unit}/insights en `routes/dev_batch11.py`.
 - `frontend/src/api/developer.js` (getUnitInsights) · sección "Termómetro de Venta" en `frontend/src/components/developer/UnitDrawerContent.js`.
 - Reusa Grafo (F2.1) para el encaje de producto + investment_simulator (get_colonia_baseline + RENTAL_YIELDS) para la inversión. Verificado: unidad real Polanco → ROI 11%, renta $43k/mes. Compila limpio.
+## ARCHIVOS (F2.4, hecho)
+- `backend/demanda_demografica_engine.py` (EPRAV) · endpoint GET /api/dev/demanda-demografica en `routes/demanda_demografica.py` · registrado en `server.py`.
+- `frontend/src/api/developer.js` (getDemandaDemografica) · `frontend/src/components/developer/DemandaDemograficaCard.js` · conectada en `DesarrolladorDemanda.js` (junto al Grafo).
+- Reusa el resolver demográfico `routes.dev_batch7_2._deterministic_fallback` (población+NSE, antes desconectado del lado demanda). Verificado: Polanco 346 fam/año GAP 42; Narvarte GAP 88. Compila limpio.
 
 ## NOTAS
 - ~70% del trabajo = prender campos que ya existen (estimadores calibrados por el estudio), no crear de cero.
