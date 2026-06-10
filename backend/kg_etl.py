@@ -255,10 +255,10 @@ async def _load_behavioral(db, drv, summary) -> int:
         b.created_at = row.created_at,
         b.project_id = row.project_id
     """
-    # behavioral_tracking_events o behavioral_tracking_sessions — usamos la generica
+    # P0.9 · reconexión: la data real vive en behavioral_events (timestamp/page/metadata).
     return await _stream_to_neo(
         db, drv, summary,
-        collection="behavioral_tracking_events",
+        collection="behavioral_events",
         cypher=cypher,
         mapper=lambda d: {
             "id": d.get("id") or d.get("event_id") or d.get("session_id"),

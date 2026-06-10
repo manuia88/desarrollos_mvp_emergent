@@ -58,6 +58,12 @@ export function usePageViewTracking() {
   useEffect(() => {
     if (location.pathname === prevPath.current) return;
     prevPath.current = location.pathname;
-    track('page_view', { metadata: { search: location.search } });
+    const meta = { search: location.search };
+    // Etiqueta la zona en origen cuando la URL es una vista pública de zona/mapa.
+    // Cierra el ciclo de Live Pulse (señal "view volume" por colonia) sin tocar cada página.
+    const m = location.pathname.match(/^\/colonia\/([a-z0-9-]+)/i)
+      || location.pathname.match(/^\/mapa\/[^/]+\/([a-z0-9-]+)/i);
+    if (m) meta.zone_slug = m[1].toLowerCase();
+    track('page_view', { metadata: meta });
   }, [location.pathname, location.search]);
 }

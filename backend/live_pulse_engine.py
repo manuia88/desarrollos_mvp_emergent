@@ -21,6 +21,7 @@ import hashlib
 import logging
 import math
 import os
+import re
 import secrets as _secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -94,30 +95,32 @@ async def compute_search_velocity(
         return {"value": 0, "baseline": 0, "delta_pct": 0, "source": "unavailable", "confidence": 0.0}
 
 
-# ─── Signal 2: view volume (behavioral_tracking_events) ──────────────────────
+# ─── Signal 2: view volume (behavioral_events) ───────────────────────────────
 
 async def compute_view_volume(
     db, zone_slug: str, days: int = 30, baseline_days: int = 90,
 ) -> Dict[str, Any]:
     now = _now()
-    cur_cutoff = (now - timedelta(days=days)).isoformat()
-    base_cutoff = (now - timedelta(days=baseline_days)).isoformat()
+    # P0.9 · reconexión: la data real vive en behavioral_events (no behavioral_tracking_events).
+    # El writer guarda timestamp (datetime/Date), page (pathname) y metadata libre — no un campo zone_slug.
+    # → filtro por timestamp (datetime, NO ISO) e infiero la "vista de zona" de:
+    #   (a) metadata etiquetada en origen (endstate, ver behavioralTracker.usePageViewTracking)
+    #   (b) la URL pública de la zona /colonia/<slug> o /mapa/<alcaldia>/<slug>.
+    cur_cutoff = now - timedelta(days=days)
+    base_cutoff = now - timedelta(days=baseline_days)
     try:
-        event_types = ["zone_view", "project_view", "map_zoom_zone"]
-        zone_q = {
-            "event_type": {"$in": event_types},
-            "$or": [
-                {"metadata.zone_slug": zone_slug},
-                {"zone_slug": zone_slug},
-                {"colonia_slug": zone_slug},
-                {"context.zone_slug": zone_slug},
-            ],
-        }
-        cur_count = await db.behavioral_tracking_events.count_documents({
-            **zone_q, "created_at": {"$gte": cur_cutoff},
+        slug_rx = re.escape(zone_slug)
+        zone_q = {"$or": [
+            {"metadata.zone_slug": zone_slug},
+            {"metadata.colonia_slug": zone_slug},
+            {"page": {"$regex": f"/colonia/{slug_rx}(?:[/?#]|$)", "$options": "i"}},
+            {"page": {"$regex": f"/mapa/[^/]+/{slug_rx}(?:[/?#]|$)", "$options": "i"}},
+        ]}
+        cur_count = await db.behavioral_events.count_documents({
+            **zone_q, "timestamp": {"$gte": cur_cutoff},
         })
-        base_count = await db.behavioral_tracking_events.count_documents({
-            **zone_q, "created_at": {"$gte": base_cutoff},
+        base_count = await db.behavioral_events.count_documents({
+            **zone_q, "timestamp": {"$gte": base_cutoff},
         })
         baseline_per_day = (base_count / float(baseline_days)) if baseline_days > 0 else 0.0
         cur_per_day = (cur_count / float(days)) if days > 0 else 0.0

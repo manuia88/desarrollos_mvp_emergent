@@ -72,16 +72,25 @@ async def _count_leads_coverage(db, cutoff_iso: str) -> Dict[str, Any]:
 
 
 async def _count_behavioral_coverage(db, cutoff_iso: str) -> Dict[str, Any]:
+    # P0.9 · reconexión: la data real vive en behavioral_events (timestamp Date + page + metadata libre),
+    # no en behavioral_tracking_events. La zona = metadata etiquetada o derivada del path /colonia/<slug>.
+    try:
+        cutoff_dt = datetime.fromisoformat(cutoff_iso.replace("Z", "+00:00"))
+    except Exception:
+        cutoff_dt = _now() - timedelta(days=7)
+    zone_expr = {"$ifNull": ["$metadata.zone_slug", {"$ifNull": ["$metadata.colonia_slug",
+        {"$let": {
+            "vars": {"m": {"$regexFind": {"input": {"$ifNull": ["$page", ""]},
+                                          "regex": "/colonia/([a-z0-9-]+)"}}},
+            "in": {"$arrayElemAt": [{"$ifNull": ["$$m.captures", []]}, 0]},
+        }}]}]}
     pipeline = [
-        {"$match": {"created_at": {"$gte": cutoff_iso}}},
-        {"$group": {
-            "_id": {"$ifNull": ["$metadata.zone_slug", "$zone_slug"]},
-            "count": {"$sum": 1},
-        }},
+        {"$match": {"timestamp": {"$gte": cutoff_dt}}},
+        {"$group": {"_id": zone_expr, "count": {"$sum": 1}}},
         {"$match": {"_id": {"$nin": [None, ""]}, "count": {"$gte": 500}}},
     ]
     try:
-        zones = await db.behavioral_tracking_events.aggregate(pipeline).to_list(None)
+        zones = await db.behavioral_events.aggregate(pipeline).to_list(None)
     except Exception as exc:
         log.warning(f"[readiness] behavioral aggregate failed: {exc}")
         zones = []
