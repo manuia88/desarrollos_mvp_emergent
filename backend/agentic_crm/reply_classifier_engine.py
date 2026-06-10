@@ -326,6 +326,31 @@ async def _layer_heuristic(_db, _org_id: str, reply_doc: Dict[str, Any]) -> Opti
     }
 
 
+# ─── Wrapper módulo-level (Tanda 3 · P0.10) ──────────────────────────────────
+async def classify_reply(db, reply_text: str, from_address: str = None,
+                         org_id: str = None, channel: str = "email", **_kw):
+    """Clasifica un texto de respuesta entrante (WhatsApp/email) SIN requerir reply_id.
+    whatsapp_engine importaba esta función módulo-level pero solo existía el método de clase
+    `ReplyClassifierEngine.classify_reply(reply_id)` (firma distinta) → ImportError tragado →
+    las respuestas de WhatsApp NUNCA se clasificaban. Best-effort, determinista (cacheada →
+    heurística, sin LLM ni gating Phase-Y); devuelve la clasificación o None. FAIL-OPEN."""
+    reply_doc = {"body_text": reply_text or "", "from_email": from_address,
+                 "org_id": org_id, "channel": channel}
+    out = None
+    try:
+        out = await _layer_cached(db, org_id or "", reply_doc)
+    except Exception as e:
+        log.warning(f"[reply_classifier] classify_reply cached fail-open: {e}")
+    if not out:
+        try:
+            out = await _layer_heuristic(db, org_id or "", reply_doc)
+        except Exception as e:
+            log.warning(f"[reply_classifier] classify_reply heuristic fail-open: {e}")
+    if not out:
+        return None
+    return {"classification": out, "channel": channel, "from_address": from_address}
+
+
 # ─── Engine ───────────────────────────────────────────────────────────────────
 class ReplyClassifierEngine:
     def __init__(self, db, org_id: str):

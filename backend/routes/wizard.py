@@ -664,8 +664,8 @@ async def ia_extract(
     try:
         from ai_budget import track_ai_call
         await track_ai_call(
-            db, org, "claude-haiku-4-5",
-            cost_usd=0.0, call_type="wizard_ia_extract",
+            db, org, "claude-haiku-4-5", 0,   # tokens=0: se usan tokens_in/tokens_out explícitos (cost_usd no es param)
+            call_type="wizard_ia_extract",
             tokens_in=len(combined) // 4,
             tokens_out=len(json.dumps(extraction, ensure_ascii=False)) // 4,
         )

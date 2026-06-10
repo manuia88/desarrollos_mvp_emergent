@@ -232,6 +232,25 @@ async def get_latest_score(db, zone_id: str) -> Optional[Dict[str, Any]]:
     return doc
 
 
+def _with_score_aliases(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Garantiza los ALIAS del score (cierra el bug histórico score_total↔score_numeric que daba
+    tier 'F'/defaults a TODA la app financiera). El doc crudo de zone_scores trae `score_numeric`;
+    muchos readers esperan `score_total`/`score` (contrato del wrapper get_zone_with_subscores).
+    Aquí exponemos los tres + `grade` (=score_letter) en un solo punto."""
+    if not isinstance(doc, dict):
+        return doc
+    sn = doc.get("score_numeric")
+    if sn is None:
+        sn = doc.get("score_total") or doc.get("score")
+    if sn is not None:
+        doc.setdefault("score_numeric", sn)
+        doc.setdefault("score_total", sn)
+        doc.setdefault("score", sn)
+    if doc.get("score_letter") and not doc.get("grade"):
+        doc["grade"] = doc["score_letter"]
+    return doc
+
+
 async def get_score_or_compute(db, zone_id: str, tier: str = "colonia") -> Dict[str, Any]:
     """Return cached score if < 24h old, else recompute."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
@@ -241,9 +260,9 @@ async def get_score_or_compute(db, zone_id: str, tier: str = "colonia") -> Dict[
         sort=[("computed_at_dt", -1)],
     )
     if cached:
-        return {**cached, "cache": "hit"}
+        return _with_score_aliases({**cached, "cache": "hit"})
     result = await compute_zone_score(db, zone_id, tier)
-    return {**result, "cache": "miss"}
+    return _with_score_aliases({**result, "cache": "miss"})
 
 
 async def list_all_scores(
@@ -265,7 +284,7 @@ async def list_all_scores(
     if match:
         pipeline.insert(0, {"$match": match})
     cursor = db.zone_scores.aggregate(pipeline)
-    return [doc async for doc in cursor]
+    return [_with_score_aliases(doc) async for doc in cursor]
 
 
 # ─── W5.2 — Sub-scores desagregados (lifestyle, seguridad, transporte,

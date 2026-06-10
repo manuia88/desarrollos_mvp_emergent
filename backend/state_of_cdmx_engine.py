@@ -62,12 +62,13 @@ _FALLBACK_DEMAND = [
 async def _top_colonias_by_roi(db, limit: int = 10) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     try:
-        cursor = db.zone_scores.find({}, {"_id": 0}).sort("score_total", -1).limit(limit * 2)
+        # El campo real es score_numeric (score_total no existe en zone_scores → sort/lectura rotos).
+        cursor = db.zone_scores.find({}, {"_id": 0}).sort("score_numeric", -1).limit(limit * 2)
         async for d in cursor:
             slug = d.get("zone_id") or d.get("slug")
             if not slug:
                 continue
-            score = float(d.get("score_total") or 0)
+            score = float(d.get("score_numeric") or d.get("score_total") or 0)
             roi = round(8 + (score / 100) * 14, 1)   # ESTIMADO direccional desde el score (no ROI medido)
             out.append({
                 "slug": slug,

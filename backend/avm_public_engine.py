@@ -136,10 +136,14 @@ async def avm_quick_async(
             try:
                 zs = await db.zone_scores.find_one(
                     {"$or": [{"zone_id": colonia_slug}, {"slug": colonia_slug}]},
-                    {"_id": 0, "score_total": 1},
+                    {"_id": 0, "score_numeric": 1, "score_total": 1},
                 )
-                if zs and zs.get("score_total") is not None:
-                    colonia_score = float(zs["score_total"])
+                # El campo real es score_numeric (score_total era el alias inexistente → siempre 60).
+                _sc = (zs or {}).get("score_numeric")
+                if _sc is None:
+                    _sc = (zs or {}).get("score_total")
+                if _sc is not None:
+                    colonia_score = float(_sc)
             except Exception:
                 pass
             features = {

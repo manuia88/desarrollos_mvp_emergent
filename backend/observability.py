@@ -159,8 +159,7 @@ async def ensure_ml_indexes(db) -> None:
 
 async def emit_ml_event(
     db,
-    *,
-    event_type: str,
+    event_type: str = None,
     user_id: Optional[str] = None,
     org_id: Optional[str] = None,
     role: Optional[str] = None,
@@ -168,7 +167,10 @@ async def emit_ml_event(
     ai_decision: Optional[Dict[str, Any]] = None,
     user_action: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Unified ML training event emitter → Mongo + PostHog mirror."""
+    """Unified ML training event emitter → Mongo + PostHog mirror.
+    Firma posicional-O-keyword (Tanda 3 · P0.10): 16 callers pasaban posicional
+    (db, "evento", uid, org, role, ...) y el `*` keyword-only los tronaba en silencio
+    (TypeError tragado → pipeline ML inerte). Ahora ambos estilos funcionan."""
     eid = f"ml_{uuid.uuid4().hex[:14]}"
     now = datetime.now(timezone.utc)
     doc = {
