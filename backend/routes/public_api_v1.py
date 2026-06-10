@@ -594,7 +594,15 @@ async def stripe_webhook(request: Request):
                 body, sig, billing.STRIPE_WEBHOOK_SECRET,
             )
         else:
-            # Test mode without webhook secret — accept JSON as-is
+            # FAIL-CLOSED en prod: sin secreto/firma NO se aceptan eventos (antes: aceptaba JSON crudo
+            # → cobros/upgrades falsos · P0.6). En dev/preview se permite para pruebas locales.
+            try:
+                from server import _is_prod as _prod
+            except Exception:
+                _prod = lambda: os.environ.get("DMX_ENV", "").strip().lower() in ("prod", "production")
+            if _prod():
+                log.error("[stripe webhook] PROD sin firma/secret → rechazado")
+                raise HTTPException(400, "Webhook signature required")
             import json as _json
             event = _json.loads(body or b"{}")
     except Exception as e:

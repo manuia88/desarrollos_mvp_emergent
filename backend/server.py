@@ -26,6 +26,37 @@ DB_NAME   = os.environ.get("DB_NAME")
 JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
+
+def _is_prod() -> bool:
+    """Único punto para saber si corremos en producción real."""
+    return os.environ.get("DMX_ENV", "").strip().lower() in ("prod", "production")
+
+
+def _prod_env_guard():
+    """Gate de prod fail-closed (Tanda 2 · P0.5/P0.7/P1.10). En prod ABORTA el arranque si faltan
+    secretos críticos; loguea fuerte los recomendados. En dev/preview solo advierte. Un solo lugar."""
+    if not _is_prod():
+        # dev/preview: avisos suaves, no bloquea
+        if not os.environ.get("JWT_SECRET"):
+            logging.warning("[startup] JWT_SECRET no seteada — usando secreto efímero (OK en dev, NO en prod)")
+        return
+    fatal = []
+    if not os.environ.get("JWT_SECRET"):
+        fatal.append("JWT_SECRET (sin esto las sesiones mueren al reiniciar / no validan entre instancias)")
+    apw = os.environ.get("ADMIN_PASSWORD", "")
+    if not apw or apw == "Admin2026!":
+        fatal.append("ADMIN_PASSWORD (falta o usa el default público 'Admin2026!')")
+    if fatal:
+        msg = "PROD env inseguro · faltan/inseguros: " + " · ".join(fatal)
+        logging.error(f"[startup] {msg}")
+        raise RuntimeError(msg)   # fail-closed: mejor no bootear que bootear inseguro
+    # Recomendados (no abortan, pero deben gritar en prod)
+    if not os.environ.get("STRIPE_WEBHOOK_SECRET"):
+        logging.error("[startup] PROD sin STRIPE_WEBHOOK_SECRET — el webhook de pagos rechazará eventos (fail-closed).")
+    _dsn = os.environ.get("SENTRY_DSN", "").strip()
+    if not _dsn.startswith(("http://", "https://")):
+        logging.error("[startup] PROD: SENTRY_DSN no es una URL DSN válida — observabilidad de errores APAGADA. Setea un DSN real.")
+
 app = FastAPI(title="DesarrollosMX API", version="2.0.0")
 
 # Prod: orígenes explícitos vía CORS_ORIGINS (coma-separados, p.ej.
@@ -1279,6 +1310,7 @@ async def audit(user_id: str, action: str, resource: str, data: dict = None):
 # ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
+    _prod_env_guard()   # Tanda 2 · fail-closed en prod si faltan secretos críticos
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id")
     await db.audit_logs.create_index("ts")

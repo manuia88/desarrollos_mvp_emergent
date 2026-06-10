@@ -17,9 +17,10 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 - [x] P0.3 · **CAS débil → doble venta** ✅ARREGLADO (Tanda 1): primer-override ahora CAS atómico (filtro `status:{$ne}` + DuplicateKeyError→409). CAS de override existente ya estaba.
 - [x] P0.4 · **getattr(user,"id") roto ×33** ✅ARREGLADO (Tanda 1): barrido `"id"`→`"user_id"` en 11 archivos + helper canónico `tenant_scope.actor_id`. Dueño per-asesor (lead_enrichment) ahora compara user_id real.
   · UPGRADES Tanda 1: `tenant_scope.actor_id` (id de actor único) · `_field` (helpers tolerantes a user dict|objeto) · `assert_lead_owner` (candado de lead reusable, tolerante al fork de tenant).
-- [ ] P0.5 · 🆕 **Default admin público** [F2]: server.py:1287 `ADMIN_PASSWORD` default `Admin2026!` / `admin@desarrollosmx.io`. Fail-closed en prod si falta.
-- [ ] P0.6 · 🆕 **Stripe webhook fail-open** [F10/F11]: acepta JSON sin firma si falta STRIPE_WEBHOOK_SECRET → cobros falsos. Rechazar en prod.
-- [ ] P0.7 · **Observabilidad muerta** [F4/F10] ✅EJEC: SENTRY_DSN es token, no URL → errores invisibles. Poner DSN real.
+- [x] P0.5 · **Default admin público** ✅ARREGLADO 2026-06-10 (Tanda 2): gate `_prod_env_guard()` aborta el arranque en prod si `ADMIN_PASSWORD` falta o == `Admin2026!`. Verificado (prod sin clave → RuntimeError; con clave válida → OK).
+- [x] P0.6 · **Stripe webhook fail-open** ✅ARREGLADO (Tanda 2): en prod (`_is_prod`) rechaza 400 si no hay firma/secret; test-mode solo en dev. (public_api_v1 stripe_webhook)
+- [x] P0.7 · **Observabilidad muerta** ✅CÓDIGO (Tanda 2): init_sentry detecta DSN mal-formado (token vs URL) con mensaje claro + el gate loguea error en prod. ⚠️ FALTA ACCIÓN FOUNDER: poner el DSN real (URL) en `SENTRY_DSN` del deploy.
+  · BONUS P1.10 (JWT efímero): el mismo gate aborta en prod si falta `JWT_SECRET`. Upgrade: `_is_prod()` + `_prod_env_guard()` = un solo gate de prod-readiness fail-closed.
 - [ ] P0.8 · **Bug `score_total`→`score_numeric`** [F6] ✅EJEC (poblado): corrompe tier/yield/bancabilidad/AVM (12+ sitios). 1 cambio central.
 - [ ] P0.9 · **18 colecciones leídas con nombre mal** [F5] (gemelo lleno): behavioral_tracking_events→behavioral_events · zone_subscores→zone_scores · ie_engine_scores→ie_scores · properties→dmx_units · zones→dim_zones · asesor_leads→asesor_contactos · asesor_citas→appointments · favoritos→buyer_favorites · etc.
 - [ ] P0.10 · **Pipeline ML inerte** [F5] ✅EJEC: emit_ml_event mal llamado ×16 + classify_reply no existe (WhatsApp) + track_ai_call wizard.
@@ -36,7 +37,7 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 - [ ] P1.7 · "vendido" forkeado (~10 sitios) + "vendida" femenino invisible [F6]. Importar is_sold + incluir vendida.
 - [ ] P1.8 · Cubo congelado en seed (override no propaga: dev 23% vs cubo 14%) + 5 fórmulas de absorción [F1/F6].
 - [ ] P1.9 · 🆕 **Sin rate-limit en login** [F3/F10]: fuerza bruta. Reusar _rate_limit_check.
-- [ ] P1.10 · 🆕 **JWT_SECRET default efímero** [F3]: rompe sesiones al reiniciar/multi-instancia. Fail-closed en prod.
+- [x] P1.10 · **JWT_SECRET default efímero** ✅ARREGLADO (Tanda 2): `_prod_env_guard` aborta en prod si falta JWT_SECRET.
 - [ ] P1.11 · 🆕 **Logout no invalida token** (JWT stateless) [F3]: blocklist/TTL corto + refresh rotación.
 - [ ] P1.12 · **Salt PII en el bundle** [F4]: posthog.js:21 + defaults. Mover hashing al backend.
 - [ ] P1.13 · 🆕 **Faltan headers de seguridad** [F10]: HSTS/CSP/X-Frame/X-Content-Type (solo CORS hoy). Middleware.

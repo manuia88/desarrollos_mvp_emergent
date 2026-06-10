@@ -47,6 +47,11 @@ def init_sentry() -> bool:
     if not dsn:
         log.info("[observability] SENTRY_DSN empty — Sentry disabled (stub).")
         return False
+    if not dsn.startswith(("http://", "https://")):
+        # Caso real detectado en auditoría: la env trae un TOKEN (sntryu_…), no un DSN URL.
+        log.error("[observability] SENTRY_DSN no es una URL DSN (¿pusiste un token?). "
+                  "Debe ser https://<key>@<org>.ingest.sentry.io/<id>. Sentry queda APAGADO.")
+        return False
     try:
         import sentry_sdk
         from sentry_sdk.integrations.fastapi import FastApiIntegration
