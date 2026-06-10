@@ -653,6 +653,10 @@ app.include_router(cerebro_mercado_router)
 from routes.estudio_mercado import router as estudio_mercado_router
 app.include_router(estudio_mercado_router)
 
+# F2.12 · La Terminal de Mercado CDMX (data utility vendible, k-anónimo)
+from routes.terminal_mercado import router as terminal_mercado_router
+app.include_router(terminal_mercado_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)

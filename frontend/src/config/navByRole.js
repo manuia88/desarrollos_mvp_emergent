@@ -231,6 +231,7 @@ const SUPERADMIN_NAV = [
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
       { key: 'grafo-comprador',   to: '/superadmin/grafo-comprador',   label: 'Grafo del Comprador', Icon: Users },
       { key: 'cerebro-mercado',   to: '/superadmin/cerebro-mercado',   label: 'Cómo Aprende el Mercado', Icon: Sparkles },
+      { key: 'terminal-mercado',  to: '/superadmin/terminal-mercado',  label: 'Terminal de Mercado CDMX', Icon: Layers },
       // ─ W6.MOV.5 · Construction Quality Index ─
       { key: 'construction-quality', to: '/superadmin/construction-quality', label: 'Construction Quality', Icon: ShieldCheck },
       // ─ W6.MOV.3 · Reviews Residentes ─

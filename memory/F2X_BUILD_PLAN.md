@@ -122,10 +122,18 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
   - Endpoints: GET /api/dev/tono-marketing?colonia_id= · GET /api/dev/deseabilidad/{dev_id}/{unit_id} (routes/estudio_mercado.py).
   - Cableado: deseabilidad integrada en unidad_insights_engine → Termómetro de venta (UnitDrawerContent.js, barra "qué tan deseable vs otras al mismo precio" + a favor/le falta). Tono integrado en generar_estudio (sección "Tono de Marketing" en DesarrolladorEstudioMercado.js).
   - Cierra ciclo: el copy de landings nace del perfil psicográfico de la zona; el marketplace/asesor priorizan por deseabilidad. Smoke test verde + frontend 1 warning (limpio).
-**F2.12 Terminal Vendible / Data Utility (superadmin)** — 🟣 · A (al final)
-- [ ] 2.12.1 Roll-up k-anónimo de todos los devs (cubo NSE×segmento×colonia) · Back · 🔄
-- [ ] 2.12.2 Los 3 índices vendibles (obra/absorción/gestión) + terminal Bloomberg CDMX · Back+Front · S · 🔄
-- [ ] 2.12.3 Grafo del Comprador como producto de datos (anónimo) · Back+Front · S · 🔄
+**F2.12 Terminal Vendible / Data Utility (superadmin)** — ✅ 2026-06-09
+- [x] 2.12.1 Roll-up k-anónimo de todos los devs (cubo) · Back · ✅ (REUSO: ya existía metrics_cube_aggregations + cube_olap_engine + anonymization_engine.check_k_anonymity → /api/superadmin/metrics-cube/* + SuperadminMetricsCube.js. NO se reconstruyó.)
+- [x] 2.12.2 Los 3 índices vendibles (obra/absorción/gestión) + terminal Bloomberg CDMX · Back+Front · S · ✅
+- [x] 2.12.3 Grafo del Comprador como producto de datos (anónimo) · Back+Front · S · ✅ (REUSO: grafo_comprador_engine k-anon K_MIN=3 ya existía; se volvió vendible en data_licensing.)
+- ARCHIVOS F2.12:
+  - `backend/terminal_mercado_engine.py` — `terminal_mercado(db)` thin composer: fusiona oferta (cubo city de metrics_cube_aggregations) + 3 índices vendibles (IOB Obra · IAB Absorción · IGE Gestión, derivados del cubo, NO recalcula motores) + demanda (build_grafo city-wide, k-anon) + aprendizaje (cerebro_mercado_engine.aprendizaje_mercado F2.5). k_anonimato=3, publicable gate.
+  - Endpoint GET /api/superadmin/terminal-mercado (routes/terminal_mercado.py, registrado en server.py).
+  - `routes/data_licensing.py` — 2 bundles vendibles nuevos: `grafo_demanda_suite` ($90k/año) + `market_cube` ($120k/año) → el Grafo y el Cubo se monetizan (cierra ciclo de data utility).
+  - Frontend: `SuperadminTerminalMercado.js` (índice maestro + 3 índices + oferta + demanda + aprendizaje + productos vendibles) · ruta /superadmin/terminal-mercado en App.js + navByRole (sección Inteligencia) + SuperadminLayout regex + api/superadmin.getTerminalMercado.
+  - HALLAZGO HONESTO: F2.12 estaba ~90% construido y disperso (MetricsCube/Indices/Grafo/DataLicensing/IntelligenceHub páginas sueltas). El valor neto fue COMPONER la cara unificada vendible (demanda+oferta+índices+aprendizaje) y despertar features desconectadas, NO reconstruir. Smoke test real verde (18 proyectos, publicable). REUSO total, cero duplicado.
+
+🎉 **FASE F2.x COMPLETA — F2.1 a F2.12 (12 batches) ✅ El Cerebro del Mercado punta a punta.**
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.

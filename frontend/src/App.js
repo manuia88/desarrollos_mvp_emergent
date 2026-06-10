@@ -175,6 +175,7 @@ const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/Superadmi
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
 const SuperadminGrafoComprador = lazy(() => import('./pages/superadmin/SuperadminGrafoComprador'));
 const SuperadminCerebroMercado = lazy(() => import('./pages/superadmin/SuperadminCerebroMercado'));
+const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
 const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
@@ -977,6 +978,7 @@ function AppRouter() {
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
       <Route path="/superadmin/cerebro-mercado" element={<SuperadminRoute Page={SuperadminCerebroMercado} />} />
+      <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<SuperadminRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}

@@ -102,6 +102,36 @@ BUNDLE_TEMPLATES: List[Dict[str, Any]] = [
         "ideal_for": "Brokers · valuadores · proptechs",
     },
     {
+        "key": "grafo_demanda_suite",
+        "name": "Grafo del Comprador (Demanda Anónima)",
+        "description": (
+            "Demanda real por colonia × segmento de comprador (revealed preference) · "
+            "k-anónimo (mínimo de búsquedas por celda) · sin PII · refresh diario · "
+            "alimenta el Índice de Absorción · SLA 99.5%"
+        ),
+        "scope": ["grafo_demanda"],
+        "geo_scope": ["cdmx", "national"],
+        "frequency": "daily",
+        "price_usd_annual": 90_000,
+        "sla_uptime_pct": 99.5,
+        "ideal_for": "Desarrolladores · fondos de capital · land banking · research de demanda",
+    },
+    {
+        "key": "market_cube",
+        "name": "Cubo de Mercado (KPIs Agregados)",
+        "description": (
+            "Roll-up k-anónimo de todos los desarrollos · units/precio/absorción/días en "
+            "mercado/conversión por ciudad × alcaldía × colonia · 3 índices operativos "
+            "(Obra · Absorción · Gestión) · API + export · SLA 99.7%"
+        ),
+        "scope": ["market_cube", "indices_dmx"],
+        "geo_scope": ["cdmx", "national"],
+        "frequency": "daily",
+        "price_usd_annual": 120_000,
+        "sla_uptime_pct": 99.7,
+        "ideal_for": "Bancos · fondos · consultoras · gobierno · research institucional",
+    },
+    {
         "key": "custom",
         "name": "Custom",
         "description": "Bundle personalizado · scope/geo/SLA negociables",

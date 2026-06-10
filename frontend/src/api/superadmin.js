@@ -14,6 +14,8 @@ const j = async (url, opts = {}) => {
 export const getGrafoComprador     = (coloniaId) => j(`/api/superadmin/grafo-comprador${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 // F2.5 · El Cerebro del Mercado (cómo se califica vs la realidad + palancas aprendidas).
 export const getCerebroMercado     = ()           => j('/api/superadmin/cerebro-mercado');
+// F2.12 · La Terminal de Mercado CDMX (oferta + 3 índices vendibles + demanda + aprendizaje · k-anónimo).
+export const getTerminalMercado    = (top = 8)    => j(`/api/superadmin/terminal-mercado?top=${top}`);
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
 // Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla
