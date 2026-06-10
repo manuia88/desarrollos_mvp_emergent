@@ -15,9 +15,138 @@ Reusa todo (cero reinvención), bandas honestas, FAIL-OPEN. Es la versión VIVA 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.estudio_mercado")
+
+# Mínimo de búsquedas reales en el radio para que la DEMANDA real se considere representativa.
+_UMBRAL_REPRESENTATIVO = 5
+
+
+async def colonias_en_radio(db, lat: float, lng: float, radio_m: float) -> List[Dict[str, Any]]:
+    """Colonias cuyo centroide cae dentro del radio (m) de un punto. Reusa el haversine de Norma 3.
+    Compone microzonas a la medida SIN partir colonias (el átomo más fino sigue siendo la colonia)."""
+    try:
+        from norma3_engine import _haversine_km
+    except Exception:
+        return []
+    punto = [float(lng), float(lat)]   # formato [lng, lat] (igual que colonia.center)
+    radio_km = float(radio_m) / 1000.0
+    out: Dict[str, Dict[str, Any]] = {}
+    # 1) colonias del catálogo en DB (con centroide).
+    try:
+        async for c in db.colonias.find({"center": {"$exists": True}},
+                                        {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "center": 1}):
+            d = _haversine_km(punto, c.get("center"))
+            if d is not None and d <= radio_km:
+                out[c["id"]] = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia"),
+                                "dist_m": round(d * 1000)}
+    except Exception as e:
+        log.warning(f"[estudio] colonias_en_radio db fail-open: {e}")
+    # 2) fallback/seed (por si la DB aún no tiene centroides).
+    try:
+        from data_seed import COLONIAS
+        for c in COLONIAS:
+            if c["id"] in out or not c.get("center"):
+                continue
+            d = _haversine_km(punto, c["center"])
+            if d is not None and d <= radio_km:
+                out[c["id"]] = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia"),
+                                "dist_m": round(d * 1000)}
+    except Exception:
+        pass
+    return sorted(out.values(), key=lambda x: x["dist_m"])
+
+
+async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
+                                categoria: str = "media") -> Dict[str, Any]:
+    """Estudio de Mercado de una microzona a la medida (punto + radio): compone las colonias
+    dentro del círculo. Solo representativo si junta dato suficiente; si no, lo dice. FAIL-OPEN."""
+    cols = await colonias_en_radio(db, lat, lng, radio_m)
+    base = {"lat": lat, "lng": lng, "radio_m": radio_m, "categoria": categoria, "colonias": cols}
+    if not cols:
+        return {**base, "representativo": False, "oculto": True,
+                "lectura": "Sin colonias con dato en este radio — amplía el radio o mueve el punto."}
+    col_ids = [c["id"] for c in cols]
+
+    # 1 · Demanda real agregada (Grafo del Comprador).
+    seg_acc: Dict[str, int] = defaultdict(int)
+    demanda_total = 0
+    try:
+        from grafo_comprador_engine import build_grafo, SEG_LABEL
+        g = await build_grafo(db)
+        for col in g.get("colonias", []):
+            if col.get("colonia_id") in col_ids:
+                demanda_total += col.get("demanda_total", 0) or 0
+                for s in (col.get("segmentos") or []):
+                    seg_acc[s["segmento"]] += s.get("demanda", 0) or 0
+        segmentos = sorted(
+            [{"segmento": k, "label": SEG_LABEL.get(k, k), "demanda": v} for k, v in seg_acc.items() if v > 0],
+            key=lambda x: -x["demanda"])
+    except Exception as e:
+        log.warning(f"[estudio radio] grafo fail-open: {e}")
+        segmentos = []
+
+    # 2 · Demanda potencial agregada (EPRAV sumado por colonia).
+    pob = fam = vert = gap = capt = 0
+    try:
+        from demanda_demografica_engine import estimar_demanda
+        for cid in col_ids:
+            d = await estimar_demanda(db, cid, categoria)
+            pob += d.get("poblacion", 0) or 0
+            fam += d.get("demanda_anual_total", 0) or 0
+            vert += d.get("demanda_vertical", 0) or 0
+            gap += d.get("gap_vertical", 0) or 0
+            capt += d.get("captura_objetivo", 0) or 0
+    except Exception as e:
+        log.warning(f"[estudio radio] demografica fail-open: {e}")
+
+    # 3 · Oferta agregada (inventario vertical en las colonias del radio).
+    oferta = {"proyectos": 0, "unidades_disponibles": 0, "precio_desde": None, "precio_hasta": None}
+    try:
+        from data_developments import DEVELOPMENTS
+        names = {(c.get("name") or "").strip().lower() for c in cols}
+        precios = []
+        for dv in DEVELOPMENTS:
+            if str(dv.get("colonia") or "").strip().lower() in names or dv.get("colonia_id") in col_ids:
+                oferta["proyectos"] += 1
+                oferta["unidades_disponibles"] += int(dv.get("units_available") or len(dv.get("units") or []) or 0)
+                if dv.get("price_from"):
+                    precios.append(dv["price_from"])
+                if dv.get("price_to"):
+                    precios.append(dv["price_to"])
+        if precios:
+            oferta["precio_desde"], oferta["precio_hasta"] = min(precios), max(precios)
+    except Exception as e:
+        log.warning(f"[estudio radio] oferta fail-open: {e}")
+
+    demanda_representativa = demanda_total >= _UMBRAL_REPRESENTATIVO
+    veredicto = []
+    veredicto.append(f"Microzona de {round(radio_m)} m: {len(cols)} colonias ({', '.join(c['name'] for c in cols[:4])}{'…' if len(cols) > 4 else ''}).")
+    if gap > 0:
+        veredicto.append(f"Hueco de mercado agregado: ~{round(gap)} unidades verticales/año sin oferta.")
+    if demanda_representativa and segmentos:
+        veredicto.append(f"Demanda activa la lidera: {segmentos[0]['label']} ({demanda_total} búsquedas).")
+    elif not demanda_representativa:
+        veredicto.append("Pocas búsquedas reales en el radio: la demanda activa aún no es representativa (se usa el potencial demográfico).")
+    if oferta["proyectos"]:
+        veredicto.append(f"Competencia: {oferta['proyectos']} proyectos, {oferta['unidades_disponibles']} unidades.")
+
+    return {
+        **base,
+        "representativo": True,
+        "oculto": False,
+        "n_colonias": len(cols),
+        "demanda_real": {"demanda_total": demanda_total, "representativa": demanda_representativa, "segmentos": segmentos},
+        "demanda_potencial": {"poblacion": pob, "demanda_anual_total": fam, "demanda_vertical": vert,
+                              "gap_vertical": round(gap), "captura_objetivo": round(capt)},
+        "oferta": oferta,
+        "veredicto": veredicto,
+        "lectura": ("Microzona viva con demanda real." if demanda_representativa
+                    else "Microzona preliminar: demanda activa aún escasa, se complementa con demografía."),
+        "fuente": "Estudio de Mercado Vivo DMX · microzona por radio (compone colonias)",
+    }
 
 
 def _fmt_money(n):

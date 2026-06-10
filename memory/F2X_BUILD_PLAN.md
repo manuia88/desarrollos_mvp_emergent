@@ -83,7 +83,8 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.5.4 Panel "Cómo Aprende El Mercado" (superadmin) · Front · S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.5 COMPLETO** (KILLER) · alimenta estimadores compartidos del generador
 **F2.6 Estudio de Mercado Vivo (B5)** — 🔵🟣 · A
 - [x] 2.6.1 Generador del estudio (estudio_mercado_engine.py fusiona Grafo+EPRAV+Generador+oferta+zona+veredicto) · Back · ▪️ — verificado 2026-06-09
-- [x] 2.6.2 Página dev "Estudio de Mercado" (selector de colonia + categoría + secciones + Exportar a PDF/print) + ruta dev/superadmin · Front · D·S · ▪️ — compila limpio 2026-06-09 · **BATCH F2.6 COMPLETO**
+- [x] 2.6.2 Página dev "Estudio de Mercado" (selector de colonia + categoría + secciones + Exportar a PDF/print) + ruta dev/superadmin · Front · D·S · ▪️ — compila limpio 2026-06-09
+- [x] 2.6.3 Estudio por PUNTO + RADIO (microzona): geocodifica dirección/calle con Mapbox, compone colonias del círculo, compuerta de representatividad (oculta si no junta dato) · Back+Front · D·S · 🔄 — verificado (Polanco 2.5km=42 colonias; punto remoto=oculto) + compila limpio 2026-06-09 · **BATCH F2.6 COMPLETO**
 **F2.7 Competencia & Absorción por Cohorte (B4)** — 🟡 · A
 - [ ] 2.7.1 Curva de absorción por cohorte (nuevo 80% / 2-3a 51% / viejo 20%) · Back · 🔄
 - [ ] 2.7.2 Censo de comparables persistente + Front · D·S · 🔄

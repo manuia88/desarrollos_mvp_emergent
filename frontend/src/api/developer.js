@@ -61,6 +61,9 @@ export const getDemandaDemografica = (coloniaId, categoria) =>
 // F2.6 · Estudio de Mercado Vivo (entregable auto-generado por colonia)
 export const getEstudioMercado = (coloniaId, categoria) =>
   j(`/api/dev/estudio-mercado?categoria=${categoria || 'media'}${coloniaId ? `&colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F2.6.3 · Estudio de microzona por punto + radio (compone colonias del círculo)
+export const getEstudioMercadoRadio = ({ lat, lng, radio_m, categoria }) =>
+  j(`/api/dev/estudio-mercado/radio?lat=${lat}&lng=${lng}&radio_m=${radio_m || 1000}&categoria=${categoria || 'media'}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

@@ -38,3 +38,16 @@ async def estudio_mercado(request: Request,
     await _auth(request)
     from estudio_mercado_engine import generar_estudio
     return await generar_estudio(_db(request), colonia_id, categoria)
+
+
+@router.get("/api/dev/estudio-mercado/radio")
+async def estudio_mercado_radio(request: Request,
+                                lat: float = Query(..., ge=-90, le=90),
+                                lng: float = Query(..., ge=-180, le=180),
+                                radio_m: float = Query(1000, ge=100, le=10000),
+                                categoria: str = Query("media")):
+    """Estudio de microzona a la medida (punto + radio): compone las colonias del círculo.
+    Solo representativo si junta dato suficiente; si no, lo dice (oculto)."""
+    await _auth(request)
+    from estudio_mercado_engine import generar_estudio_radio
+    return await generar_estudio_radio(_db(request), lat, lng, radio_m, categoria)
