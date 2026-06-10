@@ -111,7 +111,9 @@ async def tono_marketing_ep(request: Request, colonia_id: str = Query(...)):
 @router.get("/api/dev/deseabilidad/{dev_id}/{unit_id}")
 async def deseabilidad_ep(request: Request, dev_id: str, unit_id: str):
     """Deseabilidad de UNA unidad vs otras al mismo precio (estudio 4S) (F2.11)."""
-    await _auth(request)
+    user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # 403 si la unidad es de otra desarrolladora (cierra IDOR P0)
     from data_developments import DEVELOPMENTS
     dev = next((d for d in DEVELOPMENTS if d["id"] == dev_id), None)
     unit = next((u for u in (dev or {}).get("units", [])

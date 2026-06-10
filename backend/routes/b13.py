@@ -268,6 +268,8 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
 async def get_attribution(lead_id: str, request: Request):
     user = await _auth(request)
     db = _db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)   # cierra IDOR: solo el dueño del lead ve su atribución
     doc = await db.lead_source_attribution.find_one({"lead_id": lead_id}, {"_id": 0})
     if not doc:
         return {"lead_id": lead_id, "empty": True, "touchpoints": []}
@@ -282,6 +284,8 @@ class TouchpointAppend(BaseModel):
 async def append_touchpoint(lead_id: str, payload: TouchpointAppend, request: Request):
     user = await _auth(request)
     db = _db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)   # cierra IDOR de escritura cross-tenant
     tp = payload.touchpoint.model_dump()
     tp.setdefault("timestamp", _now().isoformat())
     await db.lead_source_attribution.update_one(

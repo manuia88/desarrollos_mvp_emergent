@@ -50,7 +50,7 @@ async def asesor_badge(request: Request, contacto_id: str):
     """Etapa de vida inferida de un contacto (distintivo en la ficha del asesor)."""
     user = await _auth(request, ASESOR_ROLES)
     from grafo_comprador_engine import infer_contacto_segment
-    return await infer_contacto_segment(_db(request), getattr(user, "id", "") or "", contacto_id)
+    return await infer_contacto_segment(_db(request), getattr(user, "user_id", "") or "", contacto_id)
 
 
 @router.get("/api/superadmin/grafo-comprador")

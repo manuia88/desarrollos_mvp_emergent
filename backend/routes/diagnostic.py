@@ -42,13 +42,16 @@ def _db(req: Request):
     return req.app.state.db
 
 
-async def _auth(req: Request, roles_allowed: Optional[List[str]] = None):
+async def _auth(req: Request, roles_allowed: Optional[List[str]] = None, project_id: str = None):
     from server import get_current_user
     user = await get_current_user(req)
     if not user:
         raise HTTPException(401, "No autenticado")
     if roles_allowed and user.role not in roles_allowed:
         raise HTTPException(403, f"Rol no permitido. Requiere {roles_allowed}.")
+    if project_id is not None:
+        from tenant_scope import assert_dev_project
+        assert_dev_project(user, project_id)   # 403 si el proyecto es de otra desarrolladora (cierra IDOR P0)
     return user
 
 
@@ -68,7 +71,7 @@ class RunDiagnosticPayload(BaseModel):
 @router.post("/dev/projects/{project_id}/diagnostic/run")
 async def run_project_diagnostic(project_id: str, payload: RunDiagnosticPayload,
                                   request: Request, background_tasks: BackgroundTasks):
-    user = await _auth(request, ["developer_admin", "director", "superadmin"])
+    user = await _auth(request, ["developer_admin", "director", "superadmin"], project_id=project_id)
     db = _db(request)
     # Run synchronously for MVP (can shift to background if >5s)
     doc = await run_diagnostics(
@@ -109,7 +112,7 @@ async def run_project_diagnostic(project_id: str, payload: RunDiagnosticPayload,
 
 @router.get("/dev/projects/{project_id}/diagnostic/latest")
 async def latest_project_diagnostic(project_id: str, request: Request):
-    user = await _auth(request, ["developer_admin", "developer_member", "director", "superadmin"])
+    user = await _auth(request, ["developer_admin", "developer_member", "director", "superadmin"], project_id=project_id)
     db = _db(request)
     doc = await db.project_diagnostics.find_one(
         {"project_id": project_id}, {"_id": 0},
@@ -122,7 +125,7 @@ async def latest_project_diagnostic(project_id: str, request: Request):
 
 @router.get("/dev/projects/{project_id}/diagnostic/history")
 async def project_diagnostic_history(project_id: str, request: Request, limit: int = 20):
-    user = await _auth(request, ["developer_admin", "developer_member", "director", "superadmin"])
+    user = await _auth(request, ["developer_admin", "developer_member", "director", "superadmin"], project_id=project_id)
     db = _db(request)
     docs = await db.project_diagnostics.find(
         {"project_id": project_id}, {"_id": 0},
@@ -132,7 +135,7 @@ async def project_diagnostic_history(project_id: str, request: Request, limit: i
 
 @router.post("/dev/projects/{project_id}/diagnostic/auto-fix/{action_id}")
 async def auto_fix_project(project_id: str, action_id: str, request: Request):
-    user = await _auth(request, ["developer_admin", "superadmin"])
+    user = await _auth(request, ["developer_admin", "superadmin"], project_id=project_id)
     db = _db(request)
     result = await run_auto_fix(action_id, db, project_id, user)
     try:
@@ -156,7 +159,7 @@ class ProbeContext(BaseModel):
 
 @router.post("/dev/projects/{project_id}/diagnostic/ai-recommend")
 async def ai_recommend(project_id: str, payload: ProbeContext, request: Request):
-    user = await _auth(request, ["developer_admin", "superadmin"])
+    user = await _auth(request, ["developer_admin", "superadmin"], project_id=project_id)
     db = _db(request)
     # Build ProbeResult skeleton for the AI call
     result = ProbeResult(

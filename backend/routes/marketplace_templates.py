@@ -131,7 +131,7 @@ class RejectIn(BaseModel):
 async def publish_endpoint(body: PublishIn, request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
-    author_id = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    author_id = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
     # F.71 audit · cap 3 publishes/día/user antiabuse (superadmin bypass)
     await _check_publish_rate_limit(db, author_id, getattr(user, "role", ""))
     res = await publish_template(
@@ -173,7 +173,7 @@ async def search_endpoint(request: Request, q: str = "", limit: int = 30):
 async def my_revenue_endpoint(request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
-    aid = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    aid = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
     return await get_revenue_stats(db, author_user_id=aid)
 
 
@@ -187,7 +187,7 @@ async def detail_endpoint(template_id: str, request: Request):
         # Solo el autor (o superadmin) puede ver no-aprobados
         user = await _get_user(request)
         author = doc.get("author_user_id")
-        uid = getattr(user, "id", None) or getattr(user, "email", None) if user else None
+        uid = getattr(user, "user_id", None) or getattr(user, "email", None) if user else None
         role = getattr(user, "role", None) if user else None
         if not (uid == author or role == "superadmin"):
             raise HTTPException(404, "template no encontrado")
@@ -198,7 +198,7 @@ async def detail_endpoint(template_id: str, request: Request):
 async def clone_endpoint(template_id: str, body: CloneIn, request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
-    target_id = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    target_id = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
     # A.11 audit · cap 5 clones/hora/user antiabuse (superadmin bypass)
     await _check_clone_rate_limit(db, target_id, getattr(user, "role", ""))
     res = await clone_template(
@@ -217,7 +217,7 @@ async def clone_endpoint(template_id: str, body: CloneIn, request: Request):
 async def rate_endpoint(template_id: str, body: RateIn, request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
-    uid = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    uid = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
     res = await rate_template(
         db, template_id=template_id, user_id=uid, stars=body.stars,
         comment=body.comment,
@@ -233,7 +233,7 @@ async def rate_endpoint(template_id: str, body: RateIn, request: Request):
 async def approve_endpoint(template_id: str, request: Request):
     user = await require_superadmin(request)
     db = request.app.state.db
-    admin_id = getattr(user, "id", "superadmin")
+    admin_id = getattr(user, "user_id", "superadmin")
     res = await approve_template(db, template_id, admin_user_id=admin_id)
     if not res.get("ok"):
         raise HTTPException(400, res.get("error") or "approve failed")
@@ -244,7 +244,7 @@ async def approve_endpoint(template_id: str, request: Request):
 async def reject_endpoint(template_id: str, body: RejectIn, request: Request):
     user = await require_superadmin(request)
     db = request.app.state.db
-    admin_id = getattr(user, "id", "superadmin")
+    admin_id = getattr(user, "user_id", "superadmin")
     res = await reject_template(db, template_id, admin_user_id=admin_id,
                                  reason=body.reason or "")
     if not res.get("ok"):
@@ -256,7 +256,7 @@ async def reject_endpoint(template_id: str, body: RejectIn, request: Request):
 async def delete_endpoint(template_id: str, request: Request):
     user = await require_superadmin(request)
     db = request.app.state.db
-    admin_id = getattr(user, "id", "superadmin")
+    admin_id = getattr(user, "user_id", "superadmin")
     res = await delete_template(db, template_id, admin_user_id=admin_id)
     if not res.get("ok"):
         raise HTTPException(400, res.get("error") or "delete failed")

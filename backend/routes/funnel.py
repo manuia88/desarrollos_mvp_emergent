@@ -38,6 +38,17 @@ async def _auth_optional(req):
     return await get_current_user(req)
 
 
+async def _require_owner(req, project_id):
+    """Auth + ownership: dev dueño del proyecto (o superadmin). Cierra el IDOR de lectura del funnel."""
+    from server import get_current_user
+    from tenant_scope import assert_dev_project
+    user = await get_current_user(req)
+    if not user or user.role not in ADMIN_ROLES:
+        raise HTTPException(403, "Sin permiso")
+    assert_dev_project(user, project_id)  # 403 si el proyecto es de otra desarrolladora
+    return user
+
+
 # ─── Public funnel event ingest ───────────────────────────────────────────────
 
 class FunnelEventIn(BaseModel):
@@ -89,6 +100,7 @@ async def get_funnel(
     utm_source: Optional[str] = None,
     asesor: Optional[str] = None,
 ):
+    await _require_owner(request, project_id)   # auth + ownership (antes: SIN auth → IDOR P0)
     db = _db(request)
     days = {"7d": 7, "30d": 30, "90d": 90}[period]
     since = (_now() - timedelta(days=days)).isoformat()
@@ -151,6 +163,7 @@ async def funnel_breakdown(
     dimension: str = Query("utm_source", pattern="^(utm_source|asesor|campaign)$"),
     period: str = Query("30d", pattern="^(7d|30d|90d)$"),
 ):
+    await _require_owner(request, project_id)   # auth + ownership (antes: SIN auth → IDOR P0)
     db = _db(request)
     days = {"7d": 7, "30d": 30, "90d": 90}[period]
     since = (_now() - timedelta(days=days)).isoformat()
@@ -280,9 +293,7 @@ async def get_funnel_suggestion(
     project_id: str, request: Request,
     period: str = Query("30d", pattern="^(7d|30d|90d)$"),
 ):
-    user = await _auth_optional(request)
-    if not user or user.role not in ADMIN_ROLES:
-        raise HTTPException(403, "Sin permiso")
+    await _require_owner(request, project_id)   # auth + ownership (antes: solo rol → IDOR)
     db = _db(request)
     funnel = await get_funnel(project_id, request, period)
     sug = await _maybe_suggest(db, project_id, period, funnel["total_events"], funnel["stages"])
@@ -298,9 +309,7 @@ async def get_sankey(
     project_id: str = Query(...),
     period: str = Query("30d", pattern="^(7d|30d|90d)$"),
 ):
-    user = await _auth_optional(request)
-    if not user or user.role not in ADMIN_ROLES:
-        raise HTTPException(403, "Sin permiso")
+    await _require_owner(request, project_id)   # auth + ownership (antes: solo rol → IDOR)
     db = _db(request)
     return await compute_sankey_flow(db, project_id, period)
 

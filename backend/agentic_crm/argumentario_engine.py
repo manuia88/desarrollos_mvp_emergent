@@ -307,10 +307,17 @@ class ArgumentarioEngine:
         doc = await self.db.leads.find_one(
             {"id": lead_id, "org_id": self.org_id}, {"_id": 0},
         )
+        if doc:
+            return doc
+        # Fallback tolerante al fork de nombre de tenant, pero NUNCA cross-org
+        # (antes: find_one sin scope → exponía PII del lead de OTRO tenant · IDOR P0).
+        doc = await self.db.leads.find_one({"id": lead_id}, {"_id": 0})
         if not doc:
-            doc = await self.db.leads.find_one(
-                {"id": lead_id}, {"_id": 0},
-            )
+            return None
+        lead_tenant = (doc.get("org_id") or doc.get("dev_org_id")
+                       or doc.get("inmobiliaria_id") or doc.get("owner_id"))
+        if self.org_id and lead_tenant and lead_tenant != self.org_id:
+            return None   # el lead es de otra desarrolladora/inmobiliaria → no exponer
         return doc
 
     async def _fetch_disc(self, lead_id: str) -> Optional[Dict[str, Any]]:

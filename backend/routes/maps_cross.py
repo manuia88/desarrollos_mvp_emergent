@@ -129,6 +129,8 @@ async def battle_card_endpoint(dev_id: str, request: Request):
                 "message": "Battle Card requiere tier T3+ (Enterprise).",
             },
         )
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # 403 si el dev es de otro tenant (cierra IDOR P0)
     db = _db(request)
     result = await eng.battle_card(db, dev_id)
     if "error" in result:

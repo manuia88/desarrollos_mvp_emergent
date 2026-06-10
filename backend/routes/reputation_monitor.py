@@ -155,7 +155,7 @@ class ScanNowBody(BaseModel):
 @router.post(f"{PREFIX}/scan-now")
 async def post_scan_now(request: Request, body: Optional[ScanNowBody] = None):
     user = await _require_superadmin(request)
-    _rate_limit_scan(getattr(user, "user_id", None) or getattr(user, "id", "unknown"))
+    _rate_limit_scan(getattr(user, "user_id", None) or getattr(user, "user_id", "unknown"))
     db = _db(request)
 
     bk = body.brand_keywords if body else None
@@ -205,7 +205,7 @@ async def post_mark_mention(request: Request, mention_id: str, body: MarkBody):
     db = _db(request)
     ok = await update_mention_status(
         db, mention_id, body.status,
-        actor_user_id=getattr(user, "user_id", None) or getattr(user, "id", "system"),
+        actor_user_id=getattr(user, "user_id", None) or getattr(user, "user_id", "system"),
     )
     if not ok:
         raise HTTPException(404, "mention not found or no change")

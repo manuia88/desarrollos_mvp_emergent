@@ -115,7 +115,7 @@ class WorkflowTestIn(BaseModel):
 async def list_workflows(request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
     cursor = db.workflows.find(
         {"owner_user_id": owner, "deleted_at": None},
         {"_id": 0},
@@ -128,7 +128,7 @@ async def list_workflows(request: Request):
 async def create_workflow(body: WorkflowCreateIn, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown"
 
     count = await db.workflows.count_documents({"owner_user_id": owner, "deleted_at": None})
     if count >= MAX_WORKFLOWS_PER_USER:
@@ -160,7 +160,7 @@ async def create_workflow(body: WorkflowCreateIn, request: Request):
 async def get_workflow(wf_id: str, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Workflow no encontrado")
@@ -173,7 +173,7 @@ async def get_workflow(wf_id: str, request: Request):
 async def update_workflow(wf_id: str, body: WorkflowUpdateIn, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
 
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0})
     if not doc:
@@ -207,7 +207,7 @@ async def update_workflow(wf_id: str, body: WorkflowUpdateIn, request: Request):
 async def delete_workflow(wf_id: str, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Workflow no encontrado")
@@ -223,7 +223,7 @@ async def delete_workflow(wf_id: str, request: Request):
 async def toggle_workflow(wf_id: str, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Workflow no encontrado")
@@ -244,7 +244,7 @@ async def toggle_workflow(wf_id: str, request: Request):
 async def test_workflow(wf_id: str, body: WorkflowTestIn, request: Request):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Workflow no encontrado")
@@ -263,7 +263,7 @@ async def test_workflow(wf_id: str, body: WorkflowTestIn, request: Request):
 async def list_runs(wf_id: str, request: Request, days: int = 30):
     user = await _require_advisor(request)
     db = _db(request)
-    owner = getattr(user, "id", None) or getattr(user, "email", None)
+    owner = getattr(user, "user_id", None) or getattr(user, "email", None)
     doc = await db.workflows.find_one({"id": wf_id, "deleted_at": None}, {"_id": 0, "owner_user_id": 1})
     if not doc:
         raise HTTPException(404, "Workflow no encontrado")

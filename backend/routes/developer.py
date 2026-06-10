@@ -837,6 +837,31 @@ class UnitStatusPatch(BaseModel):
     reason: Optional[str] = None
 
 
+async def _assert_unit_in_dev(db, dev_id: str, unit_id: str):
+    """403 si la unidad NO pertenece a ese desarrollo. Cierra el IDOR de escritura cross-tenant:
+    `guard_project` valida que el dev_id es del usuario, PERO el unit_id podía ser de OTRO dev
+    (el override filtraba solo por unit_id) → A sobrescribía el inventario de B. Esto lo impide."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(dev_id) or {}
+    for u in dev.get("units", []):
+        if u.get("id") == unit_id or u.get("unit_number") == unit_id:
+            return
+    # Dev real (no seed) o unidad en db.units → confirmar pertenencia por dev/project.
+    doc = await db.units.find_one(
+        {"$and": [{"$or": [{"id": unit_id}, {"unit_number": unit_id}]},
+                  {"$or": [{"dev_id": dev_id}, {"development_id": dev_id}, {"project_id": dev_id}]}]},
+        {"_id": 0, "id": 1})
+    if doc:
+        return
+    # Si ya existe un override de ESTA unidad atado a OTRO dev → bloquear (anti-secuestro de dev_id).
+    ov = await db.developer_unit_overrides.find_one({"unit_id": unit_id}, {"_id": 0, "dev_id": 1})
+    if ov and ov.get("dev_id") and ov.get("dev_id") != dev_id:
+        raise HTTPException(403, "Esta unidad pertenece a otra desarrolladora")
+    if ov and ov.get("dev_id") == dev_id:
+        return
+    raise HTTPException(404, "Unidad no encontrada en este desarrollo")
+
+
 @router.patch("/inventario/unit-status")
 async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     user = await require_dev_admin(request)
@@ -844,6 +869,7 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     # Candado de pertenencia (cierra el IDOR: no editas unidades de otra desarrolladora) + bitácora.
     from dev_guard import guard_project
     await guard_project(db, user, payload.dev_id, "inventario/unit-status")
+    await _assert_unit_in_dev(db, payload.dev_id, payload.unit_id)   # la unidad debe ser de ESTE dev
     if payload.status not in ("disponible", "apartado", "reservado", "vendido", "bloqueado"):
         raise HTTPException(400, "status inválido")
     # Capture old status for history before upsert
@@ -869,9 +895,18 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
         if _r.modified_count != 1:
             raise HTTPException(409, "La unidad ya cambió de estado · recarga e intenta de nuevo")
     else:
-        # Primer override (desde el seed) — protegido por el índice único en unit_id.
-        await db.developer_unit_overrides.update_one(
-            {"unit_id": payload.unit_id}, {"$set": _set_doc}, upsert=True)
+        # Primer override (desde el seed). CAS atómico: el filtro exige que NO exista aún un doc
+        # en el estado destino; con el índice único en unit_id, dos inserts concurrentes → uno gana
+        # y el otro lanza DuplicateKeyError → 409 (evita doble-venta en la PRIMERA venta).
+        from pymongo.errors import DuplicateKeyError
+        try:
+            _r = await db.developer_unit_overrides.update_one(
+                {"unit_id": payload.unit_id, "status": {"$ne": payload.status}},
+                {"$set": _set_doc}, upsert=True)
+            if _r.matched_count == 0 and _r.upserted_id is None:
+                raise HTTPException(409, "La unidad ya está en ese estado · recarga e intenta de nuevo")
+        except DuplicateKeyError:
+            raise HTTPException(409, "La unidad ya cambió de estado · recarga e intenta de nuevo")
     # Audit log
     await db.developer_audit.insert_one({
         "id": _uid("audit"), "dev_id": payload.dev_id, "unit_id": payload.unit_id,
@@ -983,6 +1018,7 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
     db = get_db(request)
     from dev_guard import guard_project
     await guard_project(db, user, payload.dev_id, "inventario/unit-fields")
+    await _assert_unit_in_dev(db, payload.dev_id, payload.unit_id)   # la unidad debe ser de ESTE dev
     fields = _build_unit_fields(payload)
     if not fields:
         raise HTTPException(400, "Nada que actualizar")
@@ -1008,6 +1044,8 @@ async def patch_unit_fields_bulk(payload: UnitFieldsBulk, request: Request):
     await guard_project(db, user, payload.dev_id, "inventario/unit-fields-bulk")
     if not payload.unit_ids:
         raise HTTPException(400, "Sin unidades seleccionadas")
+    for _uid_chk in payload.unit_ids:        # cada unidad debe ser de ESTE dev (anti cross-tenant)
+        await _assert_unit_in_dev(db, payload.dev_id, _uid_chk)
     fields = _build_unit_fields(payload)
     if not fields:
         raise HTTPException(400, "Nada que actualizar")

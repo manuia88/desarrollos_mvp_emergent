@@ -55,8 +55,16 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def _require_t3(request: Request) -> Dict[str, Any]:
-    """Obtiene el usuario y verifica T3+. Lanza 403 si es tier inferior."""
+def _assert_owner(user, project_id):
+    """403 si el proyecto no es del usuario (o superadmin). Cierra el IDOR cross-tenant del Battle Card."""
+    if project_id is None:
+        return
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)
+
+
+async def _require_t3(request: Request, project_id: str = None) -> Dict[str, Any]:
+    """Obtiene el usuario y verifica T3+ Y pertenencia del proyecto. Lanza 403 si no aplica."""
     from server import get_current_user
     user = await get_current_user(request)
     if not user:
@@ -64,6 +72,7 @@ async def _require_t3(request: Request) -> Dict[str, Any]:
 
     role = (getattr(user, "role", None) or user.get("role") or "").lower()
     if role in {r.lower() for r in DEV_ROLES_T3}:
+        _assert_owner(user, project_id)
         return user  # roles developer ya son T3
 
     user_tier = (
@@ -83,6 +92,7 @@ async def _require_t3(request: Request) -> Dict[str, Any]:
                 "message": "Battle Card requiere tier T3+ (Enterprise).",
             },
         )
+    _assert_owner(user, project_id)
     return user
 
 
@@ -90,7 +100,7 @@ def _user_id(user) -> str:
     return (
         getattr(user, "user_id", None) or
         user.get("user_id") or
-        getattr(user, "id", None) or
+        getattr(user, "user_id", None) or
         "anon"
     )
 
@@ -141,7 +151,7 @@ async def _audit(db, user, action: str, project_id: str, after: Dict = None) -> 
 @router.get("/api/dev/battle-card/{project_id}")
 async def get_battle_card(project_id: str, request: Request):
     _rate_limit(request)
-    user = await _require_t3(request)
+    user = await _require_t3(request, project_id)
     db = _db(request)
 
     from battle_card_engine import (
@@ -212,7 +222,7 @@ async def get_battle_card(project_id: str, request: Request):
 @router.get("/api/dev/battle-card/{project_id}/competitors")
 async def get_competitors(project_id: str, request: Request):
     _rate_limit(request)
-    user = await _require_t3(request)
+    user = await _require_t3(request, project_id)
     db = _db(request)
 
     from battle_card_engine import get_top_competitors, insufficient_competitors_check
@@ -242,7 +252,7 @@ async def get_history(
     weeks: int = Query(default=12, ge=1, le=52),
 ):
     _rate_limit(request)
-    user = await _require_t3(request)
+    user = await _require_t3(request, project_id)
     db = _db(request)
 
     # Recopilar snapshots históricos
@@ -265,7 +275,7 @@ async def get_history(
 @router.get("/api/dev/battle-card/{project_id}/recommendation")
 async def get_recommendation(project_id: str, request: Request):
     _rate_limit(request)
-    user = await _require_t3(request)
+    user = await _require_t3(request, project_id)
     db = _db(request)
 
     from battle_card_engine import recommend_next_action
@@ -279,7 +289,7 @@ async def get_recommendation(project_id: str, request: Request):
 @router.get("/api/dev/battle-card/{project_id}/export.pdf")
 async def export_pdf(project_id: str, request: Request):
     _rate_limit(request, limit=5, bucket=_RATE_BUCKET_PDF)
-    user = await _require_t3(request)
+    user = await _require_t3(request, project_id)
     db = _db(request)
 
     from battle_card_engine import (

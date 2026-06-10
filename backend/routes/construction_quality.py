@@ -84,7 +84,7 @@ async def refresh(request: Request, development_id: str):
         import audit_immutable_engine
         user = getattr(request.state, "user", None)
         actor = {
-            "user_id": getattr(user, "id", "superadmin") if user else "superadmin",
+            "user_id": getattr(user, "user_id", "superadmin") if user else "superadmin",
             "role": "superadmin",
         }
         await audit_immutable_engine.log(
@@ -124,7 +124,7 @@ async def manual_override(request: Request, body: ManualOverrideBody):
 
     try:
         import audit_immutable_engine
-        actor = {"user_id": getattr(user, "id", "superadmin"), "role": "superadmin"}
+        actor = {"user_id": getattr(user, "user_id", "superadmin"), "role": "superadmin"}
         await audit_immutable_engine.log(
             db, actor, "construction_quality.manual_override", "development", body.development_id,
             before=None,

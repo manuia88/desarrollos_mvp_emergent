@@ -47,7 +47,7 @@ async def _require_advisor(request: Request):
 
 def _actor_from_user(user) -> Dict[str, Any]:
     return {
-        "user_id": getattr(user, "id", None) or getattr(user, "email", None) or "unknown",
+        "user_id": getattr(user, "user_id", None) or getattr(user, "email", None) or "unknown",
         "role": getattr(user, "role", "unknown"),
     }
 
@@ -77,7 +77,7 @@ async def _assert_lead_owner(db, user, lead_id: str) -> Dict[str, Any]:
     if role == "superadmin":
         return lead_doc
 
-    uid = getattr(user, "id", None) or getattr(user, "email", None)
+    uid = getattr(user, "user_id", None) or getattr(user, "email", None)
     tenant = getattr(user, "tenant_id", None) or getattr(user, "dev_org_id", None)
     owner_id = (
         lead_doc.get("owner_user_id")

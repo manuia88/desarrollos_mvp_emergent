@@ -79,7 +79,7 @@ async def refresh_source(request: Request, source_id: str):
 
     try:
         import audit_immutable_engine
-        actor = {"user_id": getattr(user, "id", "superadmin"), "role": "superadmin"}
+        actor = {"user_id": getattr(user, "user_id", "superadmin"), "role": "superadmin"}
         await audit_immutable_engine.log(
             db, actor, "gov_data_mx.refresh", "gov_data_mx", source_id,
             before=None, after={"status": result.get("status")},
@@ -118,7 +118,7 @@ async def upload(
     if source_label not in UPLOAD_SOURCE_LABELS:
         raise HTTPException(400, f"source_label inválido · usa uno de {UPLOAD_SOURCE_LABELS}")
 
-    actor_id = getattr(user, "id", "superadmin") or "superadmin"
+    actor_id = getattr(user, "user_id", "superadmin") or "superadmin"
     res = await upload_file(
         db,
         file_bytes=raw,
@@ -157,7 +157,7 @@ async def delete_uploaded(
     """Superadmin · soft delete upload."""
     user = await require_superadmin(request)
     db = request.app.state.db
-    actor_id = getattr(user, "id", "superadmin") or "superadmin"
+    actor_id = getattr(user, "user_id", "superadmin") or "superadmin"
     reason = (body.reason if body else None)
     res = await delete_upload(db, upload_id=upload_id, reason=reason, actor_id=actor_id)
     if not res.get("ok"):

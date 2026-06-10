@@ -174,7 +174,7 @@ async def subscribe(request: Request, body: Dict[str, Any]):
 
     db = _db(request)
     sub_id = str(uuid4())
-    user_id = getattr(user, "user_id", None) or getattr(user, "id", None)
+    user_id = getattr(user, "user_id", None) or getattr(user, "user_id", None)
     now = _now()
     await db.live_pulse_subscriptions.update_one(
         {"user_id": user_id, "zone_slug": zone_slug},
@@ -213,7 +213,7 @@ async def subscribe(request: Request, body: Dict[str, Any]):
 @router.get("/api/live-pulse/alerts/my-subs")
 async def my_subs(request: Request):
     user = await _require_user(request)
-    user_id = getattr(user, "user_id", None) or getattr(user, "id", None)
+    user_id = getattr(user, "user_id", None) or getattr(user, "user_id", None)
     db = _db(request)
     cursor = db.live_pulse_subscriptions.find(
         {"user_id": user_id, "active": True}, {"_id": 0},
@@ -227,7 +227,7 @@ async def my_subs(request: Request):
 @router.delete("/api/live-pulse/alerts/{sub_id}")
 async def unsubscribe(sub_id: str, request: Request):
     user = await _require_user(request)
-    user_id = getattr(user, "user_id", None) or getattr(user, "id", None)
+    user_id = getattr(user, "user_id", None) or getattr(user, "user_id", None)
     db = _db(request)
     sub = await db.live_pulse_subscriptions.find_one({"id": sub_id}, {"_id": 0})
     if not sub:

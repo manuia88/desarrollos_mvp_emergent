@@ -54,7 +54,7 @@ def _user_id(user) -> str:
     return (
         getattr(user, "user_id", None) or
         (user.get("user_id") if isinstance(user, dict) else None) or
-        getattr(user, "id", None) or
+        getattr(user, "user_id", None) or
         (user.get("id") if isinstance(user, dict) else None) or
         "anon"
     )

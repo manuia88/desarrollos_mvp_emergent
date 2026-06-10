@@ -27,13 +27,16 @@ def _db(req): return req.app.state.db
 def _now(): return datetime.now(timezone.utc)
 
 
-async def _auth_dev(req):
+async def _auth_dev(req, project_id: str = None):
     from server import get_current_user
     u = await get_current_user(req)
     if not u:
         raise HTTPException(401, "No autenticado")
     if u.role not in DEV_ROLES:
         raise HTTPException(403, "Solo roles desarrollador/admin pueden ver insights")
+    if project_id is not None:
+        from tenant_scope import assert_dev_project
+        assert_dev_project(u, project_id)   # 403 si el proyecto es de otra desarrolladora (cierra IDOR P0)
     return u
 
 
@@ -69,7 +72,7 @@ async def _project_or_404(db, project_id: str):
 
 @router.get("/api/dev/projects/{project_id}/insights/resumen")
 async def get_resumen(project_id: str, request: Request):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     proj = await _project_or_404(db, project_id)
 
@@ -148,7 +151,7 @@ async def get_engagement(
     project_id: str, request: Request,
     period: str = Query("30d", pattern="^(7d|30d|90d)$"),
 ):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     return await get_engagement_split(db, project_id, period)
@@ -159,7 +162,7 @@ async def get_engagement(
 @router.get("/api/dev/projects/{project_id}/insights/comparables")
 async def get_comparables(project_id: str, request: Request,
                             top_n: int = Query(5, ge=1, le=10)):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     return await find_comparables(db, project_id, top_n=top_n)
@@ -183,7 +186,7 @@ def _market_verdict(vs_pct):
 @router.get("/api/dev/projects/{project_id}/insights/market-value")
 async def get_market_value(project_id: str, request: Request):
     """Valor de mercado a nivel proyecto: tu precio/m² vs la mediana de la colonia."""
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     proj = await _project_or_404(db, project_id)
 
@@ -405,7 +408,7 @@ async def export_comparables(
     format: str = Query("csv", pattern="^(csv|pdf)$"),
     top_n: int = Query(5, ge=1, le=10),
 ):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     payload = await find_comparables(db, project_id, top_n=top_n)
@@ -431,7 +434,7 @@ async def export_comparables(
 
 @router.get("/api/dev/projects/{project_id}/insights/ai/predictions")
 async def get_predictions(project_id: str, request: Request):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     return await generate_predictions(db, project_id)
@@ -439,7 +442,7 @@ async def get_predictions(project_id: str, request: Request):
 
 @router.get("/api/dev/projects/{project_id}/insights/ai/recommendations")
 async def get_recommendations(project_id: str, request: Request):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     return await generate_recommendations(db, project_id)
@@ -451,7 +454,7 @@ async def get_narrative(
     period: str = Query("30d", pattern="^(7d|30d|90d)$"),
     force: bool = Query(False),
 ):
-    await _auth_dev(request)
+    await _auth_dev(request, project_id)
     db = _db(request)
     await _project_or_404(db, project_id)
     return await generate_narrative(db, project_id, period, force=force)

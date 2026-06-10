@@ -81,12 +81,15 @@ async def lead_match_compute(body: MatchComputeBody, request: Request):
 
 @router.get("/api/lead-match/{match_id}")
 async def lead_match_get(match_id: str, request: Request):
-    await _auth_asesor(request)
+    user = await _auth_asesor(request)
     db = _db(request)
     from services.lead_to_asesor_match import get_match
     doc = await get_match(db, match_id)
     if not doc:
         raise HTTPException(404, "Match no encontrado")
+    if doc.get("lead_id"):
+        from tenant_scope import assert_lead_owner
+        await assert_lead_owner(db, user, doc["lead_id"])   # el match es de un lead ajeno → 403
     return doc
 
 
@@ -94,8 +97,10 @@ async def lead_match_get(match_id: str, request: Request):
 async def lead_match_recent(
     lead_id: str, request: Request, limit: int = Query(5, ge=1, le=20),
 ):
-    await _auth_asesor(request)
+    user = await _auth_asesor(request)
     db = _db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)   # cierra IDOR: solo matches de leads propios
     from services.lead_to_asesor_match import get_recent_matches_for_lead
     return {"items": await get_recent_matches_for_lead(db, lead_id, limit)}
 

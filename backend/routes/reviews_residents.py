@@ -67,7 +67,7 @@ async def force_scrape(request: Request, entity_type: str, entity_id: str):
 
     try:
         import audit_immutable_engine
-        actor = {"user_id": getattr(user, "id", "superadmin") if user else "superadmin", "role": "superadmin"}
+        actor = {"user_id": getattr(user, "user_id", "superadmin") if user else "superadmin", "role": "superadmin"}
         await audit_immutable_engine.log(
             db, actor, "reviews_residents.scrape", entity_type, entity_id,
             before=None, after={"sources": result.get("sources"), "is_stub": result.get("is_stub")},
@@ -96,7 +96,7 @@ async def delete_reviews(request: Request, entity_type: str, entity_id: str):
 
     try:
         import audit_immutable_engine
-        actor = {"user_id": getattr(user, "id", "superadmin") if user else "superadmin", "role": "superadmin"}
+        actor = {"user_id": getattr(user, "user_id", "superadmin") if user else "superadmin", "role": "superadmin"}
         await audit_immutable_engine.log(
             db, actor, "reviews_residents.delete", entity_type, entity_id,
             before=None, after=result,

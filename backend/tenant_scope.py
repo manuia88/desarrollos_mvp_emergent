@@ -20,15 +20,30 @@ from typing import List
 SUPERADMIN_ROLES = {"superadmin"}
 
 
+def _field(user, key, default=None):
+    """Lee un campo del usuario sea OBJETO (UserOut) o DICT (model_dump()).
+    El 'user' está forkeado en el repo: unas rutas pasan UserOut, otras un dict."""
+    if user is None:
+        return default
+    if isinstance(user, dict):
+        return user.get(key, default)
+    return getattr(user, key, default)
+
+
 def tenant_of(user) -> str:
     """Org/tenant del usuario. Punto ÚNICO de resolución (antes: _tenant en N archivos)."""
-    return (getattr(user, "tenant_id", None)
-            or getattr(user, "org_id", None)
-            or "default")
+    return (_field(user, "tenant_id") or _field(user, "org_id") or "default")
 
 
 def is_superadmin(user) -> bool:
-    return getattr(user, "role", None) in SUPERADMIN_ROLES
+    return _field(user, "role") in SUPERADMIN_ROLES
+
+
+def actor_id(user, default=None):
+    """ID del actor para ownership/atribución. Punto ÚNICO — evita el bug histórico
+    `getattr(user, "id")` (UserOut expone `user_id`, NO `id`, así que ese getattr
+    SIEMPRE caía al default y rompía el chequeo de dueño per-asesor)."""
+    return _field(user, "user_id") or default
 
 
 def user_dev_ids(user) -> List[str]:
@@ -90,3 +105,25 @@ def assert_dev_project(user, project_id):
     from fastapi import HTTPException
     if not dev_can_access_project(user, project_id):
         raise HTTPException(403, "Este proyecto es de otra desarrolladora")
+
+
+async def assert_lead_owner(db, user, lead_id):
+    """403/404 si el lead no es del tenant del usuario (o superadmin). Tolerante al fork de nombre
+    de tenant (org_id/dev_org_id/inmobiliaria_id/owner_id/assigned_to). Para cerrar IDOR sobre leads."""
+    from fastapi import HTTPException
+    if is_superadmin(user):
+        return
+    proj = {"_id": 0, "org_id": 1, "dev_org_id": 1, "inmobiliaria_id": 1, "owner_id": 1, "assigned_to": 1}
+    lead = await db.leads.find_one({"id": lead_id}, proj)
+    if not lead:
+        lead = await db.asesor_contactos.find_one({"id": lead_id}, proj)
+    if not lead:
+        raise HTTPException(404, "Lead no encontrado")
+    owners = {lead.get("org_id"), lead.get("dev_org_id"), lead.get("inmobiliaria_id"),
+              lead.get("owner_id"), lead.get("assigned_to")}
+    owners.discard(None)
+    if not owners:
+        return  # legacy/demo sin tenant → no bloquear
+    if tenant_of(user) in owners or actor_id(user) in owners:
+        return
+    raise HTTPException(403, "Este lead es de otra cuenta")

@@ -254,11 +254,21 @@ async def infer_contacto_segment(db, owner_id: str, contacto_id: str) -> Dict[st
     Toma su búsqueda más reciente + su tipo de contacto. FAIL-OPEN → indefinido."""
     try:
         tipo = None
-        c = await db.asesor_contactos.find_one({"id": contacto_id}, {"_id": 0, "tipo": 1})
+        # Scope por dueño: un asesor SOLO ve sus propios contactos (cierra IDOR cross-tenant).
+        cq = {"id": contacto_id}
+        if owner_id:
+            cq["owner_id"] = owner_id
+        c = await db.asesor_contactos.find_one(cq, {"_id": 0, "tipo": 1})
+        if owner_id and not c:
+            return {"segmento": "indefinido", "label": SEG_LABEL["indefinido"],
+                    "confianza": 0, "razones": []}
         if c:
             tipo = c.get("tipo")
+        bq = {"contacto_id": contacto_id}
+        if owner_id:
+            bq["owner_id"] = owner_id
         b = await db.asesor_busquedas.find_one(
-            {"contacto_id": contacto_id}, {"_id": 0}, sort=[("created_at", -1)])
+            bq, {"_id": 0}, sort=[("created_at", -1)])
         seg, conf, reasons = infer_segment(b or {}, tipo)
         return {"segmento": seg, "label": SEG_LABEL.get(seg, seg),
                 "confianza": conf, "razones": reasons}
