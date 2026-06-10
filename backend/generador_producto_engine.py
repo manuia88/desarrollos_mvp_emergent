@@ -128,6 +128,15 @@ async def generar_producto(db, colonia_id: Optional[str], terreno_m2: float,
         unidades = int(area // m2_unit) if m2_unit else 0
         if unidades <= 0 and share > 0 and m2_vendible > 0:
             unidades = 1
+        top_amen = _top(amen_por_rec.get(rec), 3)
+        # F2.9 · cuota de mantenimiento sugerida según m² + paquete de amenidades (reusa amenidades_engine).
+        cuota = None
+        try:
+            from amenidades_engine import recomendar_cuota
+            cq = await recomendar_cuota(db, m2_unit, top_amen, colonia_id)
+            cuota = cq.get("cuota_estimada_mxn")
+        except Exception:
+            pass
         mezcla.append({
             "tipologia": _TIPO_LABEL.get(rec, f"{rec} Recámaras"),
             "recamaras": rec,
@@ -136,7 +145,8 @@ async def generar_producto(db, colonia_id: Optional[str], terreno_m2: float,
             "m2_promedio": round(m2_unit),
             "precio_tipico": _median(precio_por_rec.get(rec)),
             "cajones": round(unidades * _CAJONES.get(rec, 1.5)),
-            "amenidades": _top(amen_por_rec.get(rec), 3),
+            "amenidades": top_amen,
+            "cuota_estimada": cuota,
             "segmento_objetivo": (seg_por_rec.get(rec) or [None])[0],
             "demanda_n": int(pesos[rec]) if not es_estimado else None,
         })

@@ -187,6 +187,16 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {s.absorcion.lectura}</div>
               </Sec>
             )}
+            {s.amenidades && (
+              <Sec title="AMENIDADES QUE PAGAN (DESEO + PRECIO)">
+                {(s.amenidades.vale_la_pena || []).slice(0, 6).map(a => (
+                  <KV key={a.amenidad} k={a.amenidad}
+                    v={`${a.deseo_pct}% la pide${a.impacto_precio_pct != null ? ` · ${a.impacto_precio_pct > 0 ? '+' : ''}${a.impacto_precio_pct}% precio` : ''} · ${a.veredicto}`}
+                    tone={(a.veredicto || '').startsWith('Constrúyela') ? '#22C55E' : 'var(--cream)'} />
+                ))}
+                {(s.amenidades.vale_la_pena || []).length === 0 && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>◐ {s.amenidades.lectura}</div>}
+              </Sec>
+            )}
             <Sec title="ZONA Y QUÉ LE FALTA">
               <KV k="Tier" v={zo.tier || '—'} />
               <KV k="Densidad de servicios" v={zo.servicios?.densidad_km2 ? `${Math.round(zo.servicios.densidad_km2)} negocios/km²` : '—'} />

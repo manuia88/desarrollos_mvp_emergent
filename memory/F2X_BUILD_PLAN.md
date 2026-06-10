@@ -100,9 +100,13 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - Front: secciones en `DesarrolladorEstudioMercado.js`. Compila limpio.
 - **CORRECCIÓN (founder): la densidad es OSM, NO DENUE.** OSM (`osm_engine`, fuente default) escribe en la colección `denue_zone_density` (nombre engañoso) con SU taxonomía (restaurante/cafe/mercado/recreacion/gimnasio/...). Mis llaves eran de DENUE → "qué le falta" salía vacío por mismatch. Corregido a llaves OSM + lectura directa de la colección. Verificado: 1059 zonas con datos OSM; Polanco detecta gap real **"le falta Gimnasios" (1, percentil 25)**.
 **F2.9 Amenidades & Cuota (B6)** — 🟡🔵 · M
-- [ ] 2.9.1 Ranker de amenidades 2 ejes (precio+deseo, las 55) · Back · 🔄
-- [ ] 2.9.2 Recomendador de cuota (bundle→cuota vs disposición a pagar) · Back · 🔄
-- [ ] 2.9.3 Front dev (selección de amenidades guiada) · D · 🔄
+- [x] 2.9.1 Ranker de amenidades 2 ejes (eje precio REUSA dmx_hedonic_atom + sanity-filter de coef. absurdos; eje deseo NUEVO de asesor_busquedas) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.9.2 Recomendador de cuota (REUSA MANT_PER_M2_MES=$40; juzga por $/m² CDMX, NO por banda peso Monterrey) · Back · 🔄 — verificado (95m²+3prem=$45/m² "alta"; 60m²="en rango")
+- [x] 2.9.3 Front: sección "Amenidades que Pagan" en el Estudio + cuota por tipología en el Generador · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.9 COMPLETO**
+## ARCHIVOS (F2.9, hecho)
+- `backend/amenidades_engine.py` (ranker_amenidades 2 ejes + recomendar_cuota) · endpoints /api/dev/amenidades-ranker y /api/dev/cuota-recomendada.
+- Integrado: ranker en estudio (colonia), cuota por tipología en generador_producto. Front: secciones en DesarrolladorEstudioMercado + DesarrolladorValorTerreno.
+- REUSO (grep-antes): hedónico (precio) + MANT_PER_M2_MES (cuota). Honesto: filtro de coef. hedónicos absurdos + cuota por $/m² (no banda Monterrey). Compila limpio.
 **F2.10 Inversionista + Comercio PB (B8/B9)** — 🟡🔵 · M
 - [ ] 2.10.1 Memo de inversionista PDF · Back+Front · C·A · ▪️ (entregable)
 - [ ] 2.10.2 Perfil de inquilino objetivo · Back · ▪️

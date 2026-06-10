@@ -56,6 +56,26 @@ async def perfil_zona_ep(request: Request, colonia_id: str = Query(...)):
     return await perfil_zona(_db(request), colonia_id)
 
 
+@router.get("/api/dev/amenidades-ranker")
+async def amenidades_ranker_ep(request: Request, colonia_id: Optional[str] = Query(None)):
+    """Ranker de amenidades en 2 ejes (precio hedónico + deseo de la demanda) (F2.9)."""
+    await _auth(request)
+    from amenidades_engine import ranker_amenidades
+    return await ranker_amenidades(_db(request), colonia_id)
+
+
+@router.get("/api/dev/cuota-recomendada")
+async def cuota_recomendada_ep(request: Request,
+                               m2: float = Query(..., gt=0, le=2000),
+                               amenidades: Optional[str] = Query(None),
+                               colonia_id: Optional[str] = Query(None)):
+    """Cuota de mantenimiento sugerida desde el paquete de amenidades, vs disposición real (F2.9)."""
+    await _auth(request)
+    from amenidades_engine import recomendar_cuota
+    amen = [a.strip() for a in (amenidades or "").split(",") if a.strip()]
+    return await recomendar_cuota(_db(request), m2, amen, colonia_id)
+
+
 @router.get("/api/dev/estudio-mercado/radio")
 async def estudio_mercado_radio(request: Request,
                                 lat: float = Query(..., ge=-90, le=90),

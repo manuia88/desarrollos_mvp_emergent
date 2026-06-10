@@ -287,6 +287,14 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
     except Exception as e:
         log.warning(f"[estudio] absorcion fail-open: {e}")
 
+    # 8 · Amenidades en 2 ejes (precio + deseo) (F2.9).
+    amenidades_rank = None
+    try:
+        from amenidades_engine import ranker_amenidades
+        amenidades_rank = await ranker_amenidades(db, colonia_id)
+    except Exception as e:
+        log.warning(f"[estudio] amenidades fail-open: {e}")
+
     es_estimado = (dt < 10)
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": categoria,
@@ -296,6 +304,7 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
             "producto_recomendado": producto,
             "oferta": oferta,
             "absorcion": absorcion,
+            "amenidades": amenidades_rank,
             "zona": zona,
         },
         "veredicto": veredicto,

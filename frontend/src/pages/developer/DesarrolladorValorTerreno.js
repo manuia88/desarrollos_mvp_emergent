@@ -506,7 +506,7 @@ function GeneradorProducto({ gen }) {
           <div key={m.recamaras} style={{ padding: 10, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: '#e2e8f0' }}>{m.tipologia}</span>
-              <span style={{ fontSize: 13, color: '#cbd5e1' }}>{m.unidades} uds · {m.pct}% · {m.m2_promedio} m² · {m.cajones} cajones</span>
+              <span style={{ fontSize: 13, color: '#cbd5e1' }}>{m.unidades} uds · {m.pct}% · {m.m2_promedio} m² · {m.cajones} cajones{m.cuota_estimada ? ` · cuota ~$${Math.round(m.cuota_estimada / 1000)}k/mes` : ''}</span>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap', fontSize: 11.5, color: '#94a3b8' }}>
               {m.precio_tipico ? <span>Precio típico {fmtMXN(m.precio_tipico)}</span> : null}
