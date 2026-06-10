@@ -170,7 +170,14 @@ F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propue
   - Endpoints: GET /api/dev/estudio-mercado/propuestas · POST /api/dev/estudio-mercado/regenerar.
   - Frontend: banner "🧠 El Cerebro detectó cambios" con motivos + botón "Regenerar (Aprobar)" en DesarrolladorEstudioMercado.js (human-in-the-loop) · api.getEstudioPropuestas + regenerarEstudio.
   - Cierra ciclo (4 portales): DEV aprueba → Cerebro del Mercado (F2.5) califica predicho↔real y reentrena → SUPERADMIN lo ve en "Cómo Aprende el Mercado" (resueltas++). Smoke real verde (deriva detectada sev alta → regenerar v2 → 1 predicción resuelta). Frontend 1 warning (limpio).
-- [ ] 3.5 Lead inversionista → su memo en 1 clic (Ficha360, reusa memo) · ASESOR · 🔄
+**F3.5 Memo de Inversionista del lead en 1 clic (portal ASESOR)** — ✅ 2026-06-10
+- [x] 3.5 Botón "Generar Memo de Inversionista" en Ficha360 del lead · Back+Front · ✅
+- ARCHIVOS F3.5:
+  - `routes/advisor.py` — GET /api/asesor/contactos/{cid}/memo-inversionista: toma colonia+presupuesto del perfil de búsqueda del lead (asesor_busquedas.colonias/precio_max/m2_min), resuelve colonia nombre→id (data_seed.COLONIAS) y reusa inversionista_engine.memo_inversionista (MISMO motor del dev). FAIL-OPEN (si no hay zona capturada, lo dice).
+  - Frontend: sección "Memo de Inversionista" en el tab Resumen de Ficha360.js (botón 1 clic → veredicto + IRR + plusvalía + perfil de inquilino + comercio PB) · api/advisor.getLeadMemoInversionista.
+  - Cierra ciclo (portal ASESOR ↔ inteligencia del DEV): el asesor entrega el memo de inversión sin salir de la ficha del lead. Smoke real verde (Polanco → memo con perfil/comercio/veredicto). Frontend 1 warning (limpio).
+
+🎉 **FASE F3 COMPLETA — F3.1 a F3.5 (5 chunks) ✅ Autopiloto de Memorándum + Estudio de Mercado Vivo branded, versionado, agéntico y cross-portal.**
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.

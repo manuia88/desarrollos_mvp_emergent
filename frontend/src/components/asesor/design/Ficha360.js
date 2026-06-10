@@ -339,6 +339,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [prob, setProb] = useState(null);
   const [intel, setIntel] = useState(null);   // B2 · DISC/riesgo/brief reales (FAIL-OPEN)
   const [etapaVida, setEtapaVida] = useState(null);   // F2.1 · etapa de vida inferida (Grafo del Comprador)
+  const [memo, setMemo] = useState(null);             // F3.5 · memo de inversionista del lead (1 clic)
+  const [memoBusy, setMemoBusy] = useState(false);
   const [tareas, setTareas] = useState([]);
   const [busquedas, setBusquedas] = useState([]);
   const [profBusy, setProfBusy] = useState(false); // E2 · guardando perfil de compra
@@ -373,6 +375,20 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
 
+  // F3.5 · genera el Memo de Inversionista del lead (reusa el motor del dev)
+  const genMemo = useCallback(async () => {
+    if (!cid) return;
+    setMemoBusy(true);
+    try {
+      const r = await api.getLeadMemoInversionista(cid);
+      setMemo(r);
+    } catch {
+      setMemo({ disponible: false, lectura: 'No se pudo generar el memo.' });
+    } finally {
+      setMemoBusy(false);
+    }
+  }, [cid]);
+
   // Cerrar con Esc + bloquear scroll del body.
   useEffect(() => {
     if (!open) return undefined;
@@ -389,7 +405,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
-    setEtapaVida(null);
+    setEtapaVida(null); setMemo(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getEtapaVida(cid).then(setEtapaVida).catch(() => setEtapaVida(null));
@@ -879,6 +895,43 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   </div>
                 )}
               </div>
+
+              {/* F3.5 · Memo de Inversionista del lead (1 clic · reusa el motor del dev) */}
+              {!demo && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: '#22C55E' }} />Memo de Inversionista <span className="asr-muted">· rendimiento de la zona que le interesa</span></div>
+                  {!memo && (
+                    <button onClick={genMemo} disabled={memoBusy} data-testid="ficha-memo-inversionista"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: memoBusy ? 0.6 : 1 }}>
+                      {memoBusy ? 'Generando…' : '💰 Generar Memo de Inversionista'}
+                    </button>
+                  )}
+                  {memo && !memo.disponible && (
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface)', padding: '12px 16px' }}>◐ {memo.lectura}</div>
+                  )}
+                  {memo && memo.disponible && (
+                    <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid #22C55E', borderRadius: 12, background: 'var(--surface)', padding: '14px 18px' }}>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 6 }}>
+                        {memo.colonia}{memo.precio ? ` · ${fmtMXN(memo.precio)}` : ''}{memo.m2 ? ` · ${memo.m2} m²` : ''}
+                      </div>
+                      {(memo.memo?.veredicto || []).map((v, i) => (
+                        <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', padding: '2px 0' }}>· {v}</div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+                        {memo.memo?.rendimiento?.irr_pct != null && (
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>IRR <b style={{ color: '#22C55E' }}>{memo.memo.rendimiento.irr_pct}%</b></span>
+                        )}
+                        {memo.memo?.plusvalia_anual_pct != null && (
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Plusvalía <b style={{ color: 'var(--cream)' }}>{memo.memo.plusvalia_anual_pct}%/año</b></span>
+                        )}
+                        {memo.memo?.perfil_inquilino?.perfil && (
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Rentar a: <b style={{ color: 'var(--cream)' }}>{memo.memo.perfil_inquilino.perfil}</b></span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Cómo tratarla · DISC · demo o motor real (conversation_disc_adapter) */}
               {discData && (

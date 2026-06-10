@@ -833,6 +833,61 @@ async def get_close_probability(cid: str, request: Request):
         return {"prob": None, "factors": [], "confidence": "BAJA"}
 
 
+@router.get("/contactos/{cid}/memo-inversionista")
+async def get_lead_memo_inversionista(cid: str, request: Request):
+    """F3.5 · Memo de Inversionista del lead en 1 clic. Toma la colonia/presupuesto de su perfil
+    de búsqueda y reusa inversionista_engine.memo_inversionista (mismo motor del dev). FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id},
+                                           {"_id": 0, "id": 1, "first_name": 1, "last_name": 1})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+
+    # Colonia + presupuesto del perfil de búsqueda del lead.
+    bs = await db.asesor_busquedas.find({"owner_id": user.user_id, "contacto_id": cid},
+                                        {"_id": 0}).sort("created_at", -1).to_list(20)
+    colonia_str = precio = m2 = None
+    for b in bs:
+        cols = b.get("colonias") or []
+        if cols and not colonia_str:
+            colonia_str = cols[0]
+        precio = precio or b.get("precio_max") or b.get("precio_min")
+        m2 = m2 or b.get("m2_min")
+        if colonia_str:
+            break
+
+    if not colonia_str:
+        return {"disponible": False,
+                "lectura": "Aún no sé qué zona le interesa a este lead. Captura una colonia en su perfil de búsqueda y vuelve."}
+
+    # Resolver colonia_str (nombre/slug) → colonia_id del catálogo.
+    colonia_id = colonia_str
+    try:
+        from data_seed import COLONIAS
+        s = str(colonia_str).strip().lower()
+        match = next((col for col in COLONIAS
+                      if str(col.get("id")).lower() == s or str(col.get("slug", "")).lower() == s
+                      or str(col.get("name", "")).strip().lower() == s), None)
+        if match:
+            colonia_id = match.get("id")
+    except Exception:
+        pass
+
+    from inversionista_engine import memo_inversionista
+    memo = await memo_inversionista(db, colonia_id, precio, m2)
+    nombre = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip() or "este lead"
+    return {
+        "disponible": True,
+        "lead": nombre,
+        "colonia": colonia_str,
+        "colonia_id": colonia_id,
+        "precio": precio,
+        "m2": m2,
+        "memo": memo,
+    }
+
+
 def _ts_iso(ts) -> str:
     """Normaliza un ts (datetime|str|None) a string ISO comparable para ordenar."""
     if isinstance(ts, datetime):

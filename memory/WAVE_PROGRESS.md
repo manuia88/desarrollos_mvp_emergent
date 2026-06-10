@@ -2,6 +2,21 @@
 
 ---
 
+## 📄 FASE F3 · AUTOPILOTO DE MEMORÁNDUM + ESTUDIO DE MERCADO VIVO ✅ COMPLETA (2026-06-10)
+El entregable que 4S cobra carísimo, ahora automático, branded, versionado y agéntico. HALLAZGO de auditoría: F3 estaba ~80% ya construido (página Reportes, PDF reportlab, watermark, developer_reports) → se ENCHUFÓ el Estudio/Memo (antes aislados) al pipeline existente. Reuso total, cero deuda. Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
+
+| Chunk | Qué hace | Front + Back | Checkpoint |
+|---|---|---|---|
+| **F3.1** | Estudio Vivo + Memo → PDF con marca DMX (botón Descargar) · reusa el stack del CMA | `estudio_pdf_renderer.py` + endpoint /pdf + DesarrolladorEstudioMercado | `checkpoint-f3.1` |
+| **F3.2** | Guardado versionado (foto fechada v1/v2) + historial + registra predicción en el Cerebro | extiende `db.developer_reports` (type=estudio) + /guardar + /historial | `checkpoint-f3.2` |
+| **F3.3** | Los estudios guardados aparecen en el tab "Reportes Branded" (un solo hub) | sub-tab EstudiosSubtab en DesarrolladorReportes | `checkpoint-f3.3` |
+| **F3.4** | Autopiloto agéntico: el Cerebro detecta deriva → propone regenerar (con OK) → resuelve predicción↔realidad + reentrena | `estudio_autopiloto_engine.py` + /propuestas + /regenerar + banner | `checkpoint-f3.4` |
+| **F3.5** | Memo de Inversionista del lead en 1 clic (portal ASESOR · Ficha360) · reusa el motor del dev | /api/asesor/contactos/{id}/memo-inversionista + Ficha360 | `checkpoint-f3.5` |
+
+**Cierra:** DEV genera/guarda/regenera → Cerebro del Mercado aprende → Superadmin lo ve en "Cómo Aprende el Mercado" → Asesor entrega el memo al lead. 4 portales tocados. Reuso total (PDF, reportes, memo, cerebro), cero colección/stack nuevo.
+
+---
+
 ## 🧠 FASE F2.x · EL CEREBRO DEL MERCADO (lado de la demanda) ✅ COMPLETA (2026-06-09)
 Segunda fase del "Modelo del Mundo DMX": del SUELO (F1) pasamos a la DEMANDA. Responde, con dato real y agregado, ¿quién compra qué dónde? → ¿qué construir? → ¿se venderá? → ¿a quién y con qué tono? → ¿cuánto vale el mercado como producto de datos? Front+back conectados, IA-first, k-anónimo, cierra ciclos, reuso total (grep antes de construir). Doc canónico vivo: **`memory/F2X_BUILD_PLAN.md`**.
 

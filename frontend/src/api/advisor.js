@@ -158,6 +158,8 @@ export const runAgentsNow = (agent) => post(`/api/agent-workforce/run-now${agent
 
 // P3.A · Close probability por lead (reusa close_probability P2 · endpoint advisor nuevo · FAIL-OPEN)
 export const getCloseProbability = (id) => j(`/api/asesor/contactos/${id}/close-probability`);
+// F3.5 · Memo de Inversionista del lead en 1 clic (reusa el motor del dev · inversionista_engine)
+export const getLeadMemoInversionista = (id) => j(`/api/asesor/contactos/${id}/memo-inversionista`);
 
 // B1 · Conversaciones IA del lead (reusa /api/conversation · alimenta el tab Conversaciones del perfil-hub)
 export const getLeadConversations = (id) => j(`/api/conversation/lead/${id}/conversations`);
