@@ -32,17 +32,21 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response, Depends
 from pydantic import BaseModel
 
 import public_api_auth as auth
 import stripe_billing_engine as billing
 import anonymization_engine as anon
 import compliance_engine as comp
+import ratelimit  # P2.9 · limitador de ráfaga compartido
 
 log = logging.getLogger("dmx.routes_public_api_v1")
 
-router = APIRouter(tags=["public_api_v1"])
+# P2.9 · la API pública v1 NO tenía rate-limit → scraping/abuso libre. Límite por IP a nivel
+# router (aplica a TODOS los endpoints v1, incl. /demand que usa el Grafo). 120 req/min/IP.
+router = APIRouter(tags=["public_api_v1"],
+                   dependencies=[Depends(ratelimit.dependency("public_v1", limit=120, window=60))])
 
 
 def _db(request: Request):

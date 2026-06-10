@@ -1412,6 +1412,27 @@ async def startup():
         await db.units.create_index("unit_id", name="idx_units_unit_id", sparse=True)
     except Exception as _p23e:
         logging.warning(f"[startup] P2.3 índices fail-open: {_p23e}")
+    # P2.11 · validadores de schema (modo WARN = no bloquea escrituras, solo registra docs
+    # malformados) para entidades críticas. Antes TODO dependía del código. Idempotente, fail-open.
+    _VALIDATORS = {
+        "users": {"$jsonSchema": {"bsonType": "object", "required": ["user_id", "email", "role"],
+            "properties": {"user_id": {"bsonType": "string"}, "email": {"bsonType": "string"},
+                           "role": {"bsonType": "string"}}}},
+        "transactions": {"$jsonSchema": {"bsonType": "object", "properties": {
+            "closing_price_mxn": {"bsonType": ["double", "int", "long", "decimal"]},
+            "m2": {"bsonType": ["double", "int", "long", "decimal"]},
+            "closed_at": {"bsonType": ["string", "date"]}}}},
+        "leads": {"$jsonSchema": {"bsonType": "object", "properties": {
+            "source": {"bsonType": ["string", "null"]},
+            "created_at": {"bsonType": ["string", "date"]}}}},
+    }
+    for _coll, _val in _VALIDATORS.items():
+        try:
+            await db.command({"collMod": _coll, "validator": _val,
+                              "validationLevel": "moderate", "validationAction": "warn"})
+        except Exception as _ve:
+            # colección aún no existe o el motor no soporta collMod → no rompe el arranque
+            logging.info(f"[startup] P2.11 validator {_coll} omitido: {_ve}")
     # Seed superadmin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")

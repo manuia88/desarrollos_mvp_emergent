@@ -110,7 +110,9 @@ async def upload_custom(
     if not project:
         raise HTTPException(404, "project_not_found")
 
-    content = await file.read()
+    # P2.13 · validación uniforme de upload (extensión PDF + tamaño máx 25MB · sin path-traversal).
+    import upload_guard
+    _ext, content = await upload_guard.validate(file, allowed=("pdf",), max_mb=25)
     try:
         doc = await engine.register_custom_upload(db, user, project, content, file.filename or "custom.pdf")
     except ValueError as exc:

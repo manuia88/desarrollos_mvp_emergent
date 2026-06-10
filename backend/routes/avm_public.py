@@ -80,7 +80,8 @@ async def colonia_stats_endpoint(slug: str, request: Request):
 
 
 @router.get("/api/avm-public/colonias/top")
-async def top_colonias(limit: int = Query(30, ge=1, le=100)):
+async def top_colonias(request: Request, limit: int = Query(30, ge=1, le=100)):
+    _rate_limit_check(_client_ip(request))  # P2.9 · faltaba rate-limit aquí
     return JSONResponse({"ok": True, "colonias": eng.list_top_colonias(limit), "limit": limit})
 
 
