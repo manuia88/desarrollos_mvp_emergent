@@ -637,6 +637,10 @@ app.include_router(data_doctrine_router)
 from routes.grafo_comprador import router as grafo_comprador_router
 app.include_router(grafo_comprador_router)
 
+# F2.2 · El Generador de Producto ("qué construir" calibrado por demanda · dev)
+from routes.generador_producto import router as generador_producto_router
+app.include_router(generador_producto_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)

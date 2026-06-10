@@ -40,6 +40,7 @@ export default function DesarrolladorValorTerreno() {
   const [dd, setDd] = useState(null);
   const [n3, setN3] = useState(null);
   const [veredicto, setVeredicto] = useState(null);
+  const [gen, setGen] = useState(null);   // F2.2 · Generador de Producto ("qué construir")
   const [loading, setLoading] = useState(false);
   const [showBreak, setShowBreak] = useState(false);
   const [err, setErr] = useState('');
@@ -63,7 +64,7 @@ export default function DesarrolladorValorTerreno() {
 
   const calcular = useCallback(async () => {
     setErr(''); setLoading(true); setRes(null); setDd(null); setN3(null); setVeredicto(null);
-    setShowBreak(false);
+    setShowBreak(false); setGen(null);
     try {
       const body = {
         terreno_m2: Number(terreno),
@@ -81,6 +82,9 @@ export default function DesarrolladorValorTerreno() {
       setRes(d.residual || null);
       setDd(d.due_diligence || null);
       setN3(d.norma3 || null);
+      // F2.2 · "Qué construir" con los mismos inputs (fail-open, no bloquea el veredicto).
+      api.getGeneradorProducto({ terreno_m2: Number(terreno), colonia_id: colonia?.id || null, categoria })
+        .then(setGen).catch(() => setGen(null));
     } catch (e) {
       setErr(e.message || 'No se pudo calcular');
     } finally {
@@ -293,6 +297,9 @@ export default function DesarrolladorValorTerreno() {
 
               {/* ── Norma 3 (F1.4) · oportunidad de fusión para subir el CUS ── */}
               {n3 && n3.disponible && (n3.oportunidades || []).length > 0 && <Norma3 n3={n3} />}
+
+              {/* ── F2.2 · Generador de Producto: qué construir aquí (calibrado por demanda) ── */}
+              {gen && <GeneradorProducto gen={gen} />}
             </>
           )}
         </div>
@@ -476,5 +483,46 @@ function Row({ k, v, strong, plus }) {
         {neg ? '−' : ''}{fmtMXN(Math.abs(v))}
       </span>
     </div>
+  );
+}
+
+// F2.2 · Generador de Producto — "qué construir aquí" calibrado por la demanda real.
+function GeneradorProducto({ gen }) {
+  const mezcla = gen.mezcla || [];
+  return (
+    <Card style={{ marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+        <Sparkle size={16} style={{ color: '#a5b4fc' }} />
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Qué Construir Aquí</span>
+        <Badge tone={gen.es_estimado ? 'neutral' : 'ok'}>
+          {gen.es_estimado ? 'Mezcla por defecto' : `${gen.preventa_match} compradores encajan`}
+        </Badge>
+      </div>
+      <p style={{ fontSize: 12.5, color: '#94a3b8', margin: '0 0 12px' }}>
+        Mezcla de producto sugerida para este terreno, calibrada con la demanda real de la zona · {(gen.m2_vendible || 0).toLocaleString('es-MX')} m² vendibles.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {mezcla.map((m) => (
+          <div key={m.recamaras} style={{ padding: 10, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#e2e8f0' }}>{m.tipologia}</span>
+              <span style={{ fontSize: 13, color: '#cbd5e1' }}>{m.unidades} uds · {m.pct}% · {m.m2_promedio} m² · {m.cajones} cajones</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap', fontSize: 11.5, color: '#94a3b8' }}>
+              {m.precio_tipico ? <span>Precio típico {fmtMXN(m.precio_tipico)}</span> : null}
+              {m.segmento_objetivo && <span>· Para: {m.segmento_objetivo}</span>}
+              {(m.amenidades || []).length > 0 && <span>· {m.amenidades.join(', ')}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', fontSize: 12.5, color: '#cbd5e1' }}>
+        <span>Total: <b style={{ color: '#f1f5f9' }}>{gen.total_unidades} unidades</b></span>
+        {gen.ingreso_estimado ? <span>Ingreso estimado: <b style={{ color: '#86efac' }}>{fmtMXN(gen.ingreso_estimado)}</b></span> : null}
+      </div>
+      {(gen.rationale || []).map((r, i) => (
+        <div key={i} style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>◐ {r}</div>
+      ))}
+    </Card>
   );
 }

@@ -66,8 +66,8 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.1.3 Distintivo de Etapa de Vida en el lead (pill en cabecera de Ficha360, % confianza + razones) · Front · A · 🔄 — compila limpio 2026-06-09
 - [x] 2.1.4 Vista Agregada de Ciudad (página /superadmin/grafo-comprador, menú Inteligencia, toda la ciudad anónima) · Front · S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.1 COMPLETO**
 **F2.2 Generador de Producto / HBU (B2)** — 🔵 · A
-- [ ] 2.2.1 Motor HBU (terreno+CUS → mezcla óptima calibrada por Grafo+absorción · ratio cajones · eficiencia) · Back · 🔄
-- [ ] 2.2.2 "Diseña Tu Producto" + pre-venta ("N compradores encajan") · Front · D · 🔄
+- [x] 2.2.1 Motor HBU (generador_producto_engine.py: terreno+CUS → mezcla calibrada por Grafo · cajones · eficiencia) + ruta /api/dev/generador-producto · Back · 🔄 — verificado 2026-06-09
+- [x] 2.2.2 "Qué Construir Aquí" cableado en Valor del Terreno (mismos inputs, debajo del veredicto) + pre-venta ("N compradores encajan") · Front · D · 🔄 — compila limpio 2026-06-09 · **BATCH F2.2 COMPLETO**
 **F2.3 Prender Campos Apagados (millimétrico)** — 🟡 · A
 - [ ] 2.3.1 prob_venta v2 (ajuste de producto del Grafo) · Back · 🔄
 - [ ] 2.3.2 Cablear UnitInvestment por unidad (desde simulador) · Back · 🔄
@@ -164,6 +164,10 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 ## ARCHIVOS (F2.1.4, hecho · cierra batch F2.1)
 - `frontend/src/pages/superadmin/SuperadminGrafoComprador.js` (página vista-ciudad) · `frontend/src/api/superadmin.js` (getGrafoComprador) ·
   ruta en `App.js` · menú en `config/navByRole.js` (Inteligencia) · tema en `components/superadmin/SuperadminLayout.js`. Compila limpio.
+## ARCHIVOS (F2.2, hecho)
+- `backend/generador_producto_engine.py` (motor HBU) · `backend/routes/generador_producto.py` (GET /api/dev/generador-producto) · registrado en `server.py`.
+- `frontend/src/api/valorResidual.js` (getGeneradorProducto) · sección "Qué Construir Aquí" en `frontend/src/pages/developer/DesarrolladorValorTerreno.js`
+  (componente GeneradorProducto, fetch tras analizarLote con mismos inputs). Reusa CUS/eficiencia de F1 + Grafo de F2.1. Verificado backend + compila limpio.
 
 ## NOTAS
 - ~70% del trabajo = prender campos que ya existen (estimadores calibrados por el estudio), no crear de cero.

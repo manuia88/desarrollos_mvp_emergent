@@ -46,3 +46,11 @@ export const analizarLote = (body) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
   });
+
+// F2.2 · Generador de Producto ("qué construir" calibrado por la demanda real del Grafo)
+export const getGeneradorProducto = ({ terreno_m2, colonia_id, categoria }) => {
+  const qs = new URLSearchParams({ terreno_m2: String(terreno_m2 || 0) });
+  if (colonia_id) qs.set('colonia_id', colonia_id);
+  if (categoria) qs.set('categoria', categoria);
+  return j(`/api/dev/generador-producto?${qs.toString()}`);
+};
