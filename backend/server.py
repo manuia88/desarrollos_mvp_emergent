@@ -81,8 +81,9 @@ app.add_middleware(
     allow_origins=_CORS_ORIGINS,
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # P2.14 · acotado a lo realmente usado (antes "*"). Origins ya eran explícitos.
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Pool acotado + timeouts (C1 Escala): sin tope, las conexiones se acumulan y
@@ -1402,6 +1403,15 @@ async def startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id")
     await db.audit_logs.create_index("ts")
+    # P2.3 · índices que faltaban (rapidez de consultas calientes). Idempotente.
+    try:
+        from pymongo import DESCENDING as _DESC
+        await db.market_index_snapshots.create_index([("fecha", _DESC)], name="idx_mis_fecha")
+        await db.asesor_busquedas.create_index("id", name="idx_busq_id", sparse=True)
+        await db.units.create_index("id", name="idx_units_id", sparse=True)
+        await db.units.create_index("unit_id", name="idx_units_unit_id", sparse=True)
+    except Exception as _p23e:
+        logging.warning(f"[startup] P2.3 índices fail-open: {_p23e}")
     # Seed superadmin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")

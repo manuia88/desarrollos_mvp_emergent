@@ -13,6 +13,10 @@ from typing import Any, Dict, Optional
 
 log = logging.getLogger("dmx.anonymization_engine")
 
+# P2.8 · k-anonimato CANÓNICO: una sola fuente de verdad (antes había gates con 3 y con 5).
+# Cualquier gate de privacidad por zona debe importar K_ANON_MIN, no hardcodear el número.
+K_ANON_MIN = 5
+
 # ─── PII field definitions ────────────────────────────────────────────────────
 
 # Raw PII that must NEVER appear in public responses
@@ -73,7 +77,7 @@ def strip_pii(record: Any, level: str = "public") -> Any:
 async def check_k_anonymity(
     db,
     query_params: dict,
-    k_min: int = 5,
+    k_min: int = K_ANON_MIN,  # P2.8 · default desde la constante canónica
 ) -> dict:
     """Gate aggregate zone-level queries by k-anonymity (k ≥ 5).
 

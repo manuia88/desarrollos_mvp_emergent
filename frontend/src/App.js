@@ -1099,6 +1099,11 @@ function AdvisorRoute({ Page }) {
     // Redirect home (modal will auto-open above on next render)
     return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
   }
+  // P2.15 · candado de ROL: el comprador no entra a portales profesionales (asesor/dev/studio).
+  // El backend ya devuelve 403 en los datos; esto evita exponer el shell. Defensa en profundidad.
+  if (user.role === 'buyer') {
+    return <Navigate to="/marketplace" replace />;
+  }
   return <Page user={user} onLogout={logout} />;
 }
 

@@ -302,24 +302,27 @@ async def generate_bulletin_zone(db, zone_id: str, period: str = "") -> Dict[str
 
 
 def _md_to_html(md: str) -> str:
-    """Minimal MD → HTML for bulletin web view."""
+    """Minimal MD → HTML for bulletin web view.
+    P2.12 · XSS: el contenido (puede venir de un LLM) se ESCAPA antes de envolverlo en
+    tags seguros (h1/h2/h3/li/p). Así cualquier <script>/<img onerror>/<iframe> queda
+    inerte aunque la página lo renderice con dangerouslySetInnerHTML."""
+    import html as _html
     out: List[str] = []
     for line in (md or "").splitlines():
         s = line.strip()
         if not s:
             out.append(""); continue
         if s.startswith("# "):
-            out.append(f"<h1>{s[2:]}</h1>")
+            out.append(f"<h1>{_html.escape(s[2:])}</h1>")
         elif s.startswith("## "):
-            out.append(f"<h2>{s[3:]}</h2>")
+            out.append(f"<h2>{_html.escape(s[3:])}</h2>")
         elif s.startswith("### "):
-            out.append(f"<h3>{s[4:]}</h3>")
+            out.append(f"<h3>{_html.escape(s[4:])}</h3>")
         elif s.startswith("- "):
-            out.append(f"<li>{s[2:]}</li>")
+            out.append(f"<li>{_html.escape(s[2:])}</li>")
         else:
-            # bold **x**
-            txt = s.replace("**", "")
-            out.append(f"<p>{txt}</p>")
+            # bold **x** → texto plano escapado
+            out.append(f"<p>{_html.escape(s.replace('**', ''))}</p>")
     return "\n".join(out)
 
 

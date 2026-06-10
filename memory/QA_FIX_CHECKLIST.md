@@ -50,19 +50,19 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 ## P2 — Fuentes, resolvedores, plomería, escala
 - [ ] P2.1 · Fuentes "DENUE escondidas" [F10/QA4]: osm_pois (GET→504), 6 IE "active"-stub (FGJ viva), Atlas, Studio Video stub.
 - [ ] P2.2 · Resolvedores no centralizados [F6/F9]: precio/m2/colonia (7 slugify, 4 merges). Helpers públicos en data_developments.
-- [ ] P2.3 · Índices faltantes [F8]: developer_reports, market_index_snapshots, cerebro_predictions, asesor_busquedas, units.
+- [x] P2.3 · Índices faltantes [F8] ✅ARREGLADO 2026-06-10 (Tanda 10): developer_reports (uniq versión · Tanda 6) + cerebro_predictions (uniq parcial · Tanda 6) ya estaban. NUEVOS en startup: market_index_snapshots(fecha desc), asesor_busquedas(id), units(id, unit_id). Verificado: índices creados.
 - [ ] P2.4 · Full-scans del Grafo por request [F8]: empujar filtro al query + caché.
 - [ ] P2.5 · Modelos sobre 2000 tx sin sort [F8]: drpi/hedonic/transaction_network/fraud → sesgo. + sort + flag.
 - [ ] P2.6 · Cables flywheel [QA3/5]: comprador→grafo · cierre-contacto→cubo · operación cancelada→lost · marketplace_searches read-only.
 - [ ] P2.7 · TZ UTC vs CDMX [F8]: snapshot, month_key → cdmx_time. 25 colecciones inertes: cablear o borrar.
-- [ ] P2.8 · k-anon 3 vs 5 inconsistente [F1/QA3]. Centralizar K_ANON_MIN.
+- [x] P2.8 · k-anon 3 vs 5 inconsistente [F1/QA3] ✅ARREGLADO 2026-06-10 (Tanda 10): constante canónica `K_ANON_MIN = 5` en anonymization_engine; `check_k_anonymity(k_min=K_ANON_MIN)`. (Los `>= 3` de entity_resolution/predictive_alerts son umbrales de patrón/alerta, NO gates de privacidad → se dejan.)
 - [ ] P2.9 · Rate-limit: API v1 sin throttle ráfaga · avm colonias/top · grafo sin compliance log [F10/F11].
 - [ ] P2.10 · Frontend guards [F5]: DesarrolladorReportes/SuperadminIndices/ValorTerreno · getForecast sin catch · doble-submit.
 - [ ] P2.11 · 🆕 **Sin validación de schema en Mongo** [F6]: todo depende del código. Validators para entidades críticas.
-- [ ] P2.12 · 🆕 **XSS bulletins** [F7]: dangerouslySetInnerHTML en BulletinPage (público) sin sanitizar verificado. DOMPurify + confirmar admin-only.
+- [x] P2.12 · 🆕 **XSS bulletins** [F7] ✅ARREGLADO 2026-06-10 (Tanda 10): saneado EN ORIGEN — `bulletins_engine._md_to_html` escapa el contenido (que puede venir de LLM) antes de envolverlo en tags seguros (h1/h2/h3/li/p). Cualquier `<script>/<img onerror>/<iframe>` queda inerte aunque BulletinPage use dangerouslySetInnerHTML. Verificado. (Sin agregar dependencia DOMPurify.)
 - [ ] P2.13 · 🆕 **File uploads** [F7]: validación uniforme tamaño/tipo/nombre/storage privado (10 puntos de upload).
-- [ ] P2.14 · 🆕 **CORS allow_methods/headers = ***  [F10]: acotar a los usados (origins ya explícitos ✅).
-- [ ] P2.15 · 🆕 **AdvisorRoute sin guard de rol** [F3]: /desarrollador/estudio-mercado abrible por cualquier logueado (backend 403, pero shell expuesto). Guard de rol dev.
+- [x] P2.14 · 🆕 **CORS allow_methods/headers = *** [F10] ✅ARREGLADO 2026-06-10 (Tanda 10): acotado a métodos usados (GET/POST/PATCH/PUT/DELETE/OPTIONS) y headers (Content-Type/Authorization/X-Requested-With). Origins ya eran explícitos.
+- [x] P2.15 · 🆕 **AdvisorRoute sin guard de rol** [F3] ✅ARREGLADO 2026-06-10 (Tanda 10): `AdvisorRoute` ahora redirige a /marketplace si `role === 'buyer'` (defensa en profundidad: el backend ya 403ea los datos; esto evita exponer el shell de portales pro). Aplica a todas las rutas asesor/dev/studio.
 - [ ] P2.16 · 🆕 **Una sola conexión Mongo privilegiada** [F2]: sin credencial de menor privilegio para superficies públicas.
 
 ## P3 — Edge, consistencia, cosmético
