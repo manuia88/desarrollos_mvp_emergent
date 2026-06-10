@@ -44,6 +44,62 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _period_shift(period: str, months_back: int) -> Optional[str]:
+    """'YYYY-MM' desplazado N meses hacia atrás."""
+    try:
+        y, m = (int(x) for x in period.split("-")[:2])
+        idx = y * 12 + (m - 1) - months_back
+        return f"{idx // 12:04d}-{idx % 12 + 1:02d}"
+    except Exception:
+        return None
+
+
+def _period_diff_months(p_old: str, p_new: str) -> int:
+    try:
+        yo, mo = (int(x) for x in p_old.split("-")[:2])
+        yn, mn = (int(x) for x in p_new.split("-")[:2])
+        return (yn * 12 + mn) - (yo * 12 + mo)
+    except Exception:
+        return 0
+
+
+async def _drpi_yoy_pct(db, zone_id: str) -> Optional[float]:
+    """P1.2 · Apreciación ANUAL real (year-over-year) desde el índice DRPI.
+    Compara el índice más reciente vs el de ~12 meses atrás. Si no hay punto exacto a 12m,
+    anualiza el cambio total sobre los meses transcurridos. None si no hay historia suficiente."""
+    try:
+        latest = await db.drpi_snapshots.find_one(
+            {"zone_id": zone_id, "available": True},
+            {"_id": 0, "index_value": 1, "period": 1},
+            sort=[("computed_at_dt", -1)],
+        )
+        if not latest or not latest.get("index_value") or not latest.get("period"):
+            return None
+        period = latest["period"]
+        year_ago = _period_shift(period, 12)
+        if year_ago:
+            prev = await db.drpi_snapshots.find_one(
+                {"zone_id": zone_id, "available": True, "period": year_ago},
+                {"_id": 0, "index_value": 1},
+            )
+            if prev and prev.get("index_value"):
+                return (latest["index_value"] / prev["index_value"] - 1) * 100.0
+        # Fallback: el más antiguo disponible, anualizado por los meses transcurridos.
+        oldest = await db.drpi_snapshots.find_one(
+            {"zone_id": zone_id, "available": True},
+            {"_id": 0, "index_value": 1, "period": 1},
+            sort=[("computed_at_dt", 1)],
+        )
+        if oldest and oldest.get("index_value") and oldest.get("period") != period:
+            months = _period_diff_months(oldest["period"], period)
+            if months >= 1:
+                total = latest["index_value"] / oldest["index_value"]
+                return (total ** (12.0 / months) - 1) * 100.0
+        return None
+    except Exception:
+        return None
+
+
 def _new_id(prefix: str = "vp") -> str:
     return f"{prefix}_{secrets.token_urlsafe(8)}"
 
@@ -165,21 +221,55 @@ async def compute_avm(
             })
         if comps_payload:
             sources.append("transaction_network_w32")
-            # If no hedonic, derive from median comparable price/m²
-            if pm2 is None and comps_payload:
-                pm2_list = [
-                    (c["closing_price_mxn"] / c["m2"])
-                    for c in comps_payload
-                    if c.get("m2") and c.get("closing_price_mxn")
-                ]
-                if pm2_list:
-                    pm2_list.sort()
-                    pm2 = pm2_list[len(pm2_list) // 2]
-                    pm2_low = pm2 * 0.92
-                    pm2_high = pm2 * 1.08
-                    confidence = max(confidence, 60)
     except Exception as e:
         log.warning(f"[avm] comparables lookup failed: {e}")
+
+    # Mediana de comparables (siempre) — baseline para validar el hedónico y fallback.
+    comps_median_pm2 = None
+    pm2_list = [
+        (c["closing_price_mxn"] / c["m2"])
+        for c in comps_payload
+        if c.get("m2") and c.get("closing_price_mxn")
+    ]
+    if pm2_list:
+        pm2_list.sort()
+        comps_median_pm2 = pm2_list[len(pm2_list) // 2]
+
+    # If no hedonic, derive from median comparable price/m²
+    if pm2 is None and comps_median_pm2:
+        pm2 = comps_median_pm2
+        pm2_low = pm2 * 0.92
+        pm2_high = pm2 * 1.08
+        confidence = max(confidence, 60)
+
+    # ── P1.4 · GUARD de cordura del hedónico (mismo patrón que avm_public) ──
+    # Rechaza la predicción hedónica si r² es muy bajo (<0.20) o si diverge >3× del comparable.
+    # Evita valuaciones absurdas (ej. 8×) en el AVM BANCARIO (pre-originación de crédito).
+    if hed_pred and pm2 is not None:
+        r2_ok = (r2 is None) or (float(r2) >= 0.20)
+        ratio_ok = True
+        if comps_median_pm2 and comps_median_pm2 > 0:
+            ratio = pm2 / comps_median_pm2
+            ratio_ok = 0.30 <= ratio <= 3.0
+        if not (r2_ok and ratio_ok):
+            log.info(
+                f"[avm] hedónico rechazado (baja calidad) zone={zone_id} "
+                f"r2={r2} pm2={pm2} comps_med={comps_median_pm2} · fallback comparables"
+            )
+            if "hedonic_w33" in sources:
+                sources.remove("hedonic_w33")
+            if comps_median_pm2:
+                pm2 = comps_median_pm2
+                pm2_low = comps_median_pm2 * 0.92
+                pm2_high = comps_median_pm2 * 1.08
+                confidence = 55
+            else:
+                # Sin comparables para validar y modelo malo → NO afirmamos un valor de banco.
+                return {
+                    "available": False, "reason": "hedonic_low_quality_no_comps",
+                    "zone_id": zone_id, "r_squared": r2,
+                    "methodology_version": METHODOLOGY_VERSION, "computed_at": _iso(),
+                }
 
     if pm2 is None:
         return {
@@ -595,16 +685,14 @@ async def compute_investor_yield(
     cash_flow = noi - annual_debt
     cash_on_cash_pct = round((cash_flow / equity) * 100, 2) if equity > 0 else 0
 
-    # 4) DRPI appreciation projection
-    drpi_growth_pct_annual = 6.5  # default CDMX historical
-    drpi_snap = await db.drpi_snapshots.find_one(
-        {"zone_id": avm["zone_id"]},
-        {"_id": 0, "yoy_change_pct": 1, "tendency": 1},
-        sort=[("computed_at_dt", -1)],
-    )
+    # 4) DRPI appreciation projection · P1.2 · apreciación ANUAL real (YoY) desde el índice DRPI.
+    # Antes leía `yoy_change_pct` (campo inexistente; drpi_snapshots guarda `delta_pct` mes-a-mes)
+    # → siempre caía al default 6.5% y nunca citaba la fuente. Ahora se computa el YoY verdadero.
+    drpi_growth_pct_annual = 6.5  # default CDMX historical (fallback honesto si no hay índice)
     sources = list(avm.get("data_sources") or [])
-    if drpi_snap and drpi_snap.get("yoy_change_pct") is not None:
-        drpi_growth_pct_annual = max(-5, min(20, float(drpi_snap["yoy_change_pct"])))
+    drpi_yoy = await _drpi_yoy_pct(db, avm["zone_id"])
+    if drpi_yoy is not None:
+        drpi_growth_pct_annual = max(-5, min(20, float(drpi_yoy)))
         sources.append("drpi_w33")
 
     growth = drpi_growth_pct_annual / 100

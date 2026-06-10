@@ -57,6 +57,15 @@ async def ensure_learning_indexes(db):
     await p.create_index([("tenant_id", 1), ("kind", 1), ("resolved", 1)])
     await p.create_index([("tenant_id", 1), ("ref", 1), ("resolved", 1)])
     await p.create_index("id", unique=True)
+    # P1.6 · candado de concurrencia: 1 sola predicción ABIERTA por (tenant, ref, kind).
+    # Índice único parcial (solo sobre resolved:False) → el dedup deja de ser read-then-write.
+    try:
+        await p.create_index(
+            [("tenant_id", 1), ("ref", 1), ("kind", 1)], unique=True,
+            partialFilterExpression={"resolved": False}, name="uniq_open_pred",
+        )
+    except Exception:
+        pass
     try:
         await p.create_index("expires_at", expireAfterSeconds=0)
     except Exception:
@@ -85,6 +94,10 @@ async def log_prediction(db, user, *, kind, predicted, ref=None, meta=None):
     try:
         await db[CEREBRO_PREDICTIONS].insert_one(dict(doc))
     except Exception as e:
+        # P1.6 · si el índice único parcial rechaza el duplicado, ya hay una predicción abierta
+        # para (tenant, ref, kind) → resultado idempotente deseado (no es un fallo).
+        if e.__class__.__name__ == "DuplicateKeyError":
+            return {"ok": True, "dedup": True}
         log.warning(f"[coach] log_prediction falló: {e}")
         return {"ok": False}
     return {"ok": True, "id": doc["id"]}

@@ -112,6 +112,7 @@ def _compute_scenario(
     rental_yield_annual: float,
     tier: str = "B",
     label: str = "base",
+    mortgage_rate_override: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Computa un escenario financiero completo."""
     enganche = precio_entrada * (1 - financiamiento_pct)
@@ -119,8 +120,10 @@ def _compute_scenario(
     gastos_cierre = precio_entrada * 0.065  # 6.5% avg notaría+IVA+ISR
     inversion_inicial = enganche + gastos_cierre
 
-    # Monthly mortgage payment
-    pago_mensual = _pmt(_mortgage_rate(), plazo_meses, credito)
+    # Monthly mortgage payment · P1.1 · permite override de tasa (escenario alza de tasas
+    # consistente: TIR/ROI/break-even reflejan la tasa estresada, no solo el pago de cabecera).
+    rate = _mortgage_rate() if mortgage_rate_override is None else mortgage_rate_override
+    pago_mensual = _pmt(rate, plazo_meses, credito)
 
     # Aprec price trajectory
     precio_final = precio_entrada * ((1 + aprec_annual) ** (plazo_meses / 12))
@@ -457,16 +460,13 @@ async def stress_test(scenario_bundle: Dict[str, Any]) -> Dict[str, Any]:
         max(0, base_rates["conservador"] - 0.03),
         rental_yield * 0.85, tier, "recesion",
     )
+    # P1.1 · alza de tasas: el escenario COMPLETO usa la tasa +300bps (antes solo se parchaba
+    # el pago de cabecera y la TIR/ROI quedaban iguales a base → engañoso).
     alza_tasas_s = _compute_scenario(
         precio, plazo, m2, fin_pct,
         base_rates["base"],
         rental_yield * 0.9, tier, "alza_tasas",
-    )
-    # Re-compute with higher mortgage rate
-    orig_rate = _mortgage_rate()
-    import buyer_coach_engine  # avoid circular
-    alza_tasas_s["pago_mensual_hipoteca"] = round(
-        _pmt(orig_rate + 0.03, plazo, precio * fin_pct), 0
+        mortgage_rate_override=_mortgage_rate() + 0.03,
     )
 
     supply_shock = _compute_scenario(

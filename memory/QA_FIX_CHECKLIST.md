@@ -30,14 +30,14 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 - [x] P0.12 · 🆕 **Cadenas de ataque** ✅CERRADO 2026-06-10 (vía P0.1-P0.6): las 4 cadenas (funnel→IDOR dump · mutación inventario · admin default · Stripe→tier enterprise) quedan cortadas por los fixes de Tanda 1-2 ya verificados.
 
 ## P1 — Dinero correcto + auth + integridad
-- [ ] P1.1 · IRR pago-bala (+3pp) + break-even falso + ROI +96% en recesión [F8/QA5]. Reusar _compute_tir_anualizada.
-- [ ] P1.2 · DRPI lee yoy_change_pct, campo es delta_pct → apreciación siempre 6.5% [QA5].
-- [ ] P1.3 · stress_test firma incompatible → 10% score inversión = 50 [F5].
-- [ ] P1.4 · compute_avm sin guard r² → valuación 101M (8×) ✅EJEC [QA5]. Copiar guard de avm_public.
-- [ ] P1.5 · gap stock−flujo · sellout /12 · renta neta como bruta [QA3/5].
-- [ ] P1.6 · Concurrencia ✅EJEC: versión estudio + registrar_prediccion sin índice único → duplicados. Índice único + CAS.
-- [ ] P1.7 · "vendido" forkeado (~10 sitios) + "vendida" femenino invisible [F6]. Importar is_sold + incluir vendida.
-- [ ] P1.8 · Cubo congelado en seed (override no propaga: dev 23% vs cubo 14%) + 5 fórmulas de absorción [F1/F6].
+- [~] P1.1 · IRR pago-bala (+3pp) + break-even falso + ROI +96% en recesión [F8/QA5]. **PARCIAL Tanda 6:** ✅arreglado el "pago-bala +3pp" — el escenario de alza de tasas ahora usa la tasa +300bps en TODO (TIR/ROI/break-even), no solo en el pago de cabecera (`_compute_scenario(mortgage_rate_override=...)`). Verificado: base TIR 7.93% vs alza_tasas 5.52%. ⏸️ DIFERIDO (necesita TU decisión de método): ROI +480%/recesión (ROI sobre capital inicial chico ignorando que la hipoteca se paga) + break-even que ignora la hipoteca. Son rulings de metodología, no bugs mecánicos.
+- [x] P1.2 · DRPI lee yoy_change_pct → siempre 6.5% ✅ARREGLADO Tanda 6: `drpi_snapshots` no tiene `yoy_change_pct` (guarda `delta_pct` mes-a-mes). Nuevo `_drpi_yoy_pct()` computa la apreciación ANUAL real del índice (vs 12 meses atrás · fallback anualizado). Solo cita "drpi_w33" cuando hay índice real. Verificado: None honesto con BD vacía.
+- [x] P1.3 · stress_test firma incompatible → score inversión = 50 ✅ARREGLADO Tanda 6: el caller (score_inversion) pasaba `db`+kwargs; stress_test espera UN `scenario_bundle` dict → TypeError siempre → stress=None → componente caía a 50. Ahora pasa el dict con `tier_zona` resuelto. Verificado: corre y devuelve 3 shocks.
+- [x] P1.4 · compute_avm sin guard r² → valuación 8× ✅ARREGLADO Tanda 6: el AVM BANCARIO (vertical_products) usaba el hedónico crudo sin candado. Copiado el patrón de avm_public: rechaza si r²<0.20 O si diverge >3× de la mediana de comparables → cae a comparables; sin comparables para validar y modelo malo → NO afirma valor (`available:false`). Verificado: import OK.
+- [ ] P1.5 · gap stock−flujo · sellout /12 · renta neta como bruta [QA3/5]. ⏸️ DIFERIDO Tanda 7 (varios motores · 'renta neta como bruta' y 'sellout/12' tocan números de cabecera → revisar con cuidado).
+- [x] P1.6 · Concurrencia ✅ARREGLADO Tanda 6: (a) `cerebro_predictions` con índice único PARCIAL (tenant,ref,kind WHERE resolved:false) + log_prediction trata DuplicateKey como dedup idempotente → 2 concurrentes = 1 abierta (verificado). (b) `developer_reports` con índice único (owner,type,colonia,version) + CAS con reintento en guardar_estudio. Ambos índices verificados creados.
+- [~] P1.7 · "vendido" forkeado + "vendida" femenino [F6]. **PARCIAL Tanda 6:** ✅arreglado el femenino invisible — `SOLD_STATUSES`/`RESERVED_STATUSES` ahora incluyen vendida/cerrada/reservada/apartada (is_sold ya no subcontaba). Verificado. ⏸️ DIFERIDO Tanda 7: barrido de los ~20 sitios que comparan `== "vendido"` directo en vez de usar is_sold (la mayoría sobre seed donde el status es siempre "vendido").
+- [ ] P1.8 · Cubo congelado en seed (override no propaga: dev 23% vs cubo 14%) + 5 fórmulas de absorción [F1/F6]. ⏸️ DIFERIDO Tanda 7 (interrelacionado con migración seed→real).
 - [ ] P1.9 · 🆕 **Sin rate-limit en login** [F3/F10]: fuerza bruta. Reusar _rate_limit_check.
 - [x] P1.10 · **JWT_SECRET default efímero** ✅ARREGLADO (Tanda 2): `_prod_env_guard` aborta en prod si falta JWT_SECRET.
 - [ ] P1.11 · 🆕 **Logout no invalida token** (JWT stateless) [F3]: blocklist/TTL corto + refresh rotación.

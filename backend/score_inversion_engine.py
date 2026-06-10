@@ -163,14 +163,24 @@ async def _fetch_factors(
     except Exception as exc:
         log.debug(f"[score_inv] demand failed: {exc}")
 
-    # Stress test
+    # Stress test · P1.3 · stress_test recibe UN scenario_bundle (dict), no db+kwargs sueltos.
+    # Antes lanzaba TypeError siempre → stress_doc=None → el componente de stress del score caía a 50.
     try:
         from investment_simulator_engine import stress_test
-        st = await stress_test(
-            db,
-            precio_entrada=precio, plazo_meses=plazo_meses, m2=m2,
-            colonia_slug=colonia_slug,
-        )
+        tier_zona = "B"
+        try:
+            if isinstance(base, dict) and base.get("tier"):
+                tier_zona = base["tier"]
+            elif isinstance(zone_doc, dict):
+                tier_zona = zone_doc.get("tier") or zone_doc.get("tier_zona") or "B"
+        except Exception:
+            pass
+        st = await stress_test({
+            "precio_entrada": precio,
+            "plazo_meses": plazo_meses,
+            "m2": m2,
+            "tier_zona": tier_zona,
+        })
         stress_doc = st
     except Exception as exc:
         log.debug(f"[score_inv] stress failed: {exc}")

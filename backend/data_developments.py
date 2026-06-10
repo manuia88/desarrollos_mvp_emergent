@@ -652,8 +652,9 @@ ALL_UNITS = [u for d in DEVELOPMENTS for u in d["units"]]
 # ── Vocabulario CANÓNICO de estatus (un solo set para dev + comprador + superadmin) ──
 # Antes divergían: el dev contaba solo "vendido"; el cubo del comprador contaba vendido/sold/
 # cerrado/closed. Con datos reales eso daba absorciones distintas del MISMO proyecto.
-SOLD_STATUSES = ("vendido", "sold", "cerrado", "closed")
-RESERVED_STATUSES = ("reservado", "reserved", "apartado")
+# P1.7 · incluye femenino ("unidad vendida/cerrada/reservada") — antes invisible → subcontaba ventas.
+SOLD_STATUSES = ("vendido", "vendida", "sold", "cerrado", "cerrada", "closed")
+RESERVED_STATUSES = ("reservado", "reservada", "reserved", "apartado", "apartada")
 AVAILABLE_STATUSES = ("disponible", "available")
 
 

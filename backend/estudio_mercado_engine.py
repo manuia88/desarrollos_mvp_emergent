@@ -372,29 +372,62 @@ def snapshot_estudio(est: dict) -> Dict[str, Any]:
     }
 
 
+_estudio_index_ready = False
+
+
+async def _ensure_estudio_version_index(db) -> None:
+    """P1.6 · índice único parcial de versión (1 vez por proceso). No rompe si ya existe."""
+    global _estudio_index_ready
+    if _estudio_index_ready:
+        return
+    try:
+        await db.developer_reports.create_index(
+            [("owner_id", 1), ("type", 1), ("colonia_id", 1), ("version", 1)],
+            unique=True, partialFilterExpression={"type": "estudio"},
+            name="uniq_estudio_version",
+        )
+    except Exception as e:
+        log.warning(f"[estudio.guardar] index fail-open: {e}")
+    _estudio_index_ready = True
+
+
 async def guardar_estudio(db, owner_id: str, colonia_id: str, categoria: str = "media") -> Dict[str, Any]:
     """Guarda una versión fechada del estudio en db.developer_reports (type=estudio) + registra
     la predicción de demanda en el Cerebro del Mercado. Reusado por la ruta y el autopiloto. FAIL-OPEN."""
     from datetime import datetime as _dt, timezone as _tz
     import uuid as _uuid
     est = await generar_estudio(db, colonia_id, categoria)
-    prev = await db.developer_reports.count_documents(
-        {"owner_id": owner_id, "type": "estudio", "colonia_id": colonia_id})
-    doc = {
-        "id": f"est_{_uuid.uuid4().hex[:12]}",
+    await _ensure_estudio_version_index(db)
+    base = {
         "owner_id": owner_id,
         "type": "estudio",
         "colonia_id": colonia_id,
         "colonia": est.get("colonia"),
         "categoria": categoria,
-        "version": prev + 1,
         "snapshot": snapshot_estudio(est),
         "veredicto": (est.get("veredicto") or [])[:6],
         "es_estimado": est.get("es_estimado", True),
         "generated_at": _dt.now(_tz.utc).isoformat(),
     }
-    await db.developer_reports.insert_one(dict(doc))
-    doc.pop("_id", None)
+    # P1.6 · versión con CAS: el índice único (owner,type,colonia,version) evita versiones
+    # duplicadas si dos guardados corren a la vez. Reintenta recalculando la versión.
+    doc = None
+    for _ in range(6):
+        prev = await db.developer_reports.count_documents(
+            {"owner_id": owner_id, "type": "estudio", "colonia_id": colonia_id})
+        cand = {**base, "id": f"est_{_uuid.uuid4().hex[:12]}", "version": prev + 1}
+        try:
+            await db.developer_reports.insert_one(dict(cand))
+            doc = cand
+            doc.pop("_id", None)
+            break
+        except Exception as e:
+            if e.__class__.__name__ == "DuplicateKeyError":
+                continue  # otra escritura ganó esta versión → recalcula y reintenta
+            raise
+    if doc is None:
+        log.warning("[estudio.guardar] no se pudo asignar versión única tras reintentos")
+        return {**base, "id": f"est_{_uuid.uuid4().hex[:12]}", "version": None}
     try:
         from cerebro_mercado_engine import registrar_prediccion
         dt_total = (doc["snapshot"] or {}).get("demanda_total")
