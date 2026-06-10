@@ -203,7 +203,12 @@ APLICABA hacia adelante para guiar decisiones.
   - Endpoint GET /api/dev/simulador-palancas/factores + /simulador-palancas?factor=&de=&a= (de/a string).
   - Frontend: panel "Qué Pasaría Si" ahora con selector de factor + opciones dinámicas (DesarrolladorEstudioMercado.js) · api.getSimuladorFactores. Build-for-endstate: factores sin venta suficiente dicen "se prende solo con datos" (ej. terraza hoy).
   - Smoke real verde: precio Premium→Medio −3 pts · bodega/piso/estacionamiento con dato · terraza honesto sin dato. Frontend 1 warning (limpio).
-- [ ] 4.3 Despertar: cablear el Simulador al Generador de Producto (F2.2) — impacto de la mezcla recomendada · 🔄
+**F4.3 Palancas aprendidas dentro del Generador de Producto** — ✅ 2026-06-10
+- [x] 4.3 Cada tipología de la mezcla muestra su % de venta esperada (dato causal) · Back+Front · ✅
+- ARCHIVOS F4.3:
+  - `backend/generador_producto_engine.py` — generar_producto ahora enchufa lifts_por_factor("recamaras") (Cerebro F4.2): a cada item de la mezcla le agrega `venta_esperada_pct` + `lift_pp`. FAIL-OPEN (solo si hay dato suficiente). REUSO puro, sin motor nuevo.
+  - Frontend: chip "🧠 Venta esperada ~X% (±pts vs promedio · según ventas reales)" por tipología en GeneradorProducto (DesarrolladorValorTerreno.js).
+  - Despierta la conexión Cerebro↔Generador: "Qué Construir Aquí" ya no dice solo qué construir sino qué tan rápido se vende cada parte. Smoke real verde (1R/2R/3R con 15/13/15%). Frontend 1 warning (limpio).
 - [ ] 4.4 Drift/alertas: cuando la calibración empeora, avisa a superadmin · 🔄
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral

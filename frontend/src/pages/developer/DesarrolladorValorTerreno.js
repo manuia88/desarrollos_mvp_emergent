@@ -513,6 +513,17 @@ function GeneradorProducto({ gen }) {
               {m.segmento_objetivo && <span>· Para: {m.segmento_objetivo}</span>}
               {(m.amenidades || []).length > 0 && <span>· {m.amenidades.join(', ')}</span>}
             </div>
+            {m.venta_esperada_pct != null && (
+              <div style={{ marginTop: 6, fontSize: 11.5, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                🧠 Venta esperada <b style={{ color: '#e2e8f0' }}>~{m.venta_esperada_pct}%</b>
+                {m.lift_pp != null && (
+                  <span style={{ color: m.lift_pp > 0 ? '#86efac' : (m.lift_pp < 0 ? '#fca5a5' : '#94a3b8') }}>
+                    ({m.lift_pp > 0 ? '+' : ''}{m.lift_pp} pts vs promedio)
+                  </span>
+                )}
+                <span style={{ color: '#64748b' }}>· según ventas reales</span>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -151,6 +151,24 @@ async def generar_producto(db, colonia_id: Optional[str], terreno_m2: float,
             "demanda_n": int(pesos[rec]) if not es_estimado else None,
         })
 
+    # F4.3 · Enchufa las palancas APRENDIDAS: % de venta esperada por nº de recámaras (Cerebro). FAIL-OPEN.
+    try:
+        from cerebro_mercado_engine import lifts_por_factor
+        lf = await lifts_por_factor(db, "recamaras")
+        if lf.get("suficiente_dato"):
+            rate_by_rec = {}
+            for o in (lf.get("opciones") or []):
+                try:
+                    rate_by_rec[int(str(o["valor"]).split()[0])] = (o["vendido_pct"], o["lift_pp"])
+                except (ValueError, IndexError, KeyError):
+                    pass
+            for m in mezcla:
+                vr = rate_by_rec.get(m.get("recamaras"))
+                if vr:
+                    m["venta_esperada_pct"], m["lift_pp"] = vr[0], vr[1]
+    except Exception as e:
+        log.warning(f"[generador] palancas fail-open: {e}")
+
     total_unidades = sum(m["unidades"] for m in mezcla)
     ingreso_est = sum(m["unidades"] * (m["precio_tipico"] or 0) for m in mezcla) or None
 
