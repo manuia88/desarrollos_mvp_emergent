@@ -2,6 +2,28 @@
 
 ---
 
+## 🧠 FASE F2.x · EL CEREBRO DEL MERCADO (lado de la demanda) ✅ COMPLETA (2026-06-09)
+Segunda fase del "Modelo del Mundo DMX": del SUELO (F1) pasamos a la DEMANDA. Responde, con dato real y agregado, ¿quién compra qué dónde? → ¿qué construir? → ¿se venderá? → ¿a quién y con qué tono? → ¿cuánto vale el mercado como producto de datos? Front+back conectados, IA-first, k-anónimo, cierra ciclos, reuso total (grep antes de construir). Doc canónico vivo: **`memory/F2X_BUILD_PLAN.md`**.
+
+| Chunk | Qué hace | Front + Back | Checkpoint |
+|---|---|---|---|
+| **F2.1** | Grafo del Comprador: demanda real por colonia × segmento (revealed preference, k-anónimo K≥3) · 3 portales | `grafo_comprador_engine.py` + rutas dev/asesor/superadmin | `checkpoint-f2.1` |
+| **F2.2** | Generador de Producto (HBU): qué construir aquí, mezcla calibrada por el Grafo | `generador_producto_engine.py` + Valor de Terreno | — |
+| **F2.3** | Insights de unidad: prob. de venta v2 (encaje con demanda) + inversión + días | `unidad_insights_engine.py` + Termómetro de venta | — |
+| **F2.4** | Demanda demográfica (EPRAV): hueco de mercado vertical vs oferta | `demanda_demografica_engine.py` + tarjeta demanda | — |
+| **F2.5** | Cerebro del Mercado (killer): predice → mide vs realidad → aprende palancas | `cerebro_mercado_engine.py` + SuperadminCerebroMercado | `checkpoint-f2.5` |
+| **F2.6** | Estudio de Mercado Vivo: por colonia + por punto/radio (microzona) con gate de representatividad | `estudio_mercado_engine.py` + DesarrolladorEstudioMercado | `checkpoint-f2.6` |
+| **F2.7** | Curva de absorción por cohorte + comparables (reusa `is_sold` canónico) | `absorcion_engine.py` + sección estudio | `checkpoint-f2.7` |
+| **F2.8** | Perfil de zona unificado (score+ciclo+servicios+qué le falta) sobre taxonomía OSM | `perfil_zona_engine.py` + sección estudio | `checkpoint-f2.8` |
+| **F2.9** | Ranker de amenidades (precio hedónico vs deseo) + cuota recomendada | `amenidades_engine.py` + sección estudio | `checkpoint-f2.9` |
+| **F2.10** | Memo de inversionista: yield + perfil de inquilino + comercio en PB | `inversionista_engine.py` + sección estudio | `checkpoint-f2.10` |
+| **F2.11** | Deseabilidad de unidad ("5 opciones" 4S) + perfil psicográfico (tono de marketing) | `preferencias_engine.py` + Termómetro + Tono de Marketing | `checkpoint-f2.11` |
+| **F2.12** | Terminal de Mercado CDMX: oferta (cubo) + 3 índices vendibles (Obra/Absorción/Gestión) + demanda + aprendizaje · data utility k-anónima | `terminal_mercado_engine.py` + SuperadminTerminalMercado + 2 bundles data_licensing | `checkpoint-f2.12` |
+
+**Cierra:** los 4 portales consumen el mismo átomo + motores; superadmin lo agrega (k-anónimo) y lo vuelve producto vendible. DENUE muerto eliminado, todo migrado a OSM. 12 batches, reuso total, cero deuda.
+
+---
+
 ## 🏗️ FASE F1 · AUTOPILOTO DE UNDERWRITING DEL TERRENO ✅ COMPLETA (2026-06-09)
 Primera fase del "Modelo del Mundo DMX" para el dev. Responde, en una pantalla limpia, todo el ciclo de decisión del SUELO: cuánto pagar → qué revisar → cómo ganar más. Front+back conectados, IA-first, Doctrina de Datos en cada número, calibrado vs caso real. Doc canónico vivo: **`memory/DEV_UNDERWRITING_WORLD_MODEL.md`**.
 
