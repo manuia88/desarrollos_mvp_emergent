@@ -41,7 +41,10 @@ def _now() -> datetime:
 
 
 def _period_now() -> str:
-    n = _now()
+    # P2.7 · el periodo (YYYY-MM) del snapshot DRPI es en hora CDMX (antes UTC → snapshot
+    # de fin de mes en la noche caía al mes siguiente).
+    from cdmx_time import now_cdmx
+    n = now_cdmx()
     return f"{n.year}-{n.month:02d}"
 
 

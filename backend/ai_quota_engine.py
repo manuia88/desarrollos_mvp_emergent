@@ -63,8 +63,12 @@ class QuotaExceededError(Exception):
 
 
 def _now_iso():
+    # P2.7 · now en UTC (para timestamps) pero las CLAVES diaria/mensual en hora CDMX
+    # (antes UTC → la cuota diaria/mensual se reiniciaba a las 6pm CDMX, no a medianoche local).
+    from cdmx_time import now_cdmx
     now = datetime.now(timezone.utc)
-    return now, now.strftime("%Y-%m-%d"), now.strftime("%Y-%m")
+    c = now_cdmx()
+    return now, c.strftime("%Y-%m-%d"), c.strftime("%Y-%m")
 
 
 async def get_user_tier(db, user_id: str) -> str:

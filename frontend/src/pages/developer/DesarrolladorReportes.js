@@ -262,9 +262,15 @@ function AbsorptionTab() {
 // ═════════════════════════════════════════════════════════════════════════════
 function ForecastTab() {
   const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
   const [mode, setMode] = useState('individual'); // individual | consolidated
 
-  useEffect(() => { api.getForecast().then(setData); }, []);
+  // P2.10 · getForecast sin catch → si fallaba, promesa rechazada sin manejar y la vista
+  // se quedaba en "Cargando…" para siempre. Ahora muestra error y no crashea.
+  useEffect(() => {
+    api.getForecast().then(setData).catch(e => setErr(e?.body?.detail || e?.message || 'No se pudo cargar el pronóstico'));
+  }, []);
+  if (err) return <Card style={{ padding: 60, textAlign: 'center', color: '#FCA5A5' }}>{err}</Card>;
   if (!data) return <Card style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</Card>;
 
   const rows = data.rows || [];

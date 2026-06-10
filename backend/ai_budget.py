@@ -53,7 +53,9 @@ def _cost_usd(model: str, tokens_in: int, tokens_out: int) -> float:
 
 
 def _month_iso() -> str:
-    now = datetime.now(timezone.utc)
+    # P2.7 · el mes contable es en hora CDMX (antes UTC → a las 11pm CDMX caía al mes siguiente).
+    from cdmx_time import now_cdmx
+    now = now_cdmx()
     return f"{now.year}-{now.month:02d}"
 
 
