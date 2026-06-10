@@ -133,10 +133,19 @@ async def unit_insights(db, dev: dict, unit: dict) -> Dict[str, Any]:
     if alta:
         dias = max(0, (datetime.now(timezone.utc) - alta).days)
 
+    # ── deseabilidad de la unidad (F2.11 · qué tan elegible vs otras al mismo precio) ──
+    deseabilidad = None
+    try:
+        from preferencias_engine import score_deseabilidad
+        deseabilidad = await score_deseabilidad(db, unit, dev)
+    except Exception as e:
+        log.warning(f"[unit_insights] deseabilidad fail-open: {e}")
+
     return {
         "unit_id": unit.get("unit_id") or unit.get("id"),
         "prob_venta": prob,
         "inversion": inversion,
         "dias_en_mercado": dias,
+        "deseabilidad": deseabilidad,
         "colonia_id": colonia_id,
     }

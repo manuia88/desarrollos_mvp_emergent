@@ -96,6 +96,31 @@ async def cuota_recomendada_ep(request: Request,
     return await recomendar_cuota(_db(request), m2, amen, colonia_id)
 
 
+@router.get("/api/dev/tono-marketing")
+async def tono_marketing_ep(request: Request, colonia_id: str = Query(...)):
+    """Tono de marketing de la zona (perfil psicográfico → insumo del copy de landings) (F2.11)."""
+    await _auth(request)
+    from data_seed import COLONIAS  # tier por colonia
+    col = next((c for c in COLONIAS if str(c.get("id")) == str(colonia_id)
+                or c.get("slug") == colonia_id), {})
+    from preferencias_engine import perfil_psicografico
+    return perfil_psicografico(col.get("tier"))
+
+
+@router.get("/api/dev/deseabilidad/{dev_id}/{unit_id}")
+async def deseabilidad_ep(request: Request, dev_id: str, unit_id: str):
+    """Deseabilidad de UNA unidad vs otras al mismo precio (estudio 4S) (F2.11)."""
+    await _auth(request)
+    from data_developments import DEVELOPMENTS
+    dev = next((d for d in DEVELOPMENTS if d["id"] == dev_id), None)
+    unit = next((u for u in (dev or {}).get("units", [])
+                 if u["id"] == unit_id or u.get("unit_number") == unit_id), None) if dev else None
+    if not dev or not unit:
+        raise HTTPException(404, "Unidad no encontrada")
+    from preferencias_engine import score_deseabilidad
+    return await score_deseabilidad(_db(request), unit, dev)
+
+
 @router.get("/api/dev/estudio-mercado/radio")
 async def estudio_mercado_radio(request: Request,
                                 lat: float = Query(..., ge=-90, le=90),

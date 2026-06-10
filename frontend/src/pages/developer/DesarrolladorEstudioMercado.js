@@ -224,6 +224,15 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {s.inversionista.comercio_pb?.razon}</div>
               </Sec>
             )}
+            {s.tono_marketing && (
+              <Sec title="TONO DE MARKETING (A QUIÉN LE HABLAS)">
+                <KV k="Comprador dominante" v={s.tono_marketing.dominante?.nombre || '—'} tone="#a5b4fc" />
+                <KV k="Tono sugerido" v={s.tono_marketing.tono_marketing || '—'} />
+                {s.tono_marketing.dominante?.enfoque && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 4 }}>Enfoque: {s.tono_marketing.dominante.enfoque}</div>}
+                <KV k="Comprador alterno" v={s.tono_marketing.alterna?.nombre || '—'} />
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 6 }}>→ {s.tono_marketing.recomendacion}</div>
+              </Sec>
+            )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{data.fuente}</div>
           </>
         );

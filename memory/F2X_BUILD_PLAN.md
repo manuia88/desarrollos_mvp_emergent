@@ -114,9 +114,14 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 ## ARCHIVOS (F2.10, hecho)
 - `backend/inversionista_engine.py` (memo_inversionista + perfil_inquilino + comercio_pb) · endpoints /api/dev/memo-inversionista y /api/dev/comercio-pb.
 - Integrado en estudio (sección "Para Inversionista + Comercio PB", usa el producto dominante). REUSO: compute_investor_yield + get_colonia_baseline + perfil_zona. Compila limpio.
-**F2.11 Marketplace "5 Opciones" + Psicográfico (B10)** — 🟡🔴 · M/B
-- [ ] 2.11.1 Ranking marketplace "5 opciones" (céntrica/vista) · Back+Front · C · 🔄
-- [ ] 2.11.2 Copy/tono de landings desde psicográfico · Back+Front · C · ▪️ (marketing)
+**F2.11 Marketplace "5 Opciones" + Psicográfico (B10)** — ✅ 2026-06-09
+- [x] 2.11.1 Ranking marketplace "5 opciones" (céntrica/vista) · Back+Front · C · ✅
+- [x] 2.11.2 Copy/tono de landings desde psicográfico · Back+Front · C · ✅
+- ARCHIVOS F2.11:
+  - `backend/preferencias_engine.py` — `score_deseabilidad(db, unit, dev, centrica)` (pesos estudio 4S: céntrica 30 · vista 25 · menos vecinos 19 · amenidades 17 · lujo 10) + `perfil_psicografico(tier)` (persona dominante+alterna + tono). REUSO: dmx_unit_schema (vista/esquina/posicion_vertical/doble_altura — NO inventa) + studio_buyer_copy_engine.PERSONAS + get_colonia_baseline (zone_score→céntrica).
+  - Endpoints: GET /api/dev/tono-marketing?colonia_id= · GET /api/dev/deseabilidad/{dev_id}/{unit_id} (routes/estudio_mercado.py).
+  - Cableado: deseabilidad integrada en unidad_insights_engine → Termómetro de venta (UnitDrawerContent.js, barra "qué tan deseable vs otras al mismo precio" + a favor/le falta). Tono integrado en generar_estudio (sección "Tono de Marketing" en DesarrolladorEstudioMercado.js).
+  - Cierra ciclo: el copy de landings nace del perfil psicográfico de la zona; el marketplace/asesor priorizan por deseabilidad. Smoke test verde + frontend 1 warning (limpio).
 **F2.12 Terminal Vendible / Data Utility (superadmin)** — 🟣 · A (al final)
 - [ ] 2.12.1 Roll-up k-anónimo de todos los devs (cubo NSE×segmento×colonia) · Back · 🔄
 - [ ] 2.12.2 Los 3 índices vendibles (obra/absorción/gestión) + terminal Bloomberg CDMX · Back+Front · S · 🔄

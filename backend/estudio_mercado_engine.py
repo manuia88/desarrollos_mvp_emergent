@@ -308,6 +308,14 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
     except Exception as e:
         log.warning(f"[estudio] inversionista fail-open: {e}")
 
+    # 10 · Tono de marketing (perfil psicográfico de la zona) (F2.11).
+    tono_marketing = None
+    try:
+        from preferencias_engine import perfil_psicografico
+        tono_marketing = perfil_psicografico(col.get("tier"))
+    except Exception as e:
+        log.warning(f"[estudio] tono_marketing fail-open: {e}")
+
     es_estimado = (dt < 10)
     return {
         "colonia_id": colonia_id, "colonia": name, "categoria": categoria,
@@ -319,6 +327,7 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
             "absorcion": absorcion,
             "amenidades": amenidades_rank,
             "inversionista": inversionista,
+            "tono_marketing": tono_marketing,
             "zona": zona,
         },
         "veredicto": veredicto,

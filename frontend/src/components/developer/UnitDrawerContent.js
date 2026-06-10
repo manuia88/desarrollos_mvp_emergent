@@ -311,6 +311,28 @@ function TermometroVentaSection({ unit, devId }) {
       <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.06)', paddingTop: 10, fontSize: 12.5, color: 'var(--cream-2)' }}>
         Días en mercado: <b style={{ color: 'var(--cream)' }}>{data.dias_en_mercado != null ? `${data.dias_en_mercado} días` : 'Sin dato aún'}</b>
       </div>
+      {data.deseabilidad && (() => {
+        const d = data.deseabilidad;
+        const dColor = { verde: '#22C55E', ambar: '#E2982E', rojo: '#ef4444' }[d.color] || 'var(--cream-2)';
+        return (
+          <div style={{ borderTop: '1px solid rgba(var(--cream-rgb),0.06)', paddingTop: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Qué tan deseable vs otras al mismo precio</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: dColor }}>{d.etiqueta} · {d.deseabilidad}%</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: 'rgba(var(--cream-rgb),0.08)' }}>
+              <div style={{ height: '100%', borderRadius: 3, width: `${d.deseabilidad || 0}%`, background: dColor, transition: 'width .4s' }} />
+            </div>
+            {(d.lo_que_la_hace_deseable || []).length > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>A favor: {d.lo_que_la_hace_deseable.join(' · ')}</div>
+            )}
+            {(d.lo_que_le_falta || []).length > 0 && (
+              <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.85)', marginTop: 2 }}>Le falta: {d.lo_que_le_falta.join(' · ')}</div>
+            )}
+            {d.es_estimado && <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.8)', marginTop: 4 }}>◐ Ubicación estimada por score de zona</div>}
+          </div>
+        );
+      })()}
     </div>
   );
 }
