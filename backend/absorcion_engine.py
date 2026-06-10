@@ -29,10 +29,16 @@ def _dev_units(d: dict):
     total = d.get("units_total") or len(units)
     sold = d.get("units_sold")
     avail = d.get("units_available")
+    # Reusa la definición CANÓNICA de "vendido" (misma que dmx_dev_benchmark) — no reinventar.
+    try:
+        from data_developments import is_sold
+    except Exception:
+        def is_sold(s):
+            return (s or "").strip().lower() in ("vendido", "sold", "cerrado", "closed")
     if sold is None:
-        sold = sum(1 for u in units if u.get("status") == "vendido")
+        sold = sum(1 for u in units if is_sold(u.get("status")))
     if avail is None:
-        avail = sum(1 for u in units if u.get("status") == "disponible")
+        avail = sum(1 for u in units if (u.get("status") or "").strip().lower() == "disponible")
     return int(total or 0), int(sold or 0), int(avail or 0)
 
 

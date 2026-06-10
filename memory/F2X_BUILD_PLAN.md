@@ -91,6 +91,7 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 ## ARCHIVOS (F2.7, hecho)
 - `backend/absorcion_engine.py` (curva_absorcion por colonia o set/radio) · integrado en estudio_mercado_engine (colonia+radio) · endpoint GET /api/dev/absorcion.
 - Front: secciones "Absorción por Cohorte" en `DesarrolladorEstudioMercado.js` (ambos modos). Verificado Polanco: Preventa 14%/31m, Construcción 16%/73m. Compila limpio.
+- **CORRECCIÓN deuda (founder cazó duplicación):** absorcion_engine ahora reusa la definición CANÓNICA `data_developments.is_sold` (misma que dmx_dev_benchmark), no un `=="vendido"` propio → un solo criterio de "vendido". Lente documentado: lee el CATÁLOGO de mercado (DEVELOPMENTS, igual que comparable_anomaly); dmx_dev_benchmark es otro lente (db.units = tus unidades). NO recalcular por separado. Regla nueva: [[feedback_grep_before_build]].
 **F2.8 Zona: Atributos + Qué Le Falta (B7)** — 🟡 · M
 - [ ] 2.8.1 Perfil de zona unificado + "qué le falta" desde DENUE · Back · 🔄
 - [ ] 2.8.2 Front: por qué se compra / ventajas-desventajas · D·C·S · 🔄
