@@ -2,6 +2,25 @@
 
 ---
 
+## 🏗️ FASE F1 · AUTOPILOTO DE UNDERWRITING DEL TERRENO ✅ COMPLETA (2026-06-09)
+Primera fase del "Modelo del Mundo DMX" para el dev. Responde, en una pantalla limpia, todo el ciclo de decisión del SUELO: cuánto pagar → qué revisar → cómo ganar más. Front+back conectados, IA-first, Doctrina de Datos en cada número, calibrado vs caso real. Doc canónico vivo: **`memory/DEV_UNDERWRITING_WORLD_MODEL.md`**.
+
+| Chunk | Qué hace | Front + Back | Checkpoint |
+|---|---|---|---|
+| **F1.0** | Poblar el SIG catastral de CDMX: 1,524 colonias deduplicadas · ~90% con COS/CUS oficial · ~91% valor de suelo | `colonias_catalog` + superadmin (sync-zonificacion/dedupe) | — |
+| **F1.1** | Doctrina de Datos VISIBLE (cross-portal): origen de cada número (dato/índice/cálculo/estimado/supuesto) + 7 reglas + modal "Cómo leemos los datos" | `data_doctrine.py` + `/api/doctrine` + `shared/DataOrigin.js` | `checkpoint-f11-doctrina` |
+| **F1.2** | Motor de Valor Residual: "¿cuánto máximo pago por este terreno?" (Ingreso − Obra − Blandos − Utilidad) | `valor_residual_engine.py` + `dev_valor_residual.py` + pantalla `Valor de Terreno` | `checkpoint-f12-valor-residual` |
+| **F1.3** | Due Diligence del Predio: "¿qué reviso antes de comprar?" (zonificación + riesgos FGJ/Atlas + legal + factibilidades + EIU dinámico) | `predio_due_diligence_engine.py` + endpoint + sección integrada | `checkpoint-f13-due-diligence` |
+| **F1.4** | Detector Norma 3: fusiones de predios rentables (colonias vecinas con más CUS → uplift en $) | `norma3_engine.py` + endpoint + sección integrada | `checkpoint-f14-norma3` |
+| **F1.5** | 1-pantalla integrada + Veredicto del lote (lectura agéntica única: orquesta los 3 motores en 1 llamada) | `lote_veredicto_engine.py` + `/analizar` + ribbon "Lo que vi en este lote" | `checkpoint-f15-veredicto` |
+| **F1.6** | Calibración vs Puente Alvarado (Doctrina regla #6): examen predicción↔realidad + aplicar valores calibrados (cierra el ciclo) | `golden_calibration_engine.py` + 2 endpoints SA + `SuperadminCalibracion.js` | `checkpoint-f16-calibracion` |
+
+**Rulings founder 2026-06-09** (en el motor, editables por el dev en «Ajustes finos»): comisión de ventas **2%** (estándar CDMX) · honorarios de desarrollo **16%** referencia (fee 10% + gerencia 6%), sin estándar único impuesto. Examen de calibración global = **CALIBRADO** (margen ✓ · comisión ✓ · obra/m² ✓; honorarios e incidencia = referencia). Tags `checkpoint-comision-2pct` + `checkpoint-honorarios-editable`.
+
+**Alcance honesto:** F1 calibra lo del TERRENO. El TIR/flujo completo del proyecto se calibra en F2 (Autopiloto de Memorándum) y F3 (gemelo financiero). **Siguiente: F2.**
+
+---
+
 ## 🎯 HONESTIDAD DE DATOS + EXPANSIÓN (Tandas A/B + EX) · EN CURSO (2026-06-07)
 Disparado tras detectar índices con coeficientes inventados. Detalle completo y checklist vivo: **`memory/MASTER_PLAN_DETALLADO.md`**.
 - ✅ **Tanda A** (honestidad): tasas oficiales (`banxico_rates`), quitar datos sintéticos, tokens+resource_ids, bug `.env.local`.

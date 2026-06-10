@@ -54,5 +54,16 @@ Falso binario "superadmin-first vs conectar-a-superadmin". La verdad:
 - [x] 5.2 Snapshots: superadmin asigna plan a tenant (PlansPanel · /plans/assign) → prende las features de un jalón. Verificado (Enterprise→constructora_ariel, 21 features).
 - [x] 5.3 Activación end-to-end: CubeIntelligence gateado por useFeatureFlag (FAIL-OPEN) → plan asignado prende cube_market_intel en /api/me/feature-flags → la lente APARECE. tag dmx-fase5-complete.
 
+### FASE F1 · Autopiloto de Underwriting del Terreno ✅ COMPLETA 2026-06-09
+Primer pilar del "Modelo del Mundo DMX" para el dev: el ciclo de decisión del SUELO en una pantalla (cuánto pagar → qué revisar → cómo ganar más). Detalle + checklist fino: **`memory/DEV_UNDERWRITING_WORLD_MODEL.md`** · tabla por chunk: **`memory/WAVE_PROGRESS.md`**.
+- [x] F1.0 Poblar SIG catastral CDMX (1,524 colonias · ~90% COS/CUS · ~91% valor suelo) — `colonias_catalog` + superadmin.
+- [x] F1.1 Doctrina de Datos visible cross-portal (`data_doctrine.py` + `/api/doctrine` + `shared/DataOrigin.js`) · tag checkpoint-f11-doctrina.
+- [x] F1.2 Motor de Valor Residual (`valor_residual_engine.py` + pantalla dev Valor de Terreno) · tag checkpoint-f12-valor-residual.
+- [x] F1.3 Due Diligence del predio (`predio_due_diligence_engine.py`, despierta riesgos FGJ/Atlas) · tag checkpoint-f13-due-diligence.
+- [x] F1.4 Detector Norma 3 / fusiones rentables (`norma3_engine.py`) · tag checkpoint-f14-norma3.
+- [x] F1.5 1-pantalla + Veredicto del lote agéntico (`lote_veredicto_engine.py` + `/analizar`) · tag checkpoint-f15-veredicto.
+- [x] F1.6 Calibración vs Puente Alvarado + aplicar (`golden_calibration_engine.py` + `SuperadminCalibracion.js`) · examen global CALIBRADO · tag checkpoint-f16-calibracion.
+- Rulings founder 2026-06-09: comisión 2% (CDMX) + honorarios 16% referencia, ambos editables. **Siguiente: F2 Autopiloto de Memorándum.**
+
 ## ARRANQUE
 Fase 0.1 (audit multi-tenant) + 0.2 (contrato de unidad milimétrico). Es el cimiento del que cuelgan superadmin, dev, asesor y la API.
