@@ -45,7 +45,6 @@ ALLOWED_MIME_PREFIXES = (
 ALLOWED_EXTS = (".csv", ".xlsx", ".xls", ".pdf")
 
 # ─── Source IDs (canonical · used as cache keys + endpoint params) ───────────
-SOURCE_INEGI_DENUE = "inegi_denue"
 SOURCE_BANXICO_SIE = "banxico_sie"
 SOURCE_DATAMEXICO = "datamexico_se"
 SOURCE_CONAVI_VIVIENDA = "conavi_vivienda"
@@ -53,7 +52,6 @@ SOURCE_SESNSP_DELITOS = "sesnsp_delitos"
 SOURCE_CENAPRED_ATLAS = "cenapred_atlas"
 
 ALL_SOURCES = [
-    SOURCE_INEGI_DENUE,
     SOURCE_BANXICO_SIE,
     SOURCE_DATAMEXICO,
     SOURCE_CONAVI_VIVIENDA,
@@ -62,7 +60,6 @@ ALL_SOURCES = [
 ]
 
 SOURCE_LABELS = {
-    SOURCE_INEGI_DENUE:     "INEGI DENUE · Negocios por zona",
     SOURCE_BANXICO_SIE:     "BANXICO SIE · Series macro MX",
     SOURCE_DATAMEXICO:      "DataMéxico SE · Indicadores económicos",
     SOURCE_CONAVI_VIVIENDA: "CONAVI · Vivienda federal",
@@ -260,17 +257,10 @@ async def _fetch_cached(
                           "status": "error", "error": str(exc)}
 
 
-# ─── Connector 1 · INEGI DENUE (sin token) ───────────────────────────────────
-async def fetch_inegi_denue(db) -> Dict[str, Any]:
-    """INEGI DENUE landing page · negocios por zona MX (free API consulta usa token futuro)."""
-    url = "https://www.inegi.org.mx/app/mapa/denue/default.aspx"
-    res = await _fetch_cached(db, SOURCE_INEGI_DENUE, url, ttl_days=14, parser=_parse_html_snippet)
-    await _audit(db, "gov_data_mx_fetched", SOURCE_INEGI_DENUE,
-                 {"status": res.get("status"), "http": res.get("http_status")})
-    return res
+# Connector INEGI DENUE ELIMINADO: solo traía un snippet HTML del mapa (cero datos de negocios).
+# La densidad de negocios por zona la cubre OSM (osm_engine). DENUE muerto · no reintroducir.
 
-
-# ─── Connector 2 · BANXICO SIE (token opcional) ──────────────────────────────
+# ─── Connector · BANXICO SIE (token opcional) ────────────────────────────────
 async def fetch_banxico_sie(db, series_id: str = "SF43718") -> Dict[str, Any]:
     """BANXICO SIE · serie macro. Requires IE_BANXICO_TOKEN env (token gratis)."""
     token = os.environ.get("IE_BANXICO_TOKEN", "").strip()
@@ -334,7 +324,6 @@ async def fetch_cenapred_atlas(db) -> Dict[str, Any]:
 
 # ─── Dispatch ────────────────────────────────────────────────────────────────
 SOURCE_DISPATCH: Dict[str, Callable[..., Awaitable[Dict[str, Any]]]] = {
-    SOURCE_INEGI_DENUE:     fetch_inegi_denue,
     SOURCE_BANXICO_SIE:     fetch_banxico_sie,
     SOURCE_DATAMEXICO:      fetch_datamexico_se,
     SOURCE_CONAVI_VIVIENDA: fetch_conavi_vivienda,
