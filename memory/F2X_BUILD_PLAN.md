@@ -93,8 +93,11 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - Front: secciones "Absorción por Cohorte" en `DesarrolladorEstudioMercado.js` (ambos modos). Verificado Polanco: Preventa 14%/31m, Construcción 16%/73m. Compila limpio.
 - **CORRECCIÓN deuda (founder cazó duplicación):** absorcion_engine ahora reusa la definición CANÓNICA `data_developments.is_sold` (misma que dmx_dev_benchmark), no un `=="vendido"` propio → un solo criterio de "vendido". Lente documentado: lee el CATÁLOGO de mercado (DEVELOPMENTS, igual que comparable_anomaly); dmx_dev_benchmark es otro lente (db.units = tus unidades). NO recalcular por separado. Regla nueva: [[feedback_grep_before_build]].
 **F2.8 Zona: Atributos + Qué Le Falta (B7)** — 🟡 · M
-- [ ] 2.8.1 Perfil de zona unificado + "qué le falta" desde DENUE · Back · 🔄
-- [ ] 2.8.2 Front: por qué se compra / ventajas-desventajas · D·C·S · 🔄
+- [x] 2.8.1 perfil_zona_engine: FUSIONA (reuso) zone_score + zone_cycle + DENUE + NUEVO "qué le falta" (giros sub-atendidos vs mediana ciudad, honesto: no marca falsos gaps) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.8.2 Integrado en el Estudio ("Zona y Qué Le Falta" colonia + "Qué Le Falta a la Microzona" radio) + endpoint /api/dev/perfil-zona · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.8 COMPLETO** (siguió grep-antes-de-construir: reusó 3 motores, solo creó el gap)
+## ARCHIVOS (F2.8, hecho)
+- `backend/perfil_zona_engine.py` (reusa get_score_or_compute + compute_zone_cycle + get_zone_density; nuevo _que_le_falta vs distribución DENUE real) · integrado en estudio (colonia+radio) · endpoint GET /api/dev/perfil-zona.
+- Front: secciones en `DesarrolladorEstudioMercado.js`. Honesto: no marca gaps cuando DENUE por giro no está ingerido. Compila limpio.
 **F2.9 Amenidades & Cuota (B6)** — 🟡🔵 · M
 - [ ] 2.9.1 Ranker de amenidades 2 ejes (precio+deseo, las 55) · Back · 🔄
 - [ ] 2.9.2 Recomendador de cuota (bundle→cuota vs disposición a pagar) · Back · 🔄

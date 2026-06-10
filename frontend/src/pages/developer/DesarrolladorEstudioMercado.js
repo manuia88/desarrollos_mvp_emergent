@@ -187,6 +187,18 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {s.absorcion.lectura}</div>
               </Sec>
             )}
+            <Sec title="ZONA Y QUÉ LE FALTA">
+              <KV k="Tier" v={zo.tier || '—'} />
+              <KV k="Densidad de servicios" v={zo.servicios?.densidad_km2 ? `${Math.round(zo.servicios.densidad_km2)} negocios/km²` : '—'} />
+              {(zo.que_le_falta?.faltan || []).length > 0 ? (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--cream-3)', marginBottom: 4 }}>Giros sub-atendidos (oportunidad de comercio):</div>
+                  {zo.que_le_falta.faltan.map(f => <KV key={f.giro} k={f.giro} v={`tienes ${f.tienes} · ${f.nivel}`} tone="#E2982E" />)}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {zo.que_le_falta?.lectura || 'Sin giros sub-atendidos detectados.'}</div>
+              )}
+            </Sec>
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{data.fuente}</div>
           </>
         );
@@ -234,6 +246,11 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                   <KV key={c.cohorte} k={`${c.cohorte} · ${c.proyectos} proy`} v={`${c.absorcion_pct}% vendido${c.meses_para_agotar ? ` · agota en ${c.meses_para_agotar} meses` : ''}`} tone={c.absorcion_pct >= 50 ? '#22C55E' : 'var(--cream)'} />
                 ))}
                 <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>◐ {r.absorcion.lectura}</div>
+              </Sec>
+            )}
+            {(r.que_le_falta || []).length > 0 && (
+              <Sec title="QUÉ LE FALTA A LA MICROZONA">
+                {r.que_le_falta.map(f => <KV key={f.giro} k={f.giro} v={`falta en ${f.colonias_sin} colonias`} tone="#E2982E" />)}
               </Sec>
             )}
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{r.fuente}</div>

@@ -139,6 +139,20 @@ async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
     except Exception as e:
         log.warning(f"[estudio radio] absorcion fail-open: {e}")
 
+    # F2.8 · qué le falta a la microzona (giros sub-atendidos en la mayoría de colonias del radio).
+    falta_radio = []
+    try:
+        from perfil_zona_engine import perfil_zona
+        cnt: Dict[str, int] = defaultdict(int)
+        for cid in col_ids[:12]:
+            pz = await perfil_zona(db, cid)
+            for f in ((pz.get("que_le_falta") or {}).get("faltan") or []):
+                cnt[f["giro"]] += 1
+        falta_radio = sorted(({"giro": g, "colonias_sin": n} for g, n in cnt.items()),
+                             key=lambda x: -x["colonias_sin"])[:6]
+    except Exception as e:
+        log.warning(f"[estudio radio] qué le falta fail-open: {e}")
+
     demanda_representativa = demanda_total >= _UMBRAL_REPRESENTATIVO
     veredicto = []
     veredicto.append(f"Microzona de {round(radio_m)} m: {len(cols)} colonias ({', '.join(c['name'] for c in cols[:4])}{'…' if len(cols) > 4 else ''}).")
@@ -161,6 +175,7 @@ async def generar_estudio_radio(db, lat: float, lng: float, radio_m: float,
                               "gap_vertical": round(gap), "captura_objetivo": round(capt)},
         "oferta": oferta,
         "absorcion": absorcion,
+        "que_le_falta": falta_radio,
         "veredicto": veredicto,
         "lectura": ("Microzona viva con demanda real." if demanda_representativa
                     else "Microzona preliminar: demanda activa aún escasa, se complementa con demografía."),
@@ -253,6 +268,16 @@ async def generar_estudio(db, colonia_id: Optional[str], categoria: str = "media
         veredicto.append(f"Competencia directa: {oferta['proyectos']} proyectos, {oferta['unidades_disponibles']} unidades disponibles.")
     if not veredicto:
         veredicto.append(f"Aún con poco dato en {name}: el estudio se completa solo conforme entra demanda y oferta.")
+
+    # 6.5 · F2.8 · enriquecer zona con perfil unificado + qué le falta (reusa perfil_zona_engine).
+    try:
+        from perfil_zona_engine import perfil_zona
+        pz = await perfil_zona(db, colonia_id)
+        zona["servicios"] = pz.get("servicios")
+        zona["que_le_falta"] = pz.get("que_le_falta")
+        zona["ciclo"] = pz.get("ciclo")
+    except Exception as e:
+        log.warning(f"[estudio] perfil_zona fail-open: {e}")
 
     # 7 · Absorción por cohorte + comparables (F2.7).
     absorcion = None

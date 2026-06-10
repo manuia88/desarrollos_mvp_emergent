@@ -48,6 +48,14 @@ async def absorcion(request: Request, colonia_id: str = Query(...)):
     return await curva_absorcion(_db(request), colonia_id=colonia_id)
 
 
+@router.get("/api/dev/perfil-zona")
+async def perfil_zona_ep(request: Request, colonia_id: str = Query(...)):
+    """Perfil de zona unificado (score+ciclo+servicios) + qué le falta (F2.8 · reusable)."""
+    await _auth(request)
+    from perfil_zona_engine import perfil_zona
+    return await perfil_zona(_db(request), colonia_id)
+
+
 @router.get("/api/dev/estudio-mercado/radio")
 async def estudio_mercado_radio(request: Request,
                                 lat: float = Query(..., ge=-90, le=90),
