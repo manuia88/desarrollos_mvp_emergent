@@ -155,11 +155,15 @@ export default function SuperadminTerminalMercado({ user, onLogout }) {
           <div style={cardStyle}>
             <div style={h}>Productos de datos vendibles</div>
             {(data.vendible || []).map((v, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>{v.producto}</span>
-                <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>bundle: {v.bundle}</span>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>{v.producto}</div>
+                  {v.endpoint && <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#a5b4fc', marginTop: 2 }}>{v.endpoint}{v.tier ? ` · ${v.tier}` : ''}</div>}
+                </div>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>bundle: {v.bundle}</span>
               </div>
             ))}
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>◐ Se entregan por la API v1 (api-key + k-anónimo + registro de uso), según el plan del cliente.</div>
           </div>
 
           <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)' }}>◐ {data.lectura} · {data.fuente}</div>

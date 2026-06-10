@@ -231,7 +231,14 @@ Lo que el roadmap nombra y NO existía: el **Score de Bancabilidad**.
   - Endpoints: GET /api/desarrollador/bancabilidad (dev, sus proyectos) + GET /api/superadmin/bancabilidad (ranking, producto de datos).
   - Frontend: DEV → card "Score de Bancabilidad" arriba en DesarrolladorReportes · SUPERADMIN → sección ranking en SuperadminTerminalMercado. api.getDevBancabilidad + getBancabilidadRanking.
   - IA-first (venta esperada del Cerebro) · cierra ciclo (consume absorción+zona+lifts) · 2 portales (DEV+Superadmin). Smoke real verde (18 proyectos rankeados, scores honestos por absorción real baja del demo). Frontend 1 warning (limpio).
-- [ ] 5.2 Servir los productos F2.12 (índices Obra/Absorción/Gestión + Grafo demanda + Bancabilidad) en la API v1 por bundle/scope · 🔄 (despierta desconectado)
+**F5.2 Entregar los productos por la API v1 (cierra monetización)** — ✅ 2026-06-10
+- [x] 5.2 Índices + Grafo demanda + Bancabilidad por zona servidos por /api/v1 gated por tier · Back+Front · ✅
+- ARCHIVOS F5.2:
+  - `routes/public_api_v1.py` — 3 endpoints nuevos reusando el guardia existente (validate_api_key + require_tier + k-anon + track_api_call + log_compliance_event): GET /api/v1/market/indices (pro+ · terminal_mercado), GET /api/v1/zones/{id}/demand (enterprise · build_grafo k-anon), GET /api/v1/zones/{id}/bancabilidad (enterprise · agregado por zona, sin nombres). Helper `_deliver` (tail común, cero duplicación).
+  - `backend/bancabilidad_engine.py` — `bancabilidad_por_zona(db, colonia_id)` (promedio anónimo por colonia para la API).
+  - `backend/terminal_mercado_engine.py` — vendible ahora trae `endpoint`+`tier` por producto.
+  - Frontend: la sección "Productos vendibles" de SuperadminTerminalMercado muestra el endpoint API + tier de cada producto (la conexión visible).
+  - Despierta lo desconectado: lo sellable de F2.12/F5.1 ahora se ENTREGA por la API que ya existía. Smoke real verde (bancabilidad_por_zona polanco D · server OK). Frontend 1 warning (limpio).
 - [ ] 5.3 Índices vivos con historial/curva (time series persistida) · 🔄
 
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral

@@ -143,6 +143,27 @@ async def portfolio_bancabilidad(db, dev_ids: List[str]) -> Dict[str, Any]:
     return {"proyectos": out, "promedio": prom, "n": len(out)}
 
 
+async def bancabilidad_por_zona(db, colonia_id: str) -> Dict[str, Any]:
+    """Bancabilidad AGREGADA de una colonia (promedio de proyectos, sin nombres) — para la API de datos.
+    Producto anónimo: no expone proyectos individuales. FAIL-OPEN."""
+    from data_developments import DEVELOPMENTS
+    s = str(colonia_id).strip().lower()
+    scores = []
+    for d in DEVELOPMENTS:
+        cid = str(d.get("colonia_id") or d.get("colonia") or "").strip().lower()
+        cname = str(d.get("colonia") or "").strip().lower()
+        if s in (cid, cname):
+            r = await score_bancabilidad(db, d)
+            if r.get("disponible"):
+                scores.append(r["bancabilidad"])
+    if not scores:
+        return {"colonia_id": colonia_id, "disponible": False,
+                "lectura": "Sin proyectos con dato suficiente en esta zona."}
+    prom = round(sum(scores) / len(scores), 1)
+    return {"colonia_id": colonia_id, "disponible": True,
+            "n_proyectos": len(scores), "bancabilidad_promedio": prom, "letra": _letra(prom)}
+
+
 async def ranking_bancabilidad(db, top: int = 50) -> Dict[str, Any]:
     """Ranking de bancabilidad de TODOS los proyectos (superadmin · producto de datos). FAIL-OPEN."""
     from data_developments import DEVELOPMENTS

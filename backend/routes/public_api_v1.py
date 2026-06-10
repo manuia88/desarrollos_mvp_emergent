@@ -262,6 +262,68 @@ async def v1_comparables(
     return out
 
 
+async def _deliver(db, ctx, request, response, endpoint: str, out: dict, records: int = 1,
+                   started: float = 0.0):
+    """Tail común: headers + track + compliance (cero duplicación entre endpoints F5.2)."""
+    out = anon.strip_pii(out, level=ctx.tier)
+    _set_headers(response, ctx)
+    latency_ms = int((time.perf_counter() - started) * 1000) if started else 0
+    await auth.track_api_call(db, ctx, request, status_code=200,
+                              latency_ms=latency_ms, response_size=len(str(out)))
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=endpoint, api_key_id=ctx.id,
+        response_pii_stripped=True, k_anonymity_passed=True, records_returned=records,
+        requestor_ip=request.client.host if request.client else "")
+    return out
+
+
+@router.get("/api/v1/market/indices")
+async def v1_market_indices(request: Request, response: Response):
+    """F5.2 · Los 3 índices DMX (Obra · Absorción · Gestión) + maestro. Bundle indices_dmx_suite (pro+)."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "pro")
+    started = time.perf_counter()
+    db = _db(request)
+    from terminal_mercado_engine import terminal_mercado
+    t = await terminal_mercado(db)
+    if not t.get("publicable"):
+        return await _deliver(db, ctx, request, response, "/api/v1/market/indices",
+                              {"available": False, "reason": "k_anonymity", "k_required": t.get("k_anonimato")},
+                              records=0, started=started)
+    out = {"available": True, "indices": t.get("indices_vendibles"),
+           "indice_maestro": t.get("indice_maestro"), "computed_from_projects": t.get("n_proyectos")}
+    return await _deliver(db, ctx, request, response, "/api/v1/market/indices", out,
+                          records=len(out.get("indices") or []), started=started)
+
+
+@router.get("/api/v1/zones/{zone_id}/demand")
+async def v1_zone_demand(zone_id: str, request: Request, response: Response):
+    """F5.2 · Grafo del Comprador (demanda anónima por colonia · k-anon). Bundle grafo_demanda_suite (enterprise)."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "enterprise")
+    started = time.perf_counter()
+    db = _db(request)
+    from grafo_comprador_engine import build_grafo
+    g = await build_grafo(db, colonia_id=zone_id)
+    out = {"zone_id": zone_id, "k_anonimato": g.get("k_anonimato"),
+           "colonias": g.get("colonias"), "available": bool(g.get("colonias"))}
+    return await _deliver(db, ctx, request, response, f"/api/v1/zones/{zone_id}/demand", out,
+                          records=len(g.get("colonias") or []), started=started)
+
+
+@router.get("/api/v1/zones/{zone_id}/bancabilidad")
+async def v1_zone_bancabilidad(zone_id: str, request: Request, response: Response):
+    """F5.2 · Score de Bancabilidad agregado por zona (sin nombres de proyecto). Enterprise."""
+    ctx = await auth.validate_api_key(request)
+    auth.require_tier(ctx, "enterprise")
+    started = time.perf_counter()
+    db = _db(request)
+    from bancabilidad_engine import bancabilidad_por_zona
+    out = await bancabilidad_por_zona(db, zone_id)
+    return await _deliver(db, ctx, request, response, f"/api/v1/zones/{zone_id}/bancabilidad", out,
+                          records=1 if out.get("disponible") else 0, started=started)
+
+
 @router.get("/api/v1/valuations/{property_id}")
 async def v1_valuation(property_id: str, request: Request, response: Response):
     ctx = await auth.validate_api_key(request)

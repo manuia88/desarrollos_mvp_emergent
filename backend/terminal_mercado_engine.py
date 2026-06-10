@@ -138,9 +138,14 @@ async def terminal_mercado(db, top_colonias: int = 8) -> Dict[str, Any]:
 
     # ── 5) Qué es VENDIBLE (atado a data_licensing) ──
     vendible = [
-        {"producto": "Índices DMX (Obra · Absorción · Gestión)", "bundle": "indices_dmx_suite"},
-        {"producto": "Grafo del Comprador (demanda anónima por colonia)", "bundle": "grafo_demanda_suite"},
-        {"producto": "Cubo de mercado (KPIs agregados de la ciudad)", "bundle": "market_cube"},
+        {"producto": "Índices DMX (Obra · Absorción · Gestión)", "bundle": "indices_dmx_suite",
+         "endpoint": "GET /api/v1/market/indices", "tier": "pro+"},
+        {"producto": "Grafo del Comprador (demanda anónima por colonia)", "bundle": "grafo_demanda_suite",
+         "endpoint": "GET /api/v1/zones/{zone}/demand", "tier": "enterprise"},
+        {"producto": "Cubo de mercado (KPIs agregados de la ciudad)", "bundle": "market_cube",
+         "endpoint": "GET /api/v1/zones/{zone}/snapshot", "tier": "pro+"},
+        {"producto": "Score de Bancabilidad por zona (A–F)", "bundle": "market_cube",
+         "endpoint": "GET /api/v1/zones/{zone}/bancabilidad", "tier": "enterprise"},
     ]
 
     # ── Candado k-anónimo del producto: no publicar si hay muy pocos proyectos ──
