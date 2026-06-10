@@ -4,7 +4,7 @@ perfil_zona_engine — F2.8 · Perfil de Zona Unificado + "Qué Le Falta".
 FUSIONA (no recalcula) lo que ya existe disperso en motores de zona:
   • zone_score_engine.get_score_or_compute → 6 dimensiones (liquidez/supply/demanda/riesgo/yield/DENUE)
   • zone_cycle_engine.compute_zone_cycle   → ciclo / gentrificación / renta
-  • denue_engine.get_zone_density          → densidad de servicios por giro (by_category)
+  • densidad de servicios por giro (OSM · osm_engine, fuente default; colección denue_zone_density)
 Y agrega lo ÚNICO nuevo: **"qué le falta a la zona"** = giros cuya densidad está por debajo de la
 mediana de la ciudad (inverso de densidad), con banda honesta (metric_normalizer). Cierra el "por qué
 se compra aquí" del estudio. Reusa motores (regla grep-antes-de-construir). FAIL-OPEN.
@@ -17,9 +17,12 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.perfil_zona")
 
+# Taxonomía de OSM (osm_engine._classify) — NO la de DENUE. La densidad la pobla OSM por default.
 _GIRO_LABEL = {
-    "restaurants": "Restaurantes", "gyms": "Gimnasios", "markets": "Supermercados",
-    "schools": "Escuelas", "hospitals": "Hospitales", "pharmacies": "Farmacias", "banks": "Bancos",
+    "restaurante": "Restaurantes", "cafe": "Cafés", "bar": "Bares / Antros",
+    "mercado": "Súper / Comercio", "escuela": "Escuelas", "hospital": "Hospitales / Clínicas",
+    "farmacia": "Farmacias", "banco": "Bancos", "gimnasio": "Gimnasios",
+    "recreacion": "Parques / Deporte", "ocio": "Cine / Cultura", "transporte": "Transporte",
 }
 
 
@@ -89,17 +92,16 @@ async def perfil_zona(db, colonia_id: Optional[str]) -> Dict[str, Any]:
     except Exception as e:
         log.warning(f"[perfil_zona] zone_cycle fail-open: {e}")
 
-    # 3 · Densidad de servicios por giro — reusa denue_engine.
+    # 3 · Densidad de servicios por giro — lee la colección que puebla OSM (osm_engine, fuente default).
     by_category = {}
     densidad = None
     try:
-        from denue_engine import get_zone_density
-        denue = await get_zone_density(db, colonia_id)
-        if denue:
-            by_category = denue.get("by_category") or {}
-            densidad = denue.get("businesses_per_km2")
+        doc = await db.denue_zone_density.find_one({"zone_id": colonia_id}, {"_id": 0})
+        if doc:
+            by_category = doc.get("by_category") or {}
+            densidad = doc.get("businesses_per_km2")
     except Exception as e:
-        log.warning(f"[perfil_zona] denue fail-open: {e}")
+        log.warning(f"[perfil_zona] densidad OSM fail-open: {e}")
 
     # 4 · NUEVO · qué le falta a la zona.
     falta = await _que_le_falta(db, by_category)
@@ -112,8 +114,8 @@ async def perfil_zona(db, colonia_id: Optional[str]) -> Dict[str, Any]:
         "zone_score": score,
         "ciclo": ciclo,
         "servicios": {"densidad_km2": densidad,
-                      "por_giro": {_GIRO_LABEL.get(k, k): v for k, v in by_category.items()}},
+                      "por_giro": {_GIRO_LABEL[k]: v for k, v in by_category.items() if k in _GIRO_LABEL}},
         "scores_colonia": scores_col,
         "que_le_falta": falta,
-        "fuente": "Perfil de Zona DMX · fusiona zone_score + zone_cycle + DENUE (reuso) + gap de giros (nuevo)",
+        "fuente": "Perfil de Zona DMX · fusiona zone_score + zone_cycle + densidad OSM (reuso) + gap de giros (nuevo)",
     }

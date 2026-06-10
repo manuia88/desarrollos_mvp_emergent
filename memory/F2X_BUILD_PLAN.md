@@ -97,7 +97,8 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.8.2 Integrado en el Estudio ("Zona y Qué Le Falta" colonia + "Qué Le Falta a la Microzona" radio) + endpoint /api/dev/perfil-zona · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.8 COMPLETO** (siguió grep-antes-de-construir: reusó 3 motores, solo creó el gap)
 ## ARCHIVOS (F2.8, hecho)
 - `backend/perfil_zona_engine.py` (reusa get_score_or_compute + compute_zone_cycle + get_zone_density; nuevo _que_le_falta vs distribución DENUE real) · integrado en estudio (colonia+radio) · endpoint GET /api/dev/perfil-zona.
-- Front: secciones en `DesarrolladorEstudioMercado.js`. Honesto: no marca gaps cuando DENUE por giro no está ingerido. Compila limpio.
+- Front: secciones en `DesarrolladorEstudioMercado.js`. Compila limpio.
+- **CORRECCIÓN (founder): la densidad es OSM, NO DENUE.** OSM (`osm_engine`, fuente default) escribe en la colección `denue_zone_density` (nombre engañoso) con SU taxonomía (restaurante/cafe/mercado/recreacion/gimnasio/...). Mis llaves eran de DENUE → "qué le falta" salía vacío por mismatch. Corregido a llaves OSM + lectura directa de la colección. Verificado: 1059 zonas con datos OSM; Polanco detecta gap real **"le falta Gimnasios" (1, percentil 25)**.
 **F2.9 Amenidades & Cuota (B6)** — 🟡🔵 · M
 - [ ] 2.9.1 Ranker de amenidades 2 ejes (precio+deseo, las 55) · Back · 🔄
 - [ ] 2.9.2 Recomendador de cuota (bundle→cuota vs disposición a pagar) · Back · 🔄
