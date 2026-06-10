@@ -3104,6 +3104,27 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                               "updated_at": _now()}}, upsert=True)
         except Exception as _ue:
             logging.getLogger("dmx.advisor").warning(f"[operacion] marcar unidad vendida falló: {_ue}")
+    # P2.6 · operación CANCELADA → cierra el ciclo: marca el contacto como PERDIDO y
+    # alimenta el aprendizaje del Cerebro (outcome lost). Antes la cancelación no propagaba nada.
+    if payload.status == "cancelada":
+        _cid = op.get("contacto_id") or op.get("lead_id")
+        if _cid:
+            try:
+                await db.asesor_contactos.update_one(
+                    {"id": _cid, "owner_id": user.user_id},
+                    {"$set": {"etapa": "cerrado_perdido",
+                              "perdido_motivo": payload.reason or "Operación cancelada",
+                              "updated_at": _now()}})
+            except Exception as _le:
+                logging.getLogger("dmx.advisor").warning(f"[operacion] marcar contacto perdido falló: {_le}")
+            try:
+                import os
+                if os.environ.get("CEREBRO_ENABLED") == "true":
+                    import cerebro
+                    await cerebro.on_deal_closed(db, user, ref=_cid, outcome="lost",
+                                                 deal={"reason": payload.reason or "cancelada"})
+            except Exception as _ce:
+                logging.getLogger("dmx.advisor").info(f"[cerebro] hook cancelada→lost no aplicó: {_ce}")
     # Phase F0.11 — ML training event on status transition
     try:
         from observability import emit_ml_event

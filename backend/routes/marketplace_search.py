@@ -174,6 +174,29 @@ async def search_developments(request: Request, q: str = "", limit: int = 8):
                 "price": d.get("price_from") or d.get("price_raw"),
                 "photo_url": d.get("photo_url") or d.get("hero_image") or d.get("cover_url"),
             })
+        # P2.6 · captura la búsqueda del comprador (demanda revelada ANÓNIMA) → alimenta
+        # location_intel (count por colonia) y el Grafo del Comprador. Fire-and-forget, LFPDPPP.
+        if q and q.strip():
+            try:
+                import uuid as _u, hashlib as _h
+                from datetime import datetime as _dt, timezone as _tz
+                _now = _dt.now(_tz.utc)
+                _cols = list({(it.get("colonia") or "").strip().lower().replace(" ", "-")
+                              for it in items if it.get("colonia")})
+                _ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+                       or (request.client.host if request.client else ""))
+                await db.marketplace_searches.insert_one({
+                    "id": f"mks_{_u.uuid4().hex[:12]}",
+                    "query": q.strip()[:200],
+                    "colonia_id": _cols[0] if _cols else None,
+                    "colonias": _cols,
+                    "results_count": len(items),
+                    "source": "marketplace_picker",
+                    "ip_hash": _h.sha256(f"{_ip}:dmx_mks".encode()).hexdigest()[:16] if _ip else None,
+                    "created_at": _now.isoformat(), "created_at_dt": _now,
+                })
+            except Exception:
+                pass
         return items
     except Exception as exc:  # noqa: BLE001
         log.warning(f"[marketplace_search] developments failed: {exc}")

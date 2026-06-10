@@ -171,6 +171,23 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
     except Exception as e:
         log.warning(f"[grafo] búsquedas agg fail-open: {e}")
 
+    # 2b. P2.6 · comprador→grafo: las búsquedas del MARKETPLACE (demanda revelada anónima del
+    # comprador) entran como señal de demanda por colonia, junto a las del asesor. Cierra el ciclo.
+    mkt_by_name: Counter = Counter()
+    try:
+        async for s in db.marketplace_searches.find(
+                {"created_at_dt": {"$gte": now - timedelta(days=dias)}},
+                {"_id": 0, "colonia_id": 1, "colonias": 1}):
+            slugs = s.get("colonias") or ([s.get("colonia_id")] if s.get("colonia_id") else [])
+            for sl in slugs:
+                cc = COLONIAS_BY_ID.get(str(sl).strip().lower())
+                nm = str((cc or {}).get("name", sl)).strip().lower()
+                if nm:
+                    mkt_by_name[nm] += 1
+                    col_total[nm] += 1   # suma a la demanda total de la colonia (banda honesta)
+    except Exception as e:
+        log.warning(f"[grafo] marketplace_searches fail-open: {e}")
+
     # 3. Banda honesta de demanda por colonia (percentil real del total de búsquedas).
     try:
         import metric_normalizer as _mn
@@ -226,11 +243,35 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
             "colonia": col_doc["name"] if col_doc else col_name_l.title(),
             "alcaldia": col_doc.get("alcaldia") if col_doc else None,
             "demanda_total": total,
+            "busquedas_marketplace": mkt_by_name.get(col_name_l, 0),  # P2.6 · señal del comprador
             "banda": banda_nivel,
             "etiqueta": banda_et,
             "segmento_dominante": dominante,
             "segmento_dominante_label": SEG_LABEL.get(dominante, "") if dominante else None,
             "segmentos": segments_out,
+        })
+
+    # P2.6 · colonias con SOLO búsquedas de marketplace (sin búsquedas de asesor aún) también
+    # aparecen — demanda del comprador visible aunque no haya CRM. Build-for-endstate.
+    _present = {c["colonia"].strip().lower() for c in out_colonias}
+    for nm_l, cnt in mkt_by_name.items():
+        if nm_l in _present:
+            continue
+        if target_name_l and nm_l != target_name_l:
+            continue
+        col_doc = name_to_col.get(nm_l)
+        banda = _mn.band_from_dist(dist, cnt) if (_mn and cnt) else {}
+        out_colonias.append({
+            "colonia_id": col_doc["id"] if col_doc else nm_l,
+            "colonia": col_doc["name"] if col_doc else nm_l.title(),
+            "alcaldia": col_doc.get("alcaldia") if col_doc else None,
+            "demanda_total": cnt,
+            "busquedas_marketplace": cnt,
+            "banda": banda.get("nivel", "sin_dato"),
+            "etiqueta": banda.get("etiqueta", "Búsquedas del comprador"),
+            "segmento_dominante": None,
+            "segmento_dominante_label": None,
+            "segmentos": [],
         })
     out_colonias.sort(key=lambda x: -x["demanda_total"])
 
