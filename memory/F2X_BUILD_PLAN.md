@@ -77,10 +77,10 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - [x] 2.4.2 Motor demográfico EPRAV (población×NSE×verticalización−inventario→captura) para zonas sin señal · Back · 🔄 — verificado 2026-06-09
 - [x] 2.4.3 Tarjeta "Demanda Potencial (Demografía)" en Demanda (dev) + ruta dev/superadmin · Back+Front · D·S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.4 COMPLETO** (embudo de calificación real = backlog, necesita escala de leads)
 **F2.5 ⭐ Cerebro del Mercado (loop causal · KILLER)** — 🟣 · A
-- [ ] 2.5.1 Registro de predicciones (cada estimación con su contexto) · Back · 🔄
-- [ ] 2.5.2 Cierre → backtest → reentreno (extiende E4) · Back · 🔄
-- [ ] 2.5.3 Aprendiz de palancas causales · Back · 🔄
-- [ ] 2.5.4 Alimenta el generador + panel "Cómo Aprende El Mercado" · Front · S·D · 🔄
+- [x] 2.5.1 Registro de predicciones (actor "mercado" reusa coach.log_prediction · registrado en endpoint de insights) · Back · 🔄 — verificado 2026-06-09
+- [x] 2.5.2 Cierre → backtest → reentreno (on_unit_sold reusa coach.resolve_predictions+retrain_signal · cableado en patch_unit status→vendido) · Back · 🔄 — verificado
+- [x] 2.5.3 Aprendiz de palancas causales (% vendido por feature vs base) · Back · 🔄 — verificado
+- [x] 2.5.4 Panel "Cómo Aprende El Mercado" (superadmin) · Front · S · 🔄 — compila limpio 2026-06-09 · **BATCH F2.5 COMPLETO** (KILLER) · alimenta estimadores compartidos del generador
 **F2.6 Estudio de Mercado Vivo (B5)** — 🔵🟣 · A
 - [ ] 2.6.1 Generador del estudio (fusiona Grafo+oferta+absorción+zona) · Back · ▪️ (entregable)
 - [ ] 2.6.2 Export PDF + Front dev/superadmin · D·S · ▪️
@@ -176,6 +176,12 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 - `backend/demanda_demografica_engine.py` (EPRAV) · endpoint GET /api/dev/demanda-demografica en `routes/demanda_demografica.py` · registrado en `server.py`.
 - `frontend/src/api/developer.js` (getDemandaDemografica) · `frontend/src/components/developer/DemandaDemograficaCard.js` · conectada en `DesarrolladorDemanda.js` (junto al Grafo).
 - Reusa el resolver demográfico `routes.dev_batch7_2._deterministic_fallback` (población+NSE, antes desconectado del lado demanda). Verificado: Polanco 346 fam/año GAP 42; Narvarte GAP 88. Compila limpio.
+## ARCHIVOS (F2.5, hecho · KILLER)
+- `backend/cerebro_mercado_engine.py` (actor __market__ reusa cerebro/coach.py E4: registrar/on_unit_sold/aprender_palancas/aprendizaje_mercado).
+- `backend/routes/cerebro_mercado.py` (GET /api/superadmin/cerebro-mercado) · registrado en server.py.
+- Cableado: registro de predicción en endpoint de insights (dev_batch11) · resolución en patch_unit (status→vendido).
+- Front: `frontend/src/pages/superadmin/SuperadminCerebroMercado.js` + api/superadmin.js + App.js + navByRole.js + SuperadminLayout.js.
+- Verificado: registrar→vender→"Le atiné 1 de 1"→panel; predicciones {abiertas:0,resueltas:1}. Compila limpio.
 
 ## NOTAS
 - ~70% del trabajo = prender campos que ya existen (estimadores calibrados por el estudio), no crear de cero.

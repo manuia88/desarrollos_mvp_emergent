@@ -12,6 +12,8 @@ const j = async (url, opts = {}) => {
 
 // F2.1 · El Grafo del Comprador agregado de toda la ciudad (todos los devs, anónimo · k-anonimato).
 export const getGrafoComprador     = (coloniaId) => j(`/api/superadmin/grafo-comprador${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F2.5 · El Cerebro del Mercado (cómo se califica vs la realidad + palancas aprendidas).
+export const getCerebroMercado     = ()           => j('/api/superadmin/cerebro-mercado');
 export const listDataSources       = ()   => j('/api/superadmin/data-sources');
 export const getDataSourcesStats   = ()   => j('/api/superadmin/data-sources/stats');
 // Cobertura de Datos · qué receta alimenta qué, de qué fuente, en qué estado, cómo conectarla

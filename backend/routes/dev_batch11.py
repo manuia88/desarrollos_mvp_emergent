@@ -494,7 +494,18 @@ async def get_unit_insights(dev_id: str, unit_id: str, request: Request):
     if not dev or not unit:
         raise HTTPException(404, "Unidad no encontrada")
     from unidad_insights_engine import unit_insights
-    return await unit_insights(_db(request), dev, unit)
+    res = await unit_insights(_db(request), dev, unit)
+    # F2.5 · el Cerebro del Mercado guarda esta predicción (deduped, fail-open) para luego calificarse vs la realidad.
+    try:
+        from cerebro_mercado_engine import registrar_prediccion
+        pv = (res.get("prob_venta") or {}).get("valor")
+        if pv is not None:
+            await registrar_prediccion(_db(request), kind="close_prob", predicted=pv / 100.0,
+                                       ref=f"{dev_id}__{unit_id}",
+                                       meta={"recamaras": unit.get("bedrooms"), "colonia_id": res.get("colonia_id")})
+    except Exception:
+        pass
+    return res
 
 
 @router.get("/units/{dev_id}/{unit_id}/price-history")
@@ -684,6 +695,14 @@ async def patch_unit(dev_id: str, unit_id: str, payload: UnitPatch, request: Req
                                      label=payload.price_change_reason or "Ajuste de lista")
         except Exception:
             pass
+    # F2.5 · cierra el loop del Cerebro del Mercado: si la unidad se vende, califica la predicción (predicción↔realidad).
+    try:
+        if changes.get("status") == "vendido":
+            from cerebro_mercado_engine import on_unit_sold
+            price_real = payload.price or update.get("price") or unit.get("price")
+            await on_unit_sold(db, f"{dev_id}__{unit_id}", sold=True, price_real=price_real)
+    except Exception:
+        pass
     return {"ok": True, **update}
 
 

@@ -645,6 +645,10 @@ app.include_router(generador_producto_router)
 from routes.demanda_demografica import router as demanda_demografica_router
 app.include_router(demanda_demografica_router)
 
+# F2.5 · El Cerebro del Mercado (loop causal predicción↔realidad · panel superadmin)
+from routes.cerebro_mercado import router as cerebro_mercado_router
+app.include_router(cerebro_mercado_router)
+
 # Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 from routes.asesor_market import router as asesor_market_router
 app.include_router(asesor_market_router)
