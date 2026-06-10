@@ -156,7 +156,11 @@ F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propue
   - Cierra ciclo: al guardar registra la predicción de demanda en el Cerebro del Mercado (registrar_prediccion, fail-open, deduped) → luego comparable vs realidad.
   - `routes/developer.py` — /reportes excluye `type=estudio` (el tab mensual queda limpio).
   - Frontend: botón "Guardar Versión" + panel "Historial de Estudios" (versiones, fecha, snapshot) en DesarrolladorEstudioMercado.js · api/developer.guardarEstudio + getEstudioHistorial. Smoke real verde (v1/v2 versionado). Frontend 1 warning (limpio).
-- [ ] 3.3 Aparece en tab "Reportes Branded" existente · conectar tipo nuevo · ▪️
+**F3.3 Estudios en el tab "Reportes Branded"** — ✅ 2026-06-10
+- [x] 3.3 Sub-tab "Estudios de Mercado" en el hub de reportes · Front · ✅
+- ARCHIVOS F3.3:
+  - `frontend/src/pages/developer/DesarrolladorReportes.js` — nuevo sub-tab "Estudios de Mercado" dentro de BrandedReportsTab (junto a Templates/Generar/Distribución) · componente `EstudiosSubtab` lista el historial (reusa api.getEstudioHistorial F3.2) con colonia/versión/fecha/snapshot + botón "Descargar PDF" (reusa endpoint /pdf F3.1).
+  - Sin backend nuevo (todo reuso F3.1+F3.2). Despierta feature: los entregables se ven/bajan desde el hub de Reportes, no solo en la pantalla del Estudio. Frontend 1 warning (limpio).
 - [ ] 3.4 El Cerebro propone/regenera al cambiar el dato (agéntico, reusa F2.5) · 🔄
 - [ ] 3.5 Lead inversionista → su memo en 1 clic (Ficha360, reusa memo) · ASESOR · 🔄
 

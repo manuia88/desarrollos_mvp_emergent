@@ -614,6 +614,7 @@ function BrandedReportsTab({ onToast }) {
   const subtabs = [
     { k: 'templates',     label: 'Templates' },
     { k: 'generate',      label: 'Generar ahora' },
+    { k: 'estudios',      label: 'Estudios de Mercado' },
     { k: 'distributions', label: 'Distribución automática' },
   ];
   return (
@@ -634,7 +635,74 @@ function BrandedReportsTab({ onToast }) {
       </div>
       {subtab === 'templates'     && <TemplatesSubtab onToast={onToast} />}
       {subtab === 'generate'      && <GenerateSubtab onToast={onToast} />}
+      {subtab === 'estudios'      && <EstudiosSubtab onToast={onToast} />}
       {subtab === 'distributions' && <DistributionsSubtab onToast={onToast} />}
+    </div>
+  );
+}
+
+// F3.3 — Estudios de Mercado guardados (reusa historial F3.2 + PDF branded F3.1)
+function EstudiosSubtab({ onToast }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    api.getEstudioHistorial().then(r => { if (alive) setItems(r.items || []); })
+      .catch(() => { if (alive) setItems([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const downloadPdf = async (it) => {
+    setBusy(it.id);
+    try {
+      const base = process.env.REACT_APP_BACKEND_URL || '';
+      const url = `${base}/api/dev/estudio-mercado/pdf?colonia_id=${encodeURIComponent(it.colonia_id)}&categoria=${encodeURIComponent(it.categoria || 'media')}`;
+      const r = await fetch(url, { credentials: 'include' });
+      if (!r.ok) throw new Error('pdf');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Estudio_${(it.colonia || 'colonia').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}_v${it.version}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      onToast?.({ kind: 'error', text: 'No se pudo generar el PDF' });
+    } finally { setBusy(''); }
+  };
+
+  if (loading) return <div data-testid="estudios-subtab" style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13, padding: 16 }}>Cargando…</div>;
+  if (items.length === 0) return (
+    <div data-testid="estudios-subtab" style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13, padding: 16 }}>
+      Aún no guardas estudios. Genera uno en <b style={{ color: 'var(--cream-2)' }}>Estudio de Mercado Vivo</b> y pulsa “Guardar Versión”.
+    </div>
+  );
+
+  return (
+    <div data-testid="estudios-subtab" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Estudios guardados</h3>
+      {items.map(it => {
+        const s = it.snapshot || {};
+        return (
+          <Card key={it.id}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>
+                  {it.colonia || it.colonia_id} <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 12 }}>· v{it.version} · {(it.categoria || '').charAt(0).toUpperCase() + (it.categoria || '').slice(1)}</span>
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>
+                  {(it.generated_at || '').slice(0, 10)} · {fmt0(s.demanda_total)} búsquedas · hueco {fmt0(s.gap_vertical)}{s.producto_dominante?.tipologia ? ` · ${s.producto_dominante.tipologia}` : ''}
+                </div>
+              </div>
+              <button onClick={() => downloadPdf(it)} disabled={busy === it.id} style={{ ...btnSecRep, opacity: busy === it.id ? 0.6 : 1 }}>
+                <Bookmark size={11} /> {busy === it.id ? 'Generando…' : 'Descargar PDF'}
+              </button>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }
