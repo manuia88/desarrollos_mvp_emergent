@@ -74,9 +74,10 @@ export const getEstudioPropuestas = () =>
   j('/api/dev/estudio-mercado/propuestas');
 export const regenerarEstudio = (coloniaId, categoria) =>
   post(`/api/dev/estudio-mercado/regenerar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
-// F4.1 · Qué Pasaría Si: proyecta el impacto de un cambio de producto con las palancas aprendidas
+// F4.1/F4.2 · Qué Pasaría Si: factores simulables + proyección de impacto con palancas aprendidas
+export const getSimuladorFactores = () => j('/api/dev/simulador-palancas/factores');
 export const getSimuladorPalancas = ({ factor = 'recamaras', de, a }) =>
-  j(`/api/dev/simulador-palancas?factor=${factor}&a=${a}${de != null ? `&de=${de}` : ''}`);
+  j(`/api/dev/simulador-palancas?factor=${factor}&a=${encodeURIComponent(a)}${de != null ? `&de=${encodeURIComponent(de)}` : ''}`);
 
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);

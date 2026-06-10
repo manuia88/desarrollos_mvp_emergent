@@ -14,22 +14,43 @@ const num = (n) => (n != null ? Number(n).toLocaleString('es-MX') : '—');
 const CATS = [{ id: 'economica', label: 'Económica' }, { id: 'media', label: 'Media' }, { id: 'premium', label: 'Premium' }];
 const RADIOS = [{ m: 500, label: '500 m' }, { m: 1000, label: '1 km' }, { m: 1500, label: '1.5 km' }];
 
-// F4.1 · "Qué Pasaría Si" — aplica las palancas que el Cerebro aprendió a una decisión de producto.
+// F4.1/F4.2 · "Qué Pasaría Si" — aplica las palancas que el Cerebro aprendió (6 factores).
 function SimuladorPalancas() {
-  const RECS = [1, 2, 3, 4, 5];
-  const [de, setDe] = useState(3);
-  const [a, setA] = useState(2);
+  const [factores, setFactores] = useState([]);
+  const [factor, setFactor] = useState('recamaras');
+  const [de, setDe] = useState(null);
+  const [a, setA] = useState(null);
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  // catálogo de factores + opciones aprendidas
   useEffect(() => {
     let alive = true;
+    api.getSimuladorFactores().then(r => { if (alive) setFactores(r.factores || []); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const curr = factores.find(f => f.key === factor);
+  const opciones = curr?.opciones || [];
+
+  // al cambiar de factor, fija de/a por defecto (2 primeras opciones)
+  useEffect(() => {
+    if (opciones.length >= 2) { setDe(opciones[1]); setA(opciones[0]); }
+    else if (opciones.length === 1) { setDe(opciones[0]); setA(opciones[0]); }
+    else { setDe(null); setA(null); }
+  }, [factor, factores]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!a) { setRes(null); return; }
+    let alive = true;
     setBusy(true);
-    api.getSimuladorPalancas({ factor: 'recamaras', de, a })
+    api.getSimuladorPalancas({ factor, de, a })
       .then(r => { if (alive) setRes(r); })
       .catch(() => { if (alive) setRes(null); })
       .finally(() => { if (alive) setBusy(false); });
     return () => { alive = false; };
-  }, [de, a]);
+  }, [factor, de, a]);
+
   const pill = (v, sel, on) => (
     <button key={v} onClick={on} style={{ padding: '5px 10px', borderRadius: 8, fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer',
       border: `1px solid ${sel ? 'rgba(99,102,241,0.6)' : 'var(--border)'}`, background: sel ? 'rgba(99,102,241,0.14)' : 'transparent', color: sel ? 'var(--cream)' : 'var(--cream-3)' }}>{v}</button>
@@ -39,13 +60,19 @@ function SimuladorPalancas() {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'rgba(var(--cream-rgb),0.03)', padding: '14px 16px', marginBottom: 12 }}>
       <div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>🧠 Qué Pasaría Si (palancas aprendidas)</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-        <span>Cambiar de</span>
-        <span style={{ display: 'flex', gap: 4 }}>{RECS.map(v => pill(v, v === de, () => setDe(v)))}</span>
-        <span>a</span>
-        <span style={{ display: 'flex', gap: 4 }}>{RECS.map(v => pill(v, v === a, () => setA(v)))}</span>
-        <span>recámaras</span>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+        {factores.map(f => pill(f.nombre, f.key === factor, () => setFactor(f.key)))}
       </div>
+      {opciones.length >= 2 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+          <span>De</span>
+          <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{opciones.map(v => pill(v, v === de, () => setDe(v)))}</span>
+          <span>a</span>
+          <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{opciones.map(v => pill(v, v === a, () => setA(v)))}</span>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.85)' }}>◐ Aún sin suficiente venta real para simular este factor — se prende solo con datos.</div>
+      )}
       <div style={{ marginTop: 10 }}>
         {busy && <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>Calculando…</span>}
         {!busy && res && res.disponible && (
@@ -60,7 +87,7 @@ function SimuladorPalancas() {
             {res.mejor_opcion && <div style={{ fontSize: 11.5, color: '#a5b4fc', marginTop: 2 }}>Lo que más se vende hoy: {res.mejor_opcion}.</div>}
           </div>
         )}
-        {!busy && res && !res.disponible && (
+        {!busy && res && !res.disponible && opciones.length >= 2 && (
           <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.85)' }}>◐ {res.lectura}</div>
         )}
       </div>

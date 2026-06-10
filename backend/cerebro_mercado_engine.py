@@ -73,45 +73,106 @@ async def resolver_estudio(db, ref: str, demanda_real) -> Dict[str, Any]:
         return {"resueltas": 0}
 
 
-async def aprender_palancas(db) -> Dict[str, Any]:
-    """Qué feature mueve la venta: % vendido por nº de recámaras (vs base). Honesto si hay poco dato."""
+# ── F4.2 · Factores que el Cerebro puede aprender (campos REALES del átomo de unidad) ──
+def _piso_band(level):
+    if level is None:
+        return None
     try:
-        from data_developments import DEVELOPMENTS
+        lv = int(level)
+    except (TypeError, ValueError):
+        return None
+    if lv <= 0:
+        return "Planta baja"
+    if lv <= 3:
+        return "Pisos bajos (1-3)"
+    if lv <= 7:
+        return "Pisos medios (4-7)"
+    return "Pisos altos (8+)"
+
+
+def _precio_band(p):
+    if not p:
+        return None
+    if p < 4_000_000:
+        return "Económico (<$4M)"
+    if p < 9_000_000:
+        return "Medio ($4-9M)"
+    return "Premium ($9M+)"
+
+
+_FACTOR_EXTRACTORS = {
+    "recamaras":      lambda u: (f"{u.get('bedrooms')} recámaras" if u.get("bedrooms") is not None else None),
+    "terraza":        lambda u: ("Con terraza" if (u.get("m2_terrace") or 0) > 0 else "Sin terraza"),
+    "bodega":         lambda u: ("Con bodega" if u.get("bodega") else "Sin bodega"),
+    "estacionamiento": lambda u: ("2+ cajones" if (u.get("parking_spots") or 0) >= 2 else "1 o 0 cajones"),
+    "piso":           lambda u: _piso_band(u.get("level")),
+    "precio":         lambda u: _precio_band(u.get("price")),
+}
+_FACTOR_NOMBRE = {"recamaras": "recámaras", "terraza": "terraza", "bodega": "bodega",
+                  "estacionamiento": "estacionamiento", "piso": "piso", "precio": "banda de precio"}
+
+
+def factores_disponibles() -> List[Dict[str, str]]:
+    """Lista de factores que el Cerebro sabe leer (para el selector del simulador)."""
+    return [{"key": k, "nombre": _FACTOR_NOMBRE.get(k, k)} for k in _FACTOR_EXTRACTORS]
+
+
+async def lifts_por_factor(db, factor: str) -> Dict[str, Any]:
+    """% vendido (lift vs base) por cada opción de un factor, sobre ventas REALES. Honesto. FAIL-OPEN.
+    Usa el is_sold canónico (cero duplicación de la definición de 'vendido')."""
+    ext = _FACTOR_EXTRACTORS.get(factor)
+    if not ext:
+        return {"factor": factor, "opciones": [], "suficiente_dato": False,
+                "lectura": f"Factor '{factor}' no soportado."}
+    try:
+        from data_developments import DEVELOPMENTS, is_sold
         buckets = defaultdict(lambda: {"sold": 0, "total": 0})
         for d in DEVELOPMENTS:
             for u in (d.get("units") or []):
-                rec = u.get("bedrooms")
-                if rec is None:
+                label = ext(u)
+                if label is None:
                     continue
-                sold = bool(u.get("vendido")) or u.get("status") == "vendido"
-                key = f"{rec} recámaras"
-                buckets[key]["total"] += 1
-                if sold:
-                    buckets[key]["sold"] += 1
+                buckets[label]["total"] += 1
+                if is_sold(u.get("status")):
+                    buckets[label]["sold"] += 1
         tot_all = sum(b["total"] for b in buckets.values()) or 1
         sold_all = sum(b["sold"] for b in buckets.values())
         base = sold_all / tot_all
-        palancas = []
+        opciones = []
         for k, b in buckets.items():
             if b["total"] < 3:
                 continue
             rate = b["sold"] / b["total"]
-            palancas.append({"factor": k, "vendido_pct": round(rate * 100),
+            opciones.append({"valor": k, "vendido_pct": round(rate * 100),
                              "lift_pp": round((rate - base) * 100), "n": b["total"]})
-        palancas.sort(key=lambda x: -x["lift_pp"])
-        suficiente = tot_all >= 12 and sold_all >= 4
+        opciones.sort(key=lambda x: -x["vendido_pct"])
+        suficiente = tot_all >= 12 and sold_all >= 4 and len(opciones) >= 2
         return {
-            "palancas": palancas[:6],
-            "base_pct": round(base * 100),          # F4.1 · tasa base de venta (para el simulador)
-            "n_total": tot_all,
+            "factor": factor, "nombre": _FACTOR_NOMBRE.get(factor, factor),
+            "opciones": opciones, "base_pct": round(base * 100), "n_total": tot_all,
             "suficiente_dato": suficiente,
-            "lectura": ("Palancas detectadas por % de venta real."
+            "lectura": ("Lifts detectados por % de venta real."
                         if suficiente else
-                        "Aprendiendo: aún con pocas ventas reales para confirmar palancas causales."),
+                        "Aprendiendo: aún con pocas ventas reales para confirmar este factor."),
         }
     except Exception as e:
-        log.warning(f"[cerebro_mercado] palancas fail-open: {e}")
-        return {"palancas": [], "suficiente_dato": False, "lectura": "Aún aprendiendo."}
+        log.warning(f"[cerebro_mercado] lifts_por_factor fail-open: {e}")
+        return {"factor": factor, "opciones": [], "suficiente_dato": False, "lectura": "Aún aprendiendo."}
+
+
+async def aprender_palancas(db) -> Dict[str, Any]:
+    """Palancas por nº de recámaras (panel 'Cómo Aprende'). Delega en lifts_por_factor (cero duplicación)."""
+    r = await lifts_por_factor(db, "recamaras")
+    palancas = [{"factor": o["valor"], "vendido_pct": o["vendido_pct"], "lift_pp": o["lift_pp"], "n": o["n"]}
+                for o in (r.get("opciones") or [])]
+    palancas.sort(key=lambda x: -x["lift_pp"])
+    return {
+        "palancas": palancas[:6],
+        "base_pct": r.get("base_pct"),
+        "n_total": r.get("n_total"),
+        "suficiente_dato": r.get("suficiente_dato", False),
+        "lectura": r.get("lectura", "Aún aprendiendo."),
+    }
 
 
 async def aprendizaje_mercado(db) -> Dict[str, Any]:

@@ -195,7 +195,14 @@ APLICABA hacia adelante para guiar decisiones.
   - Endpoint GET /api/dev/simulador-palancas?factor=&de=&a= (routes/estudio_mercado.py).
   - Frontend: panel "🧠 Qué Pasaría Si" (selector recámaras de→a + impacto en puntos + mejor opción) bajo Producto Recomendado en DesarrolladorEstudioMercado.js · api.getSimuladorPalancas.
   - Cierra el lado que faltaba del loop: aprender→APLICAR (lo aprendido guía la decisión, ya no es dato muerto). Smoke real verde (496 unidades, base 14%, 3→2 = −2 pts). IA-first (dato causal aprendido). Frontend 1 warning (limpio).
-- [ ] 4.2 Palancas más ricas (terraza/amenidades/piso/precio) cuando el dato exista · build-for-endstate · 🔄
+**F4.2 Palancas más ricas (6 factores) + simulador multi-factor** — ✅ 2026-06-10
+- [x] 4.2 El Cerebro aprende lifts de 6 factores reales + el "Qué Pasaría Si" los simula · Back+Front · ✅
+- ARCHIVOS F4.2:
+  - `backend/cerebro_mercado_engine.py` — `lifts_por_factor(db, factor)` genérico sobre campos REALES del átomo (recamaras/terraza=m2_terrace/bodega/estacionamiento=parking_spots≥2/piso=level band/precio band) + `factores_disponibles()`. FIX cero-deuda: usa `is_sold` canónico (antes status=="vendido", misma duplicación de F2.7). `aprender_palancas` ahora DELEGA en lifts_por_factor("recamaras") (sin duplicar lógica · el panel "Cómo Aprende" intacto).
+  - `backend/simulador_palancas_engine.py` — generalizado: `factores(db)` (catálogo + opciones aprendidas) + `simular(db, factor, de, a)` por etiqueta. Honesto por factor.
+  - Endpoint GET /api/dev/simulador-palancas/factores + /simulador-palancas?factor=&de=&a= (de/a string).
+  - Frontend: panel "Qué Pasaría Si" ahora con selector de factor + opciones dinámicas (DesarrolladorEstudioMercado.js) · api.getSimuladorFactores. Build-for-endstate: factores sin venta suficiente dicen "se prende solo con datos" (ej. terraza hoy).
+  - Smoke real verde: precio Premium→Medio −3 pts · bodega/piso/estacionamiento con dato · terraza honesto sin dato. Frontend 1 warning (limpio).
 - [ ] 4.3 Despertar: cablear el Simulador al Generador de Producto (F2.2) — impacto de la mezcla recomendada · 🔄
 - [ ] 4.4 Drift/alertas: cuando la calibración empeora, avisa a superadmin · 🔄
 
