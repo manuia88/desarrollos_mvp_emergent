@@ -31,6 +31,29 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
   const [radioM, setRadioM] = useState(1000);
   const [radioData, setRadioData] = useState(null);
   const [radioLoading, setRadioLoading] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  // F3.1 · Descarga el Estudio + Memo como PDF con marca (modo colonia). Radio → impresión.
+  const downloadPdf = async () => {
+    if (mode !== 'colonia' || !colonia) { window.print(); return; }
+    setPdfBusy(true);
+    try {
+      const base = process.env.REACT_APP_BACKEND_URL || '';
+      const url = `${base}/api/dev/estudio-mercado/pdf?colonia_id=${encodeURIComponent(colonia.id)}&categoria=${encodeURIComponent(categoria)}`;
+      const r = await fetch(url, { credentials: 'include' });
+      if (!r.ok) throw new Error('pdf');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Estudio_${(colonia.name || 'colonia').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.print();   // fallback honesto si el endpoint falla
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   useEffect(() => {
     const q = query.trim();
@@ -97,7 +120,12 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
           {CATS.map(c => (
             <button key={c.id} onClick={() => setCategoria(c.id)} style={{ ...tabBtn(categoria === c.id), padding: '8px 12px', fontSize: 12 }}>{c.label}</button>
           ))}
-          {hasResult && <button onClick={() => window.print()} data-testid="estudio-pdf" style={{ ...tabBtn(false), color: 'var(--cream)' }}>Exportar a PDF</button>}
+          {hasResult && (
+            <button onClick={downloadPdf} disabled={pdfBusy} data-testid="estudio-pdf"
+              style={{ ...tabBtn(false), color: 'var(--cream)', opacity: pdfBusy ? 0.6 : 1 }}>
+              {pdfBusy ? 'Generando PDF…' : (mode === 'colonia' ? 'Descargar PDF' : 'Exportar a PDF')}
+            </button>
+          )}
         </div>
 
         {mode === 'colonia' ? (

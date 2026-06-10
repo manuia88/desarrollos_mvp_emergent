@@ -135,6 +135,25 @@ Valor residual · Due diligence · Norma 3 · Veredicto 1 página · Calibració
 
 🎉 **FASE F2.x COMPLETA — F2.1 a F2.12 (12 batches) ✅ El Cerebro del Mercado punta a punta.**
 
+## FASE F3 — Autopiloto de Memorándum + Estudio de Mercado Vivo (entregable branded)
+HALLAZGO (auditoría repo, evita overengineer): F3 estaba ~80% construido. YA existían: página
+Reportes dev (`DesarrolladorReportes.js` con tab Branded), guardado versionado (`/reportes/generar`
++ `db.developer_reports`), stack PDF real (`reportlab` en `cma_pdf_renderer`/`free_audit_engine`),
+marca de agua/QR (`export_brand`) + brand kit. El hueco real: el Estudio Vivo (F2.6) y el Memo
+(F2.10) vivían AISLADOS — no se exportaban en PDF branded, no se guardaban, no llegaban al lead.
+F3 = ENCHUFAR eso al pipeline que ya existe (~70% cablear, ~30% net-new). Propuesta original recortada 7→5 chunks.
+
+**F3.1 Estudio Vivo + Memo → PDF branded** — ✅ 2026-06-10
+- [x] 3.1 Render branded del Estudio + Memo + botón "Descargar PDF" real · Back+Front · ✅
+- ARCHIVOS F3.1:
+  - `backend/estudio_pdf_renderer.py` — `render_estudio_pdf(db, colonia_id, categoria, user_id)` 2 páginas A4 (portada+síntesis+demanda+producto · memo+tono+zona). REUSO TOTAL del stack del CMA (cma_pdf_renderer: paleta/fuentes/_draw_kpi_card/_draw_score_bar/_wrap_text/_fetch_asesor_profile) + contenido de estudio_mercado_engine.generar_estudio. Fallback de fuentes FAIL-OPEN (alias CMA*→nativas si faltan las Liberation TTF en dev).
+  - Endpoint GET /api/dev/estudio-mercado/pdf?colonia_id=&categoria= → StreamingResponse application/pdf (mismo patrón que routes/cma.py).
+  - Frontend: botón "Descargar PDF" en DesarrolladorEstudioMercado.js (modo colonia descarga el branded; modo radio cae a window.print). Smoke real verde (Polanco, 5.2KB, magic %PDF). Frontend 1 warning (limpio).
+- [ ] 3.2 Guardado versionado del estudio/memo (historial) · extender db.developer_reports · 🔄
+- [ ] 3.3 Aparece en tab "Reportes Branded" existente · conectar tipo nuevo · ▪️
+- [ ] 3.4 El Cerebro propone/regenera al cambiar el dato (agéntico, reusa F2.5) · 🔄
+- [ ] 3.5 Lead inversionista → su memo en 1 clic (Ficha360, reusa memo) · ASESOR · 🔄
+
 ## ROADMAP COMPLETO DE FASES (F0 → F5) — la columna vertebral
 - **F0 Cimientos** ✅ — Doctrina · bandas honestas · SIG colonias · átomo dmx_unit_schema · Cerebro E0-E6 · taste/score/match.
 - **F1 Underwriting del Terreno** ✅ — valor residual · due diligence · Norma 3 · veredicto · calibración Puente Alvarado.

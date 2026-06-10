@@ -9,6 +9,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(tags=["estudio_mercado"])
 log = logging.getLogger("dmx.routes_estudio_mercado")
@@ -119,6 +120,34 @@ async def deseabilidad_ep(request: Request, dev_id: str, unit_id: str):
         raise HTTPException(404, "Unidad no encontrada")
     from preferencias_engine import score_deseabilidad
     return await score_deseabilidad(_db(request), unit, dev)
+
+
+@router.get("/api/dev/estudio-mercado/pdf")
+async def estudio_mercado_pdf(request: Request,
+                             colonia_id: str = Query(...),
+                             categoria: str = Query("media")):
+    """Estudio de Mercado Vivo + Memo como PDF con marca DMX (F3.1). Reusa el stack del CMA."""
+    user = await _auth(request)
+    from estudio_pdf_renderer import render_estudio_pdf
+    from estudio_mercado_engine import generar_estudio
+    try:
+        pdf_bytes = await render_estudio_pdf(_db(request), colonia_id, categoria,
+                                             user_id=getattr(user, "user_id", "") or "")
+    except Exception as exc:
+        log.exception(f"[estudio.pdf] render failed · {exc}")
+        raise HTTPException(500, "Error al generar el PDF del estudio")
+    # nombre de archivo legible
+    est = await generar_estudio(_db(request), colonia_id, categoria)
+    import re as _re
+    slug = _re.sub(r"[^a-zA-Z0-9]+", "-", (est.get("colonia") or "estudio")).strip("-").lower()
+    from datetime import datetime as _dt
+    filename = f"Estudio_{slug}_{_dt.now().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"',
+                 "Content-Length": str(len(pdf_bytes))},
+    )
 
 
 @router.get("/api/dev/estudio-mercado/radio")
