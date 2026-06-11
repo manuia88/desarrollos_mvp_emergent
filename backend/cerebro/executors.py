@@ -680,14 +680,18 @@ async def exec_buyer_request_visit(db, user, params, ctx):
     # Llega aquí SOLO si tú aprobaste. Crea la solicitud real (puente comprador→asesor,
     # consentido por ti). No-prod NO manda WhatsApp; deja el registro listo.
     import os
+    import uuid
     uid, email = _uid_email(user)
     pid = _focus_property_id(params, ctx)
     prop = await _project_doc(db, pid) or _demo_project(pid)
     lead = await _buyer_lead(db, user)
-    doc = {"user_id": uid, "email": email, "property_id": pid,
+    doc = {"id": "visit_" + uuid.uuid4().hex[:12],
+           "user_id": uid, "email": email, "property_id": pid,
            "property_name": (prop or {}).get("name"),
            "lead_id": (lead or {}).get("id"),
+           "developer_id": (prop or {}).get("developer_id") or (prop or {}).get("owner_id"),
            "owner_id": (prop or {}).get("developer_id") or (prop or {}).get("owner_id"),
+           "dev_org_id": (prop or {}).get("dev_org_id"),
            "status": "requested", "source": "cerebro"}
     try:
         from datetime import datetime, timezone

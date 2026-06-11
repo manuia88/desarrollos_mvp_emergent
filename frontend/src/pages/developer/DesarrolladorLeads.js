@@ -5,7 +5,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, Toast, fmt0, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import LeadKanban from '../../components/shared/LeadKanban';
-import { Activity, Target, Plus, X, Sparkle, MessageCircle } from '../../components/icons';
+import { Activity, Target, Plus, X, Sparkle, MessageCircle, Calendar, Check } from '../../components/icons';
 import { BarList, FunnelChart } from '../../components/developer/ChartPrimitives';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { anonymizeLead, piiCSS, internalOnlyCSS } from '../../lib/anonymize';
@@ -31,6 +31,7 @@ const LOST_REASON_LABELS = {
 
 const TABS = [
   { k: 'pipeline',  label: 'Pipeline',  Icon: Target },
+  { k: 'visitas',   label: 'Solicitudes de visita', Icon: Calendar },
   { k: 'kanban',    label: 'Kanban universal', Icon: Sparkle },
   { k: 'analytics', label: 'Analytics', Icon: Activity },
 ];
@@ -71,11 +72,97 @@ export default function DesarrolladorLeads({ user, onLogout }) {
       </div>
 
       {tab === 'pipeline'  && <PipelineTab onToast={setToast} currentUser={user} />}
+      {tab === 'visitas'   && <VisitRequestsTab onToast={setToast} />}
       {tab === 'kanban'    && <LeadKanban scope="all_org" onToast={setToast} />}
       {tab === 'analytics' && <AnalyticsTab onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
     </DeveloperLayout>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tab — Solicitudes de visita (cierra ciclo comprador→dev · las genera el Asistente de Compra)
+// ═════════════════════════════════════════════════════════════════════════════
+function VisitRequestsTab({ onToast }) {
+  const [data, setData] = useState({ solicitudes: [], pendientes: 0, lectura: '' });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try { setData(await api.listVisitRequests(showAll ? 'all' : 'requested')); }
+    catch { setData({ solicitudes: [], pendientes: 0, lectura: 'No se pudo cargar.' }); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [showAll]);
+
+  const act = async (id, kind) => {
+    setBusy(id);
+    try {
+      const r = kind === 'accept' ? await api.acceptVisitRequest(id) : await api.declineVisitRequest(id);
+      onToast?.({ kind: 'ok', text: kind === 'accept' ? (r.mensaje || 'Visita aceptada.') : 'Solicitud descartada.' });
+      await load();
+    } catch { onToast?.({ kind: 'bad', text: 'No se pudo.' }); }
+    finally { setBusy(null); }
+  };
+
+  const ST = {
+    requested: { label: 'Solicitada', tone: 'warn' }, accepted: { label: 'Aceptada', tone: 'ok' },
+    declined: { label: 'Descartada', tone: 'bad' },
+  };
+  const rows = data.solicitudes || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 13.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+          {loading ? 'Cargando solicitudes…' : (data.lectura || 'Compradores que pidieron visitar tus propiedades desde su Asistente de Compra.')}
+        </div>
+        <button onClick={() => setShowAll(s => !s)} style={{
+          padding: '6px 12px', borderRadius: 9999, background: 'transparent',
+          border: '1px solid var(--border)', color: 'var(--cream-3)',
+          fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        }}>{showAll ? 'Ver solo pendientes' : 'Ver todas'}</button>
+      </div>
+
+      {!loading && rows.length === 0 && (
+        <Card><div style={{ padding: '26px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
+          Sin solicitudes de visita por ahora. Cuando un comprador pida visitar una de tus propiedades, aparecerá aquí.
+        </div></Card>
+      )}
+
+      {rows.map((r) => {
+        const st = ST[r.status] || ST.requested;
+        return (
+          <Card key={r.id} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Calendar size={18} color="#EC4899" />
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--cream)' }}>{r.property_name || r.property_id}</div>
+                <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>
+                  {(r.buyer?.name) || 'Comprador'}{r.buyer?.email ? ` · ${r.buyer.email}` : ''}{r.buyer?.phone ? ` · ${r.buyer.phone}` : ''}
+                </div>
+              </div>
+              <Badge tone={st.tone}>{st.label}</Badge>
+              {r.status === 'requested' && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => act(r.id, 'accept')} disabled={busy === r.id} data-testid={`visit-accept-${r.id}`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
+                    <Check size={13} /> Aceptar
+                  </button>
+                  <button onClick={() => act(r.id, 'decline')} disabled={busy === r.id}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', color: 'var(--cream-3)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                    <X size={13} /> Descartar
+                  </button>
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
 

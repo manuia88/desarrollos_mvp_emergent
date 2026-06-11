@@ -12,6 +12,7 @@ import {
   approveCerebroTask, rejectCerebroTask, getCerebroLearning, cerebroLearningDemo,
   getCerebroConfig, saveCerebroConfig, getCerebroCatalog,
 } from '../../api/cerebro';
+import { fetchVisitas } from '../../api/comprador';
 
 // Cuánta libertad le das (en lenguaje de persona · cero jerga).
 const AUTONOMY = [
@@ -43,6 +44,7 @@ export default function CompradorAsistente() {
   const [config, setConfig] = useState(null);
   const [catalog, setCatalog] = useState({});
   const [configOpen, setConfigOpen] = useState(false);
+  const [visitas, setVisitas] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +57,7 @@ export default function CompradorAsistente() {
       getCerebroLearning().then(setLearning).catch(() => setLearning(null));
       getCerebroConfig().then((c) => setConfig(c?.config || c || null)).catch(() => setConfig(null));
       getCerebroCatalog().then((c) => setCatalog(c?.areas || {})).catch(() => setCatalog({}));
+      fetchVisitas().then((v) => setVisitas(v?.visitas || [])).catch(() => setVisitas([]));
     } finally { setLoading(false); }
   }, []);
 
@@ -249,6 +252,25 @@ export default function CompradorAsistente() {
                     Para terminar, dame tu OK arriba 👆
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* TUS VISITAS · estado de las que pediste (el dev las recibe y confirma) */}
+            {visitas.length > 0 && (
+              <div style={card}>
+                <div style={{ ...eyebrow, marginBottom: 10 }}>🗓️ Tus Visitas</div>
+                {visitas.slice(0, 6).map((v) => {
+                  const color = v.status === 'accepted' ? '#4ADE80' : v.status === 'declined' ? '#F87171' : '#FACC15';
+                  return (
+                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0' }}>
+                      <Calendar size={14} color={color} />
+                      <div style={{ flex: 1, fontSize: 13, color: 'rgba(240,235,224,0.85)' }}>
+                        {v.property_name || v.property_id}
+                      </div>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color }}>{v.status_label}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

@@ -113,6 +113,28 @@ async def get_recommended(request: Request, limit: int = 6, user=Depends(_requir
         return {"ok": True, "personalizado": False, "properties": []}
 
 
+# Cierra ciclo (vuelta del comprador): ve el estado de las visitas que pidió su Asistente.
+# El dev las recibe en su bandeja y acepta/descarta; aquí el comprador ve cómo van.
+@router.get("/api/comprador/visitas")
+async def get_visitas(request: Request, user=Depends(_require_buyer)):
+    db = _db(request)
+    q = {"$or": [{"user_id": user.user_id}]}
+    if user.email:
+        q["$or"].append({"email": user.email})
+    items = []
+    _ST = {"requested": "Solicitada", "accepted": "Confirmada", "declined": "No disponible"}
+    try:
+        async for d in db.visit_requests.find(q, {"_id": 0}).sort("created_at", -1).limit(50):
+            items.append({"id": d.get("id"), "property_id": d.get("property_id"),
+                          "property_name": d.get("property_name"),
+                          "status": d.get("status") or "requested",
+                          "status_label": _ST.get(d.get("status") or "requested", "Solicitada"),
+                          "created_at": d.get("created_at")})
+    except Exception as e:
+        logging.getLogger("dmx.comprador").warning(f"[visitas] fail-open: {e}")
+    return {"ok": True, "total": len(items), "visitas": items}
+
+
 # ─── Profile ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/comprador/profile")
