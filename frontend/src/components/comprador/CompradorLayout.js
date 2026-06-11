@@ -7,7 +7,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../App';
 import { logoutComprador } from '../../api/comprador';
-import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare, Award, Brain } from '../icons';
+import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare, Award, Brain, Layers } from '../icons';
 import { fetchUnreadCount } from '../../api/chat';
 import { fetchWrappedList } from '../../api/wrapped';
 import { Z } from '../../styles/zIndex';
@@ -17,6 +17,7 @@ const NAV_BASE = [
   { to: '/comprador/asistente', label: 'Asistente', icon: Brain },
   { to: '/comprador/saved-searches', label: 'Búsquedas', icon: Search },
   { to: '/comprador/favoritos', label: 'Favoritos', icon: Heart },
+  { to: '/comprador/comparar', label: 'Comparar', icon: Layers },
   { to: '/comprador/historial', label: 'Histórico', icon: Clock },
   { to: '/comprador/alertas', label: 'Alertas', icon: Bell },
   { to: '/comprador/chat', label: 'Chat', icon: MessageSquare, badge: 'chat_unread' },
