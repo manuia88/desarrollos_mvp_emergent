@@ -3918,3 +3918,62 @@ async def list_recent(request: Request, limit: int = 5):
         if isinstance(ts, datetime):
             it["viewed_at"] = ts.isoformat()
     return items
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P1.16 · Cable RepliesInbox → lead. Los replies del clasificador traen `lead_id` que es
+# id de db.leads (NO cid de asesor_contactos) = el problema "dos universos de leads". El
+# frontend llamaba /api/asesor/leads/{id} (404). Estos endpoints operan sobre db.leads (el
+# universo correcto) y se escopan con tenant_scope.assert_lead_owner (cierra IDOR). Cierra
+# el ciclo: clasificador de respuesta → acción 1-clic (avanzar etapa / watchlist / ver lead).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class _AsesorLeadPatch(BaseModel):
+    stage: Optional[str] = None
+    status: Optional[str] = None
+    status_v2: Optional[str] = None
+    watchlist: Optional[bool] = None
+
+
+@router.get("/leads/{lead_id}")
+async def get_asesor_lead(lead_id: str, request: Request):
+    """Ficha de un lead (db.leads) del asesor — usado por RepliesInbox (notify_asesor)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)  # 403/404 si no es suyo
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "password_hash": 0})
+    if not lead:
+        raise HTTPException(404, "Lead no encontrado")
+    return lead
+
+
+@router.patch("/leads/{lead_id}")
+async def patch_asesor_lead(lead_id: str, payload: _AsesorLeadPatch, request: Request):
+    """Actualiza etapa/estado/watchlist de un lead — usado por RepliesInbox (advance_funnel_stage)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
+    upd = {k: v for k, v in payload.dict().items() if v is not None}
+    if not upd:
+        raise HTTPException(400, "nada que actualizar")
+    upd["updated_at"] = _now()
+    res = await db.leads.update_one({"id": lead_id}, {"$set": upd})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Lead no encontrado")
+    return {"ok": True, "updated": list(upd.keys())}
+
+
+@router.post("/leads/{lead_id}/watchlist")
+async def watchlist_asesor_lead(lead_id: str, request: Request):
+    """Marca el lead en watchlist — usado por RepliesInbox (add_watchlist). Idempotente."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
+    res = await db.leads.update_one(
+        {"id": lead_id}, {"$set": {"watchlist": True, "watchlist_at": _now(), "updated_at": _now()}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Lead no encontrado")
+    return {"ok": True, "watchlist": True}
