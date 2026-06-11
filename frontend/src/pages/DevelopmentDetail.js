@@ -48,6 +48,8 @@ import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard'
 import ConstructionQualityBadge from '../components/property/ConstructionQualityBadge';
 import { getQualityIndex } from '../api/constructionQuality';
 import MarketValueCard from '../components/marketplace/MarketValueCard';
+import ForecastChart from '../components/forecast/ForecastChart';
+import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BuySignal from '../components/marketplace/BuySignal';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
@@ -341,6 +343,15 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
           <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
+
+          {/* Despierta IA apagada · pronóstico + probabilidad de la zona, justo donde el comprador decide.
+              Componentes ya existían (ZonePage), faltaban en la ficha. */}
+          {(dev.colonia_id || dev.colonia) && (
+            <section style={{ marginTop: 20, display: 'grid', gap: 16 }}>
+              <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} />
+              <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} />
+            </section>
+          )}
 
           {/* Narrativa AI — N5 (Phase C2) */}
           <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>

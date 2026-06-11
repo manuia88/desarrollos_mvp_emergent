@@ -6,6 +6,8 @@ import Navbar from '../components/landing/Navbar';
 import { Bed, Bath, Car, Ruler, Heart, MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import { fetchProperty, fetchColonia, fetchSimilar, isFavorite, toggleFavorite } from '../api/marketplace';
 import MortgageCalculator from '../components/property/MortgageCalculator';
+import ForecastChart from '../components/forecast/ForecastChart';
+import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BriefingCard from '../components/property/BriefingCard';
 import ShareMenu from '../components/property/ShareMenu';
 import MiniMap from '../components/property/MiniMap';
@@ -190,6 +192,15 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Despierta IA apagada · pronóstico + probabilidad de la zona en la ficha (los
+                  componentes ya existían en ZonePage, faltaban aquí donde el comprador decide). */}
+              {property?.colonia_id && (
+                <div style={{ display: 'grid', gap: 16 }}>
+                  <ForecastChart mode="zone" slug={property.colonia_id} />
+                  <ProbabilityCard type="drpi_up" id={property.colonia_id} months={12} />
                 </div>
               )}
 
