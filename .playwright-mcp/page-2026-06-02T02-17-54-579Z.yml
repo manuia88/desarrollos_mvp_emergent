@@ -1,4 +1,0 @@
-- generic [ref=e2]:
-  - link "Saltar al contenido principal" [ref=e3] [cursor=pointer]:
-    - /url: "#main-content"
-  - generic [ref=e4]: Cargando…
