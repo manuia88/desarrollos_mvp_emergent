@@ -3988,7 +3988,8 @@ async def watchlist_asesor_lead(lead_id: str, request: Request):
 
 @router.get("/mi-espejo")
 async def mi_espejo(request: Request):
-    """Análisis de desempeño del asesor (patrones + sugerencias). FAIL-OPEN."""
+    """Análisis de desempeño del asesor (patrones + sugerencias) + "tu ritmo" (señal de
+    actividad propia, reusa churn_prediction_engine). FAIL-OPEN."""
     user = await require_advisor(request)
     db = get_db(request)
     res = {"patterns": [], "suggestions": []}
@@ -3997,4 +3998,23 @@ async def mi_espejo(request: Request):
         res = await analyze_performance(db, user.user_id, getattr(user, "tenant_id", None)) or res
     except Exception as e:
         logging.getLogger("dmx.advisor").warning(f"[mi-espejo] fail-open: {e}")
-    return {"ok": True, **res}
+    # #3 · "Tu Ritmo": reusa el motor de churn pero solo la SEÑAL de actividad propia (no la
+    # recomendación de retención, que es de gerente). Nudge honesto: si bajaste tu ritmo, lo dice.
+    ritmo = None
+    try:
+        from churn_prediction_engine import compute_churn_risk
+        c = await compute_churn_risk(db, user.user_id)
+        score = int(c.get("churn_risk_score") or 0)
+        if score >= 30:
+            dropped = c.get("features_dropped") or []
+            top = dropped[0].get("feature_key").replace("_", " ") if dropped else None
+            ritmo = {
+                "baja_pct": score,
+                "donde": top,
+                "lectura": (f"Tu actividad bajó ~{score}% vs el mes pasado"
+                            + (f" (sobre todo en {top})" if top else "")
+                            + ". Retómalo para no perder ritmo."),
+            }
+    except Exception as e:
+        logging.getLogger("dmx.advisor").warning(f"[mi-espejo] ritmo fail-open: {e}")
+    return {"ok": True, "ritmo": ritmo, **res}

@@ -27,7 +27,7 @@ export default function TuEspejoCard() {
 
   const patterns = data?.patterns || [];
   const suggestions = data?.suggestions || [];
-  const vacio = !loading && !err && patterns.length === 0 && suggestions.length === 0;
+  const vacio = !loading && !err && patterns.length === 0 && suggestions.length === 0 && !data?.ritmo;
 
   return (
     <Card>
@@ -44,6 +44,15 @@ export default function TuEspejoCard() {
       </div>
 
       {err && <div style={{ fontSize: 12, color: '#ef4444' }}>{err}</div>}
+
+      {/* #3 · "Tu Ritmo": señal de actividad propia (solo aparece si bajó) */}
+      {data?.ritmo?.lectura && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 12,
+                      padding: '9px 11px', borderRadius: 9, background: 'rgba(245,158,11,0.10)' }}>
+          <span style={{ fontSize: 14 }}>📉</span>
+          <span style={{ fontSize: 12.5, lineHeight: 1.45, color: '#b45309' }}>{data.ritmo.lectura}</span>
+        </div>
+      )}
       {vacio && <div style={{ fontSize: 12, color: 'var(--cream-3,#807e78)' }}>
         Aún sin suficiente actividad para un análisis. Trabaja unos leads y vuelve — tu espejo se llena solo.
       </div>}

@@ -1485,14 +1485,19 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                 );
               })()}
 
-              {/* Ánimo del cliente (sentiment REAL · client_insights) · solo si hay señal */}
-              {!demo && convIntel?.sentiment && convIntel.sentiment !== 'neutral' && (
+              {/* Ánimo del cliente (sentiment REAL · client_insights) · #4 · ahora SIEMPRE visible
+                  (antes solo si era positivo/negativo; neutral quedaba oculto). */}
+              {!demo && convIntel?.sentiment && (() => {
+                const _sent = convIntel.sentiment;
+                const _col = _sent === 'positivo' ? 'var(--ok)' : _sent === 'negativo' ? 'var(--hot)' : 'var(--cream-3)';
+                const _lbl = _sent === 'positivo' ? 'Positivo' : _sent === 'negativo' ? 'Negativo' : 'Neutral';
+                return (
                 <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 11, overflow: 'hidden', marginBottom: 16, background: 'var(--surface)' }}>
                   <div style={{ flex: 1, padding: '11px 15px', borderRight: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Ánimo del cliente</span>
-                    <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6, color: convIntel.sentiment === 'positivo' ? 'var(--ok)' : 'var(--hot)' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: convIntel.sentiment === 'positivo' ? 'var(--ok)' : 'var(--hot)' }} />
-                      {convIntel.sentiment === 'positivo' ? 'Positivo' : 'Negativo'}
+                    <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6, color: _col }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: _col }} />
+                      {_lbl}
                     </span>
                   </div>
                   {convIntel.next_action?.text && (
@@ -1502,7 +1507,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   )}
                 </div>
-              )}
+                );
+              })()}
               {!demo?.conversation && (convLoading ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando conversaciones…</div>
               ) : !convos || convos.length === 0 ? (
