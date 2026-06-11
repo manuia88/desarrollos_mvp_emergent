@@ -1,8 +1,33 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-10
+**Última actualización**: 2026-06-11
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+---
+
+## 🔌 SURFACEO + CIERRE DE CICLOS 4 PORTALES — Tandas 20-38 ✅ (2026-06-11)
+
+Barrido de "despierta features apagadas/desconectadas" + cierre de ciclos agénticos en los 4 portales.
+Branch `dev-redesign-tandas`, checkpoints `checkpoint-tanda*` / `checkpoint-t*` en GitHub. Cero deuda.
+
+| Tanda | Entrega |
+|---|---|
+| **T20-26** | Surfaceo asesor (Sala de Control/Cerebro · TuEspejo · Ficha360 Enriquecimiento) · comprador (Asistente de Compra agéntico · Propiedades Para Ti vía fit_engine · Forecast/Probability en fichas) |
+| **T27** | Superadmin "Equipo en Riesgo" — surfacea el motor de churn (`detect_cold_users`) sin endpoint previo |
+| **T28** | **Comprador Cerebro completo**: 6 ejecutores `buyer.*` reales (search→fit · vet→AVM+riesgo · simulate→calculadora · shortlist · watch · request_visit DELICADA) + página `CompradorAsistente`. Cierra el loop agéntico en los 4 portales |
+| **T29→T30** | Ciclo visita marketplace: T29 lo enrutó al dev (MAL · violó regla inviolable §5) → **T30 corregido**: el lead de marketplace va al pool de MI inmobiliaria (`tenant dmx_root`, no `dmx_house`), superadmin ve + asesor de la casa trabaja. Routers `house_leads.py` + `house_pool_engine.py` |
+| **T31-32** | Reparto del pool: **zona → carga → cierres** (founder aprobado). `pick_house_asesor` ordena por cobertura de colonia, luego menos cargado, desempata por cierres |
+| **T33** | Superadmin: `copilot`+`calibracion` toman su tema correcto (`sectionFromPath`) |
+| **T34** | Comprador: **Comparador premium en el portal** (cablea `/api/comprador/compare` huérfano) |
+| **T35** | Dev: expone 2 features ocultas (Auto-asignación + Políticas de citas); confirma que CrmFunnel/Leads YA viven en el CRM |
+| **T36** | Dev Pricing Lab: verificado YA completo (falso positivo del audit — usa `leadsApi.*`) |
+| **T37** | Dev V2 verificado completo + **cable roto**: `FichaHome` leía `my_price_m2` pero el back manda `project_price_m2` → "Tu precio /m²" siempre vacío. Fix + fallback a precio de zona (DRPI/cubo) cuando no hay pares |
+| **T38** | Marketplace: la ficha del desarrollo **abre en "Lista de precios"** (antes caía en Descripción y la lista quedaba escondida). Verificado en navegador real |
+
+**Reglas canónicas tocadas**: `memory/LEAD_REGISTRATION_RULES.md` §2.1 (pool inmobiliaria = `dmx_root`, NO `dmx_house`; reparto zona→carga→cierres).
+**Cleanup**: sacados ~150 artefactos `.playwright-mcp` que una sesión previa commiteó por error + gitignore.
+**Pendiente decisión founder (no código)**: prender `REACT_APP_DEV_V2` en producción (ya ON en local, rediseño Dev completo).
 
 ---
 
