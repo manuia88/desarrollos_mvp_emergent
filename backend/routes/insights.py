@@ -208,9 +208,26 @@ async def get_market_value(project_id: str, request: Request):
         if pm2:
             peer_pm2.append(pm2)
     market_pm2 = None
+    market_source = None
     if peer_pm2:
         peer_pm2.sort()
         market_pm2 = peer_pm2[len(peer_pm2) // 2]
+        market_source = "pares"   # mediana de proyectos pares en tu misma colonia
+
+    # Fallback: si NO hay pares en la colonia (seed disperso), compara contra el precio/m²
+    # de la ZONA (baseline DMX real: DRPI/cubo/AVM) → la posición de mercado deja de quedar
+    # en blanco. Se afina a "pares" en cuanto haya 2+ proyectos en la colonia.
+    if not market_pm2 and colonia:
+        try:
+            from data_developments import colonia_slug as _cslug
+            from investment_simulator_engine import get_colonia_baseline
+            base = await get_colonia_baseline(db, _cslug(colonia))
+            zone_pm2 = (base or {}).get("avg_price_per_m2")
+            if zone_pm2:
+                market_pm2 = float(zone_pm2)
+                market_source = "zona"
+        except Exception as e:
+            log.info("[market-value] zone fallback fail-open: %s", e)
 
     vs_pct = None
     if proj_pm2 and market_pm2:
@@ -222,6 +239,7 @@ async def get_market_value(project_id: str, request: Request):
         "colonia": colonia,
         "project_price_m2": round(proj_pm2) if proj_pm2 else None,
         "market_price_m2": round(market_pm2) if market_pm2 else None,
+        "market_source": market_source,   # 'pares' | 'zona' (honestidad de la comparación)
         "vs_market_pct": vs_pct,
         "verdict": headline,
         "action": action,

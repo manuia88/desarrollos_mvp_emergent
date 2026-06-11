@@ -177,7 +177,8 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
 
   // AVM vs mercado (defensivo: campos varían)
   const vsMkt = avm ? (avm.vs_market_pct ?? avm.vs_pct ?? null) : null;
-  const myM2 = avm ? (avm.my_price_m2 ?? avm.price_m2 ?? avm.precio_m2 ?? null) : null;
+  const myM2 = avm ? (avm.my_price_m2 ?? avm.project_price_m2 ?? avm.price_m2 ?? avm.precio_m2 ?? null) : null;
+  const mktSrc = avm?.market_source === 'pares' ? 'vs proyectos similares' : 'vs la zona';
   const mktTone = vsMkt == null ? 'flat' : (vsMkt > 12 ? 'amber' : vsMkt < -8 ? 'green' : 'green');
 
   // Jugada de hoy: la dimensión más débil = la raíz
@@ -295,7 +296,7 @@ export default function FichaHome({ slug, summary, onOpenInsights, onOpenDiagnos
         <Metric label="Tu precio /m²"
           value={myM2 ? fmtMXN(myM2) : (vsMkt != null ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}%` : '—')}
           tone={mktTone}
-          cmp={vsMkt != null ? (myM2 ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}% vs la zona` : 'vs la zona') + (vsMkt > 12 ? ' · caro' : vsMkt < -8 ? ' · barato' : ' · en línea') : 'sin comparativo aún'}
+          cmp={vsMkt != null ? (myM2 ? `${vsMkt > 0 ? '+' : ''}${Math.round(vsMkt)}% ${mktSrc}` : mktSrc) + (vsMkt > 12 ? ' · caro' : vsMkt < -8 ? ' · barato' : ' · en línea') : 'sin comparativo aún'}
           stub={vsMkt == null} assistant={vsMkt != null && vsMkt > 12 ? 'Hay una jugada de precio' : null} onClick={onOpenInsights} />
         <Metric label="Qué sube el valor" value={driver ? driver.atributo : '—'} tone={driver ? 'green' : 'flat'}
           cmp={driver ? `+${driver.impacto_pct_precio_m2}% en precio/m² · tu mercado` : 'sin muestra suficiente'} onClick={onOpenInsights} />
