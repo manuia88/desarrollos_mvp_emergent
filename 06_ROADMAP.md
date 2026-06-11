@@ -1,8 +1,27 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-06
+**Última actualización**: 2026-06-10
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+---
+
+## 🛡️ QA HARDENING + CALCULADORA DE INVERSIÓN — Tandas 1-19 ✅ (2026-06-10)
+
+Ciclo de endurecimiento pre-producción tras 5 auditorías QA + auditoría formal de 12 fases.
+Detalle por ítem: `memory/QA_FIX_CHECKLIST.md` (fuente única). Branch `dev-redesign-tandas`, ~19 checkpoints en GitHub.
+
+| Bloque | Entrega |
+|---|---|
+| **P0 bloqueantes (12/12)** | Aislamiento multi-tenant (IDOR lectura+mutación), CAS doble-venta, `user.id`→`user_id` ×33, gate de prod fail-closed (admin/JWT/Stripe), Sentry, bug `score_total`→`score_numeric`, pipeline ML resucitado (`emit_ml_event`), honestidad "ventas reales/para bancos" (data_doctrine), reconexión behavioral (Live Pulse) |
+| **P1 dinero+auth (16/16)** | AVM bancario con guard r², DRPI YoY real, stress test, concurrencia (índices únicos+CAS), break-even honesto, **ROI doble (contado/apalancado)**, login anti-fuerza-bruta, **logout que revoca token**, PII fuera del bundle, anti prompt-injection (`llm_safety`), headers de seguridad |
+| **P2 plomería+escala (16/16)** | Índices faltantes, k-anon centralizado, XSS boletines, CORS acotado, candado de rol FE, **resolvedor canónico de colonia (quita-acentos)**, modelos leen tx recientes (sort), caché del Grafo, rate-limit API v1, validadores Mongo, guard de uploads, mes contable en hora CDMX, **cables del flywheel (comprador→grafo · cancelada→perdido · captura de búsquedas)**, honestidad active/stub + caché OSM |
+| **P3 edge (8/8)** | CUS=0→$0, impuesto no-negativo, coerción defensiva, comentario/test stale, etc. |
+| **Verificación** | `scripts/preflight_staging.py` (go/no-go de 1 comando · 8/8 local) + `STAGING_VERIFICATION.md` (runbook) |
+
+**🧮 Calculadora de Inversión "brutalmente completa"** (shipped · `memory/INVESTMENT_CALCULATOR.md`): motor `investment_simulator_engine` + front `InvestmentSimulator` (4 hosts). Va más allá del ROI: flujo real con amortización, ROI contado/apalancado, TIR, impuestos (ISR), neto al vender, ¿renta cubre hipoteca?, año-por-año (cuándo vender), vs CETES, renta mínima. Cierra ciclos: autofill datos reales DMX (DRPI/cubo/AVM/LivePulse) con badge de origen · captura lead+predicción al Cerebro · huella anónima = demanda revelada para analíticas.
+
+**Pendiente (no-código / dependencia de datos):** acciones de infra del founder (backups Atlas · credencial Mongo solo-lectura · dedup .env) · tranches que esperan datos reales/escala (P0.9 gemelos shape-different restantes · P2.6.D cubo incremental · P2.7 "25 colecciones inertes") · verificación final en STAGING.
 
 ---
 

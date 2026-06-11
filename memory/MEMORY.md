@@ -1,0 +1,1 @@
+- [QA3 Master Report](QA3_MASTER_REPORT.md) — 2026-06-10 · ~40 bugs en 6 causas raíz sistémicas (seed-como-real · campos forkeados score_numeric · sin resolvedores canónicos · IDOR/getattr · fórmulas dinero · k-anon 3vs5) · NO-listo-prender · fix por causa raíz
