@@ -92,6 +92,27 @@ async def get_dashboard(request: Request, user=Depends(_require_buyer)):
     return await compute_dashboard(db, user.user_id, user.email)
 
 
+# ─── "Propiedades Para Ti" · recomendación personalizada ──────────────────────
+# Despierta fit_engine.top_properties_for_lead (que solo veía el asesor) para el COMPRADOR.
+# Paso 1 (comprador↔lead): el comprador VIVE en db.leads por user_id/email (no es asesor_contactos).
+# Paso 2: rankea propiedades por fit a su gusto. Honesto: si aún no hay gusto → fit general + bandera.
+@router.get("/api/comprador/recommended")
+async def get_recommended(request: Request, limit: int = 6, user=Depends(_require_buyer)):
+    db = _db(request)
+    lead = await db.leads.find_one({"user_id": user.user_id}, {"_id": 0, "id": 1})
+    if not lead and user.email:
+        lead = await db.leads.find_one({"email": user.email}, {"_id": 0, "id": 1})
+    lead_id = (lead or {}).get("id")
+    try:
+        from fit_engine import top_properties_for_lead
+        res = await top_properties_for_lead(
+            db, lead_id or user.user_id, limit=max(1, min(int(limit or 6), 12)), user_id=user.user_id)
+        return {"ok": True, "personalizado": bool(lead_id), **res}
+    except Exception as e:
+        logging.getLogger("dmx.comprador").warning(f"[recommended] fail-open: {e}")
+        return {"ok": True, "personalizado": False, "properties": []}
+
+
 # ─── Profile ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/comprador/profile")

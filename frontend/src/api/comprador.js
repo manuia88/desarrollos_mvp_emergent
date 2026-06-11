@@ -44,6 +44,8 @@ export async function logoutComprador() {
 // ─── Dashboard / profile ────────────────────────────────────────────────────
 
 export const fetchDashboard = () => _req('/api/comprador/dashboard');
+// "Propiedades para ti" · recomendación personalizada (reusa fit_engine sobre tu lead)
+export const fetchRecommended = (limit = 6) => _req(`/api/comprador/recommended?limit=${limit}`);
 export const fetchProfile = () => _req('/api/comprador/profile');
 export const updateProfile = (patch) => _req('/api/comprador/profile', {
   method: 'PATCH', body: JSON.stringify(patch),

@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchDashboard } from '../../api/comprador';
+import { fetchDashboard, fetchRecommended } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import SmartMatchWidget from '../../components/comprador/SmartMatchWidget';
 import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
@@ -74,6 +74,7 @@ function WidgetCard({ icon: Icon, title, count, subtitle, to, children, testId }
 export default function CompradorDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reco, setReco] = useState(null);  // "Propiedades para ti"
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function CompradorDashboard() {
         if (e.status === 401) navigate('/login-comprador', { replace: true });
         setLoading(false);
       });
+    fetchRecommended(6).then(setReco).catch(() => setReco(null));  // despierta fit_engine para el comprador
   }, [navigate]);
 
   if (loading) {
@@ -231,6 +233,32 @@ export default function CompradorDashboard() {
         <div style={{ marginTop: 18 }}>
           <SmartMatchWidget />
         </div>
+
+        {/* Propiedades Para Ti · recomendación personalizada (fit_engine despertado para el comprador) */}
+        {reco?.properties?.length > 0 && (
+          <div style={{ marginTop: 18, background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 14, padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream,#f0ebe0)' }}>✨ Propiedades Para Ti</div>
+                <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>
+                  {reco.personalizado ? 'Según lo que has visto y buscado' : 'Lo mejor del mercado — se afina conforme exploras'}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {reco.properties.slice(0, 6).map((p) => (
+                <Link key={p.property_id} to={`/desarrollo/${p.property_id}`} data-testid={`reco-${p.property_id}`}
+                  style={{ textDecoration: 'none', color: 'inherit', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 12, padding: 14, background: 'rgba(13,16,23,0.5)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 9px', borderRadius: 9999, background: 'rgba(34,197,94,0.15)', color: '#4ADE80' }}>{Math.round(p.score || 0)}% para ti</span>
+                  </div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream,#f0ebe0)', marginBottom: 4 }}>{p.property_title || p.property_id}</div>
+                  {p.top_reason && <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', lineHeight: 1.4 }}>{p.top_reason}</div>}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* W3.8 — Servicios para tu compra (solo si hay partners activos) */}
         <CompradorCrossSellSection />
