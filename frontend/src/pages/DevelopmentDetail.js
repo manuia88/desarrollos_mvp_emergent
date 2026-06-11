@@ -91,7 +91,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const { id } = useParams();
   const [dev, setDev] = useState(null);
   const [pxExp, setPxExp] = useState(null); // experiment_id activo para rastrear el lead
-  const [tab, setTab] = useState('descripcion');
+  // Default a 'precios': en un marketplace lo primero que el comprador quiere ver es la lista
+  // de precios (unidades + m² + estado). Antes caía en 'descripcion' y la lista quedaba escondida.
+  const [tab, setTab] = useState('precios');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
