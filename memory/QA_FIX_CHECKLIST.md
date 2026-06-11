@@ -9,7 +9,8 @@ metadata:
 Detalle: `QA3_MASTER_REPORT.md` (QA1-5) + `AUDIT_FASE_*.md` + `AUDIT_RESUMEN_EJECUTIVO.md`.
 Leyenda: ✅EJEC = confirmado EJECUTANDO (no solo leyendo) · 🆕 = nuevo de la auditoría formal · [F#] = fase de la auditoría.
 Conteo: **~12 P0 · ~17 P1 · ~24 P2 · ~8 P3.**
-VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → arreglar antes de prender.
+VEREDICTO ORIGINAL: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → arreglar antes de prender.
+ESTADO 2026-06-10 (Tandas 1-17): **P0 12/12 · P1 16/16 · P2 16/16 · P3 8/8 ATENDIDOS.** Quedan SOLO: acciones de infra del founder (P0.7 SENTRY_DSN ✅ puesto · P2.16 credencial Mongo solo-lectura · P3.5 dedup .env) + tranches con dependencia externa (P1.16 cableado asesor "dos universos de leads" · P2.6.D cubo incremental · P2.7 "25 colecciones inertes" · P2.13 resto de uploads · P0.9 reconexión de gemelos shape-different) + verificación en STAGING (load-test/backups). Núcleo go/no-go: LISTO salvo las acciones de infra.
 
 ## P0 — Bloqueantes (go/no-go)
 - [x] P0.1 · **Aislamiento multitenant — IDOR lectura** ✅ARREGLADO 2026-06-10 (Tanda 1): auth+ownership en funnel(get/breakdown/suggestion/sankey), insights ×8, battle_card ×5, maps_cross battle-card, diagnostic ×5, deseabilidad, grafo-contacto (engine scope owner_id), argumentario (_fetch_lead nunca cross-org), b13 attribution ×2, lead_match ×2. Verificado: cross-dev→403, propio→OK; journey_dev 20/20, redteam 22/22.
