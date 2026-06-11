@@ -3977,3 +3977,24 @@ async def watchlist_asesor_lead(lead_id: str, request: Request):
     if res.matched_count == 0:
         raise HTTPException(404, "Lead no encontrado")
     return {"ok": True, "watchlist": True}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# "Tu Espejo" · diagnóstico de desempeño ON-DEMAND del asesor (despierta feature apagada).
+# Reusa coaching_analysis.analyze_performance (el MISMO motor del agente Coach, que hoy solo
+# corre 1 tip/día). Cierra el loop de aprendizaje: el asesor pide su análisis cuando quiera.
+# IA-first: patrones detectados + sugerencias accionables. Cero lógica nueva.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/mi-espejo")
+async def mi_espejo(request: Request):
+    """Análisis de desempeño del asesor (patrones + sugerencias). FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    res = {"patterns": [], "suggestions": []}
+    try:
+        from coaching_analysis import analyze_performance
+        res = await analyze_performance(db, user.user_id, getattr(user, "tenant_id", None)) or res
+    except Exception as e:
+        logging.getLogger("dmx.advisor").warning(f"[mi-espejo] fail-open: {e}")
+    return {"ok": True, **res}

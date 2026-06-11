@@ -27,6 +27,7 @@ import {
   ListChecks, Mic, AlertTriangle, Send,
 } from 'lucide-react';
 import * as api from '../../../api/advisor';
+import { getEnrichmentCache, enrichLead } from '../../../api/leadEnrichment';  // #2 · surfacea el enrichment
 import { fmtMXN } from '../../advisor/primitives';
 import { Z } from '../../../styles/zIndex';
 import TemperaturePill from './TemperaturePill';
@@ -85,6 +86,7 @@ const TABS = [
   { key: 'props', label: 'Propiedades' },
   { key: 'conv', label: 'Conversaciones' },
   { key: 'act', label: 'Actividad' },
+  { key: 'enrich', label: 'Enriquecimiento' },  // despierta el Clay-style enrichment (motor ya existe)
 ];
 
 // Color por estatus del tablero de propiedades (demo · mockup).
@@ -363,6 +365,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [citaProjects, setCitaProjects] = useState([]); // desarrollos para el dropdown del modal
   const [board, setBoard] = useState(null);             // B5.1 · tablero real {items, engagement}
   const [boardLoading, setBoardLoading] = useState(false);
+  const [enrich, setEnrich] = useState(null);           // #2 · enrichment Clay-style {found, data?}
+  const [enrichLoading, setEnrichLoading] = useState(false);
   const [dragId, setDragId] = useState(null);           // id de la propiedad que se arrastra
   const [linkInfo, setLinkInfo] = useState(null);       // B5.2 · link Tinder creado {url, wa_text}
   const [linkBusy, setLinkBusy] = useState(false);
@@ -405,7 +409,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
-    setEtapaVida(null); setMemo(null);
+    setEtapaVida(null); setMemo(null); setEnrich(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getEtapaVida(cid).then(setEtapaVida).catch(() => setEtapaVida(null));
@@ -441,6 +445,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
         .then((b) => setBoard(b || { items: [], engagement: {} }))
         .catch(() => setBoard({ items: [], engagement: {} }))
         .finally(() => setBoardLoading(false));
+    }
+    if (tab === 'enrich' && enrich === null && !enrichLoading) {
+      setEnrichLoading(true);
+      getEnrichmentCache(cid)
+        .then((r) => setEnrich(r?.body || { status: 'not_cached' }))
+        .catch(() => setEnrich({ status: 'error' }))
+        .finally(() => setEnrichLoading(false));
     }
     if (tab === 'props' && busquedas.length > 0 && Object.keys(matches).length === 0 && !propsLoading) {
       setPropsLoading(true);
@@ -1523,6 +1534,59 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
           )}
 
           {/* ── Pane: Actividad (timeline unificado /overview + nota) ── */}
+          {tab === 'enrich' && (
+            <div className="asr-pane" data-testid="asr-ficha360-pane-enrich">
+              {/* #2 · Enriquecimiento Clay-style: todo lo que sabemos del lead (motor ya existía). */}
+              {enrichLoading && (
+                <div style={{ fontSize: 13, color: 'var(--cream-3,#807e78)' }}>Cargando enriquecimiento…</div>
+              )}
+              {!enrichLoading && enrich && enrich.status !== 'ok' && (
+                <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                  <div style={{ fontSize: 13, color: 'var(--cream-3,#807e78)', marginBottom: 12 }}>
+                    Aún no tenemos enriquecimiento de este lead. Se llena solo cuando interactúa
+                    (dispositivo, intención, búsquedas) — o pídelo ahora.
+                  </div>
+                  <button onClick={() => { setEnrich(null); setEnrichLoading(true);
+                      enrichLead(cid, true)
+                        .then(() => getEnrichmentCache(cid))
+                        .then((r) => setEnrich(r?.body || { status: 'not_cached' }))
+                        .catch(() => setEnrich({ status: 'error' }))
+                        .finally(() => setEnrichLoading(false)); }}
+                    className="asr-hbtn asr-hbtn--key" data-testid="asr-enrich-now">Enriquecer ahora</button>
+                </div>
+              )}
+              {!enrichLoading && enrich && enrich.status === 'ok' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 9999,
+                                   background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+                      Confianza {Math.round((enrich.confidence || 0) * 100)}%
+                    </span>
+                    {(enrich.sources_used || []).map((s, i) => (
+                      <span key={i} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 9999,
+                                             background: 'rgba(0,0,0,0.05)', color: 'var(--cream-2,#555)' }}>{s}</span>
+                    ))}
+                    {enrich.cached_at && <span style={{ fontSize: 11, color: 'var(--cream-3,#9ca3af)' }}>
+                      · actualizado {String(enrich.cached_at).slice(0, 10)}</span>}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 18px' }}>
+                    {Object.entries(enrich.enriched_fields || {}).map(([k, v]) => (
+                      <div key={k}>
+                        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em',
+                                      color: 'var(--cream-3,#9ca3af)' }}>{k.replace(/_/g, ' ')}</div>
+                        <div style={{ fontSize: 13.5, color: 'var(--cream,#222)', wordBreak: 'break-word' }}>
+                          {typeof v === 'object' ? JSON.stringify(v) : String(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {Object.keys(enrich.enriched_fields || {}).length === 0 && (
+                    <div style={{ fontSize: 13, color: 'var(--cream-3,#807e78)' }}>Enriquecido, pero sin campos aún.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === 'act' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-act">
               {/* 4 acciones del mockup: Nota · Tarea · Cita · Nota por voz */}

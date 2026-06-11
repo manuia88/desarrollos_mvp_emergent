@@ -20,6 +20,9 @@ export const updateProfile = (b) => patch('/api/asesor/profile', b);
 // Dashboard
 export const getDashboard = () => j('/api/asesor/dashboard');
 
+// "Tu Espejo" · diagnóstico de desempeño on-demand (reusa el motor del agente Coach)
+export const getMiEspejo = () => j('/api/asesor/mi-espejo');
+
 // Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 export const getAsesorAmenityRanker = (colonia) => j(`/api/asesor/market/amenity-ranker${colonia ? `?colonia=${colonia}` : ''}`);
 export const getAsesorDemandGap = (top = 6) => j(`/api/asesor/market/demand-gap?top=${top}`);

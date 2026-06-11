@@ -6,6 +6,7 @@ import { PageHeader, Card, Stat, Badge, Empty, fmtMXN, relDate, isOverdue } from
 import * as api from '../../api/advisor';
 import * as briefApi from '../../api/briefings';
 import { ArrowRight, Sparkle, Clock } from '../../components/icons';
+import TuEspejoCard from '../../components/asesor/TuEspejoCard';
 
 export default function AsesorDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
@@ -136,6 +137,11 @@ export default function AsesorDashboard({ user, onLogout }) {
               </div>
             )}
           </Card>
+
+          {/* Tu Espejo · diagnóstico de desempeño on-demand (despierta el motor del agente Coach) */}
+          <div style={{ marginBottom: 22 }}>
+            <TuEspejoCard />
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="dash-grid">
             {/* Tareas hoy */}
