@@ -86,7 +86,14 @@ export default function SuperadminInmobiliariaLeads({ user, onLogout }) {
                       </td>
                       <td style={cell}>{l.property_name || l.property_id}</td>
                       <td style={cell}><span style={{ color: st.color, fontWeight: 700, fontSize: 12 }}>{st.label}</span></td>
-                      <td style={cell}>{l.assigned_asesor_name || <span style={{ color: 'rgba(240,235,224,0.4)' }}>—</span>}</td>
+                      <td style={cell}>
+                        {l.assigned_asesor_name || <span style={{ color: 'rgba(240,235,224,0.4)' }}>—</span>}
+                        {l.assigned_by && (
+                          <div style={{ fontSize: 10, color: l.assigned_by === 'zona+carga' ? '#4ADE80' : 'rgba(240,235,224,0.45)', marginTop: 2 }}>
+                            {l.assigned_by === 'zona+carga' ? '📍 por zona + carga' : '⚖️ por carga'}
+                          </div>
+                        )}
+                      </td>
                       <td style={cell}>
                         <select disabled={busy === l.id} defaultValue=""
                           onChange={(e) => { const v = e.target.value; if (v) assign(l.id, v === '__auto__' ? null : v); }}

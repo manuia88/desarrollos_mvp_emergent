@@ -63,26 +63,73 @@ async def _open_load(db, asesor_id: str) -> int:
         return 0
 
 
-async def pick_house_asesor(db) -> Optional[str]:
-    """Round-robin balanceado: el asesor de la casa con menos leads abiertos. None si no hay."""
+def _norm_zone(z) -> Optional[str]:
+    """Normaliza una colonia a slug para comparar (Polanco == polanco == 'Polanco ')."""
+    if not z:
+        return None
+    try:
+        from data_developments import colonia_slug
+        return colonia_slug(z)
+    except Exception:
+        return str(z).strip().lower().replace(" ", "-")
+
+
+async def _asesor_zones(db, asesor_id: str) -> set:
+    """Colonias que cubre el asesor (de su perfil · asesor_profiles.colonias). Set normalizado."""
+    try:
+        prof = await db.asesor_profiles.find_one({"user_id": asesor_id}, {"_id": 0, "colonias": 1})
+        return {_norm_zone(c) for c in ((prof or {}).get("colonias") or []) if c}
+    except Exception:
+        return set()
+
+
+async def _property_zone(db, lead_id: str) -> Optional[str]:
+    """Colonia de la propiedad de la solicitud (para el match por zona)."""
+    try:
+        doc = await db.visit_requests.find_one({"id": lead_id}, {"_id": 0, "property_id": 1})
+        pid = (doc or {}).get("property_id")
+        if not pid:
+            return None
+        from data_developments import DEVELOPMENTS_BY_ID
+        d = DEVELOPMENTS_BY_ID.get(pid)
+        if d:
+            return d.get("colonia")
+        d = await db.developments.find_one({"id": pid}, {"_id": 0, "colonia": 1})
+        return (d or {}).get("colonia")
+    except Exception:
+        return None
+
+
+async def pick_house_asesor(db, zone=None) -> Optional[str]:
+    """Reparto por ZONA + CARGA: primero los asesores que CUBREN la zona de la propiedad;
+    entre esos (o entre todos si nadie la cubre · no dejar el lead varado) el MENOS cargado.
+    None si no hay asesores de la casa."""
     ases = await house_asesores(db)
     if not ases:
         return None
-    best, best_load = None, None
+    znorm = _norm_zone(zone)
+    scored = []  # (asesor_id, load, cubre_zona)
     for a in ases:
         load = await _open_load(db, a["user_id"])
-        if best_load is None or load < best_load:
-            best, best_load = a["user_id"], load
-    return best
+        covers = bool(znorm) and (znorm in await _asesor_zones(db, a["user_id"]))
+        scored.append((a["user_id"], load, covers))
+    matches = [s for s in scored if s[2]]
+    pool = matches if matches else scored   # fallback: todos (zona sin cobertura → solo carga)
+    pool.sort(key=lambda s: s[1])           # menos cargado primero
+    return pool[0][0]
 
 
 async def assign_house_lead(db, lead_id: str) -> Optional[str]:
-    """Asigna (o re-asigna) un lead del pool a un asesor de la casa. Devuelve el asesor_id o None."""
-    asesor_id = await pick_house_asesor(db)
+    """Asigna (o re-asigna) un lead del pool a un asesor de la casa, por ZONA + CARGA.
+    Devuelve el asesor_id o None (si aún no hay asesores de la casa · queda en el pool)."""
+    zone = await _property_zone(db, lead_id)
+    asesor_id = await pick_house_asesor(db, zone=zone)
     upd: Dict[str, Any] = {"owner_org": DMX_HOUSE_ORG}
     if asesor_id:
+        covers = _norm_zone(zone) in await _asesor_zones(db, asesor_id) if zone else False
         upd["assigned_asesor_id"] = asesor_id
         upd["status"] = "assigned"
+        upd["assigned_by"] = "zona+carga" if covers else "carga"  # transparencia del criterio
     try:
         await db.visit_requests.update_one({"id": lead_id}, {"$set": upd})
     except Exception as e:

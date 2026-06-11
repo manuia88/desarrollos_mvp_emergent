@@ -90,6 +90,7 @@ async def _row(db, d) -> Dict[str, Any]:
         "buyer": await _buyer_info(db, d),
         "assigned_asesor_id": d.get("assigned_asesor_id"),
         "assigned_asesor_name": await _asesor_name(db, d.get("assigned_asesor_id")),
+        "assigned_by": d.get("assigned_by"),   # 'zona+carga' | 'carga' (por qué se asignó)
         "created_at": d.get("created_at"),
     }
 
