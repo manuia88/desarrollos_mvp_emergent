@@ -148,6 +148,7 @@ const AsesorDashboard   = lazy(() => import('./pages/asesor/AsesorDashboard'));
 const AsesorCommandCenter = lazy(() => import('./pages/asesor/AsesorCommandCenter'));
 // P3.A · Sección Agentes IA (consume endpoints P2 agent-workforce)
 const AsesorAgentsPage = lazy(() => import('./pages/asesor/AsesorAgentsPage'));
+const AsesorSalaDeControl = lazy(() => import('./pages/asesor/AsesorSalaDeControl'));
 const COMMAND_CENTER = process.env.REACT_APP_COMMAND_CENTER === 'true';
 const AsesorHome = COMMAND_CENTER ? AsesorCommandCenter : AsesorDashboard;
 const AsesorContactos   = lazy(() => import('./pages/asesor/AsesorContactos'));
@@ -716,6 +717,7 @@ function AppRouter() {
       <Route path="/superadmin/gov-data-mx" element={<SuperadminRoute Page={SuperadminGovDataMx} />} />
       {/* P3.A — Sección Agentes IA (workforce P2 · 5 agentes) */}
       <Route path="/portal/asesor/agents" element={<AdvisorRoute Page={AsesorAgentsPage} />} />
+      <Route path="/asesor/asistente" element={<AdvisorRoute Page={AsesorSalaDeControl} />} />
       {/* W6.AS.1 — Workflow Builder Visual (Asesor) */}
       <Route path="/portal/asesor/workflows" element={<AdvisorRoute Page={WorkflowBuilderPage} />} />
       <Route path="/portal/asesor/workflows/:workflowId" element={<AdvisorRoute Page={WorkflowBuilderPage} />} />

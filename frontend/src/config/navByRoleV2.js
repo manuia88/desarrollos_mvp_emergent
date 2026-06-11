@@ -93,9 +93,10 @@ export const ASESOR_NAV_V2 = [
   },
   // 6 · Automatizaciones
   {
-    key: 'automatizaciones', to: '/portal/asesor/workflows', label: 'Automatizaciones', Icon: GitMerge,
-    description: 'Workflows que se disparan solos + plantillas marketplace',
+    key: 'automatizaciones', to: '/asesor/asistente', label: 'Automatizaciones', Icon: GitMerge,
+    description: 'Tu asistente agéntico + agentes + workflows que se disparan solos',
     children: [
+      { key: 'asistente',   to: '/asesor/asistente',                     label: 'Tu Asistente',           Icon: Bot },
       { key: 'agents',      to: '/portal/asesor/agents',                 label: 'Agentes IA',             Icon: Bot },
       { key: 'workflows',   to: '/portal/asesor/workflows',              label: 'Mis workflows',          Icon: GitMerge },
       { key: 'marketplace', to: '/portal/asesor/marketplace-templates',  label: 'Marketplace plantillas', Icon: Layers },
