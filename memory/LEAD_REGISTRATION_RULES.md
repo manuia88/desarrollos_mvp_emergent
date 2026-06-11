@@ -55,7 +55,15 @@ NO cuenta: system auto-notes.
 
 > "el lead que se registra a cita SIN asesor cae a la BD directa de DMX. NO cae como lead directo de dev. Se trata como lead de inmobiliaria DMX. Es mi inmobiliaria."
 
-**Implicación**: leads del marketplace público sin asesor asignado → entran al pool DMX (tenant `dmx_house`) y se rutean al asesor disponible vía round-robin/score.
+**Implicación**: leads del marketplace público sin asesor asignado → entran al pool DMX y se rutean al asesor disponible vía round-robin/score.
+
+### 2.1 IMPLEMENTADO 2026-06-11 (Tanda 30) — y reconciliación de tenant
+
+- **El tenant real es `dmx_root`, NO `dmx_house`.** Las reglas (2026-05-17) lo nombraron `dmx_house`, pero el código vivo (`backend/routes/inmobiliaria.py` `_resolve_inmobiliaria_id`) resuelve la inmobiliaria del superadmin a **`dmx_root`**. Se alineó el pool a `dmx_root` para NO crear un tenant paralelo. **Si ves `dmx_house` en docs viejos = es `dmx_root`.**
+- **Primer caso real cableado**: el comprador pide visita desde su Asistente de Compra (`buyer.request_visit` del Cerebro) → `exec_buyer_request_visit` crea el doc en `visit_requests` con `owner_org="dmx_root"`, el dev/propiedad queda como **metadato** (`about_developer_id`/`about_dev_org_id`), NUNCA como dueño.
+- **Ruteo (Tanda 31 · ZONA + CARGA)**: `backend/house_pool_engine.py` — `is_house_asesor_doc` (role advisor/asesor_admin + tenant None/dmx_root; `asesor_freelance`/tenant externo = NO casa). `pick_house_asesor(zone)`: 1) prioriza asesores que CUBREN la colonia de la propiedad (`asesor_profiles.colonias`), 2) entre esos el menos cargado, 3) si nadie cubre → fallback a solo-carga (nunca varado). Marca `assigned_by`='zona+carga'|'carga' (visible en el tablero del superadmin).
+- **Consumo (founder eligió "los dos")**: superadmin ve todo + asigna (`/api/superadmin/inmobiliaria/leads` · página `SuperadminInmobiliariaLeads`, nav "Leads inmobiliaria"); asesor de la casa toma/acepta/devuelve (`/api/asesor/inmobiliaria/solicitudes` · página `AsesorSolicitudesVisita`, nav "Visitas de marketplace"). Vuelta al comprador: `/api/comprador/visitas` (Solicitada→Confirmada).
+- **ERROR corregido**: la Tanda 29 enrutó la visita al **dev dueño de la propiedad** (`routes/dev_visit_requests.py`, tab en DesarrolladorLeads) — VIOLABA la regla inviolable §5. Borrado/revertido en Tanda 30. **NUNCA enrutar leads de marketplace al dev.**
 
 ---
 
