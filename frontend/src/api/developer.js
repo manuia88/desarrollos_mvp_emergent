@@ -377,11 +377,6 @@ export const listDevAssets = (devId, type) => j(`/api/developments/${devId}/asse
 export const listDevDocuments = (devId, type) => j(`/api/desarrollador/developments/${devId}/documents${type ? `?doc_type=${type}` : ''}`);
 export const uploadDevDocument = (devId, formData) => j(`/api/desarrollador/developments/${devId}/documents/upload`, { method: 'POST', body: formData });
 
-// Solicitudes de visita (cierra ciclo comprador→dev · el Asistente de Compra las genera)
-export const listVisitRequests = (status = 'requested') => j(`/api/dev/visit-requests?status=${status}`);
-export const acceptVisitRequest = (id) => post(`/api/dev/visit-requests/${id}/accept`, {});
-export const declineVisitRequest = (id) => post(`/api/dev/visit-requests/${id}/decline`, {});
-
 
 
 

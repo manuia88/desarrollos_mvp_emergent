@@ -149,6 +149,7 @@ const AsesorCommandCenter = lazy(() => import('./pages/asesor/AsesorCommandCente
 // P3.A · Sección Agentes IA (consume endpoints P2 agent-workforce)
 const AsesorAgentsPage = lazy(() => import('./pages/asesor/AsesorAgentsPage'));
 const AsesorSalaDeControl = lazy(() => import('./pages/asesor/AsesorSalaDeControl'));
+const AsesorSolicitudesVisita = lazy(() => import('./pages/asesor/AsesorSolicitudesVisita'));
 const COMMAND_CENTER = process.env.REACT_APP_COMMAND_CENTER === 'true';
 const AsesorHome = COMMAND_CENTER ? AsesorCommandCenter : AsesorDashboard;
 const AsesorContactos   = lazy(() => import('./pages/asesor/AsesorContactos'));
@@ -175,6 +176,7 @@ const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/Superadmi
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
 const SuperadminGrafoComprador = lazy(() => import('./pages/superadmin/SuperadminGrafoComprador'));
+const SuperadminInmobiliariaLeads = lazy(() => import('./pages/superadmin/SuperadminInmobiliariaLeads'));
 const SuperadminCerebroMercado = lazy(() => import('./pages/superadmin/SuperadminCerebroMercado'));
 const SuperadminTerminalMercado = lazy(() => import('./pages/superadmin/SuperadminTerminalMercado'));
 // W5.15 Parte 2 — Pagina publica /confianza Fitch-style
@@ -720,6 +722,7 @@ function AppRouter() {
       {/* P3.A — Sección Agentes IA (workforce P2 · 5 agentes) */}
       <Route path="/portal/asesor/agents" element={<AdvisorRoute Page={AsesorAgentsPage} />} />
       <Route path="/asesor/asistente" element={<AdvisorRoute Page={AsesorSalaDeControl} />} />
+      <Route path="/asesor/solicitudes-visita" element={<AdvisorRoute Page={AsesorSolicitudesVisita} />} />
       {/* W6.AS.1 — Workflow Builder Visual (Asesor) */}
       <Route path="/portal/asesor/workflows" element={<AdvisorRoute Page={WorkflowBuilderPage} />} />
       <Route path="/portal/asesor/workflows/:workflowId" element={<AdvisorRoute Page={WorkflowBuilderPage} />} />
@@ -984,6 +987,7 @@ function AppRouter() {
       <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       <Route path="/superadmin/grafo-comprador" element={<SuperadminRoute Page={SuperadminGrafoComprador} />} />
+      <Route path="/superadmin/inmobiliaria-leads" element={<SuperadminRoute Page={SuperadminInmobiliariaLeads} />} />
       <Route path="/superadmin/cerebro-mercado" element={<SuperadminRoute Page={SuperadminCerebroMercado} />} />
       <Route path="/superadmin/terminal-mercado" element={<SuperadminRoute Page={SuperadminTerminalMercado} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}

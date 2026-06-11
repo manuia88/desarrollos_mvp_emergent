@@ -668,9 +668,10 @@ app.include_router(superadmin_devmaster_router)
 from routes.dev_market import router as dev_market_router
 app.include_router(dev_market_router)
 
-# Cierra ciclo comprador→dev · el dev recibe las solicitudes de visita del Asistente de Compra
-from routes.dev_visit_requests import router as dev_visit_requests_router
-app.include_router(dev_visit_requests_router)
+# Cierra ciclo comprador→inmobiliaria DMX · pool de leads de marketplace (dmx_house · regla
+# inviolable: leads sin asesor NO van al dev, van a mi inmobiliaria) · superadmin ve + asesor trabaja
+from routes.house_leads import router as house_leads_router
+app.include_router(house_leads_router)
 
 # F1.2 · Motor de Valor Residual del Terreno ("¿cuánto pago por este terreno?")
 from routes.dev_valor_residual import router as dev_valor_residual_router

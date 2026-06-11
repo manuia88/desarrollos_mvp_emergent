@@ -173,3 +173,9 @@ export const getPublicProfile = (slug) => j(`/api/asesor/perfil-publico/${slug}`
 
 // Dev convenience
 export const seedDemo = () => post('/api/asesor/_seed-demo');
+
+// Solicitudes de visita de la inmobiliaria (pool de marketplace · asesor de la casa)
+export const listHouseSolicitudes = () => j('/api/asesor/inmobiliaria/solicitudes');
+export const claimHouseSolicitud = (id) => post(`/api/asesor/inmobiliaria/solicitudes/${id}/claim`, {});
+export const acceptHouseSolicitud = (id) => post(`/api/asesor/inmobiliaria/solicitudes/${id}/accept`, {});
+export const declineHouseSolicitud = (id) => post(`/api/asesor/inmobiliaria/solicitudes/${id}/decline`, {});

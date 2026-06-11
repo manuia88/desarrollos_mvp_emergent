@@ -192,6 +192,7 @@ const SUPERADMIN_NAV = [
       { key: 'inicio',  to: '/superadmin',         label: 'Inicio',   Icon: LayoutDashboard, end: true },
       { key: 'desarrollos', to: '/superadmin/desarrollos', label: 'Desarrollos', Icon: Building2 },
       { key: 'tenants', to: '/superadmin/tenants', label: 'Clientes', Icon: Users },
+      { key: 'inmobiliaria-leads', to: '/superadmin/inmobiliaria-leads', label: 'Leads inmobiliaria', Icon: Users },
     ],
   },
   {

@@ -76,3 +76,23 @@ export async function fetchEquipoEnRiesgo(umbral = 50, limite = 50) {
   if (!r.ok) throw new Error('No se pudo cargar el equipo en riesgo');
   return r.json();
 }
+
+// Leads de mi inmobiliaria (pool de marketplace · el dueño ve todo y asigna)
+export async function fetchInmobiliariaLeads(status = 'all') {
+  const r = await fetch(`${API}/api/superadmin/inmobiliaria/leads?status=${status}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudieron cargar los leads de la inmobiliaria');
+  return r.json();
+}
+export async function fetchHouseAsesores() {
+  const r = await fetch(`${API}/api/superadmin/inmobiliaria/asesores`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudieron cargar los asesores');
+  return r.json();
+}
+export async function assignHouseLead(leadId, asesorId) {
+  const r = await fetch(`${API}/api/superadmin/inmobiliaria/leads/${leadId}/assign`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asesor_id: asesorId || null }),
+  });
+  if (!r.ok) throw new Error('No se pudo asignar');
+  return r.json();
+}

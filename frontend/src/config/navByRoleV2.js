@@ -47,6 +47,7 @@ export const ASESOR_NAV_V2 = [
     description: 'Tu centro de leads · pipeline, búsquedas y captaciones en un lugar',
     children: [
       { key: 'contactos',   to: '/asesor/contactos',             label: 'Lista de leads',      Icon: Users, badge_source: 'asesor_contacts_new' },
+      { key: 'visitas-mkt', to: '/asesor/solicitudes-visita',    label: 'Visitas de marketplace', Icon: CalendarDays },
       { key: 'pipeline',    to: '/asesor/mis-leads',             label: 'Pipeline',            Icon: Megaphone },
       { key: 'busquedas',   to: '/asesor/mis-leads/busquedas',   label: 'Búsquedas',           Icon: Search },
       { key: 'captaciones', to: '/asesor/mis-leads/captaciones', label: 'Captaciones',         Icon: Briefcase },

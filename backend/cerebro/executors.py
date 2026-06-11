@@ -675,34 +675,40 @@ async def exec_buyer_watch(db, user, params, ctx):
     return out
 
 
-# 6 · SOLICITAR VISITA (DELICADA · post-aprobación · te conecta con un asesor humano)
+# 6 · SOLICITAR VISITA (DELICADA · post-aprobación · entra a MI inmobiliaria, NO al dev)
 async def exec_buyer_request_visit(db, user, params, ctx):
-    # Llega aquí SOLO si tú aprobaste. Crea la solicitud real (puente comprador→asesor,
-    # consentido por ti). No-prod NO manda WhatsApp; deja el registro listo.
+    # Llega aquí SOLO si tú aprobaste. Regla inviolable: el lead de marketplace NO se asigna
+    # al dev — cae al pool de MI inmobiliaria (dmx_house) y se rutea a un asesor de la casa.
+    # El dev de la propiedad queda SOLO como metadato (qué quieres visitar). No-prod no manda WA.
     import os
     import uuid
     uid, email = _uid_email(user)
     pid = _focus_property_id(params, ctx)
     prop = await _project_doc(db, pid) or _demo_project(pid)
     lead = await _buyer_lead(db, user)
+    from house_pool_engine import DMX_HOUSE_ORG, assign_house_lead
     doc = {"id": "visit_" + uuid.uuid4().hex[:12],
            "user_id": uid, "email": email, "property_id": pid,
            "property_name": (prop or {}).get("name"),
            "lead_id": (lead or {}).get("id"),
-           "developer_id": (prop or {}).get("developer_id") or (prop or {}).get("owner_id"),
-           "owner_id": (prop or {}).get("developer_id") or (prop or {}).get("owner_id"),
-           "dev_org_id": (prop or {}).get("dev_org_id"),
-           "status": "requested", "source": "cerebro"}
+           # el dev/propiedad es METADATO (qué quiere visitar), NO el dueño del lead
+           "about_developer_id": (prop or {}).get("developer_id"),
+           "about_dev_org_id": (prop or {}).get("dev_org_id"),
+           # dueño del lead = MI inmobiliaria (regla inviolable §5)
+           "owner_org": DMX_HOUSE_ORG, "assigned_asesor_id": None,
+           "status": "requested", "source": "marketplace"}
     try:
         from datetime import datetime, timezone
         doc["created_at"] = datetime.now(timezone.utc).isoformat()
         await db.visit_requests.insert_one(dict(doc))
+        # round-robin → asesor de la casa (si hay); si no, queda en el pool para asignar a mano
+        await assign_house_lead(db, doc["id"])
     except Exception as e:
         log.info(f"[cerebro] request_visit persist fail-open: {e}")
     sent = bool(os.environ.get("DMX_ENV") == "production" and os.environ.get("WA_PROVIDER"))
+    nombre = (prop or {}).get("name") or "la propiedad"
     out = {"engine": "visit_request", "property_id": pid, "requested": True, "stub": not sent,
-           "summary": (f"Pedí tu visita para {(prop or {}).get('name') or 'la propiedad'}. Un asesor te contactará."
-                       if sent else f"Solicitud de visita registrada para {(prop or {}).get('name') or 'la propiedad'} — un asesor te contactará.")}
+           "summary": f"Pedí tu visita para {nombre} — un asesor de DesarrollosMX te contactará para agendar."}
     await _remember_buyer(db, user, {"visit_requested": pid})
     return out
 
