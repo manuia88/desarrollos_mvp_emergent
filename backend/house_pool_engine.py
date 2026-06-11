@@ -83,6 +83,16 @@ async def _asesor_zones(db, asesor_id: str) -> set:
         return set()
 
 
+async def _asesor_closes(db, asesor_id: str) -> int:
+    """Cierres del asesor (ranking · asesor_operaciones cerradas). Desempata cuando zona y carga
+    están parejas: el que MÁS cierra gana el empate (premia al mejor)."""
+    try:
+        return await db.asesor_operaciones.count_documents(
+            {"owner_id": asesor_id, "status": {"$in": ["cerrada", "cobrada", "pagando"]}})
+    except Exception:
+        return 0
+
+
 async def _property_zone(db, lead_id: str) -> Optional[str]:
     """Colonia de la propiedad de la solicitud (para el match por zona)."""
     try:
@@ -108,14 +118,16 @@ async def pick_house_asesor(db, zone=None) -> Optional[str]:
     if not ases:
         return None
     znorm = _norm_zone(zone)
-    scored = []  # (asesor_id, load, cubre_zona)
+    scored = []  # (asesor_id, load, cubre_zona, cierres)
     for a in ases:
         load = await _open_load(db, a["user_id"])
         covers = bool(znorm) and (znorm in await _asesor_zones(db, a["user_id"]))
-        scored.append((a["user_id"], load, covers))
+        closes = await _asesor_closes(db, a["user_id"])
+        scored.append((a["user_id"], load, covers, closes))
     matches = [s for s in scored if s[2]]
     pool = matches if matches else scored   # fallback: todos (zona sin cobertura → solo carga)
-    pool.sort(key=lambda s: s[1])           # menos cargado primero
+    # orden: 1) menos cargado · 2) empate → más cierres (mejor asesor) gana
+    pool.sort(key=lambda s: (s[1], -s[3]))
     return pool[0][0]
 
 
