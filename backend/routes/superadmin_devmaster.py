@@ -1921,3 +1921,35 @@ async def activar_modelo(modelo: str, request: Request):
     if modelo == "conversaciones":
         return await _activar_conversaciones(db)
     raise HTTPException(400, "Modelo no reconocido")
+
+
+@router.get("/equipo-en-riesgo")
+async def equipo_en_riesgo(request: Request, umbral: int = 50, limite: int = 50):
+    """Asesores/usuarios que se están enfriando (riesgo de abandono > umbral), ordenados de mayor a
+    menor riesgo. Reusa el motor de churn — NO calcula nada nuevo. FAIL-OPEN: si el motor falla,
+    devuelve lista vacía con lectura honesta en vez de romper el tablero del superadmin."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    umbral = max(0, min(int(umbral or 50), 100))
+    limite = max(1, min(int(limite or 50), 200))
+    en_riesgo: List[Dict[str, Any]] = []
+    try:
+        from churn_prediction_engine import detect_cold_users
+        cold = await detect_cold_users(db, threshold_score=umbral)
+        en_riesgo = (cold or [])[:limite]
+    except Exception as e:
+        log.warning("[equipo-en-riesgo] fail-open: %s", e)
+        en_riesgo = []
+    # Resumen por banda de riesgo para el encabezado del panel
+    altos = sum(1 for c in en_riesgo if (c.get("churn_risk_score") or 0) >= 75)
+    medios = len(en_riesgo) - altos
+    if not en_riesgo:
+        lectura = "Nadie en riesgo de enfriarse ahora mismo. El equipo está activo."
+    else:
+        lectura = (f"{len(en_riesgo)} en riesgo de enfriarse"
+                   + (f" ({altos} crítico{'s' if altos != 1 else ''})" if altos else "")
+                   + " — contáctalos para reactivar antes de perderlos.")
+    return {"ok": True, "umbral": umbral, "total": len(en_riesgo),
+            "criticos": altos, "moderados": medios,
+            "en_riesgo": en_riesgo, "lectura": lectura}

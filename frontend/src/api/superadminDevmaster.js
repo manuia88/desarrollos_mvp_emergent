@@ -68,3 +68,11 @@ export async function activarModelo(modelo) {
   if (!r.ok) throw new Error('No se pudo activar el modelo');
   return r.json();
 }
+
+// Equipo en riesgo · asesores/usuarios que se enfrían (reusa el motor de churn). FAIL-OPEN en backend.
+export async function fetchEquipoEnRiesgo(umbral = 50, limite = 50) {
+  const qs = new URLSearchParams({ umbral, limite }).toString();
+  const r = await fetch(`${API}/api/superadmin/devmaster/equipo-en-riesgo?${qs}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar el equipo en riesgo');
+  return r.json();
+}

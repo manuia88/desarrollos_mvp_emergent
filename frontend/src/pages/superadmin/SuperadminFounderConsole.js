@@ -4,10 +4,11 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import ExecutiveKpiGrid from '../../components/superadmin/ExecutiveKpiGrid';
 import AnomalyFeed from '../../components/superadmin/AnomalyFeed';
 import QuickActionsToolbar from '../../components/superadmin/QuickActionsToolbar';
-import { LayoutDashboard, RefreshCw, Sparkles, Command } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Sparkles, Command, TrendingDown } from 'lucide-react';
 import {
   getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow,
 } from '../../api/superadminFounderConsole';
+import { fetchEquipoEnRiesgo } from '../../api/superadminDevmaster';
 import { useFounderPrefetch } from '../../contexts/FounderPrefetchContext';
 import { Z } from '../../styles/zIndex';
 
@@ -67,6 +68,84 @@ function Spark({ values, label, accent = 'var(--theme)' }) {
       }}>último: <strong style={{ color: accent }}>
         {typeof last === 'number' ? last.toLocaleString('es-MX') : last}
       </strong></div>
+    </div>
+  );
+}
+
+// Equipo en riesgo · asesores/usuarios que se enfrían (reusa el motor de churn). FAIL-OPEN.
+function EquipoEnRiesgoPanel() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    fetchEquipoEnRiesgo(50, 12)
+      .then(r => { if (alive) setData(r); })
+      .catch(() => { if (alive) setData({ en_riesgo: [], total: 0, lectura: 'No se pudo cargar ahora mismo.' }); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const band = (s) => (s >= 75 ? '#F87171' : s >= 60 ? '#FACC15' : '#FB923C');
+  const rows = data?.en_riesgo || [];
+
+  return (
+    <div style={{
+      padding: 18, borderRadius: 14,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.07)', marginBottom: 18,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <TrendingDown size={16} color="#F87171" />
+        <span style={{
+          fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '0.07em',
+          color: 'rgba(240,235,224,0.55)',
+        }}>Equipo en riesgo de enfriarse</span>
+        {data?.total ? (
+          <span style={{
+            marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: 11,
+            color: '#F87171', fontWeight: 700,
+          }}>{data.total}{data.criticos ? ` · ${data.criticos} crítico${data.criticos !== 1 ? 's' : ''}` : ''}</span>
+        ) : null}
+      </div>
+      <p style={{
+        fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.72)',
+        margin: '0 0 12px',
+      }}>{loading ? 'Calculando quién baja su actividad…' : (data?.lectura || '')}</p>
+
+      {!loading && rows.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {rows.map((u, i) => (
+            <div key={u.user_id || i} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 12px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: band(u.churn_risk_score || 0), flexShrink: 0,
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+                  color: 'var(--cream)', whiteSpace: 'nowrap',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{u.name || u.email || u.user_id || 'Usuario'}</div>
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11,
+                  color: 'rgba(240,235,224,0.55)', whiteSpace: 'nowrap',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{u.recommendation || (u.role ? `Rol: ${u.role}` : 'Bajó su actividad reciente.')}</div>
+              </div>
+              <div style={{
+                fontFamily: 'DM Mono, monospace', fontSize: 13, fontWeight: 700,
+                color: band(u.churn_risk_score || 0), flexShrink: 0,
+              }}>{Math.round(u.churn_risk_score || 0)}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -272,6 +351,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             <QuickActionsToolbar items={quickActions} onChanged={loadQuickActions} />
           </div>
         </div>
+
+        {/* Equipo en riesgo (churn) — quién se está enfriando */}
+        <EquipoEnRiesgoPanel />
 
         {/* Bottom row: 3 sparklines */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
