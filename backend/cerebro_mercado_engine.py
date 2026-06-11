@@ -120,6 +120,7 @@ def factores_disponibles() -> List[Dict[str, str]]:
 async def lifts_por_factor(db, factor: str) -> Dict[str, Any]:
     """% vendido (lift vs base) por cada opción de un factor, sobre ventas REALES. Honesto. FAIL-OPEN.
     Usa el is_sold canónico (cero duplicación de la definición de 'vendido')."""
+    factor = str(factor or "").lower()  # P3.2 · coerción defensiva (dict/no-str → str)
     ext = _FACTOR_EXTRACTORS.get(factor)
     if not ext:
         return {"factor": factor, "opciones": [], "suficiente_dato": False,

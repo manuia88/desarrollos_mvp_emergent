@@ -51,7 +51,7 @@ async def factores(db) -> Dict[str, Any]:
 
 async def simular(db, factor: str, de, a, colonia_id: Optional[str] = None) -> Dict[str, Any]:
     """Proyecta el impacto de cambiar `factor` de `de` a `a`, usando lo que el Cerebro aprendió. FAIL-OPEN."""
-    factor = (factor or "recamaras").lower()
+    factor = str(factor or "recamaras").lower()  # P3.2 · coerción defensiva (dict/no-str → str)
     try:
         from cerebro_mercado_engine import lifts_por_factor, _FACTOR_NOMBRE
     except Exception as e:

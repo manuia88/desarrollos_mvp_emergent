@@ -195,15 +195,20 @@ def _inpc_for(date: datetime) -> float:
 
 def _aplicar_tarifa(base: float, brackets: List[Dict[str, float]]) -> Dict[str, float]:
     """Aplica tarifa progresiva · retorna {impuesto, bracket_idx, limite_inferior, limite_superior, cuota_fija, excedente, marginal_pct}."""
-    if base <= 0:
+    if base <= 0 or not brackets:
         return {"impuesto": 0.0, "bracket_idx": 0, "limite_inferior": 0.0, "limite_superior": 0.0, "cuota_fija": 0.0, "excedente": 0.0, "marginal_pct": 0.0}
     for i, b in enumerate(brackets):
         if b["limite_inferior"] <= base <= b["limite_superior"]:
-            excedente = base - b["limite_inferior"]
+            excedente = max(0.0, base - b["limite_inferior"])
             impuesto = b["cuota_fija"] + (excedente * b["marginal_pct"] / 100.0)
             return {"impuesto": round(impuesto, 2), "bracket_idx": i, "limite_inferior": round(b["limite_inferior"], 2), "limite_superior": round(b["limite_superior"], 2), "cuota_fija": round(b["cuota_fija"], 2), "excedente": round(excedente, 2), "marginal_pct": b["marginal_pct"]}
+    # P3.3 · si la base cae POR DEBAJO del primer tramo → aplica el PRIMER tramo (antes caía al
+    # ÚLTIMO → excedente negativo → impuesto negativo/erróneo). excedente siempre clampeado a ≥0.
+    if base < brackets[0]["limite_inferior"]:
+        b = brackets[0]
+        return {"impuesto": round(b["cuota_fija"], 2), "bracket_idx": 0, "limite_inferior": round(b["limite_inferior"], 2), "limite_superior": round(b["limite_superior"], 2), "cuota_fija": round(b["cuota_fija"], 2), "excedente": 0.0, "marginal_pct": b["marginal_pct"]}
     last = brackets[-1]
-    excedente = base - last["limite_inferior"]
+    excedente = max(0.0, base - last["limite_inferior"])
     impuesto = last["cuota_fija"] + (excedente * last["marginal_pct"] / 100.0)
     return {"impuesto": round(impuesto, 2), "bracket_idx": len(brackets) - 1, "limite_inferior": round(last["limite_inferior"], 2), "limite_superior": round(last["limite_superior"], 2), "cuota_fija": round(last["cuota_fija"], 2), "excedente": round(excedente, 2), "marginal_pct": last["marginal_pct"]}
 

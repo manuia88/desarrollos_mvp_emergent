@@ -180,7 +180,7 @@ async def aplicar_calibracion(db) -> Dict[str, Any]:
     doc = {
         "_id": "terreno",
         "margen_objetivo": PUENTE_ALVARADO["margen_pct"] / 100,   # 0.184
-        "pct_comision": SOFT_COST_BENCHMARK["comision_pct"],       # 0.035
+        "pct_comision": SOFT_COST_BENCHMARK["comision_pct"],       # 0.02 (P3.6 · antes el comentario decía 0.035 stale)
         "pct_publicidad": SOFT_COST_BENCHMARK["publicidad_pct"],   # 0.02
         "pct_gerencia": (SOFT_COST_BENCHMARK["developer_fee_pct"]
                          + SOFT_COST_BENCHMARK["gerencia_pct"]),    # 0.16

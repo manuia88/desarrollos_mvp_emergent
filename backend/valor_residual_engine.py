@@ -179,7 +179,9 @@ async def calcular_residual(
     zone_id = _slug(colonia["name"]) if colonia else _slug(categoria)
 
     # ── CUS (cuánto deja construir la norma) ──
-    if cus_manual and cus_manual > 0:
+    # P3.1 · si capturas CUS=0 (no se puede construir) → vale 0, NO el default 3.0 (antes daba ~$60M
+    # en vez de ~$0). Distinguimos "0 capturado" de "no capturado" (None).
+    if cus_manual is not None and cus_manual >= 0:
         cus = float(cus_manual)
         cus_src = {"origen": "supuesto", "fuente": "Capturado por ti"}
     elif colonia and (colonia.get("cus") or 0) > 0:

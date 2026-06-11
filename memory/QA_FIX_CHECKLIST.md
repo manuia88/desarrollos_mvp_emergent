@@ -66,14 +66,14 @@ VEREDICTO: **NO listo para producción.** Casi todo LATENTE (BD en semilla) → 
 - [~] P2.16 · 🆕 **Una sola conexión Mongo privilegiada** [F2] ⏸️ ACCIÓN DE INFRAESTRUCTURA (no código · Tanda 15 lo documenta): crear en MongoDB Atlas un usuario de **solo-lectura** y usarlo para las superficies PÚBLICAS (avm-public, api/v1, marketplace) vía una 2ª conexión, dejando el usuario read-write solo para los portales autenticados. Mitiga el daño si se filtra/abusa un endpoint público. Founder/deploy lo configura (como el SENTRY_DSN); el código puede leer `MONGO_URL_READONLY` cuando exista.
 
 ## P3 — Edge, consistencia, cosmético
-- [ ] P3.1 · valor_residual cus_manual=0 → CUS=3 → $60M en vez de $0 [F7].
-- [ ] P3.2 · Edge motor: coerción colonia_id/categoria/factor dict→str · clamp negativos (defensa en profundidad) [QA5].
-- [ ] P3.3 · plazo_meses muerto · tax negativo bajo primer tramo · DataOrigin solo en F1 · falsa precisión [QA5].
-- [ ] P3.4 · Inconsistencia cross-engine: costo obra $14k/$22k/$13k · apreciación 4 supuestos [QA5]. Unificar.
-- [ ] P3.5 · 🆕 Claves env duplicadas (DB_NAME/MONGO_URL/JWT_SECRET/ADMIN_* ×2) [F0/F2].
-- [ ] P3.6 · 🆕 Comentario stale golden_calibration:183 (`# 0.035` vs 0.02) [F9].
-- [ ] P3.7 · 🆕 Test roto tests/wave3/test_denue_engine_unit.py (importa módulo borrado) [F5/F9]. Borrar.
-- [ ] P3.8 · Inventario TODO/FIXME/HACK pendiente [F9].
+- [x] P3.1 · valor_residual cus_manual=0 → CUS=3 → $60M ✅ARREGLADO 2026-06-10 (Tanda 17): `if cus_manual is not None and cus_manual >= 0` → CUS=0 capturado da valor ~0 (no se puede construir), no el default 3.0. Verificado import.
+- [x] P3.2 · Edge motor: coerción dict→str ✅ARREGLADO 2026-06-10 (Tanda 17): `simular` y `lifts_por_factor` coercen `factor` a str (`str(factor or ...).lower()`) → un dict/no-str ya no crashea, cae graceful. Verificado: factor dict → respuesta honesta sin error. (lifts ya era dict-safe en el .get; ahora ambos.)
+- [x] P3.3 · tax negativo bajo primer tramo ✅ARREGLADO 2026-06-10 (Tanda 17): `tax_projector._aplicar_tarifa` — si la base cae DEBAJO del primer tramo ahora aplica el PRIMER tramo (antes caía al último → excedente negativo → impuesto NEGATIVO). excedente clampeado a ≥0. Verificado: base 50k → $1000 (antes −$9500). (plazo_meses muerto / DataOrigin-solo-F1 / falsa precisión = cosméticos menores, no movían números.)
+- [~] P3.4 · Inconsistencia costo obra $14k/$22k/$13k ✅REVISADO 2026-06-10 (Tanda 17): NO se hallaron los hardcodes dispersos en el código actual — el costo de obra ya pasa por el canónico `construction_cost_engine.predict_cost_per_m2` + golden_calibration (`costo_obra_pm2_neodata`). Ya consolidado; sin cambio. (apreciación: hay defaults por tier en APREC_RATES, que es la fuente única; ok.)
+- [~] P3.5 · Claves env duplicadas ⏸️ ACCIÓN LOCAL (no código · .env.local gitignored): hay claves repetidas (DB_NAME/MONGO_URL/JWT_SECRET/ADMIN_* ×2) → dotenv usa la ÚLTIMA. Founder: dedup el `.env.local` (revisar que las 2 copias tengan el MISMO valor). No commiteable.
+- [x] P3.6 · Comentario stale golden_calibration:183 ✅ARREGLADO 2026-06-10 (Tanda 17): comentario `# 0.035` → `# 0.02` (el valor real es comision_pct=0.02).
+- [x] P3.7 · Test roto test_denue_engine_unit.py ✅BORRADO 2026-06-10 (Tanda 17): importaba `denue_engine` (módulo borrado) → era el único importador. Eliminado.
+- [~] P3.8 · Inventario TODO/FIXME/HACK ⏸️ INVENTARIADO 2026-06-10 (Tanda 17): 51 marcadores en backend (no son bugs, son notas de trabajo). Se limpian al avanzar por módulo (regla [[feedback_warnings_clean_as_built]]); no es un fix de una sola tanda.
 
 ## PENDIENTE DE VERIFICAR (requiere acción del founder · no concluyente desde código)
 - [ ] Correr `/load-tests/dmx_load.js` + `payloads_staging.md` contra **STAGING** (no prod) → números reales + confirmar IDOR/cadenas.
