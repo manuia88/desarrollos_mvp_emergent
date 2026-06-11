@@ -246,6 +246,8 @@ const CompradorAlertas               = lazy(() => import('./pages/comprador/Comp
 const CompradorChat                  = lazy(() => import('./pages/comprador/CompradorChat'));
 // Phase 4 Batch 30 — Wrapped + Smart Match
 const CompradorWrapped               = lazy(() => import('./pages/comprador/CompradorWrapped'));
+// Cerebro · Asistente de Compra agéntico (lente comprador)
+const CompradorAsistente             = lazy(() => import('./pages/comprador/CompradorAsistente'));
 
 // Phase 3 Batch 31 — Asesor Tools (Briefing Tráfico+Clima)
 const AsesorBriefingTraffic          = lazy(() => import('./pages/asesor/AsesorBriefingTraffic'));
@@ -856,6 +858,7 @@ function AppRouter() {
       {/* Phase 4 Batch 29 — Comprador Engagement */}
       <Route path="/comprador/alertas" element={<CompradorAlertas />} />
       <Route path="/comprador/chat" element={<CompradorChat />} />
+      <Route path="/comprador/asistente" element={<CompradorAsistente />} />
       {/* Phase 4 Batch 30 — Wrapped + Smart Match */}
       <Route path="/comprador/wrapped" element={<CompradorWrapped />} />
       <Route path="/comprador/wrapped/:yearMonth" element={<CompradorWrapped />} />

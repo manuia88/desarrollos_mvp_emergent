@@ -483,8 +483,235 @@ _GAME = {
         "Contacta los leads fríos — ahí está la venta.", "salud 62"),
 }
 
+# ─── COMPRADOR · su agente de compra (defensivos · fail-open a heurístico) ────
+# Despierta las 6 acciones buyer.* del catálogo: hasta ahora caían a _generic (solo
+# etiqueta). Cada una REUSA el motor real que ya existe (fit/AVM/riesgo/calculadora)
+# y escribe en la memoria scope "buyer" (alimenta el modelo de gusto · flywheel).
+def _uid_email(user):
+    uid = getattr(user, "user_id", None) or (user.get("user_id") if isinstance(user, dict) else None)
+    email = getattr(user, "email", None) or (user.get("email") if isinstance(user, dict) else None)
+    return uid, email
+
+
+async def _buyer_lead(db, user):
+    """El comprador VIVE en db.leads por user_id/email (no es asesor_contactos). None si no hay."""
+    uid, email = _uid_email(user)
+    try:
+        if uid:
+            d = await db.leads.find_one({"user_id": uid}, {"_id": 0})
+            if d:
+                return d
+        if email:
+            d = await db.leads.find_one({"email": email}, {"_id": 0})
+            if d:
+                return d
+    except Exception:
+        pass
+    return None
+
+
+async def _remember_buyer(db, user, patch):
+    uid, _ = _uid_email(user)
+    try:
+        await remember(db, user, scope="buyer", key=str(uid or "?"), value=patch)
+    except Exception as e:
+        log.info(f"[cerebro] remember buyer: {e}")
+
+
+def _focus_property_id(params, ctx):
+    """La propiedad en foco: explícita en params, o la mejor del paso de búsqueda previo."""
+    pid = (params or {}).get("property_id")
+    if pid:
+        return pid
+    for k in ("step_0", "step_1"):
+        props = ((ctx or {}).get(k) or {}).get("properties") or []
+        if props:
+            return props[0].get("property_id")
+    return None
+
+
+def _colonia_slug_safe(colonia):
+    try:
+        from data_developments import colonia_slug as _cs
+        return _cs(colonia)
+    except Exception:
+        return (colonia or "").lower().replace(" ", "-")
+
+
+# 1 · BUSCAR (fit_engine · las mismas top properties que ve el asesor, ahora para ti)
+async def exec_buyer_search(db, user, params, ctx):
+    uid, _ = _uid_email(user)
+    lead = await _buyer_lead(db, user)
+    lead_id = (lead or {}).get("id") or uid
+    out = {"engine": "fallback", "summary": "Aún no tengo suficientes señales tuyas — cuéntame qué buscas.", "properties": []}
+    try:
+        from fit_engine import top_properties_for_lead
+        r = await top_properties_for_lead(db, lead_id, limit=6, user_id=uid)
+        props = r.get("properties") or []
+        out = {"engine": "fit_engine", "properties": props,
+               "summary": (f"Encontré {len(props)} opciones que encajan contigo." if props
+                           else "Todavía no hay opciones claras — guarda una búsqueda o da 'me gusta' a algunas.")}
+    except Exception as e:
+        log.info(f"[cerebro] buyer_search fallback: {e}")
+    await _remember_buyer(db, user, {"buyer_search": out["summary"], "count": len(out.get("properties") or [])})
+    return out
+
+
+# 2 · VETAR (AVM precio justo + riesgo de zona · ¿te conviene esta propiedad?)
+async def exec_buyer_vet(db, user, params, ctx):
+    pid = _focus_property_id(params, ctx)
+    prop = await _project_doc(db, pid) or _demo_project(pid)
+    if not prop:
+        return {"engine": "fallback", "summary": "Elige una propiedad de la búsqueda y la reviso por ti (precio y riesgo)."}
+    nombre = prop.get("name") or "esta propiedad"
+    precio = prop.get("price_from") or prop.get("price_min") or 0
+    cslug = _colonia_slug_safe(prop.get("colonia"))
+    fair, riesgo, frases = None, None, []
+    try:
+        from avm_public_engine import avm_quick_async
+        avm = await avm_quick_async(db, cslug, m2=float(prop.get("m2_prom") or 80), recamaras=2, banos=2, antiguedad_anos=0)
+        fair = avm.get("precio_estimado")
+        if fair and precio:
+            diff = (precio - fair) / fair * 100
+            if diff > 8:
+                frases.append(f"El precio pedido está ~{round(diff)}% ARRIBA del valor de la zona — hay para negociar.")
+            elif diff < -8:
+                frases.append(f"El precio pedido está ~{round(abs(diff))}% por DEBAJO del valor — buena señal.")
+            else:
+                frases.append("El precio pedido está alineado con el valor real de la zona.")
+    except Exception as e:
+        log.info(f"[cerebro] buyer_vet avm fallback: {e}")
+    try:
+        from risk_score_engine import get_risk_score_or_compute
+        rs = await get_risk_score_or_compute(db, cslug)
+        riesgo = rs.get("score_letter")
+        if riesgo:
+            frases.append(f"Riesgo de la zona: {riesgo}.")
+    except Exception as e:
+        log.info(f"[cerebro] buyer_vet risk fallback: {e}")
+    if not frases:
+        frases.append(f"{nombre}: sin focos rojos evidentes (faltan datos para un veredicto fino).")
+    out = {"engine": "avm+risk" if fair else "fallback", "property_id": pid,
+           "fair_value": fair, "zone_risk": riesgo, "summary": " ".join(frases)}
+    await _remember_buyer(db, user, {"vetted": pid, "fair_value": fair, "zone_risk": riesgo})
+    return out
+
+
+# 3 · SIMULAR FINANZAS (la calculadora brutalmente completa · hipoteca + contado + ROI/TIR)
+async def exec_buyer_simulate(db, user, params, ctx):
+    pid = _focus_property_id(params, ctx)
+    prop = await _project_doc(db, pid) or _demo_project(pid)
+    cslug = _colonia_slug_safe((prop or {}).get("colonia"))
+    precio = (prop or {}).get("price_from") or (prop or {}).get("price_min") or (params or {}).get("precio")
+    out = {"engine": "fallback", "summary": "Elige una propiedad y te simulo la hipoteca, el contado y el rendimiento."}
+    try:
+        import investment_simulator_engine as ise
+        fill = await ise.autofill_calculadora(db, cslug, precio=precio)
+        base = {"precio": fill.get("precio_sugerido") or precio,
+                "renta_mensual": fill.get("renta_mensual"),
+                "apreciacion_anual": (fill.get("apreciacion_anual_pct") or 5) / 100.0,
+                "tasa_credito": (fill.get("tasa_credito_pct") or 11) / 100.0,
+                "financiamiento_pct": fill.get("financiamiento_pct") or 0.8}
+        ap = ise.analizar_inversion(base, financiar=True)
+        co = ise.analizar_inversion(base, financiar=False)
+        verdict = ise.interpretar_resultado(ap, co)
+        out = {"engine": "investment_simulator",
+               "apalancado": {"roi_pct": ap.get("roi_total_pct"), "tir_pct": ap.get("tir_anual_pct"),
+                              "flujo_mensual_anio1": ap.get("flujo_mensual_anio1")},
+               "contado": {"roi_pct": co.get("roi_total_pct"), "tir_pct": co.get("tir_anual_pct")},
+               "veredicto": verdict.get("veredicto"),
+               "summary": verdict.get("veredicto") or "Listo: tu simulación con y sin hipoteca."}
+    except Exception as e:
+        log.info(f"[cerebro] buyer_simulate fallback: {e}")
+    await _remember_buyer(db, user, {"simulated": pid, "by": out["engine"]})
+    return out
+
+
+# 4 · ARMAR SHORTLIST (top 3 de la búsqueda · se guarda y reutiliza)
+async def exec_buyer_shortlist(db, user, params, ctx):
+    uid, _ = _uid_email(user)
+    props = ((ctx or {}).get("step_0") or {}).get("properties") or []
+    if not props:
+        srch = await exec_buyer_search(db, user, params, ctx)   # si llega sin búsqueda previa, busca
+        props = srch.get("properties") or []
+    top = props[:3]
+    # build-for-end-state: persiste el shortlist (real · se reusa en el portal) · fail-open
+    try:
+        from datetime import datetime, timezone
+        await db.comprador_shortlists.replace_one(
+            {"user_id": uid},
+            {"user_id": uid, "items": top, "updated_at": datetime.now(timezone.utc).isoformat()},
+            upsert=True)
+    except Exception as e:
+        log.info(f"[cerebro] shortlist persist fail-open: {e}")
+    names = ", ".join(p.get("property_title") or p.get("property_id") for p in top) if top else ""
+    out = {"engine": "shortlist", "items": top,
+           "summary": (f"Armé tu shortlist con {len(top)}: {names}." if top
+                       else "Aún no hay opciones para armar tu shortlist — primero buscamos.")}
+    await _remember_buyer(db, user, {"shortlist": [p.get("property_id") for p in top]})
+    return out
+
+
+# 5 · VIGILAR EL MERCADO (guarda una alerta viva con tus criterios · te avisa)
+async def exec_buyer_watch(db, user, params, ctx):
+    uid, email = _uid_email(user)
+    lead = await _buyer_lead(db, user)
+    crit = {"presupuesto": (lead or {}).get("presupuesto") or (lead or {}).get("budget"),
+            "zonas": (lead or {}).get("zonas_interes") or (lead or {}).get("colonias"),
+            "interes": (lead or {}).get("interes")}
+    try:
+        from datetime import datetime, timezone
+        await db.comprador_saved_searches.update_one(
+            {"user_id": uid, "source": "cerebro_watch"},
+            {"$set": {"user_id": uid, "email": email, "source": "cerebro_watch",
+                      "criteria": crit, "alerts_enabled": True,
+                      "updated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True)
+    except Exception as e:
+        log.info(f"[cerebro] buyer_watch persist fail-open: {e}")
+    out = {"engine": "watch", "criteria": crit,
+           "summary": "Listo: vigilo el mercado con tus criterios y te aviso cuando aparezca algo o cambie un precio."}
+    await _remember_buyer(db, user, {"watching": True})
+    return out
+
+
+# 6 · SOLICITAR VISITA (DELICADA · post-aprobación · te conecta con un asesor humano)
+async def exec_buyer_request_visit(db, user, params, ctx):
+    # Llega aquí SOLO si tú aprobaste. Crea la solicitud real (puente comprador→asesor,
+    # consentido por ti). No-prod NO manda WhatsApp; deja el registro listo.
+    import os
+    uid, email = _uid_email(user)
+    pid = _focus_property_id(params, ctx)
+    prop = await _project_doc(db, pid) or _demo_project(pid)
+    lead = await _buyer_lead(db, user)
+    doc = {"user_id": uid, "email": email, "property_id": pid,
+           "property_name": (prop or {}).get("name"),
+           "lead_id": (lead or {}).get("id"),
+           "owner_id": (prop or {}).get("developer_id") or (prop or {}).get("owner_id"),
+           "status": "requested", "source": "cerebro"}
+    try:
+        from datetime import datetime, timezone
+        doc["created_at"] = datetime.now(timezone.utc).isoformat()
+        await db.visit_requests.insert_one(dict(doc))
+    except Exception as e:
+        log.info(f"[cerebro] request_visit persist fail-open: {e}")
+    sent = bool(os.environ.get("DMX_ENV") == "production" and os.environ.get("WA_PROVIDER"))
+    out = {"engine": "visit_request", "property_id": pid, "requested": True, "stub": not sent,
+           "summary": (f"Pedí tu visita para {(prop or {}).get('name') or 'la propiedad'}. Un asesor te contactará."
+                       if sent else f"Solicitud de visita registrada para {(prop or {}).get('name') or 'la propiedad'} — un asesor te contactará.")}
+    await _remember_buyer(db, user, {"visit_requested": pid})
+    return out
+
+
 # Registro: acción → ejecutor real
 REGISTRY = {
+    # ciclo de compra (comprador)
+    "buyer.search": exec_buyer_search,
+    "buyer.vet_property": exec_buyer_vet,
+    "buyer.simulate_finance": exec_buyer_simulate,
+    "buyer.shortlist": exec_buyer_shortlist,
+    "buyer.watch_market": exec_buyer_watch,
+    "buyer.request_visit": exec_buyer_request_visit,   # DELICADA → pausa para tu OK
     # ciclo del lead (asesor)
     "advisor.enrich_lead": exec_enrich,
     "advisor.classify_lead": exec_classify,

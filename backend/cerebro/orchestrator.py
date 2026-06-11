@@ -40,10 +40,11 @@ PLAYBOOKS = {
     "buyer": {
         "find_home": [
             "buyer.search", "buyer.vet_property", "buyer.simulate_finance",
-            "buyer.shortlist", "buyer.request_visit",
+            "buyer.shortlist", "buyer.request_visit",   # DELICADA → pausa para tu OK
         ],
+        "watch_market": ["buyer.watch_market"],
     },
-    "comprador": {"find_home": None},
+    "comprador": {"find_home": None, "watch_market": None},
     "developer": {
         "sell_project": [
             "dev.competitor_scan", "dev.forecast", "dev.price_suggest", "dev.generate_marketing",

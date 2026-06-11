@@ -114,6 +114,8 @@ ACTION_REGISTRY = {
 DELICATE_ACTIONS = frozenset({
     "comm.send_external", "comm.send_bulk", "deal.make_offer", "deal.change_price",
     "deal.sign_document", "data.share_contact", "content.publish_public", "ops.spend_budget",
+    # comprador: pedir visita conecta con un humano y comparte tu interés → siempre tu OK
+    "buyer.request_visit",
 })
 
 # Piso de seguridad: estas NUNCA se pueden graduar a automáticas (ni con confianza
