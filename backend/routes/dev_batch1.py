@@ -208,6 +208,8 @@ async def bulk_parse(
 ):
     """Parse Excel/CSV and return preview + per-row validation."""
     user = await _auth(request)
+    import upload_guard
+    upload_guard.safe_ext(file.filename, ("csv", "xlsx", "xls"))  # P2.13 · faltaba allowlist de extensión
     raw = await file.read()
     if len(raw) > 10 * 1024 * 1024:  # 10 MB max
         raise HTTPException(400, "Archivo demasiado grande (max 10 MB)")

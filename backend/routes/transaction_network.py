@@ -271,6 +271,8 @@ async def manual_ingest_csv(
         source = "bulk_ingest"
 
     content = await file.read()
+    import upload_guard
+    upload_guard.check_size(content, max_mb=20)  # P2.13 · faltaba tope de tamaño
     result = await txn_engine.bulk_ingest_csv(db, content, source)
 
     try:
