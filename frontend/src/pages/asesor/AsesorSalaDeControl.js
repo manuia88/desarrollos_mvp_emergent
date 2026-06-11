@@ -9,7 +9,15 @@ import { Card } from '../../components/advisor/primitives';
 import {
   getCerebroStatus, getCerebroTasks, runCerebroGoal,
   approveCerebroTask, rejectCerebroTask, getCerebroLearning, cerebroLearningDemo,
+  getCerebroConfig, saveCerebroConfig, getCerebroCatalog,
 } from '../../api/cerebro';
+
+// E2.5 · niveles de autonomía en lenguaje de persona (founder: cero jerga).
+const AUTONOMY = [
+  { key: 'suggest', label: 'Pregúntame antes de todo', hint: 'Tú decides cada paso' },
+  { key: 'semi', label: 'Haz lo seguro, pregúntame lo delicado', hint: 'Recomendado' },
+  { key: 'pilot', label: 'Hazlo todo solo (modo piloto)', hint: 'Máxima autonomía' },
+];
 
 export default function AsesorSalaDeControl({ user, onLogout }) {
   const [status, setStatus] = useState(null);
@@ -21,6 +29,9 @@ export default function AsesorSalaDeControl({ user, onLogout }) {
   const [edits, setEdits] = useState({});
   const [busyTask, setBusyTask] = useState(null);
   const [toast, setToast] = useState('');
+  const [config, setConfig] = useState(null);
+  const [catalog, setCatalog] = useState({});
+  const [configOpen, setConfigOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,6 +42,8 @@ export default function AsesorSalaDeControl({ user, onLogout }) {
       ]);
       setStatus(s); setTasks(t?.tasks || []);
       getCerebroLearning().then(setLearning).catch(() => setLearning(null));
+      getCerebroConfig().then((c) => setConfig(c?.config || c || null)).catch(() => setConfig(null));
+      getCerebroCatalog().then((c) => setCatalog(c?.areas || {})).catch(() => setCatalog({}));
     } finally { setLoading(false); }
   }, []);
 
@@ -57,6 +70,32 @@ export default function AsesorSalaDeControl({ user, onLogout }) {
     setBusyTask(t.id);
     try { await rejectCerebroTask(t.id); flash('Ok, no lo hice.'); await load(); }
     catch { flash('No se pudo.'); } finally { setBusyTask(null); }
+  };
+
+  // E2.5 · "Configurar mi Cerebro": nivel de autonomía + permiso por acción (piso HARD bloqueado).
+  const setAutonomy = async (lvl) => {
+    setConfig((c) => ({ ...(c || {}), autonomy: lvl }));  // optimista
+    try { const r = await saveCerebroConfig({ autonomy: lvl }); setConfig(r?.config || r); flash('Listo, lo guardé.'); }
+    catch { flash('No se pudo guardar.'); load(); }
+  };
+  const actionNeedsOk = (a) => {
+    if (a.hard) return true;  // piso: siempre pide OK
+    const del = config?.delicate_overrides || [];
+    const auto = config?.auto_overrides || [];
+    if (del.includes(a.action)) return true;
+    if (auto.includes(a.action)) return false;
+    return !!a.delicate;  // default por flag
+  };
+  const toggleAction = async (a) => {
+    if (a.hard) return;  // bloqueado
+    const del = new Set(config?.delicate_overrides || []);
+    const auto = new Set(config?.auto_overrides || []);
+    if (actionNeedsOk(a)) { del.delete(a.action); auto.add(a.action); }   // pasa a "hazlo solo"
+    else { auto.delete(a.action); del.add(a.action); }                    // pasa a "pídeme OK"
+    const patch = { delicate_overrides: [...del], auto_overrides: [...auto] };
+    setConfig((c) => ({ ...(c || {}), ...patch }));  // optimista
+    try { const r = await saveCerebroConfig(patch); setConfig(r?.config || r); }
+    catch { flash('No se pudo guardar.'); load(); }
   };
 
   const goals = status?.goals || {};
@@ -162,6 +201,58 @@ export default function AsesorSalaDeControl({ user, onLogout }) {
                   ))}
                   {(learning.retrains || [])[0] && <div style={{ fontSize: 12, color: 'var(--cream-3,#807e78)' }}>🔄 {learning.retrains[0].summary}</div>}
                 </>
+              )}
+            </Card>
+
+            {/* CONFIGURAR MI CEREBRO · E2.5 · confianza que se gana */}
+            <Card style={{ marginTop: 18 }}>
+              <button onClick={() => setConfigOpen((o) => !o)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <span className="eyebrow">⚙️ Configurar Mi Cerebro</span>
+                <span style={{ fontSize: 12, color: 'var(--cream-3,#807e78)' }}>{configOpen ? 'Ocultar' : 'Ajustar'}</span>
+              </button>
+              {configOpen && (
+                <div style={{ marginTop: 14 }}>
+                  {/* Nivel de autonomía */}
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>¿Cuánta libertad le das?</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+                    {AUTONOMY.map((lvl) => {
+                      const on = (config?.autonomy || 'semi') === lvl.key;
+                      return (
+                        <button key={lvl.key} onClick={() => setAutonomy(lvl.key)} data-testid={`asesor-autonomy-${lvl.key}`}
+                          style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                                   border: on ? '1.5px solid #6366f1' : '1px solid rgba(0,0,0,0.12)',
+                                   background: on ? 'rgba(99,102,241,0.08)' : 'transparent' }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 700 }}>{lvl.label}
+                            {lvl.hint === 'Recomendado' && <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', marginLeft: 6 }}>Recomendado</span>}</div>
+                          {lvl.hint !== 'Recomendado' && <div style={{ fontSize: 11, color: 'var(--cream-3,#807e78)' }}>{lvl.hint}</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Permiso por acción · piso HARD bloqueado */}
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>¿Qué quieres aprobar tú?</div>
+                  {Object.entries(catalog).map(([area, actions]) => (
+                    <div key={area} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3,#9ca3af)', marginBottom: 5 }}>{area}</div>
+                      {actions.map((a) => {
+                        const needsOk = actionNeedsOk(a);
+                        return (
+                          <div key={a.action} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0' }}>
+                            <span style={{ fontSize: 13 }}>{a.label}{a.hard && <span style={{ fontSize: 10, color: '#b45309', marginLeft: 6 }}>🔒 siempre tu OK</span>}</span>
+                            <button onClick={() => toggleAction(a)} disabled={a.hard} data-testid={`asesor-act-${a.action}`}
+                              style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 9999, cursor: a.hard ? 'default' : 'pointer',
+                                       border: 'none', background: needsOk ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)',
+                                       color: needsOk ? '#b45309' : '#16a34a', opacity: a.hard ? 0.7 : 1 }}>
+                              {needsOk ? 'Pídeme OK' : 'Hazlo solo'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  {Object.keys(catalog).length === 0 && <div style={{ fontSize: 12, color: 'var(--cream-3,#807e78)' }}>Sin acciones configurables para tu rol aún.</div>}
+                </div>
               )}
             </Card>
 
