@@ -997,19 +997,19 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [x] chunk 0.5 — Índices Mongo del código + corrección asesor_indexes.py (§10)
 - [x] chunk 0.6 — Línea-Base Cuantitativa (11 métricas, §11) + build BE/FE verde
 - [x] chunk 0.7 — Stack Confirmado + Plan + divergencias §B/§N (§12)
-- [ ] chunk 0.8 — ⏳ OK del founder para abrir B1
+- [x] chunk 0.8 — OK del founder recibido → B1 abierto
 
-**BATCH B1 · Seguridad + IA adversarial + Red Team — ⬜ (0/10 chunks)**
-- [ ] chunk 1.1 — Censo tenant routers dev + datos/AVM (33+36 routers; el grueso de los 739 accesos)
-- [ ] chunk 1.2 — Censo tenant superadmin (12, god-view legítimo vs colado) + auth/infra (17)
-- [ ] chunk 1.3 — Censo tenant asesor (12) + studio (20) + otros (38)
-- [ ] chunk 1.4 — Censo tenant público (20) + comprador (8) + conversación (10) + cerebro (8) + services (54)
-- [ ] chunk 1.5 — 1.1.B: 5 requests de ataque cross-tenant (leads · developments · citas · operaciones/dinero · threads/cubo)
-- [ ] chunk 1.6 — 1.2 + 1.3: credencial Mongo, bundle, auth/sesiones/roles, mass-assignment, NoSQL-injection, uploads
-- [ ] chunk 1.7 — 1.4.A: mapa de las 8 superficies de prompt-injection (§9.B)
-- [ ] chunk 1.8 — 1.4.B/C: Cerebro como amplificador (re-correr redteam 16) + salida/exfiltración/DoS económico
-- [ ] chunk 1.9 — 1.5: reglas de negocio (pool dmx_root sin regresión T29 · entity-resolution como oráculo)
-- [ ] chunk 1.10 — 1.6: 7 cadenas red-team encadenadas [SOLO STAGING] → PAUSA + OK
+**BATCH B1 · Seguridad + IA adversarial + Red Team — 🔄 (9/10 chunks · 13 hallazgos, 5 ya arreglados) — ver §16**
+- [x] chunk 1.1 — Censo tenant routers dev (33) — 473 accesos · wrappers divergentes (B1-12)
+- [x] chunk 1.2 — Censo tenant superadmin (12) + auth/infra (17) — god-view gateado, 0 críticos
+- [x] chunk 1.3 — Censo tenant asesor (12) + studio (20) — studio_landing:1582 (B1-10)
+- [x] chunk 1.4 — Censo tenant público (20) + comprador (8) + conversación (10) + cerebro (8) + services (55)
+- [x] chunk 1.5 — comprador email-JOIN (B1-03) + pool dmx_root marketplace (B1-02)
+- [x] chunk 1.6 — auth/roles/mass-assign/NoSQL/uploads (limpios) + magic-link (B1-04 ✅)
+- [x] chunk 1.7 — 8 superficies prompt-injection (persona B1-07 ✅ + DISC B1-06 ✅)
+- [x] chunk 1.8 — Cerebro: 3 candados OK, HARD_DELICATE inviolable, seguro piloto · redteam→staging
+- [x] chunk 1.9 — reglas negocio: pool dmx_root (B1-02), entity-resolution (no abusable)
+- [ ] chunk 1.10 — ⏳ 7 cadenas red-team [SOLO STAGING] + **OK founder** para B1-02/B1-03 antes de B2
 
 **BATCH B2 · Auditoría técnica — ⬜ (0/5)**
 - [ ] chunk 2.1 — Grafo dependencias real (fan-in×fan-out) + mapa de capas + 3 flujos E2E + tabla DOC-vs-CÓDIGO (≥8)
@@ -1080,4 +1080,48 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **1/12** · chunks F0 **7/49** · etapas programa **0/8 cerradas** (F0 en curso).
+**Avance global:** F0 batches **1/12** (B1 al 90%) · chunks F0 **17/49** · etapas programa **0/8 cerradas** (F0 en curso) · **5 fixes seguros aplicados** (1 P0 + 1 P1 + 3 P2, commit 7425a631).
+
+---
+
+## 16. Bloque 1 · Seguridad + IA + Red Team — censo y hallazgos (2026-06-12)
+
+> **Cobertura del censo tenant:** 215/215 routers + 55 services + engines clave + cerebro/ recorridos
+> (fan-out de 9 agentes, evidencia archivo:línea re-leída en vivo). Veredicto global: la columna
+> vertebral `tenant_scope.py` es **sólida** y la mayoría de accesos (≈90%) están limpios. Lo que
+> sigue son los hallazgos REALES tras deduplicar y descartar falsos positivos.
+
+### 16.1 Falsos positivos descartados (re-leídos, NO son bug)
+- `team_aggregated.py:122` — los `asesor_ids` ya vienen scopeados por `tenant` (`:100-102`); los leads se filtran por esos ids → **limpio** (solo hardening: guardar contra `tenant==""`). 
+- `smart_lists.py:128` rollup — `org_id` sale de **sesión** (`user.tenant_id`, `:134`), no del request → **limpio**.
+- `dev_batch4_1.py` antifraude (`/api/cita`) — las queries cross-project son la **entity-resolution por diseño** (§G.c, 6 checks); el endpoint registra un lead nuevo (no hay "dueño" que validar). Lo único a revisar: que los mensajes de disputa sean genéricos (§1.5) → P2, no 8 IDOR.
+- `maps.py:134` cube público — solo `{tier_id,name,geo}`, sin PII ni tenant → **limpio**.
+
+### 16.2 Hallazgos confirmados (formato canónico 0.4.9)
+
+| ID | Sev | Etiqueta | Hallazgo | Evidencia (✓ re-leído) | Estado |
+|---|---|---|---|---|---|
+| B1-01 | **P0** | NUEVO · CABLE-ROTO · rompe-ciclo | **Búsqueda semántica pública expone PII de leads cross-tenant.** `/api/search/semantic` sin auth buscaba sobre TODO el corpus, que indexa chunks de leads (nombre+notas), actividades y conversaciones de todos los tenants. | `rag_engine.py:852` (endpoint público) + `:303-334` (lead chunks) + `:645-658` (reindex_all) | ✅ **ARREGLADO** (commit 7425a631: confinado a {development,colonia,external}) |
+| B1-02 | P1 | NUEVO · CABLE-ROTO · rompe-ciclo | **Widget PDF marketplace rutea lead nuevo a asesor random cross-org** en vez del pool de la casa (`dmx_root`). Paso 3 toma `users.find_one({role:advisor})` de cualquier org. | `lead_capture_marketplace_engine.py:186-198` · contrasta `house_pool_engine.py:113-142` | ⏳ OK founder (cambia ruteo) |
+| B1-03 | P1 | NUEVO · CABLE-ROTO | **comprador.py une por email sin binding verificado**: visitas/búsquedas/leads se reclaman por email; auto-asigna búsquedas anónimas ajenas. Severidad depende de si el registro verifica email (magic-link sí; registro con password = confirmar). | `comprador.py:102-104,121-127,181-207` | ⏳ verificar email-verification + OK founder |
+| B1-04 | P1 | NUEVO · CABLE-ROTO | **magic-link devolvía token raw si fallaba el email** (account-takeover). | `auth.py:382-388` | ✅ **ARREGLADO** (solo dev) |
+| B1-05 | P1 | NUEVO · arquitectónico | **Rate-limit login + Atlax es in-memory** → multi-instancia lo diluye (N×límite, rotando IPs ilimitado). | `auth.py:39-71` · `asistente_engine.py:37-38` (buckets memoria) | ⏳ defer B8/F6 (necesita Redis/Mongo) |
+| B1-06 | P2 | NUEVO · CABLE-ROTO | **DISC: el LLM podía elegir el `lead_id`** de las tool-calls (least-privilege). | `agentic_crm/disc_inferencer_engine.py:390-393` | ✅ **ARREGLADO** (lead_id forzado del hilo) |
+| B1-07 | P2 | NUEVO · GRIETA | **Persona por tenant sin tope de longitud** → admin T2+ inyecta texto largo al system prompt (contenido para acciones por allow-list; solo altera texto). | `atlax_persona_engine.py:80-98` (update) + `:123-192` (build) | ✅ **ARREGLADO** (caps 240c/80c/10 items) |
+| B1-08 | P2 | NUEVO | **Tokens de sesión en logs** del asistente (higiene PII). | `asistente_engine.py:1104,1513` | ✅ **ARREGLADO** (truncados) |
+| B1-09 | P2 | NUEVO · CABLE-ROTO | **whatsapp send sin assert_lead_owner**: asesor pasa `lead_id` ajeno (impacto bajo: el mensaje queda en su propio org_id). | `routes/whatsapp.py:74-80` | ⏳ B2/fix-fase |
+| B1-10 | P2 | NUEVO · CABLE-ROTO | **studio AB-quality escanea `db.leads` global** sin tenant para puntuar landings. | `studio_landing_engine.py:1582` | ⏳ B2/fix-fase |
+| B1-11 | P2 | NUEVO · CABLE-ROTO | **bulk-ingest persiste JSON del LLM sin validar tipos/rangos** (integridad de dato, no fuga). | `bulk_ingest_engine.py:306-321` + `extraction_engine.py` | ⏳ B6 (correctitud) |
+| B1-12 | P2 | NUEVO · deuda | **4 wrappers `_tenant()` no delegan al canónico** (fallbacks divergentes "default_org"/"public"/"dmx"). | `dev_batch1.py:67`, `dev_batch4.py:93`, `dev_batch4_1.py:79`, `dev_batch19.py:126` | ⏳ F4 (refactor) |
+| B1-13 | P2 | NUEVO · CABLE-ROTO | **dev_batch7 escanea `db.leads.find({})` global** para densidad de leads por colonia (agregado, sin PII; señal cross-tenant a evaluar). | `dev_batch7.py:345` | ⏳ B3/decisión |
+
+### 16.3 Verificado SÓLIDO (re-validado vivo, no por doc)
+- **Cerebro** (`cerebro/`): 3 candados fail-closed correctos (`guardrails.py`), piso `HARD_DELICATE` inviolable (`config.py:99-115` + `contract.py:123`), `on_deal_closed` propaga tenant, ejecutores `buyer.*` toman user del task server-side, endpoints gateados por flag+rol+tenant. **Seguro para piloto con monitoreo.** Red-team 16 ataques: re-correr en staging (sin Mongo aquí). Gaps menores del test: cross-user-same-org, hook vía PATCH (defendido en router), ctx inter-step.
+- **Mass-assignment**: los `$set` de perfil pasan por modelos Pydantic con whitelist (`advisor.py:271,801,1258`, `studio_property_intake.py:257` bloquea id/tenant_id) → sin escalada de `role`/`tenant_id`.
+- **NoSQL injection**: búsquedas escapan regex (`marketplace_search`) / validan Pydantic → bloqueado.
+- **Rol server-side**: `get_current_user` lee rol de BD en cada request (no confía en claim) → revocación inmediata.
+- **Uploads** (studio_assets): MIME+tamaño+key namespaced en R2 → sin path traversal.
+- **PII pública**: endpoints públicos usan `strip_pii`/no devuelven email/teléfono.
+- **RAG autenticado**: `conversation_engine`/`asistente` pasan filtro de tenant al recuperar.
+
+**Conteo B1: 13 hallazgos · 13/13 con cita re-confirmada en vivo (100%) · 5 ARREGLADOS hoy (1 P0, 1 P1, 3 P2) · 2 P1 esperan OK founder · 6 diferidos a su fase.**
