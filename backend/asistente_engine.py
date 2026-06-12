@@ -1224,24 +1224,44 @@ class AsistenteEngine:
         if _rag_text:
             _augmented_map_context = (map_context + "\n\n" if map_context else "") + _rag_text
 
-        sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=_augmented_map_context)
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=session_token,
-            system_message=sys_prompt,
-            initial_messages=[{"role": "system", "content": sys_prompt}] + history,
-        ).with_model("anthropic", ASISTENTE_MODEL)
+        # ── Tope de presupuesto ANTES de llamar al LLM ─────────────────────────
+        # Cierra el vector de drenaje del chat público: antes el costo solo se rastreaba
+        # DESPUÉS de la llamada, así que alguien podía vaciar el presupuesto spameando. Si la
+        # org rebasó su tope mensual (ai_budget), NO llamamos al modelo: respondemos degradado
+        # y ofrecemos asesor humano. within_budget es fail-open (si no hay tope configurado,
+        # permite) — aceptable: el cap default existe (DEFAULT_CAP_MXN).
+        _budget_ok = True
+        try:
+            from services.llm_guard import within_budget
+            _budget_ok = await within_budget(self.db, org_id or "default")
+        except Exception:
+            _budget_ok = True
 
         t0 = time.monotonic()
-        try:
-            assistant_text, tool_calls_log = await self._agentic_loop(chat, user_message)
-        except Exception as e:
-            log.warning(f"[asistente] llm error session={session_token}: {e}")
+        if not _budget_ok:
+            log.warning(f"[asistente] presupuesto IA agotado org={org_id} — respuesta sin LLM")
             assistant_text = (
-                "Tuve un problema al procesar tu pregunta. ¿Puedes reformularla? Si necesitas ayuda urgente, "
-                "te conectamos con un asesor."
+                "Justo ahora no puedo responder con el asistente de IA. ¿Te conecto con un "
+                "asesor humano? Déjame tu pregunta y un asesor te contacta enseguida."
             )
             tool_calls_log = []
+        else:
+            sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=_augmented_map_context)
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=session_token,
+                system_message=sys_prompt,
+                initial_messages=[{"role": "system", "content": sys_prompt}] + history,
+            ).with_model("anthropic", ASISTENTE_MODEL)
+            try:
+                assistant_text, tool_calls_log = await self._agentic_loop(chat, user_message)
+            except Exception as e:
+                log.warning(f"[asistente] llm error session={session_token}: {e}")
+                assistant_text = (
+                    "Tuve un problema al procesar tu pregunta. ¿Puedes reformularla? Si necesitas ayuda urgente, "
+                    "te conectamos con un asesor."
+                )
+                tool_calls_log = []
         latency_ms = int((time.monotonic() - t0) * 1000)
 
         tokens_in = _estimate_tokens(user_message) + sum(_estimate_tokens(json.dumps(tc.get("output") or {}, ensure_ascii=False)) for tc in tool_calls_log)

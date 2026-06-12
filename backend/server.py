@@ -2216,6 +2216,19 @@ async def startup():
             logging.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
         except Exception as e:
             logging.warning(f"[batch8] could not schedule daily recalc: {e}")
+        # Privacidad LFPDPPP — purga diaria de cuentas soft-deleted cuya gracia (30d) expiró.
+        # Cierra el hueco de "borrado que no borra": el dato personal se elimina de verdad.
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+            from services.privacy_center import purge_expired_accounts
+            sched.add_job(
+                purge_expired_accounts, CronTrigger(hour=3, minute=30),
+                id="privacy_purge_expired_accounts", replace_existing=True,
+                kwargs={"db": db}, max_instances=1,
+            )
+            logging.info("[privacy] purga de cuentas expiradas programada @ 03:30 MX")
+        except Exception as e:
+            logging.warning(f"[privacy] no se pudo programar la purga: {e}")
         # Phase 4 Batch 0.5 — Diagnostic daily scheduler
         try:
             register_diagnostic_jobs(sched, db, app)

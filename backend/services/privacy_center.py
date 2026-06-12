@@ -202,6 +202,76 @@ async def cancel_delete(db, user_id: str) -> bool:
     return r.modified_count > 0
 
 
+# ─── Purga DURA del titular (LFPDPPP art. 25 · derecho de cancelación) ─────────
+# Antes el soft-delete marcaba is_deleted + purge_after PERO nada purgaba: el dato
+# personal seguía vivo en todas las colecciones ("borrado que no borra"). Esto lo cierra.
+# Colecciones = footprint REAL del comprador (el mismo que exporta el art. 25). NO incluye
+# asesor_contactos: ese registro es del ASESOR (relación de negocio legítima); anonimizar el
+# PII del comprador ahí es un proceso aparte y cuidadoso (no se borra el contacto del asesor).
+_PURGE_BY_USER_ID = [
+    "buyer_favorites", "buyer_views", "privacy_consents", "comprador_dashboards",
+    "comprador_saved_searches", "comprador_shortlists", "buyer_scores",
+    "behavioral_events", "swipe_events", "data_export_requests",
+]
+_PURGE_BY_USER_OR_EMAIL = ["saved_searches", "leads", "buyer_alerts", "visit_requests"]
+
+
+async def purge_account(db, user_id: str, email: str = "") -> Dict[str, int]:
+    """Borra DE VERDAD el dato personal del titular en todas sus colecciones. Idempotente y
+    fail-soft por colección. Devuelve {colección: borrados}. Se llama al expirar la gracia."""
+    deleted: Dict[str, int] = {}
+    for coll in _PURGE_BY_USER_ID:
+        try:
+            r = await db[coll].delete_many({"user_id": user_id})
+            if r.deleted_count:
+                deleted[coll] = r.deleted_count
+        except Exception as e:
+            log.warning(f"[purge] {coll} by user_id falló: {e}")
+    q = {"$or": [{"user_id": user_id}] + ([{"email": email}] if email else [])}
+    for coll in _PURGE_BY_USER_OR_EMAIL:
+        try:
+            r = await db[coll].delete_many(q)
+            if r.deleted_count:
+                deleted[coll] = r.deleted_count
+        except Exception as e:
+            log.warning(f"[purge] {coll} by user_id/email falló: {e}")
+    try:  # memoria del Cerebro (scope buyer, key = user_id)
+        r = await db.cerebro_memory.delete_many({"scope": "buyer", "key": str(user_id)})
+        if r.deleted_count:
+            deleted["cerebro_memory"] = r.deleted_count
+    except Exception:
+        pass
+    try:  # finalmente, el usuario
+        r = await db.users.delete_one({"user_id": user_id})
+        deleted["users"] = r.deleted_count
+    except Exception as e:
+        log.warning(f"[purge] users falló: {e}")
+    log.info(f"[purge] cuenta {user_id} purgada: {deleted}")
+    return deleted
+
+
+async def purge_expired_accounts(db) -> Dict[str, Any]:
+    """Cron: purga las cuentas soft-deleted cuya gracia (purge_after) expiró. Cierra el hueco
+    de 'borrado que no borra'. Fail-soft. Devuelve resumen."""
+    now = datetime.now(timezone.utc)
+    targets: List[Dict[str, Any]] = []
+    try:
+        async for u in db.users.find(
+            {"is_deleted": True, "purge_after": {"$lte": now}},
+            {"_id": 0, "user_id": 1, "email": 1},
+        ).limit(1000):
+            if u.get("user_id"):
+                targets.append(u)
+    except Exception as e:
+        log.warning(f"[purge] cron query falló: {e}")
+    purged = 0
+    for u in targets:   # lista materializada → seguro borrar dentro del loop
+        await purge_account(db, u["user_id"], u.get("email") or "")
+        purged += 1
+    log.info(f"[purge] cron: {purged} cuentas expiradas purgadas")
+    return {"ok": True, "purged": purged, "at": now.isoformat()}
+
+
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async def _collect(coll, query: Dict[str, Any]) -> List[Dict[str, Any]]:
