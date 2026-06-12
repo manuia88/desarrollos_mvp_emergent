@@ -3025,11 +3025,15 @@ async def create_operacion(payload: OperacionIn, request: Request):
     }
     await db.asesor_operaciones.insert_one(dict(item))
     item.pop("_id", None)
-    # F0.1 — Audit log
+    # F0.1 — Audit log. Es una operación de DINERO: si la auditoría falla, no rompemos
+    # la operación (fail-open de observabilidad, §I), pero debe VERSE en Sentry — no un
+    # `pass` mudo (mismo criterio que update_op_status más abajo).
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "operacion", item["id"], before=None, after=item, request=request)
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.advisor").error(
+            f"[operacion] audit_log de creación falló (id={item['id']}): {_e}", exc_info=True)
     return item
 
 
