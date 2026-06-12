@@ -389,7 +389,10 @@ REGLAS:
         results_parts = []
         for spec in tool_calls[:5]:
             tname = spec.get("tool", "")
-            p = spec.get("params") or {"lead_id": lead_id}
+            # El lead_id SIEMPRE es el del hilo en curso, nunca el que el LLM ponga
+            # en los params (least-privilege: el modelo no elige a qué lead consultar).
+            p = dict(spec.get("params") or {})
+            p["lead_id"] = lead_id
             res = await _exec_disc_tool(db, tname, p)
             res_str = json.dumps(res, ensure_ascii=False, default=str)
             if len(res_str) > 6000:

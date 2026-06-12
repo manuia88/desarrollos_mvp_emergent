@@ -1101,7 +1101,7 @@ class AsistenteEngine:
             "referral_source": referral_source,
             "channel": "web_bubble" if referral_source == "caya_bubble" else "web",
         })
-        log.info(f"[asistente] session start {token} ip={ip_hash} ref={referral_source}")
+        log.info(f"[asistente] session start {token[:8]}… ip={ip_hash} ref={referral_source}")
         return {"session_token": token, "welcome_message": WELCOME_MESSAGE}
 
     async def chat(self, session_token: str, user_message: str, org_id: str = DMX_ORG_ID, map_context: str = "") -> Dict[str, Any]:
@@ -1510,7 +1510,7 @@ class AsistenteEngine:
             }},
             upsert=True,
         )
-        log.info(f"[asistente] mapped legacy caya {legacy_caya_session_id} → {token} (validated={bool(legacy_doc)})")
+        log.info(f"[asistente] mapped legacy caya {legacy_caya_session_id} → {token[:8]}… (validated={bool(legacy_doc)})")
         return token
 
     async def expire_old_sessions(self, hours: int = SESSION_EXPIRE_HOURS) -> int:

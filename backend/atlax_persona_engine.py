@@ -52,6 +52,27 @@ REGISTER_DESCRIPTIONS: Dict[str, str] = {
 
 ALLOWED_FIELDS = set(DEFAULT_PERSONA.keys())
 
+# Topes de longitud para los campos de texto libre que se anteponen al system
+# prompt (build_persona_prompt). Acotan la superficie de prompt-injection de un
+# admin de la org sobre el asistente público de SU org.
+_PERSONA_STR_CAP = 240          # persona_name, persona_tagline, custom_signature
+_PERSONA_ITEM_CAP = 80          # cada item de lista
+_PERSONA_LIST_CAP = 10          # nº máx de items por lista
+
+
+def _cap_persona_fields(clean: Dict[str, Any]) -> Dict[str, Any]:
+    """Recorta longitudes de los campos de texto libre de la persona (in-place-safe)."""
+    for f in ("persona_name", "persona_tagline", "custom_signature"):
+        v = clean.get(f)
+        if isinstance(v, str):
+            clean[f] = v.strip()[:_PERSONA_STR_CAP]
+    for f in ("brand_voice_keywords", "forbidden_topics", "custom_greetings"):
+        v = clean.get(f)
+        if isinstance(v, list):
+            clean[f] = [str(item).strip()[:_PERSONA_ITEM_CAP]
+                        for item in v[:_PERSONA_LIST_CAP] if item]
+    return clean
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -86,6 +107,11 @@ async def update_persona(
     now = _now()
 
     clean: Dict[str, Any] = {k: v for k, v in persona_dict.items() if k in ALLOWED_FIELDS}
+    # Topes de longitud: estos campos se anteponen al system prompt de Atlax
+    # (build_persona_prompt). Sin cap, un admin podría pegar instrucciones largas
+    # de prompt-injection. El chokepoint de allow-list ya impide que alteren
+    # acciones; esto acota además el texto que pueden inyectar al modelo.
+    clean = _cap_persona_fields(clean)
     clean["org_id"] = org_id
     clean["updated_at"] = now.isoformat()
     clean["updated_by"] = user_id

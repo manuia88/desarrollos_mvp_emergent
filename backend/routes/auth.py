@@ -379,12 +379,13 @@ async def request_magic_link(payload: MagicLinkRequestIn, request: Request):
     except Exception as ex:
         log.warning(f"[magic_link] email failed: {ex}")
 
-    # Devolver token raw cuando el email no se pudo enviar para que el frontend
-    # pueda construir el link con su propio origin (ingress puede reescribir host).
+    # Si el email no salió, devolver el token raw SOLO en dev: en prod sería un
+    # vector de account-takeover (cualquiera pide el magic-link de una víctima,
+    # fuerza/espera un fallo de envío y se queda con el token en la respuesta HTTP).
     response = {"sent": True, "email_sent": email_sent, "expires_in_minutes": 15}
-    if not email_sent:
+    if not email_sent and _DEV_MODE:
         response["debug_token"] = token
-        response["debug_link"] = link  # legacy/fallback
+        response["debug_link"] = link  # solo dev/local
     return response
 
 

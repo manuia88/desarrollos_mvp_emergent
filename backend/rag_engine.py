@@ -849,18 +849,38 @@ public_router = APIRouter(tags=["rag_public"])
 admin_router = APIRouter(tags=["rag_admin"])
 
 
+# Scopes que el endpoint PÚBLICO (sin auth) puede buscar: solo inteligencia de
+# mercado, nunca PII. El corpus también indexa scopes privados (lead/activity/
+# conversation/doc/extraction/property_intake/resale) con nombre+notas de leads y
+# texto de conversaciones de TODOS los tenants → exponerlos sin auth sería fuga
+# cross-tenant. El retrieval autenticado (asistente/broker) usa semantic_search
+# con su filtro de tenant y conserva acceso completo.
+PUBLIC_SEARCH_SCOPES = frozenset({"development", "colonia", "external"})
+
+
 @public_router.get("/api/search/semantic")
 async def search_semantic(
     request: Request,
     q: str = Query(..., min_length=2, description="Consulta libre"),
     top_k: int = Query(10, ge=1, le=30),
-    scope: Optional[str] = Query(None, description="development | colonia"),
+    scope: Optional[str] = Query(None, description="development | colonia | external"),
     entity_id: Optional[str] = Query(None),
     source_types: Optional[str] = Query(None, description="Lista separada por coma"),
 ):
     db = request.app.state.db
     st = [s.strip() for s in source_types.split(",")] if source_types else None
-    return await semantic_search(db, q, top_k=top_k, scope=scope, entity_id=entity_id, source_types=st)
+    # Confina la búsqueda pública a scopes no-PII. Si el cliente pide un scope
+    # concreto, debe ser uno público; si no pide ninguno, se acotan todos.
+    if scope:
+        if scope not in PUBLIC_SEARCH_SCOPES:
+            raise HTTPException(403, "scope no disponible en búsqueda pública")
+        allowed_scopes = [scope]
+    else:
+        allowed_scopes = list(PUBLIC_SEARCH_SCOPES)
+    return await semantic_search(
+        db, q, top_k=top_k, entity_id=entity_id, source_types=st,
+        scopes_in=allowed_scopes,
+    )
 
 
 @admin_router.post("/api/superadmin/rag/reindex")
