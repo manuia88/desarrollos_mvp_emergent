@@ -110,20 +110,71 @@ async def _property_zone(db, lead_id: str) -> Optional[str]:
         return None
 
 
+# ─── Versiones BATCH (1 query c/u en vez de 1 por asesor · perf B3) ──────────────
+async def _open_loads_batch(db, ids: List[str]) -> Dict[str, int]:
+    """{asesor_id: nº leads abiertos del pool} en UNA query (reemplaza N× _open_load)."""
+    out: Dict[str, int] = {}
+    try:
+        cur = db.visit_requests.aggregate([
+            {"$match": {"assigned_asesor_id": {"$in": ids}, "status": {"$in": list(OPEN_STATES)}}},
+            {"$group": {"_id": "$assigned_asesor_id", "n": {"$sum": 1}}},
+        ])
+        async for r in cur:
+            out[r["_id"]] = r["n"]
+    except Exception:
+        pass
+    return out
+
+
+async def _asesor_zones_batch(db, ids: List[str]) -> Dict[str, set]:
+    """{asesor_id: set(colonias normalizadas)} en UNA query (reemplaza N× _asesor_zones)."""
+    out: Dict[str, set] = {}
+    try:
+        async for prof in db.asesor_profiles.find(
+            {"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "colonias": 1}):
+            out[prof.get("user_id")] = {_norm_zone(c) for c in (prof.get("colonias") or []) if c}
+    except Exception:
+        pass
+    return out
+
+
+async def _asesor_closes_batch(db, ids: List[str]) -> Dict[str, int]:
+    """{asesor_id: nº cierres} en UNA query (reemplaza N× _asesor_closes)."""
+    out: Dict[str, int] = {}
+    try:
+        cur = db.asesor_operaciones.aggregate([
+            {"$match": {"owner_id": {"$in": ids}, "status": {"$in": ["cerrada", "cobrada", "pagando"]}}},
+            {"$group": {"_id": "$owner_id", "n": {"$sum": 1}}},
+        ])
+        async for r in cur:
+            out[r["_id"]] = r["n"]
+    except Exception:
+        pass
+    return out
+
+
 async def pick_house_asesor(db, zone=None) -> Optional[str]:
     """Reparto por ZONA + CARGA: primero los asesores que CUBREN la zona de la propiedad;
     entre esos (o entre todos si nadie la cubre · no dejar el lead varado) el MENOS cargado.
-    None si no hay asesores de la casa."""
+    None si no hay asesores de la casa.
+
+    Perf B3: antes hacía 1+3N queries (3 por asesor en un loop · N+1). Ahora son 3 queries
+    en bloque (carga/zonas/cierres con $in) sin importar cuántos asesores haya. Lógica idéntica."""
     ases = await house_asesores(db)
     if not ases:
         return None
+    ids = [a["user_id"] for a in ases]
     znorm = _norm_zone(zone)
+    loads_map = await _open_loads_batch(db, ids)
+    zones_map = await _asesor_zones_batch(db, ids) if znorm else {}
+    closes_map = await _asesor_closes_batch(db, ids)
     scored = []  # (asesor_id, load, cubre_zona, cierres)
     for a in ases:
-        load = await _open_load(db, a["user_id"])
-        covers = bool(znorm) and (znorm in await _asesor_zones(db, a["user_id"]))
-        closes = await _asesor_closes(db, a["user_id"])
-        scored.append((a["user_id"], load, covers, closes))
+        uid = a["user_id"]
+        load = loads_map.get(uid, 0)
+        covers = bool(znorm) and (znorm in zones_map.get(uid, set()))
+        closes = closes_map.get(uid, 0)
+        scored.append((uid, load, covers, closes))
     matches = [s for s in scored if s[2]]
     pool = matches if matches else scored   # fallback: todos (zona sin cobertura → solo carga)
     # orden: 1) menos cargado · 2) empate → más cierres (mejor asesor) gana

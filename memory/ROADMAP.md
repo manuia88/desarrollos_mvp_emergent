@@ -4,7 +4,8 @@
 Auditoría exhaustiva por bloques (ledger vivo: `REPO_COBERTURA.md`). Branch de trabajo `claude/wizardly-galileo-p6tg41` (sobre `dev-redesign-tandas`).
 - **B1 Seguridad ✅** — 13 hallazgos, P0/P1 cerrados: fuga RAG público cross-tenant (scopes), ruteo marketplace al pool dmx_root, JOIN comprador solo con email verificado, magic-link sin token en prod, + hardening IA (DISC/persona/logs). 7 fixes, build verde.
 - **B2 Auditoría Técnica ✅** — columna vertebral sólida; 168 motores = 161 VIVO / 7 FLAG-OFF (suite agéntica, decisión de deploy) / 0 CABLE-ROTO / 0 huérfano → nada que despertar con código (Tandas 20-38 ya lo hicieron). Acción: **33 tests críticos** (tenant_scope/entity_resolution/house_pool/data_doctrine, 33/33 verde) + audit de dinero visible. Deuda registrada para F4: violaciones de capa, archivos-dios, contrato de respuesta, handler central de errores.
-- Pendiente: prender la suite agéntica (`agentic_enabled`) = decisión de deploy del founder, no código. B3 Performance → siguiente.
+- **B3 Performance 10k ✅** — la app está bien armada (75+ índices, code-splitting excelente, scheduler real con 30+ crons, cachés materializadas). 5 de 6 "índices faltantes" eran falsos; se añadió 1 real (`units.project_id`) + se optimizó el N+1 del reparto de leads (house_pool: 1+3N → 3 queries) + se afinó el script de carga al SLA. Diferido con destino claro: rate-limit distribuido (Redis, B8/F6), RAG vectorial a escala, agregación server-side de god-views (F4), cap de IA por env (deploy). Veredicto techo: el público lee de caché; lo que se cae primero a 10k es el gasto LLM de Atlax (cap+rate-limit), no el núcleo.
+- Pendiente: prender la suite agéntica (`agentic_enabled`) = decisión de deploy del founder, no código. B4 Rediseño UX → siguiente.
 
 ## P0 — Phase 2 Comprador — COMPLETADO (Batches 28-30)
 - Magic Link Auth, Dashboard, Favoritos, Historial, Privacidad LFPDPPP ✅

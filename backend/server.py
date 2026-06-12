@@ -1415,6 +1415,9 @@ async def startup():
         await db.asesor_busquedas.create_index("id", name="idx_busq_id", sparse=True)
         await db.units.create_index("id", name="idx_units_id", sparse=True)
         await db.units.create_index("unit_id", name="idx_units_unit_id", sparse=True)
+        # B3 perf · units se consulta por project_id (b13.py:515, dev_batch10.py:278-280,
+        # insights.py:88) y no tenía índice → COLLSCAN con muchas unidades. Lo cierra.
+        await db.units.create_index("project_id", name="idx_units_project_id", background=True)
     except Exception as _p23e:
         logging.warning(f"[startup] P2.3 índices fail-open: {_p23e}")
     # P2.11 · validadores de schema (modo WARN = no bloquea escrituras, solo registra docs

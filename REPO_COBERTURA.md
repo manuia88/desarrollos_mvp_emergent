@@ -1023,11 +1023,11 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [x] chunk 2.4 — Datos Mongo: 2 falsos positivos descartados · JOIN email frágil + sin JSON-Schema → F4/backlog
 - [x] chunk 2.5 — Deuda: 0 cables fantasma · archivos-dios → F4 · **5 piezas críticas → 33 tests verdes** ✅
 
-**BATCH B3 · Performance 10k — ⬜ (0/4)**
-- [ ] chunk 3.1 — Supuestos de infra declarados + N+1 + full-scans (re-leer los 5 conocidos)
-- [ ] chunk 3.2 — Índices faltantes vs lista real §10 (getIndexes() vivo si hay staging)
-- [ ] chunk 3.3 — Cómputo caro en request, jobs faltantes, bundle FE (chunk 476kB), costo LLM a escala
-- [ ] chunk 3.4 — Script k6/Locust en `/load-tests/` (3 escenarios) + veredicto techo/qué-se-cae → PAUSA
+**BATCH B3 · Performance 10k — ✅ CERRADO (4/4 · Tanda) — ver §18**
+- [x] chunk 3.1 — Supuestos infra declarados + N+1 (house_pool ✅ arreglado) + full-scans (god-views → F4)
+- [x] chunk 3.2 — Índices: 5 de 6 gaps falsos/marginales · 1 real `units.project_id` ✅ añadido
+- [x] chunk 3.3 — Cómputo: cachés materializadas OK · scheduler real · bundle FE excelente · LLM/RAG → escala
+- [x] chunk 3.4 — Script de carga ya existía → afinado al SLA (lecturas p95<500) · veredicto techo/qué-se-cae ✅
 
 **BATCH B4 · Rediseño Front/UX — ⬜ (0/7)**
 - [ ] chunk 4.1 — Sistema de diseño (hardcodeo vs tokens, componentes duplicados, patrones)
@@ -1085,7 +1085,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **2.9/12** (B0 ✅ · B1 censo 100% P0/P1 cerrados · **B2 ✅**) · chunks F0 **22.5/49** · etapas programa **0/8 cerradas** · **8 fixes + 33 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests críticos verdes · commits 7425a631, fddd740d, 34257db6).
+**Avance global:** F0 batches **3.9/12** (B0 ✅ · B1 ✅ · B2 ✅ · **B3 ✅**) · chunks F0 **26.5/49** · etapas programa **0/8 cerradas** · **10 fixes + 33 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests · B3: índice units + N+1 house_pool + script SLA · commits 7425a631, fddd740d, 34257db6, + B3).
 
 ---
 
@@ -1181,3 +1181,35 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 + `advisor.py` create_operacion: audit de dinero visible (no `except: pass`).
 
 **Verificación:** `compileall backend` exit 0 · `pytest tests/critical -m unit` = 33 passed · sin regresión (las fallas de la suite global son tests de integración sin Mongo vivo + deps faltantes del contenedor: httpx/numpy/statsmodels/reportlab — ninguna toca los archivos editados).
+
+---
+
+## 18. Bloque 3 · Performance y Escala 10k — hallazgos y Tanda (2026-06-12)
+
+> **Supuestos de infra declarados** (no hay Dockerfile/Procfile en el repo; prod = K8s/Emergent gestionado fuera):
+> · uvicorn multi-worker (nº gestionado por la plataforma) · Mongo pool **maxPoolSize=50/proceso**, min 5
+> (`server.py:91-98`) · standalone vs replica-set: no determinable desde el repo, se asume gestionado.
+> SLA objetivo: p95<500ms lecturas, error<1%, mix 70% público / 20% comprador / 8% asesor / 2% dev-superadmin.
+
+### 18.1 Veredicto honesto: la app está BIEN armada para rendimiento
+- **Índices: cobertura extensa** (75+ índices; decenas de `ensure_*_indexes` en startup). De los 6 "gaps" que propuso el fan-out, **5 eran falsos o marginales** (verificados re-leyendo): `users` ya tiene email-unique (auth cubierta); `leads` ya tiene `(dev_org_id,status,last_activity_at)`; buyer_scores cubierto por user_id-unique. **NO se añadieron índices inútiles** (serían deuda de escritura).
+- **Frontend: code-splitting EXCELENTE** — 251 rutas con `React.lazy`; el anónimo (70%) NO descarga el JS de los portales autenticados. Nada que arreglar (solo pulido opcional: lazy del MiniMap, vendor chunk).
+- **Jobs background: scheduler REAL** (APScheduler, `scheduler_ie.py`, 30+ crons nocturnos: ETL, recompute de scores, cubo, retrains, newsletter). El trabajo pesado NO corre inline.
+- **Cachés materializadas reales**: AVM (LRU 1h), forecast (LRU 6h), zone_scores (24h+TTL), live_pulse (snapshots), cube (cron 03:30).
+
+### 18.2 ACCIONADO esta Tanda (verificado, build verde + 33 tests)
+| Fix | Archivo | Tipo | Estado |
+|---|---|---|---|
+| Índice `units.project_id` (se consultaba sin índice: b13.py:515, dev_batch10.py:278-280, insights.py:88) | `server.py:1418` | CABLE-ROTO | ✅ añadido |
+| `pick_house_asesor`: N+1 (1+3N queries) → **3 queries en bloque** (`$in`), lógica idéntica | `house_pool_engine.py` (+3 helpers batch) | CABLE-ROTO | ✅ + 5 tests verdes |
+| Script de carga: thresholds alineados al SLA (lecturas p95<500 por tag, error<1%) | `load-tests/dmx_load.js` | mejora deliverable | ✅ |
+
+### 18.3 NO accionado — registrado con su destino (honestidad: no inflar ni romper)
+- **God-views superadmin sin `.limit()`** (`superadmin_devmaster.py` ×7): un `.limit()` ciego **corromper­ía los totales** (DMX vende números honestos). Fix correcto = agregación server-side (`$group` en Mongo). → **F4/F6**, no quick-fix.
+- **Rate-limit Atlax/login in-memory** (multi-worker lo diluye): ya en §16 (B1-05). → **B8/F6** (necesita Redis).
+- **RAG cosine O(n) en memoria, corpus por worker** (`rag_engine.py`): ~14KB/chunk, ~434MB con 31k chunks; a 100k+ la latencia/RAM crece. → mejora arquitectónica (vector index/Faiss), horizonte medio. Hoy corpus chico = ESPERA-DATOS.
+- **Cap de presupuesto IA público $5,000 MXN/mes**: corto para 10k usuarios, pero es **env `AI_BUDGET_DEFAULT_CAP_MXN`** = decisión de deploy del founder, no código.
+- **buyer_score sin caché**: hipotético — el fan-out NO lo encontró en rutas públicas calientes. "No lo cablees inline", no es bug hoy.
+
+### 18.4 Veredicto: techo actual y qué se cae primero
+Con los supuestos de arriba, el orden de saturación bajo el 70% de tráfico público es: **1º** gasto LLM de Atlax (cap bajo + rate-limit no distribuido) → **2º** RAM/latencia del RAG en memoria a corpus grande → **3º** god-views de superadmin sin agregación (solo afecta al 2% superadmin) → **4º** pool Mongo (50/proceso) si entra cómputo síncrono largo. **Ninguno es un bug del 70% público hoy**; son límites de escala con fixes claros (Redis para rate-limit, vector index para RAG, agregación para god-views, cap por env). El núcleo público (marketplace, AVM, scores) ya lee de caché materializada.

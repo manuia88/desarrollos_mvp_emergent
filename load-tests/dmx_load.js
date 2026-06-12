@@ -30,9 +30,16 @@ export const options = {
     { duration: '2m', target: 0 },
   ],
   thresholds: {
-    http_req_failed: ['rate<0.02'],            // <2% errores
-    http_req_duration: ['p95<1500', 'p99<3000'],
-    dmx_errors: ['rate<0.02'],
+    http_req_failed: ['rate<0.01'],            // SLA del plan: <1% errores
+    dmx_errors: ['rate<0.01'],
+    // SLA del plan: p95 < 500ms en LECTURAS (las rutas calientes del 70% de tráfico).
+    // Se evalúan por separado de las escrituras vía los tags name: de cada request.
+    'http_req_duration{name:marketplace_list}': ['p95<500'],
+    'http_req_duration{name:avm_top}': ['p95<500'],
+    'http_req_duration{name:dashboard}': ['p95<800'],   // autenticado · cómputo
+    'http_req_duration{name:grafo}': ['p95<1500'],      // full-scan conocido · techo más alto
+    'http_req_duration{name:lead_capture}': ['p95<800'],// escritura
+    http_req_duration: ['p95<1000', 'p99<3000'],        // global de seguridad
   },
 };
 
