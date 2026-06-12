@@ -16,7 +16,16 @@ criterios falsificables de "impecable"). Su **Fase 0** es el prompt de auditorí
 leyeron el código real · cobertura 100% vía ledger · cubre seguridad, IA adversarial, arquitectura,
 performance 10k, rediseño UX, re-arquitectura, correctitud/honestidad del dato, privacidad LFPDPPP,
 producción/observabilidad, FinOps/i18n/SEO, y madurez/oportunidad IA-ML-DL-agentic). Pensado para
-correr en sesiones de Fable 5. **Próximo paso:** correr la F0 (diagnóstico) → `REPO_PLAN_MAESTRO.md`.
+correr en sesiones de Fable 5.
+
+**Avance F0 (EN CURSO · en sesión de la nube, rama `claude/wizardly-galileo-p6tg41`):** el ledger
+y detalle viven en `REPO_COBERTURA.md` + `CHECKPOINTS.md` de esa rama. Bloques cerrados con tag de
+checkpoint creado desde la sesión local (el proxy de la nube bloquea tags con 403):
+`checkpoint-f0-b0-ledger-20260612` (5288ece7) · `checkpoint-f0-b1-seguridad-20260612` (3053bc85) ·
+`checkpoint-f0-b2-tests-criticos-20260612` (151f21da) · `checkpoint-f0-b4-mkt4-robustez-20260612`
+(64b5f70d). Veredicto B2: motor sólido, sin features fantasma; B2 reforzado con 33 tests verde.
+**Protocolo de checkpoint por bloque** (SHA en CHECKPOINTS.md + rama-checkpoint vía API GitHub) queda
+fijado en la rama de la nube. **Próximo paso:** B3 (performance 10k) → seguir hacia `REPO_PLAN_MAESTRO.md`.
 
 Fixes P0 ya aplicados de paso (destapados al fundamentar el prompt): purga real de cuenta LFPDPPP
 (`privacy_center.purge_account` + cron) + tope de presupuesto IA antes del LLM público
