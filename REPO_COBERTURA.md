@@ -979,3 +979,105 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 
 # Línea-Base completa: ver comandos de la tabla §11 (correr y comparar valor a valor)
 ```
+
+---
+
+## 15. Checklist de Avance — Etapas → Batch → Chunk (gobierna el avance entre sesiones)
+
+> **Leyenda:** ✅ cerrado · 🔄 en curso · ⏳ esperando OK del founder · ⬜ pendiente · 🔒 gated (no arranca hasta cerrar lo anterior).
+> Regla: un batch se cierra solo con su pausa + OK; un chunk se cierra solo con su % en el ledger actualizado.
+
+### ETAPA F0 · Diagnóstico Total — 🔄 EN CURSO (batches cerrados: 1/12)
+
+**BATCH B0 · Arranque + Ledger + Línea-Base — ✅ CERRADO 2026-06-12 (commit 7e3fb2a6)**
+- [x] chunk 0.1 — Arranque/identidad del repo (`DMX_REPO_OK`)
+- [x] chunk 0.2 — Inventario FE: 273 rutas × nav V1/V2 (§3)
+- [x] chunk 0.3 — Inventario backend: 215 routers · 168 motores · 55 services · 10 cerebro (§4-6)
+- [x] chunk 0.4 — Colecciones (493/top-50) · 14 flags · ~70 call-sites LLM · 8 superficies inyección (§7-9)
+- [x] chunk 0.5 — Índices Mongo del código + corrección asesor_indexes.py (§10)
+- [x] chunk 0.6 — Línea-Base Cuantitativa (11 métricas, §11) + build BE/FE verde
+- [x] chunk 0.7 — Stack Confirmado + Plan + divergencias §B/§N (§12)
+- [ ] chunk 0.8 — ⏳ OK del founder para abrir B1
+
+**BATCH B1 · Seguridad + IA adversarial + Red Team — ⬜ (0/10 chunks)**
+- [ ] chunk 1.1 — Censo tenant routers dev + datos/AVM (33+36 routers; el grueso de los 739 accesos)
+- [ ] chunk 1.2 — Censo tenant superadmin (12, god-view legítimo vs colado) + auth/infra (17)
+- [ ] chunk 1.3 — Censo tenant asesor (12) + studio (20) + otros (38)
+- [ ] chunk 1.4 — Censo tenant público (20) + comprador (8) + conversación (10) + cerebro (8) + services (54)
+- [ ] chunk 1.5 — 1.1.B: 5 requests de ataque cross-tenant (leads · developments · citas · operaciones/dinero · threads/cubo)
+- [ ] chunk 1.6 — 1.2 + 1.3: credencial Mongo, bundle, auth/sesiones/roles, mass-assignment, NoSQL-injection, uploads
+- [ ] chunk 1.7 — 1.4.A: mapa de las 8 superficies de prompt-injection (§9.B)
+- [ ] chunk 1.8 — 1.4.B/C: Cerebro como amplificador (re-correr redteam 16) + salida/exfiltración/DoS económico
+- [ ] chunk 1.9 — 1.5: reglas de negocio (pool dmx_root sin regresión T29 · entity-resolution como oráculo)
+- [ ] chunk 1.10 — 1.6: 7 cadenas red-team encadenadas [SOLO STAGING] → PAUSA + OK
+
+**BATCH B2 · Auditoría técnica — ⬜ (0/5)**
+- [ ] chunk 2.1 — Grafo dependencias real (fan-in×fan-out) + mapa de capas + 3 flujos E2E + tabla DOC-vs-CÓDIGO (≥8)
+- [ ] chunk 2.2 — Matriz 214 routers (auth/rol/tenant/forma) por dominio
+- [ ] chunk 2.3 — 168 motores: callsite-o-huérfano + TIPO{CABLE-ROTO|FLAG-OFF|ESPERA-DATOS}
+- [ ] chunk 2.4 — Datos Mongo: formas, tipos mixtos, refs huérfanas, gemelos llenos (43/18), validación escritura
+- [ ] chunk 2.5 — Deuda/calidad (duplicación, muertos, archivos-dios, cables rotos, TODO/FIXME, tests) + veredicto → PAUSA
+
+**BATCH B3 · Performance 10k — ⬜ (0/4)**
+- [ ] chunk 3.1 — Supuestos de infra declarados + N+1 + full-scans (re-leer los 5 conocidos)
+- [ ] chunk 3.2 — Índices faltantes vs lista real §10 (getIndexes() vivo si hay staging)
+- [ ] chunk 3.3 — Cómputo caro en request, jobs faltantes, bundle FE (chunk 476kB), costo LLM a escala
+- [ ] chunk 3.4 — Script k6/Locust en `/load-tests/` (3 escenarios) + veredicto techo/qué-se-cae → PAUSA
+
+**BATCH B4 · Rediseño Front/UX — ⬜ (0/7)**
+- [ ] chunk 4.1 — Sistema de diseño (hardcodeo vs tokens, componentes duplicados, patrones)
+- [ ] chunk 4.2 — Portal Asesor (62 rutas) + resolver clasificaciones PRELIMINARES del §3
+- [ ] chunk 4.3 — Portal Developer (39) + resolver solo-V1 vs huérfanas
+- [ ] chunk 4.4 — Portal Superadmin (87; solo audit + exponer huérfanas)
+- [ ] chunk 4.5 — Portal Comprador (12; nav del portal = pieza mayor) + Marketplace público (73)
+- [ ] chunk 4.6 — 5 mockups ASCII ANTES/DESPUÉS + tabla priorizada
+- [ ] chunk 4.7 — Resumen founder → PAUSA
+
+**BATCH B5 · Re-arquitectura — ⬜ (0/3)**
+- [ ] chunk 5.1 — Arquitectura objetivo + tabla de brecha con evidencia
+- [ ] chunk 5.2 — Plan de slices con gates ejecutables (LeadsRepo → decorador tenant → familias)
+- [ ] chunk 5.3 — Módulos-dios (por grafo 2.1) + abstracciones + norte IA-first → PAUSA
+
+**BATCH B6 · Correctitud y Honestidad del Dato — ⬜ (0/4)**
+- [ ] chunk 6.1 — Fórmulas: investment_simulator (TIR/ROI/break-even/stress) + comisiones
+- [ ] chunk 6.2 — Fórmulas: avm_public + hedonic + drpi + zone/buyer/risk scores
+- [ ] chunk 6.3 — Procedencia: mapa métrica→origen real vs afirmado (dmx_indices "real" sobre seed, origen chips, FichaHome)
+- [ ] chunk 6.4 — Defendibilidad (R²/IC/reproducibilidad/calibración golden) + resumen founder → PAUSA
+
+**BATCH B7 · Privacidad LFPDPPP — ⬜ (0/4)**
+- [ ] chunk 7.1 — Borrado real (purge_account/purge_expired re-verificar vivo §K) + export del titular
+- [ ] chunk 7.2 — Consentimiento granular + captura pública + salts
+- [ ] chunk 7.3 — PII en logs/errores/bundle/cross-tenant (grep exhaustivo)
+- [ ] chunk 7.4 — k-anon/strip_pii en data vendida + aviso/retención/ARCO + cubetas legal-vs-nice → PAUSA
+
+**BATCH B8 · Producción/Deploy/Observabilidad — ⬜ (0/3)**
+- [ ] chunk 8.1 — Sentry + logging + envs + gate prod (8.1-8.4)
+- [ ] chunk 8.2 — Rate-limit + Stripe + headers + health + CI/CD (8.5-8.9)
+- [ ] chunk 8.3 — Backups/secretos + semáforo Go/No-Go + lista acción-founder (8.10-8.12) → PAUSA
+
+**BATCH B9 · Sub-lentes — ⬜ (0/4)**
+- [ ] chunk 9.A — FinOps (gate pre-gasto vs post-hoc en ~70 call-sites; cubo único Atlax)
+- [ ] chunk 9.B — Resiliencia/abuso (drenaje presupuesto, idempotencia Stripe, captcha)
+- [ ] chunk 9.C — i18n/Dubai (paridad es↔en, RTL, moneda)
+- [ ] chunk 9.D — SEO (CSR/prerender, OG, sitemap, landings programáticas) → PAUSA
+
+**BATCH B10 · Madurez IA/Agentic — ⬜ (0/3)**
+- [ ] chunk 10.1 — Inventario A/B/C (REAL-con-dato / heurística-disfrazada / stub-apagado)
+- [ ] chunk 10.2 — Loops de aprendizaje (CIERRA/NO-CIERRA) + madurez Cerebro por lente
+- [ ] chunk 10.3 — Jugadas IA-first priorizadas + costo/latencia/gobernanza → PAUSA
+
+**BATCH B11 · Cierre F0 — ⬜ (0/2)**
+- [ ] chunk 11.1 — Cobertura por portal X/Y al 100% + ciclos cross-portal (arranca-y-cierra)
+- [ ] chunk 11.2 — `REPO_PLAN_MAESTRO.md` (cobertura, salud 1-10, patrones, matriz, top-5, go/no-go, riesgos, resumen founder) → OK FINAL F0
+
+### ETAPAS F1–F7 — 🔒 GATED (no arrancan hasta cerrar F0 con OK)
+
+- [ ] **F1 · Red de Seguridad** — tests de caracterización en caminos críticos + CI que gatea → *salida: suite + CI verde*
+- [ ] **F2 · Estabilizar** — cerrar P0/P1 del plan maestro (seguridad, privacidad, dato, costo) → *salida: P0 = 0*
+- [ ] **F3 · Despertar lo Apagado** — cablear/exponer/borrar huérfanas y flags (Cerebro, agentic, motores sin pantalla) → *salida: cero huérfanas*
+- [ ] **F4 · Refactor Incremental** — slices strangler-fig (LeadsRepo → choke-point tenant → servicios → API → front) → *salida: columna vertebral*
+- [ ] **F5 · Front/UX/UI Impecable** — sistema de diseño único, estados, a11y, lenguaje humano → *salida: UI consistente*
+- [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
+- [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
+
+**Avance global:** F0 batches **1/12** · chunks F0 **7/49** · etapas programa **0/8 cerradas** (F0 en curso).
