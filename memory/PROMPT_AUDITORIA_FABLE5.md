@@ -1,8 +1,8 @@
 # Prompt Maestro DMX — Auditoría + Rediseño + Re-Arquitectura Total (para Fable 5)
 
-> Generado 2026-06-11 por workflows multi-agente que leyeron el código real (5 recon + 6 redactores + editor + crítico; luego +4 redactores para los bloques 6-9). Fundamentado en `archivo:línea` reales. Pégalo en una sesión de Fable 5 en Claude Code. Es largo a propósito — máxima granularidad y cobertura.
+> Generado 2026-06-11 por workflows multi-agente que leyeron el código real (5 recon + 6 redactores + editor + crítico; luego +4 redactores B6-9; luego +3 agentes B10 IA/agentic). Fundamentado en `archivo:línea` reales. Pégalo en una sesión de Fable 5 en Claude Code. Es largo a propósito — máxima granularidad y cobertura.
 >
-> **11 bloques (B0-B10):** 0 Arranque/Exhaustividad/Ledger · 1 Seguridad+IA+RedTeam · 2 Auditoría técnica · 3 Performance 10k · 4 Rediseño UX · 5 Re-arquitectura · **6 Correctitud y Honestidad del Dato** · **7 Privacidad/LFPDPPP** · **8 Producción/Observabilidad** · **9 Sub-lentes (FinOps · Resiliencia · i18n/Dubai · SEO)** · 10 Cobertura por portal + Entregable.
+> **12 bloques (B0-B11):** 0 Arranque/Exhaustividad/Ledger · 1 Seguridad+IA+RedTeam · 2 Auditoría técnica · 3 Performance 10k · 4 Rediseño UX · 5 Re-arquitectura · 6 Correctitud y Honestidad del Dato · 7 Privacidad/LFPDPPP · 8 Producción/Observabilidad · 9 Sub-lentes (FinOps · Resiliencia · i18n/Dubai · SEO) · **10 Madurez y Oportunidad IA/ML/Deep Learning/Agentic-First** · 11 Cobertura por portal + Entregable.
 
 ---
 
@@ -710,7 +710,106 @@ DMX vende inteligencia por colonia; las landings programáticas por colonia son 
 → Añadir estas 4 sub-lentes (FinOps · Resiliencia/Abuso · I18N-Dubai · SEO) como dimensiones nuevas del ledger en `REPO_COBERTURA.md` (una fila por hallazgo con archivo:línea, severidad P0-P3, IMPACTO/ESFUERZO y la marca CABLE-roto vs FALTA-DE-DATOS) y consolidar los P0/P1 en el entregable `REPO_PLAN_MAESTRO.md` agrupados por palanca (gasto que se drena · webhook/idempotencia · mercado Dubai · crecimiento orgánico). **PAUSA AQUÍ para OK del founder**: antes de proponer cualquier fix, presentar el resumen en lenguaje simple de persona normal (sin jerga) — los 3-4 focos que mueven la aguja: (1) "alguien puede inflarte la cuenta de IA spameando el chat público"; (2) "tus páginas de colonia, que son tu motor de Google, hoy Google casi no las ve"; (3) "para Dubai falta árabe y el diseño de derecha-a-izquierda"; (4) "el cobro de Stripe conviene blindarlo contra eventos repetidos". No ejecutar ningún cambio hasta su aprobación explícita.
 
 ═══════════════════════════════════════════════════════════════════
-BLOQUE 10 — COBERTURA POR PORTAL + ENTREGABLE FINAL (`REPO_PLAN_MAESTRO.md`)
+BLOQUE 10 — MADUREZ Y OPORTUNIDAD IA / ML / DEEP LEARNING / AGENTIC-FIRST
+═══════════════════════════════════════════════════════════════════
+
+Este bloque audita la IA de DMX como **capacidad y oportunidad de producto**, no como superficie de ataque (eso es B1) ni como corrección del número que escupe un modelo (eso es B6). La pregunta rectora no es "¿es seguro?" ni "¿el AVM acierta?", sino: **¿qué tan madura es la IA, cuánta de ella está viva vs. dormida, y dónde un poco de IA mueve la aguja del negocio hacia el norte agentic declarado?** Toda afirmación exige evidencia `archivo:línea`. Toda hallazgo lleva severidad **P0–P3** y dos ejes adicionales obligatorios: **IMPACTO** (cuánto valor de negocio/producto desbloquea) y **ESFUERZO** (cuánto cuesta cablearlo/despertarlo/construirlo). La consigna de fondo, repetida en el repo: **despertar lo apagado suele ser mejor ROI que construir lo nuevo** — prioriza encontrar lo que ya existe y no se usa antes de proponer features.
+
+---
+
+**10.1 — Inventario de Capacidad IA (mapa de qué hay y en qué estado)**
+
+Recorre TODO el `backend/` y mapea cada pieza de IA/ML/DL/agentic. Clasifica cada una en exactamente una de tres clases, y cita evidencia:
+
+- **REAL-con-dato** — modelo estadístico/ML que entrena de verdad cuando hay volumen: `hedonic_regression_engine.py:101-117` (OLS statsmodels), `rag_engine.py:1-8,56` (embeddings OpenAI 1536-dim reales), `weight_optimizer.py:70-88` (Ridge sklearn), `fraud_detection_engine.py:90-115` (IsolationForest), `comercial_value_model.py:39-51` (mínimos cuadrados + gate R²).
+- **HEURÍSTICA-disfrazada-de-ML** — pesos fijos, tablas periciales, o LLM-as-judge vendidos como "ML/score/IA": `avm_public_engine.py:24-45` (factores fijos, hoy SIEMPRE fallback), `zone_score_engine.py:31-36,165` (pesos a mano + 2 dims placeholder `50.0`), `buyer_score_engine.py:24-30,57` (pesos fijos + componente apify = `random.Random(user_id)`, **seed disfrazado**), `close_probability.py:30-33` (auto-declarado "sin ML dedicado"), `investment_simulator_engine.py:107` (determinista, no Monte Carlo), `hook_predictor_engine.py:197-230` (Claude como juez), `conversation_rag.py:10,87-95` (keyword overlap, NO vectores), `services/image_embeddings.py:6,33` (**hash-trick de texto vendido como "1536-dim"**, no CLIP).
+- **STUB / HUÉRFANO / APAGADO-por-flag** — construido pero inerte: `observability.py:165-195` (`emit_ml_event` write-only, nadie lee `ml_training_events` para entrenar), `close_probability_tuning.py:46-79` (MIN_SAMPLE=20, hoy DEFAULT_WEIGHTS), `avm_retrain_cron.py:121-161` (re-fit nocturno sin transacciones), `cerebro/coach.py:220-246` (loop E4 detrás de `CEREBRO_ENABLED`), `buyer_score_engine.py:53-61` (apify STUB con token presente), `services/image_embeddings.py` (`IMAGE_EMBEDDINGS_ENABLED=false`).
+
+Checklist granular:
+- [ ] ¿Existe alguna pieza marcada/nombrada como "ML", "IA", "score", "predict", "smart", "AI-powered" cuyo cuerpo sea 100% pesos fijos o LLM-judge? → P2, listar cada una con su línea. **El riesgo es de honestidad de producto, no de seguridad.**
+- [ ] ¿`statsmodels==0.14.6` y `scikit-learn==1.8.0` están en `requirements.txt` pero ausentes del venv desplegado? Verifica `pip show` en el entorno real, no solo local. Si la clase REAL-con-dato cae a fallback en producción por import faltante → **P0/P1** (el AVM/DRPI, corazón del wedge, corre en heurística sin que nadie lo sepa). Evidencia: estado de instalación + branch de fallback en cada engine clase A.
+- [ ] Por cada pieza REAL-con-dato: ¿cuál es su gate de datos (`MIN_SAMPLE`/`MIN_CLOSES`, 20–50) y cuántos registros reales hay HOY en la colección que la alimenta (`db.transactions`, `prediction_accuracy_log`, cierres de asesor)? Distingue **"código correcto esperando dato" (deuda de datos)** de **"código roto" (deuda de código)** — son fixes distintos.
+- [ ] ¿Hay deep learning en sentido estricto en algún punto (red neuronal propia, embedding entrenado, fine-tuning)? Si la respuesta es no, decláralo explícito: el techo actual es OLS/Ridge/IsolationForest + LLM-as-judge. Esto acota qué del norte ("embeddings propios", "AVM visual") es **construir desde cero** vs. **mejorar lo existente**.
+
+**Entregable parcial:** tabla A/B/C con columna de evidencia, gate de datos, y "¿deuda de datos o de código?".
+
+---
+
+**10.2 — Calidad ML/DL (¿aprende de verdad o son reglas pintadas?)**
+
+Audita la solidez de las piezas clase REAL-con-dato y la honestidad de las clase HEURÍSTICA. No re-audites la corrección del número (B6); audita si el **mecanismo de aprendizaje existe y cierra**.
+
+- [ ] **¿Los loops de reentrenamiento CIERRAN?** Traza cada loop punta a punta: predicción → registro → resultado real → re-fit → promoción. Verifica:
+  - `avm_retrain_cron.py:121-161` — re-fit nocturno + auto-promote si ΔR²≥5pp: ¿el cron está agendado y corriendo (`server.py`), o el código existe sin scheduler?
+  - `close_probability_tuning.py:46-79` — ¿hay cierres reales (`MIN_SAMPLE=20`) llegando, o devuelve DEFAULT_WEIGHTS perpetuamente?
+  - `accuracy_engine.py` + `drift_detector.py` — loop predicho-vs-real (MAPE/hit-rate, gate <20): ¿inerte por falta de cierres? ¿el drift se detecta y dispara algo, o solo loguea?
+  - `cerebro/coach.py:220-246` (E4) — dispara `close_probability_tuning.tune` + `avm_retrain_cron`: ¿el disparador está cableado al pipeline real (`routes/advisor.py:1284,2910,3082,3124`, `on_deal_closed`) o es código muerto detrás del flag?
+- [ ] **¿El flywheel de datos fluye?** `emit_ml_event` (`observability.py:165-195`) escribe a `db.ml_training_events` + PostHog pero **nadie lo lee para entrenar** (`:267` solo lo cuenta) → es un sink write-only. El flywheel realmente consumido es `behavioral_events`. **P2:** señalar la discrepancia entre el flywheel "oficial" (instrumentado, inerte) y el flywheel real (consumido). Un flywheel que escribe y nadie lee no es flywheel.
+- [ ] **Doctrina del seed:** un "ML" entrenado sobre seed/sintético/`random.Random` NO es ML. Marca toda pieza cuya "señal de aprendizaje" venga de `data_seed`, fotos demo muertas, o ruido determinista: `buyer_score_engine.py:57` (`random.Random(user_id)`), `photo_tagger.py:59,109` (vision real cableada pero demo corre por keyword de URL con fotos muertas), `avm_public_engine.py` (seed COLONIAS). → P2, con la nota: "esto se ve inteligente en demo y es constante/aleatorio en realidad".
+- [ ] **¿Drift gobernado?** ¿Hay detección de drift con umbral y acción (no solo log)? `drift_detector.py`, `conversation_drift_detector.py:1-22` (baseline 30d vs 7d). Estado: heurístico, esperando tráfico. ¿Qué dispara cuando detecta drift?
+
+**Entregable parcial:** por cada loop, un veredicto CIERRA / NO-CIERRA / CIERRA-PERO-SIN-DATO, con el eslabón roto señalado por línea.
+
+---
+
+**10.3 — Madurez Agentic (¿el Cerebro orquesta o está dormido?)**
+
+El Cerebro (`backend/cerebro/`) es la apuesta agéntica central, declarada 7 etapas E0–E6 completas (`memory/CEREBRO_DMX_ROADMAP.md:96`). Audita si esa madurez es **real y viva** o **real pero apagada**.
+
+- [ ] **¿Orquesta de verdad?** Traza el ciclo meta→plan→ejecuta→human-in-the-loop→aprende: `orchestrator.py:130` (`run_goal`), gate delicado `:151-155`, `resume_run:165`, ejecutores reales `executors.py:46,64,84,109,156`, loop `coach.py`. Confirma que NO es un fan-out ciego (contrasta con `agent_workforce/orchestrator.py`, fan-out a cola plana `command_center_actions`). → distinguir orquestación real de cola de tareas.
+- [ ] **¿Está apagado por flag?** `CEREBRO_ENABLED` solo existe en `backend/.env.local:18` (=true); ausente de `.env`/`.env.example` → **default OFF en deploy**. La ruta `routes/cerebro.py:31-34` devuelve **503** apagado. **Hallazgo central P1 (oportunidad, no bug):** todo el motor agéntico, red-team-verde (`cerebro_redteam_test.py`, 16 ataques), está construido y **ningún usuario real lo ve**. Prenderlo en piloto = la jugada de mayor palanca/menor esfuerzo del repo. IMPACTO alto / ESFUERZO bajo (es deploy, no código).
+- [ ] **¿Los 4 lentes cierran ciclo?** Audita uno por uno:
+  - **Asesor** (`work_lead`) — enrich→classify→angle→draft→route→`comm.send_external`: CABLEADO.
+  - **Developer** (`sell_project`, E6, ~25 metas) — forecast/price/marketing/publish: CABLEADO, el más maduro.
+  - **Comprador** (`find_home`, `executors.py:486+,551`) — `buyer.*`→fit_engine/AVM/riesgo: CABLEADO.
+  - **Superadmin** (`monitor_network`: `admin.network_pulse`+`admin.model_health`) — **SIN ejecutor dedicado → cae a `_generic` (`orchestrator.py:106`, solo etiqueta): STUB.** → **P1 de oportunidad:** es el único lente sin músculo y es justo el que convierte el Modelo del Mundo en **producto vendible** (línea de ingreso "LEJOS" del norte). IMPACTO alto / ESFUERZO medio.
+- [ ] **¿Human-in-the-loop bien calibrado?** Verifica `contract.py:114` (`DELICATE_ACTIONS`), `:123` (piso `HARD_DELICATE`), `config.py` (`effective_needs_approval`, autonomía que se gana). Pregunta de auditoría: ¿el gate humano **sobra** (frena acciones triviales, mata la velocidad) o **falta** (deja pasar acciones de cara al cliente / irreversibles sin OK)? Cualquier acción `comm.send_external`/`content.publish_public` sin gate → P1.
+- [ ] **¿Qué tan lejos del norte agentic?** Sitúa el estado real en el eje del propio repo: "estamos en AI Agents, el salto a Agentic AI es una sola capa: orquestación" (`IA_FIRST_VISION.md:95`), "~80% de piezas ya existen, desconectadas" (`:114`). El Cerebro ES esa capa y está apagada → la distancia al norte cercano es un **deploy + 1 lente**, no una construcción.
+
+**Entregable parcial:** estado por lente (CABLEADO/STUB), estado del flag (ON/OFF por entorno), y veredicto de calibración del gate humano.
+
+---
+
+**10.4 — Oportunidad IA-First (la sección de mayor valor)**
+
+Aquí el modelo deja de catalogar y empieza a **recomendar la jugada**. Tres preguntas, cada hallazgo aterrizado al norte declarado con IMPACTO/ESFUERZO y horizonte cerca/medio/lejos:
+
+- [ ] **¿Dónde el producto hace MANUAL/heurístico algo que debería ser IA?** Por cada pieza clase HEURÍSTICA de 10.1, pregunta: ¿el dato para hacerla IA ya existe? Si sí → candidato de upgrade barato (ej. `zone_score` con 2 dims `50.0` placeholder y cube real disponible; `buyer_score` apify en `random` con behavioral real disponible). Si requiere escala de datos que no hay → backlog explícito, no upgrade.
+- [ ] **¿Qué IA está construida pero APAGADA?** Cruza con 10.1-C y 10.3: el Cerebro entero (flag OFF), `image_embeddings` (`IMAGE_EMBEDDINGS_ENABLED=false`), los loops de retrain (esperando dato). Por cada uno: ¿qué desbloquea encenderlo y cuál es el bloqueo real (deploy / dato / lente faltante)? **Despertar > construir.**
+- [ ] **¿Dónde un poco de IA cierra un ciclo de alto valor?** Identifica ciclos a un eslabón de cerrarse (ej. `on_deal_closed` ya cableado a `routes/advisor.py:1284` → encender `CEREBRO_ENABLED` cierra el loop de aprendizaje con cierres reales SIN construir nada).
+- [ ] **Aterrizaje al NORTE** (`DMX_NORTH_STAR_AI.md`), por horizonte:
+  - **CERCA** (cablear lo que existe): prender Cerebro en piloto, espacio de vectores básico, co-brokering sobre `lead_match`, Studio por-lead.
+  - **MEDIO** (necesita escala de datos): embeddings propios, AVM visual (hoy `image_embeddings` es hash-trick, no CLIP → construcción real), ML causal, self-tuning fuerte, agente de voz (Voice Atlax dormant).
+  - **LEJOS** (producto vendible): terminal/API del Modelo del Mundo a bancos/fondos/gobierno → requiere el lente superadmin real (hoy STUB).
+  - **La capa que no existe ni en stub:** el **Marketplace Agéntico / casamentera proactiva con co-brokering automático** (`DMX_NORTH_STAR_AI.md:14-17,32`). Industry-first declarado; se apalanca sobre Cerebro + memoria gobernada + taste model + `lead_match` + lentes ya cableados. El bloqueo NO es código de agente (existe) sino el **espacio de vectores único cross-entidad** (`:24`) + escala de flywheel. Marcar como la oportunidad de mayor techo, horizonte medio-lejos.
+
+**Entregable parcial:** lista priorizada de jugadas IA-first, cada una con clase (despertar/cablear/construir), horizonte, IMPACTO y ESFUERZO.
+
+---
+
+**10.5 — Costo / Latencia / Gobernanza de la IA**
+
+La IA viva consume tokens y abre superficie; esta sub-sección cruza con B9 (FinOps) y B1 (seguridad) sin re-auditarlos:
+
+- [ ] **Costo sostenible (cruza B9):** inventaría toda llamada LLM en caliente (LLM-as-judge: `hook_predictor_engine.py`, `coaching_analysis.py`, `anomaly_detection_engine.py` Claude Haiku, `predictive_alerts_engine.py`, Atlax/Copilot). ¿Hay presupuesto/throttle (`ai_budget` en `copilot_engine.py`)? ¿Caché de respuestas LLM? ¿Una clasificación que podría ser regla barata corre cada vez por Claude? → P2 si el costo escala lineal con tráfico sin tope. Si se prende el Cerebro, ¿cuántas llamadas LLM por meta orquestada? Estima el delta de costo de encender el flag.
+- [ ] **Latencia:** ¿las llamadas LLM en caliente bloquean respuestas de cara al usuario (Atlax en landing, Copilot Cmd+J)? ¿Hay timeout/fallback heurístico si el LLM tarda/falla? (Varios engines fail-open a heurística — verificar que el fallback no sea silenciosamente peor sin telemetría.)
+- [ ] **Gobernanza (cruza B1, no re-auditar):** confirma que la superficie agéntica viva está gobernada — allow-list `PUBLIC_TOOLS` de Atlax (`asistente_engine.py:467,483`), frontera de confianza del Cerebro (`guardrails.py`, aislamiento por org), allow-list por rol (`contract.py:159`). Pregunta IA-específica: ¿encender el Cerebro amplía la superficie de acción autónoma más allá de lo que la allow-list cubre? Cualquier acción autónoma que toque al cliente/dinero/datos sin pasar por allow-list + gate humano → P0, escalar a B1.
+
+---
+
+**ENTREGABLE DEL BLOQUE 10 — Mapa de Madurez IA**
+
+Produce un único artefacto consolidado que alimente `REPO_PLAN_MAESTRO.md` y el Ledger:
+
+1. **Qué hay** — tabla A/B/C completa (REAL-con-dato / HEURÍSTICA-disfrazada / STUB-huérfano-apagado), cada fila con evidencia `archivo:línea`.
+2. **Qué tan bueno** — por pieza: ¿aprende de verdad?, ¿el loop cierra?, ¿deuda de datos o de código?
+3. **Qué está apagado** — flags OFF, loops sin dato, lentes sin ejecutor, embeddings gated, con el bloqueo real de cada uno (deploy / dato / construcción).
+4. **Las 3–5 jugadas IA-first de mayor palanca hacia el norte agentic** — priorizadas por IMPACTO/ESFUERZO, clasificadas en despertar / cablear / construir, con horizonte cerca/medio/lejos. Candidatas fuertes ya trianguladas: (a) prender `CEREBRO_ENABLED` en piloto (despertar, cerca, impacto alto/esfuerzo bajo); (b) lente superadmin real → producto vendible (construir, lejos, impacto alto/esfuerzo medio); (c) upgrades de heurística→IA donde el dato ya existe (cablear, cerca); (d) Marketplace Agéntico / casamentera (construir, medio-lejos, mayor techo); (e) cerrar el flywheel real (apagar `emit_ml_event` write-only o conectarlo a un consumidor de entrenamiento).
+
+Regla de oro del bloque, repetida al cierre: **antes de proponer construir, confirma que no exista ya apagado.** En DMX, el cuello de botella dominante es **deuda de datos (faltan cierres/transacciones reales)**, no deuda de código — distingue siempre una de otra, porque el fix es radicalmente distinto (encender/esperar dato vs. reescribir).
+
+═══════════════════════════════════════════════════════════════════
+BLOQUE 11 — COBERTURA POR PORTAL + ENTREGABLE FINAL (`REPO_PLAN_MAESTRO.md`)
 ═══════════════════════════════════════════════════════════════════
 
 ### 6.1 Cobertura por Portal (Confirmar los 4 Portales + Marketplace COMPLETOS)
