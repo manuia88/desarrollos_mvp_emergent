@@ -64,8 +64,12 @@ async def compute_dashboard(db, user_id: str, email: str) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     seven_days_ago = now - timedelta(days=7)
 
-    # Saved searches: link by user_id OR fallback by email
-    saved_q = {"$or": [{"user_id": user_id}, {"email": email, "user_id": {"$exists": False}}]}
+    # Saved searches: link by user_id OR fallback by email (solo si el caller pasó
+    # un email verificado; "" desactiva el JOIN por email para evitar reclamar ajenas).
+    saved_or: List[Dict[str, Any]] = [{"user_id": user_id}]
+    if email:
+        saved_or.append({"email": email, "user_id": {"$exists": False}})
+    saved_q = {"$or": saved_or}
     saved_total = await db.saved_searches.count_documents(saved_q)
     saved_recent = []
     async for s in db.saved_searches.find(saved_q, {"_id": 0, "search_id": 1, "filters": 1,

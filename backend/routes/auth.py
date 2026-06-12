@@ -129,6 +129,10 @@ async def register(payload: RegisterIn, response: Response, request: Request):
         "name": payload.name, "password_hash": hash_password(payload.password),
         "role": payload.role, "tenant_id": None,
         "onboarded": True,
+        # Registro por contraseña NO prueba propiedad del correo → no verificado.
+        # El JOIN por email del portal comprador solo une datos si está verificado.
+        "email_verified": False,
+        "auth_method": "password",
         "created_at": datetime.now(timezone.utc),
     })
     access = create_access_token(user_id, payload.email)
@@ -423,6 +427,8 @@ async def verify_magic_link(token: str, request: Request, response: Response):
             "name": doc.get("name_hint") or email.split("@")[0],
             "role": "buyer", "tenant_id": None,
             "onboarded": True,
+            # Magic-link prueba propiedad del correo (el link llegó a su bandeja).
+            "email_verified": True,
             "created_at": datetime.now(timezone.utc),
             "auth_method": "magic_link",
         })

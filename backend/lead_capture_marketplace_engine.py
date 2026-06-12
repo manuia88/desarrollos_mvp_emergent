@@ -183,23 +183,32 @@ async def assign_advisor(db, property_id: str) -> Dict[str, Any]:
             except Exception:
                 pass
 
-        # 3) Fallback: primer user con role=advisor
+        # 3) Sin asesor en la propiedad → POOL DE LA CASA (dmx_root), por zona+carga.
+        #    Regla sagrada (§G.b / house_pool_engine): un lead sin asesor NUNCA se
+        #    rutea a un asesor de OTRA inmobiliaria; es de la casa hasta que el pool
+        #    lo reparta. Antes esto tomaba "el primer advisor que hubiera" (cross-org).
         try:
-            u = await db.users.find_one(
-                {"role": {"$in": ["advisor", "developer_advisor", "inmobiliaria_advisor"]}},
-                {"_id": 0, "user_id": 1, "id": 1, "full_name": 1, "name": 1,
-                 "whatsapp_phone": 1, "phone": 1},
-            )
-            if u and (u.get("whatsapp_phone") or u.get("phone")):
-                return {
-                    "advisor_id": u.get("user_id") or u.get("id"),
-                    "advisor_name": u.get("full_name") or u.get("name") or DMX_FALLBACK_NAME,
-                    "advisor_phone": u.get("whatsapp_phone") or u.get("phone") or DMX_FALLBACK_PHONE,
-                }
-        except Exception:
-            pass
+            from house_pool_engine import pick_house_asesor
+            dev_mem = _property_lookup(property_id)
+            zone = dev_mem.get("colonia") if dev_mem else None
+            house_id = await pick_house_asesor(db, zone=zone)
+            if house_id:
+                u = await db.users.find_one(
+                    {"$or": [{"user_id": house_id}, {"id": house_id}]},
+                    {"_id": 0, "user_id": 1, "id": 1, "full_name": 1, "name": 1,
+                     "whatsapp_phone": 1, "phone": 1},
+                )
+                if u:
+                    return {
+                        "advisor_id": u.get("user_id") or u.get("id") or house_id,
+                        "advisor_name": u.get("full_name") or u.get("name") or DMX_FALLBACK_NAME,
+                        "advisor_phone": u.get("whatsapp_phone") or u.get("phone") or DMX_FALLBACK_PHONE,
+                    }
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[lead_capture] house-pool fallback failed: {e}")
     except Exception as e:  # noqa: BLE001
         log.warning(f"[lead_capture] assign_advisor failed: {e}")
+    # Sin asesores de la casa todavía → contacto DMX (NUNCA un asesor de otra org).
     return fallback
 
 
