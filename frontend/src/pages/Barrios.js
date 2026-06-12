@@ -1,6 +1,6 @@
-// /barrios — stub page: "Los 16 barrios de CDMX leídos por IE Score"
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// /barrios — "Las colonias de CDMX leídas por IE Score". Lista DINÁMICA del catálogo real.
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
 import CtaFooter from '../components/landing/CtaFooter';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
@@ -17,23 +17,58 @@ const FACTORS = [
   { Icon: Store,  k: 'comercio',  t: 'Comercio',  d: 'Densidad comercial, horarios, gastronomía y retail ancla.' },
 ];
 
-const BARRIOS = [
-  'Polanco', 'Condesa', 'Roma Norte', 'Roma Sur', 'Juárez', 'Del Valle',
-  'Nápoles', 'Escandón', 'San Miguel Chapultepec', 'Coyoacán Centro',
-  'San Ángel', 'Santa María la Ribera', 'Anzures', 'Lomas de Chapultepec',
-  'Narvarte', 'Doctores',
+// B4 · cada colonia enlaza a su /zona/:slug. La lista REAL se lee en vivo del catálogo
+// (colonias_catalog → GET /api/maps/colonias), que crece con el sync SIG/zonificación del
+// módulo dev/superadmin → la página AUTO-CRECE. SEED_BARRIOS (las 16 del seed) es solo el
+// FALLBACK para no quedar vacíos hoy (DB de negocio vacía). slug canónico = colonia_slug
+// (hyphenado, sin acentos: 'San Ángel'→'san-angel', 'Lomas de Chapultepec'→'lomas-chapultepec').
+const SEED_BARRIOS = [
+  { name: 'Polanco', slug: 'polanco' },
+  { name: 'Condesa', slug: 'condesa' },
+  { name: 'Roma Norte', slug: 'roma-norte' },
+  { name: 'Roma Sur', slug: 'roma-sur' },
+  { name: 'Juárez', slug: 'juarez' },
+  { name: 'Del Valle', slug: 'del-valle-centro' },
+  { name: 'Nápoles', slug: 'napoles' },
+  { name: 'Escandón', slug: 'escandon' },
+  { name: 'San Miguel Chapultepec', slug: 'san-miguel-chapultepec' },
+  { name: 'Coyoacán Centro', slug: 'coyoacan-centro' },
+  { name: 'San Ángel', slug: 'san-angel' },
+  { name: 'Santa María la Ribera', slug: 'santa-maria-la-ribera' },
+  { name: 'Anzures', slug: 'anzures' },
+  { name: 'Lomas de Chapultepec', slug: 'lomas-chapultepec' },
+  { name: 'Narvarte', slug: 'narvarte' },
+  { name: 'Doctores', slug: 'doctores' },
 ];
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function Barrios() {
   const navigate = useNavigate();
   const { user, logout, openAuth } = useAuth();
   const [explain, setExplain] = useState(null); // { zoneId, code } | null
+  // Lista en vivo del catálogo real (auto-crece con el sync de dev/superadmin); seed = fallback.
+  const [barrios, setBarrios] = useState(SEED_BARRIOS);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/maps/colonias`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const list = (d?.colonias || [])
+          .filter((c) => c?.id && c?.name)
+          .map((c) => ({ name: c.name, slug: c.id }));
+        if (alive && list.length) setBarrios(list); // vacío → conserva el seed (DB vacía hoy)
+      })
+      .catch(() => {}); // fallback al seed
+    return () => { alive = false; };
+  }, []);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar onLogin={openAuth} user={user} onLogout={logout} />
       <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="eyebrow" style={{ marginBottom: 12 }}>CDMX · 16 barrios</div>
+        <div className="eyebrow" style={{ marginBottom: 12 }}>CDMX · {barrios.length} colonias</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
           fontSize: 'clamp(36px, 6vw, 60px)',
@@ -41,7 +76,7 @@ export default function Barrios() {
           letterSpacing: '-0.028em', lineHeight: 1.02,
           margin: '0 0 18px', maxWidth: 900,
         }}>
-          Los 16 barrios de CDMX, <span style={{
+          Las colonias de CDMX, <span style={{
             background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>leídos por IE Score.</span>
         </h1>
@@ -109,16 +144,25 @@ export default function Barrios() {
           gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
           gap: 8,
         }}>
-          {BARRIOS.map(b => (
-            <div key={b} data-testid={`barrio-chip-${b.replace(/\s+/g, '-').toLowerCase()}`} style={{
-              padding: '10px 14px',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
-            }}>
-              {b}
-            </div>
+          {barrios.map(b => (
+            <Link
+              key={b.slug}
+              to={`/zona/${b.slug}`}
+              data-testid={`barrio-chip-${b.slug}`}
+              className="dmx-card"
+              aria-label={`Ver el barrio ${b.name} y su lectura IE Score`}
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: 10,
+                fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
+                textDecoration: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              }}
+            >
+              {b.name}
+              <ArrowRight size={12} color="var(--cream-3)" />
+            </Link>
           ))}
         </div>
 

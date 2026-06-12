@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
 import BuyerCoachWidget from '../../components/buyer_coach/BuyerCoachWidget';
+import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -90,13 +91,17 @@ export default function ColoniaLanding() {
               { label: 'Precio/m²', value: fmtMXN(c.price_m2) },
               { label: 'Tier',      value: c.tier || '—' },
               { label: 'Devs activos', value: c.total_devs_active },
-              { label: 'Momentum',  value: c.momentum || '—' },
             ].map((s, i) => (
               <div key={i} style={{ padding: 16, borderRadius: 14, background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                 <div style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 800, marginTop: 4 }}>{s.value}</div>
               </div>
             ))}
+          </div>
+          {/* B4 · despertar live_pulse: el momentum REAL de la zona (score + tendencia 30d del
+              motor live_pulse_engine). Se auto-oculta si aún no hay dato → cero ruido con DB vacía. */}
+          <div style={{ marginTop: 16, maxWidth: 300 }}>
+            <LivePulseZoneWidget zone_slug={slug} compact />
           </div>
         </section>
 
