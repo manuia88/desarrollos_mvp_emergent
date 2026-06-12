@@ -1011,12 +1011,12 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [x] chunk 1.9 — reglas negocio: pool dmx_root (B1-02), entity-resolution (no abusable)
 - [ ] chunk 1.10 — ⏳ 7 cadenas red-team [SOLO STAGING] + **OK founder** para B1-02/B1-03 antes de B2
 
-**BATCH B2 · Auditoría técnica — ⬜ (0/5)**
-- [ ] chunk 2.1 — Grafo dependencias real (fan-in×fan-out) + mapa de capas + 3 flujos E2E + tabla DOC-vs-CÓDIGO (≥8)
-- [ ] chunk 2.2 — Matriz 214 routers (auth/rol/tenant/forma) por dominio
-- [ ] chunk 2.3 — 168 motores: callsite-o-huérfano + TIPO{CABLE-ROTO|FLAG-OFF|ESPERA-DATOS}
-- [ ] chunk 2.4 — Datos Mongo: formas, tipos mixtos, refs huérfanas, gemelos llenos (43/18), validación escritura
-- [ ] chunk 2.5 — Deuda/calidad (duplicación, muertos, archivos-dios, cables rotos, TODO/FIXME, tests) + veredicto → PAUSA
+**BATCH B2 · Auditoría técnica — ✅ CERRADO (5/5 · Tanda con 33 tests) — ver §17**
+- [x] chunk 2.1 — Grafo: módulo-dios server.py · 5 ciclos · violaciones de capa (services/engines→routes) · veredicto
+- [x] chunk 2.2 — Routers: forma=archipiélago · sin handler central · Pydantic 99.5% · fix audit de dinero
+- [x] chunk 2.3 — 168 motores: 161 VIVO · 7 FLAG-OFF · 0 CABLE-ROTO · 0 HUÉRFANO (nada que despertar con código)
+- [x] chunk 2.4 — Datos Mongo: 2 falsos positivos descartados · JOIN email frágil + sin JSON-Schema → F4/backlog
+- [x] chunk 2.5 — Deuda: 0 cables fantasma · archivos-dios → F4 · **5 piezas críticas → 33 tests verdes** ✅
 
 **BATCH B3 · Performance 10k — ⬜ (0/4)**
 - [ ] chunk 3.1 — Supuestos de infra declarados + N+1 + full-scans (re-leer los 5 conocidos)
@@ -1080,7 +1080,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **1.9/12** (B1 censo 100%, P0/P1 cerrados; falta solo red-team staging) · chunks F0 **17.5/49** · etapas programa **0/8 cerradas** · **7 fixes aplicados** (1 P0 + 3 P1 + 3 P2 · commits 7425a631, fddd740d · todos build-verde + unit-tests).
+**Avance global:** F0 batches **2.9/12** (B0 ✅ · B1 censo 100% P0/P1 cerrados · **B2 ✅**) · chunks F0 **22.5/49** · etapas programa **0/8 cerradas** · **8 fixes + 33 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests críticos verdes · commits 7425a631, fddd740d, 34257db6).
 
 ---
 
@@ -1129,3 +1129,50 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 > **B1 queda al 100% de censo y con todos los P0/P1 cerrados.** Falta solo el chunk 1.10 (7 cadenas
 > red-team encadenadas, que se ejecutan contra STAGING — fuera de este entorno sin Mongo). El núcleo
 > de seguridad de B1 está cerrado: la única fuga de PII real (P0 RAG) y los 3 P1 quedaron arreglados hoy.
+
+---
+
+## 17. Bloque 2 · Auditoría Técnica — hallazgos y Tanda (2026-06-12)
+
+> **Cobertura B2:** 5 sub-auditorías en paralelo (grafo · routers · 168 motores · datos Mongo · deuda+cables).
+> Veredicto global honesto: **columna vertebral SÓLIDA, sin bugs accionables nuevos de gravedad.** Lo más
+> valioso y de cero riesgo fue blindar con tests las piezas críticas (commit 34257db6).
+
+### 17.1 Arquitectura (2.1)
+- **Módulo-dios = `server.py`** (fan-in 154 × fan-out 176, 2790 líneas) — punto único de arranque, inherente.
+- **5 ciclos de import** (import-time, bajo impacto): investment_simulator↔score_inversion, document_intelligence→extraction→cross_check→auto_sync→document_intelligence, comercial_value_model↔resale_data, workflow_engine↔workflow_queue, feature_legacy_adapter↔feature_gate_engine.
+- **Violaciones de capa REALES (deuda F4):** services/engines importan routers — `services/{linkedin_import,visit_auto_prep,endorsements}.py`→`routes.dev_batch14.log_activity`; `whatif_engine.py:113`/`agentic_crm/{match_weights,reply_classifier}`→`routes.phase_y_controls.get_phase_y_settings`; ~47 routers importan otros routers. → mover `log_activity`/`get_phase_y_settings` a un service. **NO tocado** (refactor con blast-radius, va a F4).
+- Veredicto: patrón router→service→engine existe pero sin enforcement (~60% conformidad). Corrección: B1 ya estableció que el aislamiento tenant está sólido; el "14% adopta tenant_scope" NO significa "86% con IDOR" (muchos usan thin-wrappers o son públicos/superadmin) — corrijo el overstatement del agente.
+
+### 17.2 Routers (2.2) — sin re-auditar tenant (eso fue B1)
+- **Forma de respuesta = archipiélago** (42% `{ok:true}` · 29% `{items:[]}` · 20% plano · 0% `{data,meta}`). Diagnóstico, propuesta de contrato único anotada. NO se cambia (tocaría el contrato FE↔BE de cientos de endpoints → fase dedicada).
+- **Sin handler central de errores;** fail-open dominante. La mayoría son fail-open de observabilidad (§I OK). **Arreglado:** `advisor.py:3032` `create_operacion` — el fallo de auditoría de una operación de DINERO ya no es `except: pass` mudo (loguea a Sentry, como su gemelo `update_op_status:3149`).
+- **Lógica gorda en handlers** (deuda F4): `wizard.py:275 create_project` (188 líneas), `wizard.py:581 ia_extract` (110), `diagnostic.py`, `agentic_crm.py`. → extraer a services.
+- **Pydantic 99.5%**; única excepción `advisor.py:629 _cc_set_status` (dict crudo, helper interno). Anotado.
+
+### 17.3 Motores (2.2) — el hallazgo clave para "despertar"
+- **168 motores: 161 VIVO · 7 FLAG-OFF (agentic_crm, `agentic_enabled=False`) · 0 CABLE-ROTO · 0 HUÉRFANO · 0 ESPERA-DATOS.**
+- **Honestidad brutal:** NO hay motor roto que cablear ni huérfano que despertar con código. Las Tandas 20-38 ya despertaron lo apagado. La suite agéntica (7 motores, 29 endpoints, 7 paneles FE) está 100% lista y **prenderla es decisión de DEPLOY del founder** (`PATCH /api/superadmin/phase-y/{org}` con `agentic_enabled:true` + tiers), no código nuevo.
+- Verificados como NO-bug: `emit_ml_event` (write-only por diseño F0.11), `apify_trends_engine` (fallback de 3 capas correcto), `image_embeddings` (hash-trick documentado), `whatif_engine` (VIVO, FLAG-OFF por `feature_tiers.whatif_simulator=off`).
+
+### 17.4 Datos Mongo (2.3) — falsos positivos descartados re-leyendo
+- **DESCARTADOS (no bug):** `audit_log.py:156` NO persiste ObjectId crudo (el doc no setea `_id`; Mongo lo autogenera). `zone_scores.computed_at_dt` es `datetime` a propósito (índice TTL) y se quita de las respuestas. — el agente los marcó REGRESIÓN; **son correctos.**
+- **Reales pero de fondo (no quick-fix):** JOIN frágil por email entre los dos universos de leads (`db.leads`↔`db.asesor_contactos`, §F, advisor.py:537) → F4/F5. Sin JSON-Schema validator de Mongo (Pydantic valida en la app) → hardening backlog. Alias de score centralizado solo en zone_score (risk/ie hacen fallback manual) → cosmético.
+
+### 17.5 Deuda + cables (2.4)
+- **CERO cables rotos fantasma** (todas las rutas `/api/*` del FE tienen match en BE). El "link roto de Cash Flow" del mapa de features (2026-06-01) está **OBSOLETO**: la ruta `/desarrollador/desarrollos/:slug/cash-flow` existe (App.js:848) y el componente navega ahí.
+- **Archivos-dios** (deuda F4): backend `asistente_engine.py` (4085), `advisor.py` (4020), `superadmin_devmaster.py` (1955); frontend `Ficha360.js` (1754), `ConversationInbox.js` (1388).
+- **5 piezas críticas SIN test → ARREGLADO esta Tanda** (33 tests, ver 17.6).
+- 79 TODO/FIXME (ninguno de severidad crítica). 4 wrappers `_tenant` divergentes (ya en §16, F4).
+
+### 17.6 ACCIÓN de la Tanda (verificada, commit 34257db6)
+| Pieza | Test file | Tests | Estado |
+|---|---|---|---|
+| tenant_scope (assert_lead_owner IDOR, user_dev_ids fallback acotado, tenant_of/actor_id/assert_dev_project) | `tests/critical/test_tenant_scope_critical.py` | 13 | ✅ verde |
+| entity_resolution (compute_score pesos, ventana temporal, cross-asesor, normalizadores) | `tests/critical/test_entity_resolution_critical.py` | 10 | ✅ verde |
+| house_pool (pick_house_asesor zona→carga, solo asesores casa, assign→dmx_root) | `tests/critical/test_house_pool_critical.py` | 6 | ✅ verde |
+| data_doctrine (has_real_sales/honest_label seed≠real, tag) | `tests/critical/test_data_doctrine_critical.py` | 5 | ✅ verde |
+| **TOTAL** | | **33** | **33/33 passed** (`pytest -m unit`, hermético con mongomock + asyncio.run) |
++ `advisor.py` create_operacion: audit de dinero visible (no `except: pass`).
+
+**Verificación:** `compileall backend` exit 0 · `pytest tests/critical -m unit` = 33 passed · sin regresión (las fallas de la suite global son tests de integración sin Mongo vivo + deps faltantes del contenedor: httpx/numpy/statsmodels/reportlab — ninguna toca los archivos editados).

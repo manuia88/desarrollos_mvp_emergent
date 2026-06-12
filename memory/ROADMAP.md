@@ -1,5 +1,11 @@
 # DesarrollosMX — ROADMAP
 
+## Programa "DMX a Producción Impecable" (F0 Diagnóstico · en curso, 2026-06-12)
+Auditoría exhaustiva por bloques (ledger vivo: `REPO_COBERTURA.md`). Branch de trabajo `claude/wizardly-galileo-p6tg41` (sobre `dev-redesign-tandas`).
+- **B1 Seguridad ✅** — 13 hallazgos, P0/P1 cerrados: fuga RAG público cross-tenant (scopes), ruteo marketplace al pool dmx_root, JOIN comprador solo con email verificado, magic-link sin token en prod, + hardening IA (DISC/persona/logs). 7 fixes, build verde.
+- **B2 Auditoría Técnica ✅** — columna vertebral sólida; 168 motores = 161 VIVO / 7 FLAG-OFF (suite agéntica, decisión de deploy) / 0 CABLE-ROTO / 0 huérfano → nada que despertar con código (Tandas 20-38 ya lo hicieron). Acción: **33 tests críticos** (tenant_scope/entity_resolution/house_pool/data_doctrine, 33/33 verde) + audit de dinero visible. Deuda registrada para F4: violaciones de capa, archivos-dios, contrato de respuesta, handler central de errores.
+- Pendiente: prender la suite agéntica (`agentic_enabled`) = decisión de deploy del founder, no código. B3 Performance → siguiente.
+
 ## P0 — Phase 2 Comprador — COMPLETADO (Batches 28-30)
 - Magic Link Auth, Dashboard, Favoritos, Historial, Privacidad LFPDPPP ✅
 - Smart Alerts (4 tipos × 3 canales) ✅
