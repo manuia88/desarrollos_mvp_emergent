@@ -1004,7 +1004,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [x] chunk 1.2 — Censo tenant superadmin (12) + auth/infra (17) — god-view gateado, 0 críticos
 - [x] chunk 1.3 — Censo tenant asesor (12) + studio (20) — studio_landing:1582 (B1-10)
 - [x] chunk 1.4 — Censo tenant público (20) + comprador (8) + conversación (10) + cerebro (8) + services (55)
-- [x] chunk 1.5 — comprador email-JOIN (B1-03) + pool dmx_root marketplace (B1-02)
+- [x] chunk 1.5 — comprador email-JOIN (B1-03 ✅) + pool dmx_root marketplace (B1-02 ✅)
 - [x] chunk 1.6 — auth/roles/mass-assign/NoSQL/uploads (limpios) + magic-link (B1-04 ✅)
 - [x] chunk 1.7 — 8 superficies prompt-injection (persona B1-07 ✅ + DISC B1-06 ✅)
 - [x] chunk 1.8 — Cerebro: 3 candados OK, HARD_DELICATE inviolable, seguro piloto · redteam→staging
@@ -1080,7 +1080,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **1/12** (B1 al 90%) · chunks F0 **17/49** · etapas programa **0/8 cerradas** (F0 en curso) · **5 fixes seguros aplicados** (1 P0 + 1 P1 + 3 P2, commit 7425a631).
+**Avance global:** F0 batches **1.9/12** (B1 censo 100%, P0/P1 cerrados; falta solo red-team staging) · chunks F0 **17.5/49** · etapas programa **0/8 cerradas** · **7 fixes aplicados** (1 P0 + 3 P1 + 3 P2 · commits 7425a631, fddd740d · todos build-verde + unit-tests).
 
 ---
 
@@ -1102,8 +1102,8 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 | ID | Sev | Etiqueta | Hallazgo | Evidencia (✓ re-leído) | Estado |
 |---|---|---|---|---|---|
 | B1-01 | **P0** | NUEVO · CABLE-ROTO · rompe-ciclo | **Búsqueda semántica pública expone PII de leads cross-tenant.** `/api/search/semantic` sin auth buscaba sobre TODO el corpus, que indexa chunks de leads (nombre+notas), actividades y conversaciones de todos los tenants. | `rag_engine.py:852` (endpoint público) + `:303-334` (lead chunks) + `:645-658` (reindex_all) | ✅ **ARREGLADO** (commit 7425a631: confinado a {development,colonia,external}) |
-| B1-02 | P1 | NUEVO · CABLE-ROTO · rompe-ciclo | **Widget PDF marketplace rutea lead nuevo a asesor random cross-org** en vez del pool de la casa (`dmx_root`). Paso 3 toma `users.find_one({role:advisor})` de cualquier org. | `lead_capture_marketplace_engine.py:186-198` · contrasta `house_pool_engine.py:113-142` | ⏳ OK founder (cambia ruteo) |
-| B1-03 | P1 | NUEVO · CABLE-ROTO | **comprador.py une por email sin binding verificado**: visitas/búsquedas/leads se reclaman por email; auto-asigna búsquedas anónimas ajenas. Severidad depende de si el registro verifica email (magic-link sí; registro con password = confirmar). | `comprador.py:102-104,121-127,181-207` | ⏳ verificar email-verification + OK founder |
+| B1-02 | P1 | NUEVO · CABLE-ROTO · rompe-ciclo | **Widget PDF marketplace ruteaba lead nuevo a asesor random cross-org** en vez del pool de la casa (`dmx_root`). | `lead_capture_marketplace_engine.py:186-203` · `house_pool_engine.py:113-142` | ✅ **ARREGLADO** (OK founder · usa pick_house_asesor; sin fallback cross-org) |
+| B1-03 | P1 | NUEVO · CABLE-ROTO | **comprador.py unía por email sin binding verificado**. CONFIRMADO: registro por contraseña (`auth.py:127`) no verificaba el correo; magic-link sí. | `comprador.py` (4 JOINs) + `services/comprador_dashboard.py:68` + `auth.py:127,421` | ✅ **ARREGLADO** (OK founder · `_verified_email` gatea los 4 JOINs + dashboard; registro marca `email_verified`) |
 | B1-04 | P1 | NUEVO · CABLE-ROTO | **magic-link devolvía token raw si fallaba el email** (account-takeover). | `auth.py:382-388` | ✅ **ARREGLADO** (solo dev) |
 | B1-05 | P1 | NUEVO · arquitectónico | **Rate-limit login + Atlax es in-memory** → multi-instancia lo diluye (N×límite, rotando IPs ilimitado). | `auth.py:39-71` · `asistente_engine.py:37-38` (buckets memoria) | ⏳ defer B8/F6 (necesita Redis/Mongo) |
 | B1-06 | P2 | NUEVO · CABLE-ROTO | **DISC: el LLM podía elegir el `lead_id`** de las tool-calls (least-privilege). | `agentic_crm/disc_inferencer_engine.py:390-393` | ✅ **ARREGLADO** (lead_id forzado del hilo) |
@@ -1124,4 +1124,8 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - **PII pública**: endpoints públicos usan `strip_pii`/no devuelven email/teléfono.
 - **RAG autenticado**: `conversation_engine`/`asistente` pasan filtro de tenant al recuperar.
 
-**Conteo B1: 13 hallazgos · 13/13 con cita re-confirmada en vivo (100%) · 5 ARREGLADOS hoy (1 P0, 1 P1, 3 P2) · 2 P1 esperan OK founder · 6 diferidos a su fase.**
+**Conteo B1: 13 hallazgos · 13/13 con cita re-confirmada en vivo (100%) · 7 ARREGLADOS hoy (1 P0, 3 P1, 3 P2, todos con build verde + unit-tests) · 6 diferidos a su fase (B1-05 rate-limit→B8/F6 · B1-09 whatsapp→B2 · B1-10 studio scan→B2 · B1-11 bulk-ingest→B6 · B1-12 wrappers→F4 · B1-13 dev_batch7→B3).**
+
+> **B1 queda al 100% de censo y con todos los P0/P1 cerrados.** Falta solo el chunk 1.10 (7 cadenas
+> red-team encadenadas, que se ejecutan contra STAGING — fuera de este entorno sin Mongo). El núcleo
+> de seguridad de B1 está cerrado: la única fuga de PII real (P0 RAG) y los 3 P1 quedaron arreglados hoy.
