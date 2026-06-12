@@ -984,6 +984,11 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 
 ## 15. Checklist de Avance — Etapas → Batch → Chunk (gobierna el avance entre sesiones)
 
+> **Protocolo de cierre de bloque (obligatorio):** al cerrar cada bloque → commit+push a la rama de
+> sesión · registrar el SHA en `CHECKPOINTS.md` · crear la rama `checkpoint/f0-bN-<slug>-fecha` vía
+> `mcp__github__create_branch` (el proxy git da 403 a tags/otras ramas). Detalle en `CHECKPOINTS.md`.
+
+
 > **Leyenda:** ✅ cerrado · 🔄 en curso · ⏳ esperando OK del founder · ⬜ pendiente · 🔒 gated (no arranca hasta cerrar lo anterior).
 > Regla: un batch se cierra solo con su pausa + OK; un chunk se cierra solo con su % en el ledger actualizado.
 
