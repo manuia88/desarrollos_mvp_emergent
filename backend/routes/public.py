@@ -3,6 +3,7 @@ Endpoints: /api/colonias/*, /api/properties/*, /api/developments/*, /api/develop
            /api/search/*, /api/health
 Backward-compat: same URLs, same response shape.
 """
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -143,6 +144,24 @@ def _iso_week_tag() -> str:
 @router.get("/api/colonias")
 async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
+
+
+@router.get("/api/colonias/catalog")
+async def get_colonias_catalog(request: Request, limit: int = Query(1000, ge=1, le=5000)):
+    """Catálogo COMPLETO de colonias para la cara pública (página de barrios + SEO).
+    Lee db.colonias (el catálogo real que crece con el sync SIG/zonificación de superadmin),
+    no el seed in-memory ni el cubo. Fail-open al seed → nunca rompe la página pública."""
+    try:
+        import colonias_catalog as cc
+        rows = await cc.public_catalog(request.app.state.db, limit=limit)
+        if rows:
+            return {"ok": True, "colonias": rows, "count": len(rows)}
+    except Exception as e:  # noqa: BLE001 · la cara pública nunca se cae por esto
+        logging.getLogger("dmx.public").warning(f"[colonias/catalog] fail-open al seed: {e}")
+    seed = [{"id": c.get("id"), "name": c.get("name"),
+             "alcaldia": c.get("alcaldia"), "has_data": False}
+            for c in SEED_COLONIAS if c.get("id")]
+    return {"ok": True, "colonias": seed, "count": len(seed), "fallback": "seed"}
 
 
 @router.get("/api/colonias/{colonia_id}")

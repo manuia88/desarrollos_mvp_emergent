@@ -78,6 +78,32 @@ async def seed_colonias(db) -> int:
     return n
 
 
+async def public_catalog(db, limit: int = 1000) -> List[Dict[str, Any]]:
+    """Lista pública del catálogo REAL de colonias (db.colonias) para la cara pública
+    (página de barrios, SEO). Crece solo con el sync SIG/zonificación. Siembra perezosa:
+    si la colección está vacía cae al seed → nunca devuelve lista vacía en entorno limpio.
+    Ordena las colonias CON dato real primero, luego alfabético. Cada item: {id, name,
+    alcaldia, has_data}. Fuente única reusable (no dupliques este query en routers)."""
+    if await db.colonias.count_documents({}) == 0:
+        await seed_colonias(db)
+    rows: List[Dict[str, Any]] = []
+    async for c in db.colonias.find(
+        {}, {"_id": 0, "id": 1, "name": 1, "alcaldia": 1,
+             "scores_cobertura_pct": 1, "cus": 1, "vsuelo_pm2_catastral": 1},
+    ).limit(int(limit)):
+        cid, name = c.get("id"), c.get("name")
+        if not cid or not name:
+            continue
+        has_data = bool((c.get("scores_cobertura_pct") or 0) > 0
+                        or (c.get("cus") or 0) > 0
+                        or (c.get("vsuelo_pm2_catastral") or 0) > 0)
+        rows.append({"id": cid, "name": name,
+                     "alcaldia": c.get("alcaldia"), "has_data": has_data})
+    # Las que YA tienen lectura real primero; dentro de cada grupo, alfabético.
+    rows.sort(key=lambda r: (not r["has_data"], (r["name"] or "").lower()))
+    return rows
+
+
 async def upsert_colonias(db, city: str, items: List[Dict[str, Any]]) -> int:
     """Cargador para el catálogo futuro (oficial u otra ciudad). Upsert por id.
 

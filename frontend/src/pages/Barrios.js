@@ -18,7 +18,7 @@ const FACTORS = [
 ];
 
 // B4 · cada colonia enlaza a su /zona/:slug. La lista REAL se lee en vivo del catálogo
-// (colonias_catalog → GET /api/maps/colonias), que crece con el sync SIG/zonificación del
+// (db.colonias → GET /api/colonias/catalog), que crece con el sync SIG/zonificación del
 // módulo dev/superadmin → la página AUTO-CRECE. SEED_BARRIOS (las 16 del seed) es solo el
 // FALLBACK para no quedar vacíos hoy (DB de negocio vacía). slug canónico = colonia_slug
 // (hyphenado, sin acentos: 'San Ángel'→'san-angel', 'Lomas de Chapultepec'→'lomas-chapultepec').
@@ -52,7 +52,7 @@ export default function Barrios() {
 
   useEffect(() => {
     let alive = true;
-    fetch(`${API}/api/maps/colonias`)
+    fetch(`${API}/api/colonias/catalog`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         const list = (d?.colonias || [])
