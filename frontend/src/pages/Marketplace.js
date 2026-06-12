@@ -15,6 +15,8 @@ import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import BuyerCoachWidget from '../components/buyer_coach/BuyerCoachWidget';
 import SubscoreFilterPanel from '../components/zones/SubscoreFilterPanel';
+import { ErrorState } from '../components/shared/LoadingState';
+import SmartEmptyState from '../components/shared/SmartEmptyState';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
@@ -36,6 +38,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false); // B4 · error de red ≠ "sin resultados"
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Batch 24 — View mode
   const [viewMode, setViewMode] = useState('lista'); // 'lista' | 'mapa'
@@ -111,11 +115,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       ...(forecastDeltaMin > 0 ? { forecast_delta_min: forecastDeltaMin } : {}),
       sort,
     };
+    setLoadError(false);
     fetchDevelopments(merged).then(list => {
       setDevelopments(list);
       setLoading(false);
-    }).catch(() => { setDevelopments([]); setLoading(false); });
-  }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
+    }).catch(() => { setDevelopments([]); setLoadError(true); setLoading(false); });
+  }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin, reloadKey]);
 
   // W5.2/W5.3 — Sync subscore_min + forecast_delta_min to URL
   useEffect(() => {
@@ -470,13 +475,15 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               <div>
                 {loading ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+                ) : loadError ? (
+                  <ErrorState
+                    title="No pudimos cargar los desarrollos"
+                    message="Puede ser tu conexión o algo momentáneo. Inténtalo de nuevo."
+                    onRetry={() => setReloadKey((k) => k + 1)}
+                  />
                 ) : developments.length === 0 ? (
-                  <div data-testid="mkp-empty" style={{
-                    padding: 60, textAlign: 'center',
-                    background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
-                    borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)',
-                  }}>
-                    {t('marketplace_v2.empty')}
+                  <div data-testid="mkp-empty">
+                    <SmartEmptyState contextKey="marketplace.catalog_empty" />
                   </div>
                 ) : (
                   <div className="dev-grid" style={{

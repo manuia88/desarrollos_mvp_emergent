@@ -18,6 +18,8 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 // W6.MOV.3 — Reviews Residentes
 import DevReviewsBlock from '../components/property/DevReviewsBlock';
+import { LoadingState, ErrorState } from '../components/shared/LoadingState';
+import SmartEmptyState from '../components/shared/SmartEmptyState';
 // W5.x F4 — Narrative Layer LLM (cross-feature storyteller)
 import NarrativeBlockLLM from '../components/NarrativeBlock';
 // W5.x F7 — Lead Capture (behavioral tracker + modal)
@@ -102,6 +104,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [brochureOpen, setBrochureOpen] = useState(false);
   // W6.MOV.5 — Construction Quality Index (score + breakdown 4 dims)
   const [cqData, setCqData] = useState(null);
+  // B4 · estado honesto: separa cargando / no-encontrado / error (antes: "…" eterno con DB vacía)
+  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'notfound' | 'error'
+  const [reloadKey, setReloadKey] = useState(0);
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('lead');
   const contactoId = searchParams.get('contacto');
@@ -112,8 +117,10 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   useEffect(() => {
     let alive = true;
+    setStatus('loading');
     fetchDevelopment(id).then(async (d) => {
       if (!alive) return;
+      if (!d) { setStatus('notfound'); return; }
       // Pricing Lab · lado VISITANTE: descubre experimento activo, registra la VISTA y aplica
       // la variante de precio para este visitante. Fail-open: si falla, precio base intacto.
       try {
@@ -126,8 +133,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           if (alive) setPxExp(px.experiment_id);
         }
       } catch (_) { /* fail-open */ }
-      if (alive) setDev(d);
-    }).catch(() => { if (alive) setDev(null); });
+      if (alive) { setDev(d); setStatus('ready'); }
+    }).catch(() => { if (alive) setStatus('error'); });
     // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
     trackPropertyView(id, 'marketplace');
     // Cross-Portal v2 · fotos REALES del dev (dev_assets) sobre el seed. El endpoint ya filtra
@@ -157,7 +164,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
       .then((data) => { if (alive) setCqData(data); })
       .catch(() => { if (alive) setCqData(null); });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, reloadKey]);
 
   // Scroll to #ie-scores anchor when navigated from marketplace badge click
   useEffect(() => {
@@ -195,11 +202,23 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     setGateOpen(true);
   };
 
-  if (!dev) {
+  if (status !== 'ready') {
     return (
       <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
         <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
-        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+        <main style={{ paddingTop: 80 }}>
+          <section style={{ maxWidth: 880, margin: '0 auto', padding: '48px 32px 64px' }}>
+            {status === 'loading' && <LoadingState variant="page" message="Cargando el desarrollo…" />}
+            {status === 'error' && (
+              <ErrorState
+                title="No pudimos cargar el desarrollo"
+                message="Puede ser tu conexión o algo momentáneo. Inténtalo de nuevo."
+                onRetry={() => setReloadKey((k) => k + 1)}
+              />
+            )}
+            {status === 'notfound' && <SmartEmptyState contextKey="public.development_not_found" />}
+          </section>
+        </main>
       </div>
     );
   }

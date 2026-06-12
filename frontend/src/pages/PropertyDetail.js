@@ -12,6 +12,8 @@ import BriefingCard from '../components/property/BriefingCard';
 import ShareMenu from '../components/property/ShareMenu';
 import MiniMap from '../components/property/MiniMap';
 import PropertyCard from '../components/marketplace/PropertyCard';
+import { LoadingState, ErrorState } from '../components/shared/LoadingState';
+import SmartEmptyState from '../components/shared/SmartEmptyState';
 // W3.8
 import CrossSellOffersBar from '../components/comprador/CrossSellOffersBar';
 
@@ -47,22 +49,44 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
   const [colonia, setColonia] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [saved, setSaved] = useState(false);
+  // B4 · estado honesto: separa cargando / no-encontrado / error (antes: "…" eterno con DB vacía)
+  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'notfound' | 'error'
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    let alive = true;
+    setStatus('loading');
     fetchProperty(id).then(async (p) => {
+      if (!alive) return;
+      if (!p) { setStatus('notfound'); return; }
       setProperty(p);
       setSaved(isFavorite(p.id));
+      setStatus('ready');
       const [c, sim] = await Promise.all([fetchColonia(p.colonia_id), fetchSimilar(p.id)]);
+      if (!alive) return;
       setColonia(c);
       setSimilar(sim);
-    }).catch(() => setProperty(null));
-  }, [id]);
+    }).catch(() => { if (alive) setStatus('error'); });
+    return () => { alive = false; };
+  }, [id, reloadKey]);
 
-  if (!property) {
+  if (status !== 'ready') {
     return (
       <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
         <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
-        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+        <main style={{ paddingTop: 80 }}>
+          <section style={{ maxWidth: 880, margin: '0 auto', padding: '48px 32px 64px' }}>
+            {status === 'loading' && <LoadingState variant="page" message="Cargando la propiedad…" />}
+            {status === 'error' && (
+              <ErrorState
+                title="No pudimos cargar la propiedad"
+                message="Puede ser tu conexión o algo momentáneo. Inténtalo de nuevo."
+                onRetry={() => setReloadKey((k) => k + 1)}
+              />
+            )}
+            {status === 'notfound' && <SmartEmptyState contextKey="public.property_not_found" />}
+          </section>
+        </main>
       </div>
     );
   }

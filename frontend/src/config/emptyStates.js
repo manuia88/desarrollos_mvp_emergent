@@ -6,6 +6,22 @@
  */
 
 export const EMPTY_STATES = {
+  // ── Marketplace público (B4 · estados honestos) ──────────────────────────
+  'public.property_not_found': {
+    title: 'No encontramos esta propiedad',
+    body: 'Quizá ya no está publicada o el enlace cambió. Explora el resto del catálogo.',
+    ctas: [{ label: 'Ver el marketplace', key: 'browse', href: '/marketplace', primary: true }],
+  },
+  'public.development_not_found': {
+    title: 'No encontramos este desarrollo',
+    body: 'Puede que ya no esté publicado o que el enlace haya cambiado. Mira los demás desarrollos.',
+    ctas: [{ label: 'Ver el marketplace', key: 'browse', href: '/marketplace', primary: true }],
+  },
+  'marketplace.catalog_empty': {
+    title: 'Aún no hay desarrollos publicados',
+    body: 'Estamos sumando inventario nuevo. Vuelve pronto o pregúntale a Atlax por zonas y precios.',
+    ctas: [{ label: 'Ver el mapa de la ciudad', key: 'map', href: '/mapa', primary: true }],
+  },
   'leads.none': {
     title: 'Aún no hay leads en este pipeline',
     body: 'En cuanto llegue el primer prospecto aparecerá aquí. Mientras tanto, comparte el link público del proyecto para empezar a captar.',

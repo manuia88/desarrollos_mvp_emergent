@@ -14,6 +14,7 @@
 | `checkpoint-f0-b1-seguridad-20260612` | `3053bc85` | F0·B1 — Seguridad: P0 (fuga RAG) + 3 P1 + 3 P2 cerrados |
 | `checkpoint-f0-b2-tests-criticos-20260612` | `151f21da` | F0·B2 — Auditoría técnica + 33 tests críticos (33/33 verde) |
 | `checkpoint-f0-b3-performance-20260612` | `b5f82fc2` | F0·B3 — Performance: índice units + N+1 house_pool + script SLA |
+| `checkpoint-f0-b4-mkt1-20260612` | (commit B4 MKT-1) | F0·B4 — Marketplace público: estados honestos + ConfianzaPage sin datos falsos |
 
 ## Cómo crear los tags reales (córrelo UNA vez, en tu máquina o donde tengas push completo)
 

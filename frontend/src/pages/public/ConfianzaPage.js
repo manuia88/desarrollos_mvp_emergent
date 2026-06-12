@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getMetaDashboard, exportPdfUrl } from '../../api/accuracy';
 import AccuracyTopZonesTicker from '../../components/shared/AccuracyTopZonesTicker';
 
@@ -260,7 +260,10 @@ function Kpi({ label, value }) {
 }
 
 function HorizonCard({ label, value }) {
-  const data = Array.from({ length: 7 }, (_, i) => ({ v: (value || 10) + (Math.random() - 0.5) * 2 }));
+  // B4 · honestidad: la página de Confianza NO inventa tendencias. Antes dibujaba un
+  // sparkline con Math.random(); ahora muestra el valor real (o '—') y dice la verdad
+  // sobre la serie histórica en vez de fabricar una.
+  const hasValue = value !== null && value !== undefined && !Number.isNaN(value);
   return (
     <div style={{
       padding: 16, borderRadius: 14,
@@ -268,13 +271,9 @@ function HorizonCard({ label, value }) {
       border: '1px solid rgba(99,102,241,0.18)',
     }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(165,180,252,0.85)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4 }}>{fmtPct(value)}</div>
-      <div style={{ height: 36, marginTop: 8 }}>
-        <ResponsiveContainer>
-          <LineChart data={data}>
-            <Line type="monotone" dataKey="v" stroke="#6366F1" strokeWidth={1.6} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+      <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4 }}>{hasValue ? fmtPct(value) : '—'}</div>
+      <div style={{ marginTop: 8, fontFamily: 'DM Mono', fontSize: 9.5, lineHeight: 1.4, color: 'rgba(165,180,252,0.6)' }}>
+        {hasValue ? 'Error medido del modelo en este horizonte' : 'Serie histórica aún en construcción'}
       </div>
     </div>
   );

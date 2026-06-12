@@ -1029,14 +1029,12 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [x] chunk 3.3 — Cómputo: cachés materializadas OK · scheduler real · bundle FE excelente · LLM/RAG → escala
 - [x] chunk 3.4 — Script de carga ya existía → afinado al SLA (lecturas p95<500) · veredicto techo/qué-se-cae ✅
 
-**BATCH B4 · Rediseño Front/UX — ⬜ (0/7)**
-- [ ] chunk 4.1 — Sistema de diseño (hardcodeo vs tokens, componentes duplicados, patrones)
-- [ ] chunk 4.2 — Portal Asesor (62 rutas) + resolver clasificaciones PRELIMINARES del §3
-- [ ] chunk 4.3 — Portal Developer (39) + resolver solo-V1 vs huérfanas
-- [ ] chunk 4.4 — Portal Superadmin (87; solo audit + exponer huérfanas)
-- [ ] chunk 4.5 — Portal Comprador (12; nav del portal = pieza mayor) + Marketplace público (73)
-- [ ] chunk 4.6 — 5 mockups ASCII ANTES/DESPUÉS + tabla priorizada
-- [ ] chunk 4.7 — Resumen founder → PAUSA
+**BATCH B4 · Rediseño Front/UX — 🔄 EN CURSO (empezó por Marketplace Público, §19)**
+- [x] **MKT-1 · Estados honestos** del marketplace público (spinner eterno→loading/404/error · error≠vacío · ConfianzaPage sin Math.random) ✅ build verde
+- [ ] MKT-2 · Ficha de desarrollo que vende (jerarquía + chips de origen) · MKT-3 · despertar motor dormido (live_pulse en ColoniaLanding, Barrios→links) · MKT-4 · a11y · MKT-5 · Atlax humano
+- [ ] chunk 4.1 — Sistema de diseño (canónicos YA existen: SmartEmptyState/LoadingState/ErrorState/DataOrigin — reusar, no crear)
+- [ ] chunk 4.2 Asesor · 4.3 Developer · 4.4 Superadmin (solo exponer huérfanas) · 4.5 Comprador (nav del portal)
+- [ ] chunk 4.6 — 5 mockups ANTES/DESPUÉS + tabla priorizada · 4.7 Resumen founder → PAUSA
 
 **BATCH B5 · Re-arquitectura — ⬜ (0/3)**
 - [ ] chunk 5.1 — Arquitectura objetivo + tabla de brecha con evidencia
@@ -1085,7 +1083,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **3.9/12** (B0 ✅ · B1 ✅ · B2 ✅ · **B3 ✅**) · chunks F0 **26.5/49** · etapas programa **0/8 cerradas** · **10 fixes + 33 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests · B3: índice units + N+1 house_pool + script SLA · commits 7425a631, fddd740d, 34257db6, + B3).
+**Avance global:** F0 batches **4.2/12** (B0 ✅ · B1 ✅ · B2 ✅ · B3 ✅ · **B4 🔄 MKT-1**) · etapas programa **0/8 cerradas** · **14 fixes + 33 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests · B3: índice units + N+1 house_pool + script SLA · B4-MKT1: 4 fixes de cara pública -estados honestos + ConfianzaPage sin datos falsos-, build verde 0 warnings nuevos).
 
 ---
 
@@ -1213,3 +1211,32 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 
 ### 18.4 Veredicto: techo actual y qué se cae primero
 Con los supuestos de arriba, el orden de saturación bajo el 70% de tráfico público es: **1º** gasto LLM de Atlax (cap bajo + rate-limit no distribuido) → **2º** RAM/latencia del RAG en memoria a corpus grande → **3º** god-views de superadmin sin agregación (solo afecta al 2% superadmin) → **4º** pool Mongo (50/proceso) si entra cómputo síncrono largo. **Ninguno es un bug del 70% público hoy**; son límites de escala con fixes claros (Redis para rate-limit, vector index para RAG, agregación para god-views, cap por env). El núcleo público (marketplace, AVM, scores) ya lee de caché materializada.
+
+---
+
+## 19. Bloque 4 · Rediseño UX — Marketplace Público (Tanda MKT-1, 2026-06-12)
+
+> Plan de chunks del marketplace público: **MKT-1 estados honestos** (✅ esta Tanda) · MKT-2 ficha que vende · MKT-3 despertar motor dormido · MKT-4 accesibilidad · MKT-5 Atlax humano.
+
+### 19.1 Veredicto honesto (3 agentes de auditoría)
+- **Los componentes canónicos YA EXISTEN** — `SmartEmptyState`+`config/emptyStates.js`, `LoadingState`/`ErrorState`, `DataOrigin` (chip de origen del dato). NO se creó nada nuevo: se REUSARON. (anti-duplicación)
+- **La maquinaria pública está sorprendentemente completa**: 7+ motores públicos cableados (avm_public, zone_score, drpi, live_pulse, forecast, accuracy, dmx_indices). `ZonePage` es la página modelo (orquesta 9 motores con los 3 estados).
+- El problema real NO es falta de features: es **distribución de superficie** (motores que solo se ven en superadmin/home) y **estados deshonestos**.
+
+### 19.2 ACCIONADO esta Tanda (build verde · 0 warnings nuevos · 271 histórico intacto)
+| Fix | Archivos | Tipo | Estado |
+|---|---|---|---|
+| **Spinner eterno "…"** en ficha de propiedad y de desarrollo → estados separados loading / no-encontrado / error (con reintentar), reusando `LoadingState`/`ErrorState`/`SmartEmptyState`. Antes: con DB vacía CUALQUIER `/propiedad/:id` o `/desarrollo/:id` se colgaba para siempre | `PropertyDetail.js`, `DevelopmentDetail.js` | CABLE-ROTO | ✅ |
+| **Error de red disfrazado de "sin resultados"** en Marketplace → estado de error distinto del vacío + reintentar; vacío honesto con CTA | `Marketplace.js` | CABLE-ROTO | ✅ |
+| **3 claves de copy humano** para no-encontrado/catálogo-vacío | `config/emptyStates.js` | reuse | ✅ |
+| **Página de Confianza fabricaba tendencias con `Math.random()`** (¡en la página cuyo propósito ES la confianza!) → muestra el valor real o '—' y dice la verdad sobre la serie histórica | `pages/public/ConfianzaPage.js` | CABLE-ROTO (honestidad) | ✅ |
+
+### 19.3 Backlog del marketplace (verificado, con destino) — para próximas Tandas
+- **DESPERTAR (motor vivo, mal distribuido):** momentum de `ColoniaLanding` lee seed estático en vez de `live_pulse_engine` (widget `LivePulseZoneWidget` ya existe) · widgets embed score/risk solo en ConnectMcp con slug fijo · DRPI history solo en home · `dmx_indices` solo en superadmin · forecast falta en ColoniaLanding. → MKT-3.
+- **CABLE-ROTO barato:** chips de `Barrios.js` son texto muerto, deberían ser `<Link to="/zona/:slug">` (16 internal-links SEO gratis). → MKT-3.
+- **DECISIÓN founder:** la Home muestra 6 propiedades FICTICIAS (precios/asesores inventados) con DB vacía → cablear a `/api/developments?limit=6` o estado vacío honesto. Cambia el hero, requiere tu OK.
+- **a11y (MKT-4):** botones icon-only sin `aria-label`, tabs sin `role="tab"`, SVG decorativos sin `aria-hidden`.
+- **Atlax bubble:** fugas de "debugger" (chunk_id crudo, "Powered by DMX RAG", "Memorias usadas") → MKT-5.
+
+### 19.4 Honestidad sobre verificación
+Verificado por **build de producción (exit 0, 0 warnings en archivos tocados)** + checks estáticos (el "…" eterno eliminado, `Math.random()` fuera). Verificación en navegador vivo necesita staging con la app corriendo (el contenedor no tiene Mongo para E2E real); los estados vacíos/error son justo lo que se vería con DB vacía.
