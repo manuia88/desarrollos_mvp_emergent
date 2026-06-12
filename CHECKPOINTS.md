@@ -15,6 +15,7 @@
 | `checkpoint-f0-b2-tests-criticos-20260612` | `151f21da` | F0·B2 — Auditoría técnica + 33 tests críticos (33/33 verde) |
 | `checkpoint-f0-b3-performance-20260612` | `b5f82fc2` | F0·B3 — Performance: índice units + N+1 house_pool + script SLA |
 | `checkpoint-f0-b4-mkt1-20260612` | `ef629b4a` | F0·B4 — Marketplace público: estados honestos + ConfianzaPage sin datos falsos |
+| `checkpoint-f0-b4-mkt3-20260612` | `87d09cd1` | F0·B4 — Despertar: live_pulse en ColoniaLanding + Barrios catálogo dinámico |
 
 ## Cómo crear los tags reales (córrelo UNA vez, en tu máquina o donde tengas push completo)
 
