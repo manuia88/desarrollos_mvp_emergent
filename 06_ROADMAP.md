@@ -6,6 +6,24 @@
 
 ---
 
+## 🎯 PROGRAMA "DMX A PRODUCCIÓN IMPECABLE" — directiva maestra (2026-06-11)
+
+Tras las Tandas 20-38, el founder fijó el norte: llevar DMX a producción impecable (visión "como
+Salesforce") **sin big-bang**. La directiva de método vive en **`memory/PROGRAMA_DMX_A_PRODUCCION.md`**
+(programa de 8 fases F0-F7 con red de seguridad · regla de oro: nunca romper lo que funciona ·
+criterios falsificables de "impecable"). Su **Fase 0** es el prompt de auditoría exhaustiva de
+**12 bloques** en **`memory/PROMPT_AUDITORIA_FABLE5.md`** (generado por workflows multi-agente que
+leyeron el código real · cobertura 100% vía ledger · cubre seguridad, IA adversarial, arquitectura,
+performance 10k, rediseño UX, re-arquitectura, correctitud/honestidad del dato, privacidad LFPDPPP,
+producción/observabilidad, FinOps/i18n/SEO, y madurez/oportunidad IA-ML-DL-agentic). Pensado para
+correr en sesiones de Fable 5. **Próximo paso:** correr la F0 (diagnóstico) → `REPO_PLAN_MAESTRO.md`.
+
+Fixes P0 ya aplicados de paso (destapados al fundamentar el prompt): purga real de cuenta LFPDPPP
+(`privacy_center.purge_account` + cron) + tope de presupuesto IA antes del LLM público
+(`asistente_engine.chat`). Tags: `checkpoint-fix-privacy-budget`.
+
+---
+
 ## 🔌 SURFACEO + CIERRE DE CICLOS 4 PORTALES — Tandas 20-38 ✅ (2026-06-11)
 
 Barrido de "despierta features apagadas/desconectadas" + cierre de ciclos agénticos en los 4 portales.
