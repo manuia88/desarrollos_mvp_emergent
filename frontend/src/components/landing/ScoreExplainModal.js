@@ -143,14 +143,14 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
             <div style={{ marginBottom: 14 }}>
               <div className="eyebrow" style={{ marginBottom: 6 }}>FUENTES</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {data.dependencies.map(dep => (
+                {(data.dependencies || []).map(dep => (
                   <span key={dep} data-testid={`explain-dep-${dep}`} style={{
                     padding: '3px 10px', borderRadius: 9999,
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid var(--border)',
                     fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)',
                   }}>
-                    {dep} · {data.inputs_used[dep] ?? 0} obs
+                    {dep} · {(data.inputs_used || {})[dep] ?? 0} obs
                   </span>
                 ))}
               </div>
@@ -160,7 +160,7 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
             <div style={{ marginBottom: 14 }}>
               <div className="eyebrow" style={{ marginBottom: 6 }}>OPERACIONES APLICADAS</div>
               <ol data-testid="explain-operations" style={{ margin: 0, paddingLeft: 20, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.7 }}>
-                {data.operations.map((op, i) => <li key={i}>{op}</li>)}
+                {(data.operations || []).map((op, i) => <li key={i}>{op}</li>)}
               </ol>
             </div>
 

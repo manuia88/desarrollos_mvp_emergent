@@ -17,6 +17,7 @@
 | `checkpoint-f0-b4-mkt1-20260612` | `ef629b4a` | F0·B4 — Marketplace público: estados honestos + ConfianzaPage sin datos falsos |
 | `checkpoint-f0-b4-mkt3-20260612` | `87d09cd1` | F0·B4 — Despertar: live_pulse en ColoniaLanding + Barrios catálogo dinámico |
 | `checkpoint-f0-b4-mkt3b-catalog-20260612` | `f0d2da95` | F0·B4 — Endpoint público /api/colonias/catalog sobre db.colonias + 4 tests (37/37) |
+| `checkpoint-f0-b4-mkt4-robustez-20260612` | `(commit MKT-4)` | F0·B4 — Blindaje anti-crash ZoneScoreStrip/ScoreExplainModal (3 páginas públicas) |
 
 ## Cómo crear los tags reales (córrelo UNA vez, en tu máquina o donde tengas push completo)
 

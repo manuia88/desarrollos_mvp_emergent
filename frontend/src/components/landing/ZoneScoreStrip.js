@@ -142,6 +142,12 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
   }
 
   const showSeed = data.ui_mode === 'seed';
+  // Blindaje: si el backend responde sin `scores` (forma inesperada / endpoint vacío),
+  // tratamos como "sin scores" en vez de crashear toda la página pública (cae al
+  // ErrorBoundary). ZoneScoreStrip se monta en Inteligencia, Barrios y DevelopmentDetail.
+  const scores = Array.isArray(data.scores) ? data.scores : [];
+  const realCount = data.real_count ?? scores.length;
+  const totalRecipes = data.total_recipes ?? scores.length;
 
   return (
     <div data-testid="zone-score-strip" style={{ marginTop: 12 }}>
@@ -160,7 +166,7 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
               fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>
-              Estimado · {data.real_count}/{data.total_recipes}
+              Estimado · {realCount}/{totalRecipes}
             </span>
           ) : (
             <span data-testid="score-badge-real" style={{
@@ -173,13 +179,13 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
               letterSpacing: '0.08em', textTransform: 'uppercase',
               display: 'inline-flex', alignItems: 'center', gap: 5,
             }}>
-              <Sparkle size={9} /> Datos reales · {data.real_count} scores
+              <Sparkle size={9} /> Datos reales · {realCount} scores
             </span>
           )}
         </div>
       </div>
 
-      {data.scores.length === 0 ? (
+      {scores.length === 0 ? (
         <div style={{
           padding: 18, textAlign: 'center',
           background: 'rgba(255,255,255,0.02)',
@@ -191,12 +197,12 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[...data.scores]
+          {[...scores]
             .sort((a, b) => (b.model_version ? 1 : 0) - (a.model_version ? 1 : 0))
             .slice(0, limit).map(s => (
             <ScorePill key={s.code} score={s} onClick={onScoreClick} />
           ))}
-          {data.scores.length > limit && (
+          {scores.length > limit && (
             <div style={{
               padding: '10px 14px', borderRadius: 14,
               background: 'rgba(var(--theme-rgb),0.06)',
@@ -205,7 +211,7 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
               fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)',
             }}>
               <Database size={11} color="var(--indigo-3)" />
-              +{data.scores.length - limit} scores más
+              +{scores.length - limit} scores más
             </div>
           )}
         </div>

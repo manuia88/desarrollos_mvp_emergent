@@ -1032,7 +1032,8 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 **BATCH B4 · Rediseño Front/UX — 🔄 EN CURSO (empezó por Marketplace Público, §19)**
 - [x] **MKT-1 · Estados honestos** del marketplace público (spinner eterno→loading/404/error · error≠vacío · ConfianzaPage sin Math.random) ✅ build verde
 - [x] **MKT-3 · Despertar lo apagado** (live_pulse real en ColoniaLanding · Barrios = lista DINÁMICA del catálogo real → links /zona/:slug, auto-crece) ✅ build verde (§19.5)
-- [ ] MKT-2 · Ficha de desarrollo que vende (jerarquía + chips de origen) · MKT-4 · a11y · MKT-5 · Atlax humano
+- [x] **MKT-4 · Robustez cara pública** (ZoneScoreStrip/ScoreExplainModal ya no crashean con datos vacíos; probado en navegador) ✅ (§19.6)
+- [ ] MKT-2 · Ficha de desarrollo que vende (jerarquía + chips de origen) · MKT-5 · Atlax humano
 - [ ] chunk 4.1 — Sistema de diseño (canónicos YA existen: SmartEmptyState/LoadingState/ErrorState/DataOrigin — reusar, no crear)
 - [ ] chunk 4.2 Asesor · 4.3 Developer · 4.4 Superadmin (solo exponer huérfanas) · 4.5 Comprador (nav del portal)
 - [ ] chunk 4.6 — 5 mockups ANTES/DESPUÉS + tabla priorizada · 4.7 Resumen founder → PAUSA
@@ -1084,7 +1085,7 @@ grep -rn "create_index\|create_indexes\|ensure_index" backend --include="*.py" |
 - [ ] **F6 · Endurecimiento Producción** — observabilidad, backups probados, rate-limit, carga 10k, costo IA → *salida: listo para tráfico*
 - [ ] **F7 · Lanzamiento** — beta brokers → público, con rollback y monitoreo → *salida: EN PRODUCCIÓN*
 
-**Avance global:** F0 batches **4.3/12** (B0 ✅ · B1 ✅ · B2 ✅ · B3 ✅ · **B4 🔄 MKT-1+MKT-3**) · etapas programa **0/8 cerradas** · **17 fixes + 37 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests · B3: índice units + N+1 house_pool + script SLA · B4-MKT1: 4 fixes de cara pública · B4-MKT3: despertar live_pulse + endpoint público NUEVO `/api/colonias/catalog` sobre db.colonias (el eslabón que faltaba) + Barrios auto-crece + 4 tests; todo build verde, 0 warnings nuevos).
+**Avance global:** F0 batches **4.3/12** (B0 ✅ · B1 ✅ · B2 ✅ · B3 ✅ · **B4 🔄 MKT-1+MKT-3**) · etapas programa **0/8 cerradas** · **19 fixes + 37 tests** (B1: 1 P0 + 3 P1 + 3 P2 · B2: audit dinero + 33 tests · B3: índice units + N+1 house_pool + script SLA · B4-MKT1: 4 fixes de cara pública · B4-MKT3: despertar live_pulse + endpoint público NUEVO `/api/colonias/catalog` sobre db.colonias (el eslabón que faltaba) + Barrios auto-crece + 4 tests · B4-MKT4: blindaje anti-crash de ZoneScoreStrip/ScoreExplainModal -3 páginas públicas- probado en navegador; todo build verde, 0 warnings nuevos).
 
 ---
 
@@ -1249,3 +1250,15 @@ Dos motores/superficies vivos pero desconectados, ahora cableados (build verde �
 | **Momentum real de zona** (`live_pulse_engine`) en la página de colonia | KPI "Momentum" leía `c.momentum` (seed estático, casi siempre '—') | Montado `LivePulseZoneWidget` (ya existía) → score + bucket + tendencia 30d del motor; **se auto-oculta si no hay dato** (cero ruido con DB vacía). KPI muerto retirado. | `pages/public/ColoniaLanding.js` |
 | **Colonias navegables** (SEO + UX) — lista DINÁMICA del catálogo REAL | chips de texto muerto `<div>` (16 fijos) | `<Link to="/zona/:slug">` + `.dmx-card` + `aria-label`. **La lista se lee del catálogo canónico `db.colonias`** vía un endpoint público NUEVO `GET /api/colonias/catalog` (`colonias_catalog.public_catalog`, siembra perezosa + fail-open al seed) → la página **auto-crece** de 16 (seed) a todas las colonias de CDMX conforme el sync SIG/zonificación de superadmin las puebla. **Eslabón que faltaba:** antes ningún endpoint público listaba `db.colonias` (solo el seed in-memory o el cubo). Probado con 4 tests (37/37). | `pages/Barrios.js` · `colonias_catalog.py` · `routes/public.py` · `tests/critical/test_colonias_catalog.py` |
 Endpoints reusados (públicos, ya existían): `GET /api/live-pulse/zones`, `/api/live-pulse/zone/{slug}/timeline`. Cero endpoints/componentes nuevos.
+
+### 19.6 MKT-4 · Robustez de la cara pública (2026-06-12)
+CABLE-ROTO hallado por E2E en navegador (Playwright) durante MKT-3: si un endpoint de scores
+responde con forma inesperada/vacía, el componente reventaba toda la página al ErrorBoundary
+("Algo salió mal"). Afecta 3 páginas públicas que montan `ZoneScoreStrip` (Inteligencia, Barrios,
+DevelopmentDetail).
+| Fix | Archivo | Antes → Después |
+|---|---|---|
+| `data.scores.length` sobre undefined tumbaba la página | `components/landing/ZoneScoreStrip.js` | normaliza `scores = Array.isArray(data.scores)?…:[]` + defaults en contadores → cae a su estado "sin scores", no crashea |
+| `data.dependencies/operations.map` + `inputs_used[dep]` sin guard (modal al click) | `components/landing/ScoreExplainModal.js` | guardas inline `(… || [])` / `(… || {})` |
+**Prueba (navegador real):** re-corrí el escenario EXACTO que crasheaba (todos los APIs vecinos → `{}`):
+antes caía al ErrorBoundary; ahora `/barrios` vive, renderiza 40 colonias y 3 ZoneScoreStrips, 0 pageerrors. Build verde, 0 warnings nuevos.
