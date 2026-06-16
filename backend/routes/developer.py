@@ -316,11 +316,27 @@ async def leads_cockpit(request: Request):
     db = get_db(request)
     rows = []
     heat_real = False
+    buyer_real = False
     try:
-        async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0}):
+        lead_docs = [l async for l in db.leads.find({"development_id": {"$in": dev_ids}}, {"_id": 0})]
+        # Rompe el silo (doctrina "4 portales no en silos"): anexa el buyer_score REAL
+        # — el MISMO motor que usa el portal Asesor — en UNA query batch. Fail-open.
+        try:
+            from services.buyer_identity import attach_buyer_scores
+            await attach_buyer_scores(db, lead_docs)
+        except Exception:
+            pass
+        _TIER_TEMP = {"hot": "caliente", "warm": "tibio", "cold": "frio"}
+        for l in lead_docs:
             if l.get("heat_tag"):
                 heat_real = True
             temp, score = _lead_temp_score(l)
+            # Si el comprador detrás del lead tiene buyer_score real, prevalece sobre la heurística.
+            bs = l.get("buyer_score")
+            if isinstance(bs, dict) and bs.get("value") is not None:
+                buyer_real = True
+                score = int(bs.get("value") or 0)
+                temp = _TIER_TEMP.get((bs.get("tier") or "").lower(), temp)
             dv = DEVELOPMENTS_BY_ID.get(l.get("development_id"))
             st = (l.get("status_v2") or l.get("status") or "").lower()
             rows.append({
@@ -347,10 +363,13 @@ async def leads_cockpit(request: Request):
         "tibios": sum(1 for r in rows if r["temperatura"] == "tibio"),
         "frios": sum(1 for r in rows if r["temperatura"] == "frio"),
         "sin_contactar": sum(1 for r in rows if r["etapa_key"] in ("lead_nuevo", "nuevo")),
-        "fuente_heat": "ia" if heat_real else "estimado",
+        "fuente_heat": "buyer_score" if buyer_real else ("ia" if heat_real else "estimado"),
     }
-    return {"leads": rows, "resumen": resumen,
-            "nota": "La temperatura es estimada de la actividad del lead; se afina con el motor de calor IA al conectar la llave."}
+    _nota = ("Score real del comprador (buyer_score, mismo motor que el portal Asesor) cuando el lead "
+             "tiene perfil; en su defecto, estimado de la actividad."
+             if buyer_real else
+             "La temperatura es estimada de la actividad del lead; usa el buyer_score real cuando el comprador tiene perfil.")
+    return {"leads": rows, "resumen": resumen, "nota": _nota}
 
 
 # ─── Inteligencia · Qué Frena Tus Ventas (Bloque 1.3) — baja el lente "Comportamiento" ──
