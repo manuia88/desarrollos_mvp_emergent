@@ -171,6 +171,14 @@ async def delete_link(link_id: str, request: Request):
         raise HTTPException(404, "Link no encontrado")
     if link["asesor_id"] != user.user_id and user.role not in ADMIN_ROLES:
         raise HTTPException(403, "Sin permiso")
+    # Admin (no superadmin) solo sobre links de SU cuenta — antes podía borrar cross-tenant.
+    if link["asesor_id"] != user.user_id and user.role != "superadmin":
+        from tenant_scope import tenant_of, _demo_mode
+        link_tenant = link.get("tenant_id") or link.get("dev_org_id") or link.get("inmobiliaria_id")
+        if link_tenant and link_tenant != tenant_of(user):
+            raise HTTPException(403, "Este link es de otra cuenta")
+        if not link_tenant and not _demo_mode():
+            raise HTTPException(403, "Link sin cuenta asignada")
     await db.tracking_links.update_one(
         {"link_id": link_id}, {"$set": {"active": False, "deleted_at": _now().isoformat()}},
     )

@@ -68,8 +68,10 @@ class FeedExecuteBody(BaseModel):
 
 @router.post("/api/lead-match/compute")
 async def lead_match_compute(body: MatchComputeBody, request: Request):
-    await _auth_admin(request)
+    user = await _auth_admin(request)
     db = _db(request)
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, body.lead_id)   # no calcular match sobre lead de otra cuenta
     from services.lead_to_asesor_match import compute_match
     try:
         return await compute_match(

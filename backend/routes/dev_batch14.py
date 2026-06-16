@@ -199,12 +199,17 @@ async def get_activity_feed(
     user = await _auth(request)
     db = _db(request)
 
+    # Scope fail-closed: no permitir ver el feed de OTRO actor/cuenta vía query param.
+    is_super = getattr(user, "role", None) == "superadmin"
+    uid = getattr(user, "user_id", None)
+    org = getattr(user, "tenant_id", None) or "default"
     q: Dict[str, Any] = {}
-    if actor_id:
+    if actor_id and (is_super or actor_id == uid):
         q["actor_id"] = actor_id
+    elif is_super and inmobiliaria_id:
+        q["inmobiliaria_id"] = inmobiliaria_id
     else:
-        org = getattr(user, "tenant_id", None) or "default"
-        q["inmobiliaria_id"] = inmobiliaria_id or org
+        q["inmobiliaria_id"] = org   # propio tenant; ignora actor_id/inmobiliaria_id ajenos
     if entity_type:
         q["entity_type"] = entity_type
 

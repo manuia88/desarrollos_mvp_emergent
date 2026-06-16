@@ -549,6 +549,8 @@ async def recalc(project_id: str, request: Request, payload: Optional[RecalcPayl
     user = await _auth(request)
     if not _is_admin_only(user):
         raise HTTPException(403, "Solo developer_admin / superadmin pueden recalcular")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)   # no leer metadata/recalcular flujo de proyecto ajeno
     db = _db(request)
     org = getattr(user, "tenant_id", None) or "default"
     horizon = (payload.horizon_months if payload else DEFAULT_HORIZON) or DEFAULT_HORIZON

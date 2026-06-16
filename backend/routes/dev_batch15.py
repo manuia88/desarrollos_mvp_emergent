@@ -291,6 +291,9 @@ async def get_appointment_metrics(
     limit: int = Query(50, le=200),
 ):
     user = await _auth(request)
+    if project_id:
+        from tenant_scope import assert_dev_project
+        assert_dev_project(user, project_id)   # no ver métricas/asesores de proyecto ajeno
     db = _db(request)
 
     # Build query
