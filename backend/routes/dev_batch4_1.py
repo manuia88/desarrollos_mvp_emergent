@@ -1491,6 +1491,8 @@ async def approve_review(lead_id: str, request: Request):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
+    from tenant_scope import assert_dev_org
+    assert_dev_org(user, lead.get("dev_org_id"))  # no tocar leads de otra desarrolladora
     if lead.get("status") != "under_review":
         raise HTTPException(409, "El lead no está en estado 'under_review'")
     now_iso = _now().isoformat()
@@ -1520,6 +1522,8 @@ async def reject_review(lead_id: str, request: Request):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
+    from tenant_scope import assert_dev_org
+    assert_dev_org(user, lead.get("dev_org_id"))  # no tocar leads de otra desarrolladora
     if lead.get("status") != "under_review":
         raise HTTPException(409, "El lead no está en estado 'under_review'")
     now_iso = _now().isoformat()

@@ -797,6 +797,10 @@ async def generate_report(payload: ReportGenerateInput, request: Request):
     template = await db.report_templates.find_one({"id": payload.template_id}, {"_id": 0})
     if not template:
         raise HTTPException(404, "Template no encontrado")
+    from tenant_scope import assert_dev_org, assert_dev_project
+    assert_dev_org(user, template.get("dev_org_id"))   # no generar reporte con template de otra dev
+    if payload.project_id:
+        assert_dev_project(user, payload.project_id)   # ni con proyecto de otra dev
 
     pdf_bytes = await _build_pdf(
         db, template=template, project_id=payload.project_id,
