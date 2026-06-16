@@ -183,9 +183,11 @@ async def get_colonia_full(db, colonia_id: str) -> Optional[Dict[str, Any]]:
     # ── IE Engine scores (si Phase 5 existe) ──────────────────────────────────
     ie_scores: Dict[str, Any] = {}
     try:
-        ie_doc = await db.ie_engine_scores.find_one({"colonia_id": colonia_id}, {"_id": 0})
+        # Los scores reales por colonia viven en colonias.scores_reales (puente score_bridge),
+        # no en una colección "ie_engine_scores" (que nunca tuvo escritor → leía vacío).
+        ie_doc = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "scores_reales": 1})
         if ie_doc:
-            ie_scores = ie_doc.get("scores") or {}
+            ie_scores = ie_doc.get("scores_reales") or {}
     except Exception:
         pass
 

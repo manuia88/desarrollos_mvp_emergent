@@ -237,8 +237,9 @@ async def get_or_generate_briefing(
     lead = None
     contact = None
     if lead_id:
-        lead_doc = await db.asesor_leads.find_one({"id": lead_id}, {"_id": 0}) or \
-                   await db.asesor_busquedas.find_one({"id": lead_id}, {"_id": 0})
+        # asesor_busquedas es la fuente real (tiene budget/beds/intent); se quitó el
+        # primario muerto asesor_leads (nunca tuvo escritor → vacío).
+        lead_doc = await db.asesor_busquedas.find_one({"id": lead_id}, {"_id": 0})
         if lead_doc:
             lead = {k: lead_doc.get(k) for k in ("budget_min", "budget_max", "beds", "intent_tags", "lookalike_score", "colonias_target") if lead_doc.get(k) is not None}
     if not lead and contact_id:

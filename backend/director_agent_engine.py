@@ -298,8 +298,8 @@ async def _tool_get_ie_score(db, developer_id: str) -> Dict[str, Any]:
 async def _tool_get_unit_score(db, unit_id: str) -> Dict[str, Any]:
     if not unit_id:
         return {"error": "unit_id requerido"}
-    doc = await db.units.find_one({"id": unit_id}, {"_id": 0}) or \
-          await db.ie_unit_scores.find_one({"unit_id": unit_id}, {"_id": 0})
+    # units es la fuente real; se quitó el fallback a ie_unit_scores (nunca tuvo escritor → vacío).
+    doc = await db.units.find_one({"id": unit_id}, {"_id": 0})
     if not doc:
         return {"error": f"Unidad '{unit_id}' no encontrada"}
     return {

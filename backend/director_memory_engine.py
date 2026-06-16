@@ -526,7 +526,11 @@ async def run_memory_daily_ingest(db) -> Dict[str, int]:
     except Exception as e:
         log.warning(f"[memory_cron] diagnostic ingest error: {e}")
 
-    # 2. IE score changes significativos (usa ie_scores_history si existe)
+    # 2. IE score changes significativos. NOTA HONESTA: hoy es inerte (degrada sin romper):
+    #    el historial de DELTAS de score POR DESARROLLADOR no se persiste. ie_score_history
+    #    (la colección real) archiva el doc previo con value+archived_at, pero NO delta/timestamp/
+    #    org_id. Revivirlo = construir ese pipeline (ver memory/BACKLOG_ENHANCEMENTS.md). No se
+    #    finge con un rename: la query seguiría sin empatar campos.
     try:
         score_changes = await db.ie_scores_history.find(
             {"timestamp": {"$gte": since}, "delta": {"$exists": True}},

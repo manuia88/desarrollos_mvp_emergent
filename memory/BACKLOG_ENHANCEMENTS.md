@@ -6,6 +6,29 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🧱 3 FEATURES A MEDIO CONSTRUIR (leen colección vacía) — DIFERIDO (2026-06-16)
+
+Origen: auditoría 2026-06-16 marcó "7 colecciones mal nombradas". Al verificar campo por
+campo, solo 1 era rename real (citas→appointments, hecho), 3 eran fallbacks/primarios muertos
+(limpiados: ie_unit_scores, asesor_leads en briefing) y 1 fix real (colonia_intelligence →
+colonias.scores_reales, hecho). Estos 3 NO son typos: la forma/pipeline que esperan NO existe.
+Renombrar fingiría un fix. Todos degradan sin romper (no crashean, leen vacío):
+
+1. **Cambios de score IE por desarrollador** (`director_memory_engine.py:531`): espera
+   `{timestamp, delta, org_id, old/new_score}`. La colección real `ie_score_history` archiva el
+   doc previo con `value`+`archived_at`, sin delta ni org_id (los scores IE son por colonia, no
+   por desarrollador). Revivir = construir un pipeline que persista deltas de score por dev. ~6h.
+2. **Press clips / noticias de zona** (`routes/dev_batch2.py:389`): espera news con
+   `title/source/url/sentiment` por alcaldía. `dmx_bulletins` son REPORTES PDF (period/narrative/
+   kpis), otro concepto. Falta una ingesta de noticias georreferenciadas (RSS/clipping + sentiment).
+   Ya es honesto ("no inventa titulares"). ~8h + fuente de noticias.
+3. **Búsqueda global de leads del dev** (`routes/search_prefs.py:138`): espera proyección plana
+   `client_name/client_email/client_phone/lead_id`. El `leads` real usa `id` + `contact.{name,email}`.
+   Fix = reescribir query+mapeo al schema real de `leads` (no un rename). ~3h (necesita verificar
+   schema con data real, hoy la DB local está vacía de leads).
+
+---
+
 ## 🏫 CAPA AUTORITATIVA SEP (escuelas) + DGIS (salud) — DIFERIDO (2026-06-15)
 
 Origen: punto 3 del run "carga todo" (cache+recompute N0x + FGJ + SEP/DGIS). **Lo FUNCIONAL ya quedó**: N06 School Premium (proximidad) y N10 Senior (salud a pie) ahora computan REAL ciudad-completa vía la densidad OSM `escuela`/`hospital`/`farmacia` (N06: 1,312/1,524 reales · N10: 1,101). Lo que se difiere es la capa de **CALIDAD/autoridad** (matrícula/PLANEA de SEP, CLUES de DGIS), más precisa que OSM pero hoy bloqueada por fragilidad externa:
