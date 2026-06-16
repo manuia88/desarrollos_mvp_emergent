@@ -459,6 +459,7 @@ class RecomputeAllRequest(BaseModel):
     include_unit: bool = True
     codes: List[str] = Field(default_factory=list)  # opcional: restringir a ciertos codes
     layer: str = "all"                  # "all" | "descriptive" | "predictive"
+    colonia_source: str = "seed"        # "seed" = 16 COLONIAS en memoria · "catalog" = todas las db.colonias (1,500+)
 
 
 async def _recompute_batch_runner(db, task_id: str, plan: List[Dict[str, Any]], allow_paid: bool, codes_filter: List[str], layer_filter: str = "all"):
@@ -531,12 +532,19 @@ async def recompute_all(payload: RecomputeAllRequest, request: Request):
     # Build zone plan
     plan: List[Dict[str, Any]] = []
     if payload.include_colonia:
-        try:
-            from data_seed import COLONIAS
-            for c in COLONIAS:
-                plan.append({"zone_id": c["id"].replace("-", "_"), "scope": "colonia"})
-        except ImportError:
-            pass
+        if payload.colonia_source == "catalog":
+            # Todas las colonias del catálogo real (db.colonias) — el id empata 1:1 con
+            # denue_zone_density.zone_id, así que las geo-moat (N01/N08/N09/N10) leen densidad real.
+            async for c in db.colonias.find({}, {"_id": 0, "id": 1}):
+                if c.get("id"):
+                    plan.append({"zone_id": c["id"], "scope": "colonia"})
+        else:
+            try:
+                from data_seed import COLONIAS
+                for c in COLONIAS:
+                    plan.append({"zone_id": c["id"].replace("-", "_"), "scope": "colonia"})
+            except ImportError:
+                pass
     if payload.include_proyecto:
         try:
             from data_developments import DEVELOPMENTS_BY_ID

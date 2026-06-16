@@ -17,12 +17,20 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 
 TIER_THRESHOLDS = {"green": 70, "amber": 40}  # green >=70, amber 40-69, red <40
+
+# City-wide OSM density distribution cache. The geo-moat recipes (N01/N08/N09/N10)
+# need the full city distribution to normalize by percentile — identical for every
+# zone in a recompute run. Reading the whole collection per recipe is O(zones·recipes);
+# caching it briefly turns a city-wide recompute (1,500+ colonias) from minutes to seconds.
+_DENUE_CITY_CACHE: Dict[str, Any] = {"ts": 0.0, "docs": None}
+_DENUE_CITY_TTL = 180.0  # seconds — long enough to span one full recompute pass
 
 
 @dataclass
@@ -294,9 +302,15 @@ class ScoreEngine:
         zone_doc = await self.db.denue_zone_density.find_one(
             {"zone_id": zone_id}, {"_id": 0, "by_category": 1, "businesses_per_km2": 1, "source": 1},
         )
-        city_docs = await self.db.denue_zone_density.find(
-            {}, {"_id": 0, "by_category": 1},
-        ).to_list(length=2000)
+        # City distribution is identical for every zone — cache it (TTL) so a city-wide
+        # recompute doesn't re-read the whole collection once per recipe.
+        now = time.monotonic()
+        if _DENUE_CITY_CACHE["docs"] is None or (now - _DENUE_CITY_CACHE["ts"]) > _DENUE_CITY_TTL:
+            _DENUE_CITY_CACHE["docs"] = await self.db.denue_zone_density.find(
+                {}, {"_id": 0, "by_category": 1},
+            ).to_list(length=4000)
+            _DENUE_CITY_CACHE["ts"] = now
+        city_docs = _DENUE_CITY_CACHE["docs"]
         # Seguridad real de la colonia (si ya existe score no-stub) — la usa N10.
         seg = await self.db.ie_scores.find_one(
             {"zone_id": zone_id, "code": "IE_COL_SEGURIDAD", "is_stub": False, "value": {"$ne": None}},

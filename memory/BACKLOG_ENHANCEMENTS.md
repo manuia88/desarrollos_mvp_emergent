@@ -6,6 +6,17 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🏫 CAPA AUTORITATIVA SEP (escuelas) + DGIS (salud) — DIFERIDO (2026-06-15)
+
+Origen: punto 3 del run "carga todo" (cache+recompute N0x + FGJ + SEP/DGIS). **Lo FUNCIONAL ya quedó**: N06 School Premium (proximidad) y N10 Senior (salud a pie) ahora computan REAL ciudad-completa vía la densidad OSM `escuela`/`hospital`/`farmacia` (N06: 1,312/1,524 reales · N10: 1,101). Lo que se difiere es la capa de **CALIDAD/autoridad** (matrícula/PLANEA de SEP, CLUES de DGIS), más precisa que OSM pero hoy bloqueada por fragilidad externa:
+
+1. **SEP centros de trabajo** (resource_id `1672c5af-0583-4918-b676-b3d4b2329638`): el portal federal **datos.gob.mx migró a CKAN 2.11.5** y `datastore_search` con ese id ya **no devuelve JSON** (regresa el HTML del home, redirige a www.datos.gob.mx). Reintentar cuando el portal estabilice o conseguir el resource_id nuevo. Patrón a usar: igual que `crime_fgj_engine` (COUNT espacial por colonia vía `datastore_search_sql`) → `school_zone_colonia` → alimenta N06 con calidad real.
+2. **DGIS CLUES salud** (`gobi.salud.gob.mx/.../ESTABLECIMIENTO_SALUD_YYYYMM.xlsx`): XLSX ~26MB, **TLS cert vencido (solo http)** y el sufijo `YYYYMM` cambia cada mes (verificado `202604`; hoy sería `202606`). Patrón: bajar 1 vez → parsear (openpyxl) → join espacial punto-en-radio a colonias → `health_zone_colonia` → N10 prefiere DGIS sobre OSM cuando exista.
+
+Estado: el `nota_estimacion` de N06/N10 ya dice honestamente "proximidad — la calidad SIGED/DGIS se suma cuando se ingiera". Cero deuda oculta. Costo cuando las fuentes estabilicen: ~6-10h (2 conectores siguiendo el patrón FGJ + rewire de las 2 recetas para preferir la fuente autoritativa).
+
+---
+
 ## 🧩 UNIFICAR MODELO DE DATOS DEL DEV (raíz C2) — DIFERIDO (2026-06-09)
 
 Origen: corrección C2 de las 6 auditorías QA. En C2 se hizo el vocabulario único de "vendido" (`is_sold()`). Lo que falta (cada uno = migración, por eso batch propio):

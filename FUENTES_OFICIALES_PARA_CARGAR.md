@@ -39,9 +39,11 @@
 1. **Colonias 1,543** (`026b42d3`) → de 16 a la ciudad real. Recompute.
 2. **FGJ** (`48fcb848`) → crimen + seguridad + trust + Risk-crime + N04 (serie).
 3. **SGIRPC Atlas** → sismo/inundación/hundimiento real → N05 + climate + Risk-natural.
-4. **SEP + DGIS** (POIs georref. oficiales) → N06 + N10 reales (más autoritativo que OSM).
+4. ~~**SEP + DGIS** (POIs georref. oficiales)~~ → **N06 + N10 ya REALES vía OSM** (proximidad escolar/salud). La capa AUTORITATIVA (calidad SEP/DGIS) quedó en backlog: ⚠️ **datos.gob.mx migró a CKAN 2.11.5** (2026-06-15: `datastore_search` del resource SEP `1672c5af` devuelve HTML, no JSON) y DGIS es XLSX con TLS vencido + URL `YYYYMM` cambiante. Ver `memory/BACKLOG_ENHANCEMENTS.md`.
 5. **SACMEX** → N07. **Banxico** → plusvalía/IPV. **SNIIV** → benchmark.
 6. **Catastro valores 2026 (OCR)** → ancla del AVM (proyecto aparte).
+
+> **Estado del moat N0x (2026-06-15, ciudad-completa sobre 1,524 colonias):** N01=1,512 · N06=1,312 · N08=1,495 · N09=1,173 · N10=1,101 reales. FGJ crimen=1,573 colonias con safety_score. Recompute N0x ciudad-completa via `POST /api/superadmin/scores/recompute-all {colonia_source:"catalog", codes:[...N0x]}` (cache de distribución de ciudad lo hace ~30s).
 
 ## Patrón de ingesta
 - CKAN: `datastore_search?resource_id=<id>&limit=...&offset=...` (paginado) — no bajar CSV de 50 MB.

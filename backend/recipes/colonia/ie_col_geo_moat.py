@@ -7,6 +7,7 @@ ciudad. NUNCA inventa: si la colonia no tiene densidad sincronizada → stub hon
 
 CONSTRUIBLES YA (OSM real, mismo dato que alimenta lifestyle/transporte/amenidades):
   · N01 Ecosystem Diversity   — diversidad de giros (índice de Shannon).
+  · N06 School Premium        — proximidad escolar (densidad de escuelas a pie).
   · N08 Walkability MX        — caminabilidad ponderada (transporte+servicios+ocio).
   · N09 Nightlife Economy     — economía nocturna (densidad potencial; OSM sin horario).
   · N10 Senior Livability     — habitabilidad para adultos mayores (salud a pie).
@@ -15,7 +16,6 @@ ESPERANDO FUENTE (DataPendingRecipe · reason honesto):
   · N02 Employment Accessibility — INEGI empleo, no ingerido.
   · N04 Crime Trajectory         — FGJ serie temporal, solo hay snapshot.
   · N05 Infrastructure Resilience— Atlas/CENAPRED WFS, no ingerido.
-  · N06 School Premium           — SIGED-SEP, no ingerido.
   · N07 Water Security           — SACMEX, resource_id vacío.
 
 N03 Gentrification Velocity: NO se crea receta nueva — ya vive en IPV/zone_cycle.
@@ -239,6 +239,32 @@ class IEColN09NightlifeEconomy(DenueDensityRecipe):
 
 
 @register
+class IEColN06SchoolPremium(DenueDensityRecipe):
+    """N06 — Prima escolar por PROXIMIDAD: ¿cuántas escuelas resuelves a pie?"""
+    code = "IE_COL_N06_SCHOOL_PREMIUM"
+    version = "1.0"
+    description = ("Prima escolar por proximidad: densidad de escuelas a pie (OSM), por percentil "
+                   "de ciudad. La CALIDAD/prestigio (SIGED-SEP/PLANEA) se suma cuando se ingiera.")
+    es_estimado = True
+    nota_estimacion = ("Cubre PROXIMIDAD escolar (densidad de escuelas cercanas). La calidad/"
+                       "prestigio (SIGED-SEP, PLANEA) no es dato abierto georreferenciado vigente; "
+                       "el API federal migró — se incorpora cuando estabilice.")
+
+    def metric(self, by_cat: Dict[str, float]) -> Optional[float]:
+        escuelas = by_cat.get("escuela", 0.0)
+        if escuelas <= 0:
+            return None
+        return escuelas
+
+    def explanation(self, by_cat, raw, value):
+        return [
+            f"Escuelas a pie = {raw:.0f}" if raw is not None else "Sin escuelas cercanas",
+            f"Percentil de proximidad escolar vs ciudad = {value}",
+            "Estimado: proximidad — la calidad (SIGED-SEP/PLANEA) se sumará cuando se ingiera.",
+        ]
+
+
+@register
 class IEColN10SeniorLivability(DenueDensityRecipe):
     """N10 — Habitabilidad para adultos mayores (salud a pie + tranquilidad)."""
     code = "IE_COL_N10_SENIOR_LIVABILITY"
@@ -313,16 +339,6 @@ class IEColN05InfrastructureResilience(DataPendingRecipe):
     tier_logic = "higher_better"
     description = "Resiliencia de infraestructura ante sismo/inundación (Atlas de Riesgos / CENAPRED)."
     reason = "Esperando fuente: capas WFS del Atlas de Riesgos / CENAPRED aún no ingeridas."
-
-
-@register
-class IEColN06SchoolPremium(DataPendingRecipe):
-    code = "IE_COL_N06_SCHOOL_PREMIUM"
-    version = "0.1"
-    dependencies = []
-    tier_logic = "higher_better"
-    description = "Prima escolar: calidad y prestigio de las escuelas de la zona (SIGED-SEP)."
-    reason = "Esperando fuente: SIGED-SEP (calidad/matrícula escolar) aún no ingerido."
 
 
 @register

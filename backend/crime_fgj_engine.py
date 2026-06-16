@@ -23,7 +23,7 @@ import logging
 import math
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import metric_normalizer as _mn
 
@@ -99,19 +99,30 @@ async def fetch_weighted_incidents(lat: float, lng: float, year_from: int) -> Op
     return {"ponderado": round(ponderado, 1), "by_category": by_cat}
 
 
-async def sync_crime_for_city(db, city: str = "CDMX", period_years: int = 2, limit: int = 80) -> Dict[str, Any]:
+async def sync_crime_for_city(db, city: str = "CDMX", period_years: int = 2, limit: int = 2500) -> Dict[str, Any]:
     """Sincroniza seguridad real por colonia desde FGJ (densidad por área + gravedad).
-    Score por percentil entre las colonias sincronizadas (más seguro = score más alto).
+    Cada colonia = una consulta SQL espacial barata (COUNT por categoría en ~700 m), así que
+    el límite alto cubre la ciudad completa. Score por percentil sobre TODAS las colonias con
+    dato crudo (`rescore_safety`), no solo el lote, para que el ranking sea ciudad-completa.
+    Resumible: salta las colonias ya sincronizadas (el botón/cron avanza a colonias NUEVAS).
     Honesto: si FGJ no responde, no inventa."""
     if not _resource():
         return {"ok": False, "matched": 0, "reason": "Falta IE_FGJ_CDMX_RESOURCE_ID."}
     year_from = datetime.now(timezone.utc).year - period_years
 
+    # Avanza: salta las colonias que YA tienen dato de crimen (resumible · el cron cubre el resto).
+    try:
+        _synced = await db.crime_zone_colonia.distinct("zone_id")
+    except Exception:
+        _synced = []
+    _q = {"city": city, "center": {"$ne": None}}
+    if _synced:
+        _q["id"] = {"$nin": list(_synced)}
+
     # 1) recolecta el incidente ponderado de cada colonia (consulta espacial por colonia)
-    rows: List[Dict[str, Any]] = []
-    async for c in db.colonias.find({"city": city, "center": {"$ne": None}},
-                                    {"_id": 0, "id": 1, "center": 1}):
-        if len(rows) >= limit:
+    nuevas = 0
+    async for c in db.colonias.find(_q, {"_id": 0, "id": 1, "center": 1}):
+        if nuevas >= limit:
             break
         ctr = c.get("center")
         if not (isinstance(ctr, (list, tuple)) and len(ctr) == 2):
@@ -120,33 +131,25 @@ async def sync_crime_for_city(db, city: str = "CDMX", period_years: int = 2, lim
         data = await fetch_weighted_incidents(lat, lng, year_from)
         if data is None:
             continue
-        rows.append({"zone_id": c["id"], **data})
-
-    if not rows:
-        return {"ok": False, "matched": 0, "reason": "FGJ no devolvió datos (reintenta)."}
-
-    # 2) score por percentil (menos incidentes ponderados = más seguro = score más alto)
-    dist = _mn.dist_from_values([r["ponderado"] for r in rows])
-    sorted_vals = dist.get("_sorted") or []
-    for r in rows:
-        pr = _mn.percentile_rank(r["ponderado"], sorted_vals)
-        r["safety_score"] = round((1.0 - pr) * 100)
-
-    # 3) persiste
-    for r in rows:
-        top = sorted(r["by_category"].items(), key=lambda kv: -kv[1])[:3]
+        top = sorted(data["by_category"].items(), key=lambda kv: -kv[1])[:3]
         await db.crime_zone_colonia.update_one(
-            {"zone_id": r["zone_id"]},
+            {"zone_id": c["id"]},
             {"$set": {
-                "zone_id": r["zone_id"], "incidentes_ponderados": r["ponderado"],
-                "by_category": dict(top), "safety_score": r["safety_score"],
-                "radius_m": _RADIUS_M, "period_years": period_years,
+                "zone_id": c["id"], "incidentes_ponderados": data["ponderado"],
+                "by_category": dict(top), "radius_m": _RADIUS_M, "period_years": period_years,
                 "source": "fgj", "last_synced": _iso(),
             }},
             upsert=True,
         )
+        nuevas += 1
 
-    return {"ok": True, "city": city, "fuente": "fgj", "matched": len(rows), "radius_m": _RADIUS_M}
+    # 2) score por percentil sobre TODAS las colonias con dato crudo (ranking ciudad-completa)
+    total = await rescore_safety(db, city)
+    if total == 0:
+        return {"ok": False, "matched": 0, "reason": "FGJ no devolvió datos (reintenta)."}
+
+    return {"ok": True, "city": city, "fuente": "fgj", "matched": total,
+            "nuevas": nuevas, "radius_m": _RADIUS_M}
 
 
 async def rescore_safety(db, city: str = "CDMX") -> int:
