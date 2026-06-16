@@ -50,10 +50,13 @@ export function NotificationsBell({ user }) {
   const fetchNotifs = useCallback(async () => {
     if (!user?.user_id) return;
     try {
-      const res = await fetch(`${API}/api/dev/notifications?limit=50`, { credentials: 'include' });
+      const res = await fetch(`${API}/api/notifications?limit=50`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data.items || [];
+        // /api/notifications (genérico por-rol, sirve a los 4 portales) devuelve {notifications};
+        // tolerante a items/array. Normaliza id → notification_id para el resto del componente.
+        const raw = Array.isArray(data) ? data : (data.notifications || data.items || []);
+        const list = raw.map(n => ({ ...n, notification_id: n.notification_id || n.id }));
         setNotifs(list);
         setUnread(list.filter(n => !n.read).length);
       }
@@ -78,7 +81,7 @@ export function NotificationsBell({ user }) {
 
   const markAllRead = async () => {
     try {
-      await fetch(`${API}/api/dev/notifications/mark-all-read`, { method: 'POST', credentials: 'include' });
+      await fetch(`${API}/api/notifications/mark-all-read`, { method: 'POST', credentials: 'include' });
       setNotifs(prev => prev.map(n => ({ ...n, read: true })));
       setUnread(0);
     } catch (_) {}
@@ -86,7 +89,7 @@ export function NotificationsBell({ user }) {
 
   const handleClick = async (n) => {
     try {
-      await fetch(`${API}/api/dev/notifications/${n.notification_id}/read`, {
+      await fetch(`${API}/api/notifications/${n.notification_id}/mark-read`, {
         method: 'POST', credentials: 'include',
       });
       setNotifs(prev => prev.map(x => x.notification_id === n.notification_id ? { ...x, read: true } : x));
