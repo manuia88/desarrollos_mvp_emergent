@@ -14,6 +14,8 @@ import {
 } from './lib/posthog';
 // W4.18.3 — Private Beta · WaitlistForm
 import WaitlistForm from './components/private_beta/WaitlistForm';
+// Espejo sincrónico de "¿hay sesión?" — gatea fetches de preferencias (evita 401 espurios en consola).
+import { setHasSession } from './utils/sessionState';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -441,6 +443,7 @@ function AuthProvider({ children }) {
       const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
       if (res.ok) {
         const u = await res.json();
+        setHasSession(true);
         setUser(u);
         // Phase F0.11 — identify to Sentry + PostHog (legacy)
         try { const { identifyUser } = await import('./observability'); identifyUser(u); } catch {}
@@ -455,9 +458,12 @@ function AuthProvider({ children }) {
         } catch {}
         return u;
       }
+      // 401/sin sesión esperado en carga sin login: estado limpio, sin ruido.
+      setHasSession(false);
       setUser(null);
       return null;
     } catch {
+      setHasSession(false);
       setUser(null);
       return null;
     } finally {
@@ -477,6 +483,7 @@ function AuthProvider({ children }) {
 
   const logout = async () => {
     await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    setHasSession(false);
     setUser(null);
     // Phase F0.11 — reset identity
     try { const { resetUser } = await import('./observability'); resetUser(); } catch {}
@@ -497,6 +504,7 @@ function AuthProvider({ children }) {
         open={authOpen}
         onClose={closeAuth}
         onSuccess={async (u) => {
+          setHasSession(true);
           setUser(u);
           setAuthOpen(false);
           // Phase F0.11 — identify after login
@@ -570,7 +578,7 @@ function AuthCallback() {
     })
       .then(r => r.json())
       .then(data => {
-        if (data.user) setUser(data.user);
+        if (data.user) { setHasSession(true); setUser(data.user); }
         window.history.replaceState({}, document.title, '/');
         const dest = data.user ? portalForRole(data.user.role) : '/';
         navigate(dest, { replace: true });
@@ -1094,6 +1102,10 @@ function DevelopmentDetailRoute() {
   return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
+// AdvisorRoute es el guard COMPARTIDO de los portales profesionales: lo usan tanto las
+// rutas de ASESOR como las de DEVELOPER. Por eso NO puede redirigir "por no-asesor"
+// (eso mandaba al developer de /desarrollador a /desarrollador = loop infinito). Solo
+// excluye al comprador; el candado fino por-rol vive en cada página/portal.
 function AdvisorRoute({ Page }) {
   const { user, logout, loading, openAuth } = useAuth();
   const location = useLocation();
@@ -1111,8 +1123,7 @@ function AdvisorRoute({ Page }) {
     // Redirect home (modal will auto-open above on next render)
     return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
   }
-  // P2.15 · candado de ROL: el comprador no entra a portales profesionales (asesor/dev/studio).
-  // El backend ya devuelve 403 en los datos; esto evita exponer el shell. Defensa en profundidad.
+  // Solo el comprador no entra a los portales profesionales → al marketplace.
   if (user.role === 'buyer') {
     return <Navigate to="/marketplace" replace />;
   }

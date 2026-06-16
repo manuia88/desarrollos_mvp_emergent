@@ -20,35 +20,38 @@ router = APIRouter(prefix="/api/superadmin/phase-y", tags=["phase-y-controls"])
 # ─── Defaults ─────────────────────────────────────────────────────────────────
 VALID_TIERS = {"off", "T1", "T2", "T3", "T4"}
 
+# Decisión founder 2026-06-16 — "prende todo": todas las features agénticas ON por defecto.
+# El corte de seguridad real es el kill-switch global de IA (AI_DISABLED) + topes por tenant
+# (fail-closed) + auto-pilot opt-in con guardarraíles; el tier solo escala capacidad.
 DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "diagnostic_engine":     "T2",
     "recommendation_banner": "T3",
     "comparable_alerts":     "T3",
     "lead_nurture":          "T3",
-    "pricing_agent":         "off",
-    "marketing_agent":       "off",
-    "lead_agent":            "off",
-    "smart_routing_lead":    "off",
-    "visit_prep_dossier":    "off",
-    "reply_classifier":      "off",
-    "disc_inferencer":       "off",
-    "nurture_intelligent":   "off",
-    "construction_agent":    "off",
-    "compliance_agent":      "off",
-    "atlax_persona":         "off",
-    "match_weights_adaptive": "off",
-    "argumentario_adaptive":  "off",
-    "observability_dashboard": "off",
-    "whatsapp_business":       "off",
-    "newsletter_pulse":        "off",
-    "voice_atlax":             "off",
+    "pricing_agent":         "T3",
+    "marketing_agent":       "T3",
+    "lead_agent":            "T3",
+    "smart_routing_lead":    "T3",
+    "visit_prep_dossier":    "T3",
+    "reply_classifier":      "T3",
+    "disc_inferencer":       "T3",
+    "nurture_intelligent":   "T3",
+    "construction_agent":    "T3",
+    "compliance_agent":      "T3",
+    "atlax_persona":         "T3",
+    "match_weights_adaptive": "T3",
+    "argumentario_adaptive":  "T3",
+    "observability_dashboard": "T3",
+    "whatsapp_business":       "T3",
+    "newsletter_pulse":        "T3",
+    "voice_atlax":             "T3",
 }
 
 
 def _default_settings(org_id: str) -> Dict[str, Any]:
     return {
         "org_id": org_id,
-        "agentic_enabled": False,
+        "agentic_enabled": True,
         "simulation_mode": False,
         "feature_tiers": dict(DEFAULT_FEATURE_TIERS),
         "updated_at": None,

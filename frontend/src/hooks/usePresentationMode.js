@@ -10,6 +10,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from './useIsMobile';
+import { hasSession, onSessionChange } from '../utils/sessionState';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -77,19 +78,25 @@ export function PresentationModeProvider({ children }) {
   const [prevDensity, setPrevDensity] = useState('comfortable');
   const [prevSidebar, setPrevSidebar] = useState(false);
 
-  // Load persisted state on mount
+  // Load persisted state — solo con sesión confirmada (evita 401 espurio sin login).
   useEffect(() => {
-    fetchPrefs().then(prefs => {
-      if (!prefs) return;
-      const pm = prefs.presentation_mode;
-      if (pm) {
-        const merged = { ...DEFAULT_CONFIG, ...pm };
-        setConfigState(merged);
-        if (merged.active) {
-          applyBodyClass(true);
+    const load = () => {
+      fetchPrefs().then(prefs => {
+        if (!prefs) return;
+        const pm = prefs.presentation_mode;
+        if (pm) {
+          const merged = { ...DEFAULT_CONFIG, ...pm };
+          setConfigState(merged);
+          if (merged.active) {
+            applyBodyClass(true);
+          }
         }
-      }
-    });
+      });
+    };
+    if (hasSession()) { load(); return; }
+    // Aún sin sesión confirmada: esperar a que AuthProvider la establezca.
+    const unsub = onSessionChange((active) => { if (active) load(); });
+    return unsub;
   }, []);
 
   const toggle = useCallback(() => {

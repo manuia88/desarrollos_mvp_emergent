@@ -25,15 +25,25 @@ DEFAULT_TIMEOUT = 25.0  # segundos
 
 
 async def within_budget(db, tenant_id: Optional[str]) -> bool:
-    """Verifica presupuesto de IA ANTES de gastar. FAIL-OPEN (si no hay motor
-    de presupuesto, permite). Reusa ai_budget si existe."""
+    """Gobernanza de IA ANTES de gastar (regla 6): (1) kill-switch global, (2) tope por tenant.
+    FAIL-CLOSED (regla 5): un estado desconocido NO autoriza gasto de IA. Reusa ai_budget."""
+    # (1) Kill-switch global (env AI_DISABLED o flag de plataforma) — corta todo.
+    try:
+        from ai_budget import ai_kill_switch_active  # type: ignore
+        if await ai_kill_switch_active(db):
+            return False
+    except Exception as e:
+        log.error(f"[llm_guard] kill-switch no verificable; bloqueando por seguridad: {e}")
+        return False
+    # (2) Sin tenant: no hay tope por-tenant que evaluar (llamada de sistema); el kill-switch ya corrió.
     if not tenant_id:
         return True
     try:
         from ai_budget import is_within_budget  # type: ignore
         return bool(await is_within_budget(db, tenant_id))
-    except Exception:
-        return True
+    except Exception as e:
+        log.error(f"[llm_guard] presupuesto no verificable para {tenant_id}; bloqueando por seguridad: {e}")
+        return False
 
 
 async def send_with_timeout(
@@ -46,12 +56,20 @@ async def send_with_timeout(
     tenant_id: Optional[str] = None,
     fallback: Any = None,
 ) -> Any:
-    """Envía a la IA con timeout y (opcional) tope de costo. Devuelve la
-    respuesta cruda, o `fallback` si hay timeout / presupuesto agotado / error."""
+    """Envía a la IA con timeout y gobernanza (kill-switch + tope). Devuelve la respuesta
+    cruda, o `fallback` si hay timeout / IA cortada / presupuesto agotado / error."""
+    # Apagador de IA por entorno (corte duro): aplica incluso a llamadas sin tenant.
+    try:
+        from ai_budget import ai_disabled_env  # type: ignore
+        if ai_disabled_env():
+            log.warning(f"[llm_guard] {label or 'call'} omitida: IA apagada globalmente (AI_DISABLED)")
+            return fallback
+    except Exception:
+        pass
     if db is not None and tenant_id is not None:
         ok = await within_budget(db, tenant_id)
         if not ok:
-            log.info(f"[llm_guard] {label or 'call'} omitida: presupuesto IA agotado ({tenant_id})")
+            log.info(f"[llm_guard] {label or 'call'} omitida: IA cortada o presupuesto agotado ({tenant_id})")
             return fallback
     try:
         return await asyncio.wait_for(chat.send_message(message), timeout=timeout)

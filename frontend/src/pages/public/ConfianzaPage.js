@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getMetaDashboard, exportPdfUrl } from '../../api/accuracy';
 import AccuracyTopZonesTicker from '../../components/shared/AccuracyTopZonesTicker';
 
@@ -260,7 +260,8 @@ function Kpi({ label, value }) {
 }
 
 function HorizonCard({ label, value }) {
-  const data = Array.from({ length: 7 }, (_, i) => ({ v: (value || 10) + (Math.random() - 0.5) * 2 }));
+  // Sin endpoint de serie temporal: mostramos solo el valor puntual real,
+  // nunca una sparkline sintética con jitter.
   return (
     <div style={{
       padding: 16, borderRadius: 14,
@@ -269,13 +270,11 @@ function HorizonCard({ label, value }) {
     }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(165,180,252,0.85)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, marginTop: 4 }}>{fmtPct(value)}</div>
-      <div style={{ height: 36, marginTop: 8 }}>
-        <ResponsiveContainer>
-          <LineChart data={data}>
-            <Line type="monotone" dataKey="v" stroke="#6366F1" strokeWidth={1.6} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {value == null && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 6 }}>
+          Sin datos suficientes.
+        </div>
+      )}
     </div>
   );
 }

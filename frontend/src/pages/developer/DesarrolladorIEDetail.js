@@ -77,7 +77,7 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
           Lectura de la Zona · {data.project_name}
         </h1>
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 720, lineHeight: 1.55 }}>
-          12 indicadores en 4 grupos, cada uno en su banda (Muy Baja a Muy Alta). Toca cualquiera para ver cómo mejorarlo.
+          12 indicadores en 4 grupos, cada uno en su banda (Muy Baja a Muy Alta). Toca cualquiera para ver cómo mejorarlo. Más abajo, otras señales que el motor ya calcula.
         </p>
       </div>
 
@@ -152,10 +152,52 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
         ))}
       </div>
 
+      {/* Más indicadores que el motor calcula (Ley #4: nada calculado-pero-oculto) */}
+      {Array.isArray(data.extra_scores) && data.extra_scores.length > 0 && (
+        <ExtraScoresSection items={data.extra_scores} />
+      )}
+
       {drillScore && (
         <DrillDownModal score={drillScore} data={drillData} onClose={() => { setDrillScore(null); setDrillData(null); }} />
       )}
     </DeveloperLayout>
+  );
+}
+
+// Indicadores que el motor IE calcula pero que no entran en los 12 agrupados.
+// Cada uno con su valor real + banda/número, o estado honesto "Esperando dato".
+function ExtraScoresSection({ items }) {
+  return (
+    <Card data-testid="ie-extra-scores" style={{ marginTop: 16 }}>
+      <div style={{ marginBottom: 4 }}>
+        <div className="eyebrow">MÁS INDICADORES DE TU PROYECTO</div>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: '4px 0 0', maxWidth: 720, lineHeight: 1.5 }}>
+          Señales adicionales que el motor ya calcula. Las que aún no tienen dato aparecen como "Esperando dato" (nada inventado).
+        </p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginTop: 12 }}>
+        {items.map(s => (
+          <div
+            key={s.code}
+            data-testid={`ie-extra-${s.code}`}
+            style={{
+              padding: 12, borderRadius: 10, background: 'rgba(var(--cream-rgb),0.02)',
+              border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{s.name}</div>
+              {s.estado === 'esperando'
+                ? <span style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream-3)', fontSize: 10, whiteSpace: 'nowrap' }}>Esperando dato</span>
+                : <BandPill etiqueta={s.etiqueta} color={s.color} size={11.5} />}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', lineHeight: 1.45 }}>
+              {s.estado === 'esperando' ? (s.estado_motivo || 'El motor aún no tiene este dato para tu proyecto.') : s.powers}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

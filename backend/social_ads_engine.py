@@ -214,9 +214,13 @@ async def get_campaigns(db, account_id: str, status: Optional[str] = None) -> Di
         "clicks": sum(c["clicks"] for c in campaigns),
         "conversions": sum(c["conversions"] for c in campaigns),
     }
+    stub = _is_stub()
     return {
         "account_id": account_id,
-        "stub": _is_stub(),
+        "stub": stub,
+        # Honestidad de fuente: métricas de demostración mientras no haya Meta Ads API
+        # conectada (META_APP_REVIEW_APPROVED != "true"). El frontend DEBE etiquetarlas.
+        "data_source": "demo" if stub else "meta_ads",
         "count": len(campaigns),
         "campaigns": campaigns,
         "totals": totals,
@@ -254,11 +258,14 @@ async def get_performance(db, account_id: str, days: int = 30) -> Dict[str, Any]
             "spend_mxn": spend,
             "conversions": conversions,
         })
+    stub = _is_stub()
     return {
         "account_id": account_id,
         "days": days,
         "series": series,
-        "stub": _is_stub(),
+        "stub": stub,
+        # Honestidad de fuente: serie de demostración hasta conectar Meta Ads API.
+        "data_source": "demo" if stub else "meta_ads",
     }
 
 

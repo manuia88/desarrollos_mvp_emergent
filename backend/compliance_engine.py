@@ -177,7 +177,7 @@ _PII_COLLECTIONS: List[tuple] = [
     ("users",                             "email",        "anonymize_user"),
     ("contacts",                          "email",        "anonymize"),
     ("leads",                             "email",        "anonymize"),
-    ("asesor_contacts",                   "email",        "anonymize"),
+    ("asesor_contactos",                  "email",        "anonymize"),
     ("ie_advisor_briefings",              "advisor_email","anonymize"),
     ("inmobiliaria_advisor_relationships","asesor_email", "anonymize"),
     ("bulletin_subscribers",              "email",        "delete"),
@@ -203,7 +203,7 @@ async def _resolve_subject_identifiers(db, subject_email: str) -> Dict[str, Any]
     # Colecciones con email + posibles id/teléfono del titular.
     sources = [
         ("leads", ("lead_id", "id"), ("phone", "whatsapp")),
-        ("asesor_contacts", ("id", "lead_id", "contacto_id"), ("phone", "whatsapp", "telefono")),
+        ("asesor_contactos", ("id", "lead_id", "contacto_id"), ("phone", "whatsapp", "telefono")),
         ("contacts", ("id", "lead_id"), ("phone", "whatsapp")),
     ]
     for coll, id_fields, phone_fields in sources:

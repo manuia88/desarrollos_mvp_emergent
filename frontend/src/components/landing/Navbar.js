@@ -1,7 +1,7 @@
 // Navbar — fixed top, 60px, glassmorphism, blur on scroll, with ES/EN toggle.
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Globe } from '../icons';
+import { MapPin, Globe, ChevronDown } from '../icons';
 import NotificationBellIcon from '../notifications/NotificationBellIcon';
 import { Z } from '../../styles/zIndex';
 
@@ -12,6 +12,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
   const { t, i18n } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [lng, setLng] = useState(i18n.language || 'es');
 
   const NAV_LINKS = [
@@ -19,6 +20,19 @@ export default function Navbar({ onLogin, user, onLogout }) {
     { key: 'propiedades', label: t('nav.propiedades'), href: '/marketplace' },
     { key: 'inteligencia', label: t('nav.inteligencia'), href: '/inteligencia' },
     { key: 'asesores', label: t('nav.asesores'), href: '/asesores' },
+  ];
+
+  // Herramientas — públicas, ya existentes, ahora visibles en el menú.
+  const TOOLS_LINKS = [
+    { key: 'simulador', label: t('nav.tools.simulador'), href: '/simulador' },
+    { key: 'tax', label: t('nav.tools.tax'), href: '/tools/tax-projector' },
+    { key: 'comparador', label: t('nav.tools.comparador'), href: '/portal/comparador' },
+    { key: 'probabilidades', label: t('nav.tools.probabilidades'), href: '/portal/probability' },
+    { key: 'vibra', label: t('nav.tools.vibra'), href: '/portal/vibe' },
+    { key: 'valores', label: t('nav.tools.valores'), href: '/valores' },
+    { key: 'confianza', label: t('nav.tools.confianza'), href: '/confianza' },
+    { key: 'mcp', label: t('nav.tools.mcp'), href: '/connect/mcp' },
+    { key: 'prensa', label: t('nav.tools.prensa'), href: '/prensa' },
   ];
 
   // Restore language from localStorage on first mount (B7)
@@ -133,6 +147,82 @@ export default function Navbar({ onLogin, user, onLogout }) {
               {link.label}
             </a>
           ))}
+
+          {/* Herramientas — dropdown (abre en hover/focus) */}
+          <div
+            data-testid="nav-tools-dropdown"
+            style={{ position: 'relative' }}
+            onMouseEnter={() => setToolsOpen(true)}
+            onMouseLeave={() => setToolsOpen(false)}
+          >
+            <button
+              type="button"
+              data-testid="nav-tools-trigger"
+              aria-haspopup="true"
+              aria-expanded={toolsOpen}
+              onClick={() => setToolsOpen(o => !o)}
+              onFocus={() => setToolsOpen(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13.5,
+                color: toolsOpen ? 'var(--cream)' : 'var(--cream-3)',
+                background: toolsOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
+                border: 'none',
+                padding: '4px 12px',
+                borderRadius: 9999,
+                cursor: 'pointer',
+                transition: 'color 0.2s, background 0.2s',
+              }}
+            >
+              {t('nav.herramientas')}
+              <ChevronDown
+                size={13}
+                style={{ transform: toolsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+              />
+            </button>
+
+            {toolsOpen && (
+              <div
+                data-testid="nav-tools-menu"
+                role="menu"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: 0,
+                  minWidth: 240,
+                  background: 'rgba(10,13,22,0.98)',
+                  backdropFilter: 'blur(24px)',
+                  WebkitBackdropFilter: 'blur(24px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 14,
+                  padding: 8,
+                  boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+                  display: 'flex', flexDirection: 'column', gap: 2,
+                }}
+              >
+                {TOOLS_LINKS.map(tool => (
+                  <a
+                    key={tool.key}
+                    href={tool.href}
+                    role="menuitem"
+                    data-testid={`nav-tool-${tool.key}`}
+                    style={{
+                      fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13.5,
+                      color: 'var(--cream-2)',
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      textDecoration: 'none',
+                      transition: 'color 0.2s, background 0.2s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--cream-2)'; e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    {tool.label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="hidden-mobile">
@@ -214,6 +304,33 @@ export default function Navbar({ onLogin, user, onLogout }) {
               {link.label}
             </a>
           ))}
+
+          {/* Herramientas — sección móvil */}
+          <div
+            data-testid="nav-tools-mobile"
+            style={{
+              marginTop: 8, paddingTop: 18,
+              fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--cream-3)',
+            }}
+          >
+            {t('nav.herramientas')}
+          </div>
+          {TOOLS_LINKS.map(tool => (
+            <a key={tool.key} href={tool.href}
+              data-testid={`nav-tool-mobile-${tool.key}`}
+              style={{
+                fontFamily: 'Outfit', fontWeight: 600, fontSize: 20,
+                color: 'var(--cream-2)', padding: '11px 0',
+                borderBottom: '1px solid var(--border)',
+                textDecoration: 'none',
+              }}
+            >
+              {tool.label}
+            </a>
+          ))}
+
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <LngToggle fullWidth />
             {user ? (

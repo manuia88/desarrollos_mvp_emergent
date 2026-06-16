@@ -259,6 +259,28 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
         log.warning(f"[ai_budget] budget alert check failed: {e}")
 
 
+def ai_disabled_env() -> bool:
+    """Apagador de IA por ENTORNO (emergencia de deploy). `AI_DISABLED=true` corta TODO gasto LLM."""
+    return os.environ.get("AI_DISABLED", "false").strip().lower() in ("1", "true", "yes", "on")
+
+
+async def ai_kill_switch_active(db=None) -> bool:
+    """Kill-switch GLOBAL de IA (regla 6 · fail-closed): activo si `AI_DISABLED` (corte duro de
+    entorno) o el flag de plataforma `platform_config.ai_kill_switch.enabled` (toggle del operador).
+    Si está activo, NINGUNA llamada LLM debe gastar tokens."""
+    if ai_disabled_env():
+        return True
+    if db is None:
+        return False
+    try:
+        doc = await db.platform_config.find_one({"key": "ai_kill_switch"}, {"_id": 0})
+        return bool(doc and doc.get("enabled"))
+    except Exception as e:
+        # El corte DURO es AI_DISABLED (env); el tope por-tenant es fail-closed aparte.
+        log.warning(f"[ai_budget] lectura del kill-switch falló; AI_DISABLED sigue como corte duro: {e}")
+        return False
+
+
 async def is_within_budget(db, dev_org_id: str) -> bool:
     """Returns True if org is within their monthly cap.
 

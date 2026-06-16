@@ -6,7 +6,6 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { getMetaDashboard } from '../../api/accuracy';
 
 const CONF_COLOR = {
@@ -86,11 +85,8 @@ export default function AccuracyTopZonesTicker() {
 
 function TickerItem({ z, t }) {
   const conf = z.confidence_label || 'MEDIA';
-  // Sparkline mock data based on mape — sin endpoint 7d aun, sintetizamos 7 puntos
-  const base = z.mape_30d || 10;
-  const spark = Array.from({ length: 7 }, (_, i) => ({
-    v: Math.max(0, base + (i - 3) * 0.5 + (Math.random() - 0.5) * 1.5),
-  }));
+  // Sin endpoint de serie 7d: mostramos solo el valor puntual real (mape_30d),
+  // nunca una sparkline sintética.
   return (
     <div data-testid={`ticker-zone-${z.zone_slug}`} style={{
       display: 'flex', alignItems: 'center', gap: 10,
@@ -107,13 +103,6 @@ function TickerItem({ z, t }) {
         background: `${CONF_COLOR[conf]}22`, color: CONF_COLOR[conf],
         border: `1px solid ${CONF_COLOR[conf]}66`, letterSpacing: '0.06em',
       }}>{conf}</span>
-      <div style={{ width: 60, height: 22 }}>
-        <ResponsiveContainer>
-          <LineChart data={spark}>
-            <Line type="monotone" dataKey="v" stroke={CONF_COLOR[conf]} strokeWidth={1.4} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
     </div>
   );
 }

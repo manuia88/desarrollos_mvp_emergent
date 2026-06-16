@@ -4,15 +4,19 @@ Schema buyer_scores:
   {id, user_id, score (0-100), tier (hot|warm|cold),
    components: {behavioral_pct, match_pct, coach_stage_pct, quiz_completed_pct,
                 favoritos_pct, visitas_pct, apify_enrichment_pct},
+   unavailable: [dims sin fuente real],
    computed_at, prev_score, delta_pct}  ← delta_pct = new_score - prev_score (puntos absolutos)
 
-Apify en STUB MODE si APIFY_API_TOKEN ausente.
+Honestidad de fuente (doctrina Fable5 · regla 7): si Apify NO tiene señal real
+(sin APIFY_API_TOKEN o sin implementación), la dimensión queda ESPERANDO-FUENTE
+(available=False) y NO aporta un número inventado al score. En ese caso se EXCLUYE
+y se renormalizan los pesos de las demás dimensiones (mismo criterio que cualquier
+otra dimensión faltante).
 """
 from __future__ import annotations
 
 import logging
 import os
-import random
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -48,25 +52,38 @@ def _score_id() -> str:
     return f"bscore_{secrets.token_urlsafe(8)}"
 
 
-# ─── Componente Apify (STUB determinista cuando token ausente) ─────────────────
+# ─── Componente Apify (esperando-fuente · NUNCA inventa el valor) ──────────────
 
-def _apify_external_searches(user_id: str) -> int:
-    """Retorna conteo de búsquedas externas simuladas de forma determinista por user_id."""
+def _apify_external_searches(user_id: str) -> Optional[int]:
+    """Conteo real de búsquedas externas vía Apify, o None si NO hay fuente.
+
+    Honestidad de fuente: devolver None significa "esperando-fuente" → la dimensión
+    se excluye del score (no contamina con un número inventado). Solo retorna un
+    entero cuando exista señal REAL de Apify. Hoy no hay actor conectado, así que
+    siempre es None hasta que se implemente la consulta real.
+    """
     token = os.getenv("APIFY_API_TOKEN", "")
     if not token:
-        stub_val = random.Random(user_id).randint(0, 10)
-        log.warning(f"[buyer_score] apify STUB mode · user={user_id} · stub={stub_val}")
-        return stub_val
-    # TODO: query real Apify actor cuando token esté presente
-    log.warning(f"[buyer_score] apify STUB mode (token presente pero implementación pendiente) · user={user_id}")
-    return random.Random(user_id).randint(0, 10)
+        log.info(f"[buyer_score] apify esperando-fuente (sin APIFY_API_TOKEN) · user={user_id}")
+        return None
+    # TODO: query real Apify actor cuando token esté presente. Mientras no exista la
+    # consulta real, NO inventamos un valor: queda esperando-fuente (None).
+    log.info(f"[buyer_score] apify esperando-fuente (token presente, consulta real pendiente) · user={user_id}")
+    return None
 
 
 # ─── Motor principal ──────────────────────────────────────────────────────────
 
 async def compute_user_score(db, user_id: str) -> Dict[str, Any]:
-    """Calcula score 0-100 del buyer en 7 dimensiones. Siempre retorna dict válido."""
+    """Calcula score 0-100 del buyer en hasta 7 dimensiones. Siempre retorna dict válido.
+
+    Las dimensiones sin fuente real (esperando-fuente) se listan en `unavailable` y
+    se EXCLUYEN del cálculo: los pesos de las dimensiones disponibles se renormalizan
+    para que sumen 1.0, de modo que una fuente faltante nunca contamina el score con
+    un valor inventado ni lo arrastra a 0.
+    """
     comps: Dict[str, float] = {}
+    unavailable: list[str] = []  # dimensiones esperando-fuente (sin dato real)
     since_30d = _now() - timedelta(days=30)
 
     # ── 1. Behavioral (25%) ──────────────────────────────────────────────────
@@ -131,16 +148,27 @@ async def compute_user_score(db, user_id: str) -> Dict[str, Any]:
         log.warning(f"[buyer_score] visitas failed for {user_id}: {exc}")
         comps["visitas_pct"] = 0.0
 
-    # ── 7. Apify Enrichment (5%) ─────────────────────────────────────────────
+    # ── 7. Apify Enrichment (5%) · esperando-fuente si no hay señal real ──────
     try:
         apify_count = _apify_external_searches(user_id)
-        comps["apify_enrichment_pct"] = min(apify_count / _APIFY_CAP, 1.0) * 100
+        if apify_count is None:
+            # Sin fuente real → NO inventamos valor. Se excluye del score y se
+            # marca esperando-fuente (los pesos restantes se renormalizan abajo).
+            unavailable.append("apify_enrichment_pct")
+        else:
+            comps["apify_enrichment_pct"] = min(apify_count / _APIFY_CAP, 1.0) * 100
     except Exception as exc:
         log.warning(f"[buyer_score] apify failed for {user_id}: {exc}")
-        comps["apify_enrichment_pct"] = 0.0
+        unavailable.append("apify_enrichment_pct")
 
-    # ── Score final ──────────────────────────────────────────────────────────
-    score = sum(comps[k] * WEIGHTS[k] for k in WEIGHTS)
+    # ── Score final · renormaliza sobre las dimensiones DISPONIBLES ───────────
+    # Las dimensiones esperando-fuente quedan fuera del numerador y del denominador,
+    # de modo que un dato faltante no contamina (ni un RNG, ni un 0 forzado).
+    active_weight = sum(WEIGHTS[k] for k in comps)
+    if active_weight > 0:
+        score = sum(comps[k] * WEIGHTS[k] for k in comps) / active_weight
+    else:
+        score = 0.0
     score = round(min(max(score, 0.0), 100.0), 1)
 
     tier = "hot" if score >= _TIER_HOT else ("warm" if score >= _TIER_WARM else "cold")
@@ -149,6 +177,7 @@ async def compute_user_score(db, user_id: str) -> Dict[str, Any]:
         "score": score,
         "tier": tier,
         "components": {k: round(v, 1) for k, v in comps.items()},
+        "unavailable": unavailable,  # dimensiones esperando-fuente (visibles, sin contaminar)
     }
 
 
@@ -166,6 +195,7 @@ async def upsert_score(db, user_id: str, score_data: Dict[str, Any]) -> Dict[str
         "score":       new_score,
         "tier":        score_data["tier"],
         "components":  score_data.get("components", {}),
+        "unavailable": score_data.get("unavailable", []),  # dims esperando-fuente
         "computed_at": _now(),
         "prev_score":  prev_score,
         "delta_pct":   delta_pct,

@@ -1227,15 +1227,15 @@ class AsistenteEngine:
         # ── Tope de presupuesto ANTES de llamar al LLM ─────────────────────────
         # Cierra el vector de drenaje del chat público: antes el costo solo se rastreaba
         # DESPUÉS de la llamada, así que alguien podía vaciar el presupuesto spameando. Si la
-        # org rebasó su tope mensual (ai_budget), NO llamamos al modelo: respondemos degradado
-        # y ofrecemos asesor humano. within_budget es fail-open (si no hay tope configurado,
-        # permite) — aceptable: el cap default existe (DEFAULT_CAP_MXN).
+        # org rebasó su tope mensual (ai_budget) o la IA está cortada (kill-switch global), NO
+        # llamamos al modelo: respondemos degradado y ofrecemos asesor humano. within_budget es
+        # FAIL-CLOSED (kill-switch + tope; estado desconocido = no gastar).
         _budget_ok = True
         try:
             from services.llm_guard import within_budget
             _budget_ok = await within_budget(self.db, org_id or "default")
         except Exception:
-            _budget_ok = True
+            _budget_ok = False  # fail-closed: si la gobernanza no se puede evaluar, no gastes IA
 
         t0 = time.monotonic()
         if not _budget_ok:

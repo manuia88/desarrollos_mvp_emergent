@@ -4,6 +4,18 @@
     "propiedades": "Propiedades",
     "inteligencia": "Inteligencia",
     "asesores": "Asesores",
+    "herramientas": "Herramientas",
+    "tools": {
+      "simulador": "Simulador de inversión",
+      "tax": "Calculadora de impuestos",
+      "comparador": "Comparador",
+      "probabilidades": "Probabilidades",
+      "vibra": "Quiz de vibra",
+      "valores": "Valor de mi propiedad",
+      "confianza": "Confianza",
+      "mcp": "Conectar con IA",
+      "prensa": "Prensa"
+    },
     "login": "Entrar",
     "logout": "Cerrar sesión",
     "explore": "Abrir mapa",

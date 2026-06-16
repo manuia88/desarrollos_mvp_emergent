@@ -15,9 +15,16 @@ Diseñado para el estado final: cuando el seed/real traiga `org_id`/`developer_i
 por desarrollo, el match es exacto y multi-tenant de verdad. Mientras, el fallback
 demo mantiene la app viva sin filtrar dato ajeno de más.
 """
+import os
 from typing import List
 
 SUPERADMIN_ROLES = {"superadmin"}
+
+
+def _demo_mode() -> bool:
+    """En demo/dev (DMX_DEV_MODE=true) los fallbacks acotados mantienen viva la app con seed
+    sin org_id. En producción NO aplican: el aislamiento es fail-closed (regla 5)."""
+    return os.environ.get("DMX_DEV_MODE", "false").strip().lower() == "true"
 
 
 def _field(user, key, default=None):
@@ -74,8 +81,11 @@ def user_dev_ids(user) -> List[str]:
         if legacy:
             return legacy
 
-    # (4) fallback seguro — acotado, sin fuga cross-tenant
-    return [d["id"] for d in DEVELOPMENTS[:2]]
+    # (4) fallback: SOLO en demo (DMX_DEV_MODE) un slice acotado mantiene viva la app con seed
+    #     sin org_id. En producción NIEGA (fail-closed, regla 5): sin tenant real → nada ajeno.
+    if _demo_mode():
+        return [d["id"] for d in DEVELOPMENTS[:2]]
+    return []
 
 
 # ─── Candados de propiedad (Fase 2.1 · aislamiento cross-dev-org) ────────────────
@@ -123,7 +133,10 @@ async def assert_lead_owner(db, user, lead_id):
               lead.get("owner_id"), lead.get("assigned_to")}
     owners.discard(None)
     if not owners:
-        return  # legacy/demo sin tenant → no bloquear
+        # Lead sin dueño: en demo no bloquea; en producción NIEGA (fail-closed, regla 5).
+        if _demo_mode():
+            return
+        raise HTTPException(403, "Lead sin dueño asignado")
     if tenant_of(user) in owners or actor_id(user) in owners:
         return
     raise HTTPException(403, "Este lead es de otra cuenta")

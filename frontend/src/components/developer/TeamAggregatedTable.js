@@ -258,39 +258,9 @@ function KPI({ label, value, testId }) {
   );
 }
 
-/* ── Drawer with mock 90d timeseries ──────────────────────────────────── */
-
-function genMockTimeseries(days = 90) {
-  const out = [];
-  const today = new Date();
-  let val = 40 + Math.random() * 30;
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    val = Math.max(10, Math.min(95, val + (Math.random() - 0.48) * 8));
-    out.push({ date: d.toISOString().slice(0, 10), value: Math.round(val) });
-  }
-  return out;
-}
-
-function Sparkline({ data, color = 'var(--cream)' }) {
-  if (!data?.length) return null;
-  const w = 420, h = 80;
-  const xs = data.map((_, i) => (i / (data.length - 1)) * w);
-  const max = Math.max(...data.map(d => d.value));
-  const min = Math.min(...data.map(d => d.value));
-  const range = max - min || 1;
-  const ys = data.map(d => h - ((d.value - min) / range) * h);
-  const points = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
-  return (
-    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-    </svg>
-  );
-}
+/* ── Drawer ───────────────────────────────────────────────────────────── */
 
 function AsesorDrawer({ asesor, period, onClose }) {
-  const ts = useMemo(() => genMockTimeseries(90), [asesor.asesor_id]);
   return (
     <>
       <div data-testid="asesor-drawer-overlay"
@@ -320,7 +290,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
           </h2>
         </div>
         <p style={{ margin: '0 0 18px', fontSize: 12, color: 'var(--cream-3)' }}>
-          Tendencia 90 días · período activo: {PERIOD_LABEL[period]}
+          Período activo: {PERIOD_LABEL[period]}
         </p>
         <div data-testid="asesor-drawer-timeseries"
              style={{
@@ -333,9 +303,14 @@ function AsesorDrawer({ asesor, period, onClose }) {
             fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--cream-3)', marginBottom: 6,
           }}>
-            Pipeline value (90d, demo)
+            Tendencia 90 días
           </div>
-          <Sparkline data={ts} color="var(--theme)" />
+          <div style={{
+            padding: '18px 12px', textAlign: 'center',
+            fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
+          }}>
+            Sin datos suficientes para graficar la tendencia.
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           <KPI label="Pipeline" value={fmtMXN(asesor.pipeline_value_mxn)} />
@@ -346,7 +321,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
           <KPI label="Tours completos" value={fmtNum(asesor.tours_completed)} />
         </div>
         <div style={{ marginTop: 12, fontSize: 11, color: 'var(--cream-3)' }}>
-          La serie temporal mostrada es demostrativa hasta que el endpoint
+          La tendencia 90 días aparecerá cuando el endpoint
           <code> /api/metrics/asesor/{asesor.asesor_id}/timeseries</code> esté disponible.
         </div>
       </aside>

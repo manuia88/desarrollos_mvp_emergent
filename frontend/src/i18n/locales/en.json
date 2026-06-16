@@ -4,6 +4,18 @@
     "propiedades": "Properties",
     "inteligencia": "Intelligence",
     "asesores": "Advisors",
+    "herramientas": "Tools",
+    "tools": {
+      "simulador": "Investment simulator",
+      "tax": "Tax calculator",
+      "comparador": "Compare",
+      "probabilidades": "Probabilities",
+      "vibra": "Vibe quiz",
+      "valores": "Value my property",
+      "confianza": "Trust",
+      "mcp": "Connect with AI",
+      "prensa": "Press"
+    },
     "login": "Sign in",
     "logout": "Sign out",
     "explore": "Open map",

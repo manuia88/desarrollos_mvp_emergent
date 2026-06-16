@@ -81,6 +81,9 @@ export function SocialAdsCampaignsPageBody() {
   const [campaigns, setCampaigns] = useState([]);
   const [totals, setTotals] = useState({});
   const [perf, setPerf] = useState([]);
+  // Honestidad de fuente: true mientras Meta Ads API no esté conectada · las métricas
+  // mostradas son de demostración, no datos reales de campañas.
+  const [isDemo, setIsDemo] = useState(true);
   const [budget, setBudget] = useState(null);
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -118,6 +121,8 @@ export function SocialAdsCampaignsPageBody() {
       if (cRes.ok) {
         setCampaigns(cRes.body.campaigns || []);
         setTotals(cRes.body.totals || {});
+        // stub=true (o data_source 'demo') ⇒ métricas de demostración, no reales.
+        setIsDemo(cRes.body.stub !== false && cRes.body.data_source !== 'meta_ads');
       }
       if (pRes.ok) setPerf(pRes.body.series || []);
     } catch {
@@ -177,6 +182,24 @@ export function SocialAdsCampaignsPageBody() {
           </div>
         ) : (
           <>
+            {/* Honestidad de fuente · banner datos de demostración (Meta Ads no conectada) */}
+            {isDemo && (
+              <div
+                data-testid="social-ads-demo-banner"
+                style={{
+                  padding: '10px 16px', borderRadius: 12, marginBottom: 16,
+                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5,
+                  background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)', color: '#FCD34D',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 9999, background: 'currentColor', flexShrink: 0 }} />
+                {t(
+                  'socialAds.campaigns.demoBanner',
+                  'Datos de demostración · esperando conexión con Meta Ads. Las métricas (gasto, impresiones, CPC, conversiones) son de ejemplo, no de campañas reales.'
+                )}
+              </div>
+            )}
+
             {/* Controls */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', marginBottom: 18 }}>
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, color: MUTED }}>

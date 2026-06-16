@@ -526,6 +526,34 @@ _CODE_MAP = {
     "P6": ["IE_PROY_AMENIDADES"],
 }
 
+# ── Ley #4 (nada calculado-pero-oculto): los 9 scores IE_PROY que el motor SÍ calcula
+# pero que NO entran en los 12 indicadores agrupados. Se surfacean tal cual, con su valor
+# real y estado honesto (o "esperando dato" si aún no se computó). NO se inventa nada:
+# si el motor no tiene el score, value=None → banda "Sin Dato Aún".
+# kind="band"   → score 0-100, se muestra como banda honesta.
+# kind="dias"   → días estimados (no es /100), se muestra el número crudo + unidad.
+# kind="pct"    → porcentaje (ROI), idem.
+_EXTRA_PROJECT_SCORES = [
+    {"code": "IE_PROY_SCORE_VS_CIUDAD", "name": "Score vs la Ciudad",
+     "kind": "band", "powers": "Cómo se compara la zona del proyecto contra el promedio de CDMX."},
+    {"code": "IE_PROY_SCORE_VS_NACIONAL", "name": "Score vs Benchmark CDMX",
+     "kind": "band", "powers": "Posición de la zona vs el benchmark de referencia de la ciudad."},
+    {"code": "IE_PROY_TIPO_FIT_COLONIA", "name": "Encaje del Tipo en la Zona",
+     "kind": "band", "powers": "Qué tanto encaja el tipo de proyecto con lo que pide la colonia."},
+    {"code": "IE_PROY_INVENTORY_DEPTH_RELATIVE", "name": "Tamaño vs la Zona",
+     "kind": "band", "powers": "Tamaño del proyecto comparado con el promedio de la colonia."},
+    {"code": "IE_PROY_RECENCY_LAUNCH", "name": "Frescura del Lanzamiento",
+     "kind": "band", "powers": "Qué tan reciente es el proyecto frente a sus competidores de la zona."},
+    {"code": "IE_PROY_RISK_LEGAL", "name": "Riesgo Legal de Documentos",
+     "kind": "band", "powers": "Resultado del cruce legal de los documentos del proyecto."},
+    {"code": "IE_PROY_COMPLIANCE_SCORE", "name": "Cumplimiento Documental",
+     "kind": "band", "powers": "% de reglas de cumplimiento aprobadas con los documentos disponibles."},
+    {"code": "IE_PROY_DAYS_TO_SELLOUT", "name": "Días para Agotar Inventario",
+     "kind": "dias", "powers": "Estimación de días para vender el inventario restante."},
+    {"code": "IE_PROY_ROI_BUYER", "name": "ROI Estimado del Comprador (5 años)",
+     "kind": "pct", "powers": "Retorno estimado a 5 años para quien compra (plusvalía + renta − costos)."},
+]
+
 
 def _avg_real(d: dict, codes: list):
     """Promedio (clamp 0-100) de los scores reales presentes para un indicador. None si ninguno."""
@@ -625,6 +653,51 @@ async def ie_project_breakdown(project_id: str, request: Request):
     overall_band = _mn.band_from_abs(overall if overall_scores else None)
     any_estimado = any(s["es_estimado"] for c in categories for s in c["scores"])
 
+    # ── Ley #4: surfacea los 9 scores IE_PROY que el motor calcula y que NO entran en
+    # los 12 indicadores agrupados. Lee el doc REAL (incluye stubs) y muestra estado honesto:
+    # con valor real (banda/número) o "Esperando dato" si aún no se computó / es stub. Cero invención.
+    _extra_codes = [e["code"] for e in _EXTRA_PROJECT_SCORES]
+    _extra_docs: Dict[str, Dict[str, Any]] = {}
+    async for s in db.ie_scores.find(
+        {"zone_id": project_id, "code": {"$in": _extra_codes}},
+        {"_id": 0, "code": 1, "value": 1, "is_stub": 1, "confidence": 1},
+    ):
+        _extra_docs[s["code"]] = s
+
+    extra_scores = []
+    for meta in _EXTRA_PROJECT_SCORES:
+        doc = _extra_docs.get(meta["code"]) or {}
+        has_real = (not doc.get("is_stub", True)) and (doc.get("value") is not None)
+        val = float(doc["value"]) if has_real else None
+        item = {
+            "code": meta["code"],
+            "name": meta["name"],
+            "powers": meta["powers"],
+            "kind": meta["kind"],
+            "estado": "real" if has_real else "esperando",
+            "estado_motivo": None if has_real else "El motor aún no tiene este dato para tu proyecto.",
+        }
+        if meta["kind"] == "band":
+            band = _mn.band_from_abs(val)
+            item.update({
+                "etiqueta": band["etiqueta"], "color": band["color"],
+                "valor_barra": round(val, 1) if val is not None else None,
+            })
+        elif meta["kind"] == "dias":
+            item.update({
+                "etiqueta": (f"{int(round(val))} días" if val is not None else "Esperando dato"),
+                "color": "neutro", "valor_crudo": round(val, 1) if val is not None else None, "unidad": "días",
+            })
+        else:  # pct (ROI)
+            item.update({
+                "etiqueta": (f"{val:+.1f}%" if val is not None else "Esperando dato"),
+                "color": ("verde" if (val or 0) >= 15 else "rojo" if (val or 0) < 0 else "ambar") if val is not None else "neutro",
+                "valor_crudo": round(val, 1) if val is not None else None, "unidad": "%",
+            })
+        extra_scores.append(item)
+
+    extra_real_count = sum(1 for e in extra_scores if e["estado"] == "real")
+
     # ML event
     try:
         from observability import emit_ml_event
@@ -649,6 +722,9 @@ async def ie_project_breakdown(project_id: str, request: Request):
         "leyenda": ("Lectura de la zona en bandas — es una guía, no una calificación exacta."
                     + (" Algunos indicadores aún se estiman con el dato real de la zona." if any_estimado else "")),
         "categories": categories,
+        # Ley #4: scores que el motor calcula y antes no se mostraban en esta página.
+        "extra_scores": extra_scores,
+        "extra_real_count": extra_real_count,
         "generated_at": _now().isoformat(),
     }
     # Apply data scoping — hides engagement_metrics for lower roles

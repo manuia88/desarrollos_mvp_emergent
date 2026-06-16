@@ -9,6 +9,7 @@
  * is applied as soon as the user session is established.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { hasSession, onSessionChange } from '../utils/sessionState';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const VALID = ['comfortable', 'compact', 'spacious'];
@@ -37,22 +38,28 @@ async function fetchDensity() {
 export function useDensity() {
   const [density, setDensityState] = useState(_cache || 'comfortable');
 
-  // Load once on mount
+  // Load once on mount — solo con sesión confirmada (evita 401 espurio sin login).
   useEffect(() => {
     if (_cache !== null) {
       applyBodyClass(_cache);
       setDensityState(_cache);
       return;
     }
-    if (!_promise) {
-      _promise = fetchDensity()
-        .then(d => { _cache = d; return d; })
-        .catch(() => { _cache = 'comfortable'; return 'comfortable'; });
-    }
-    _promise.then(d => {
-      setDensityState(d);
-      applyBodyClass(d);
-    });
+    const load = () => {
+      if (!_promise) {
+        _promise = fetchDensity()
+          .then(d => { _cache = d; return d; })
+          .catch(() => { _cache = 'comfortable'; return 'comfortable'; });
+      }
+      _promise.then(d => {
+        setDensityState(d);
+        applyBodyClass(d);
+      });
+    };
+    if (hasSession()) { load(); return; }
+    // Sin sesión: queda en el default 'comfortable' ya aplicado; carga al confirmarse.
+    const unsub = onSessionChange((active) => { if (active && _cache === null) load(); });
+    return unsub;
   }, []);
 
   // Keep body class synced with state
