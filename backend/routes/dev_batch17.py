@@ -558,6 +558,8 @@ async def reorder_documents(dev_id: str, body: ReorderIn, request: Request):
     if user.role not in ("developer_admin", "developer_director", "developer_member",
                           "superadmin"):
         raise HTTPException(403, "Sin permiso")
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, dev_id)   # no reordenar documentos de otra dev (el hermano prototypes/reorder ya lo hace)
     db = _db(request)
     return await _reorder_generic(
         db, "di_documents", "id",

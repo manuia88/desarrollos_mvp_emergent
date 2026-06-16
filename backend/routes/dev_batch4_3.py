@@ -655,6 +655,10 @@ async def cita_post_action(apt_id: str, payload: PostActionBody, request: Reques
     is_admin = user.role in ("developer_admin", "superadmin")
     if not (is_own or is_admin):
         raise HTTPException(403, "Solo el asesor asignado o admin pueden ejecutar post-action")
+    # El developer_admin solo sobre citas de SU dev-org (antes la rama admin saltaba el chequeo).
+    if is_admin and user.role != "superadmin":
+        from tenant_scope import assert_dev_org
+        assert_dev_org(user, apt.get("dev_org_id"))
 
     now_iso = _now().isoformat()
 
@@ -746,6 +750,10 @@ async def lead_followup(lead_id: str, payload: FollowupBody, request: Request):
         raise HTTPException(404, "Lead no encontrado")
     if lead.get("assigned_to") != user.user_id and user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo el asesor asignado o admin puede responder")
+    # El developer_admin solo sobre leads de SU dev-org (antes la rama admin saltaba el chequeo).
+    if user.role == "developer_admin":
+        from tenant_scope import assert_dev_org
+        assert_dev_org(user, lead.get("dev_org_id"))
 
     now_iso = _now().isoformat()
     update: Dict[str, Any] = {"updated_at": now_iso, "last_activity_at": now_iso}

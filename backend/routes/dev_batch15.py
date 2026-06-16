@@ -214,6 +214,8 @@ async def post_availability(body: AvailabilityIn, request: Request):
 async def post_auto_assign(body: AutoAssignIn, request: Request):
     """Auto-assign lead to asesor slot based on project policy."""
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, body.project_id)   # no agendar en el pool de asesores de otra dev
     db = _db(request)
 
     from availability import assign_appointment

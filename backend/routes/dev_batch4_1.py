@@ -1387,6 +1387,10 @@ async def patch_cita(apt_id: str, payload: CitaPatch, request: Request):
     is_admin = user.role in ("developer_admin", "superadmin")
     if not (is_own_asesor or is_admin):
         raise HTTPException(403, "Sin permisos para modificar esta cita")
+    # El developer_admin solo sobre citas de SU dev-org (antes la rama admin saltaba este chequeo).
+    if is_admin and user.role != "superadmin":
+        from tenant_scope import assert_dev_org
+        assert_dev_org(user, apt.get("dev_org_id"))
 
     patch: Dict[str, Any] = {}
     data = payload.model_dump(exclude_unset=True)
@@ -1579,6 +1583,8 @@ async def create_inm_asesor(payload: InmAsesorCreate, request: Request):
     if payload.role not in INM_ROLES:
         raise HTTPException(422, f"role inválido: {INM_ROLES}")
     inm_id = payload.inmobiliaria_id or "dmx_root"
+    from tenant_scope import assert_inm_owner
+    assert_inm_owner(user, inm_id)   # no crear usuarios en la inmobiliaria de otra cuenta
     inm = await db.inmobiliarias.find_one({"id": inm_id}, {"_id": 0, "id": 1})
     if not inm:
         raise HTTPException(404, f"Inmobiliaria '{inm_id}' no encontrada")
@@ -1616,8 +1622,10 @@ async def list_inm_asesores(
     inmobiliaria_id: Optional[str] = Query("dmx_root"),
     status: Optional[str] = None,
 ):
-    await _auth_inm(request)
+    user = await _auth_inm(request)
     db = _db(request)
+    from tenant_scope import assert_inm_owner
+    assert_inm_owner(user, inmobiliaria_id or "dmx_root")   # no listar usuarios (PII) de otra inmobiliaria
     q: Dict[str, Any] = {"inmobiliaria_id": inmobiliaria_id or "dmx_root"}
     if status:
         q["status"] = status
@@ -1632,6 +1640,8 @@ async def patch_inm_asesor(user_id: str, payload: InmAsesorPatch, request: Reque
     existing = await db.inmobiliaria_internal_users.find_one({"id": user_id}, {"_id": 0})
     if not existing:
         raise HTTPException(404, "Usuario no encontrado")
+    from tenant_scope import assert_inm_owner
+    assert_inm_owner(user, existing.get("inmobiliaria_id"))   # no editar usuarios de otra inmobiliaria
     patch: Dict[str, Any] = {}
     data = payload.model_dump(exclude_unset=True)
     if "role" in data and data["role"]:
@@ -1665,6 +1675,8 @@ async def disable_inm_asesor(user_id: str, request: Request):
     existing = await db.inmobiliaria_internal_users.find_one({"id": user_id}, {"_id": 0})
     if not existing:
         raise HTTPException(404, "Usuario no encontrado")
+    from tenant_scope import assert_inm_owner
+    assert_inm_owner(user, existing.get("inmobiliaria_id"))   # no deshabilitar usuarios de otra inmobiliaria
     now_iso = _now().isoformat()
     await db.inmobiliaria_internal_users.update_one({"id": user_id}, {"$set": {"status": "disabled", "updated_at": now_iso}})
     await _safe_audit_ml(
@@ -1684,8 +1696,10 @@ async def inmobiliaria_dashboard(
     period: str = Query("30d"),
     inmobiliaria_id: str = Query("dmx_root"),
 ):
-    await _auth_inm(request)
+    user = await _auth_inm(request)
     db = _db(request)
+    from tenant_scope import assert_inm_owner
+    assert_inm_owner(user, inmobiliaria_id)   # no ver métricas/PII de otra inmobiliaria
     days_map = {"7d": 7, "30d": 30, "90d": 90, "all_time": 365 * 10}
     days = days_map.get(period, 30)
     since = (_now() - timedelta(days=days)).isoformat()
@@ -1754,9 +1768,12 @@ async def inmobiliaria_dashboard(
 # ═════════════════════════════════════════════════════════════════════════════
 @router.get("/api/inmobiliaria/list")
 async def list_inmobiliarias(request: Request):
-    await _auth_inm(request)
+    user = await _auth_inm(request)
     db = _db(request)
-    items = await db.inmobiliarias.find({}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    from tenant_scope import is_superadmin, inm_of
+    # superadmin ve todas; el resto solo la suya (antes find({}) las exponía todas).
+    q = {} if is_superadmin(user) else {"id": inm_of(user)}
+    items = await db.inmobiliarias.find(q, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
     return {"items": items}
 
 

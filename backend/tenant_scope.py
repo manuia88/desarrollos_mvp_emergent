@@ -140,3 +140,51 @@ async def assert_lead_owner(db, user, lead_id):
     if tenant_of(user) in owners or actor_id(user) in owners:
         return
     raise HTTPException(403, "Este lead es de otra cuenta")
+
+
+async def assert_db_project_owner(db, user, project_id, *, not_found="Proyecto no encontrado"):
+    """Db-aware: 403/404 si el proyecto (db.projects o db.developments) no es del tenant del
+    usuario. Úsalo para proyectos creados en BD (wizard), donde assert_dev_project — que valida
+    contra el SEED en memoria — daría falso 403 al dueño legítimo."""
+    from fastapi import HTTPException
+    if is_superadmin(user):
+        return
+    proj = await db.projects.find_one(
+        {"id": project_id}, {"_id": 0, "dev_org_id": 1, "tenant_id": 1})
+    if not proj:
+        proj = await db.developments.find_one(
+            {"id": project_id},
+            {"_id": 0, "dev_org_id": 1, "tenant_id": 1, "developer_id": 1, "org_id": 1})
+    if not proj:
+        raise HTTPException(404, not_found)
+    owners = {proj.get("dev_org_id"), proj.get("tenant_id"),
+              proj.get("developer_id"), proj.get("org_id")}
+    owners.discard(None)
+    if not owners:
+        if _demo_mode():
+            return
+        raise HTTPException(403, "Proyecto sin dueño asignado")
+    if tenant_of(user) in owners:
+        return
+    raise HTTPException(403, "Este proyecto es de otra desarrolladora")
+
+
+# ─── Eje INMOBILIARIA (paralelo al eje dev-org) ─────────────────────────────────
+def inm_of(user) -> str:
+    """Inmobiliaria del usuario. Punto único de resolución del eje inmobiliaria."""
+    return (_field(user, "inmobiliaria_id") or _field(user, "tenant_id")
+            or _field(user, "org_id") or "default")
+
+
+def assert_inm_owner(user, inmobiliaria_id):
+    """403 si el usuario no pertenece a esa inmobiliaria (o superadmin). Cierra el eje inmobiliaria
+    (create/patch/delete/list de usuarios internos). En demo NO bloquea (un solo tenant dmx_root);
+    en producción es fail-closed (regla 5)."""
+    from fastapi import HTTPException
+    if is_superadmin(user):
+        return
+    if inmobiliaria_id and inmobiliaria_id == inm_of(user):
+        return
+    if _demo_mode():
+        return
+    raise HTTPException(403, "Esta inmobiliaria es de otra cuenta")

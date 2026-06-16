@@ -100,6 +100,8 @@ async def duplicate_project_endpoint(body: DuplicateIn, request: Request):
     _check_rate(_client_ip(request))
     user = await _require_dev_or_superadmin(request)
     db = request.app.state.db
+    from tenant_scope import assert_db_project_owner
+    await assert_db_project_owner(db, user, body.source_id)   # no forkear proyecto de otra dev
     actor = {
         "user_id": getattr(user, "user_id", "unknown"),
         "role": getattr(user, "role", "unknown"),
@@ -134,6 +136,8 @@ async def mark_as_template_endpoint(project_id: str, body: MarkTemplateIn, reque
     _check_rate(_client_ip(request))
     user = await _require_dev_or_superadmin(request)
     db = request.app.state.db
+    from tenant_scope import assert_db_project_owner
+    await assert_db_project_owner(db, user, project_id)   # no marcar/exponer como template proyecto ajeno
     actor = {
         "user_id": getattr(user, "user_id", "unknown"),
         "role": getattr(user, "role", "unknown"),

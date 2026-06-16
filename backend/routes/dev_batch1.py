@@ -252,6 +252,8 @@ class BulkCommitPayload(BaseModel):
 async def bulk_commit(payload: BulkCommitPayload, request: Request):
     """Persist validated batch into developer_unit_overrides."""
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, payload.dev_id)   # no sobrescribir inventario de otra dev
     db = _db(request)
 
     valid_rows = [r for r in payload.rows if r.get("valid")]
@@ -1073,6 +1075,8 @@ async def _ensure_hold_index(db):
 @router.post("/units/{unit_id}/hold")
 async def create_hold(unit_id: str, payload: HoldPayload, request: Request):
     user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, payload.dev_id)   # no apartar unidades de otra dev (el gemelo DELETE ya lo hace)
     db = _db(request)
     await _ensure_hold_index(db)
 
@@ -1155,6 +1159,10 @@ async def get_hold(unit_id: str, request: Request):
     db = _db(request)
     hold = await db.unit_holds.find_one({"unit_id": unit_id, "status": "active"}, {"_id": 0})
     if not hold:
+        return {"active": False, "unit_id": unit_id}
+    # No revelar datos del apartado (holder/razón/vencimiento) de otra dev.
+    from tenant_scope import dev_can_access_project
+    if not dev_can_access_project(user, hold.get("dev_id")):
         return {"active": False, "unit_id": unit_id}
     # Compute remaining seconds
     try:
