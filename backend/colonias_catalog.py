@@ -428,7 +428,17 @@ async def sync_business_density(db, city: str = "CDMX", source: str = "osm",
     `limit` acota la corrida del botón; el cron cubre el catálogo completo."""
     sincronizadas = con_datos = 0
     rad = radius_m or (700 if source == "osm" else 1500)
-    cur = db.colonias.find({"city": city, "center": {"$ne": None}}, {"_id": 0, "id": 1, "center": 1})
+    # Avanza: salta las colonias que YA tienen densidad OSM (así el barrido/cron progresa a
+    # colonias NUEVAS en vez de re-hacer siempre las primeras `limit`). El refresco lo da la
+    # caché ≤24h del motor; un re-sync forzado se hace borrando denue_zone_density.
+    try:
+        _synced = await db.denue_zone_density.distinct("zone_id")
+    except Exception:
+        _synced = []
+    _q = {"city": city, "center": {"$ne": None}}
+    if _synced:
+        _q["id"] = {"$nin": list(_synced)}
+    cur = db.colonias.find(_q, {"_id": 0, "id": 1, "center": 1})
     async for c in cur:
         if sincronizadas >= limit:
             log.warning(f"[colonias_catalog] sync densidad alcanzó el tope {limit} · {city}")
