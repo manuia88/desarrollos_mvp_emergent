@@ -40,11 +40,11 @@ export const generateVideo = async ({ script, image_url, provider, duration_sec 
 };
 
 /**
- * POST /api/studio-video/generate-script
+ * POST /api/studio/video/script  (endpoint real; usa property_id · `hint` lo ignora por ahora)
  */
 export const generateScript = async ({ property_id, hint }) => {
   try {
-    const r = await fetch(`${BASE}/api/studio-video/generate-script`, {
+    const r = await fetch(`${BASE}/api/studio/video/script`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

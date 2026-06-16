@@ -238,7 +238,7 @@ async def _client_score(db, entity_id: str) -> Dict[str, Any]:
 
     # 2. Engagement (30%)
     timeline_count = len(contact.get("timeline", []))
-    citas = await db.asesor_citas.count_documents({"contacto_id": entity_id})
+    citas = await db.appointments.count_documents({"contacto_id": entity_id})  # la colección real de citas es appointments
     engagement_s = min(100, timeline_count * 10 + citas * 20)
 
     # 3. Fit score (25%)

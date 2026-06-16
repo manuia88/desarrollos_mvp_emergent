@@ -156,7 +156,7 @@ export default function ContenidoTab({ devId, user }) {
 
   const handleSetCover = async (assetId) => {
     try {
-      await fetch(`${API}/api/desarrollador/developments/${devId}/assets/${assetId}/role`, {
+      await fetch(`${API}/api/dev/projects/${devId}/assets/${assetId}/role`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'cover' }),

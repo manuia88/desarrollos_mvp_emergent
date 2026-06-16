@@ -739,9 +739,9 @@ function Tours3DSection({ projectSlug, devId, user }) {
 
   useEffect(() => {
     // Fetch units for the uploader dropdown (best-effort)
-    fetch(`${API}/api/marketplace/development/${encodeURIComponent(projectSlug)}`)
+    fetch(`${API}/api/developments/${encodeURIComponent(projectSlug)}/units`, { credentials: 'include' })
       .then((r) => r.json())
-      .then((d) => setUnits(Array.isArray(d?.units) ? d.units : []))
+      .then((d) => setUnits(Array.isArray(d) ? d : (Array.isArray(d?.units) ? d.units : [])))
       .catch(() => setUnits([]));
   }, [API, projectSlug]);
 

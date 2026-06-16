@@ -331,7 +331,7 @@ async def _generate_weekly_brief(user_id: str, inmobiliaria_id: str, db) -> Dict
 
     # Pull stats
     new_leads = await db.leads.count_documents({"created_at": {"$gte": since_7d}})
-    citas_count = await db.asesor_citas.count_documents({"created_at": {"$gte": since_7d}})
+    citas_count = await db.appointments.count_documents({"created_at": {"$gte": since_7d}})  # citas reales = appointments
     sales_count = await db.audit_log.count_documents({
         "entity_type": "unit",
         "action": "update",
