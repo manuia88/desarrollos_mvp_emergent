@@ -193,12 +193,13 @@ async def superadmin_colonias_coverage(request: Request):
 async def superadmin_colonias_ingest(
     request: Request,
     city: str = Query("CDMX", description="ciudad a cargar"),
+    source: str = Query("fgj", description="fgj (deriva de crimen) | geojson/ckan (catálogo oficial completo)"),
 ):
-    """Carga el catálogo oficial de colonias de una ciudad (EX.1). Sin fuente configurada,
-    responde con la instrucción de qué env var poner (no-op honesto)."""
+    """Carga el catálogo oficial de colonias de una ciudad (EX.1). source=geojson usa el
+    catálogo oficial completo (IE_COLONIAS_CDMX_URL, ~1,543). Sin fuente → instrucción honesta."""
     await _sa(request)
     import colonias_catalog as cc
-    return await cc.ingest_official_catalog(request.app.state.db, city=city)
+    return await cc.ingest_official_catalog(request.app.state.db, city=city, source=source)
 
 
 @router.post("/api/superadmin/colonias/compute-scores")
@@ -218,13 +219,14 @@ async def superadmin_colonias_sync_comercios(
     request: Request,
     city: str = Query("CDMX", description="ciudad a sincronizar"),
     source: str = Query("osm", description="osm (gratis · default) | denue (respaldo)"),
+    limit: int = Query(80, ge=1, le=2000, description="cuántas colonias por corrida (Overpass throttlea a volumen alto)"),
 ):
     """Sincroniza la densidad real de comercios por colonia (OSM por defecto · gratis y confiable)
     usando su centro + recalcula scores. Cierra el ciclo dato→score en un clic. Honesto si la
     fuente no responde."""
     await _sa(request)
     import colonias_catalog as cc
-    return await cc.sync_business_density(request.app.state.db, city=city, source=source)
+    return await cc.sync_business_density(request.app.state.db, city=city, source=source, limit=limit)
 
 
 @router.post("/api/superadmin/colonias/sync-seguridad")
