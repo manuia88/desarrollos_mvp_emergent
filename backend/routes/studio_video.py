@@ -174,36 +174,8 @@ async def post_video_script(request: Request, body: ScriptBody):
     return res
 
 
-# ─── POST /api/studio/video/tts ────────────────────────────────────────────
-
-@router.post("/api/studio/video/tts")
-async def post_video_tts(request: Request, body: TTSBody):
-    user = await _auth(request)
-    user_id = getattr(user, "user_id", None)
-    dev_org_id = getattr(user, "tenant_id", None)
-    _rate_check(_RATE_TTS, user_id or "anon", limit=10)
-    db = _db(request)
-
-    quota = await _quota_or_403(db, dev_org_id)
-
-    from adapters.tts.elevenlabs import synthesize_with_cache
-    res = await synthesize_with_cache(
-        db,
-        text=body.text,
-        voice_id=body.voice_id,
-        user_id=user_id,
-        dev_org_id=dev_org_id,
-    )
-
-    if not res.get("ok"):
-        raise HTTPException(422, f"TTS sintesis falla · {res.get('error', 'unknown')}")
-
-    res["quota"] = {
-        "used_today_usd": quota.get("used_today_usd"),
-        "remaining_usd": quota.get("remaining_usd"),
-        "cap_daily_usd": quota.get("cap_daily_usd"),
-    }
-    return res
+# (Endpoints tts/voices/quota de studio-video borrados 2026-06-16 · 0 callers ·
+#  el flujo vivo usa /api/studio/video/script + /api/studio-video/generate-video)
 
 
 # ─── POST /api/studio-video/generate-video (W5.16-B multi-ratio) ──────────
@@ -248,21 +220,4 @@ async def post_generate_video(request: Request, body: GenerateVideoBody):
     return res
 
 
-# ─── GET /api/studio/video/voices ──────────────────────────────────────────
-
-@router.get("/api/studio/video/voices")
-async def get_video_voices(request: Request):
-    await _auth(request)
-    from adapters.tts.elevenlabs import list_voices_es_mx, DEFAULT_VOICE_ID
-    return {"voices": list_voices_es_mx(), "default_voice_id": DEFAULT_VOICE_ID}
-
-
-# ─── GET /api/studio/video/quota ───────────────────────────────────────────
-
-@router.get("/api/studio/video/quota")
-async def get_video_quota(request: Request):
-    user = await _auth(request)
-    db = _db(request)
-    dev_org_id = getattr(user, "tenant_id", None)
-    from ai_budget import check_studio_video_quota
-    return await check_studio_video_quota(db, dev_org_id)
+# (voices/quota borrados con tts arriba · 0 callers)

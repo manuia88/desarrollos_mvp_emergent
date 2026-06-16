@@ -49,49 +49,8 @@ class TemplateIn(BaseModel):
     variables: Optional[List[str]] = None
 
 
-# ─── Endpoints usuario (asesor/superadmin) ─────────────────────────────────────
-
-@router.post("/api/whatsapp/messages")
-async def send_whatsapp_message(body: SendMessageIn, request: Request):
-    """Envía mensaje WhatsApp vía provider activo."""
-    user = await _get_user(request)
-    if getattr(user, "role", None) not in ("superadmin", "advisor", "asesor_admin", "asesor_freelance"):
-        raise HTTPException(403, "Acceso denegado")
-
-    import os as _os
-    provider = _os.environ.get("WHATSAPP_PROVIDER", "stub").lower()
-
-    db = _db(request)
-    org_id = getattr(user, "org_id", None) or getattr(user, "tenant_id", None) or "dmx"
-    engine = WAEngine(db, org_id=org_id)
-
-    # Phase Y tier gate solo para providers reales
-    if provider != "stub":
-        phase_ok = await engine._check_phase_y()
-        if not phase_ok:
-            raise HTTPException(403, "WhatsApp Business no habilitado — activa tier whatsapp_business en Phase Y settings")
-
-    result = await engine.send_message(
-        to_number=body.to_number,
-        body=body.body,
-        lead_id=body.lead_id,
-        template_name=body.template,
-        variables=body.variables,
-    )
-    return JSONResponse(result)
-
-
-@router.get("/api/whatsapp/conversations")
-async def get_conversation(lead_id: str, request: Request):
-    """Retorna hilo de mensajes de un lead."""
-    user = await _get_user(request)
-    if getattr(user,"role",None) not in ("superadmin", "advisor", "asesor_admin", "asesor_freelance"):
-        raise HTTPException(403, "Acceso denegado")
-
-    db = _db(request)
-    engine = WAEngine(db, org_id=getattr(user,"org_id",None) or getattr(user,"tenant_id",None) or "dmx")
-    msgs = await engine.get_conversation(lead_id)
-    return JSONResponse({"ok": True, "messages": msgs, "count": len(msgs)})
+# (Endpoints no-superadmin /api/whatsapp/messages y /conversations borrados 2026-06-16 ·
+#  0 callers · la UI viva usa las rutas asesor/superadmin de WhatsApp)
 
 
 # ─── Webhook inbound (público) ─────────────────────────────────────────────────

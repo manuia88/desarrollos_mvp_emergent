@@ -836,36 +836,8 @@ async def client_cross_project_leads(client_gid: str, request: Request):
     return {"client_gid": client_gid, "total": len(result), "leads": result}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Backward compat wrappers (old endpoints → new logic)
-# ─────────────────────────────────────────────────────────────────────────────
-@router.get("/api/dev/leads/kanban/v2")
-async def dev_kanban_compat(
-    request: Request,
-    project_id: Optional[str] = None,
-    scope: str = "all_org",
-):
-    """Backward-compat wrapper. Dev surfaces should migrate to /api/leads/kanban."""
-    return await _run_kanban(request, scope=scope, project_id=project_id)
-
-
-@router.get("/api/advisor/leads/kanban")
-async def advisor_kanban_compat(
-    request: Request,
-    project_id: Optional[str] = None,
-):
-    """Backward-compat wrapper for asesor leads kanban (always scope=mine)."""
-    return await _run_kanban(request, scope="mine", project_id=project_id)
-
-
-@router.get("/api/inmobiliaria/leads/kanban")
-async def inmobiliaria_kanban_compat(
-    request: Request,
-    project_id: Optional[str] = None,
-    scope: str = "all_inmobiliaria",
-):
-    """Backward-compat wrapper for inmobiliaria leads kanban."""
-    return await _run_kanban(request, scope=scope, project_id=project_id)
+# (Wrappers backward-compat kanban v2/advisor/inmobiliaria borrados 2026-06-16 · 0 callers ·
+#  la UI viva usa /api/leads/kanban. Ver AUDIT_CONEXIONES_2026-06-16.md)
 
 
 async def ensure_batch4_2_indexes(db) -> None:
