@@ -936,6 +936,110 @@ async def dev_construction_cost(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# VALOR DE MERCADO DE LA ZONA (dev) — antes solo superadmin. Surfacea 2 motores:
+#   · valores_unitarios_engine → valor de SUELO oficial (catastral SIG 2022 / Gaceta 2026)
+#   · comercial_value_model     → valor COMERCIAL estimado del m² construido (aprende de ventas)
+# Solo lectura de mercado de la colonia del proyecto → cualquier dev autenticado del proyecto.
+# CERO dato falso: si un motor no tiene dato todavía devuelve estado honesto "esperando".
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/valor-mercado-zona")
+async def dev_valor_mercado_zona(
+    request: Request, project_id: str, city: str = "CDMX",
+):
+    """Valor de mercado del suelo de la colonia del proyecto: valor catastral OFICIAL vs valor
+    COMERCIAL estimado. Reusa comercial_value_model + valores_unitarios_engine (mismos motores que
+    superadmin). Honesto: si un motor no tiene dato aún, lo dice — no inventa números."""
+    user = await _auth(request)
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, project_id)  # 403 si el proyecto es de otra desarrolladora
+    db = _db(request)
+
+    dev, _ = _get_unit(project_id, "")
+    if not dev:
+        from data_developments import DEVELOPMENTS
+        dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
+    if not dev:
+        raise HTTPException(404, "Proyecto no encontrado")
+
+    colonia_id = dev.get("colonia_id") or dev.get("colonia_slug") or dev.get("colonia") or ""
+    colonia_nombre = dev.get("colonia_nombre") or dev.get("colonia_name")
+    if not colonia_id:
+        return {"available": False, "reason": "El proyecto no tiene colonia asignada.",
+                "project_id": project_id}
+
+    # Nombre legible de la colonia (del catálogo) si no viene en el proyecto
+    col = await db.colonias.find_one(
+        {"id": colonia_id}, {"_id": 0, "name": 1, "vsuelo_pm2_catastral": 1})
+    if col and not colonia_nombre:
+        colonia_nombre = col.get("name")
+
+    out = {"available": True, "project_id": project_id,
+           "colonia_id": colonia_id, "colonia": colonia_nombre or colonia_id,
+           "city": city, "catastral": None, "comercial": None}
+
+    # ── 1) Valor del SUELO oficial (motor valores_unitarios + piso catastral SIG) ──
+    try:
+        import valores_unitarios_engine as vu
+        valor_unitario = await vu.get_valor_unitario(db, colonia_id)  # Gaceta 2026 si cargada
+        vsuelo_sig = (col or {}).get("vsuelo_pm2_catastral")          # SIG 2022 (piso oficial)
+        if valor_unitario:
+            out["catastral"] = {
+                "available": True, "valor_m2": int(valor_unitario),
+                "fuente": "Valores Unitarios oficiales 2026 (Gaceta CDMX)",
+                "periodo": "2026", "tipo": "suelo",
+            }
+        elif vsuelo_sig:
+            out["catastral"] = {
+                "available": True, "valor_m2": int(vsuelo_sig),
+                "fuente": "Valor catastral del suelo (SIG CDMX 2022)",
+                "periodo": "2022", "tipo": "suelo",
+                "nota": "Valor oficial del suelo. Al cargarse la tabla 2026 de la Gaceta se "
+                        "actualiza solo.",
+            }
+        else:
+            out["catastral"] = {
+                "available": False,
+                "reason": "Esperando dato catastral de tu zona — se enciende solo cuando se "
+                          "ingiera el valor del suelo de esta colonia.",
+            }
+    except Exception as e:
+        logging.getLogger("dev_batch11").warning("valor-mercado catastral failed: %s", e)
+        out["catastral"] = {"available": False,
+                            "reason": "Motor de valor del suelo no disponible ahora mismo."}
+
+    # ── 2) Valor COMERCIAL estimado del m² construido (motor que aprende de ventas) ──
+    try:
+        import comercial_value_model as cvm
+        est = await cvm.estimate_commercial_pm2(db, colonia_id, city=city)
+        if est:
+            out["comercial"] = {
+                "available": True, "valor_m2": int(est["pm2"]),
+                "catastral_base": est.get("catastral"),
+                "confianza": est.get("confianza"), "r2": est.get("r2"), "n": est.get("n"),
+                "es_estimado": True,
+                "fuente": "Modelo suelo→comercial (calibrado con ventas reales)",
+                "leyenda": est.get("leyenda"),
+            }
+        else:
+            # No estima todavía: o no hay catastral, o el modelo aún no es fiable (pocas ventas).
+            cal = await cvm.get_calibration(db, city=city)
+            out["comercial"] = {
+                "available": False,
+                "reason": cal.get("leyenda") or
+                          "Aún no hay suficientes ventas para estimar el precio comercial desde "
+                          "el suelo — se enciende solo al acumular cierres en la zona.",
+                "confianza": cal.get("confianza"), "n": cal.get("n"),
+            }
+    except Exception as e:
+        logging.getLogger("dev_batch11").warning("valor-mercado comercial failed: %s", e)
+        out["comercial"] = {"available": False,
+                            "reason": "Motor de valor comercial no disponible ahora mismo."}
+
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # UNIT ENGAGEMENT  (stub honesto enriquecido con IE scores si existen)
 # ══════════════════════════════════════════════════════════════════════════════
 

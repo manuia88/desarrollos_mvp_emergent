@@ -13,6 +13,7 @@ import InsightsIA from './InsightsIA';
 import InvestmentSimulator from '../../investment/InvestmentSimulator';
 import TaxClosingPanel from '../TaxClosingPanel';
 import ConstructionCostPanel from '../ConstructionCostPanel';
+import ZoneMarketValuePanel from '../ZoneMarketValuePanel';
 
 const SUBTABS = [
   { key: 'completa',    label: '★ Vista completa' },
@@ -73,6 +74,7 @@ export default function InsightsTab({ projectId, user }) {
         {active === 'inversion'   && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <InvestmentSimulator />
+            <ZoneMarketValuePanel projectId={projectId} />
             <ConstructionCostPanel zone_id={projectId} />
             <TaxClosingPanel />
           </div>
