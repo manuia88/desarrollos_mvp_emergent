@@ -62,28 +62,7 @@ class SimulateBody(BaseModel):
     financiamiento_pct: float = 0.80
 
 
-@router.post("/api/investment-simulator/simulate")
-async def simulate_endpoint(body: SimulateBody, request: Request):
-    ip = _client_ip(request)
-    _rate_limit(ip)
-    if body.precio_entrada <= 0:
-        raise HTTPException(422, "precio_entrada_invalid")
-    db = _db(request)
-    result = await eng.simulate(
-        db,
-        precio_entrada=body.precio_entrada,
-        plazo_meses=body.plazo_meses,
-        m2=body.m2,
-        colonia_slug=body.colonia_slug,
-        apreciacion_anual_user_pct=body.apreciacion_anual_user_pct,
-        financiamiento_pct=body.financiamiento_pct,
-    )
-    # Strip cash_flow_monthly to reduce payload (keep first 36 months for chart)
-    for scenario_key in ("conservador", "base", "optimista"):
-        s = result.get(scenario_key, {})
-        cf = s.get("cash_flow_monthly", [])
-        s["cash_flow_monthly"] = cf[:36]
-    return JSONResponse({"ok": True, **result})
+# (v1 /simulate borrado 2026-06-16 · 0 callers · la UI usa /analyze)
 
 
 # ─── GET /api/investment-simulator/colonia/{slug}/baseline ───────────────────
@@ -164,17 +143,7 @@ async def analyze_endpoint(body: AnalyzeBody, request: Request):
     return JSONResponse({"ok": True, "apalancado": apalancado, "contado": contado, "veredicto": veredicto})
 
 
-@router.post("/api/investment-simulator/compare")
-async def compare_endpoint(request: Request):
-    _rate_limit(_client_ip(request))
-    try:
-        body = await request.json()
-    except Exception:
-        raise HTTPException(422, "invalid_json")
-    lista = body.get("opciones") or body.get("items") or []
-    if not isinstance(lista, list) or not lista:
-        raise HTTPException(422, "opciones_requeridas")
-    return JSONResponse({"ok": True, **eng.comparar_inversiones(lista)})
+# (v1 /compare borrado 2026-06-16 · 0 callers)
 
 
 @router.post("/api/investment-simulator/min-rent")
@@ -225,27 +194,5 @@ async def save_scenario_endpoint(request: Request):
     return JSONResponse({"ok": True, **await eng.guardar_escenario(db, body.get("params") or {}, body.get("resultado") or {})})
 
 
-@router.get("/api/investment-simulator/scenario/{token}")
-async def get_scenario_endpoint(token: str, request: Request):
-    _rate_limit(_client_ip(request))
-    db = _db(request)
-    res = await eng.obtener_escenario(db, token)
-    if not res.get("ok"):
-        raise HTTPException(404, "escenario_no_encontrado")
-    return JSONResponse({"ok": True, **res})
-
-
-_ANALYTICS_ROLES = {"superadmin", "admin", "developer", "desarrollador", "dev_admin", "dev"}
-
-
-@router.get("/api/investment-simulator/analytics")
-async def analytics_endpoint(request: Request, dias: int = 90):
-    """Demanda revelada de inversionistas (inteligencia de negocio) — solo dev/superadmin."""
-    from server import get_current_user
-    user = await get_current_user(request)
-    if not user:
-        raise HTTPException(401, "No autenticado")
-    if str(getattr(user, "role", "")).lower() not in _ANALYTICS_ROLES:
-        raise HTTPException(403, "Acceso restringido")
-    db = _db(request)
-    return JSONResponse({"ok": True, **await eng.analiticas_simulaciones(db, dias=max(1, min(365, dias)))})
+# (v1 /scenario/{token} y /analytics borrados 2026-06-16 · 0 callers ·
+#  la UI viva usa /analyze, /min-rent, /stress-test, /save, /capture-lead, /score)

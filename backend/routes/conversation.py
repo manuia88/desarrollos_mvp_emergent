@@ -260,25 +260,8 @@ async def lead_conversations(lead_id: str, request: Request):
     return {"lead_id": lead_id, "count": len(items), "conversations": items}
 
 
-@router.get("/asesor/inbox")
-async def asesor_inbox(
-    request: Request,
-    sentiment: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
-):
-    """B2 fix · Bandeja del asesor: SUS propias conversaciones (asesor_id = usuario actual).
-    Reusa el motor (superadmin_list) forzando el scope al asesor → NO toca el router superadmin.
-    Antes la UI pegaba a /api/superadmin/conversations/list (superadmin-only) → 403 siempre vacía."""
-    user = await _require_user(request)
-    db = request.app.state.db
-    engine = ConversationEngine(db)
-    items = await engine.superadmin_list(
-        asesor_id=getattr(user, "user_id", None),
-        sentiment=sentiment, status=status, limit=limit,
-        caller_tenant_id=None, is_superadmin=False,
-    )
-    return {"count": len(items), "conversations": items}
+# (GET /api/conversation/asesor/inbox borrado 2026-06-16 · 0 callers · la bandeja viva usa
+#  /api/asesor/conversations/unified)
 
 
 @router.get("/{conversation_id}")

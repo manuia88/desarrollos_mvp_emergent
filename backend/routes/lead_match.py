@@ -95,16 +95,7 @@ async def lead_match_get(match_id: str, request: Request):
     return doc
 
 
-@router.get("/api/lead-match/lead/{lead_id}/recent")
-async def lead_match_recent(
-    lead_id: str, request: Request, limit: int = Query(5, ge=1, le=20),
-):
-    user = await _auth_asesor(request)
-    db = _db(request)
-    from tenant_scope import assert_lead_owner
-    await assert_lead_owner(db, user, lead_id)   # cierra IDOR: solo matches de leads propios
-    from services.lead_to_asesor_match import get_recent_matches_for_lead
-    return {"items": await get_recent_matches_for_lead(db, lead_id, limit)}
+# (GET /api/lead-match/lead/{id}/recent borrado 2026-06-16 · 0 callers · la UI solo usa /compute)
 
 
 # ═══ Daily Feed ══════════════════════════════════════════════════════════════

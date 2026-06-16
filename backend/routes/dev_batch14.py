@@ -20,10 +20,9 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel
 
 log = logging.getLogger("dmx.batch14")
 
@@ -124,30 +123,8 @@ async def get_health_score(entity_type: str, entity_id: str, request: Request):
     return result
 
 
-@router.get("/api/health-score/batch")
-async def get_health_score_batch(
-    request: Request,
-    entity_type: str = Query(...),
-    ids: str = Query(...),
-):
-    """Batch-fetch health scores. ids = comma-separated list."""
-    await _auth(request)
-    db = _db(request)
-
-    if entity_type not in ("project", "asesor", "client"):
-        raise HTTPException(400, f"entity_type inválido: {entity_type}")
-
-    id_list = [i.strip() for i in ids.split(",") if i.strip()][:20]  # cap 20
-    from health_score import compute_health_score
-    results = []
-    for eid in id_list:
-        try:
-            r = await compute_health_score(entity_type, eid, db)
-            results.append(r)
-        except Exception as e:
-            results.append({"entity_type": entity_type, "entity_id": eid,
-                             "score": 0, "error": str(e)})
-    return {"results": results, "count": len(results)}
+# (/api/health-score/batch borrado 2026-06-16 · 0 callers · además era lectura cross-tenant
+#  sin guard; borrarlo elimina la fuga. La UI no llama ningún health-score/* por HTTP.)
 
 
 @router.post("/api/health-score/{entity_type}/{entity_id}/recompute")
@@ -240,26 +217,8 @@ async def post_activity_log(request: Request):
 # C) NOTIFICATIONS mark-read (new bulk endpoint)
 # ─────────────────────────────────────────────────────────────────────────────
 
-class MarkReadIn(BaseModel):
-    ids: Optional[List[str]] = None   # None = mark ALL
-    all: bool = False
-
-
-@router.post("/api/notifications/mark-read")
-async def mark_notifications_read(body: MarkReadIn, request: Request):
-    """Mark one, multiple, or all notifications as read for the current user."""
-    user = await _auth(request)
-    db = _db(request)
-    now = _now().isoformat()
-
-    q: Dict[str, Any] = {"user_id": user.user_id, "read_at": None}
-    if not body.all and body.ids:
-        q["id"] = {"$in": body.ids}
-    elif not body.all and not body.ids:
-        raise HTTPException(400, "Provee ids o all=true")
-
-    result = await db.notifications.update_many(q, {"$set": {"read_at": now, "read": True}})
-    return {"ok": True, "updated": result.modified_count}
+# (POST /api/notifications/mark-read [bulk] borrado 2026-06-16 · 0 callers · la UI usa
+#  el per-id /{id}/mark-read y /mark-all-read)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

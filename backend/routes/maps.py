@@ -119,32 +119,7 @@ async def get_property_detail(prop_type: str, prop_id: str, request: Request):
     return JSONResponse({"ok": True, **result})
 
 
-@router.get("/api/maps/colonias")
-async def list_colonias_for_seo(request: Request, alcaldia: Optional[str] = None):
-    """Lista colonias para landing SEO (/mapa/{alcaldia}/{colonia})."""
-    db = _db(request)
-    query: Dict[str, Any] = {"tier": "colonia", "geo.lat": {"$ne": None}}
-    if alcaldia:
-        query["name"] = {"$regex": f".*", "$options": "i"}
-        # Filtrar por alcaldía desde zone_scores
-        zone_ids = await db.zone_scores.distinct("zone_id", {"alcaldia": alcaldia})
-        if zone_ids:
-            query["tier_id"] = {"$in": zone_ids}
-
-    cursor = db.cube_aggregations.find(query, {
-        "_id": 0, "tier_id": 1, "name": 1, "geo": 1,
-    }).sort("name", 1).limit(200)
-    docs = await cursor.to_list(200)
-    colonias = [
-        {
-            "id": d.get("tier_id"),
-            "name": d.get("name"),
-            "lat": (d.get("geo") or {}).get("lat"),
-            "lng": (d.get("geo") or {}).get("lng"),
-        }
-        for d in docs
-    ]
-    return JSONResponse({"ok": True, "colonias": colonias, "count": len(colonias)})
+# (/api/maps/colonias borrado 2026-06-16 · 0 callers · la UI usa /api/colonias y /api/avm-public/colonias/top)
 
 
 # ─── Superadmin endpoints ─────────────────────────────────────────────────────

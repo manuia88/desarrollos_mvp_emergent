@@ -312,56 +312,8 @@ async def get_cross_portal_events(request: Request, since: Optional[str] = None,
     return {"events": events, "count": len(events)}
 
 
-# ─── SUB-CHUNK C: Presentation mode PATCH extension ──────────────────────────
-# This mirrors the PATCH endpoint in routes_dev_batch18.py but adds presentation_mode.
-
-class PresentationModeConfig(BaseModel):
-    active: Optional[bool] = None
-    anonymize_pii: Optional[bool] = None
-    hide_pricing: Optional[bool] = None
-    hide_internal_notes: Optional[bool] = None
-
-
-class PresentationModePatch(BaseModel):
-    presentation_mode: Optional[PresentationModeConfig] = None
-
-
-@router.patch("/api/preferences/me/presentation-mode")
-async def patch_presentation_mode(payload: PresentationModePatch, request: Request):
-    """Partial update of presentation_mode settings."""
-    user = await _auth(request)
-    db = _db(request)
-
-    if payload.presentation_mode is None:
-        return {"ok": True, "updated": []}
-
-    pm = payload.presentation_mode
-    sub_updates = {}
-
-    if pm.active is not None:
-        sub_updates["presentation_mode.active"] = pm.active
-    if pm.anonymize_pii is not None:
-        sub_updates["presentation_mode.anonymize_pii"] = pm.anonymize_pii
-    if pm.hide_pricing is not None:
-        sub_updates["presentation_mode.hide_pricing"] = pm.hide_pricing
-    if pm.hide_internal_notes is not None:
-        sub_updates["presentation_mode.hide_internal_notes"] = pm.hide_internal_notes
-
-    if not sub_updates:
-        return {"ok": True, "updated": []}
-
-    sub_updates["updated_at"] = datetime.now(timezone.utc)
-
-    await db.user_preferences.update_one(
-        {"user_id": user.user_id},
-        {
-            "$set": sub_updates,
-            "$setOnInsert": {"user_id": user.user_id},
-        },
-        upsert=True,
-    )
-
-    return {"ok": True, "updated": list(sub_updates.keys())}
+# (PATCH /api/preferences/me/presentation-mode borrado 2026-06-16 · 0 callers · el hook
+#  usePresentationMode persiste vía el PATCH general /api/preferences/me · era redundante)
 
 
 # ─── Indexes ──────────────────────────────────────────────────────────────────

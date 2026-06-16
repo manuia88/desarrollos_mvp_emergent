@@ -108,20 +108,8 @@ async def tono_marketing_ep(request: Request, colonia_id: str = Query(...)):
     return perfil_psicografico(col.get("tier"))
 
 
-@router.get("/api/dev/deseabilidad/{dev_id}/{unit_id}")
-async def deseabilidad_ep(request: Request, dev_id: str, unit_id: str):
-    """Deseabilidad de UNA unidad vs otras al mismo precio (estudio 4S) (F2.11)."""
-    user = await _auth(request)
-    from tenant_scope import assert_dev_project
-    assert_dev_project(user, dev_id)   # 403 si la unidad es de otra desarrolladora (cierra IDOR P0)
-    from data_developments import DEVELOPMENTS
-    dev = next((d for d in DEVELOPMENTS if d["id"] == dev_id), None)
-    unit = next((u for u in (dev or {}).get("units", [])
-                 if u["id"] == unit_id or u.get("unit_number") == unit_id), None) if dev else None
-    if not dev or not unit:
-        raise HTTPException(404, "Unidad no encontrada")
-    from preferencias_engine import score_deseabilidad
-    return await score_deseabilidad(_db(request), unit, dev)
+# (GET /api/dev/deseabilidad/{dev}/{unit} borrado 2026-06-16 · 0 callers · la UI lee
+#  data.deseabilidad embebido en el payload de insights, no este endpoint)
 
 
 @router.post("/api/dev/estudio-mercado/guardar")
