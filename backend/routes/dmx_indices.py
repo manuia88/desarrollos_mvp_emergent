@@ -110,7 +110,17 @@ async def public_zone_indices(zone_id: str, request: Request):
     abs_map = _market_absorcion_by_colonia()
     # Banda por percentil real: compara esta zona contra TODA la ciudad (lazy · idempotente).
     ix.ensure_index_distributions(COLONIAS, ctx_fn=lambda c: _ctx_for(c, abs_map))
-    result = ix.compute_indices(colonia, _ctx_for(colonia, abs_map))
+    ctx = _ctx_for(colonia, abs_map)
+    # MOM · Momentum vivo (reusa live_pulse). Sin pulso → MOM cae a neutral estimado (honesto).
+    try:
+        from live_pulse_engine import compute_pulse
+        pulse = await compute_pulse(request.app.state.db, colonia.get("id") or zone_id)
+        if isinstance(pulse, dict) and pulse.get("score") is not None:
+            ctx["momentum_score"] = pulse["score"]
+            ctx["momentum_estimado"] = (pulse.get("data_quality") or {}).get("es_estimado", True)
+    except Exception:
+        pass
+    result = ix.compute_indices(colonia, ctx)
     result["senal_leyenda"] = ix.signal_leyenda(result.get("city") or "CDMX")
     tier_label = await _user_tier(request)
     if tier_label == "free":

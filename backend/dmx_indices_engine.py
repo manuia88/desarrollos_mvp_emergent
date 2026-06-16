@@ -37,6 +37,7 @@ INDICES_META: Dict[str, Dict[str, str]] = {
     "IDS": {"nombre": "Demanda",        "que_mide": "Cuánta gente busca aquí frente a cuánto hay disponible."},
     "IRE": {"nombre": "Renta",          "que_mide": "Qué tan atractivo es rentar (tradicional o Airbnb)."},
     "ICO": {"nombre": "Calidad de Zona","que_mide": "Qué tan bien calificada está la zona para vivir."},
+    "MOM": {"nombre": "Momentum",       "que_mide": "Qué tan caliente está la zona AHORA (búsquedas, vistas, leads, precio)."},
 }
 IDM_META = {"nombre": "Índice DMX", "que_mide": "El número único de la zona: combina los 5 índices."}
 
@@ -60,6 +61,9 @@ _READS = {
     "ICO": ("Zona muy bien calificada para vivir — vende calidad de vida.",
             "Zona sólida con áreas de mejora.",
             "Zona en desarrollo — apuesta a la transformación."),
+    "MOM": ("Zona caliente ahora — actúa rápido, hay tracción.",
+            "Ritmo normal de actividad.",
+            "Zona fría ahora — no es el momento de empujar precio."),
 }
 
 
@@ -157,14 +161,22 @@ def compute_indices(colonia: Dict[str, Any], ctx: Optional[Dict[str, Any]] = Non
                + 0.08 * scores.get("riesgo", 60))
     ico = _idx("ICO", ico_val, "real", cdist)
 
-    indices = [ipv, iab, ids, ire, ico]
+    # ── MOM · Momentum = qué tan caliente está la zona AHORA (live_pulse, vía ctx) ──
+    # Fuera del IDM maestro (es la señal más volátil); se muestra como índice independiente.
+    if ctx.get("momentum_score") is not None:
+        mom_ix = _idx("MOM", float(ctx["momentum_score"]),
+                      "estimado" if ctx.get("momentum_estimado") else "real", cdist)
+    else:
+        mom_ix = _idx("MOM", 50.0, "estimado", cdist)  # neutral honesto sin pulso vivo
+
+    indices = [ipv, iab, ids, ire, ico, mom_ix]
     by_key = {i["key"]: i for i in indices}
 
-    # ── IDM · maestro = promedio ponderado de los 5 ──
+    # ── IDM · maestro = promedio ponderado de los 5 (MOM NO entra al maestro) ──
     idm_val = round(_clamp(sum(by_key[k]["valor"] * w for k, w in IDM_WEIGHTS.items())), 1)
     idm_sig = _mn.band_from_dist(cdist.get("IDM"), idm_val)
     idm_legacy, _li = _NIVEL_TO_LEGACY.get(idm_sig["nivel"], ("medio", 1))
-    any_est = any(i["fuente"] == "estimado" for i in indices)
+    any_est = any(by_key[k]["fuente"] == "estimado" for k in IDM_WEIGHTS)
     idm = {
         "key": "IDM", "nombre": IDM_META["nombre"], "que_mide": IDM_META["que_mide"],
         "valor": idm_val, "letra": _letter(idm_val),
@@ -207,7 +219,7 @@ def build_index_distributions(colonias: List[Dict[str, Any]], ctx_fn=None) -> Di
     grids: Dict[str, Dict[str, List[float]]] = {}
     for c in colonias:
         city = c.get("city") or "CDMX"
-        g = grids.setdefault(city, {k: [] for k in ("IPV", "IAB", "IDS", "IRE", "ICO", "IDM")})
+        g = grids.setdefault(city, {k: [] for k in ("IPV", "IAB", "IDS", "IRE", "ICO", "MOM", "IDM")})
         r = compute_indices(c, ctx_fn(c) if ctx_fn else None)
         for i in r["indices"]:
             g[i["key"]].append(i["valor"])
