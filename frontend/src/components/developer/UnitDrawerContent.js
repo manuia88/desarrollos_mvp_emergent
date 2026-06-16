@@ -10,7 +10,8 @@ import {
 import InlineEditField from '../shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import IeUnitScoreCard from './IeUnitScoreCard';
-import { ChevronRight, TrendUp, BarChart, Users, Building, FileText, Star } from '../../components/icons';
+import ExplainabilityCard from '../avm/ExplainabilityCard';
+import { ChevronRight, Building, FileText, Star } from '../../components/icons';
 
 const fmtMXN = (v) => {
   if (!v || v === 0) return '—';
@@ -79,7 +80,6 @@ function PriceSparkline({ history }) {
 function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
   const [priceData, setPriceData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
 
   useEffect(() => {
@@ -105,7 +105,6 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
   const priceM2 = unit.price && area ? Math.round(unit.price / area) : null;
 
   const handleSave = async (field, value) => {
-    setSaving(true);
     try {
       const v = field === 'price' && typeof value === 'string'
         ? parseFloat(value.replace(/[^0-9.]/g, ''))
@@ -121,7 +120,7 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
         });
         onUnitUpdated?.();
       } catch (err) { console.error('Patch unit (fallback):', err); throw err; }
-    } finally { setSaving(false); }
+    }
   };
 
   return (
@@ -488,20 +487,13 @@ function AvmSection({ unit, devId }) {
         </div>
       </div>
 
-      {Array.isArray(avm.explain?.contributions) && avm.explain.contributions.length > 0 && (
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Por qué este valor</div>
-          {avm.explain.contributions
-            .filter(c => (c.pct ?? 0) !== 0 || c.feature === 'intercept')
-            .slice(0, 5)
-            .map((c, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--cream-2)', marginBottom: 3 }}>
-                <span>{c.label || c.feature}</span>
-                <span style={{ color: c.sign === 'negative' ? '#E0463D' : 'var(--cream-3)' }}>
-                  {c.sign === 'negative' ? '−' : ''}{c.pct != null ? `${Math.abs(c.pct)}%` : ''}
-                </span>
-              </div>
-            ))}
+      {/* "¿Por qué este valor?" — reusa ExplainabilityCard (barra apilada + leyenda),
+          alimentado por avm_explain_engine vía /api/dev/units/.../avm (explain real, no fake). */}
+      {avm.explain?.available && Array.isArray(avm.explain?.contributions) && avm.explain.contributions.length > 0 ? (
+        <ExplainabilityCard explain={avm.explain} />
+      ) : (
+        <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+          La explicación del valor aparece cuando el valuador tiene suficientes cierres de la zona.
         </div>
       )}
 
@@ -584,7 +576,6 @@ function AIPredSection({ unit, devId, user }) {
 
 // ─── Section 6: Características ──────────────────────────────────────────
 function CaracteristicasSection({ unit, devId, user, onUnitUpdated }) {
-  const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
   if (!unit) return null;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
