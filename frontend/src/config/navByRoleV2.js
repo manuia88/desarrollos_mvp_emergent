@@ -158,8 +158,10 @@ export const DEV_NAV_V2 = [
     badge_source: 'crm_unread_leads',
     description: 'Tu pipeline completo — tablero, embudo, lista y bandeja en un solo lugar',
     children: [
-      { key: 'crm-pipeline', to: '/desarrollador/crm',              label: 'Pipeline',     Icon: ClipboardList, badge_source: 'crm_unread_leads' },
-      { key: 'crm-cerebro',  to: '/desarrollador/crm/sala-control', label: 'Tu asistente', Icon: Sparkles },
+      { key: 'crm-pipeline', to: '/desarrollador/crm',                    label: 'Pipeline',             Icon: ClipboardList, badge_source: 'crm_unread_leads' },
+      { key: 'crm-funnel',   to: '/desarrollador/crm/funnel',             label: 'Embudo CRM',           Icon: BarChart3 },
+      { key: 'crm-asesores', to: '/desarrollador/crm/asesores-metrics',   label: 'Métricas de Asesores', Icon: LineChart },
+      { key: 'crm-cerebro',  to: '/desarrollador/crm/sala-control',       label: 'Tu asistente',         Icon: Sparkles },
     ],
   },
   // 4 · Inteligencia (hub · cerebro de mercado)

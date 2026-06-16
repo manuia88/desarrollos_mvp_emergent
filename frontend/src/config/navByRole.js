@@ -28,7 +28,9 @@ const DEV_NAV = [
       { key: 'dashboard',    to: '/desarrollador',                   label: 'Dashboard',      Icon: LayoutDashboard, end: true },
       { key: 'proyectos',    to: '/desarrollador/proyectos',         label: 'Mis Proyectos',  Icon: Building2,       badge_source: 'projects_health_below_60' },
       { key: 'crm',          to: '/desarrollador/crm',               label: 'CRM',            Icon: ClipboardList,   badge_source: 'crm_unread_leads' },
+      { key: 'crm-funnel',   to: '/desarrollador/crm/funnel',        label: 'Embudo CRM',     Icon: BarChart3 },
       { key: 'metricas',     to: '/desarrollador/crm/metricas-equipo', label: 'Métricas equipo',Icon: BarChart2 },
+      { key: 'asesores-metrics', to: '/desarrollador/crm/asesores-metrics', label: 'Métricas de Asesores', Icon: LineChart },
       { key: 'auto-asignacion', to: '/desarrollador/crm/auto-assignments', label: 'Auto-asignación', Icon: GitMerge },
       { key: 'solicitudes',  to: '/desarrollador/solicitudes',       label: 'Solicitudes',    Icon: Users,           badge_source: 'whitelist_pending_count' },
       { key: 'disputas',     to: '/desarrollador/disputas',          label: 'Disputas leads', Icon: AlertTriangle,   badge_source: 'disputes_pending_count' },
@@ -218,6 +220,7 @@ const SUPERADMIN_NAV = [
       // ─ Accuracy & ML (W5.x) ─
       { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
       { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
+      { key: 'fsd-accuracy',      to: '/superadmin/fsd-accuracy',      label: 'Precisión FSD',     Icon: Gauge },
       // ─ Intelligence layer (W3.x legacy) ─
       { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
       { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
@@ -249,6 +252,11 @@ const SUPERADMIN_NAV = [
       { key: 'ab-testing', to: '/superadmin/ab-testing', label: 'A/B Testing', Icon: FlaskConical },
       // ─ W7.AS.3.I · Round 3 · Drift Dashboard (calidad agente IA) ─
       { key: 'conversation-drift', to: '/superadmin/conversation-drift', label: 'Drift IA', Icon: Activity },
+      // ─ Observabilidad IA · pantallas ruteadas sin entrada de menú ─
+      { key: 'rag-inspector',     to: '/superadmin/rag-inspector',     label: 'RAG Inspector',          Icon: Eye },
+      { key: 'conversation-cost', to: '/superadmin/conversation-cost', label: 'Costo de Conversación IA', Icon: DollarSign },
+      { key: 'virtual-staging',   to: '/superadmin/virtual-staging',   label: 'Staging Virtual',        Icon: Sparkles },
+      { key: 'climate-migration', to: '/superadmin/climate-migration', label: 'Migración Climática',    Icon: Activity },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─
@@ -307,6 +315,7 @@ const SUPERADMIN_NAV = [
       { key: 'bulletins',    to: '/superadmin/bulletins',             label: 'Bulletins',            Icon: Megaphone },
       { key: 'landing-leads',to: '/superadmin/landing-leads',         label: 'Landing leads',        Icon: Users },
       { key: 'partners',     to: '/superadmin/partners',              label: 'Partners',             Icon: HeartHandshake },
+      { key: 'invites',      to: '/superadmin/invites',               label: 'Invitaciones',         Icon: Mail },
       { key: 'onboarding',   to: '/superadmin/onboarding-analytics',  label: 'Onboarding analytics', Icon: BarChart3 },
       { key: 'free-audit',   to: '/superadmin/free-audit-funnel',     label: 'Free Audit funnel',    Icon: ClipboardList },
       { key: 'lead-sources', to: '/superadmin/lead-sources',          label: 'Lead sources',         Icon: Plug },
@@ -320,7 +329,9 @@ const SUPERADMIN_NAV = [
   {
     tier: 7, label: 'Dev Tools', section_key: 'devtools',
     items: [
-      { key: 'primitives-demo', to: '/superadmin/primitives-demo', label: 'Primitives demo', Icon: Sparkles },
+      { key: 'primitives-demo',  to: '/superadmin/primitives-demo',  label: 'Primitives demo',         Icon: Sparkles },
+      { key: 'system-map',       to: '/superadmin/system-map',       label: 'Mapa del Sistema',        Icon: Network },
+      { key: 'user-diagnostics', to: '/superadmin/user-diagnostics', label: 'Diagnóstico de Usuarios', Icon: Activity },
     ],
   },
 ];
