@@ -121,10 +121,16 @@ async def public_zone_indices(zone_id: str, request: Request):
     except Exception:
         pass
     result = ix.compute_indices(colonia, ctx)
+    # LIV · Livability por perfil (familia/joven/senior/inversión) — reusa subscores reales.
+    try:
+        import liv_engine
+        result["liv"] = await liv_engine.compute_liv(request.app.state.db, colonia.get("id") or zone_id)
+    except Exception:
+        pass
     result["senal_leyenda"] = ix.signal_leyenda(result.get("city") or "CDMX")
     tier_label = await _user_tier(request)
     if tier_label == "free":
-        return {"tier_label": "free", "source": "via DMX Índices", **_qualitative(result)}
+        return {"tier_label": "free", "source": "via DMX Índices", "liv": result.get("liv"), **_qualitative(result)}
     result["jugada"] = ix.indices_play(result)
     return {"tier_label": tier_label, "source": "via DMX Índices", **result}
 

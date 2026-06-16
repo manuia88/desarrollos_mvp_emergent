@@ -218,6 +218,115 @@ function ExtraScoresSection({ items }) {
   );
 }
 
+// Letra FICO → banda de color (reusa los tokens de la card). A/B = verde, C = ámbar, D/F = rojo.
+const LIV_LETTER_BAND = { A: 'verde', B: 'verde', C: 'ambar', D: 'rojo', F: 'rojo' };
+const livBandOf = (letra) => bandOf(LIV_LETTER_BAND[letra] || 'neutro');
+
+// Orden y etiquetas de los 4 perfiles de Livability. Default: familia.
+const LIV_PERFILES = [
+  { slug: 'familia', etiqueta: 'Familia' },
+  { slug: 'joven', etiqueta: 'Joven / Pareja' },
+  { slug: 'senior', etiqueta: 'Adulto Mayor' },
+  { slug: 'inversion', etiqueta: 'Inversión' },
+];
+
+// Sección "Livability por perfil" — el mismo dato leído según para quién es la casa.
+// Sello estilo FICO (valor grande + letra) por perfil; honesto cuando aún no hay score.
+function LivabilityPorPerfil({ colonia, liv }) {
+  const [sel, setSel] = useState('familia');
+  const perfiles = liv.perfiles || {};
+  const perfil = perfiles[sel] || {};
+  const disponible = perfil.available === true && perfil.valor != null;
+  const c = livBandOf(perfil.letra);
+  const estimado = disponible && perfil.es_estimado;
+
+  return (
+    <div data-testid="ie-liv-section" style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+      <div className="eyebrow">LIVABILITY POR PERFIL · {colonia}</div>
+      <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: '4px 0 0', maxWidth: 640, lineHeight: 1.5 }}>
+        El mismo dato, según para quién es la casa.
+      </p>
+
+      {/* Selector de perfiles (chips) */}
+      <div role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '14px 0' }}>
+        {LIV_PERFILES.map(p => {
+          const activo = p.slug === sel;
+          return (
+            <button
+              key={p.slug}
+              type="button"
+              role="tab"
+              aria-selected={activo}
+              data-testid={`ie-liv-chip-${p.slug}`}
+              onClick={() => setSel(p.slug)}
+              style={{
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, padding: '7px 14px', borderRadius: 9999,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                background: activo ? 'rgba(var(--cream-rgb),0.10)' : 'rgba(var(--cream-rgb),0.02)',
+                border: `1px solid ${activo ? 'var(--cream-3)' : 'var(--border)'}`,
+                color: activo ? 'var(--cream)' : 'var(--cream-3)',
+              }}
+            >
+              {p.etiqueta}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sello del perfil seleccionado */}
+      <div
+        data-testid={`ie-liv-sello-${sel}`}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+          padding: 16, borderRadius: 14,
+          background: disponible ? `linear-gradient(140deg, ${c.bg}, transparent)` : 'rgba(var(--cream-rgb),0.02)',
+          border: `1px solid ${disponible ? c.bd : 'var(--border)'}`,
+        }}
+      >
+        {disponible ? (
+          <>
+            <div style={{ textAlign: 'center', minWidth: 96 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, color: c.fg, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {perfil.valor}
+                {perfil.letra && <span style={{ fontSize: 18, opacity: 0.7, marginLeft: 5 }}>{perfil.letra}</span>}
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 180, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', fontWeight: 700 }}>
+                {perfil.nombre}
+              </div>
+              {perfil.que_busca && (
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+                  {perfil.que_busca}
+                </div>
+              )}
+              {estimado && (
+                <span style={{ alignSelf: 'flex-start', padding: '1px 7px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: 'var(--amber, #fcd34d)', fontSize: 9.5 }}>
+                  Estimado
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', fontWeight: 700 }}>
+              {perfil.nombre || LIV_PERFILES.find(p => p.slug === sel)?.etiqueta}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+              Esperando los scores de la zona.
+            </div>
+            {perfil.que_busca && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', lineHeight: 1.5, opacity: 0.8 }}>
+                Este perfil busca: {perfil.que_busca}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Índices DMX de la colonia del proyecto — sellos estilo FICO (nombre + valor/banda + qué mide).
 // Mismo motor que el superadmin/comprador. Honesto: muestra el número si el plan lo da; si no,
 // la banda cualitativa (Alta/Media/Baja). Marca "Estimado" cuando el motor lo señala. Nada inventado.
@@ -298,6 +407,9 @@ function IndicesDmxCard({ colonia, data }) {
           {data.senal_leyenda}{data.senal_leyenda && data.nota ? ' · ' : ''}{data.nota}
         </div>
       )}
+
+      {/* Livability por perfil — el diferenciador. Solo si el motor manda los perfiles. */}
+      {data.liv?.perfiles && <LivabilityPorPerfil colonia={colonia} liv={data.liv} />}
     </Card>
   );
 }
