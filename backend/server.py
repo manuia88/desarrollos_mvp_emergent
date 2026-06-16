@@ -1199,6 +1199,10 @@ async def security_headers(request, call_next):
         if "application/json" in (resp.headers.get("content-type") or ""):
             resp.headers.setdefault("Content-Security-Policy",
                                     "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+        # Anti-scraping (regla Fable5 #16): la API JSON no debe indexarse ni alimentar
+        # crawlers de IA. Los archivos SEO (/llms.txt, /sitemap.xml) van en la raíz, no en /api.
+        if request.url.path.startswith("/api/"):
+            resp.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
     except Exception:
         pass
     return resp

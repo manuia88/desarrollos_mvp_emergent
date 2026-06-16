@@ -1,0 +1,59 @@
+# DesarrollosMX — robots.txt (anti-scraping · regla Fable5 #16)
+# La landing y el marketplace público SÍ se indexan (SEO). El API y el portal privado NO.
+# Los crawlers de ENTRENAMIENTO de IA quedan bloqueados: el dato (índices, scores, grafo
+# de demanda) es el moat — no alimenta modelos de terceros.
+
+# ── Crawlers de entrenamiento / scraping de IA: bloqueados por completo ──
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+# ── Todos los demás (Google, Bing, etc.): indexan lo público, NO el API ni el portal ──
+User-agent: *
+Disallow: /api/
+Disallow: /portal/
+Disallow: /superadmin/
+Disallow: /desarrollador/
+Disallow: /asesor/
+Disallow: /comprador/
+Disallow: /admin/
+
+Sitemap: https://desarrollosmx.io/sitemap.xml
