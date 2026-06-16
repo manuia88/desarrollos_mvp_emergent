@@ -5,6 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { Card, Badge } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
+import { getZoneIndices } from '../../api/indices';
 import { Sparkle, ArrowRight, X } from '../../components/icons';
 import DiagnosticPanel from '../../components/developer/DiagnosticPanel';
 import { Z } from '../../styles/zIndex';
@@ -40,6 +41,7 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
   const { slug } = useParams();
   const [data, setData] = useState(null);
   const [benchmark, setBenchmark] = useState(null);
+  const [indices, setIndices] = useState(null);
   const [drillScore, setDrillScore] = useState(null);
   const [drillData, setDrillData] = useState(null);
 
@@ -48,6 +50,16 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
     api.getIEBreakdown(slug).then(setData).catch(() => setData({ error: true }));
     api.getColoniaBenchmark(slug).then(setBenchmark).catch(() => setBenchmark({ error: true }));
   }, [slug]);
+
+  // Índices DMX de la colonia del proyecto (mismo motor que el superadmin/comprador).
+  useEffect(() => {
+    if (!data || data.error || !data.colonia) return;
+    let alive = true;
+    getZoneIndices(data.colonia)
+      .then(r => { if (alive) setIndices(r); })
+      .catch(() => { if (alive) setIndices({ error: true }); });
+    return () => { alive = false; };
+  }, [data]);
 
   const openDrill = async (score) => {
     setDrillScore(score);
@@ -110,6 +122,11 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
       {/* Comparativa vs la zona */}
       {benchmark && !benchmark.error && benchmark.projects_count > 0 && (
         <ColoniaBenchmarkCard myData={data} benchmark={benchmark} />
+      )}
+
+      {/* Índices DMX de la colonia (IPV/IAB/IDS/IRE/ICO + maestro IDM) */}
+      {indices && !indices.error && Array.isArray(indices.indices) && indices.indices.length > 0 && (
+        <IndicesDmxCard colonia={data.colonia} data={indices} />
       )}
 
       <DiagnosticPanel devId={slug} devName={data.project_name} />
@@ -197,6 +214,90 @@ function ExtraScoresSection({ items }) {
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+// Índices DMX de la colonia del proyecto — sellos estilo FICO (nombre + valor/banda + qué mide).
+// Mismo motor que el superadmin/comprador. Honesto: muestra el número si el plan lo da; si no,
+// la banda cualitativa (Alta/Media/Baja). Marca "Estimado" cuando el motor lo señala. Nada inventado.
+function IndicesDmxCard({ colonia, data }) {
+  const idm = data.idm || {};
+  const items = data.indices || [];
+  const idmColor = bandOf(idm.color);
+  const hasNumber = idm.valor != null; // plan Pro/Enterprise da el valor exacto; free da solo la banda
+
+  return (
+    <Card data-testid="ie-indices-dmx" style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+        <div>
+          <div className="eyebrow">ÍNDICES DMX · {colonia}</div>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: '4px 0 0', maxWidth: 640, lineHeight: 1.5 }}>
+            Los cinco índices de la zona (plusvalía, absorción, demanda, renta y calidad) más el Índice DMX maestro. Cada uno comparado con el resto de la ciudad.
+          </p>
+        </div>
+        {/* Sello maestro IDM */}
+        <div data-testid="ie-indice-IDM" style={{
+          textAlign: 'center', padding: '12px 18px', borderRadius: 14,
+          background: `linear-gradient(140deg, ${idmColor.bg}, transparent)`, border: `1px solid ${idmColor.bd}`, minWidth: 132,
+        }}>
+          <div className="eyebrow" style={{ fontSize: 9, marginBottom: 4 }}>Índice DMX</div>
+          {hasNumber ? (
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: idmColor.fg, lineHeight: 1, letterSpacing: '-0.02em' }}>
+              {idm.valor}{idm.letra && <span style={{ fontSize: 14, opacity: 0.7, marginLeft: 4 }}>{idm.letra}</span>}
+            </div>
+          ) : (
+            <div style={{ marginTop: 2 }}><BandPill etiqueta={idm.etiqueta || '—'} color={idm.color} size={13} /></div>
+          )}
+          {hasNumber && idm.etiqueta && (
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 4 }}>{idm.etiqueta}</div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+        {items.map(ix => {
+          const c = bandOf(ix.color);
+          const estimado = ix.es_estimado || ix.fuente === 'estimado';
+          const ixHasNumber = ix.valor != null;
+          return (
+            <div
+              key={ix.key}
+              data-testid={`ie-indice-${ix.key}`}
+              style={{
+                padding: 14, borderRadius: 12, background: 'rgba(var(--cream-rgb),0.02)',
+                border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', fontWeight: 700 }}>
+                  <span style={{ color: 'var(--cream-3)', fontWeight: 600, marginRight: 6 }}>{ix.key}</span>{ix.nombre}
+                </div>
+                {ixHasNumber ? (
+                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: c.fg, lineHeight: 1 }}>
+                    {ix.valor}{ix.letra && <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 3 }}>{ix.letra}</span>}
+                  </span>
+                ) : (
+                  <BandPill etiqueta={ix.etiqueta || '—'} color={ix.color} size={11.5} />
+                )}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', lineHeight: 1.45 }}>{ix.que_mide}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {ixHasNumber && ix.etiqueta && <BandPill etiqueta={ix.etiqueta} color={ix.color} size={10.5} />}
+                {estimado && (
+                  <span style={{ padding: '1px 7px', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, color: 'var(--amber, #fcd34d)', fontSize: 9.5 }}>Estimado</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {(data.senal_leyenda || data.nota) && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 12, lineHeight: 1.5 }}>
+          {data.senal_leyenda}{data.senal_leyenda && data.nota ? ' · ' : ''}{data.nota}
+        </div>
+      )}
     </Card>
   );
 }
