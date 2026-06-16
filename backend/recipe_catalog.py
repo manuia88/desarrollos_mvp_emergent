@@ -61,6 +61,43 @@ RECIPE_INFO: Dict[str, Dict[str, str]] = {
         "categoria": "Riesgo", "icono": "riesgo",
         "powers": "Riesgo sísmico (microzonas del Atlas).",
     },
+    # ── Moat geoespacial N0x (índices compuestos sobre densidad de giros OSM) ──
+    "IE_COL_N01_ECOSYSTEM_DIVERSITY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Qué tan variado es el ecosistema de giros de la zona (mezcla rica vs. monótona).",
+    },
+    "IE_COL_N02_EMPLOYMENT_ACCESSIBILITY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Acceso al empleo: cuántos trabajos quedan a un trayecto razonable de la zona.",
+    },
+    "IE_COL_N04_CRIME_TRAJECTORY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Hacia dónde va la seguridad de la zona: ¿mejora o empeora con el tiempo?",
+    },
+    "IE_COL_N05_INFRASTRUCTURE_RESILIENCE": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Qué tan resiliente es la infraestructura ante sismo o inundación (Atlas de Riesgos).",
+    },
+    "IE_COL_N06_SCHOOL_PREMIUM": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Prima escolar: calidad y prestigio de las escuelas de la zona (SEP).",
+    },
+    "IE_COL_N07_WATER_SECURITY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Seguridad del agua: qué tan confiable es el suministro (cortes SACMEX).",
+    },
+    "IE_COL_N08_WALKABILITY_MX": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Caminabilidad: cuánto resuelves a pie (transporte, servicios básicos y vida de barrio).",
+    },
+    "IE_COL_N09_NIGHTLIFE_ECONOMY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Economía nocturna de la zona (bares, ocio y cafés) — densidad potencial.",
+    },
+    "IE_COL_N10_SENIOR_LIVABILITY": {
+        "categoria": "Moat geoespacial", "icono": "moat",
+        "powers": "Qué tan amable es la zona para adultos mayores (salud a pie + tranquilidad).",
+    },
 }
 
 # Recetas de cara al comprador cuya ausencia debe mostrarse como "dato en camino".

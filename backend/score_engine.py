@@ -54,6 +54,7 @@ class Recipe:
     is_paid: bool = False                      # True → requires allow_paid=True (e.g. AirROI)
     scope: str = "colonia"                    # "colonia" | "proyecto"
     layer: str = "descriptive"                # "descriptive" (N1-N2) | "predictive" (N4) | "narrative" (N5)
+    needs_denue: bool = False                 # True → engine injects denue_zone_density.by_category pseudo-sources
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -282,6 +283,31 @@ class ScoreEngine:
             "_dmx_own_colonia_scores": [{"payload": d, "is_stub": False} for d in own_scores],
         }
 
+    async def _build_denue_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For geo-moat colonia recipes (N01/N08/N09/N10): inject the OSM business
+        density (`denue_zone_density.by_category`) for this colonia plus the city-wide
+        distribution, so recipes can normalize by percentile-of-city while staying pure.
+
+        Same mechanism as `_build_project_context` (DMX-internal data under pseudo
+        source_ids). NEVER invents: if the colonia has no density doc the recipe stubs.
+        """
+        zone_doc = await self.db.denue_zone_density.find_one(
+            {"zone_id": zone_id}, {"_id": 0, "by_category": 1, "businesses_per_km2": 1, "source": 1},
+        )
+        city_docs = await self.db.denue_zone_density.find(
+            {}, {"_id": 0, "by_category": 1},
+        ).to_list(length=2000)
+        # Seguridad real de la colonia (si ya existe score no-stub) — la usa N10.
+        seg = await self.db.ie_scores.find_one(
+            {"zone_id": zone_id, "code": "IE_COL_SEGURIDAD", "is_stub": False, "value": {"$ne": None}},
+            {"_id": 0, "value": 1},
+        )
+        return {
+            "_dmx_denue_zone": [{"payload": zone_doc, "is_stub": False}] if zone_doc else [],
+            "_dmx_denue_city": [{"payload": d, "is_stub": False} for d in city_docs],
+            "_dmx_seguridad": [{"payload": seg, "is_stub": False}] if seg else [],
+        }
+
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
         recipe = get_recipe(code)
         if not recipe:
@@ -299,6 +325,9 @@ class ScoreEngine:
         elif getattr(recipe, "layer", "descriptive") == "predictive":
             # predictive colonia recipes need the colonia's own N1-N2 scores
             obs.update(await self._build_colonia_context(zone_id))
+        if getattr(recipe, "needs_denue", False):
+            # geo-moat recipes (N01/N08/N09/N10) read OSM by_category density
+            obs.update(await self._build_denue_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively
