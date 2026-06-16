@@ -70,6 +70,13 @@ async def get_comparable_alerts(dev_id: str, request: Request) -> Dict[str, Any]
 
     _check_owner_permission(user, dev_id, dev.get("developer_id", ""))
 
+    # Feature-flag Phase Y (toggle de superadmin funcional): comparable_alerts "off" → sin alertas.
+    from routes.phase_y_controls import get_phase_y_settings
+    _tenant = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
+    _phasey = await get_phase_y_settings(db, _tenant)
+    if (_phasey.get("feature_tiers") or {}).get("comparable_alerts", "off") == "off":
+        return {"dev_id": dev_id, "alerts": []}
+
     raw = await db.comparable_alerts.find(
         {"dev_id": dev_id},
         {"_id": 0},

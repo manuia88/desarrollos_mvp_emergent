@@ -60,6 +60,13 @@ async def get_top_recommendation(request: Request) -> Dict[str, Any]:
     tenant = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
     allowed_dev_ids: Optional[List[str]] = _tenant_dev_map_get(tenant)
 
+    # Feature-flag Phase Y (toggle de superadmin funcional): si recommendation_banner
+    # está "off" para el tenant, no se muestra banner. Default T3 = on (no desactiva nada).
+    from routes.phase_y_controls import get_phase_y_settings
+    _phasey = await get_phase_y_settings(db, tenant)
+    if (_phasey.get("feature_tiers") or {}).get("recommendation_banner", "off") == "off":
+        return {"has_recommendation": False}
+
     from data_developments import DEVELOPMENTS_BY_ID, DEVELOPMENTS
     if allowed_dev_ids is not None:
         tenant_devs = [d for d in DEVELOPMENTS if d.get("developer_id") in allowed_dev_ids]

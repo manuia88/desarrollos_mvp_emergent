@@ -295,6 +295,14 @@ async def run_lead_nurture_match(db) -> Dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         log.warning(f"[lead_nurture] smart-routing pre-step failed: {e}")
 
+    # Feature-flag Phase Y (toggle superadmin funcional, global "dmx"): lead_nurture (path legacy
+    # de plantillas) "off" → no matching/envío. El smart-routing pre-paso ya corrió arriba.
+    from routes.phase_y_controls import get_phase_y_settings
+    _phasey = await get_phase_y_settings(db, "dmx")
+    if (_phasey.get("feature_tiers") or {}).get("lead_nurture", "off") == "off":
+        return {"matches": 0, "sent": 0, "skipped": 0, "ts": ts,
+                "smart_routing": routing_summary, "skipped_feature_off": True}
+
     matches = await find_matches(db)
     sent = 0
     skipped = 0

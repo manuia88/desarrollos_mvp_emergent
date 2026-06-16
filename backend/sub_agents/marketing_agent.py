@@ -563,6 +563,10 @@ class MarketingAgent:
             final_result = heuristic_result or {"recommendations": [], "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0}
         else:
             async def _llm_layer(data: Any) -> Optional[Dict[str, Any]]:
+                # Gobernanza IA ANTES de gastar (regla 6): presupuesto + kill-switch → si no, cae a caché/heurística.
+                from services.llm_guard import within_budget
+                if not await within_budget(db, org_id):
+                    return None
                 return await _layer_llm(db, org_id, project_id)
 
             async def _cache_layer(data: Any) -> Optional[Dict[str, Any]]:

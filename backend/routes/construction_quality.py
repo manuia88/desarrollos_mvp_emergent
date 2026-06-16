@@ -44,6 +44,11 @@ class ManualOverrideBody(BaseModel):
 async def get_quality(request: Request, development_id: str):
     """Público T0. Retorna índice + breakdown si disponible."""
     db = request.app.state.db
+    # Feature-flag Phase Y (toggle superadmin funcional, global "dmx"): construction_agent "off" → sin score.
+    from routes.phase_y_controls import get_phase_y_settings
+    _phasey = await get_phase_y_settings(db, "dmx")
+    if (_phasey.get("feature_tiers") or {}).get("construction_agent", "off") == "off":
+        return {"development_id": development_id, "score": None, "tier": "no_data", "reason": "feature_off"}
     result = await compute_quality_index(db, development_id, use_cache=True)
     if result.get("score") is None:
         # Still 200 with reason · permite UI mostrar "sin datos"
@@ -61,6 +66,10 @@ async def list_quality(
 ):
     """Público T0. Filtra por min_score o tier · sort desc por score."""
     db = request.app.state.db
+    from routes.phase_y_controls import get_phase_y_settings
+    _phasey = await get_phase_y_settings(db, "dmx")
+    if (_phasey.get("feature_tiers") or {}).get("construction_agent", "off") == "off":
+        return {"items": [], "count": 0, "skip": skip, "limit": limit}
     items = await list_developments_by_quality(db, min_score=min_score, tier=tier, limit=limit, skip=skip)
     return {"items": items, "count": len(items), "skip": skip, "limit": limit}
 

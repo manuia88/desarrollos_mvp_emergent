@@ -440,6 +440,11 @@ class PricingAgent:
         else:
             # 3-layer FallbackChain
             async def _llm_layer(data: Any) -> Optional[Dict[str, Any]]:
+                # Gobernanza IA ANTES de gastar (regla 6): presupuesto por tenant + kill-switch.
+                # Si no autoriza → None → la cadena cae a caché/heurística (sin gastar LLM).
+                from services.llm_guard import within_budget
+                if not await within_budget(db, org_id):
+                    return None
                 return await _layer_llm(db, org_id, project_id, sim_mode)
 
             async def _cache_layer(data: Any) -> Optional[Dict[str, Any]]:
