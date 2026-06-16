@@ -16,6 +16,7 @@ import {
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, GitMerge, ShieldCheck, Swords,
   Share2, Video, MessageCircle, HelpCircle, FlaskConical, Gauge,
+  Bot,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -57,6 +58,7 @@ const DEV_NAV = [
       { key: 'valor-terreno',to: '/desarrollador/valor-terreno',     label: 'Valor de Terreno', Icon: DollarSign },
       { key: 'pricing',      to: '/desarrollador/pricing',           label: 'Precios IA',     Icon: TrendingUp },
       { key: 'competidores', to: '/desarrollador/competidores',      label: 'Competidores',   Icon: Target },
+      { key: 'agentes',      to: '/desarrollador/agentes',           label: 'Tus Asistentes IA', Icon: Bot },
     ],
   },
   {

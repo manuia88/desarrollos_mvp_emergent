@@ -13,6 +13,12 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Capturas de verificación (Claude Code) y datos demo locales — NUNCA al repo (PII/test data)
+emg-*.png
+scripts/dev-data/uploads/
+scripts/dev-data/*.jpeg
+scripts/dev-data/*.jpg
 .coverage
 build/
 dist/
