@@ -1405,6 +1405,13 @@ async def audit(user_id: str, action: str, resource: str, data: dict = None):
 @app.on_event("startup")
 async def startup():
     _prod_env_guard()   # Tanda 2 · fail-closed en prod si faltan secretos críticos
+    # Seguridad 2026-06-16 · kill-switch GLOBAL de IA: parcha LlmChat.send_message para
+    # que AI_DISABLED corte los ~45 motores que llaman al LLM directo (antes lo saltaban).
+    try:
+        from llm_killswitch import install_llm_killswitch
+        install_llm_killswitch()
+    except Exception as _kse:
+        logging.warning(f"[startup] kill-switch global de IA no instalado: {_kse}")
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id")
     await db.audit_logs.create_index("ts")

@@ -192,6 +192,16 @@ async def post_message(body: MessageIn, request: Request):
     if user is None:
         _rate_limit_check(_RL_ANON_DAILY, ip, _RL_ANON_DAILY_LIMIT,
                           window_s=_RL_DAILY_WINDOW_S)
+        # #5 · el chat público anónimo TAMBIÉN honra el kill-switch global + un tope de
+        # presupuesto (tenant sintético "__public__"). Antes solo tenía rate-limit por IP.
+        try:
+            from services.llm_guard import within_budget
+            if not await within_budget(request.app.state.db, "__public__"):
+                raise HTTPException(429, "El asistente está en pausa temporal. Intenta más tarde.")
+        except HTTPException:
+            raise
+        except Exception as _wbe:
+            log.warning(f"[conversation] within_budget público no verificable: {_wbe}")
 
     db = request.app.state.db
     engine = ConversationEngine(db)
