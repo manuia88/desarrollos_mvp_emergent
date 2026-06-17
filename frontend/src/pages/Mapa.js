@@ -180,16 +180,18 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'fill',
         source: 'colonias',
         paint: {
-          // Choropleth por VALOR CATASTRAL REAL del suelo ($/m² · oficial · 58% de colonias). Una sola
-          // escala limpia y verdadera; sin dato → muy tenue. (Adiós al relleno "calidad" estimado y messy.)
+          // Choropleth por VALOR CATASTRAL REAL del suelo. Rampa calibrada a la DISTRIBUCIÓN real
+          // (mediana ~$2,400/m², p75 ~$3,300, p90 ~$5,000) → incluso el valor bajo se ve CON color
+          // (antes empezaba en $2,500=casi-blanco → 75% de CDMX salía "en blanco" aunque tenía dato).
           'fill-color': [
             'case',
             ['has', 'valor_catastral'],
             ['interpolate', ['linear'], ['get', 'valor_catastral'],
-              2500, '#E8F3ED', 5000, '#D7C7F7', 9000, '#A98CFF', 15000, '#7C5CFF', 22000, '#C63FAE'],
-            'rgba(124,92,255,0.05)',
+              500, '#CFE3F2', 1500, '#9FB6E6', 2400, '#9079D8', 3300, '#7E5FD6',
+              5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE'],
+            'rgba(124,92,255,0.06)',
           ],
-          'fill-opacity': ['case', ['has', 'valor_catastral'], 0.62, 0.10],
+          'fill-opacity': ['case', ['has', 'valor_catastral'], 0.66, 0.10],
         },
       });
       map.addLayer({
@@ -346,7 +348,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
           id: 'catastro-poly-fill', type: 'fill', source: 'catastro-poly',
           paint: {
             'fill-color': ['interpolate', ['linear'], ['get', 'v'],
-              3000, '#7CC9A6', 8000, '#A78BFA', 18000, '#7C5CFF', 35000, '#C63FAE'],
+              500, '#CFE3F2', 1500, '#9FB6E6', 2400, '#9079D8', 3300, '#7E5FD6',
+              5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE'],
             'fill-opacity': 0.6,
           },
         });
@@ -467,10 +470,10 @@ export default function Mapa({ user, onLogin, onLogout }) {
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Valor del suelo · $/m²</div>
           <div style={{
             width: 160, height: 8, borderRadius: 9999,
-            background: 'linear-gradient(to right, #E8F3ED, #D7C7F7, #A98CFF, #7C5CFF, #C63FAE)',
+            background: 'linear-gradient(to right, #CFE3F2, #9079D8, #7C5CFF, #9B46CB, #C63FAE)',
           }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', width: 160, fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', marginTop: 5 }}>
-            <span>$2.5k</span><span>$9k</span><span>$22k+</span>
+            <span>$500</span><span>$3k</span><span>$19k+</span>
           </div>
           <div style={{ fontSize: 9.5, color: '#9AA0AE', marginTop: 6 }}>Catastro oficial SIGCDMX · click = predios</div>
         </div>
