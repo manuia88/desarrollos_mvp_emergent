@@ -556,6 +556,12 @@ def _generate_units(dev: dict) -> List[dict]:
             m2_terr = 0
             m2_roof = proto.get("m2_roof", 0)
             m2_total = proto["m2_priv"] + proto.get("m2_balcony", 0) + m2_terr + m2_roof
+            # Features de unidad para filtros finos — derivados de datos que YA existen + seed determinista.
+            has_terraza = m2_roof > 0 or m2_terr > 0
+            has_balcon = proto.get("m2_balcony", 0) > 0
+            estac_indep = park_type == "individual" and proto["parking"] >= 1
+            vista = ["Interior", "A la Calle", "Al Parque", "A la Ciudad", "Panorámica"][int(seed[8:10], 16) % 5]
+            pet_ok = bool({"pet", "area_pets"} & set(dev.get("amenities", [])))
 
             units.append({
                 "id": f"{dev['id']}-{unit_num}",
@@ -577,6 +583,12 @@ def _generate_units(dev: dict) -> List[dict]:
                 "price_display": f"${price:,}",
                 "status": status,
                 "orientation": ["Norte", "Sur", "Oriente", "Poniente"][int(seed[6:8], 16) % 4],
+                "terraza": has_terraza,
+                "balcon": has_balcon,
+                "roof_garden": m2_roof > 0,
+                "estacionamiento_independiente": estac_indep,
+                "vista": vista,
+                "pet_friendly": pet_ok,
             })
 
     return units
@@ -596,6 +608,12 @@ def _build_dev(dev_raw: dict) -> dict:
     baths = [u["bathrooms"] for u in units]
     parking = [u["parking_spots"] for u in units]
     m2 = [u["m2_privative"] for u in units]
+    # Agregado de features para el grid: qué tiene al menos 1 unidad DISPONIBLE (evita escanear por request).
+    _avail = [u for u in units if u["status"] == "disponible"] or units
+    _feat_keys = ("terraza", "balcon", "roof_garden", "estacionamiento_independiente", "pet_friendly", "bodega")
+    unit_features = sorted({k for u in _avail for k in _feat_keys if u.get(k)})
+    orientations = sorted({u["orientation"] for u in _avail})
+    max_level = max((u["level"] for u in units), default=0)
 
     return {
         "id": dev_raw["id"],
@@ -627,6 +645,9 @@ def _build_dev(dev_raw: dict) -> dict:
         "bedrooms_range": [min(beds), max(beds)],
         "bathrooms_range": [min(baths), max(baths)],
         "parking_range": [min(parking), max(parking)],
+        "unit_features": unit_features,
+        "orientations": orientations,
+        "max_level": max_level,
         "amenities": dev_raw["amenities"],
         "photos": _photo_urls(dev_raw),
         "video_url": None,

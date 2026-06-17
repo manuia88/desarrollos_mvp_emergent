@@ -1,84 +1,73 @@
 // W4.2D1 — marketplaceUrlState.js
 // Helpers para sincronización URL <→ estado de filtros del Marketplace.
 // URL canónico: /marketplace?colonia=polanco&precio_max=15000000&recamaras_min=2&stage=preventa
+//              &unit_feature=terraza&unit_feature=roof_garden&orientacion=Sur&piso_min=8&amenity=gym
 // Orden params: ALFABÉTICO. Sin nulls/vacíos.
+//
+// Ampliado (granularidad fina): antes solo sobrevivían 6 keys → el resto se perdía al recargar/compartir.
+// Ahora persisten también: alcaldia, tipo, amenity[], unit_feature[] (terraza/estacionamiento_independiente/
+// roof_garden/bodega/pet_friendly/balcon), orientacion[], piso_min, banos, estacionamientos, m2_min/max.
 
-const VALID_KEYS = ['colonia', 'precio_max', 'recamaras_max', 'recamaras_min', 'stage', 'tipo'];
+// Keys escalares (string/number) ↔ key interna de `filters`
+const SCALAR = {
+  precio_max: 'max_price', precio_min: 'min_price', recamaras_min: 'beds',
+  banos: 'baths', estacionamientos: 'parking', m2_min: 'min_sqm', m2_max: 'max_sqm',
+  piso_min: 'piso_min', alcaldia: 'alcaldia', tipo: 'tipo', stage: 'stage',
+};
+// Keys multi-valor (arrays) — mismo nombre URL e interno
+const ARRAY_KEYS = ['amenity', 'unit_feature', 'orientacion'];
+const NUMERIC = new Set(['max_price', 'min_price', 'beds', 'baths', 'parking', 'min_sqm', 'max_sqm', 'piso_min']);
 
-/**
- * Deserializa URLSearchParams → filtros internos del Marketplace.
- * Mapping canónico → interno:
- *   colonia       → coloniaFilter (string) + filters.colonia ([colonia])
- *   precio_max    → filters.max_price
- *   recamaras_min → filters.beds (min value; max ignored en UI actual)
- *   recamaras_max → (preserved, no UI mapping yet)
- *   tipo          → filters.tipo
- *   stage         → filters.stage
- */
 export function urlToFilters(search) {
   const params = new URLSearchParams(search);
   const filters = {};
   let coloniaFilter = null;
 
   const colonia = params.get('colonia');
-  if (colonia) {
-    coloniaFilter = colonia;
-    // Also seed filters.colonia array so TopFilters shows active state
-    filters.colonia = [colonia];
+  if (colonia) { coloniaFilter = colonia; filters.colonia = [colonia]; }
+
+  for (const [urlKey, fKey] of Object.entries(SCALAR)) {
+    const raw = params.get(urlKey);
+    if (raw == null || raw === '') continue;
+    if (NUMERIC.has(fKey)) {
+      const v = parseInt(raw, 10);
+      if (!isNaN(v)) filters[fKey] = v;
+    } else {
+      filters[fKey] = raw;
+    }
   }
-
-  const precioMax = params.get('precio_max');
-  if (precioMax) {
-    const v = parseInt(precioMax, 10);
-    if (!isNaN(v)) filters.max_price = v;
+  for (const k of ARRAY_KEYS) {
+    const vals = params.getAll(k).filter(Boolean);
+    if (vals.length) filters[k] = vals;
   }
-
-  const recMin = params.get('recamaras_min');
-  if (recMin) {
-    const v = parseInt(recMin, 10);
-    if (!isNaN(v)) filters.beds = v;
-  }
-
-  const tipo = params.get('tipo');
-  if (tipo) filters.tipo = tipo;
-
-  const stage = params.get('stage');
-  if (stage) filters.stage = stage;
-
   return { filters, coloniaFilter };
 }
 
-/**
- * Serializa el estado actual → canonical query string.
- * Lee coloniaFilter (string) + filters (object).
- */
 export function filtersToUrl(filters, coloniaFilter) {
-  const out = {};
+  const params = new URLSearchParams();
+  const scalarOut = {};
 
-  if (coloniaFilter) out.colonia = coloniaFilter;
-  // Also support colonia array (pick first if array)
-  else if (Array.isArray(filters.colonia) && filters.colonia.length === 1) {
-    out.colonia = filters.colonia[0];
+  if (coloniaFilter) scalarOut.colonia = coloniaFilter;
+  else if (Array.isArray(filters.colonia) && filters.colonia.length === 1) scalarOut.colonia = filters.colonia[0];
+
+  for (const [urlKey, fKey] of Object.entries(SCALAR)) {
+    const v = filters[fKey];
+    if (v != null && v !== '') scalarOut[urlKey] = String(v);
+  }
+  // Arrays → multi-valor
+  const arrayOut = {};
+  for (const k of ARRAY_KEYS) {
+    if (Array.isArray(filters[k]) && filters[k].length) arrayOut[k] = filters[k].slice();
   }
 
-  if (filters.max_price) out.precio_max = String(filters.max_price);
-  if (filters.beds) out.recamaras_min = String(filters.beds);
-  if (filters.tipo) out.tipo = filters.tipo;
-  if (filters.stage) out.stage = filters.stage;
-
-  // Build params in alphabetical order (canonical)
-  const params = new URLSearchParams();
-  Object.keys(out)
-    .filter(k => VALID_KEYS.includes(k) && out[k] != null && out[k] !== '')
-    .sort()
-    .forEach(k => params.set(k, out[k]));
-
+  // Orden alfabético canónico
+  [...Object.keys(scalarOut), ...Object.keys(arrayOut)].sort().forEach((k) => {
+    if (k in scalarOut) params.set(k, scalarOut[k]);
+    else arrayOut[k].forEach((val) => params.append(k, val));
+  });
   return params.toString();
 }
 
-/**
- * Builds the full canonical URL for a filter combination.
- */
 export function buildCanonicalUrl(filters, coloniaFilter, baseUrl = '') {
   const qs = filtersToUrl(filters, coloniaFilter);
   return `${baseUrl}/marketplace${qs ? '?' + qs : ''}`;

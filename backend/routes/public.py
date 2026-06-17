@@ -321,6 +321,9 @@ async def list_developments(
     stage: Optional[str] = None,
     tipo: Optional[str] = None,
     alcaldia: Optional[str] = None,
+    unit_feature: Optional[List[str]] = Query(None),
+    orientacion: Optional[List[str]] = Query(None),
+    piso_min: Optional[int] = None,
     amenity: Optional[List[str]] = Query(None),
     featured: Optional[bool] = None,
     sort: Optional[str] = "recent",
@@ -355,6 +358,14 @@ async def list_developments(
     if alcaldia:
         _na = alcaldia.lower().replace("_", " ").strip()
         results = [d for d in results if (d.get("alcaldia") or "").lower().replace("_", " ").strip() == _na]
+    if unit_feature:
+        fset = {f.lower() for f in unit_feature}
+        results = [d for d in results if fset.issubset({x.lower() for x in d.get("unit_features", [])})]
+    if orientacion:
+        oset = {o.lower() for o in orientacion}
+        results = [d for d in results if oset & {x.lower() for x in d.get("orientations", [])}]
+    if piso_min is not None:
+        results = [d for d in results if d.get("max_level", 0) >= piso_min]
     if amenity:
         aset = set(amenity)
         results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
@@ -639,8 +650,16 @@ async def generate_dev_briefing(dev_id: str, request: Request):
 AI_SEARCH_SYSTEM = (
     "Eres el parser de búsqueda natural de DesarrollosMX para CDMX. Recibes una frase del usuario "
     "y devuelves ESTRICTAMENTE un objeto JSON con los filtros detectables. Schema:\n"
-    '{"colonia":[string],"min_price":number,"max_price":number,"min_sqm":number,"max_sqm":number,'
-    '"beds":number,"baths":number,"parking":number,"stage":string,"amenity":[string]}\n'
+    '{"colonia":[string],"alcaldia":string,"tipo":string,"min_price":number,"max_price":number,'
+    '"min_sqm":number,"max_sqm":number,"beds":number,"baths":number,"parking":number,"stage":string,'
+    '"amenity":[string],"unit_feature":[string],"orientacion":[string],"piso_min":number}\n'
+    "Valores: tipo ∈ {dept,casa}. stage ∈ {preventa,entrega_inmediata,en_construccion}. "
+    "unit_feature ∈ {terraza,balcon,roof_garden,estacionamiento_independiente,bodega,pet_friendly}. "
+    "orientacion ∈ {Norte,Sur,Oriente,Poniente}.\n"
+    "Mapea lenguaje natural: 'con terraza'→unit_feature:[terraza]; 'roof garden'→[roof_garden]; "
+    "'cajón/estacionamiento independiente/individual'→[estacionamiento_independiente]; 'bodega'→[bodega]; "
+    "'pet friendly/acepta mascotas'→[pet_friendly]; 'balcón'→[balcon]; 'piso alto'→piso_min:8; "
+    "'departamento/depa'→tipo:dept; 'casa'→tipo:casa; 'entrega inmediata'→stage:entrega_inmediata.\n"
     "Reglas: omite claves sin evidencia. Precios en MXN. '5M' = 5000000."
 )
 
@@ -683,7 +702,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             parsed = _json.loads(txt[s:e + 1])
     except Exception:
         parsed = {}
-    allowed = {"colonia", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity"}
+    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity", "unit_feature", "orientacion", "piso_min"}
     filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
     await db.ai_search_cache.update_one(
         {"cache_key": cache_key},
