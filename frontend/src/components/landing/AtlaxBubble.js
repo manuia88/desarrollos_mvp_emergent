@@ -750,6 +750,26 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             </div>
           )}
 
+          {/* Chips guía PERSISTENTES — siempre dan opciones aunque ya haya conversación (no chatbot en blanco).
+              En estado vacío ya está la bienvenida guiada; aquí cubren el caso con historial. */}
+          {messages.length > 0 && !busy && (
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '8px 12px 0', WebkitOverflowScrolling: 'touch' }}>
+              {[
+                ['🏡 Para vivir', 'Quiero comprar para vivir. ¿Qué colonias me convienen según seguridad, servicios y precio?'],
+                ['📈 Invertir', '¿Qué zonas tienen mejor plusvalía y se rentan rápido para invertir?'],
+                ['Con terraza', 'Muéstrame departamentos con terraza'],
+                ['¿Cuánto vale aquí?', '¿Cuánto cuesta el m² en las mejores colonias de CDMX?'],
+                ['Entrega inmediata', 'Desarrollos con entrega inmediata bajo $5M'],
+              ].map(([label, prompt], i) => (
+                <button key={i} onClick={() => send(null, prompt)} style={{
+                  flexShrink: 0, padding: '6px 12px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
+                  background: light ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(var(--theme-rgb),0.12)',
+                  border: '1px solid rgba(var(--theme-rgb),0.25)', color: 'var(--theme)', cursor: 'pointer', fontFamily: 'DM Sans',
+                }}>{label}</button>
+              ))}
+            </div>
+          )}
+
           {/* Input */}
           <form onSubmit={send} style={{
             padding: 12, borderTop: '1px solid var(--border)',
