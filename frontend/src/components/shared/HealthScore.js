@@ -30,7 +30,9 @@ function scoreColor(score) {
 }
 
 const VARIANT_LABELS = {
-  project: { prefix: 'Proyecto' },
+  // "Completitud" (qué tan completo/listo está) — DISTINTO de "Salud comercial" (ventas/dinero) del
+  // cockpit dev. Dos nombres distintos para dos números distintos (decisión founder 2026-06-17).
+  project: { prefix: 'Completitud' },
   asesor:  { prefix: 'Asesor' },
   client:  { prefix: 'Cliente' },
 };
@@ -70,7 +72,7 @@ export function HealthScore({
       {/* Ring + center */}
       <button
         onClick={() => setOpen(o => !o)}
-        title="Ver desglose de salud"
+        title="Qué tan completo y listo está el proyecto (completitud)"
         className="relative hover:scale-105 transition-transform duration-200"
         data-testid="health-score-ring"
         aria-expanded={open}
