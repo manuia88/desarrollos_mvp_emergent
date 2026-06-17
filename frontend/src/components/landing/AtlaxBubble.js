@@ -465,6 +465,26 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     setBusy(false);
   };
 
+  // #3 "Búsqueda viva / Para ti" — recomienda desde tu comportamiento (lo que vigilas) o tendencia.
+  const runParaTi = async () => {
+    if (busy) return;
+    setMessages(prev => [...prev, { role: 'user', content: '✨ Recomiéndame algo para mí', ts: Date.now() }]);
+    setBusy(true);
+    try {
+      let w = null; try { w = localStorage.getItem('dmx.watcher_id'); } catch {}
+      const r = await fetch(`${API}/api/para-ti${w ? `?watcher=${w}` : ''}`);
+      const d = await r.json();
+      const list = (d.para_ti || []).map(c => `• ${c.name} (${c.alcaldia}) — $${c.price_m2}k/m² · ${c.momentum} plusvalía`).join('\n');
+      const lead = d.basis === 'personalizado'
+        ? 'Por lo que has estado viendo y vigilando, creo que te van a gustar:'
+        : 'Lo que está más caliente ahora mismo en CDMX:';
+      setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: `${lead}\n${list}\n\n¿Te abro los desarrollos de alguna?` }]);
+    } catch (e) {
+      setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: 'No pude traer tus recomendaciones ahora. Dime qué buscas y te ayudo aquí.' }]);
+    }
+    setBusy(false);
+  };
+
   const clearHistory = () => {
     setMessages([]);
     saveHistory([]);
@@ -669,6 +689,14 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                           La IA busca, evalúa precio justo y te arma tu lista
                         </span>
                       </span>
+                    </button>
+                    <button data-testid="atlax-para-ti" onClick={runParaTi} disabled={busy} style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 12, cursor: busy ? 'not-allowed' : 'pointer',
+                      background: light ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(var(--theme-rgb),0.10)',
+                      border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--cream)', opacity: busy ? 0.6 : 1,
+                      fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+                    }}>
+                      <span style={{ fontSize: 16, lineHeight: 1 }}>✨</span> Recomiéndame algo para mí
                     </button>
                     {/* Opciones guiadas — primer paso del journey (no chatbot en blanco) */}
                     <div>

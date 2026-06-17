@@ -263,6 +263,49 @@ async def colonia_watch_list(watcher: str, request: Request):
     return {"watching": out, "count": len(out), "alerts": [w for w in out if w["change_pct"]]}
 
 
+# ─── #3 "Búsqueda viva / Para ti" — personaliza desde el comportamiento (watchlist) · cold-start trending ──
+@router.get("/api/para-ti")
+async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):
+    """Recomendación viva para el comprador: parte de lo que VIGILA (comportamiento real) → colonias
+    parecidas; si aún no hay señal, cae a 'tendencia' (mejor momentum). Reusa scores + watchlist."""
+    db = request.app.state.db
+    keys = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion"]
+
+    def _mom(c):
+        try:
+            return float(str(c.get("momentum") or "0").replace("%", "").replace("+", ""))
+        except Exception:
+            return 0.0
+    watched = []
+    if watcher:
+        try:
+            async for w in db.colonia_watches.find({"watcher": watcher}, {"_id": 0, "colonia_id": 1}):
+                watched.append(w.get("colonia_id"))
+        except Exception:
+            pass
+    scored: Dict[str, float] = {}
+    for cid in watched:
+        t = COLONIAS_BY_ID.get(cid)
+        ts = (t or {}).get("scores")
+        if not ts:
+            continue
+        for c in SEED_COLONIAS:
+            if c["id"] in watched or not c.get("scores"):
+                continue
+            d = sum((float(ts.get(k, 0)) - float(c["scores"].get(k, 0))) ** 2 for k in keys) ** 0.5
+            scored[c["id"]] = min(scored.get(c["id"], 9e9), d)
+    if scored:
+        order = sorted(scored.items(), key=lambda kv: kv[1])[:n]
+        recs = [COLONIAS_BY_ID[cid] for cid, _ in order if cid in COLONIAS_BY_ID]
+        basis = "personalizado"
+    else:
+        recs = sorted([c for c in SEED_COLONIAS if c.get("momentum")], key=_mom, reverse=True)[:n]
+        basis = "tendencia"
+    out = [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"),
+            "price_m2": c.get("price_m2"), "momentum": c.get("momentum")} for c in recs]
+    return {"para_ti": out, "basis": basis, "watched": len(watched)}
+
+
 # ─── Upgrade #3 · "Parecidas a las que te gustaron" (recomendación por similitud · taste-lite) ──
 @router.get("/api/colonias-similar/{colonia_id}")
 async def colonias_similar(colonia_id: str, n: int = 3):
