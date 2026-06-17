@@ -84,19 +84,28 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
             "rango": [round(est * 0.78), round(est * 1.25)]}   # banda honesta de incertidumbre
 
 
+# La vivienda NUEVA/preventa cuesta más por m² que la usada (acabados, garantía, financiamiento de obra).
+# El mercado base (market_for_colonia, calibrado con listings mayormente de reventa) ≈ valor de USADA.
+# Para juzgar un DESARROLLO hay que subir el benchmark con esta prima (documentada CDMX ~15-20%, calibrable
+# por zona con la muestra real separando isPresale vs usada). Sin esto, todo desarrollo saldría "ALTO" falso.
+NEW_PREMIUM = 1.18
+
+
 def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
-                   banda: float = 0.05) -> Dict[str, Any]:
-    """¿El precio de una propiedad está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio:
-    precio del anuncio vs valor estimado, en cubetas de ±banda). `mercado_m2` = $/m² de venta de la zona
-    (de market_for_colonia). Devuelve etiqueta + % de diferencia + estimado + rango — listo para el front."""
+                   es_nueva: bool = False, banda: float = 0.05) -> Dict[str, Any]:
+    """¿El precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio: precio vs estimado,
+    cubetas ±banda). `mercado_m2` = $/m² de la zona (≈ usada). Si `es_nueva` (desarrollo/preventa) el
+    benchmark sube por la prima de obra nueva → juzga contra obra nueva, no contra usada."""
     if not precio_total or not m2 or not mercado_m2:
         return {"disponible": False}
-    estimado = round(mercado_m2 * m2)
+    factor = NEW_PREMIUM if es_nueva else 1.0
+    bench_m2 = mercado_m2 * factor
+    estimado = round(bench_m2 * m2)
     if estimado <= 0:
         return {"disponible": False}
     diff = (precio_total - estimado) / estimado
     if diff < -banda:
-        etiqueta, color = "bajo", "verde"      # oportunidad
+        etiqueta, color = "bajo", "verde"      # buen punto de entrada
     elif diff > banda:
         etiqueta, color = "alto", "rojo"
     else:
@@ -107,6 +116,9 @@ def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
         "diff_pct": round(diff * 100, 1),
         "precio_m2": round(precio_total / m2),
         "estimado": estimado,
-        "estimado_m2": round(mercado_m2),
+        "estimado_m2": round(bench_m2),
+        "base": "obra nueva" if es_nueva else "mercado",     # contra qué se compara
+        "prima_obra_nueva_pct": round((NEW_PREMIUM - 1) * 100) if es_nueva else 0,
+        "mercado_usada_m2": round(mercado_m2),               # referencia de usada (transparencia)
         "rango": [round(estimado * 0.88), round(estimado * 1.12)],   # ~±12% IC del AVM
     }

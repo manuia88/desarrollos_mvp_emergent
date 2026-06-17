@@ -349,9 +349,10 @@ async def catastro_colonia(colonia: str, request: Request):
 
 
 @router.get("/api/precio-posicion")
-async def precio_posicion(request: Request, colonia: str, precio: float, m2: float):
+async def precio_posicion(request: Request, colonia: str, precio: float, m2: float, nueva: bool = False):
     """¿Este precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio sobre nuestro AVM).
-    Devuelve etiqueta + % vs estimado + rango. Wedge para comprador (oportunidades) / asesor (precia bien)."""
+    `nueva=true` para DESARROLLOS/preventa → juzga contra obra nueva (con su prima), no contra usada.
+    Wedge para comprador (oportunidades) / asesor (precia bien) / dev (posiciona)."""
     db = request.app.state.db
     try:
         from catastro_sig_engine import colonia_catastro
@@ -359,7 +360,7 @@ async def precio_posicion(request: Request, colonia: str, precio: float, m2: flo
         cat = await colonia_catastro(db, colonia)
         cv = await _colonia_value(db, colonia)
         mkt = await market_for_colonia(db, colonia, cat.get("valor_suelo_m2"), cv.get("calidad"))
-        pos = price_position(precio, m2, mkt.get("precio_venta_m2"))
+        pos = price_position(precio, m2, mkt.get("precio_venta_m2"), es_nueva=nueva)
         pos["mercado_fuente"] = mkt.get("source")
         pos["mercado_confianza"] = mkt.get("confianza")
         return pos
