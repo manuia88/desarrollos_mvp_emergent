@@ -210,6 +210,22 @@ async def compute_precio(db, zone_slug: str) -> Dict[str, Any]:
             return _wrap(float(c["precio_score"]), "valuacion", sample_size=1)
     except Exception as e:
         log.warning(f"[subscores] precio valuacion {zone_slug}: {e}")
+    # 1.5) Respaldo CATASTRO oficial (valor del suelo $/m² · cubre ~1,788 colonias vía cruce espacial).
+    #      Percentil-calibrado a la distribución real (p25 1462, mediana 2369, p75 3277, p90 5066).
+    try:
+        cat = await db.colonia_catastro_byid.find_one({"colonia_id": zone_slug}, {"_id": 0, "valor_suelo_m2": 1})
+        v = (cat or {}).get("valor_suelo_m2")
+        if v:
+            pts = [(500, 15.0), (1462, 25.0), (2369, 50.0), (3277, 70.0), (5066, 88.0), (12000, 100.0)]
+            score = pts[-1][1]
+            for i in range(1, len(pts)):
+                if v <= pts[i][0]:
+                    (x0, y0), (x1, y1) = pts[i - 1], pts[i]
+                    score = y0 + (y1 - y0) * (v - x0) / (x1 - x0)
+                    break
+            return _wrap(round(min(100.0, max(5.0, score)), 1), "catastro_suelo", sample_size=1)
+    except Exception as e:
+        log.warning(f"[subscores] precio catastro {zone_slug}: {e}")
     # 2) DRPI (respaldo)
     try:
         snap = await db.drpi_snapshots.find_one(

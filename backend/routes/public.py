@@ -213,10 +213,14 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
                 props["scores"] = s.get("scores")
                 props["trend"] = s.get("trend")
                 props["has_data"] = True
-            # Calidad compuesta (0-100) desde los scores ya computados de las 1,811 → colorea TODO el mapa
+            # SCORES reales por colonia (vida/movilidad/seguridad/comercio…) → el panel los lee directo.
+            # Antes solo se exponían a las 9 colonias que matcheaban semilla; ahora a TODAS (el dato YA existe
+            # en scores_reales para ~1,900 colonias vía OSM+FGJ). Esto llena las 4 tarjetas del panel.
             sr = c.get("scores_reales") or {}
             vals = [v for v in sr.values() if isinstance(v, (int, float))]
             if vals:
+                if "scores" not in props:
+                    props["scores"] = {k: round(v) for k, v in sr.items() if isinstance(v, (int, float))}
                 props["calidad"] = round(sum(vals) / len(vals))
                 props["calidad_estimada"] = bool(c.get("scores_es_estimado"))
                 props["cobertura_pct"] = c.get("scores_cobertura_pct")
