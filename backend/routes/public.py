@@ -263,6 +263,18 @@ async def colonia_watch_list(watcher: str, request: Request):
     return {"watching": out, "count": len(out), "alerts": [w for w in out if w["change_pct"]]}
 
 
+# ─── Catastro OFICIAL por colonia (SIGCDMX) — valor catastral + desglose por predio ──────────────
+@router.get("/api/catastro/colonia/{colonia}")
+async def catastro_colonia(colonia: str, request: Request):
+    """Valor catastral OFICIAL agregado de la colonia + desglose por predio (Catastro SIGCDMX 2021).
+    Esta es la granularidad por-predio que pedía el founder, con dato oficial."""
+    try:
+        from catastro_sig_engine import colonia_catastro
+        return await colonia_catastro(request.app.state.db, colonia)
+    except Exception as e:
+        return {"colonia": colonia, "disponible": False, "error": str(e)[:120]}
+
+
 # ─── #3 "Búsqueda viva / Para ti" — personaliza desde el comportamiento (watchlist) · cold-start trending ──
 @router.get("/api/para-ti")
 async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):

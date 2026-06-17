@@ -93,6 +93,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
   });
 
   const [similar, setSimilar] = useState([]);     // Upgrade #3 · colonias parecidas a la seleccionada
+  const [catastro, setCatastro] = useState(null); // Catastro OFICIAL SIGCDMX por colonia (valor + predios)
   const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
   const [devs, setDevs] = useState([]);          // desarrollos reales = los PREDIOS que sí vendemos
   useEffect(() => {
@@ -313,6 +314,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId]);
 
+  // Catastro OFICIAL (SIGCDMX) — valor catastral + desglose por predio de la colonia seleccionada.
+  const selName = selected && selected.name;
+  useEffect(() => {
+    if (!selName) { setCatastro(null); return; }
+    setCatastro(null);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/catastro/colonia/${encodeURIComponent(selName)}`)
+      .then((r) => r.json()).then((d) => setCatastro(d && d.disponible ? d : null)).catch(() => setCatastro(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selName]);
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
@@ -480,6 +491,34 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 </div>
               ))}
             </div>
+
+            {/* Valor catastral OFICIAL + desglose por predio (SIGCDMX · la granularidad por predio) */}
+            {catastro && (
+              <div style={{ marginBottom: 14, padding: '12px 14px', background: '#F1F4F0', border: '1px solid #E2E8DD', borderRadius: 12 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 8 }}>Valor catastral oficial · SIGCDMX</div>
+                <div style={{ display: 'flex', gap: 18, marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#1E2230' }}>${(catastro.valor_unitario_suelo_prom / 1000).toFixed(1)}k<span style={{ fontSize: 10.5, color: '#8A8F9E', fontWeight: 500 }}>/m² suelo</span></div>
+                    <div style={{ fontSize: 10.5, color: '#5A5F6E' }}>{(catastro.predios || 0).toLocaleString()} predios</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#1E2230' }}>${(catastro.valor_suelo_prom / 1e6).toFixed(1)}M</div>
+                    <div style={{ fontSize: 10.5, color: '#5A5F6E' }}>valor suelo prom.</div>
+                  </div>
+                </div>
+                {(catastro.muestra_predios || []).length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 10, color: '#8A8F9E', marginBottom: 5 }}>Desglose por predio (mayor valor):</div>
+                    {catastro.muestra_predios.slice(0, 5).map((p, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, padding: '3px 0', borderTop: i ? '1px solid #E8ECE4' : 'none' }}>
+                        <span style={{ color: '#5A5F6E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.calle || '—'}</span>
+                        <span style={{ color: '#1E2230', fontWeight: 600, flexShrink: 0 }}>${((p.valor_suelo || 0) / 1e6).toFixed(1)}M</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Parecidas a esta (upgrade #3 · taste) */}
             {similar.length > 0 && (
