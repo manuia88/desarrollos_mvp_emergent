@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { LightScope, PublicNav } from '../components/ui';
+import Navbar from '../components/landing/Navbar';
 import TopFilters from '../components/marketplace/TopFilters';
 import RiskScoreSubscribeWidget from '../components/marketplace/RiskScoreSubscribeWidget';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
@@ -157,7 +157,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: [-99.1969, 19.4270],
       zoom: 10.5,
     });
@@ -195,10 +195,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   );
 
   return (
-    <LightScope>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       {/* W4.2D1 — Dynamic meta tags */}
       <MarketplaceMetaTags filters={filters} coloniaFilter={coloniaFilter} resultCount={developments.length} />
-      <PublicNav />
+      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
       <main style={{ paddingTop: 60 }}>
         <section style={{ maxWidth: 1440, margin: '0 auto', padding: '32px 32px 12px' }}>
           <div className="eyebrow" style={{ marginBottom: 12 }}>{t('marketplace_v2.hero_eyebrow')}</div>
@@ -227,7 +227,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 style={{
                   padding: '9px 16px',
                   borderRadius: 9999,
-                  background: 'var(--surface-card)',
+                  background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(240,235,224,0.18)',
                   color: 'var(--cream)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
@@ -245,7 +245,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 style={{
                   padding: '9px 16px',
                   borderRadius: 9999,
-                  background: 'var(--surface-card)',
+                  background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(240,235,224,0.18)',
                   color: 'var(--cream)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
@@ -303,7 +303,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 style={{
                   padding: '9px 16px',
                   borderRadius: 9999,
-                  background: 'var(--surface-card)',
+                  background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(240,235,224,0.18)',
                   color: 'var(--cream)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
@@ -317,7 +317,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {/* View mode toggle */}
               <div style={{
                 display: 'flex', gap: 4, padding: 4,
-                background: 'var(--surface-card)',
+                background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(240,235,224,0.12)',
                 borderRadius: 9999,
               }}>
@@ -353,7 +353,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             data-testid="marketplace-search"
             style={{
               position: 'sticky', top: 60, zIndex: Z.DROPDOWN,
-              background: 'var(--surface-card)',
+              background: 'rgba(6,8,15,0.92)',
               backdropFilter: 'blur(18px)',
               borderTop: '1px solid var(--border)',
               borderBottom: '1px solid var(--border)',
@@ -425,7 +425,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         {viewMode === 'lista' && (
           <section data-testid="rs-banner" style={{
             position: 'relative', maxWidth: 1440, margin: '16px auto 0', padding: '14px 20px',
-            borderRadius: 18, background: 'var(--surface-card)', backdropFilter: 'blur(24px)',
+            borderRadius: 18, background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
             border: '1px solid transparent', backgroundClip: 'padding-box',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 12,
@@ -476,7 +476,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 ) : developments.length === 0 ? (
                   <div data-testid="mkp-empty" style={{
                     padding: 60, textAlign: 'center',
-                    background: 'rgba(0,0,0,0.025)', border: '1px dashed var(--border-2)',
+                    background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
                     borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)',
                   }}>
                     {t('marketplace_v2.empty')}
@@ -510,7 +510,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           style={{
                             position: 'absolute', top: 12, right: 12, zIndex: 5,
                             padding: '6px 14px', borderRadius: 9999,
-                            background: 'var(--surface-card)', border: '1px solid rgba(99,102,241,0.5)',
+                            background: 'rgba(13,16,23,0.85)', border: '1px solid rgba(99,102,241,0.5)',
                             color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif',
                             fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
                             cursor: 'pointer', backdropFilter: 'blur(24px)',
@@ -616,7 +616,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
       <AtlaxBubble />
-    </LightScope>
+    </div>
   );
 }
 
