@@ -385,6 +385,10 @@ async def _fetch_geojson(url: str) -> List[Dict[str, Any]]:
         if flat:
             props.setdefault("lon", sum(p[0] for p in flat) / len(flat))
             props.setdefault("lat", sum(p[1] for p in flat) / len(flat))
+        # KEYSTONE Mapa de Valores: conservar la GEOMETRÍA real del polígono (antes se tiraba y solo
+        # quedaba el centroide). Sin esto, el coroplético solo tendría cajas de juguete de 4 vértices.
+        if geom and geom.get("coordinates"):
+            props.setdefault("geometry", geom)
         rows.append(props)
     return rows
 
