@@ -292,6 +292,7 @@ const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/I
 const SuperadminTenants              = lazy(() => import('./pages/superadmin/SuperadminTenants'));
 // W1.3 SA1.2 — Superadmin System Health
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
+const SuperadminKG                   = lazy(() => import('./pages/superadmin/SuperadminKG'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
 // W2.1 SA2 — Data Sources Hub (unified connectors)
@@ -733,6 +734,7 @@ function AppRouter() {
       <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
       <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
+      <Route path="/superadmin/kg" element={<SuperadminRoute Page={SuperadminKG} />} />
       {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
       <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
       {/* W6.MOV.2 — Gov Data MX External Sources (Superadmin) */}
