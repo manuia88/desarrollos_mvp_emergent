@@ -385,22 +385,79 @@ def _ins(answer, meaning, basis, action, detail="", *, col=None, val=None, lower
                 "answer": answer, "detail": detail, "meaning": meaning, "basis": basis, "action": action}
     return fn
 
+# ── Game-changers REALES (build-for-endstate): reusan AVM + db.transactions; heurística como fallback ──
+async def exec_dev_avm_value(db, user, params, ctx):
+    """Valor real del proyecto vía AVM hedónico (avm_public). Fallback heurístico si la zona no tiene AVM."""
+    projs = _focus_projects((ctx or {}).get("scope") or {})
+    if len(projs) > 1:
+        return _project_table(projs, col="Valor real",
+            val=lambda p: (_money_short((p.get("price_from") or 0) * 1.05), (p.get("price_from") or 0) * 1.05),
+            action_text="Lista cerca del valor real de cada zona.")
+    p = projs[0] if projs else None
+    base = (p or {}).get("price_from") or 0
+    cslug = (p or {}).get("colonia") or (p or {}).get("colonia_id")
+    fair, engine = None, "heurístico"
+    try:
+        if cslug:
+            from avm_public_engine import avm_quick_async
+            avm = await avm_quick_async(db, cslug, m2=float((p or {}).get("m2_prom") or 80), recamaras=2, banos=2, antiguedad_anos=0)
+            fair = avm.get("precio_estimado")
+            if fair:
+                engine = "avm_real"
+    except Exception as e:
+        log.info(f"[cerebro] dev_avm_value fallback: {e}")
+    val = fair or (base * 1.05 if base else None)
+    if p and val:
+        try:
+            from .coach import log_prediction
+            await log_prediction(db, user, kind="price", predicted=val, ref=p.get("id"), meta={"card": "avm_value"})
+        except Exception:
+            pass
+    return {"engine": engine, "example": engine != "avm_real",
+            "summary": f"≈ {_money_short(val)}" if val else "Sin dato suficiente",
+            "answer": f"≈ {_money_short(val)}" if val else "—",
+            "meaning": "El valor real de tu zona, ajustado por m², piso y amenidades.",
+            "basis": "AVM hedónico (modelo real)" if engine == "avm_real" else "estimación heurística — aún sin AVM de esta zona",
+            "action": "Lista un poco arriba del valor para dejar margen de negociación."}
+
+
+async def exec_dev_closing_prices(db, user, params, ctx):
+    """Precio de CIERRE real desde db.transactions (DRPI). Fallback heurístico si aún no hay cierres."""
+    projs = _focus_projects((ctx or {}).get("scope") or {})
+    if len(projs) > 1:
+        return _project_table(projs, col="Cierre estimado",
+            val=lambda p: (_money_short((p.get("price_from") or 0) * 0.9), (p.get("price_from") or 0) * 0.9),
+            action_text="Lista cerca de la mediana de cierre.")
+    p = projs[0] if projs else None
+    zone = (p or {}).get("colonia") or (p or {}).get("colonia_id")
+    med, n = None, 0
+    try:
+        if zone:
+            prices = sorted([t.get("closing_price_mxn") async for t in
+                             db.transactions.find({"zone_id": zone}, {"_id": 0, "closing_price_mxn": 1}) if t.get("closing_price_mxn")])
+            n = len(prices)
+            if n:
+                med = prices[n // 2]
+    except Exception as e:
+        log.info(f"[cerebro] dev_closing_prices fallback: {e}")
+    base = (p or {}).get("price_from") or 0
+    val = med or (base * 0.9 if base else None)
+    return {"engine": "transactions_real" if med else "heurístico", "example": not med,
+            "summary": f"{_money_short(val)}" if val else "Aún sin cierres registrados",
+            "answer": f"{_money_short(val)}" if val else "—",
+            "meaning": "El precio al que SÍ se cierra en tu zona (no el de anuncio, que va inflado).",
+            "basis": f"{n} cierres reales registrados en tu zona" if med else "estimación — aún sin cierres en db.transactions (se llena al cerrar ventas)",
+            "action": "Lista cerca de la mediana de cierre para vender más rápido."}
+
+
 _GAME = {
-    "dev.closing_prices": _ins(
-        "$6.8M", "Es el precio al que SÍ se cierra en tu zona — el de anuncio está inflado ~12%.",
-        "Ventas reales de cierre de los últimos 12 meses en tu colonia.",
-        "Lista cerca de la mediana para vender más rápido.", "mediana · rango $6.1M–$7.4M",
-        col="Cierre estimado", pred_kind="price", val=lambda p: (_money_short((p.get("price_from") or 0) * 0.9), (p.get("price_from") or 0) * 0.9)),
+    "dev.closing_prices": exec_dev_closing_prices,   # REAL (db.transactions) + fallback
     "dev.days_on_market": _ins(
         "~74 días", "Más rápido que el promedio de CDMX (110 días). Buena señal.",
         "Tiempo real de venta de unidades parecidas a la tuya.",
         "Si pasas de 90 días, ajusta precio o renueva fotos.", "para algo como lo tuyo",
         col="Días en venderse", pred_kind="days_on_market", val=lambda p: (f"~{_days_est(p)}d", _days_est(p)), lower_better=True),
-    "dev.avm_value": _ins(
-        "≈ $8.2M", "Estás dentro del valor de tu zona; tienes margen para listar más alto.",
-        "14 cierres reales ajustados por m², piso y amenidades.",
-        "Lista en $8.4M para dejar espacio de negociación sin espantar.", "rango $7.8M – $8.6M",
-        col="Valor real", pred_kind="price", val=lambda p: (_money_short((p.get("price_from") or 0) * 1.05), (p.get("price_from") or 0) * 1.05)),
+    "dev.avm_value": exec_dev_avm_value,             # REAL (AVM hedónico) + fallback
     "dev.what_if": _ins(
         "Vendes ~30% más rápido", "Bajar 5% acelera mucho la venta sin matar tu margen.",
         "Simulación sobre la elasticidad de demanda de tu zona.",
