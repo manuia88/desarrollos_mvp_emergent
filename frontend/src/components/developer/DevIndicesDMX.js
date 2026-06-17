@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { getDevIndices } from '../../api/developer';
 import { Sparkle } from '../icons';
 import SenalDMX, { SenalLeyenda } from '../shared/SenalDMX';
+import DisclosurePill from '../shared/DisclosurePill';
 import { tierLabel } from '../../lib/scoreWord';
 
 const BAND_COL = { verde: 'var(--ok, #1FA06A)', ambar: 'var(--warm, #E2982E)', rojo: 'var(--hot, #F2635B)', neutro: 'var(--cream-3)' };
@@ -24,7 +25,7 @@ function IndexChip({ i }) {
   return (
     <div title={i.que_mide} style={{ ...card, padding: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream-2)' }}>{i.nombre} <span style={{ color: 'var(--cream-3)', fontWeight: 600 }}>· {i.key}</span></span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{i.nombre} <span style={{ color: 'var(--cream-3)', fontWeight: 600 }}>· {i.key}</span><DisclosurePill esEstimado={i.es_estimado} size="xs" /></span>
         <SenalDMX etiqueta={i.etiqueta} color={i.color} percentil={i.percentil}
                   comparadoCon={i.comparado_con} esEstimado={i.es_estimado}
                   leyenda={i.leyenda} valor={i.valor} showValor size="sm" />
