@@ -16,8 +16,10 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Optional
 
-# Modelo calibrado (lstsq sobre anclas reales). Reentrenable con _fit_model(db).
-_COEF = {"suelo": 1.16, "calidad": 425.0, "intercepto": 38640.0}
+# Modelo calibrado por lstsq sobre ANCLAS REALES de mercado (muestra Monopolio 2026-06, 20 colonias centrales).
+# venta_$/m² = 0.900·valor_suelo_catastral + 105.5·calidad + 53541 · error medio ~14% (antes 9 anclas: 17%).
+# Reentrenable: correr el refit cuando lleguen más comps a db.market_comps.
+_COEF = {"suelo": 0.900, "calidad": 105.5, "intercepto": 53541.0}
 _ANCHOR_LO, _ANCHOR_HI = 3500.0, 20000.0   # rango de valor_suelo de las anclas → fuera = baja confianza
 _FLOOR, _CEIL = 12000.0, 220000.0          # cota sana de $/m² de venta en CDMX
 
@@ -69,6 +71,14 @@ def estimate_m2(valor_suelo_m2: Optional[float], calidad: Optional[float]) -> Op
 async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float] = None,
                              calidad: Optional[float] = None) -> Dict[str, Any]:
     """Precio de venta de la colonia con la mejor capa disponible + sello de fuente/confianza."""
+    # Capa 0 — MUESTRA REAL DE MERCADO (comps Monopolio en db.market_comps · $/m² observado de anuncios reales).
+    try:
+        mc = await db.market_comps.find_one({"colonia_id": colonia_id}, {"_id": 0, "market_m2": 1, "n": 1})
+        if mc and mc.get("market_m2"):
+            return {"precio_venta_m2": round(mc["market_m2"]), "source": "mercado", "confianza": "alta",
+                    "es_estimado": False, "muestra_n": mc.get("n")}
+    except Exception:
+        pass
     # Capa 1 — precio REAL (semilla / cierres). DRPI real se enchufa aquí cuando db.transactions tenga datos.
     seed = await _seed_prices(db)
     if colonia_id in seed:
