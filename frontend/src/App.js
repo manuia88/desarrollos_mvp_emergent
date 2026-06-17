@@ -140,7 +140,6 @@ const InsightsGlobal = lazy(() => import('./pages/public/InsightsGlobal'));
 const InsightsCompare = lazy(() => import('./pages/public/InsightsCompare'));
 const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 
-const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
 const Valores           = lazy(() => import('./pages/public/Valores'));
 const ColoniaLanding    = lazy(() => import('./pages/public/ColoniaLanding'));
@@ -679,10 +678,11 @@ function AppRouter() {
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
-      <Route path="/mapa" element={<MapaCDMXRoute />} />
-      <Route path="/mapa/:alcaldia" element={<MapaCDMXRoute />} />
-      <Route path="/mapa/:alcaldia/:colonia" element={<MapaCDMXRoute />} />
-      {/* Mapa de Valores DMX — coroplético por colonia coloreado por precio/m² (rescata MapaRoute huérfano) */}
+      {/* UNIFICADO 2026-06-17: /mapa y /mapa-valores apuntan al MISMO mapa bueno (Mapa de Valores · Mapa.js).
+          Toda la app enlaza a /mapa → ahora llega al mapa con catastro/predios/scores/panel. MapaCDMX retirado. */}
+      <Route path="/mapa" element={<MapaRoute />} />
+      <Route path="/mapa/:alcaldia" element={<MapaRoute />} />
+      <Route path="/mapa/:alcaldia/:colonia" element={<MapaRoute />} />
       <Route path="/mapa-valores" element={<MapaRoute />} />
       {/* W4.18.2B Sub-D — public AVM + colonia landings */}
       <Route path="/valores" element={<Valores />} />
@@ -1088,10 +1088,6 @@ function MapaRoute() {
   return <Mapa user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
-function MapaCDMXRoute() {
-  const { user } = useAuth();
-  return <MapaCDMX user={user} />;
-}
 
 function SuperadminInvitesRoute() {
   const { user, loading } = useAuth();
