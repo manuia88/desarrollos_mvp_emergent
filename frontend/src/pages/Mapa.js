@@ -135,11 +135,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'fill',
         source: 'colonias',
         paint: {
-          // Coloreado por precio donde hay dato; malla tenue (sin precio) para el resto de las 1,811.
+          // Precio/m² donde hay dato → rampa fuerte; si no, CALIDAD de zona (0-100, computada para ~763
+          // colonias) → rampa clara; resto = malla tenue. Así se enciende casi todo el mapa.
           'fill-color': [
-            'case', ['has', 'price_m2'],
+            'case',
+            ['has', 'price_m2'],
             ['interpolate', ['linear'], ['coalesce', ['get', 'price_m2'], 0],
               30, '#D9CCFF', 60, '#B7A6FF', 90, '#8A6BFF', 120, '#7C5CFF', 150, '#C63FAE'],
+            ['has', 'calidad'],
+            ['interpolate', ['linear'], ['get', 'calidad'],
+              30, '#EFEAFF', 50, '#D6C7FF', 70, '#AE93FF', 88, '#8A6BFF'],
             'rgba(124,92,255,0.05)',
           ],
           'fill-opacity': 0.55,

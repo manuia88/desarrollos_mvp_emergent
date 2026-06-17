@@ -193,7 +193,10 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
         q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
     feats: List[Dict[str, Any]] = []
     try:
-        cursor = db.colonias.find(q, {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "geometry": 1}).limit(limit)
+        cursor = db.colonias.find(q, {
+            "_id": 0, "id": 1, "name": 1, "alcaldia": 1, "geometry": 1,
+            "scores_reales": 1, "scores_es_estimado": 1, "scores_cobertura_pct": 1,
+        }).limit(limit)
         async for c in cursor:
             props = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia")}
             s = seed_by_name.get(_n(c.get("name")))
@@ -203,6 +206,13 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
                 props["scores"] = s.get("scores")
                 props["trend"] = s.get("trend")
                 props["has_data"] = True
+            # Calidad compuesta (0-100) desde los scores ya computados de las 1,811 → colorea TODO el mapa
+            sr = c.get("scores_reales") or {}
+            vals = [v for v in sr.values() if isinstance(v, (int, float))]
+            if vals:
+                props["calidad"] = round(sum(vals) / len(vals))
+                props["calidad_estimada"] = bool(c.get("scores_es_estimado"))
+                props["cobertura_pct"] = c.get("scores_cobertura_pct")
             feats.append({"type": "Feature", "properties": props, "geometry": c["geometry"]})
     except Exception:
         pass
