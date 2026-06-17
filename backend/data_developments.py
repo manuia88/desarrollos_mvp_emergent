@@ -612,6 +612,12 @@ def _build_dev(dev_raw: dict) -> dict:
         "address_full": f"{dev_raw['street']}, Col. {colonia['name']}, CP {dev_raw['postal_code']}",
         "developer_id": dev_raw["developer_id"],
         "stage": dev_raw["stage"],
+        # Tipo de propiedad para el filtro "Explora por Tipo" (departamento/casa). Explícito si el
+        # seed lo trae; si no, se deriva del nombre/descripción. Cierra el cable de las tarjetas de tipo.
+        "property_type": (
+            dev_raw.get("property_type")
+            or ("casa" if "casa" in f"{dev_raw['name']} {dev_raw['description']}".lower() else "departamento")
+        ),
         "delivery_estimate": dev_raw["delivery_estimate"],
         "price_from": dev_raw["price_from"],
         "price_to": dev_raw["price_to"],

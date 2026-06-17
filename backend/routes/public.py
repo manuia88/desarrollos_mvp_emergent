@@ -319,6 +319,8 @@ async def list_developments(
     baths: Optional[int] = None,
     parking: Optional[int] = None,
     stage: Optional[str] = None,
+    tipo: Optional[str] = None,
+    alcaldia: Optional[str] = None,
     amenity: Optional[List[str]] = Query(None),
     featured: Optional[bool] = None,
     sort: Optional[str] = "recent",
@@ -346,6 +348,13 @@ async def list_developments(
         results = [d for d in results if d["parking_range"][1] >= parking]
     if stage:
         results = [d for d in results if d["stage"] == stage]
+    if tipo:
+        _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
+        _want = _tmap.get(tipo.lower(), tipo.lower())
+        results = [d for d in results if d.get("property_type") == _want]
+    if alcaldia:
+        _na = alcaldia.lower().replace("_", " ").strip()
+        results = [d for d in results if (d.get("alcaldia") or "").lower().replace("_", " ").strip() == _na]
     if amenity:
         aset = set(amenity)
         results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
