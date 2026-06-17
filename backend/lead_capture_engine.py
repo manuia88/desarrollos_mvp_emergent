@@ -209,6 +209,12 @@ async def process_email_capture(
     try:
         await db.leads.insert_one(dict(lead_doc))
         lead_doc.pop("_id", None)
+        # Puente al CRM del asesor (idempotente) — antes este lead de email NO llegaba a Contactos.
+        try:
+            from services.lead_bridge import mirror_lead_to_asesor_contacto
+            await mirror_lead_to_asesor_contacto(db, lead_doc)
+        except Exception as _bexc:  # noqa: BLE001
+            log.debug(f"[process_email_capture] mirror skip: {_bexc}")
     except Exception as exc:  # noqa: BLE001
         log.error(f"[process_email_capture] lead insert failed: {exc}")
         await _log_capture_event(db, event_id, ingested_at, source=source,
@@ -340,6 +346,12 @@ async def process_fb_lead_ad(
     try:
         await db.leads.insert_one(dict(lead_doc))
         lead_doc.pop("_id", None)
+        # Puente al CRM del asesor (idempotente) — antes este lead de FB Ads NO llegaba a Contactos.
+        try:
+            from services.lead_bridge import mirror_lead_to_asesor_contacto
+            await mirror_lead_to_asesor_contacto(db, lead_doc)
+        except Exception as _bexc:  # noqa: BLE001
+            log.debug(f"[process_fb_lead_ad] mirror skip: {_bexc}")
     except Exception as exc:  # noqa: BLE001
         log.error(f"[process_fb_lead_ad] lead insert failed: {exc}")
         await _log_capture_event(db, event_id, ingested_at, source="fb_lead_ads",

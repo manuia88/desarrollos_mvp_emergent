@@ -580,6 +580,19 @@ async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, An
     if db is not None:
         try:
             await db[COLLECTION_LEADS].insert_one(lead_doc)
+            # Puente al CRM del asesor (idempotente) — antes el lead del cotizador quedaba HUÉRFANO
+            # (lead_captures sin bridge). Mapea el shape del cotizador al que espera el espejo.
+            try:
+                from services.lead_bridge import mirror_lead_to_asesor_contacto
+                await mirror_lead_to_asesor_contacto(db, {
+                    "id": lead_id,
+                    "assigned_to": lead_doc.get("assigned_to"),
+                    "phone": whatsapp,
+                    "contact": {"name": name, "phone": whatsapp},
+                    "source": "cotizador",
+                })
+            except Exception as _bexc:  # noqa: BLE001
+                log.debug(f"[lead_capture] mirror skip: {_bexc}")
         except Exception as e:  # noqa: BLE001
             log.warning(f"[lead_capture] insert lead failed: {e}")
 
