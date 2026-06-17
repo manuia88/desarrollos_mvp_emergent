@@ -72,6 +72,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
   const [coloniaById, setColoniaById] = useState({});
   const [layer, setLayer] = useState('ie'); // 'ie' or 'heat'
   const [selected, setSelected] = useState(null);
+  // Upgrade #1 — "Vigila esta colonia": watchlist local (la alerta de forecast + aviso de Atlax la
+  // conecta el backend después; aquí queda el enganche real + la intención del comprador).
+  const [watched, setWatched] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dmx.watched_colonias') || '{}'); } catch { return {}; }
+  });
+  const toggleWatch = (id, name) => setWatched((prev) => {
+    const next = { ...prev }; if (next[id]) delete next[id]; else next[id] = name;
+    try { localStorage.setItem('dmx.watched_colonias', JSON.stringify(next)); } catch {}
+    return next;
+  });
 
   useEffect(() => {
     fetchColonias().then(list => {
@@ -307,96 +317,92 @@ export default function Mapa({ user, onLogin, onLogout }) {
           </div>
         </div>
 
-        {/* Side panel for selected colonia */}
-        {selectedColonia && (
-          <div
-            data-testid="colonia-side-panel"
-            style={{
-              position: 'absolute', top: 140, right: 20, zIndex: Z.DROPDOWN,
-              width: 340, maxHeight: 'calc(100% - 180px)', overflowY: 'auto',
-              padding: 22,
-              background: 'rgba(6,8,15,0.95)',
-              border: '1px solid var(--border-2)',
-              backdropFilter: 'blur(18px)',
-              borderRadius: 18,
-            }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        {/* Panel rico de colonia — CLARO · gráfica histórica de plusvalía + AVM + scores + Vigila */}
+        {selectedColonia && (() => {
+          const c = selectedColonia;
+          const tr = c.trend || [];
+          const up = c.momentum_positive !== false && !String(c.momentum || '').startsWith('-');
+          const isW = !!watched[c.id];
+          return (
+          <div data-testid="colonia-side-panel" style={{
+            position: 'absolute', top: 100, right: 20, zIndex: Z.DROPDOWN,
+            width: 360, maxHeight: 'calc(100% - 140px)', overflowY: 'auto',
+            padding: 22, background: 'rgba(255,255,255,0.97)', border: '1px solid #ECECEC',
+            backdropFilter: 'blur(18px)', boxShadow: '0 24px 60px rgba(16,24,40,0.18)', borderRadius: 20,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 4 }}>{selectedColonia.alcaldia}</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
-                  {selectedColonia.name}
-                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 4 }}>{c.alcaldia}</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', letterSpacing: '-0.02em' }}>{c.name}</div>
               </div>
-              <button onClick={() => setSelected(null)} data-testid="close-panel"
-                style={{
-                  width: 28, height: 28, borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-2)',
-                  color: 'var(--cream-3)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                <X size={12} />
-              </button>
+              <button onClick={() => setSelected(null)} data-testid="close-panel" style={{
+                width: 30, height: 30, borderRadius: 9999, background: '#F1F2F6', border: '1px solid #ECECEC',
+                color: '#5A5F6E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}><X size={13} /></button>
             </div>
 
-            <div style={{
-              fontFamily: 'Outfit', fontWeight: 800, fontSize: 48, lineHeight: 1,
-              background: 'var(--grad)', WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              letterSpacing: '-0.03em', marginBottom: 2,
-            }}>
-              {composite(selectedColonia)}
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginBottom: 16 }}>
-              {t('mapa.legend_score')} · DMX
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
-              {[
-                { k: t('mapa.panel_pm2'), v: `$${selectedColonia.price_m2}k` },
-                { k: t('mapa.panel_momentum'), v: selectedColonia.momentum },
-                { k: t('mapa.panel_inventory'), v: `${selectedColonia.inventory} u` },
-                { k: selectedColonia.tier, v: '★' },
-              ].map(({ k, v }) => (
-                <div key={k} style={{
-                  padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 10,
-                }}>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', marginBottom: 3 }}>{k}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>{v}</div>
+            {/* Precio/m² grande + plusvalía */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${c.price_m2}k</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E' }}>/m²</div>
+              {c.momentum && (
+                <div style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: up ? '#1FA06A' : '#E2982E' }}>
+                  {up ? '▲' : '▼'} {c.momentum} <span style={{ fontWeight: 500, fontSize: 11, color: '#8A8F9E' }}>plusvalía</span>
                 </div>
-              ))}
+              )}
             </div>
 
+            {/* GRÁFICA HISTÓRICA de precio/m² (24 meses) — lo que pide el founder */}
+            {tr.length > 1 && (() => {
+              const w = 312, h = 84, min = Math.min(...tr), max = Math.max(...tr), rng = max - min || 1;
+              const pts = tr.map((v, i) => `${(i / (tr.length - 1)) * w},${h - ((v - min) / rng) * (h - 12) - 6}`);
+              const col = up ? '#1FA06A' : '#C63FAE';
+              return (
+                <div style={{ marginTop: 12, marginBottom: 16 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>Precio/m² · Últimos 24 Meses</div>
+                  <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h, display: 'block' }} preserveAspectRatio="none">
+                    <path d={`M${pts.join(' L')} L${w},${h} L0,${h} Z`} fill={col} opacity="0.12" />
+                    <path d={`M${pts.join(' L')}`} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', marginTop: 4 }}>
+                    <span>${tr[0]}k</span>
+                    <span style={{ color: col, fontWeight: 700 }}>hoy ${tr[tr.length - 1]}k/m²</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Scores en lenguaje de beneficio */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-              {['vida', 'movilidad', 'seguridad', 'comercio'].map(k => (
-                <div key={k} style={{
-                  padding: '10px 12px',
-                  background: 'rgba(99,102,241,0.08)',
-                  border: '1px solid rgba(99,102,241,0.22)',
-                  borderRadius: 10,
-                }}>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--indigo-3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-                    {t(`bento.layers.${k}`)}
-                  </div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>
-                    {selectedColonia.scores[k]}
-                  </div>
+              {[['comercio', 'Todo a la Mano'], ['movilidad', 'Llegas Rápido'], ['seguridad', 'Tranquila'], ['vida', 'Mucha Vida']].map(([k, label]) => (
+                <div key={k} style={{ padding: '10px 12px', background: '#F6F4FF', border: '1px solid #E7E0FF', borderRadius: 12 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#7C5CFF', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#1E2230' }}>{c.scores?.[k] ?? '—'}</div>
                 </div>
               ))}
             </div>
 
-            <Link
-              to={`/marketplace?colonia=${selectedColonia.id}`}
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-              data-testid="panel-open-marketplace"
-            >
-              {t('mapa.panel_open')} <ArrowRight size={12} />
+            {/* Vigila esta colonia (upgrade #1) */}
+            <button onClick={() => toggleWatch(c.id, c.name)} style={{
+              width: '100%', padding: '11px', borderRadius: 12, marginBottom: 10, cursor: 'pointer',
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5,
+              background: isW ? 'rgba(31,160,106,0.10)' : '#fff',
+              border: `1px solid ${isW ? 'rgba(31,160,106,0.4)' : '#D9CCFF'}`,
+              color: isW ? '#1FA06A' : 'var(--theme)',
+            }}>
+              {isW ? '✓ Te avisaremos si cambia el precio o la seguridad' : '🔔 Vigila esta colonia'}
+            </button>
+
+            <Link to={`/marketplace?colonia=${c.id}`} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%',
+              padding: '12px', borderRadius: 12, textDecoration: 'none',
+              background: 'var(--grad)', color: '#fff', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
+            }} data-testid="panel-open-marketplace">
+              Ver desarrollos en {c.name} <ArrowRight size={13} />
             </Link>
           </div>
-        )}
+          );
+        })()}
       </main>
     </div>
   );
