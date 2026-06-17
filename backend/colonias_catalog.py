@@ -28,8 +28,8 @@ def _slugify(s: Any) -> str:
 
 
 # campos posibles según el dataset oficial (varían entre fuentes)
-_NAME_FIELDS = ["nombre", "colonia", "nom_colonia", "nomgeo", "asentamiento", "asentamien", "nom_col", "name"]
-_ALC_FIELDS = ["alcaldia", "alcaldía", "municipio", "nom_mun", "delegacion", "nomgeo_mun"]
+_NAME_FIELDS = ["nombre", "colonia", "nom_colonia", "nomgeo", "asentamiento", "asentamien", "nom_col", "nomut", "name"]
+_ALC_FIELDS = ["alcaldia", "alcaldía", "municipio", "nom_mun", "delegacion", "nomdt", "nomgeo_mun"]
 _LAT_FIELDS = ["lat", "latitud", "y", "centroid_lat"]
 _LON_FIELDS = ["lon", "lng", "longitud", "x", "centroid_lon"]
 
@@ -56,11 +56,15 @@ def _map_row(row: Dict[str, Any], city: str) -> Optional[Dict[str, Any]]:
     except (TypeError, ValueError):
         center = None
     cid = _slugify(f"{name}-{alc}" if alc else name)
-    return {
+    doc = {
         "id": cid, "name": str(name).title(), "city": city,
         "alcaldia": (str(alc).title() if alc else None), "center": center,
         "source": "catalogo_oficial",
     }
+    # Pasa la GEOMETRÍA real del polígono (keystone Mapa de Valores) si vino del GeoJSON.
+    if row.get("geometry") and (row["geometry"] or {}).get("coordinates"):
+        doc["geometry"] = row["geometry"]
+    return doc
 
 
 async def seed_colonias(db) -> int:
