@@ -5,6 +5,9 @@ import { PresentationModeProvider } from './hooks/usePresentationMode';
 import SkipToContent from './components/a11y/SkipToContent';
 import TourLauncher from './components/onboarding/TourLauncher';
 import HomeV2 from './pages/public/HomeV2';  // rediseño · preview fondo claro en /v2
+import ColoniasV2 from './pages/public/ColoniasV2';
+import AsesoresV2 from './pages/public/AsesoresV2';
+import DesarrolladoresV2 from './pages/public/DesarrolladoresV2';
 // W4.3 — Behavioral tracker (auto page_view on route change)
 import { usePageViewTracking } from './utils/behavioralTracker';
 // W4.18.2A.0 — PostHog LFPDPPP-compliant helpers
@@ -797,9 +800,13 @@ function AppRouter() {
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
-      <Route path="/barrios" element={<Barrios />} />
+      {/* Rediseño · páginas nuevas claras (reemplazan las viejas oscuras) */}
+      <Route path="/colonias" element={<ColoniasV2 />} />
+      <Route path="/barrios" element={<Navigate to="/colonias" replace />} />
+      <Route path="/asesores" element={<AsesoresV2 />} />
+      <Route path="/desarrolladores" element={<DesarrolladoresV2 />} />
+      <Route path="/login" element={<LoginRoute />} />
       <Route path="/inteligencia" element={<Inteligencia />} />
-      <Route path="/asesores" element={<AsesoresLanding />} />
 
       <Route path="/asesor" element={<AdvisorRoute Page={AsesorHome} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
@@ -1053,6 +1060,13 @@ function AppRouter() {
     </Routes>
     </Suspense>
   );
+}
+
+function LoginRoute() {
+  // /login abre el modal de auth (no hay página standalone) sobre el home nuevo claro.
+  const { openAuth } = useAuth();
+  useEffect(() => { openAuth('login'); }, [openAuth]);
+  return <HomeV2 />;
 }
 
 function MarketplaceRoute() {
