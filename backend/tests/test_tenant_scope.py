@@ -80,3 +80,29 @@ async def test_lead_owner(mock_db):
     with pytest.raises(HTTPException) as e:
         await ts.assert_lead_owner(mock_db, DEV_B, "l1")           # otra cuenta → 403
     assert e.value.status_code == 403
+
+
+# ─── tenant_filter (Candado 2 · filtro explícito componible) ─────────────────
+def test_tenant_filter_superadmin_godview():
+    assert ts.tenant_filter(SUPER, "leads") == {}                  # superadmin → sin filtro
+
+
+def test_tenant_filter_scopes_by_owner_fields():
+    f = ts.tenant_filter(DEV_A, "leads")
+    assert "$or" in f
+    # cada owner-field de leads debe estar, filtrado al tenant/actor del usuario
+    fields = {list(c.keys())[0] for c in f["$or"]}
+    assert {"dev_org_id", "org_id", "owner_id", "assigned_to"} <= fields
+    # los valores son el tenant y el actor
+    vals = f["$or"][0][list(f["$or"][0].keys())[0]]["$in"]
+    assert "org_a" in vals
+
+
+@pytest.mark.asyncio
+async def test_tenant_filter_composes_in_query(mock_db):
+    # compone como filtro real de find(): solo trae los del tenant del usuario
+    await mock_db.leads.insert_one({"id": "a", "dev_org_id": "org_a"})
+    await mock_db.leads.insert_one({"id": "b", "dev_org_id": "org_b"})
+    got = await mock_db.leads.find(ts.tenant_filter(DEV_A, "leads"), {"_id": 0}).to_list(10)
+    ids = {d["id"] for d in got}
+    assert ids == {"a"}                                            # NO ve el de org_b

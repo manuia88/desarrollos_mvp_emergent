@@ -188,3 +188,43 @@ def assert_inm_owner(user, inmobiliaria_id):
     if _demo_mode():
         return
     raise HTTPException(403, "Esta inmobiliaria es de otra cuenta")
+
+
+# ─── Candado 2 (anti-parches) · filtro de tenant EXPLÍCITO y componible ─────────
+# Qué campo(s) cargan al dueño en cada colección (un doc pertenece al tenant si CUALQUIERA empata).
+_OWNER_FIELDS = {
+    "leads": ("dev_org_id", "org_id", "inmobiliaria_id", "owner_id", "assigned_to"),
+    "asesor_contactos": ("owner_id", "org_id", "dev_org_id", "assigned_to"),
+    "asesor_busquedas": ("owner_id", "org_id", "dev_org_id"),
+    "appointments": ("dev_org_id", "asesor_id"),
+    "operaciones": ("dev_org_id", "owner_id", "asesor_id"),
+    "tareas": ("owner_id", "asesor_id", "dev_org_id"),
+    "report_templates": ("dev_org_id",),
+    "report_files": ("dev_org_id",),
+    "tracking_links": ("asesor_id", "tenant_id", "dev_org_id"),
+    "inmobiliaria_internal_users": ("inmobiliaria_id",),
+    "developer_unit_overrides": ("dev_org_id", "dev_id"),
+    "bulk_upload_jobs": ("dev_org_id",),
+    "cash_flow_forecasts": ("dev_org_id",),
+}
+
+
+def tenant_filter(user, collection: str) -> dict:
+    """Devuelve el filtro Mongo que acota `collection` al tenant del usuario. superadmin → {} (god-view).
+
+    La traducción HONESTA de "RLS siempre ON" a Mongo (NO un proxy mágico, que en Mongo deja fuera
+    aggregate/bulk_write/count = falsa seguridad). Es EXPLÍCITO (se mete a mano en la query),
+    AUDITEABLE (el audit del Candado 1 lo reconoce como guard), y COMPONE con todo:
+        db.leads.find({**tenant_filter(user, "leads"), "status": "nuevo"})
+        db.leads.aggregate([{"$match": tenant_filter(user, "leads")}, ...])
+    Combina sobre los owner-fields de la colección (un doc pertenece si CUALQUIERA empata el tenant
+    o el actor). Colección sin dueño conocido → {} (no rompe; el audit marca el acceso crudo)."""
+    if is_superadmin(user):
+        return {}
+    fields = _OWNER_FIELDS.get(collection)
+    if not fields:
+        return {}
+    vals = [v for v in (tenant_of(user), actor_id(user)) if v]
+    if not vals:
+        return {} if _demo_mode() else {"_tenant_no_match": True}  # prod fail-closed: no devuelve nada
+    return {"$or": [{f: {"$in": vals}} for f in fields]}
