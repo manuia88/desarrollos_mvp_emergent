@@ -273,6 +273,29 @@ const HOME_MACRO_CHIPS = [
   { emoji: '🏗️', label: 'Desarrollos en preventa', prompt: '¿Qué desarrollos en preventa hay disponibles en CDMX?' },
 ];
 
+// Opciones que se ADAPTAN a lo que el cliente fue escribiendo (asesor digital, no chatbot fijo).
+// Lee la última señal (intención + palabras de la conversación) y propone los siguientes pasos lógicos.
+// `human:true` = único camino a dejar datos (bajo demanda, jamás automático).
+function nextOptions(messages) {
+  const lastA = [...messages].reverse().find((m) => m.role === 'assistant');
+  const lastU = [...messages].reverse().find((m) => m.role === 'user');
+  const intent = lastA && lastA.intent_detected;
+  const txt = `${(lastU && lastU.content) || ''} ${(lastA && lastA.content) || ''}`.toLowerCase();
+  const has = (re) => re.test(txt);
+  if (intent === 'cita' || has(/agenda|visita|conocer el|ver el dep|me interesa este/))
+    return [{ l: '📅 Quiero agendar una visita', human: true }, { l: 'Ver opciones similares', p: 'Muéstrame más opciones parecidas a esta' }, { l: 'Hablar con un asesor', human: true }];
+  if (intent === 'presupuesto' || has(/presupuesto|crédito|credito|enganche|cuánto pago|mensualidad|infonavit/))
+    return [{ l: '💰 Opciones para mi presupuesto', p: '¿Qué opciones de vivienda nueva hay para mi presupuesto y cómo va el crédito?' }, { l: 'Comparar precios', p: 'Compara precios por m² entre estas colonias' }];
+  if (has(/polanco|condesa|roma|del valle|coyoac|juárez|juarez|nápoles|napoles|santa fe|narvarte/))
+    return [{ l: 'Ver desarrollos aquí', p: 'Muéstrame los desarrollos disponibles en esa colonia' }, { l: '¿Qué tan segura es?', p: '¿Qué tan segura es esa colonia y cómo se vive ahí?' }, { l: 'Precio por m²', p: '¿Cuánto cuesta el m² en esa colonia?' }];
+  if (has(/invertir|inversión|inversion|plusval|rentar|renta/))
+    return [{ l: 'Zonas que más suben', p: '¿Qué colonias tienen mayor plusvalía hoy?' }, { l: 'Dónde se renta mejor', p: '¿En qué zonas se renta más rápido y con mejor retorno?' }, { l: 'Comparar 2 colonias', p: 'Compara dos colonias para invertir' }];
+  if (has(/vivir|familia|hijos|escuela|tranquil|segur/))
+    return [{ l: 'Colonias familiares', p: '¿Qué colonias son buenas para vivir en familia?' }, { l: 'Con buenas escuelas', p: '¿Dónde hay buenas escuelas cerca?' }, { l: 'Ver opciones', p: 'Muéstrame opciones de vivienda nueva para vivir' }];
+  // Aún sin señal clara → calificar (vivir/invertir/presupuesto)
+  return [{ l: '🏡 Para vivir', p: 'Busco para vivir en CDMX. ¿Qué colonias me convienen?' }, { l: '📈 Para invertir', p: 'Busco invertir. ¿Qué zonas convienen?' }, { l: '💰 Según mi presupuesto', p: 'Tengo un presupuesto. ¿Qué opciones hay?' }];
+}
+
 export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark' } = {}) {
   const light = theme === 'light';
   // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
@@ -319,14 +342,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     } catch (_) { /* ignore */ }
   }, [asistenteToken]);
 
-  // Auto-show lead form when latest assistant msg recommends hand_off or capture
-  useEffect(() => {
-    if (leadCaptured || !asistenteToken) return;
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistant && (lastAssistant.hand_off || lastAssistant.suggested_capture)) {
-      setShowLeadForm(true);
-    }
-  }, [messages, leadCaptured, asistenteToken]);
+  // El formulario de datos YA NO se abre solo. Un asesor digital NO pide datos de entrada — primero
+  // entiende, recomienda, y solo cuando el cliente lo pide (toca "Hablar con un asesor") aparece.
+  // (Antes saltaba con cualquier hand_off — incluido el estado degradado phase_y_disabled.)
 
   useEffect(() => { saveHistory(messages); }, [messages]);
   // Permite abrir Atlax desde cualquier parte (ej. el hero del home) y opcionalmente sembrar una
@@ -750,22 +768,17 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             </div>
           )}
 
-          {/* Chips guía PERSISTENTES — siempre dan opciones aunque ya haya conversación (no chatbot en blanco).
-              En estado vacío ya está la bienvenida guiada; aquí cubren el caso con historial. */}
+          {/* Opciones ADAPTATIVAS — cambian según lo que el cliente escribió (asesor digital que guía).
+              "Hablar con un asesor" es el ÚNICO camino al formulario, y solo si el cliente lo toca. */}
           {messages.length > 0 && !busy && (
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '8px 12px 0', WebkitOverflowScrolling: 'touch' }}>
-              {[
-                ['🏡 Para vivir', 'Quiero comprar para vivir. ¿Qué colonias me convienen según seguridad, servicios y precio?'],
-                ['📈 Invertir', '¿Qué zonas tienen mejor plusvalía y se rentan rápido para invertir?'],
-                ['Con terraza', 'Muéstrame departamentos con terraza'],
-                ['¿Cuánto vale aquí?', '¿Cuánto cuesta el m² en las mejores colonias de CDMX?'],
-                ['Entrega inmediata', 'Desarrollos con entrega inmediata bajo $5M'],
-              ].map(([label, prompt], i) => (
-                <button key={i} onClick={() => send(null, prompt)} style={{
-                  flexShrink: 0, padding: '6px 12px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
-                  background: light ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(var(--theme-rgb),0.12)',
-                  border: '1px solid rgba(var(--theme-rgb),0.25)', color: 'var(--theme)', cursor: 'pointer', fontFamily: 'DM Sans',
-                }}>{label}</button>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 12px 2px', WebkitOverflowScrolling: 'touch' }}>
+              {nextOptions(messages).map((o, i) => (
+                <button key={i} onClick={() => { if (o.human) { setShowLeadForm(true); setFormDismissed(false); } else { send(null, o.p); } }} style={{
+                  flexShrink: 0, padding: '7px 13px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
+                  background: o.human ? 'var(--grad)' : (light ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(var(--theme-rgb),0.12)'),
+                  border: o.human ? '1px solid transparent' : '1px solid rgba(var(--theme-rgb),0.25)',
+                  color: o.human ? '#fff' : 'var(--theme)', cursor: 'pointer', fontFamily: 'DM Sans',
+                }}>{o.l}</button>
               ))}
             </div>
           )}
