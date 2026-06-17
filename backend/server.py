@@ -57,6 +57,14 @@ def _prod_env_guard():
     apw = os.environ.get("ADMIN_PASSWORD", "")
     if not apw or apw == "Admin2026!":
         fatal.append("ADMIN_PASSWORD (falta o usa el default público 'Admin2026!')")
+    # Secretos con default efímero peligroso: sin ellos en prod, la anonimización PII (LFPDPPP),
+    # el cifrado en reposo (Fernet) y la auth de crons rotan/rompen en silencio al reiniciar.
+    if not os.environ.get("LFPDPPP_SALT"):
+        fatal.append("LFPDPPP_SALT (sin esto el hash de PII rota al reiniciar → des-anonimización inconsistente)")
+    if not os.environ.get("IE_FERNET_KEY"):
+        fatal.append("IE_FERNET_KEY (sin esto el cifrado en reposo usa clave efímera → datos ilegibles tras reinicio)")
+    if not os.environ.get("CRON_SECRET"):
+        fatal.append("CRON_SECRET (sin esto los endpoints de cron quedan sin auth o con default)")
     if fatal:
         msg = "PROD env inseguro · faltan/inseguros: " + " · ".join(fatal)
         logging.error(f"[startup] {msg}")
@@ -1426,6 +1434,8 @@ async def startup():
         await db.asesor_busquedas.create_index("id", name="idx_busq_id", sparse=True)
         await db.units.create_index("id", name="idx_units_id", sparse=True)
         await db.units.create_index("unit_id", name="idx_units_unit_id", sparse=True)
+        from cerebro_mercado_engine import ensure_indexes as _cerebro_mercado_idx
+        await _cerebro_mercado_idx(db)   # índice de drift (cerebro_predictions) — Fase 8 #4 restante
     except Exception as _p23e:
         logging.warning(f"[startup] P2.3 índices fail-open: {_p23e}")
     # P2.11 · validadores de schema (modo WARN = no bloquea escrituras, solo registra docs

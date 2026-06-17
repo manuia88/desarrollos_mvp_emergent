@@ -25,6 +25,26 @@ log = logging.getLogger("dmx.cerebro_mercado")
 _MARKET = {"tenant_id": "__market__", "user_id": "__market__", "role": "superadmin"}
 _TENANT = "__market__"
 
+# Caché TTL de lifts_por_factor: el ranking/portfolio de bancabilidad lo llama con el MISMO
+# factor por cada proyecto (cada llamada hace un has_real_sales a la BD). Memoizar evita N
+# recálculos + N golpes a la BD. Seguro: el resultado cambia lento (catálogo en memoria + ventas).
+import time as _time
+_LIFTS_CACHE: Dict[str, Any] = {}
+_LIFTS_TTL = 120.0
+
+
+async def ensure_indexes(db) -> None:
+    """Índice para detectar_drift: filtra por (tenant_id, kind, resolved) y ordena por
+    resolved_at DESC. Sin él, a escala ordena en memoria toda la colección del tenant
+    __market__ (que agrega TODOS los portales) en cada carga del panel. Idempotente, fail-open."""
+    try:
+        await db[coach.CEREBRO_PREDICTIONS].create_index(
+            [("tenant_id", 1), ("kind", 1), ("resolved", 1), ("resolved_at", -1)],
+            name="cerebro_pred_drift", background=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[cerebro_mercado] ensure_indexes fail-open: {e}")
+
 
 async def registrar_prediccion(db, *, kind: str, predicted, ref: str,
                                meta: Optional[dict] = None, dedup: bool = True) -> Dict[str, Any]:
@@ -125,6 +145,9 @@ async def lifts_por_factor(db, factor: str) -> Dict[str, Any]:
     if not ext:
         return {"factor": factor, "opciones": [], "suficiente_dato": False,
                 "lectura": f"Factor '{factor}' no soportado."}
+    _hit = _LIFTS_CACHE.get(factor)
+    if _hit and (_time.monotonic() - _hit[0]) < _LIFTS_TTL:
+        return _hit[1]
     try:
         from data_developments import DEVELOPMENTS, is_sold
         buckets = defaultdict(lambda: {"sold": 0, "total": 0})
@@ -156,12 +179,14 @@ async def lifts_por_factor(db, factor: str) -> Dict[str, Any]:
             lectura = "Lifts detectados por % de venta real."
         else:
             lectura = "Lifts del catálogo de ejemplo (DEMO · aún sin ventas reales en la plataforma)."
-        return {
+        result = {
             "factor": factor, "nombre": _FACTOR_NOMBRE.get(factor, factor),
             "opciones": opciones, "base_pct": round(base * 100), "n_total": tot_all,
             "suficiente_dato": suficiente, "data_basis": "real" if real else "demo",
             "lectura": lectura,
         }
+        _LIFTS_CACHE[factor] = (_time.monotonic(), result)
+        return result
     except Exception as e:
         log.warning(f"[cerebro_mercado] lifts_por_factor fail-open: {e}")
         return {"factor": factor, "opciones": [], "suficiente_dato": False, "lectura": "Aún aprendiendo."}

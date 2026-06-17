@@ -50,7 +50,9 @@ async def ranker_amenidades(db, colonia_id: Optional[str] = None) -> Dict[str, A
     total_busq = 0
     try:
         proj = {"_id": 0, "amenidades": 1, "colonias": 1}
-        async for b in db.asesor_busquedas.find({}, proj):
+        # Cap de seguridad: acota el barrido a escala (el filtro por colonia se hace en Python
+        # porque las búsquedas guardan nombre, no id; el límite evita el full-scan ilimitado).
+        async for b in db.asesor_busquedas.find({}, proj).limit(50000):
             cols = [str(x).strip().lower() for x in (b.get("colonias") or [])]
             if name_l and name_l not in cols:
                 continue
