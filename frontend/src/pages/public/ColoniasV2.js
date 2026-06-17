@@ -111,7 +111,7 @@ export default function ColoniasV2() {
       <Container style={{ paddingTop: 24, paddingBottom: 40, textAlign: 'center', borderTop: '1px solid var(--card-border)' }}>
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · 16 Alcaldías · 117 Variables por Colonia · CDMX</span>
       </Container>
-      <AtlaxBubble />
+      <AtlaxBubble theme="light" />
     </LightScope>
   );
 }

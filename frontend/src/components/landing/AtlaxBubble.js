@@ -273,7 +273,10 @@ const HOME_MACRO_CHIPS = [
   { emoji: '🏗️', label: 'Desarrollos en preventa', prompt: '¿Qué desarrollos en preventa hay disponibles en CDMX?' },
 ];
 
-export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {}) {
+export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark' } = {}) {
+  const light = theme === 'light';
+  // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
+  const lightVars = light ? { '--cream': '#1E2230', '--cream-2': '#4A4F5E', '--cream-3': '#8A8F9E', '--border': '#ECECEC' } : {};
   // W4.4E.5.2 · One-time silent localStorage migration caya.*→atlax.* (synchronous, BEFORE state init)
   const [_migrated] = useState(() => { migrateLegacyLocalStorage(); return true; });
 
@@ -474,9 +477,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
           zIndex: isHome ? 'auto' : 9999,
           width: isHome ? '100%' : 'min(380px, calc(100vw - 24px))',
           height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 48px))',
-          background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
+          ...lightVars,
+          background: light ? '#FFFFFF' : 'linear-gradient(180deg, #0E1220, #0A0D16)',
           border: '1px solid var(--border)', borderRadius: 18,
-          boxShadow: isHome ? '0 16px 40px rgba(0,0,0,0.45)' : '0 24px 60px rgba(0,0,0,0.6)',
+          boxShadow: light ? '0 24px 60px rgba(16,24,40,0.18)' : (isHome ? '0 16px 40px rgba(0,0,0,0.45)' : '0 24px 60px rgba(0,0,0,0.6)'),
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           animation: 'caya-pop 0.22s ease-out',
         }}>
@@ -595,7 +599,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
                     ].map((s, i) => (
                       <button key={i} data-testid={`caya-suggest-${i}`} onClick={() => setInput(s)} style={{
                         padding: '8px 12px', borderRadius: 9999, fontSize: 11.5,
-                        background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                        background: (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)'), border: '1px solid var(--border)',
                         color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: 'pointer',
                         textAlign: 'left',
                       }}>{s}</button>
@@ -614,7 +618,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
                   padding: '10px 13px', borderRadius: 14,
                   background: m.role === 'user'
                     ? 'rgba(var(--theme-rgb),0.20)'
-                    : (m.error ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.04)'),
+                    : (m.error ? 'rgba(239,68,68,0.10)' : (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)')),
                   border: `1px solid ${m.role === 'user' ? 'rgba(var(--theme-rgb),0.32)' : (m.error ? 'rgba(239,68,68,0.32)' : 'var(--border)')}`,
                   color: m.error ? '#fca5a5' : 'var(--cream)',
                   fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55,
@@ -680,7 +684,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
             {busy && (
               <div data-testid="caya-typing" style={{
                 alignSelf: 'flex-start', padding: '10px 13px', borderRadius: 14,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                background: (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)'), border: '1px solid var(--border)',
                 color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12, fontStyle: 'italic',
               }}>
                 Atlax está pensando<span className="caya-dots">…</span>
@@ -720,7 +724,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
           <form onSubmit={send} style={{
             padding: 12, borderTop: '1px solid var(--border)',
             display: 'flex', gap: 8, alignItems: 'center',
-            background: '#0A0D16',
+            background: light ? '#FAFAFB' : '#0A0D16',
           }}>
             <AtlaxVoiceButton
               sessionToken={asistenteToken || sessionId}
@@ -743,7 +747,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
               disabled={busy}
               style={{
                 flex: 1, padding: '9px 14px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+                background: light ? '#F1F2F6' : 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
                 color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5,
                 outline: 'none',
               }}
@@ -754,7 +758,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
               disabled={busy || !input.trim()}
               style={{
                 padding: '9px 14px', borderRadius: 9999,
-                background: input.trim() && !busy ? 'var(--grad)' : 'rgba(255,255,255,0.08)',
+                background: input.trim() && !busy ? 'var(--grad)' : (light ? 'rgba(16,24,40,0.08)' : 'rgba(255,255,255,0.08)'),
                 border: 'none', color: '#fff',
                 fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                 cursor: input.trim() && !busy ? 'pointer' : 'not-allowed',
@@ -769,7 +773,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
           <div style={{
             padding: '6px 12px 8px', borderTop: '1px solid rgba(240,235,224,0.05)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
-            background: '#0A0D16',
+            background: light ? '#FAFAFB' : '#0A0D16',
           }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', letterSpacing: '0.05em' }}>
               Beta · Powered by DMX RAG

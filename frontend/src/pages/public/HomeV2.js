@@ -474,8 +474,8 @@ export default function HomeV2() {
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · Vivienda Nueva en CDMX · 16 Alcaldías · 117 Variables por Colonia · Vista Previa /v2</span>
       </Container>
 
-      {/* Atlax — el asistente de IA (ya vivo en /api/atlax/query), ahora en el home nuevo */}
-      <AtlaxBubble />
+      {/* Atlax — el asistente de IA (ya vivo en /api/atlax/query), ahora en el home nuevo · tema claro */}
+      <AtlaxBubble theme="light" />
     </LightScope>
   );
 }
