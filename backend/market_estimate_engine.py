@@ -73,11 +73,13 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
     """Precio de venta de la colonia con la mejor capa disponible + sello de fuente/confianza."""
     # Capa 0 — MUESTRA REAL DE MERCADO (comps Monopolio en db.market_comps · $/m² observado de anuncios reales).
     try:
-        mc = await db.market_comps.find_one({"colonia_id": colonia_id},
-                                            {"_id": 0, "market_m2": 1, "n": 1, "premium_zona": 1})
+        mc = await db.market_comps.find_one(
+            {"colonia_id": colonia_id},
+            {"_id": 0, "market_m2": 1, "n": 1, "premium_zona": 1, "avm_base": 1, "median_m2": 1})
         if mc and mc.get("market_m2"):
             return {"precio_venta_m2": round(mc["market_m2"]), "source": "mercado", "confianza": "alta",
-                    "es_estimado": False, "muestra_n": mc.get("n"), "premium_zona": mc.get("premium_zona")}
+                    "es_estimado": False, "muestra_n": mc.get("n"), "premium_zona": mc.get("premium_zona"),
+                    "avm_base": mc.get("avm_base"), "median_m2": mc.get("median_m2")}
     except Exception:
         pass
     # Capa 1 — precio REAL (semilla / cierres). DRPI real se enchufa aquí cuando db.transactions tenga datos.
@@ -101,8 +103,29 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
 NEW_PREMIUM = 1.05
 
 
+# AVM HEDÓNICO propio (calibrado sobre 16,643 anuncios reales Monopolio · regresión log-precio).
+# log(precio) = avm_base[colonia] + 0.860·log(m2) − 0.0295·rec + 0.0429·ban − 0.0051·edad.
+# Estima el precio de UNA propiedad (ajustado por tamaño/recámaras/baños/edad) — no el promedio de colonia.
+# Precisión a la par de Monopolio (~16% error mediano vs su 14.6%). avm_base por colonia vive en market_comps.
+_HEDONIC = {"log_m2": 0.8603, "rec": -0.0295, "ban": 0.0429, "edad": -0.0051}
+
+
+def avm_property(avm_base: float, m2: float, rec: Optional[int], ban: Optional[int],
+                 anio: Optional[int]) -> Optional[float]:
+    """Valor de mercado estimado de UNA propiedad (nuestro AVM hedónico). None si faltan datos clave."""
+    import math
+    if avm_base is None or not m2 or m2 < 15:
+        return None
+    edad = min((2026 - anio) if anio else 25, 80)
+    lp = (avm_base + _HEDONIC["log_m2"] * math.log(m2)
+          + _HEDONIC["rec"] * (rec or 2) + _HEDONIC["ban"] * (ban or 1) + _HEDONIC["edad"] * edad)
+    return round(math.exp(lp))
+
+
 def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
-                   es_nueva: bool = False, premium: Optional[float] = None, banda: float = 0.05) -> Dict[str, Any]:
+                   es_nueva: bool = False, premium: Optional[float] = None, banda: float = 0.05,
+                   avm_base: Optional[float] = None, rec: Optional[int] = None,
+                   ban: Optional[int] = None, anio: Optional[int] = None) -> Dict[str, Any]:
     """¿El precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio: precio vs estimado,
     cubetas ±banda). `mercado_m2` = $/m² de la zona (≈ usada). Si `es_nueva` (desarrollo/preventa) el benchmark
     sube por la prima de obra nueva: usa la prima REAL de la zona (`premium` de market_comps) si existe, si no
@@ -110,8 +133,12 @@ def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
     if not precio_total or not m2 or not mercado_m2:
         return {"disponible": False}
     factor = (premium or NEW_PREMIUM) if es_nueva else 1.0
-    bench_m2 = mercado_m2 * factor
-    estimado = round(bench_m2 * m2)
+    # Estimado por PROPIEDAD: AVM hedónico (ajusta por tamaño/recámaras/baños/edad) si hay avm_base de la zona;
+    # si no, mediana de zona × m². Ambos × prima de obra nueva cuando es desarrollo.
+    hed = avm_property(avm_base, m2, rec, ban, anio) if avm_base is not None else None
+    metodo = "hedonico" if hed else "zona"
+    estimado = round((hed if hed else mercado_m2 * m2) * factor)
+    bench_m2 = estimado / m2 if m2 else mercado_m2
     if estimado <= 0:
         return {"disponible": False}
     diff = (precio_total - estimado) / estimado
@@ -128,6 +155,7 @@ def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
         "precio_m2": round(precio_total / m2),
         "estimado": estimado,
         "estimado_m2": round(bench_m2),
+        "metodo": metodo,                                    # hedonico (por propiedad) | zona (mediana)
         "base": "obra nueva" if es_nueva else "mercado",     # contra qué se compara
         "prima_obra_nueva_pct": round((NEW_PREMIUM - 1) * 100) if es_nueva else 0,
         "mercado_usada_m2": round(mercado_m2),               # referencia de usada (transparencia)

@@ -349,9 +349,11 @@ async def catastro_colonia(colonia: str, request: Request):
 
 
 @router.get("/api/precio-posicion")
-async def precio_posicion(request: Request, colonia: str, precio: float, m2: float, nueva: bool = False):
-    """¿Este precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio sobre nuestro AVM).
-    `nueva=true` para DESARROLLOS/preventa → juzga contra obra nueva (con su prima), no contra usada.
+async def precio_posicion(request: Request, colonia: str, precio: float, m2: float, nueva: bool = False,
+                          rec: Optional[int] = None, ban: Optional[int] = None, anio: Optional[int] = None):
+    """¿Este precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (nuestro AVM hedónico propio).
+    Si pasas rec/ban/anio usa el AVM por PROPIEDAD (ajusta por tamaño/recámaras/baños/edad); si no, mediana de
+    zona. `nueva=true` para DESARROLLOS → juzga contra obra nueva (prima real de la zona), no contra usada.
     Wedge para comprador (oportunidades) / asesor (precia bien) / dev (posiciona)."""
     db = request.app.state.db
     try:
@@ -361,13 +363,47 @@ async def precio_posicion(request: Request, colonia: str, precio: float, m2: flo
         cv = await _colonia_value(db, colonia)
         mkt = await market_for_colonia(db, colonia, cat.get("valor_suelo_m2"), cv.get("calidad"))
         pos = price_position(precio, m2, mkt.get("precio_venta_m2"), es_nueva=nueva,
-                             premium=mkt.get("premium_zona"))
+                             premium=mkt.get("premium_zona"), avm_base=mkt.get("avm_base"),
+                             rec=rec, ban=ban, anio=anio)
         pos["mercado_fuente"] = mkt.get("source")
         pos["mercado_confianza"] = mkt.get("confianza")
         pos["prima_zona"] = mkt.get("premium_zona")
         return pos
     except Exception as e:
         return {"disponible": False, "error": str(e)[:120]}
+
+
+class PrecioPosicionBatchIn(BaseModel):
+    colonia: str
+    nueva: bool = True
+    unidades: List[Dict[str, Any]]   # [{id, precio, m2, rec?, ban?, anio?}]
+
+
+@router.post("/api/precio-posicion-batch")
+async def precio_posicion_batch(payload: PrecioPosicionBatchIn, request: Request):
+    """Evalúa varias unidades de una colonia en UNA llamada (lista de precios del desarrollo) → bajo/justo/alto
+    por unidad con nuestro AVM hedónico. Cierra el ciclo: el comprador ve qué unidad está mejor de precio."""
+    db = request.app.state.db
+    out: List[Dict[str, Any]] = []
+    try:
+        from catastro_sig_engine import colonia_catastro
+        from market_estimate_engine import market_for_colonia, price_position
+        cat = await colonia_catastro(db, payload.colonia)
+        cv = await _colonia_value(db, payload.colonia)
+        mkt = await market_for_colonia(db, payload.colonia, cat.get("valor_suelo_m2"), cv.get("calidad"))
+        m2m = mkt.get("precio_venta_m2")
+        for u in (payload.unidades or [])[:120]:
+            try:
+                pos = price_position(u.get("precio"), u.get("m2"), m2m, es_nueva=payload.nueva,
+                                     premium=mkt.get("premium_zona"), avm_base=mkt.get("avm_base"),
+                                     rec=u.get("rec"), ban=u.get("ban"), anio=u.get("anio"))
+                out.append({"id": u.get("id"), "etiqueta": pos.get("etiqueta"), "color": pos.get("color"),
+                            "diff_pct": pos.get("diff_pct"), "disponible": pos.get("disponible", False)})
+            except Exception:
+                out.append({"id": u.get("id"), "disponible": False})
+    except Exception:
+        pass
+    return {"unidades": out, "fuente": "mercado_real" if out else None}
 
 
 @router.get("/api/catastro/predios-bbox")

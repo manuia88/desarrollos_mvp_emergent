@@ -1,5 +1,5 @@
 // Tab 2 — Lista de precios: table + paywall for public + Vista de planta sub-tab
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
@@ -14,6 +14,31 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   const [bathsF, setBathsF] = useState(0);
   const [parkingF, setParkingF] = useState(0);
   const [hover, setHover] = useState(null);
+  const [verdicts, setVerdicts] = useState({});   // {unit_id: {etiqueta,color}} · nuestro AVM por unidad
+
+  // Posición de precio por unidad vs mercado real (AVM hedónico propio) — 1 sola llamada batch.
+  useEffect(() => {
+    const colid = dev.colonia_id || dev.colonia;
+    const units = dev.units || [];
+    if (!colid || !units.length) return;
+    let alive = true;
+    const body = {
+      colonia: colid, nueva: true,
+      unidades: units.filter(u => u.price && (u.m2_privative || u.m2_total)).map(u => ({
+        id: u.id, precio: u.price, m2: u.m2_privative || u.m2_total, rec: u.bedrooms, ban: u.bathrooms,
+      })),
+    };
+    if (!body.unidades.length) return;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/precio-posicion-batch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(r => r.json()).then(d => {
+      if (!alive) return;
+      const map = {};
+      (d.unidades || []).forEach(v => { if (v.id && v.etiqueta) map[v.id] = v; });
+      setVerdicts(map);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [dev.id, dev.colonia_id, dev.colonia, dev.units]);
 
   const isRegistered = !!user;
 
@@ -202,6 +227,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             onRowClick={onRowClick}
             selectedUnit={selectedUnit}
             t={t}
+            verdicts={verdicts}
           />
           {!isRegistered && filtered.length > visibleCount && (
             <div
@@ -269,7 +295,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   );
 }
 
-function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t }) {
+function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {} }) {
   const cols = [
     { k: 'unit_number', label: 'ID', w: 60 },
     { k: 'prototype', label: 'Proto', w: 50 },
@@ -282,6 +308,20 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
     { k: 'parking_spots', label: 'Caj', w: 40 },
     { k: 'bodega', label: 'Bodega', w: 60, render: v => v ? 'Sí' : 'No' },
     { k: 'price', label: 'Precio', w: 130, render: v => `$${v.toLocaleString('es-MX')}` },
+    { k: 'id', label: 'vs mercado', w: 96, render: (id) => {
+      const vd = verdicts[id];
+      if (!vd || !vd.etiqueta) return <span style={{ color: 'var(--cream-3)' }}>—</span>;
+      const c = vd.color === 'verde' ? '#86efac' : vd.color === 'rojo' ? '#fca5a5' : '#fcd34d';
+      const bg = vd.color === 'verde' ? 'rgba(34,197,94,0.16)' : vd.color === 'rojo' ? 'rgba(239,68,68,0.16)' : 'rgba(245,158,11,0.16)';
+      const lbl = vd.etiqueta === 'bajo' ? 'Buen precio' : vd.etiqueta === 'alto' ? 'Alto' : 'Justo';
+      return (
+        <span title={`${vd.diff_pct > 0 ? '+' : ''}${vd.diff_pct}% vs mercado de la zona (AVM DMX)`}
+          style={{ padding: '2px 8px', borderRadius: 9999, background: bg, color: c,
+            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+          {lbl}
+        </span>
+      );
+    }},
     { k: 'status', label: 'Estado', w: 100, render: (v) => (
       <span style={{
         padding: '2px 8px', borderRadius: 9999,
