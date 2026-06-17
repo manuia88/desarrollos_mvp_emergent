@@ -321,6 +321,15 @@ async def on_deal_closed(db, user, *, ref, outcome, deal=None, actuals=None, lev
     except Exception as e:
         log.info(f"[coach] ingest_transaction no aplicó: {e}")
 
+    # (5) Lookalike — indexa el cierre GANADO en el espacio de embeddings → "parecidos a los que cerraron"
+    #     (build-for-endstate · se activa con OPENAI_API_KEY + volumen · fail-soft).
+    if won:
+        try:
+            from .lookalike import index_entity
+            await index_entity(db, "won_deal", str(ref), _deal_lesson_text(deal, outcome), org_id=tenant_of(user))
+        except Exception:
+            pass
+
     return {"ok": True, "resolved": resolved, "lesson": lesson, "retrain": retrain, "tx": tx_id}
 
 
