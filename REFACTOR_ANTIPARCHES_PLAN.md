@@ -9,6 +9,26 @@ commit + verificación, detrás del checkpoint. Si uno falla, rollback sin perde
 
 ---
 
+## ✅ EJECUTADO 2026-06-16 (detrás de checkpoint-seguridad-2026-06-16)
+
+| Candado | Estado | Commit |
+|---|---|---|
+| **1 · Suite CI (audit_tenant + audit_routes)** | ✅ HECHO · keystone · determinista · 0 fugas reales | `e20b0ee1` |
+| **3 · check_role central** | ✅ HECHO (mecanismo + advisor_whitelist migrado · drift de roles documentado) | `20b7678b` |
+| **2 · tenant_filter() explícito** | ✅ HECHO (en vez del proxy-trampa · 11 tests · compone con aggregate) | `67eb3229` |
+| **5 · DisclosurePill** | ✅ HECHO (componente único + cableado en DevIndicesDMX) | `4dd1e565` |
+| **6 · Cortar server.py** | ⛔ NO HOY (decisión master dev) | — |
+| **4 · openapi-typescript** | ⏸ DIFERIDO (DX · acoplar a features) | — |
+
+**Por qué 6 NO se hizo hoy:** los 2 filtros fueron unánimes — es la TRAMPA pre-launch. 142 archivos
+hacen `from server import get_current_user` (solo funciona por imports function-local), sin tests
+E2E sobre 244 rutas, riesgo de dejar routers a medio registrar EN SILENCIO. Hacerlo hoy es el
+camino más probable a los "problemas mañana" que el founder quiere evitar. Su red (audit_routes)
+ya quedó puesta para cuando se haga, post-launch, extrayendo SOLO middleware/helpers puros y
+dejando el auth-core en server.py.
+
+---
+
 ## ⚠️ REVISIÓN v2 — tras doble filtro (Sr Dev + Master Dev). LEE ESTO PRIMERO.
 
 El plan original (abajo) sirve como **catálogo de deuda**, pero como *estrategia de ahora* tenía
