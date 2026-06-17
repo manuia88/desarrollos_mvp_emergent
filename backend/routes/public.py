@@ -290,6 +290,7 @@ async def catastro_colonia(colonia: str, request: Request):
 async def predios_bbox(request: Request, w: float, s: float, e: float, n: float, limit: int = 2500):
     """Predios (POLÍGONOS del lote) dentro del recuadro visible → se cargan solo con zoom cercano.
     Así se ven las formas reales de los lotes (no puntitos) sin trabar el navegador (estilo propiedades.com)."""
+    import json
     db = request.app.state.db
     box = {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
     q = {"geo": {"$geoWithin": {"$geometry": box}}, "poly": {"$exists": True}}
@@ -297,13 +298,21 @@ async def predios_bbox(request: Request, w: float, s: float, e: float, n: float,
     try:
         async for p in db.catastro_predios.find(
                 q, {"_id": 0, "poly": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1,
-                    "sup_terreno": 1, "sup_construccion": 1, "anio": 1, "colonia": 1, "cp": 1}
+                    "sup_terreno": 1, "sup_construccion": 1, "anio": 1, "colonia": 1, "cp": 1,
+                    "n_unidades": 1, "unidades": 1}
         ).limit(limit):
-            feats.append({"type": "Feature", "geometry": p["poly"], "properties": {
+            props = {
                 "v": p.get("valor_unitario_suelo") or 0, "vs": p.get("valor_suelo") or 0,
                 "calle": (p.get("calle") or "")[:60], "sup": p.get("sup_terreno") or 0,
                 "supc": p.get("sup_construccion") or 0, "anio": p.get("anio") or "",
-                "colonia": (p.get("colonia") or "")[:40], "cp": p.get("cp") or ""}})
+                "colonia": (p.get("colonia") or "")[:40], "cp": p.get("cp") or ""}
+            if p.get("n_unidades"):
+                props["nu"] = p["n_unidades"]
+                # unidades como JSON (Mapbox aplana props → se parsea en el popup)
+                props["unidades"] = json.dumps([{
+                    "r": (u.get("ref") or "")[:50], "c": u.get("sup_construccion") or 0, "vs": u.get("valor_suelo") or 0
+                } for u in (p.get("unidades") or [])[:30]], ensure_ascii=False)
+            feats.append({"type": "Feature", "geometry": p["poly"], "properties": props})
     except Exception:
         pass
     return {"type": "FeatureCollection", "features": feats, "count": len(feats)}

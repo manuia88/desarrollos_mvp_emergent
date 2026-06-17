@@ -256,6 +256,50 @@ async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, 
     }
 
 
+async def ingest_units(db, alc: str, batch: int = 4000, max_u: int = 30) -> Dict[str, Any]:
+    """Guarda las UNIDADES por edificio (predio/fid): el catastro trae 1 fila por depto/local, pero el
+    predio (fid) es el edificio. Agrupa por fid → array `unidades` en el doc del edificio (Campeche 322 →
+    6 deptos + 2 locales). Sin perder el polígono/valor del edificio."""
+    url = f"{BASE}/catastro2021_{alc}.csv"
+    try:
+        async with httpx.AsyncClient(timeout=180, follow_redirects=True) as cli:
+            r = await cli.get(url)
+            if r.status_code != 200:
+                return {"ok": False, "alcaldia": alc, "reason": f"HTTP {r.status_code}", "edificios": 0}
+            content = r.text
+    except Exception as e:
+        return {"ok": False, "alcaldia": alc, "reason": str(e)[:120], "edificios": 0}
+    by_fid: Dict[str, List[Dict[str, Any]]] = {}
+    reader = csv.DictReader(io.StringIO(content))
+    for d in reader:
+        fid = (d.get("fid") or "").strip()
+        if not fid:
+            continue
+        lst = by_fid.setdefault(fid, [])
+        if len(lst) < max_u:
+            lst.append({
+                "ref": (d.get("calle_numero") or "").strip()[:80],
+                "sup_construccion": _f(d.get("sup_construccion")),
+                "sup_terreno": _f(d.get("sup_terreno")),
+                "anio": d.get("anio_construccion"),
+                "valor_suelo": _f(d.get("valor_suelo")),
+            })
+    from pymongo import UpdateOne
+    ops: List[Any] = []
+    edif = 0
+    for fid, unidades in by_fid.items():
+        if len(unidades) <= 1:
+            continue   # un solo registro = no hay desglose de unidades
+        ops.append(UpdateOne({"catastro_id": f"{alc}:{fid}"},
+                             {"$set": {"unidades": unidades, "n_unidades": len(unidades)}}))
+        edif += 1
+        if len(ops) >= batch:
+            await db.catastro_predios.bulk_write(ops, ordered=False); ops = []
+    if ops:
+        await db.catastro_predios.bulk_write(ops, ordered=False)
+    return {"ok": True, "alcaldia": alc, "edificios_con_unidades": edif}
+
+
 def canon_colonia(colnorm: str) -> str:
     """Nombre base canónico para CRUZAR catastro (SIGCDMX) con polígonos (IECM): quita prefijos
     ('col', 'colonia', 'barrio'…) y sufijos de sección (I..V, Norte/Sur, seccion)."""

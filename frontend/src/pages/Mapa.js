@@ -364,6 +364,14 @@ export default function Mapa({ user, onLogin, onLogout }) {
           const pr = f.properties;
           const mx = (x) => '$' + Math.round(x || 0).toLocaleString('es-MX');
           const row = (k, v) => v ? `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:#8A8F9E">${k}</span><span style="color:#1E2230;font-weight:600">${v}</span></div>` : '';
+          // Unidades del predio (deptos/locales) — Campeche 322 → Depto 1-6 + Loc 1 y 2
+          let units = [];
+          try { units = pr.unidades ? JSON.parse(pr.unidades) : []; } catch {}
+          const unitsHtml = units.length ? `
+            <div style="margin-top:8px;border-top:1px solid #EEE;padding-top:7px">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#7C5CFF;margin-bottom:5px">${units.length} unidades en este predio</div>
+              ${units.slice(0, 12).map((u) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px;padding:1.5px 0"><span style="color:#5A5F6E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(u.r || '').replace(/.*?(depto|dpto|loc)/i, '$1').slice(0, 22) || '—'}</span><span style="color:#1E2230">${u.c ? Math.round(u.c) + 'm² · ' : ''}${mx(u.vs)}</span></div>`).join('')}
+            </div>` : '';
           const html = `<div style="font-family:'DM Sans',sans-serif;min-width:210px">
             <div style="font-weight:700;font-size:13px;color:#1E2230;margin-bottom:2px">${(pr.calle || 'Predio').slice(0, 55)}</div>
             <div style="font-size:10.5px;color:#8A8F9E;margin-bottom:8px">${pr.colonia || ''}${pr.cp ? ' · CP ' + pr.cp : ''}</div>
@@ -374,9 +382,10 @@ export default function Mapa({ user, onLogin, onLogout }) {
               ${row('Construcción', pr.supc ? Math.round(pr.supc) + ' m²' : '')}
               ${row('Año', pr.anio || '')}
             </div>
+            ${unitsHtml}
             <div style="font-size:9.5px;color:#9AA0AE;margin-top:7px">Catastro oficial SIGCDMX 2021 · valor del predial</div>
           </div>`;
-          new mapboxgl.Popup({ closeButton: true, maxWidth: '270px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
+          new mapboxgl.Popup({ closeButton: true, maxWidth: '280px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
         });
         m.on('moveend', fetchBbox);
       }
