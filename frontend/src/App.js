@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, usePa
 import { PresentationModeProvider } from './hooks/usePresentationMode';
 import SkipToContent from './components/a11y/SkipToContent';
 import TourLauncher from './components/onboarding/TourLauncher';
+import HomeV2 from './pages/public/HomeV2';  // rediseño · preview fondo claro en /v2
 // W4.3 — Behavioral tracker (auto page_view on route change)
 import { usePageViewTracking } from './utils/behavioralTracker';
 // W4.18.2A.0 — PostHog LFPDPPP-compliant helpers
@@ -669,6 +670,7 @@ function AppRouter() {
     }>
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/v2" element={<HomeV2 />} />{/* rediseño · preview fondo claro */}
       <Route path="/p/:token" element={<SwipeLinkRoute />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
