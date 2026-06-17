@@ -436,6 +436,35 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     setBusy(false);
   };
 
+  // Trigger del LOOP DEL COMPRADOR (Cerebro find_home) — la pieza de UI que faltaba para que el loop,
+  // ya construido (busca→veta con AVM/riesgo→simula finanzas→shortlist→pide visita), sea usable.
+  // Gated: requiere login + CEREBRO_ENABLED; si no, guía con gracia (no rompe).
+  const runFindHome = async () => {
+    if (busy) return;
+    setMessages(prev => [...prev, { role: 'user', content: '🏠 Encuéntrame mi casa (búsqueda guiada con IA)', ts: Date.now() }]);
+    setBusy(true);
+    try {
+      const tok = (() => { try { return localStorage.getItem('dmx_token'); } catch { return null; } })();
+      const r = await fetch(`${API}/api/cerebro/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+        body: JSON.stringify({ goal_id: 'find_home' }),
+      });
+      if (r.status === 401) {
+        setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: 'Tu **búsqueda guiada con IA** trabaja por ti (encuentra, evalúa precio justo y riesgo, simula tu crédito y te arma una lista). Para activarla inicia sesión. Mientras, dime qué buscas y te ayudo aquí mismo. 🙂' }]);
+      } else if (r.status === 503) {
+        setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: 'La **búsqueda guiada con IA** se está activando. Por ahora dime zona, presupuesto y recámaras y te doy opciones al instante.' }]);
+      } else {
+        const d = await r.json();
+        const summary = d.summary || (Array.isArray(d.shortlist) ? `Te armé ${d.shortlist.length} opciones que encajan contigo.` : 'Listo, revisé el mercado por ti — aquí va tu siguiente paso.');
+        setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: summary, _cerebro: d }]);
+      }
+    } catch (e) {
+      setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: 'No pude correr la búsqueda guiada ahora. Dime qué buscas (zona, presupuesto, recámaras) y te ayudo aquí.' }]);
+    }
+    setBusy(false);
+  };
+
   const clearHistory = () => {
     setMessages([]);
     saveHistory([]);
@@ -627,6 +656,20 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                   </div>
                 ) : (
                   <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
+                    {/* Búsqueda guiada con IA (loop del comprador · Cerebro find_home) — la jugada estrella */}
+                    <button data-testid="atlax-find-home" onClick={runFindHome} disabled={busy} style={{
+                      width: '100%', padding: '13px 14px', borderRadius: 14, cursor: busy ? 'not-allowed' : 'pointer',
+                      background: 'var(--grad)', color: '#fff', border: 'none', opacity: busy ? 0.6 : 1,
+                      fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 9,
+                      boxShadow: '0 8px 24px rgba(124,92,255,0.32)', textAlign: 'left',
+                    }}>
+                      <span style={{ fontSize: 19, lineHeight: 1 }}>🏠</span>
+                      <span>Encuéntrame mi casa
+                        <span style={{ display: 'block', fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11, opacity: 0.92 }}>
+                          La IA busca, evalúa precio justo y te arma tu lista
+                        </span>
+                      </span>
+                    </button>
                     {/* Opciones guiadas — primer paso del journey (no chatbot en blanco) */}
                     <div>
                       <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 9 }}>¿Cómo te ayudo hoy?</div>
