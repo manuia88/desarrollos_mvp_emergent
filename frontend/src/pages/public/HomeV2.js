@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav, Aurora } from '../../components/ui';
 import FadeUp from '../../components/animations/FadeUp';
+import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import { COLONIAS } from '../../data/colonias';
 
 /**
@@ -154,6 +155,8 @@ export default function HomeV2() {
   const [zona, setZona] = useState('');
   const [faq, setFaq] = useState(0);
   const go = () => nav(`/marketplace${zona ? `?colonia=${encodeURIComponent(zona)}` : ''}`);
+  // Abre Atlax (la IA, ya viva en /api/atlax/query) sembrando la pregunta del hero.
+  const askAI = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: zona || '' } }));
 
   // Colonias agrupadas por alcaldía (data real) — para el explorador Alcaldía → Colonias.
   const byAlc = COLONIAS.reduce((m, c) => { (m[c.alcaldia] = m[c.alcaldia] || []).push(c); return m; }, {});
@@ -188,9 +191,13 @@ export default function HomeV2() {
                 <div style={{ background: '#fff', border: '1px solid var(--card-border)', borderRadius: 18, boxShadow: '0 16px 44px rgba(var(--theme-rgb),0.14)', padding: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', maxWidth: 560 }}>
                   <input value={zona} onChange={(e) => setZona(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()}
                     placeholder="¿En Qué Colonia Quieres Vivir?"
-                    style={{ flex: 1, minWidth: 180, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 15.5, color: 'var(--cream)', padding: '10px 12px' }} />
+                    style={{ flex: 1, minWidth: 160, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 15.5, color: 'var(--cream)', padding: '10px 12px' }} />
                   <Button size="lg" onClick={go} style={PILL}>Buscar</Button>
                 </div>
+                {/* Acceso a la IA (Atlax, ya viva) — convierte el hero en buscador conversacional */}
+                <button onClick={askAI} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)', color: 'var(--theme)', borderRadius: 999, padding: '9px 16px', fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                  ✨ O pregúntale a la IA: "¿Dónde me conviene vivir?"
+                </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28 }}>
                   <div style={{ display: 'flex' }}>
                     {FACES.map((f, i) => <img key={f} src={IMG(f, 80)} alt="" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', marginLeft: i ? -12 : 0 }} />)}
@@ -466,6 +473,9 @@ export default function HomeV2() {
       <Container style={{ paddingTop: 24, paddingBottom: 48, textAlign: 'center', borderTop: '1px solid var(--card-border)' }}>
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · Vivienda Nueva en CDMX · 16 Alcaldías · 117 Variables por Colonia · Vista Previa /v2</span>
       </Container>
+
+      {/* Atlax — el asistente de IA (ya vivo en /api/atlax/query), ahora en el home nuevo */}
+      <AtlaxBubble />
     </LightScope>
   );
 }

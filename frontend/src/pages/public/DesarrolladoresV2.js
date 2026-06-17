@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav } from '../../components/ui';
+import AtlaxBubble from '../../components/landing/AtlaxBubble';
 
 /** /desarrolladores — landing clara para desarrolladores + registro. Sistema nuevo, Title Case, MX. */
 const HEAD = "'Outfit',sans-serif";
@@ -87,6 +88,7 @@ export default function DesarrolladoresV2() {
       <Container style={{ paddingTop: 24, paddingBottom: 40, textAlign: 'center', borderTop: '1px solid var(--card-border)' }}>
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · Para Desarrolladores · CDMX</span>
       </Container>
+      <AtlaxBubble />
     </LightScope>
   );
 }

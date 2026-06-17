@@ -326,6 +326,13 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
   }, [messages, leadCaptured, asistenteToken]);
 
   useEffect(() => { saveHistory(messages); }, [messages]);
+  // Permite abrir Atlax desde cualquier parte (ej. el hero del home) y opcionalmente sembrar una
+  // pregunta: window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })).
+  useEffect(() => {
+    const onOpen = (e) => { setOpen(true); const q = e && e.detail && e.detail.query; if (q) setInput(q); };
+    window.addEventListener('atlax:open', onOpen);
+    return () => window.removeEventListener('atlax:open', onOpen);
+  }, []);
   useEffect(() => {
     if (!open || !scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

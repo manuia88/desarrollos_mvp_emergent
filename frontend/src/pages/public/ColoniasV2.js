@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav } from '../../components/ui';
 import { COLONIAS as ALL_COLONIAS } from '../../data/colonias';
+import AtlaxBubble from '../../components/landing/AtlaxBubble';
 
 /**
  * /colonias — explorador de colonias (reemplaza la página vieja "Barrios"). Sistema nuevo, fondo
@@ -108,8 +109,9 @@ export default function ColoniasV2() {
         </Container>
       </Section>
       <Container style={{ paddingTop: 24, paddingBottom: 40, textAlign: 'center', borderTop: '1px solid var(--card-border)' }}>
-        <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · 1,524 Colonias con Dato Real · CDMX</span>
+        <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · 16 Alcaldías · 117 Variables por Colonia · CDMX</span>
       </Container>
+      <AtlaxBubble />
     </LightScope>
   );
 }
