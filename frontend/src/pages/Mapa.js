@@ -172,8 +172,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
     mapRef.current = map;
 
     map.on('load', () => {
-      // Polygons source + layers
-      map.addSource('colonias', { type: 'geojson', data: buildGeoJSON(colonias) });
+      // Polygons source + layers (generateId → permite feature-state hover para resaltar la colonia)
+      map.addSource('colonias', { type: 'geojson', data: buildGeoJSON(colonias), generateId: true });
 
       // Tinte de zona SUTIL por precio (no protagonista — las burbujas + etiquetas llevan la info).
       map.addLayer({
@@ -192,16 +192,38 @@ export default function Mapa({ user, onLogin, onLogout }) {
               5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE'],
             'rgba(124,92,255,0.06)',
           ],
-          'fill-opacity': ['case', ['has', 'valor_catastral'], 0.66, 0.10],
+          // Sube la opacidad al pasar el mouse → la colonia bajo el cursor "se enciende".
+          'fill-opacity': ['case',
+            ['boolean', ['feature-state', 'hover'], false], 0.85,
+            ['case', ['has', 'valor_catastral'], 0.6, 0.10]],
         },
       });
+      // Borde de colonia VISIBLE (distingue zonas) + se engrosa/oscurece al hover.
       map.addLayer({
         id: 'colonias-outline',
         type: 'line',
         source: 'colonias',
         paint: {
-          'line-color': 'rgba(124,92,255,0.18)',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.3, 13, 0.7, 15, 1.2],
+          'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#5B33D6', 'rgba(91,51,214,0.35)'],
+          'line-width': ['case', ['boolean', ['feature-state', 'hover'], false],
+            2.4,
+            ['interpolate', ['linear'], ['zoom'], 10, 0.5, 13, 1.1, 15, 1.8]],
+        },
+      });
+      // Nombre de colonia (aparece al acercar · ayuda a ubicarte)
+      map.addLayer({
+        id: 'colonias-label',
+        type: 'symbol',
+        source: 'colonias',
+        minzoom: 12.5,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 12.5, 10, 15, 13],
+          'text-max-width': 8, 'text-padding': 6, 'symbol-avoid-edges': true,
+        },
+        paint: {
+          'text-color': '#3A2A6B', 'text-halo-color': 'rgba(255,255,255,0.9)', 'text-halo-width': 1.4,
         },
       });
 
@@ -277,8 +299,20 @@ export default function Mapa({ user, onLogin, onLogout }) {
         // Solo acerca si estás LEJOS; si ya estás en zoom de predio, no muevas el mapa (fix "se aleja").
         if (e.lngLat && map.getZoom() < 14) map.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 13.4, duration: 700 });
       });
-      map.on('mouseenter', 'colonias-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'colonias-fill', () => { map.getCanvas().style.cursor = ''; });
+      // Hover: resalta la colonia bajo el cursor (feature-state) → navegar/distinguir zonas es claro.
+      let hoveredId = null;
+      map.on('mousemove', 'colonias-fill', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        const f = e.features && e.features[0]; if (!f) return;
+        if (hoveredId !== null) map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: false });
+        hoveredId = f.id;
+        map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: true });
+      });
+      map.on('mouseleave', 'colonias-fill', () => {
+        map.getCanvas().style.cursor = '';
+        if (hoveredId !== null) map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: false });
+        hoveredId = null;
+      });
       setMapReady((v) => v + 1);  // señal: el mapa cargó → re-engancha las capas dependientes (predios)
     });
 
@@ -371,8 +405,11 @@ export default function Mapa({ user, onLogin, onLogout }) {
           try { units = pr.unidades ? JSON.parse(pr.unidades) : []; } catch {}
           const unitsHtml = units.length ? `
             <div style="margin-top:8px;border-top:1px solid #EEE;padding-top:7px">
-              <div style="font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#7C5CFF;margin-bottom:5px">${units.length} unidades en este predio</div>
-              ${units.slice(0, 12).map((u) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px;padding:1.5px 0"><span style="color:#5A5F6E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(u.r || '').replace(/.*?(depto|dpto|loc)/i, '$1').slice(0, 22) || '—'}</span><span style="color:#1E2230">${u.c ? Math.round(u.c) + 'm² · ' : ''}${mx(u.vs)}</span></div>`).join('')}
+              <div style="font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#7C5CFF;margin-bottom:2px">${units.length} unidades en este predio</div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:#9AA0AE;margin-bottom:4px"><span>unidad</span><span>m² · valor catastral</span></div>
+              <div style="max-height:160px;overflow-y:auto;padding-right:2px">
+              ${units.map((u) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px;padding:1.5px 0"><span style="color:#5A5F6E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(u.r || '').replace(/.*?(depto|dpto|dep|loc)/i, '$1').slice(0, 22) || '—'}</span><span style="color:#1E2230;white-space:nowrap">${u.c ? Math.round(u.c) + 'm² · ' : ''}${mx(u.vs)}</span></div>`).join('')}
+              </div>
             </div>` : '';
           const html = `<div style="font-family:'DM Sans',sans-serif;min-width:210px">
             <div style="font-weight:700;font-size:13px;color:#1E2230;margin-bottom:2px">${(pr.calle || 'Predio').slice(0, 55)}</div>
