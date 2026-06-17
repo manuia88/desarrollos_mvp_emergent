@@ -15,4 +15,5 @@ export { default as Badge } from './Badge';
 export { default as Input, Field } from './Input';
 export { default as LightScope } from './LightScope';
 export { default as PublicNav } from './PublicNav';
+export { default as Aurora } from './Aurora';
 export { Container, Section } from './Container';

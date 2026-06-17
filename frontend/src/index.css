@@ -100,6 +100,22 @@
   --card-border:  #ECECEC;
 }
 
+/* ════ Auroras (glows animados, fondo claro · nuestros colores) ════ */
+.dmx-aurora { position: absolute; border-radius: 50%; filter: blur(64px); opacity: 0.55; will-change: transform; }
+.dmx-aurora-a { width: 480px; height: 480px; top: -150px; left: -90px;
+  background: radial-gradient(circle, rgba(var(--theme-rgb),0.55), transparent 70%);
+  animation: dmxAuroraA 22s ease-in-out infinite alternate; }
+.dmx-aurora-b { width: 520px; height: 520px; top: -110px; right: -120px;
+  background: radial-gradient(circle, rgba(198,63,174,0.42), transparent 70%);
+  animation: dmxAuroraB 26s ease-in-out infinite alternate; }
+.dmx-aurora-c { width: 420px; height: 420px; bottom: -170px; left: 28%;
+  background: radial-gradient(circle, rgba(124,92,255,0.40), transparent 70%);
+  animation: dmxAuroraC 30s ease-in-out infinite alternate; }
+@keyframes dmxAuroraA { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(80px,60px) scale(1.18)} }
+@keyframes dmxAuroraB { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-70px,50px) scale(1.22)} }
+@keyframes dmxAuroraC { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(60px,-50px) scale(1.15)} }
+@media (prefers-reduced-motion: reduce){ .dmx-aurora{ animation: none !important; } }
+
 /* Marco CLARO · solo asesor. Repinta el caparazón al tema del mockup
  * (superficie blanca, tinta #1E2230) sin tocar el contenido (.portal-asesor
  * trae sus propios tokens) ni los demás portales. */
