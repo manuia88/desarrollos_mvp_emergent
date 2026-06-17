@@ -259,6 +259,25 @@ async def require_superadmin(request):
     return user
 
 
+async def check_role(request, *roles: str):
+    """Candado 3 (anti-parches) · PUNTO ÚNICO de verificación de rol, llamado en el CUERPO del
+    handler (no `Depends` — así no toca firmas de ~400 handlers). 401 si no autenticado · 403 si
+    el rol no está en `roles` · sin `roles` = cualquier usuario autenticado. Devuelve el user.
+
+    Los ~30 helpers `_auth*`/`require_*` de routes/ deben ENVOLVER esto (pasando SUS roles) en vez
+    de reimplementar get_current_user + 401 + check de rol. NO hace god-view automático de
+    superadmin: preserva el comportamiento exacto del helper que lo llama (puro refactor, cero
+    cambio de acceso). Si un endpoint quiere que superadmin pase, incluye 'superadmin' en sus roles."""
+    from fastapi import HTTPException
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    if roles and getattr(user, "role", None) not in roles:
+        raise HTTPException(403, "Acceso denegado")
+    return user
+
+
 def is_superadmin(user) -> bool:
     """Pure check (no raise). True if user.role == superadmin."""
     if not user:

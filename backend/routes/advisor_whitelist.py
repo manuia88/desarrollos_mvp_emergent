@@ -38,23 +38,14 @@ def _db(request: Request):
 
 
 async def _auth_asesor(request: Request):
-    from server import get_current_user
-    u = await get_current_user(request)
-    if not u:
-        raise HTTPException(401, "No autenticado")
-    if u.role not in ASESOR_ROLES:
-        raise HTTPException(403, "Solo asesores pueden acceder a este recurso")
-    return u
+    # Candado 3 · envuelve el check_role central (mismos roles → cero cambio de acceso).
+    from permissions import check_role
+    return await check_role(request, *ASESOR_ROLES)
 
 
 async def _auth_dev(request: Request):
-    from server import get_current_user
-    u = await get_current_user(request)
-    if not u:
-        raise HTTPException(401, "No autenticado")
-    if u.role not in DEV_ROLES:
-        raise HTTPException(403, "Solo administradores de desarrolladora")
-    return u
+    from permissions import check_role
+    return await check_role(request, *DEV_ROLES)
 
 
 def _dev_org_id_of(user) -> str:
