@@ -1,8 +1,14 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-11
+**Última actualización**: 2026-06-17
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+> **2026-06-17 · FASE F6 (branch `dev-redesign-tandas`)**: rediseño público marketplace/mapa (nistora claro) +
+> cableado de cables muertos cross-portal (leads→CRM · db.transactions→DRPI · asistentes comparten bus · Salud
+> desforkada) + Neo4j/KG construido local + features agénticas build-for-endstate (loop comprador · casamentera
+> cross-org · embeddings/lookalike · dev autopiloto de-stub). Cerebro prendido LOCAL. Pendiente deploy: flag +
+> Neo4j en nube. Detalle: `memory/WAVE_PROGRESS.md` (FASE F6) + `UPGRADES_ADICIONALES_2026-06-16.md`.
 
 ---
 

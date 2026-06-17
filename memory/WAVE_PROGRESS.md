@@ -2,6 +2,28 @@
 
 ---
 
+## 🎨 FASE F6 · REDISEÑO PÚBLICO + INTEGRACIÓN AGÉNTICA (2026-06-17 · branch `dev-redesign-tandas`)
+Rediseño del marketplace/mapa público (estilo nistora, claro) + cableado de los "cables muertos" entre portales + features agénticas build-for-endstate. Doc canónico: **`memory/UPGRADES_ADICIONALES_2026-06-16.md`** + **`memory/INTEGRACION_MAPA_2026-06-16.md`** (en auto-memoria).
+
+| Pieza | Qué hace | Estado |
+|---|---|---|
+| **Home/Nav/Atlax v2** | Home claro nistora · PublicNav 4 portales · Atlax unificado (asesor digital adaptativo, sin form prematuro) | ✅ `/v2` |
+| **Mapa de Valores** | Choropleth de **1,811 colonias REALES** (ingesta IECM) · panel rico (gráfica histórica + AVM + scores) · encendido por calidad (~763) · desarrollos como puntos | ✅ |
+| **Ingesta colonias** | 1,811 polígonos reales en db.colonias.geometry (antes 0) · scores computados (~1,669 parcial) | ✅ |
+| **Tarjetas valor** | precio/m² + vs zona + plusvalía + forecast en el grid | ✅ |
+| **Integración (cables rotos)** | tubo de leads (email/FB/cotizador→CRM) · db.transactions→DRPI · asistentes comparten bus (Conversation/Copilot) · "Salud" desforkada (Completitud vs comercial) | ✅ |
+| **Neo4j + KG** | Neo4j construido local + ETL (305 nodos) + Terminal UI `/superadmin/kg` | ✅ local · ⏳ deploy |
+| **Upgrade #1 Vigila** | watch colonia + alerta de cambio + Atlax avisa | ✅ |
+| **Upgrade #3 Para ti** | `/api/para-ti` (watchlist→parecidas/trending) + chip Atlax · DisclosurePill (calidad de dato) | ✅ |
+| **Loop comprador** | botón "Encuéntrame mi casa" (Cerebro find_home, ya construido) | ✅ (gated flag) |
+| **#4.1 Dev autopiloto** | lente dev de-stub: avm_value→AVM real · closing_prices→db.transactions | ✅ |
+| **#4.2 Casamentera cross-org** | `/api/agentic-crm/casamentera/{lead}` cruce seguro solo orgs aliadas | ✅ infra |
+| **#4.3 Embeddings/lookalike** | `cerebro/lookalike.py` + hook on_deal_closed indexa won_deal | ✅ infra |
+
+**Cerebro:** prendido en LOCAL (no deploy). **Pendiente founder (deploy):** prender CEREBRO_ENABLED + Neo4j en nube. **Pendiente escala:** edges KG + lookalike (volumen). ~16 commits en `dev-redesign-tandas`.
+
+---
+
 ## 💎 FASE F5 · MODELO DEL MUNDO / DATA UTILITY ✅ COMPLETA (2026-06-10)
 Vende DATOS, no servicios de terceros. HALLAZGO: el núcleo (Terminal vendible + 3 índices + Grafo producto + k-anon + API pública v1) ya vivo por F2.12. F5 añadió el diferenciador (Bancabilidad), la entrega real (API) y la memoria temporal (curva). Doc canónico: **`memory/F2X_BUILD_PLAN.md`**.
 
