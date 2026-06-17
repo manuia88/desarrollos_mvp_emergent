@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '../components/landing/Navbar';
+import { LightScope, PublicNav } from '../components/ui';
 import { Bed, Bath, Car, Ruler, Heart, MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import { fetchProperty, fetchColonia, fetchSimilar, isFavorite, toggleFavorite } from '../api/marketplace';
 import MortgageCalculator from '../components/property/MortgageCalculator';
@@ -31,7 +31,7 @@ function HeroPhoto({ idx = 0 }) {
       {Array.from({ length: 10 }).map((_, row) => (
         Array.from({ length: 9 }).map((_, col) => (
           <rect key={`${row}${col}`} x={200 + col*62} y={90 + row*30} width={38} height={18}
-            fill={((row*9+col) % 3) > 0 ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.04)'} rx={2} />
+            fill={((row*9+col) % 3) > 0 ? 'rgba(99,102,241,0.5)' : 'var(--surface-card)'} rx={2} />
         ))
       ))}
       <rect x={180} y={360} width={600} height={40} fill="rgba(99,102,241,0.15)" />
@@ -60,10 +60,10 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
 
   if (!property) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-        <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <LightScope>
+        <PublicNav />
         <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
-      </div>
+      </LightScope>
     );
   }
 
@@ -76,8 +76,8 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+    <LightScope>
+      <PublicNav />
       <main style={{ paddingTop: 80 }}>
         <section style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 64px' }}>
           <div className="eyebrow" style={{ marginBottom: 14 }}>
@@ -142,7 +142,7 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '10px 14px',
-                      background: 'rgba(255,255,255,0.04)',
+                      background: 'var(--surface-card)',
                       border: '1px solid var(--border)',
                       borderRadius: 12,
                     }}>
@@ -207,7 +207,7 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
               {/* Colonia scores breakdown */}
               {colonia && (
                 <div style={{
-                  background: 'linear-gradient(180deg, #0E1220 0%, #0A0D16 100%)',
+                  background: 'var(--surface-card)',
                   border: '1px solid var(--border)',
                   borderRadius: 20, padding: 22,
                 }}>
@@ -266,7 +266,7 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div style={{
                 padding: 20,
-                background: 'linear-gradient(180deg, #0E1220 0%, #0A0D16 100%)',
+                background: 'var(--surface-card)',
                 border: '1px solid var(--border)',
                 borderRadius: 20,
               }}>
@@ -329,6 +329,6 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
           .mkp-cards { grid-template-columns: 1fr !important; }
         }
       `}</style>
-    </div>
+    </LightScope>
   );
 }
