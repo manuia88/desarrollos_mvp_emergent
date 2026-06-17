@@ -1,273 +1,229 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge } from '../../components/ui';
 
 /**
- * Home activa V2 — rediseño público, fondo CLARO, estructura de venta (Hormozi/Brunson):
- * hook → problema → mecanismo → stack de valor → oferta (reporte gratis) → prueba → CTA repetido.
- * Valor real con los datos del producto (1,524 colonias, 117 variables, índices propios).
- * Preview en /v2 · usa el sistema de diseño (components/ui).
+ * Home V2 — marketplace de VIVIENDA NUEVA, enfocado al COMPRADOR. Cálido, emocional, búsqueda
+ * primero (referencias UX: loft.com.br · clikalia.es · quintoandar). La inteligencia de colonia
+ * es el diferencial de CONFIANZA, no el gancho frío. Secciones secundarias para asesor y dev.
+ * Imágenes Unsplash = placeholders cálidos (se cambian por fotos reales de los desarrollos).
  */
-
 const HEAD = "'Outfit', sans-serif";
+const IMG = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
 
-const PROOF = [
-  { k: '1,524', v: 'colonias con dato real' },
-  { k: '117', v: 'variables cruzadas por colonia' },
-  { k: '5', v: 'índices propios de mercado' },
-  { k: 'En vivo', v: 'precio, demanda y riesgo' },
+const HERO_IMG = IMG('photo-1600585154340-be6161a56a0c'); // casa moderna luminosa
+const FEATURED = [
+  { name: 'Altavista Polanco', col: 'Polanco', from: '$8.5M', beds: '2–3 rec', img: IMG('photo-1545324418-cc1a3fa10c00') },
+  { name: 'Reforma Living', col: 'Juárez', from: '$5.2M', beds: '1–2 rec', img: IMG('photo-1502672260266-1c1ef2d93688') },
+  { name: 'Parque Condesa', col: 'Condesa', from: '$7.8M', beds: '2 rec', img: IMG('photo-1560448204-e02f11c3d0e2') },
+  { name: 'Del Valle 360', col: 'Del Valle', from: '$4.9M', beds: '2–3 rec', img: IMG('photo-1493809842364-78817add7ffb') },
 ];
-
-const PAINS = [
-  { t: 'Pagas de más', b: 'Sin el valor real de la zona, el metro cuadrado es una cifra a ciegas. El listing nunca te lo dice.' },
-  { t: 'Compras el problema', b: 'Delito, inundación, sin servicios a pie. Lo descubres después de mudarte — cuando ya firmaste.' },
-  { t: 'Pierdes la plusvalía', b: 'La colonia que se dispara y la que se estanca se ven idénticas en una foto. El dato las separa.' },
+const ZONAS = ['Polanco', 'Condesa', 'Roma Norte', 'Del Valle', 'Nápoles', 'Juárez', 'Coyoacán', 'Santa Fe', 'Narvarte', 'Lomas'];
+const WHY = [
+  { t: 'Solo vivienda nueva, verificada', b: 'Proyectos de desarrolladores reales, con documentación al día. Nada de listings dudosos.' },
+  { t: 'Conoce tu colonia antes de mudarte', b: 'Cada desarrollo trae el perfil real de su zona: seguridad, servicios, plusvalía y vida. Decides con todo a la vista.' },
+  { t: 'Te acompañamos hasta las llaves', b: 'Un asesor experto de la zona, agenda de visitas y apoyo en crédito. De principio a fin.' },
 ];
-
-const STACK = [
-  { t: 'Score de plusvalía', d: '¿La colonia sube o se estanca? (IPV · catastro + SHF)', val: '$2,400' },
-  { t: 'Mapa de delito georreferenciado', d: 'Carpetas FGJ por área fija, comparable entre colonias', val: '$1,800' },
-  { t: 'Riesgo sísmico e inundación', d: 'Atlas de riesgos CDMX, por punto exacto', val: '$1,500' },
-  { t: 'Densidad de servicios a pie', d: 'Qué resuelves caminando (caminabilidad real, OSM)', val: '$1,200' },
-  { t: 'Absorción de preventa', d: '¿El inventario se vende o se queda? Ritmo real del mercado', val: '$2,600' },
-  { t: 'Comparativa vs colonias similares', d: 'Dónde está parada tu zona contra sus pares', val: '$1,500' },
-];
-
-const AUDIENCES = [
-  { tag: 'Compra', t: 'Compra con la verdad en la mano', b: 'Negocia con dato, no con corazonada. Sabes el precio justo y la plusvalía antes de ofertar.', cta: 'Quiero mi reporte', to: '/marketplace' },
-  { tag: 'Asesor', t: 'Cierra con inteligencia que nadie más tiene', b: 'Marketplace + capa premium de colonia + material por cliente con un click. El argumento que convence.', cta: 'Soy asesor', to: '/asesores' },
-  { tag: 'Desarrollador', t: 'Construye donde el dato dice que sí', b: 'Inventario en vivo, leads atribuidos, absorción vs competencia y dónde está la demanda real.', cta: 'Soy desarrollador', to: '/' },
-];
-
-const ALLIES = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Habi'];
-
-function Stat({ k, v, big }) {
-  return (
-    <div style={{ textAlign: 'center', minWidth: 92 }}>
-      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: big ? 30 : 22, color: 'var(--theme)', lineHeight: 1 }}>{k}</div>
-      <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 5 }}>{v}</div>
-    </div>
-  );
-}
-
-function ScoreChip({ label, value, tone }) {
-  return (
-    <div style={{ background: 'var(--bg-3)', borderRadius: 'var(--r-chip)', padding: '10px 12px', flex: 1, minWidth: 96 }}>
-      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: tone || 'var(--cream)' }}>{value}</div>
-    </div>
-  );
-}
 
 export default function HomeV2() {
+  const nav = useNavigate();
+  const [zona, setZona] = useState('');
+  const go = () => nav(`/marketplace${zona ? `?zona=${encodeURIComponent(zona)}` : ''}`);
+
   return (
     <LightScope>
       {/* NAV */}
-      <Container style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingBottom: 20 }}>
+      <Container style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 18, paddingBottom: 18 }}>
         <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 21, letterSpacing: -0.3 }}>
           Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span>
         </span>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">El mapa</Button></Link>
-          <Link to="/asesores" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">Asesores</Button></Link>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">Comprar</Button></Link>
+          <a href="#asesores" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">Soy asesor</Button></a>
+          <a href="#desarrolladores" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">Soy desarrollador</Button></a>
           <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
         </div>
       </Container>
 
-      {/* HERO */}
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -160, left: '50%', transform: 'translateX(-50%)', width: 900, height: 520,
-          background: 'radial-gradient(closest-side, rgba(var(--theme-rgb),0.14), transparent)', pointerEvents: 'none' }} />
-        <Container style={{ position: 'relative' }}>
-          <Section py={48}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,0.85fr)', gap: 44, alignItems: 'center' }}>
-              {/* Left: copy */}
-              <div>
-                <Badge tone="theme" size="md" style={{ marginBottom: 18 }}>117 variables · 1,524 colonias · lectura en vivo</Badge>
-                <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(36px, 5vw, 58px)', lineHeight: 1.04, letterSpacing: -1.2, margin: '0 0 20px' }}>
-                  El precio te miente.<br />
-                  <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>La colonia te dice la verdad.</span>
-                </h1>
-                <p style={{ fontSize: 'clamp(15.5px, 1.6vw, 19px)', color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 540 }}>
-                  Cruzamos <b style={{ color: 'var(--cream)' }}>117 variables</b> de cada colonia de la CDMX —plusvalía, delito georreferenciado,
-                  riesgo sísmico, servicios y absorción de preventa— y te las entregamos en un retrato verificable.
-                  Antes de comprar, vender o construir.
-                </p>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-                  <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button size="lg">Recibe gratis el reporte de tu colonia →</Button></Link>
-                  <Link to="/colonia/roma-norte" style={{ textDecoration: 'none' }}><Button variant="secondary" size="lg">Ver el mapa</Button></Link>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--cream-3)' }}>Sin costo · sin registro para empezar · dato verificable, no opinión.</div>
+      {/* HERO — emocional + búsqueda + foto */}
+      <Container>
+        <Section py={40}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) minmax(0,0.95fr)', gap: 40, alignItems: 'center' }}>
+            <div>
+              <Badge tone="soft" size="md" style={{ marginBottom: 18 }}>🏠 Vivienda nueva en CDMX · 1,524 colonias</Badge>
+              <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(34px,4.6vw,54px)', lineHeight: 1.06, letterSpacing: -1.1, margin: '0 0 18px' }}>
+                Tu nuevo hogar,<br />elegido con el corazón<br /><span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>y con datos.</span>
+              </h1>
+              <p style={{ fontSize: 'clamp(15.5px,1.6vw,18.5px)', color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 26px', maxWidth: 500 }}>
+                Vivienda nueva de los mejores desarrolladores. Y por primera vez, conoce el perfil real de cada colonia <b style={{ color: 'var(--cream)' }}>antes de mudarte</b>.
+              </p>
+
+              {/* Barra de búsqueda */}
+              <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-card)', boxShadow: 'var(--sh-card)', padding: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  value={zona} onChange={(e) => setZona(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()}
+                  placeholder="¿Dónde quieres vivir? (colonia o alcaldía)"
+                  style={{ flex: 1, minWidth: 180, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: 'var(--cream)', padding: '8px 10px' }}
+                />
+                <select style={selStyle}><option>Presupuesto</option><option>Hasta $4M</option><option>$4M–$7M</option><option>$7M+</option></select>
+                <select style={selStyle}><option>Recámaras</option><option>1+</option><option>2+</option><option>3+</option></select>
+                <Button size="md" onClick={go}>Buscar</Button>
               </div>
+              <div style={{ fontSize: 13, color: 'var(--cream-3)', marginTop: 12 }}>Gratis · sin registro para empezar · vivienda nueva verificada.</div>
+            </div>
 
-              {/* Right: live barrio card (el moat visible) */}
-              <Card variant="elevated" pad={0} hover={false} style={{ overflow: 'hidden' }}>
-                <div style={{ height: 4, background: 'var(--grad)' }} />
-                <div style={{ padding: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--cream-3)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Perfil del barrio</div>
-                      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22 }}>Roma Norte</div>
-                      <div style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>Cuauhtémoc</div>
+            {/* Foto hero */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ borderRadius: 'var(--r-card)', overflow: 'hidden', boxShadow: 'var(--sh-card)', aspectRatio: '4/5', background: 'var(--bg-3)' }}>
+                <img src={HERO_IMG} alt="Hogar nuevo en CDMX" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              </div>
+              {/* mini-tarjeta de confianza flotante */}
+              <Card variant="elevated" pad={14} hover={false} style={{ position: 'absolute', bottom: -18, left: -14, width: 230 }}>
+                <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 6 }}>Perfil de la colonia · en vivo</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[['Seguridad', '72'], ['Servicios', '94'], ['Plusvalía', '90']].map(([l, v]) => (
+                    <div key={l} style={{ flex: 1, minWidth: 60 }}>
+                      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--theme)' }}>{v}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>{l}</div>
                     </div>
-                    <Badge tone="green" size="sm">● en vivo</Badge>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                    <ScoreChip label="Vida" value="90" tone="var(--theme)" />
-                    <ScoreChip label="Movilidad" value="85" />
-                    <ScoreChip label="Seguridad" value="72" tone="var(--warm, #E2982E)" />
-                    <ScoreChip label="Comercio" value="94" tone="var(--ok, #1FA06A)" />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px',
-                    background: 'rgba(var(--theme-rgb),0.07)', borderRadius: 'var(--r-chip)', marginBottom: 14 }}>
-                    <span style={{ fontSize: 13, color: 'var(--cream-2)' }}>Absorción de preventa · 24m</span>
-                    <span style={{ fontFamily: HEAD, fontWeight: 800, color: 'var(--ok, #1FA06A)' }}>+8%</span>
-                  </div>
-                  <Link to="/colonia/roma-norte" style={{ textDecoration: 'none' }}><Button block size="md">Abrir reporte completo</Button></Link>
+                  ))}
                 </div>
               </Card>
             </div>
+          </div>
+        </Section>
+      </Container>
 
-            {/* Proof bar */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between', marginTop: 40,
-              padding: '22px 26px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-card)' }}>
-              {PROOF.map((p) => <Stat key={p.v} k={p.k} v={p.v} />)}
-            </div>
-          </Section>
-        </Container>
-      </div>
-
-      {/* PROBLEMA */}
-      <Section py={56} style={{ background: 'var(--bg-2)' }}>
+      {/* DESTACADOS */}
+      <Section py={44}>
         <Container>
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <Badge tone="red" style={{ marginBottom: 12 }}>El costo de comprar a ciegas</Badge>
-            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(26px,3.6vw,38px)', letterSpacing: -0.6, margin: 0 }}>
-              Una mala colonia no se ve en la foto. Se siente en la cuenta.
-            </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 }}>
+            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(24px,3vw,32px)', letterSpacing: -0.5, margin: 0 }}>Desarrollos destacados</h2>
+            <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button variant="ghost" size="sm">Ver todos →</Button></Link>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px,1fr))', gap: 18 }}>
-            {PAINS.map((p) => (
-              <Card key={p.t} pad={22}>
-                <h3 style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 18, margin: '0 0 8px' }}>{p.t}</h3>
-                <p style={{ fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, margin: 0 }}>{p.b}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px,1fr))', gap: 18 }}>
+            {FEATURED.map((d) => (
+              <Card key={d.name} pad={0} style={{ overflow: 'hidden', cursor: 'pointer' }} onClick={() => nav('/marketplace')}>
+                <div style={{ aspectRatio: '4/3', background: 'var(--bg-3)' }}>
+                  <img src={d.img} alt={d.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+                <div style={{ padding: 14 }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 16 }}>{d.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--cream-3)', marginBottom: 8 }}>{d.col} · {d.beds}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12.5, color: 'var(--cream-2)' }}>desde <b style={{ color: 'var(--cream)' }}>{d.from}</b></span>
+                    <Badge tone="green" size="xs">Nuevo</Badge>
+                  </div>
+                </div>
               </Card>
             ))}
           </div>
         </Container>
       </Section>
 
-      {/* MECANISMO */}
-      <Section py={60}>
-        <Container max={980} style={{ textAlign: 'center' }}>
-          <Badge tone="theme" style={{ marginBottom: 14 }}>Cómo lo sabemos</Badge>
-          <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: -0.8, margin: '0 0 16px' }}>
-            No es una opinión.<br />Es el cruce de <span style={{ color: 'var(--theme)' }}>117 variables</span> por colonia.
-          </h2>
-          <p style={{ fontSize: 17, color: 'var(--cream-2)', lineHeight: 1.65, maxWidth: 680, margin: '0 auto 26px' }}>
-            Tomamos las fuentes que importan —FGJ, Catastro, SHF, Atlas de Riesgos, OpenStreetMap— y las
-            convertimos en 5 índices propios que ningún portal calcula. Plusvalía, ambiente, desarrollo,
-            seguridad y movilidad, en una sola lectura comparable entre las 1,524 colonias de la ciudad.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            {['IPV · Plusvalía', 'IAB · Ambiente', 'IDS · Desarrollo', 'Seguridad', 'Movilidad'].map((x) => (
-              <Badge key={x} tone="soft" size="md">{x}</Badge>
+      {/* POR QUÉ */}
+      <Section py={52} style={{ background: 'var(--bg-2)' }}>
+        <Container>
+          <div style={{ textAlign: 'center', marginBottom: 34 }}>
+            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(24px,3.4vw,36px)', letterSpacing: -0.6, margin: '0 0 10px' }}>Comprar tu hogar, sin angustia.</h2>
+            <p style={{ fontSize: 16, color: 'var(--cream-2)', maxWidth: 560, margin: '0 auto' }}>No es solo un departamento. Es dónde vas a vivir tu vida. Te damos todo para elegir tranquilo.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px,1fr))', gap: 18 }}>
+            {WHY.map((w) => (
+              <Card key={w.t} pad={22}>
+                <h3 style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 18, margin: '0 0 8px' }}>{w.t}</h3>
+                <p style={{ fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, margin: 0 }}>{w.b}</p>
+              </Card>
             ))}
           </div>
         </Container>
       </Section>
 
-      {/* STACK DE VALOR + OFERTA */}
-      <Section py={20}>
-        <Container max={920}>
+      {/* EXPLORA POR ZONA */}
+      <Section py={44}>
+        <Container style={{ textAlign: 'center' }}>
+          <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', letterSpacing: -0.5, margin: '0 0 18px' }}>Explora por zona</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+            {ZONAS.map((z) => (
+              <Link key={z} to={`/marketplace?zona=${encodeURIComponent(z)}`} style={{ textDecoration: 'none' }}>
+                <span className="dmx-card" style={{ display: 'inline-block', padding: '8px 16px', borderRadius: 'var(--r-pill)', background: 'var(--bg-2)', color: 'var(--cream-2)', fontSize: 14, fontWeight: 600, fontFamily: "'DM Sans',sans-serif" }}>{z}</span>
+              </Link>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
+      {/* ASESORES */}
+      <Section py={46} id="asesores">
+        <Container>
           <Card variant="elevated" pad={0} hover={false} style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '28px 30px', borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', letterSpacing: -0.5, margin: '0 0 6px' }}>
-                Todo esto, en el reporte gratis de tu colonia:
-              </h2>
-              <p style={{ fontSize: 14.5, color: 'var(--cream-2)', margin: 0 }}>Lo que un consultor te cobraría por hacer a mano — listo en segundos.</p>
-            </div>
-            <div style={{ padding: '8px 30px' }}>
-              {STACK.map((s) => (
-                <div key={s.t} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, marginTop: 1 }}>✓</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 15.5 }}>{s.t}</div>
-                    <div style={{ fontSize: 13, color: 'var(--cream-2)' }}>{s.d}</div>
-                  </div>
-                  <span style={{ fontSize: 13, color: 'var(--cream-3)', textDecoration: 'line-through', marginTop: 2, whiteSpace: 'nowrap' }}>{s.val}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ padding: '24px 30px', textAlign: 'center', background: 'rgba(var(--theme-rgb),0.05)' }}>
-              <div style={{ fontSize: 14, color: 'var(--cream-2)', marginBottom: 4 }}>Valor real de un due-diligence de colonia: <b style={{ color: 'var(--cream)' }}>$11,000 MXN</b></div>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, marginBottom: 16 }}>Para ti, hoy: <span style={{ color: 'var(--theme)' }}>gratis.</span></div>
-              <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button size="lg">Generar el reporte de mi colonia →</Button></Link>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))' }}>
+              <div style={{ padding: '34px 32px' }}>
+                <Badge tone="theme" style={{ marginBottom: 12 }}>Para asesores inmobiliarios</Badge>
+                <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(22px,2.8vw,30px)', letterSpacing: -0.5, margin: '0 0 12px' }}>Vende más con inteligencia que nadie más tiene.</h2>
+                <ul style={{ margin: '0 0 20px', padding: 0, listStyle: 'none' }}>
+                  {['Leads atribuidos de compradores reales', 'Capa premium de colonia (lo que tu cliente NO ve)', 'CRM ligero + material por cliente con un click'].map((x) => (
+                    <li key={x} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14.5, color: 'var(--cream-2)', marginBottom: 9 }}>
+                      <span style={{ color: 'var(--theme)', fontWeight: 800 }}>✓</span>{x}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/asesores" style={{ textDecoration: 'none' }}><Button size="md">Únete gratis como asesor →</Button></Link>
+              </div>
+              <div style={{ background: 'var(--bg-3)', minHeight: 200 }}>
+                <img src={IMG('photo-1556761175-b413da4baf72')} alt="Asesor inmobiliario" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              </div>
             </div>
           </Card>
         </Container>
       </Section>
 
-      {/* 3 PÚBLICOS */}
-      <Section py={56}>
+      {/* DESARROLLADORES */}
+      <Section py={46} id="desarrolladores">
         <Container>
-          <div style={{ textAlign: 'center', marginBottom: 34 }}>
-            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(26px,3.6vw,38px)', letterSpacing: -0.6, margin: 0 }}>
-              El mismo dato, tu jugada.
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: 18 }}>
-            {AUDIENCES.map((a) => (
-              <Card key={a.tag} pad={24}>
-                <Badge tone="soft" style={{ marginBottom: 14 }}>{a.tag}</Badge>
-                <h3 style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 19, margin: '0 0 10px', lineHeight: 1.25 }}>{a.t}</h3>
-                <p style={{ fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 18px' }}>{a.b}</p>
-                <Link to={a.to} style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">{a.cta} →</Button></Link>
-              </Card>
-            ))}
-          </div>
-        </Container>
-      </Section>
-
-      {/* AUTORIDAD */}
-      <Section py={36} style={{ background: 'var(--bg-2)' }}>
-        <Container style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 12.5, color: 'var(--cream-3)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 16 }}>
-            Operamos junto a plataformas que mueven el real estate
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 34, justifyContent: 'center', alignItems: 'center' }}>
-            {ALLIES.map((a) => (
-              <span key={a} style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 19, color: 'var(--cream-3)' }}>{a}</span>
-            ))}
-          </div>
+          <Card variant="elevated" pad={0} hover={false} style={{ overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))' }}>
+              <div style={{ background: 'var(--bg-3)', minHeight: 200, order: 0 }}>
+                <img src={IMG('photo-1486406146926-c627a92ad1ab')} alt="Desarrollo inmobiliario" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              </div>
+              <div style={{ padding: '34px 32px' }}>
+                <Badge tone="theme" style={{ marginBottom: 12 }}>Para desarrolladores</Badge>
+                <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(22px,2.8vw,30px)', letterSpacing: -0.5, margin: '0 0 12px' }}>Vende tu proyecto donde el dato dice que sí.</h2>
+                <ul style={{ margin: '0 0 20px', padding: 0, listStyle: 'none' }}>
+                  {['Publica tu inventario en tiempo real', 'Leads atribuidos + embudo medible', 'Absorción vs competencia y dónde está la demanda real'].map((x) => (
+                    <li key={x} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14.5, color: 'var(--cream-2)', marginBottom: 9 }}>
+                      <span style={{ color: 'var(--theme)', fontWeight: 800 }}>✓</span>{x}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/login" style={{ textDecoration: 'none' }}><Button size="md">Publica tu proyecto →</Button></Link>
+              </div>
+            </div>
+          </Card>
         </Container>
       </Section>
 
       {/* CTA FINAL */}
-      <Section py={60}>
-        <Container max={860}>
-          <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-card)', padding: '48px 36px', textAlign: 'center',
-            background: 'var(--grad)' }}>
-            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(28px,4vw,42px)', letterSpacing: -0.8, color: '#fff', margin: '0 0 12px' }}>
-              Tu próxima decisión vale millones.<br />Tómala con la luz encendida.
-            </h2>
-            <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.9)', maxWidth: 520, margin: '0 auto 26px', lineHeight: 1.6 }}>
-              Empieza por tu colonia. Gratis, sin registro, en segundos.
-            </p>
+      <Section py={56}>
+        <Container max={820}>
+          <div style={{ borderRadius: 'var(--r-card)', padding: '46px 36px', textAlign: 'center', background: 'var(--grad)' }}>
+            <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(26px,3.8vw,40px)', letterSpacing: -0.7, color: '#fff', margin: '0 0 12px' }}>Tu nuevo hogar te está esperando.</h2>
+            <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.9)', maxWidth: 480, margin: '0 auto 24px', lineHeight: 1.6 }}>Empieza por la zona que sueñas. Gratis y en segundos.</p>
             <Link to="/marketplace" style={{ textDecoration: 'none' }}>
-              <Button size="lg" style={{ background: '#fff', color: 'var(--theme-2)' }}>Generar mi reporte gratis →</Button>
+              <Button size="lg" style={{ background: '#fff', color: 'var(--theme-2)' }}>Buscar mi hogar →</Button>
             </Link>
           </div>
         </Container>
       </Section>
 
-      {/* FOOTER */}
       <Container style={{ paddingTop: 24, paddingBottom: 40, textAlign: 'center', borderTop: '1px solid var(--border)' }}>
-        <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>
-          DesarrollosMX · Inteligencia inmobiliaria CDMX · 1,524 colonias con dato real · vista previa /v2
-        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>DesarrollosMX · Vivienda nueva en CDMX · vista previa /v2</span>
       </Container>
     </LightScope>
   );
 }
+
+const selStyle = {
+  border: '1px solid var(--border)', borderRadius: 'var(--r-inner)', background: 'var(--bg)',
+  color: 'var(--cream-2)', fontFamily: "'DM Sans',sans-serif", fontSize: 13.5, padding: '9px 10px', outline: 'none', cursor: 'pointer',
+};
