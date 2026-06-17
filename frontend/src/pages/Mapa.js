@@ -8,6 +8,7 @@ import Navbar from '../components/landing/Navbar';
 import { fetchColonias } from '../api/marketplace';
 import { X, ArrowRight } from '../components/icons';
 import { Z } from '../styles/zIndex';
+import DisclosurePill from '../components/shared/DisclosurePill';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -462,6 +463,13 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 </div>
               );
             })()}
+
+            {/* Sello de calidad de dato (honesto) — solo aparece si NO es dato real */}
+            {(c.calidad_estimada || (!c.has_data && !c.scores)) && (
+              <div style={{ marginBottom: 10 }}>
+                <DisclosurePill esEstimado quality={c.calidad_estimada ? 'estimated' : 'seeded'} />
+              </div>
+            )}
 
             {/* Scores en lenguaje de beneficio */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
