@@ -201,15 +201,23 @@ async def ingest_shapefile_polygons(db, alc: str, batch: int = 3000, tol: float 
 
 
 async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, Any]:
-    """Valor catastral OFICIAL agregado de una colonia + desglose de predios (muestra)."""
+    """Valor catastral OFICIAL agregado de una colonia + desglose de predios.
+    `colonia_name` puede ser el ID de colonia IECM (preferido · cruce espacial · exacto, 99%) o el nombre."""
     import re as _re
-    raw = norm_colonia(colonia_name)
-    # El IECM parte colonias en secciones (Doctores I..V · Roma Norte/Sur) pero el catastro usa el nombre
-    # base → quita el sufijo de sección y matchea por "contiene" para no perder cobertura.
-    base = _re.sub(r"\s+(i|ii|iii|iv|v|vi|vii|viii|ix|x|[0-9]+a?|norte|sur|oriente|poniente|seccion|secc)$", "", raw).strip() or raw
-    rx = {"$regex": _re.escape(base), "$options": "i"}
+    # 1) Preferir el id IECM (lo que el panel manda) → match EXACTO por cruce espacial (no falla por nombre).
+    base_filter: Dict[str, Any] = {}
+    try:
+        if await db.catastro_predios.count_documents({"colonia_iecm": colonia_name}, limit=1):
+            base_filter = {"colonia_iecm": colonia_name}
+    except Exception:
+        pass
+    # 2) Si no es id, caer al nombre (regex base, ignora sección).
+    if not base_filter:
+        raw = norm_colonia(colonia_name)
+        base = _re.sub(r"\s+(i|ii|iii|iv|v|vi|vii|viii|ix|x|[0-9]+a?|norte|sur|oriente|poniente|seccion|secc)$", "", raw).strip() or raw
+        base_filter = {"colonia_norm": {"$regex": _re.escape(base), "$options": "i"}}
     pipe = [
-        {"$match": {"colonia_norm": rx, "valor_unitario_suelo": {"$gt": 0}}},
+        {"$match": {**base_filter, "valor_unitario_suelo": {"$gt": 0}}},
         {"$group": {
             "_id": None, "predios": {"$sum": 1},
             "vus_prom": {"$avg": "$valor_unitario_suelo"},
@@ -225,7 +233,7 @@ async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, 
     mediana = None
     try:
         skip = max(0, n // 2)
-        cur = db.catastro_predios.find({"colonia_norm": rx, "valor_suelo": {"$gt": 0}},
+        cur = db.catastro_predios.find({**base_filter, "valor_suelo": {"$gt": 0}},
                                        {"_id": 0, "valor_suelo": 1}).sort("valor_suelo", 1).skip(skip).limit(1)
         md = await cur.to_list(1)
         mediana = md[0]["valor_suelo"] if md else None
@@ -234,7 +242,7 @@ async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, 
     # PUNTOS por predio (lat/lng + valor) → densidad por-predio en el mapa
     puntos = []
     async for p in db.catastro_predios.find(
-            {"colonia_norm": rx, "lat": {"$exists": True}, "valor_unitario_suelo": {"$gt": 0}},
+            {**base_filter, "lat": {"$exists": True}, "valor_unitario_suelo": {"$gt": 0}},
             {"_id": 0, "lat": 1, "lng": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1, "sup_terreno": 1, "anio": 1}
     ).limit(1500):
         puntos.append(p)

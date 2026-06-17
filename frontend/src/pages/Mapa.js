@@ -312,15 +312,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId]);
 
-  // Catastro OFICIAL (SIGCDMX) — valor catastral + desglose por predio de la colonia seleccionada.
-  const selName = selected && selected.name;
+  // Catastro OFICIAL (SIGCDMX) — consulta por ID de colonia (cruce espacial · exacto 99%); el endpoint
+  // cae al nombre si no es id. Antes consultaba por NOMBRE (regex frágil) → falsos "próximamente".
+  const selKey = selected && (selected.id || selected.name);
   useEffect(() => {
-    if (!selName) { setCatastro(null); return; }
+    if (!selKey) { setCatastro(null); return; }
     setCatastro(null);
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/catastro/colonia/${encodeURIComponent(selName)}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/catastro/colonia/${encodeURIComponent(selKey)}`)
       .then((r) => r.json()).then((d) => setCatastro(d && d.disponible ? d : null)).catch(() => setCatastro(null));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selName]);
+  }, [selKey]);
 
   // PREDIOS como POLÍGONOS del lote — cargados por VIEWPORT solo a zoom cercano (forma real, no puntos;
   // no se mezclan con el relleno de colonia porque solo salen al acercar). Click → ficha del predio.
@@ -329,7 +330,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
     if (!m) return;
     let cancelled = false;
     const API = process.env.REACT_APP_BACKEND_URL;
-    const ZMIN = 15;
+    const ZMIN = 14;  // predios (lotes) aparecen a nivel calle, no solo muy de cerca
     const fetchBbox = () => {
       const src = m.getSource('catastro-poly');
       if (!src) return;
