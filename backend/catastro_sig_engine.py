@@ -213,6 +213,59 @@ async def build_colonia_index(db) -> Dict[str, Any]:
     return {"bases": len(docs)}
 
 
+async def spatial_join_predios(db, batch: int = 8000) -> Dict[str, Any]:
+    """Cruce ESPACIAL: asigna cada predio (centroide) a la colonia (polígono IECM) que lo contiene →
+    colonia_iecm. 100% robusto, sin adivinar nombres. Reusa shapely STRtree. Luego reindexa por colonia."""
+    from shapely.geometry import shape, Point
+    from shapely import STRtree
+    from pymongo import UpdateOne
+    cols = []
+    async for c in db.colonias.find({"geometry": {"$exists": True}}, {"_id": 0, "id": 1, "geometry": 1}):
+        try:
+            cols.append((c["id"], shape(c["geometry"])))
+        except Exception:
+            pass
+    if not cols:
+        return {"ok": False, "reason": "sin polígonos de colonia"}
+    ids = [i for i, _ in cols]
+    geoms = [g for _, g in cols]
+    tree = STRtree(geoms)
+    ops: List[Any] = []
+    matched = 0
+    async for p in db.catastro_predios.find({"lat": {"$exists": True}}, {"_id": 0, "catastro_id": 1, "lng": 1, "lat": 1}):
+        pt = Point(p["lng"], p["lat"])
+        cid = None
+        for idx in tree.query(pt):
+            if geoms[idx].contains(pt):
+                cid = ids[idx]
+                break
+        if cid:
+            ops.append(UpdateOne({"catastro_id": p["catastro_id"]}, {"$set": {"colonia_iecm": cid}}))
+            matched += 1
+        if len(ops) >= batch:
+            await db.catastro_predios.bulk_write(ops, ordered=False)
+            ops = []
+    if ops:
+        await db.catastro_predios.bulk_write(ops, ordered=False)
+    return {"ok": True, "asignados": matched}
+
+
+async def build_index_by_iecm(db) -> Dict[str, Any]:
+    """Valor del suelo por colonia IECM (id) desde el cruce espacial → db.colonia_catastro_byid. Lo consume
+    el choropleth (match exacto por id · 99% cobertura)."""
+    pipe = [{"$match": {"colonia_iecm": {"$exists": True}, "valor_unitario_suelo": {"$gt": 0}}},
+            {"$group": {"_id": "$colonia_iecm", "vus": {"$avg": "$valor_unitario_suelo"}, "n": {"$sum": 1}}}]
+    docs = []
+    async for r in db.catastro_predios.aggregate(pipe, allowDiskUse=True):
+        docs.append({"colonia_id": r["_id"], "valor_suelo_m2": round(r["vus"]), "predios": int(r["n"])})
+    await db.colonia_catastro_byid.delete_many({})
+    if docs:
+        await db.colonia_catastro_byid.insert_many(docs)
+        await db.colonia_catastro_byid.create_index("colonia_id", unique=True)
+    return {"colonias": len(docs)}
+
+
 async def ensure_indexes(db) -> None:
     await db.catastro_predios.create_index("catastro_id", unique=True)
     await db.catastro_predios.create_index("colonia_norm")
+    await db.catastro_predios.create_index("colonia_iecm")
