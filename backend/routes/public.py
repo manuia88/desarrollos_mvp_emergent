@@ -182,9 +182,11 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
     """FeatureCollection de las colonias REALES (db.colonias.geometry · 1,811 IECM) para el Mapa de
     Valores coroplético. Une precio/scores/momentum desde los seed (por nombre) donde exista el dato."""
     db = request.app.state.db
+    import unicodedata
 
     def _n(s):
-        return (s or "").strip().lower()
+        s = (s or "").strip().lower()
+        return "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn")
     seed_by_name = {_n(c.get("name")): c for c in SEED_COLONIAS}
     q: Dict[str, Any] = {"geometry": {"$exists": True}}
     if alcaldia:
@@ -249,6 +251,27 @@ async def colonia_watch_list(watcher: str, request: Request):
         out.append({"colonia_id": w["colonia_id"], "name": w.get("name"),
                     "price_m2": cur, "momentum": col.get("momentum"), "change_pct": change})
     return {"watching": out, "count": len(out), "alerts": [w for w in out if w["change_pct"]]}
+
+
+# ─── Upgrade #3 · "Parecidas a las que te gustaron" (recomendación por similitud · taste-lite) ──
+@router.get("/api/colonias-similar/{colonia_id}")
+async def colonias_similar(colonia_id: str, n: int = 3):
+    """Colonias con perfil PARECIDO (distancia en el vector de 6 scores). Cierra el ciclo de descubrimiento:
+    te gustó X → aquí Y, Z parecidas. Base del taste model (que luego aprende de tu comportamiento)."""
+    target = COLONIAS_BY_ID.get(colonia_id)
+    if not target or not target.get("scores"):
+        return {"similar": [], "based_on": None}
+    ts = target["scores"]
+    keys = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion"]
+
+    def dist(c):
+        s = c.get("scores") or {}
+        return sum((float(ts.get(k, 0)) - float(s.get(k, 0))) ** 2 for k in keys) ** 0.5
+    others = [c for c in SEED_COLONIAS if c.get("id") != colonia_id and c.get("scores")]
+    others.sort(key=dist)
+    out = [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"),
+            "price_m2": c.get("price_m2"), "momentum": c.get("momentum")} for c in others[:n]]
+    return {"similar": out, "based_on": target.get("name")}
 
 
 @router.get("/api/colonias/{colonia_id}")

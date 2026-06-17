@@ -91,6 +91,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
     return next;
   });
 
+  const [similar, setSimilar] = useState([]);     // Upgrade #3 · colonias parecidas a la seleccionada
   const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
   useEffect(() => {
     fetchColonias().then(list => {
@@ -254,6 +255,15 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
   const selectedColonia = selected;  // ahora `selected` es el objeto (props del polígono o la colonia seed)
 
+  // Upgrade #3 · "Parecidas a las que te gustaron" — al seleccionar una colonia con scores, trae similares.
+  const selId = selected && selected.id;
+  useEffect(() => {
+    if (!selId || !(selected && selected.scores)) { setSimilar([]); return; }
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonias-similar/${selId}?n=3`)
+      .then((r) => r.json()).then((d) => setSimilar(d.similar || [])).catch(() => setSimilar([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId]);
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
@@ -414,6 +424,22 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 </div>
               ))}
             </div>
+
+            {/* Parecidas a esta (upgrade #3 · taste) */}
+            {similar.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Parecidas a {c.name}</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {similar.map((s) => (
+                    <button key={s.id} onClick={() => { const full = coloniaById[s.id] || s; setSelected(full); if (full.center) mapRef.current && mapRef.current.flyTo({ center: full.center, zoom: 13.4, duration: 700 }); }}
+                      style={{ cursor: 'pointer', textAlign: 'left', padding: '8px 11px', borderRadius: 12, background: '#F6F4FF', border: '1px solid #E7E0FF', fontFamily: 'DM Sans' }}>
+                      <div style={{ fontWeight: 700, fontSize: 12.5, color: '#1E2230' }}>{s.name}</div>
+                      <div style={{ fontSize: 11, color: '#7C5CFF' }}>${s.price_m2}k/m² · {s.momentum}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Vigila esta colonia (upgrade #1) */}
             <button onClick={() => toggleWatch(c.id, c.name)} style={{
