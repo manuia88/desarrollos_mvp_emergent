@@ -93,6 +93,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
   const [similar, setSimilar] = useState([]);     // Upgrade #3 · colonias parecidas a la seleccionada
   const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
+  const [devs, setDevs] = useState([]);          // desarrollos reales = los PREDIOS que sí vendemos
   useEffect(() => {
     fetchColonias().then(list => {
       setColonias(list);
@@ -104,6 +105,10 @@ export default function Mapa({ user, onLogin, onLogout }) {
     fetch(`${API}/api/colonias-geojson`).then(r => r.json()).then(gj => {
       if (gj && gj.features) setGeojson(gj);
     }).catch(() => {});
+    // Predios reales = nuestros desarrollos (catastro abierto NO trae coordenadas → estos son los puntos reales)
+    fetch(`${API}/api/developments?limit=200`).then(r => r.json()).then(ds => {
+      if (Array.isArray(ds)) setDevs(ds);
+    }).catch(() => {});
   }, []);
 
   // Cuando llega la geometría real, reemplaza la fuente del mapa (de cuadros → fronteras reales)
@@ -113,6 +118,44 @@ export default function Mapa({ user, onLogin, onLogout }) {
     const apply = () => { const s = m.getSource('colonias'); if (s) s.setData(geojson); };
     if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
   }, [geojson]);
+
+  // PREDIOS reales (nuestros desarrollos) como puntos verdes con $/m² · click → ficha del desarrollo.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !devs.length || !Object.keys(coloniaById).length) return;
+    const per = {};
+    const feats = [];
+    devs.forEach((d) => {
+      const col = coloniaById[d.colonia_id];
+      const c = col && col.center;
+      if (!c) return;
+      const i = (per[d.colonia_id] = (per[d.colonia_id] || 0) + 1) - 1;  // spread determinista por colonia
+      const ang = i * 2.4, r = i === 0 ? 0 : 0.0016 * (1 + (i % 3));
+      feats.push({
+        type: 'Feature',
+        properties: { slug: d.slug || d.id, name: d.name, pm2: d.price_m2_dev ? Math.round(d.price_m2_dev / 1000) : null },
+        geometry: { type: 'Point', coordinates: [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang)] },
+      });
+    });
+    const data = { type: 'FeatureCollection', features: feats };
+    const apply = () => {
+      if (m.getSource('devs')) { m.getSource('devs').setData(data); return; }
+      m.addSource('devs', { type: 'geojson', data });
+      m.addLayer({
+        id: 'dev-point', type: 'circle', source: 'devs',
+        paint: { 'circle-radius': 5, 'circle-color': '#1FA06A', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+      });
+      m.addLayer({
+        id: 'dev-label', type: 'symbol', source: 'devs',
+        layout: { 'text-field': ['case', ['has', 'pm2'], ['concat', '$', ['to-string', ['get', 'pm2']], 'k'], ''], 'text-size': 10, 'text-offset': [0, 1.1], 'text-anchor': 'top' },
+        paint: { 'text-color': '#1FA06A', 'text-halo-color': '#fff', 'text-halo-width': 1.5 },
+      });
+      m.on('click', 'dev-point', (e) => { const f = e.features && e.features[0]; if (f) window.location.href = `/desarrollo/${f.properties.slug}`; });
+      m.on('mouseenter', 'dev-point', () => { m.getCanvas().style.cursor = 'pointer'; });
+      m.on('mouseleave', 'dev-point', () => { m.getCanvas().style.cursor = ''; });
+    };
+    if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
+  }, [devs, coloniaById]);
 
   useEffect(() => {
     if (!TOKEN || !container.current || mapRef.current || colonias.length === 0) return;
