@@ -348,6 +348,25 @@ async def catastro_colonia(colonia: str, request: Request):
     return out
 
 
+@router.get("/api/precio-posicion")
+async def precio_posicion(request: Request, colonia: str, precio: float, m2: float):
+    """¿Este precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio sobre nuestro AVM).
+    Devuelve etiqueta + % vs estimado + rango. Wedge para comprador (oportunidades) / asesor (precia bien)."""
+    db = request.app.state.db
+    try:
+        from catastro_sig_engine import colonia_catastro
+        from market_estimate_engine import market_for_colonia, price_position
+        cat = await colonia_catastro(db, colonia)
+        cv = await _colonia_value(db, colonia)
+        mkt = await market_for_colonia(db, colonia, cat.get("valor_suelo_m2"), cv.get("calidad"))
+        pos = price_position(precio, m2, mkt.get("precio_venta_m2"))
+        pos["mercado_fuente"] = mkt.get("source")
+        pos["mercado_confianza"] = mkt.get("confianza")
+        return pos
+    except Exception as e:
+        return {"disponible": False, "error": str(e)[:120]}
+
+
 @router.get("/api/catastro/predios-bbox")
 async def predios_bbox(request: Request, w: float, s: float, e: float, n: float, limit: int = 2500):
     """Predios (POLÍGONOS del lote) dentro del recuadro visible → se cargan solo con zoom cercano.

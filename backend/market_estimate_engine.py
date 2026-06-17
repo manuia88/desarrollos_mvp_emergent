@@ -82,3 +82,31 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
     return {"precio_venta_m2": est, "source": "estimado", "es_estimado": True,
             "confianza": "media" if en_rango else "baja",
             "rango": [round(est * 0.78), round(est * 1.25)]}   # banda honesta de incertidumbre
+
+
+def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
+                   banda: float = 0.05) -> Dict[str, Any]:
+    """¿El precio de una propiedad está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio:
+    precio del anuncio vs valor estimado, en cubetas de ±banda). `mercado_m2` = $/m² de venta de la zona
+    (de market_for_colonia). Devuelve etiqueta + % de diferencia + estimado + rango — listo para el front."""
+    if not precio_total or not m2 or not mercado_m2:
+        return {"disponible": False}
+    estimado = round(mercado_m2 * m2)
+    if estimado <= 0:
+        return {"disponible": False}
+    diff = (precio_total - estimado) / estimado
+    if diff < -banda:
+        etiqueta, color = "bajo", "verde"      # oportunidad
+    elif diff > banda:
+        etiqueta, color = "alto", "rojo"
+    else:
+        etiqueta, color = "justo", "ambar"
+    return {
+        "disponible": True,
+        "etiqueta": etiqueta, "color": color,
+        "diff_pct": round(diff * 100, 1),
+        "precio_m2": round(precio_total / m2),
+        "estimado": estimado,
+        "estimado_m2": round(mercado_m2),
+        "rango": [round(estimado * 0.88), round(estimado * 1.12)],   # ~±12% IC del AVM
+    }
