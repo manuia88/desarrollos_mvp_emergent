@@ -229,6 +229,33 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           </div>
         </div>
 
+        {/* Señales de VALOR — AVM ligero (precio/m² vs zona) + plusvalía real + forecast (cuando hay) */}
+        {(dev.price_m2_dev || dev.plusvalia_zona) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+            {dev.price_m2_dev && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                ${Math.round(dev.price_m2_dev / 1000)}k/m²
+              </span>
+            )}
+            {typeof dev.precio_vs_zona_pct === 'number' && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }} title="Precio/m² vs el promedio de la colonia">
+                {dev.precio_vs_zona_pct > 0 ? '+' : ''}{dev.precio_vs_zona_pct}% vs zona
+              </span>
+            )}
+            {dev.plusvalia_zona && (
+              <span style={{
+                marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.12)',
+                border: '1px solid rgba(31,160,106,0.28)', borderRadius: 999, padding: '3px 9px',
+              }} title="Plusvalía reciente de la colonia">
+                ↗ Plusvalía {dev.plusvalia_zona}
+                {typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Meta row — icons large, text cream (not cream-3) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 2 }}>
           {[

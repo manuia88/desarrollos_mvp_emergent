@@ -112,9 +112,41 @@ async def _enrich_listing(db, devs: list) -> list:
         hero_by = await public_hero_map(db, ids)
     except Exception:
         hero_by = {}
+    # 4) Señales de VALOR para la tarjeta: precio/m² vs promedio de la zona (AVM-ligero) + plusvalía
+    #    real de la colonia (momentum) + forecast 12m si está disponible. Colonia en memoria (siempre
+    #    disponible); forecast batch desde zone_forecasts (cuando el cron corra). AVM hedónico full = buy_signal.
+    col_ids = list({d.get("colonia_id") for d in devs if d.get("colonia_id")})
+    try:
+        from data_seed import COLONIAS_BY_ID as _COLS
+    except Exception:
+        _COLS = {}
+    fc_by_col: Dict[str, float] = {}
+    if col_ids:
+        try:
+            async for fc in db.zone_forecasts.find(
+                    {"zone_slug": {"$in": col_ids}, "available": True},
+                    {"_id": 0, "zone_slug": 1, "horizons.12m.delta_pct": 1}):
+                d12 = (((fc.get("horizons") or {}).get("12m") or {}).get("delta_pct"))
+                if d12 is not None:
+                    fc_by_col[fc.get("zone_slug")] = float(d12)
+        except Exception:
+            pass
     out = []
     for d in devs:
         card = _dev_public(d)
+        cid = d.get("colonia_id")
+        col = _COLS.get(cid) or {}
+        m2lo = (d.get("m2_range") or [0])[0] or 0
+        dev_pm2 = (d.get("price_from") or 0) / m2lo if m2lo else 0
+        if dev_pm2:
+            card["price_m2_dev"] = round(dev_pm2)
+            zona_pm2 = col.get("price_m2_num") or ((col.get("price_m2") or 0) * 1000)
+            if zona_pm2:
+                card["precio_vs_zona_pct"] = round((dev_pm2 / float(zona_pm2) - 1) * 100)
+        if col.get("momentum"):
+            card["plusvalia_zona"] = col.get("momentum")        # tendencia real de la colonia
+        if cid in fc_by_col:
+            card["forecast_12m_pct"] = round(fc_by_col[cid], 1)  # forecast (cuando hay dato)
         am = amen_by.get(d["id"]) or {}
         rich = am.get("amenities") or card.get("amenities") or []
         card["amenities"] = rich
