@@ -188,6 +188,14 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
         s = (s or "").strip().lower()
         return "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn")
     seed_by_name = {_n(c.get("name")): c for c in SEED_COLONIAS}
+    # Índice de valor catastral por colonia BASE (canónica) → colorea TODO el mapa con dato REAL.
+    cat_idx: Dict[str, int] = {}
+    try:
+        from catastro_sig_engine import canon_colonia
+        async for r in db.colonia_catastro_idx.find({}, {"_id": 0, "base": 1, "valor_suelo_m2": 1}):
+            cat_idx[r["base"]] = r["valor_suelo_m2"]
+    except Exception:
+        canon_colonia = None
     q: Dict[str, Any] = {"geometry": {"$exists": True}}
     if alcaldia:
         q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
@@ -213,6 +221,11 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
                 props["calidad"] = round(sum(vals) / len(vals))
                 props["calidad_estimada"] = bool(c.get("scores_es_estimado"))
                 props["cobertura_pct"] = c.get("scores_cobertura_pct")
+            # Valor catastral REAL (oficial) por colonia → el choropleth se colorea con dato verdadero
+            if canon_colonia and cat_idx:
+                vc = cat_idx.get(canon_colonia(_n(c.get("name"))))
+                if vc:
+                    props["valor_catastral"] = vc
             feats.append({"type": "Feature", "properties": props, "geometry": c["geometry"]})
     except Exception:
         pass

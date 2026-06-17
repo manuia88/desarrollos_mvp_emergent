@@ -135,46 +135,82 @@ async def ingest_shapefile_coords(db, alc: str, batch: int = 5000) -> Dict[str, 
 
 async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, Any]:
     """Valor catastral OFICIAL agregado de una colonia + desglose de predios (muestra)."""
-    cn = norm_colonia(colonia_name)
-    # match flexible: la colonia tal cual o sus secciones ("Polanco" → "Polanco I/II/.. Seccion")
     import re as _re
-    rx = {"$regex": f"^{_re.escape(cn)}( |$)", "$options": "i"}
+    raw = norm_colonia(colonia_name)
+    # El IECM parte colonias en secciones (Doctores I..V · Roma Norte/Sur) pero el catastro usa el nombre
+    # base → quita el sufijo de sección y matchea por "contiene" para no perder cobertura.
+    base = _re.sub(r"\s+(i|ii|iii|iv|v|vi|vii|viii|ix|x|[0-9]+a?|norte|sur|oriente|poniente|seccion|secc)$", "", raw).strip() or raw
+    rx = {"$regex": _re.escape(base), "$options": "i"}
     pipe = [
         {"$match": {"colonia_norm": rx, "valor_unitario_suelo": {"$gt": 0}}},
         {"$group": {
             "_id": None, "predios": {"$sum": 1},
             "vus_prom": {"$avg": "$valor_unitario_suelo"},
-            "valor_suelo_prom": {"$avg": "$valor_suelo"},
             "sup_terreno_prom": {"$avg": "$sup_terreno"},
         }},
     ]
     agg = await db.catastro_predios.aggregate(pipe).to_list(1)
-    if not agg:
+    if not agg or not agg[0].get("predios"):
         return {"colonia": colonia_name, "disponible": False, "predios": 0}
     a = agg[0]
-    predios = []
-    async for p in db.catastro_predios.find(
-            {"colonia_norm": rx, "valor_suelo": {"$gt": 0}},
-            {"_id": 0, "calle": 1, "sup_terreno": 1, "sup_construccion": 1, "anio": 1, "valor_suelo": 1, "valor_unitario_suelo": 1}
-    ).sort("valor_suelo", -1).limit(sample):
-        predios.append(p)
-    # PUNTOS por predio (lat/lng + valor) → la densidad por-predio en el mapa (estilo propiedades.com)
+    n = a["predios"]
+    # Valor TÍPICO del suelo de un predio = mediana de valor_suelo (no el promedio, que infla por mega-lotes).
+    mediana = None
+    try:
+        skip = max(0, n // 2)
+        cur = db.catastro_predios.find({"colonia_norm": rx, "valor_suelo": {"$gt": 0}},
+                                       {"_id": 0, "valor_suelo": 1}).sort("valor_suelo", 1).skip(skip).limit(1)
+        md = await cur.to_list(1)
+        mediana = md[0]["valor_suelo"] if md else None
+    except Exception:
+        mediana = None
+    # PUNTOS por predio (lat/lng + valor) → densidad por-predio en el mapa
     puntos = []
     async for p in db.catastro_predios.find(
             {"colonia_norm": rx, "lat": {"$exists": True}, "valor_unitario_suelo": {"$gt": 0}},
-            {"_id": 0, "lat": 1, "lng": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1}
-    ).limit(1200):
+            {"_id": 0, "lat": 1, "lng": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1, "sup_terreno": 1, "anio": 1}
+    ).limit(1500):
         puntos.append(p)
     return {
-        "colonia": colonia_name, "disponible": True,
-        "predios": a["predios"],
-        "valor_unitario_suelo_prom": round(a.get("vus_prom") or 0),
-        "valor_suelo_prom": round(a.get("valor_suelo_prom") or 0),
-        "sup_terreno_prom": round(a.get("sup_terreno_prom") or 0, 1),
-        "muestra_predios": predios,
+        "colonia": colonia_name, "disponible": True, "predios": n,
+        "valor_suelo_m2": round(a.get("vus_prom") or 0),          # $/m² de SUELO (lo claro)
+        "valor_predio_tipico": round(mediana) if mediana else None,  # valor típico de un predio (mediana)
+        "sup_terreno_prom": round(a.get("sup_terreno_prom") or 0),
         "puntos": puntos,
         "fuente": "Catastro SIGCDMX 2021 (oficial)",
     }
+
+
+def canon_colonia(colnorm: str) -> str:
+    """Nombre base canónico para CRUZAR catastro (SIGCDMX) con polígonos (IECM): quita prefijos
+    ('col', 'colonia', 'barrio'…) y sufijos de sección (I..V, Norte/Sur, seccion)."""
+    import re as _re
+    s = colnorm or ""
+    s = _re.sub(r"^(col|colonia|priv|privada|prolong|prolongacion|de los|de la|del|barrio|unidad|u hab|fracc|fraccionamiento|ampliacion)\s+", "", s)
+    s = _re.sub(r"\s+(i|ii|iii|iv|v|vi|vii|viii|ix|x|[0-9]+a?|seccion|secc|norte|sur|oriente|poniente)$", "", s).strip()
+    return s
+
+
+async def build_colonia_index(db) -> Dict[str, Any]:
+    """Precomputa valor del suelo por colonia BASE (canónica) → db.colonia_catastro_idx. Lo consume el
+    choropleth para colorear TODO el mapa por valor catastral real (cruza nombres SIGCDMX↔IECM)."""
+    pipe = [{"$match": {"valor_unitario_suelo": {"$gt": 0}}},
+            {"$group": {"_id": "$colonia_norm", "vus": {"$avg": "$valor_unitario_suelo"}, "n": {"$sum": 1}}}]
+    agg: Dict[str, Dict[str, float]] = {}
+    async for r in db.catastro_predios.aggregate(pipe, allowDiskUse=True):
+        base = canon_colonia(r["_id"] or "")
+        if not base:
+            continue
+        e = agg.setdefault(base, {"sum": 0.0, "n": 0})
+        e["sum"] += (r["vus"] or 0) * r["n"]
+        e["n"] += r["n"]
+    docs = [{"base": b, "valor_suelo_m2": round(v["sum"] / v["n"]), "predios": int(v["n"])}
+            for b, v in agg.items() if v["n"]]
+    await db.colonia_catastro_idx.delete_many({})
+    if docs:
+        await db.colonia_catastro_idx.insert_many(docs)
+        await db.colonia_catastro_idx.create_index("base")
+    return {"bases": len(docs)}
 
 
 async def ensure_indexes(db) -> None:

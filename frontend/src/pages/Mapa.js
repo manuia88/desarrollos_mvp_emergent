@@ -180,19 +180,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'fill',
         source: 'colonias',
         paint: {
-          // Precio/m² donde hay dato → rampa fuerte; si no, CALIDAD de zona (0-100, computada para ~763
-          // colonias) → rampa clara; resto = malla tenue. Así se enciende casi todo el mapa.
+          // Choropleth por VALOR CATASTRAL REAL del suelo ($/m² · oficial · 58% de colonias). Una sola
+          // escala limpia y verdadera; sin dato → muy tenue. (Adiós al relleno "calidad" estimado y messy.)
           'fill-color': [
             'case',
-            ['has', 'price_m2'],
-            ['interpolate', ['linear'], ['coalesce', ['get', 'price_m2'], 0],
-              30, '#D9CCFF', 60, '#B7A6FF', 90, '#8A6BFF', 120, '#7C5CFF', 150, '#C63FAE'],
-            ['has', 'calidad'],
-            ['interpolate', ['linear'], ['get', 'calidad'],
-              30, '#EFEAFF', 50, '#D6C7FF', 70, '#AE93FF', 88, '#8A6BFF'],
+            ['has', 'valor_catastral'],
+            ['interpolate', ['linear'], ['get', 'valor_catastral'],
+              2500, '#E8F3ED', 5000, '#D7C7F7', 9000, '#A98CFF', 15000, '#7C5CFF', 22000, '#C63FAE'],
             'rgba(124,92,255,0.05)',
           ],
-          'fill-opacity': 0.55,
+          'fill-opacity': ['case', ['has', 'valor_catastral'], 0.62, 0.10],
         },
       });
       map.addLayer({
@@ -200,8 +197,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'line',
         source: 'colonias',
         paint: {
-          'line-color': 'rgba(109,74,255,0.42)',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 13, 1.2, 15, 2],
+          'line-color': 'rgba(124,92,255,0.18)',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.3, 13, 0.7, 15, 1.2],
         },
       });
 
@@ -333,7 +330,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
       type: 'FeatureCollection',
       features: pts.map((p) => ({
         type: 'Feature',
-        properties: { v: p.valor_unitario_suelo || 0, calle: p.calle || '' },
+        properties: { v: p.valor_unitario_suelo || 0, calle: p.calle || '', vs: p.valor_suelo || 0, sup: p.sup_terreno || 0, anio: p.anio || '' },
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
       })),
     };
@@ -343,14 +340,29 @@ export default function Mapa({ user, onLogin, onLogout }) {
       m.addLayer({
         id: 'catastro-predios', type: 'circle', source: 'catastro-predios',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.8, 15, 4, 17, 6.5],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2, 15, 4.5, 17, 7],
           'circle-color': ['interpolate', ['linear'], ['get', 'v'],
-            3000, '#CFE8DD', 10000, '#9B7BFF', 25000, '#7C5CFF', 50000, '#C63FAE'],
-          'circle-opacity': 0.78, 'circle-stroke-width': 0,
+            3000, '#7CC9A6', 8000, '#A78BFA', 18000, '#7C5CFF', 35000, '#C63FAE'],
+          'circle-opacity': 0.82, 'circle-stroke-width': 0.5, 'circle-stroke-color': 'rgba(255,255,255,0.6)',
         },
       });
-      m.on('mouseenter', 'catastro-predios', () => { m.getCanvas().style.cursor = 'crosshair'; });
+      m.on('mouseenter', 'catastro-predios', () => { m.getCanvas().style.cursor = 'pointer'; });
       m.on('mouseleave', 'catastro-predios', () => { m.getCanvas().style.cursor = ''; });
+      // (b) Detalle de predio al hacer click → popup con dirección + valor + superficie + año.
+      m.on('click', 'catastro-predios', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const pr = f.properties;
+        const html = `<div style="font-family:'DM Sans',sans-serif;min-width:170px">
+          <div style="font-weight:700;font-size:12.5px;color:#1E2230;margin-bottom:5px">${(pr.calle || 'Predio').slice(0, 50)}</div>
+          <div style="font-size:11.5px;color:#5A5F6E;line-height:1.6">
+            <b style="color:#7C5CFF">$${Math.round((pr.v || 0) / 1000)}k/m²</b> de suelo<br/>
+            Valor catastral: <b>$${((pr.vs || 0) / 1e6).toFixed(1)}M</b><br/>
+            ${pr.sup ? `Terreno: ${Math.round(pr.sup)} m²<br/>` : ''}${pr.anio ? `Construido: ${pr.anio}` : ''}
+          </div>
+          <div style="font-size:9.5px;color:#9AA0AE;margin-top:6px">Catastro oficial SIGCDMX</div>
+        </div>`;
+        new mapboxgl.Popup({ closeButton: true, maxWidth: '240px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
+      });
     };
     if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
   }, [catastro]);
@@ -435,14 +447,15 @@ export default function Mapa({ user, onLogin, onLogout }) {
           boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
           borderRadius: 14,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Precio por m²</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Valor del suelo · $/m²</div>
           <div style={{
             width: 160, height: 8, borderRadius: 9999,
-            background: 'linear-gradient(to right, #A78BFA, #7C5CFF, #C63FAE)',
+            background: 'linear-gradient(to right, #E8F3ED, #D7C7F7, #A98CFF, #7C5CFF, #C63FAE)',
           }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', width: 160, fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', marginTop: 5 }}>
-            <span>$30k</span><span>$80k</span><span>$140k+</span>
+            <span>$2.5k</span><span>$9k</span><span>$22k+</span>
           </div>
+          <div style={{ fontSize: 9.5, color: '#9AA0AE', marginTop: 6 }}>Catastro oficial SIGCDMX · click = predios</div>
         </div>
 
         {/* Panel rico de colonia — CLARO · gráfica histórica de plusvalía + AVM + scores + Vigila */}
@@ -480,9 +493,14 @@ export default function Mapa({ user, onLogin, onLogout }) {
                   </div>
                 )}
               </div>
+            ) : catastro ? (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${(catastro.valor_suelo_m2 / 1000).toFixed(1)}k</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E' }}>/m² de suelo · catastro oficial</div>
+              </div>
             ) : (
               <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', background: '#F1F2F6', borderRadius: 10, padding: '10px 12px', marginBottom: 4 }}>
-                Valuación de esta colonia <b>próximamente</b>. Ya tenemos su frontera; el precio/m² llega al correr los scores.
+                Valuación de esta colonia <b>próximamente</b>. Ya tenemos su frontera; el valor llega al cargar el catastro.
               </div>
             )}
 
@@ -523,31 +541,23 @@ export default function Mapa({ user, onLogin, onLogout }) {
               ))}
             </div>
 
-            {/* Valor catastral OFICIAL + desglose por predio (SIGCDMX · la granularidad por predio) */}
+            {/* Valor del suelo · Catastro oficial (claro: precio del terreno + predio típico + cobertura) */}
             {catastro && (
-              <div style={{ marginBottom: 14, padding: '12px 14px', background: '#F1F4F0', border: '1px solid #E2E8DD', borderRadius: 12 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 8 }}>Valor catastral oficial · SIGCDMX</div>
-                <div style={{ display: 'flex', gap: 18, marginBottom: 10 }}>
+              <div style={{ marginBottom: 14, padding: '14px', background: '#F1F4F0', border: '1px solid #E2E8DD', borderRadius: 14 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 10 }}>Valor del suelo · Catastro oficial</div>
+                <div style={{ display: 'flex', gap: 22 }}>
                   <div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#1E2230' }}>${(catastro.valor_unitario_suelo_prom / 1000).toFixed(1)}k<span style={{ fontSize: 10.5, color: '#8A8F9E', fontWeight: 500 }}>/m² suelo</span></div>
-                    <div style={{ fontSize: 10.5, color: '#5A5F6E' }}>{(catastro.predios || 0).toLocaleString()} predios</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_suelo_m2 / 1000).toFixed(1)}k<span style={{ fontSize: 11, color: '#8A8F9E', fontWeight: 500 }}> /m²</span></div>
+                    <div style={{ fontSize: 10.5, color: '#5A6B52', marginTop: 3 }}>precio del terreno</div>
                   </div>
-                  <div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#1E2230' }}>${(catastro.valor_suelo_prom / 1e6).toFixed(1)}M</div>
-                    <div style={{ fontSize: 10.5, color: '#5A5F6E' }}>valor suelo prom.</div>
-                  </div>
+                  {catastro.valor_predio_tipico ? (
+                    <div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_predio_tipico / 1e6).toFixed(1)}M</div>
+                      <div style={{ fontSize: 10.5, color: '#5A6B52', marginTop: 3 }}>predio típico</div>
+                    </div>
+                  ) : null}
                 </div>
-                {(catastro.muestra_predios || []).length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 10, color: '#8A8F9E', marginBottom: 5 }}>Desglose por predio (mayor valor):</div>
-                    {catastro.muestra_predios.slice(0, 5).map((p, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, padding: '3px 0', borderTop: i ? '1px solid #E8ECE4' : 'none' }}>
-                        <span style={{ color: '#5A5F6E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.calle || '—'}</span>
-                        <span style={{ color: '#1E2230', fontWeight: 600, flexShrink: 0 }}>${((p.valor_suelo || 0) / 1e6).toFixed(1)}M</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div style={{ fontSize: 10.5, color: '#8A8F9E', marginTop: 11 }}>{(catastro.predios || 0).toLocaleString()} predios reales · SIGCDMX, base del predial</div>
               </div>
             )}
 
