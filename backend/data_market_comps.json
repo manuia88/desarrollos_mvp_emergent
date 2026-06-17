@@ -1,17 +1,18 @@
 [
 {
 "colonia_id": "roma-norte-i-cuauhtemoc",
-"market_m2": 86072,
-"n": 252,
-"presale_n": 3,
-"source": "monopolio_sample_2026-06"
+"market_m2": 85577,
+"n": 133,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
 },
 {
 "colonia_id": "condesa-cuauhtemoc",
 "market_m2": 79919,
 "n": 132,
 "presale_n": 2,
-"source": "monopolio_264_2026-06"
+"source": "monopolio_264_2026-06",
+"premium_zona": 1.05
 },
 {
 "colonia_id": "roma-sur-ii-cuauhtemoc",
@@ -22,9 +23,9 @@
 },
 {
 "colonia_id": "juarez-cuauhtemoc",
-"market_m2": 80713,
-"n": 138,
-"presale_n": 3,
+"market_m2": 73927,
+"n": 50,
+"presale_n": 1,
 "source": "monopolio_264_2026-06",
 "premium_zona": 1.256
 },
@@ -51,17 +52,18 @@
 },
 {
 "colonia_id": "san-rafael-i-cuauhtemoc",
-"market_m2": 66667,
-"n": 188,
-"presale_n": 11,
-"source": "monopolio_sample_2026-06"
+"market_m2": 62717,
+"n": 134,
+"presale_n": 3,
+"source": "monopolio_264_2026-06",
+"premium_zona": 0.912
 },
 {
 "colonia_id": "doctores-i-cuauhtemoc",
-"market_m2": 51203,
-"n": 76,
+"market_m2": 53484,
+"n": 71,
 "presale_n": 2,
-"source": "monopolio_sample_2026-06"
+"source": "monopolio_264_2026-06"
 },
 {
 "colonia_id": "guerrero-ii-cuauhtemoc",
@@ -86,31 +88,32 @@
 },
 {
 "colonia_id": "bosques-de-chapultepec-polanco-miguel-hidalgo",
-"market_m2": 88384,
-"n": 252,
-"presale_n": 0,
-"source": "monopolio_sample_2026-06"
-},
-{
-"colonia_id": "lomas-de-chapultepec-i-miguel-hidalgo",
-"market_m2": 70886,
-"n": 252,
-"presale_n": 4,
-"source": "monopolio_sample_2026-06"
-},
-{
-"colonia_id": "anzures-miguel-hidalgo",
-"market_m2": 62658,
-"n": 81,
+"market_m2": 114660,
+"n": 122,
 "presale_n": 1,
 "source": "monopolio_264_2026-06"
 },
 {
+"colonia_id": "lomas-de-chapultepec-i-miguel-hidalgo",
+"market_m2": 73500,
+"n": 125,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "anzures-miguel-hidalgo",
+"market_m2": 59595,
+"n": 27,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
 "colonia_id": "escandon-i-miguel-hidalgo",
-"market_m2": 67376,
-"n": 153,
-"presale_n": 11,
-"source": "monopolio_sample_2026-06"
+"market_m2": 66458,
+"n": 140,
+"presale_n": 10,
+"source": "monopolio_264_2026-06",
+"premium_zona": 1.057
 },
 {
 "colonia_id": "san-miguel-chapultepec-ii-miguel-hidalgo",
@@ -184,10 +187,10 @@
 },
 {
 "colonia_id": "napoles-benito-juarez",
-"market_m2": 68698,
-"n": 133,
+"market_m2": 61662,
+"n": 45,
 "premium_zona": 1.063,
-"presale_n": 4,
+"presale_n": 2,
 "source": "monopolio_264_2026-06"
 },
 {
@@ -235,9 +238,9 @@
 },
 {
 "colonia_id": "jardines-del-pedregal-coyoacan",
-"market_m2": 53840,
-"n": 128,
-"presale_n": 0,
+"market_m2": 45340,
+"n": 66,
+"presale_n": 1,
 "source": "monopolio_264_2026-06"
 },
 {
@@ -273,10 +276,11 @@
 },
 {
 "colonia_id": "progreso-tizapan-alvaro-obregon",
-"market_m2": 54762,
-"n": 71,
-"presale_n": 1,
-"source": "monopolio_264_2026-06"
+"market_m2": 45689,
+"n": 38,
+"presale_n": 3,
+"source": "monopolio_264_2026-06",
+"premium_zona": 1.724
 },
 {
 "colonia_id": "ciudad-de-los-deportes-benito-juarez",
@@ -287,10 +291,11 @@
 },
 {
 "colonia_id": "portales-oriente-benito-juarez",
-"market_m2": 57265,
-"n": 67,
-"presale_n": 2,
-"source": "monopolio_264_2026-06"
+"market_m2": 55466,
+"n": 136,
+"presale_n": 5,
+"source": "monopolio_264_2026-06",
+"premium_zona": 0.974
 },
 {
 "colonia_id": "guadalupe-inn-alvaro-obregon",
@@ -346,10 +351,10 @@
 },
 {
 "colonia_id": "las-aguilas-alvaro-obregon",
-"market_m2": 50465,
-"n": 89,
+"market_m2": 46000,
+"n": 13,
 "premium_zona": 1.045,
-"presale_n": 3,
+"presale_n": 1,
 "source": "monopolio_264_2026-06"
 },
 {
@@ -447,8 +452,8 @@
 },
 {
 "colonia_id": "lomas-de-vista-hermosa-cuajimalpa-de-morelos",
-"market_m2": 49615,
-"n": 133,
+"market_m2": 52308,
+"n": 19,
 "presale_n": 0,
 "source": "monopolio_264_2026-06"
 },
@@ -554,10 +559,10 @@
 },
 {
 "colonia_id": "tetelpan-alvaro-obregon",
-"market_m2": 41096,
-"n": 133,
+"market_m2": 43704,
+"n": 46,
 "premium_zona": 0.898,
-"presale_n": 4,
+"presale_n": 2,
 "source": "monopolio_264_2026-06"
 },
 {
@@ -668,8 +673,8 @@
 },
 {
 "colonia_id": "miguel-hidalgo-alvaro-obregon",
-"market_m2": 31818,
-"n": 17,
+"market_m2": 52564,
+"n": 21,
 "presale_n": 0,
 "source": "monopolio_264_2026-06"
 },
@@ -958,6 +963,425 @@
 "market_m2": 33981,
 "n": 39,
 "presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "chimalistac-alvaro-obregon",
+"market_m2": 56034,
+"n": 29,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "roma-sur-i-cuauhtemoc",
+"market_m2": 70774,
+"n": 136,
+"premium_zona": 1.134,
+"presale_n": 3,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "del-bosque-polanco-miguel-hidalgo",
+"market_m2": 56432,
+"n": 64,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "chapultepec-morales-polanco-miguel-hidalgo",
+"market_m2": 77027,
+"n": 127,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-pedro-de-los-pinos-benito-juarez",
+"market_m2": 51711,
+"n": 74,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "del-valle-i-benito-juarez",
+"market_m2": 55015,
+"n": 133,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "narvarte-i-benito-juarez",
+"market_m2": 54057,
+"n": 137,
+"presale_n": 5,
+"source": "monopolio_264_2026-06",
+"premium_zona": 1.275
+},
+{
+"colonia_id": "polanco-reforma-polanco-miguel-hidalgo",
+"market_m2": 100000,
+"n": 127,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "jardines-del-pedregal-alvaro-obregon",
+"market_m2": 53840,
+"n": 128,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "los-morales-polanco-miguel-hidalgo",
+"market_m2": 49929,
+"n": 129,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "alpes-alvaro-obregon",
+"market_m2": 48545,
+"n": 35,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "centro-i-cuauhtemoc",
+"market_m2": 67179,
+"n": 138,
+"premium_zona": 1.381,
+"presale_n": 4,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "del-gas-azcapotzalco",
+"market_m2": 50903,
+"n": 21,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "tlacoquemecatl-del-valle-benito-juarez",
+"market_m2": 53351,
+"n": 55,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "carola-u-hab-alvaro-obregon",
+"market_m2": 51992,
+"n": 40,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "anahuac-i-miguel-hidalgo",
+"market_m2": 62803,
+"n": 139,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "palmitas-polanco-miguel-hidalgo",
+"market_m2": 75729,
+"n": 42,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "hipodromo-i-cuauhtemoc",
+"market_m2": 86404,
+"n": 124,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "guerrero-i-cuauhtemoc",
+"market_m2": 47794,
+"n": 67,
+"premium_zona": 0.94,
+"presale_n": 4,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "santa-maria-la-ribera-i-cuauhtemoc",
+"market_m2": 57500,
+"n": 132,
+"premium_zona": 1.013,
+"presale_n": 8,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "alamos-i-benito-juarez",
+"market_m2": 52641,
+"n": 88,
+"premium_zona": 0.814,
+"presale_n": 5,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "buenavista-i-cuauhtemoc",
+"market_m2": 52036,
+"n": 29,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "anahuac-los-manzanos-miguel-hidalgo",
+"market_m2": 63333,
+"n": 36,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "ninos-heroes-de-chapultepec-benito-juarez",
+"market_m2": 46296,
+"n": 21,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "obrera-i-cuauhtemoc",
+"market_m2": 47041,
+"n": 28,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-miguel-chapultepec-i-miguel-hidalgo",
+"market_m2": 64783,
+"n": 48,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "insurgentes-cuicuilco-coyoacan",
+"market_m2": 47778,
+"n": 23,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "loreto-alvaro-obregon",
+"market_m2": 61385,
+"n": 33,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "morelos-i-cuauhtemoc",
+"market_m2": 31943,
+"n": 16,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "paseos-de-taxquena-i-coyoacan",
+"market_m2": 39905,
+"n": 28,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "las-cuevitas-alvaro-obregon",
+"market_m2": 51971,
+"n": 18,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-clemente-alvaro-obregon",
+"market_m2": 38357,
+"n": 18,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "lomas-de-padierna-i-tlalpan",
+"market_m2": 31476,
+"n": 28,
+"premium_zona": 1.549,
+"presale_n": 3,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "bosques-de-las-lomas-cuajimalpa-de-morelos",
+"market_m2": 45422,
+"n": 124,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-mateo-tlaltenango-pblo-cuajimalpa-de-morelos",
+"market_m2": 85073,
+"n": 127,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-pedro-cuajimalpa-pblo-cuajimalpa-de-morelos",
+"market_m2": 36686,
+"n": 134,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "el-molino-cuajimalpa-de-morelos",
+"market_m2": 40968,
+"n": 74,
+"premium_zona": 1.094,
+"presale_n": 7,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "pantitlan-i-iztacalco",
+"market_m2": 34314,
+"n": 31,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "miguel-hidalgo-tlalpan",
+"market_m2": 27524,
+"n": 16,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "industrial-i-gustavo-a-madero",
+"market_m2": 31136,
+"n": 20,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "lomas-del-chamizal-cuajimalpa-de-morelos",
+"market_m2": 44944,
+"n": 83,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "agricola-oriental-i-iztacalco",
+"market_m2": 37943,
+"n": 42,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "granjas-mexico-i-iztacalco",
+"market_m2": 50291,
+"n": 26,
+"premium_zona": 0.957,
+"presale_n": 3,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "jardines-del-sur-xochimilco",
+"market_m2": 24369,
+"n": 16,
+"premium_zona": 0.912,
+"presale_n": 4,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "ejidos-de-san-pedro-martir-i-norte-tlalpan",
+"market_m2": 26765,
+"n": 16,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "lindavista-i-gustavo-a-madero",
+"market_m2": 41250,
+"n": 91,
+"premium_zona": 1.392,
+"presale_n": 3,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "belvedere-tlalpan",
+"market_m2": 27706,
+"n": 24,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-andres-totoltepec-pblo-tlalpan",
+"market_m2": 27711,
+"n": 29,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "tlalpan-centro-tlalpan",
+"market_m2": 39724,
+"n": 22,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "jardines-en-la-montana-tlalpan",
+"market_m2": 55131,
+"n": 132,
+"premium_zona": 1.004,
+"presale_n": 4,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "jardin-balbuena-i-venustiano-carranza",
+"market_m2": 38786,
+"n": 29,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "heroes-de-padierna-i-tlalpan",
+"market_m2": 28784,
+"n": 63,
+"premium_zona": 0.702,
+"presale_n": 3,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "vallejo-poniente-gustavo-a-madero",
+"market_m2": 38542,
+"n": 29,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "santa-maria-tepepan-pblo-xochimilco",
+"market_m2": 28868,
+"n": 18,
+"presale_n": 0,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "adolfo-lopez-mateos-cuajimalpa-de-morelos",
+"market_m2": 34329,
+"n": 31,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-jeronimo-aculco-lidice-pblo-la-magdalena-contreras",
+"market_m2": 38420,
+"n": 68,
+"presale_n": 1,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-nicolas-totolapan-la-magdalena-contreras",
+"market_m2": 34186,
+"n": 51,
+"presale_n": 2,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "condominio-del-bosque-fracc-bosque-de-tlalpan-tlalpan",
+"market_m2": 53334,
+"n": 30,
+"presale_n": 1,
 "source": "monopolio_264_2026-06"
 }
 ]

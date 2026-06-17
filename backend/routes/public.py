@@ -360,9 +360,11 @@ async def precio_posicion(request: Request, colonia: str, precio: float, m2: flo
         cat = await colonia_catastro(db, colonia)
         cv = await _colonia_value(db, colonia)
         mkt = await market_for_colonia(db, colonia, cat.get("valor_suelo_m2"), cv.get("calidad"))
-        pos = price_position(precio, m2, mkt.get("precio_venta_m2"), es_nueva=nueva)
+        pos = price_position(precio, m2, mkt.get("precio_venta_m2"), es_nueva=nueva,
+                             premium=mkt.get("premium_zona"))
         pos["mercado_fuente"] = mkt.get("source")
         pos["mercado_confianza"] = mkt.get("confianza")
+        pos["prima_zona"] = mkt.get("premium_zona")
         return pos
     except Exception as e:
         return {"disponible": False, "error": str(e)[:120]}

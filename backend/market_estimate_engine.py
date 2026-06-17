@@ -73,10 +73,11 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
     """Precio de venta de la colonia con la mejor capa disponible + sello de fuente/confianza."""
     # Capa 0 — MUESTRA REAL DE MERCADO (comps Monopolio en db.market_comps · $/m² observado de anuncios reales).
     try:
-        mc = await db.market_comps.find_one({"colonia_id": colonia_id}, {"_id": 0, "market_m2": 1, "n": 1})
+        mc = await db.market_comps.find_one({"colonia_id": colonia_id},
+                                            {"_id": 0, "market_m2": 1, "n": 1, "premium_zona": 1})
         if mc and mc.get("market_m2"):
             return {"precio_venta_m2": round(mc["market_m2"]), "source": "mercado", "confianza": "alta",
-                    "es_estimado": False, "muestra_n": mc.get("n")}
+                    "es_estimado": False, "muestra_n": mc.get("n"), "premium_zona": mc.get("premium_zona")}
     except Exception:
         pass
     # Capa 1 — precio REAL (semilla / cierres). DRPI real se enchufa aquí cuando db.transactions tenga datos.
@@ -101,13 +102,14 @@ NEW_PREMIUM = 1.05
 
 
 def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
-                   es_nueva: bool = False, banda: float = 0.05) -> Dict[str, Any]:
+                   es_nueva: bool = False, premium: Optional[float] = None, banda: float = 0.05) -> Dict[str, Any]:
     """¿El precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio: precio vs estimado,
-    cubetas ±banda). `mercado_m2` = $/m² de la zona (≈ usada). Si `es_nueva` (desarrollo/preventa) el
-    benchmark sube por la prima de obra nueva → juzga contra obra nueva, no contra usada."""
+    cubetas ±banda). `mercado_m2` = $/m² de la zona (≈ usada). Si `es_nueva` (desarrollo/preventa) el benchmark
+    sube por la prima de obra nueva: usa la prima REAL de la zona (`premium` de market_comps) si existe, si no
+    el default NEW_PREMIUM. Así el veredicto de un desarrollo se mide contra obra nueva, no contra usada."""
     if not precio_total or not m2 or not mercado_m2:
         return {"disponible": False}
-    factor = NEW_PREMIUM if es_nueva else 1.0
+    factor = (premium or NEW_PREMIUM) if es_nueva else 1.0
     bench_m2 = mercado_m2 * factor
     estimado = round(bench_m2 * m2)
     if estimado <= 0:
