@@ -45,7 +45,7 @@ function Popover({ label, testId, children, badge, onClear }) {
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0,
           minWidth: 280, zIndex: Z.DROPDOWN,
-          background: 'var(--surface-card)',
+          background: '#0D1118',
           border: '1px solid var(--border-2)',
           borderRadius: 14, padding: 16,
           boxShadow: 'var(--sh-elev)',
@@ -327,7 +327,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
             data-testid="more-filters-drawer"
             style={{
               width: 420, maxWidth: '100%', height: '100%',
-              background: 'var(--surface-card)', borderLeft: '1px solid var(--border-2)',
+              background: '#0D1118', borderLeft: '1px solid var(--border-2)',
               padding: 24, overflowY: 'auto',
               animation: 'slidein 0.25s ease-out',
             }}>

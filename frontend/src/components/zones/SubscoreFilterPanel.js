@@ -65,7 +65,7 @@ export default function SubscoreFilterPanel({ value, onApply, onClear, compact =
       style={{
         padding: 18,
         borderRadius: 16,
-        background: 'var(--surface-card)',
+        background: 'rgba(13,16,23,0.92)',
         backdropFilter: 'blur(24px)',
         border: '1px solid rgba(255,255,255,0.10)',
       }}
