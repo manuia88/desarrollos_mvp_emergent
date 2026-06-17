@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import Navbar from '../components/landing/Navbar';
+import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
@@ -198,10 +198,10 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   if (!dev) {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-        <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <LightScope>
+        <PublicNav />
         <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
-      </div>
+      </LightScope>
     );
   }
 
@@ -218,8 +218,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   ];
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+    <LightScope>
+      <PublicNav />
       {/* W4.2B — RealEstateListing structured data */}
       <StructuredData
         type="RealEstateListing"
@@ -406,7 +406,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               <div style={{
                 display: 'flex', gap: 4,
                 padding: 6,
-                background: '#0D1118',
+                background: 'var(--surface-card)',
                 border: '1px solid var(--border)',
                 borderRadius: 9999,
                 marginBottom: 22,
@@ -477,7 +477,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             {/* W4.14 — Investment Simulator embed (siempre visible debajo de tabs) */}
             <div style={{ marginTop: 32 }}>
               <div style={{
-                background: 'rgba(13,16,23,0.9)',
+                background: 'var(--surface-card)',
                 border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 14, padding: '20px 20px',
               }}>
@@ -604,7 +604,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           if (pxExp) trackPricingEvent(pxExp, { visitor_id: _getVisitorId(), event: 'lead' }).catch(() => {});
         }}
       />
-    </div>
+    </LightScope>
   );
 }
 
