@@ -83,13 +83,27 @@ export default function Mapa({ user, onLogin, onLogout }) {
     return next;
   });
 
+  const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
   useEffect(() => {
     fetchColonias().then(list => {
       setColonias(list);
       const m = {}; list.forEach(c => { m[c.id] = c; });
       setColoniaById(m);
     });
+    // Malla real de colonias (fronteras de verdad · adiós cuadros de juguete)
+    const API = process.env.REACT_APP_BACKEND_URL;
+    fetch(`${API}/api/colonias-geojson`).then(r => r.json()).then(gj => {
+      if (gj && gj.features) setGeojson(gj);
+    }).catch(() => {});
   }, []);
+
+  // Cuando llega la geometría real, reemplaza la fuente del mapa (de cuadros → fronteras reales)
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !geojson) return;
+    const apply = () => { const s = m.getSource('colonias'); if (s) s.setData(geojson); };
+    if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
+  }, [geojson]);
 
   useEffect(() => {
     if (!TOKEN || !container.current || mapRef.current || colonias.length === 0) return;
@@ -112,11 +126,14 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'fill',
         source: 'colonias',
         paint: {
+          // Coloreado por precio donde hay dato; malla tenue (sin precio) para el resto de las 1,811.
           'fill-color': [
-            'interpolate', ['linear'], ['get', 'price_m2'],
-            30, '#EDE9FF', 55, '#D9CCFF', 80, '#BDA6FF', 105, '#9B7BFF', 140, '#7C5CFF',
+            'case', ['has', 'price_m2'],
+            ['interpolate', ['linear'], ['coalesce', ['get', 'price_m2'], 0],
+              30, '#D9CCFF', 60, '#B7A6FF', 90, '#8A6BFF', 120, '#7C5CFF', 150, '#C63FAE'],
+            'rgba(124,92,255,0.05)',
           ],
-          'fill-opacity': 0.30,
+          'fill-opacity': 0.55,
         },
       });
       map.addLayer({
@@ -124,8 +141,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'line',
         source: 'colonias',
         paint: {
-          'line-color': 'rgba(109,74,255,0.45)',
-          'line-width': 1.2,
+          'line-color': 'rgba(109,74,255,0.42)',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 13, 1.2, 15, 2],
         },
       });
 
@@ -182,9 +199,9 @@ export default function Mapa({ user, onLogin, onLogout }) {
       });
       map.on('click', 'colonia-dot', (e) => {
         const f = e.features?.[0]; if (!f) return;
-        setSelected(f.properties.id);
-        const c = coloniaById[f.properties.id];
-        if (c) map.flyTo({ center: c.center, zoom: 13.2, duration: 700 });
+        const c = coloniaById[f.properties.id] || f.properties;
+        setSelected(c);
+        if (c.center) map.flyTo({ center: c.center, zoom: 13.2, duration: 700 });
       });
       map.on('mouseenter', 'colonia-dot', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'colonia-dot', () => { map.getCanvas().style.cursor = ''; });
@@ -193,10 +210,12 @@ export default function Mapa({ user, onLogin, onLogout }) {
       map.on('click', 'colonias-fill', (e) => {
         const f = e.features?.[0];
         if (!f) return;
-        const id = f.properties.id;
-        setSelected(id);
-        const c = coloniaById[id];
-        if (c) map.flyTo({ center: c.center, zoom: 13.2, duration: 700 });
+        const p = { ...f.properties };
+        // scores/trend vienen como JSON string desde el vector tile → parsear
+        try { if (typeof p.scores === 'string') p.scores = JSON.parse(p.scores); } catch {}
+        try { if (typeof p.trend === 'string') p.trend = JSON.parse(p.trend); } catch {}
+        setSelected(p);
+        if (e.lngLat) map.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 13.4, duration: 700 });
       });
       map.on('mouseenter', 'colonias-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'colonias-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -225,7 +244,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
     }
   }, [layer]);
 
-  const selectedColonia = selected ? coloniaById[selected] : null;
+  const selectedColonia = selected;  // ahora `selected` es el objeto (props del polígono o la colonia seed)
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -341,16 +360,22 @@ export default function Mapa({ user, onLogin, onLogout }) {
               }}><X size={13} /></button>
             </div>
 
-            {/* Precio/m² grande + plusvalía */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${c.price_m2}k</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E' }}>/m²</div>
-              {c.momentum && (
-                <div style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: up ? '#1FA06A' : '#E2982E' }}>
-                  {up ? '▲' : '▼'} {c.momentum} <span style={{ fontWeight: 500, fontSize: 11, color: '#8A8F9E' }}>plusvalía</span>
-                </div>
-              )}
-            </div>
+            {/* Precio/m² grande + plusvalía (o aviso si la colonia aún no tiene valuación) */}
+            {c.price_m2 ? (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${c.price_m2}k</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E' }}>/m²</div>
+                {c.momentum && (
+                  <div style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: up ? '#1FA06A' : '#E2982E' }}>
+                    {up ? '▲' : '▼'} {c.momentum} <span style={{ fontWeight: 500, fontSize: 11, color: '#8A8F9E' }}>plusvalía</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', background: '#F1F2F6', borderRadius: 10, padding: '10px 12px', marginBottom: 4 }}>
+                Valuación de esta colonia <b>próximamente</b>. Ya tenemos su frontera; el precio/m² llega al correr los scores.
+              </div>
+            )}
 
             {/* GRÁFICA HISTÓRICA de precio/m² (24 meses) — lo que pide el founder */}
             {tr.length > 1 && (() => {

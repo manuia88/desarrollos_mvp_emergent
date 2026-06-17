@@ -177,6 +177,36 @@ async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
 
 
+@router.get("/api/colonias-geojson")
+async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, limit: int = 2200):
+    """FeatureCollection de las colonias REALES (db.colonias.geometry · 1,811 IECM) para el Mapa de
+    Valores coroplético. Une precio/scores/momentum desde los seed (por nombre) donde exista el dato."""
+    db = request.app.state.db
+
+    def _n(s):
+        return (s or "").strip().lower()
+    seed_by_name = {_n(c.get("name")): c for c in SEED_COLONIAS}
+    q: Dict[str, Any] = {"geometry": {"$exists": True}}
+    if alcaldia:
+        q["alcaldia"] = {"$regex": f"^{alcaldia}$", "$options": "i"}
+    feats: List[Dict[str, Any]] = []
+    try:
+        cursor = db.colonias.find(q, {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "geometry": 1}).limit(limit)
+        async for c in cursor:
+            props = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia")}
+            s = seed_by_name.get(_n(c.get("name")))
+            if s:
+                props["price_m2"] = s.get("price_m2")
+                props["momentum"] = s.get("momentum")
+                props["scores"] = s.get("scores")
+                props["trend"] = s.get("trend")
+                props["has_data"] = True
+            feats.append({"type": "Feature", "properties": props, "geometry": c["geometry"]})
+    except Exception:
+        pass
+    return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
+
+
 @router.get("/api/colonias/{colonia_id}")
 async def get_colonia(colonia_id: str):
     c = COLONIAS_BY_ID.get(colonia_id)
