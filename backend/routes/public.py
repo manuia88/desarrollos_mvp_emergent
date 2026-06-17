@@ -207,6 +207,50 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
     return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
 
 
+# ─── Upgrade #1 · "Vigila esta colonia" (watch + alerta de cambio · cierra ciclo de re-engagement) ──
+class WatchIn(BaseModel):
+    colonia_id: str
+    watcher: str          # id de cliente (localStorage) — funciona anónimo, se migra a cuenta al loguear
+    name: Optional[str] = None
+
+
+@router.post("/api/colonia-watch")
+async def colonia_watch_add(payload: WatchIn, request: Request):
+    db = request.app.state.db
+    col = COLONIAS_BY_ID.get(payload.colonia_id) or {}
+    baseline = {"price_m2": col.get("price_m2"), "momentum": col.get("momentum")}
+    await db.colonia_watches.update_one(
+        {"watcher": payload.watcher, "colonia_id": payload.colonia_id},
+        {"$set": {"watcher": payload.watcher, "colonia_id": payload.colonia_id,
+                  "name": payload.name or col.get("name"), "baseline": baseline,
+                  "updated_at": datetime.now(timezone.utc)},
+         "$setOnInsert": {"created_at": datetime.now(timezone.utc)}},
+        upsert=True)
+    return {"ok": True, "watching": payload.colonia_id}
+
+
+@router.delete("/api/colonia-watch")
+async def colonia_watch_del(watcher: str, colonia_id: str, request: Request):
+    await request.app.state.db.colonia_watches.delete_one({"watcher": watcher, "colonia_id": colonia_id})
+    return {"ok": True}
+
+
+@router.get("/api/colonia-watch")
+async def colonia_watch_list(watcher: str, request: Request):
+    """Lista lo que vigila + detecta CAMBIO vs el baseline (precio/momentum). El forecast cron actualiza
+    el precio → aquí aparece el cambio → el front/Atlax avisa al comprador (cierra el ciclo)."""
+    db = request.app.state.db
+    out = []
+    async for w in db.colonia_watches.find({"watcher": watcher}, {"_id": 0}).sort("created_at", -1):
+        col = COLONIAS_BY_ID.get(w["colonia_id"]) or {}
+        cur = col.get("price_m2")
+        base = (w.get("baseline") or {}).get("price_m2")
+        change = round((cur / base - 1) * 100, 1) if (cur and base and cur != base) else None
+        out.append({"colonia_id": w["colonia_id"], "name": w.get("name"),
+                    "price_m2": cur, "momentum": col.get("momentum"), "change_pct": change})
+    return {"watching": out, "count": len(out), "alerts": [w for w in out if w["change_pct"]]}
+
+
 @router.get("/api/colonias/{colonia_id}")
 async def get_colonia(colonia_id: str):
     c = COLONIAS_BY_ID.get(colonia_id)

@@ -77,9 +77,17 @@ export default function Mapa({ user, onLogin, onLogout }) {
   const [watched, setWatched] = useState(() => {
     try { return JSON.parse(localStorage.getItem('dmx.watched_colonias') || '{}'); } catch { return {}; }
   });
+  const getWatcher = () => {
+    try { let w = localStorage.getItem('dmx.watcher_id'); if (!w) { w = 'w_' + Math.random().toString(36).slice(2, 11); localStorage.setItem('dmx.watcher_id', w); } return w; } catch { return 'anon'; }
+  };
   const toggleWatch = (id, name) => setWatched((prev) => {
-    const next = { ...prev }; if (next[id]) delete next[id]; else next[id] = name;
+    const next = { ...prev }; const adding = !next[id];
+    if (adding) next[id] = name; else delete next[id];
     try { localStorage.setItem('dmx.watched_colonias', JSON.stringify(next)); } catch {}
+    // Persiste en backend (watch real · detecta cambios · cierra ciclo de re-engagement)
+    const API = process.env.REACT_APP_BACKEND_URL, w = getWatcher();
+    if (adding) fetch(`${API}/api/colonia-watch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colonia_id: id, watcher: w, name }) }).catch(() => {});
+    else fetch(`${API}/api/colonia-watch?watcher=${w}&colonia_id=${id}`, { method: 'DELETE' }).catch(() => {});
     return next;
   });
 

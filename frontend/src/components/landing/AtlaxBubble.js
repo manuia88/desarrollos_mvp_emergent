@@ -354,6 +354,22 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     window.addEventListener('atlax:open', onOpen);
     return () => window.removeEventListener('atlax:open', onOpen);
   }, []);
+  // Upgrade #1 (cierre de ciclo): al abrir, Atlax AVISA si cambió algo en las colonias que vigilas.
+  useEffect(() => {
+    if (!open) return;
+    let w; try { w = localStorage.getItem('dmx.watcher_id'); } catch { w = null; }
+    if (!w) return;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonia-watch?watcher=${w}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const al = (d && d.alerts) || [];
+        if (!al.length) return;
+        setMessages((prev) => prev.some((m) => m._watch) ? prev : [{
+          role: 'assistant', _watch: true,
+          content: '📈 Novedades en lo que vigilas: ' + al.map((a) => `${a.name} ${a.change_pct > 0 ? '+' : ''}${a.change_pct}% en precio/m²`).join(' · ') + '. ¿Quieres ver los desarrollos?',
+        }, ...prev]);
+      }).catch(() => {});
+  }, [open]);
   useEffect(() => {
     if (!open || !scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
