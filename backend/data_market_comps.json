@@ -1727,5 +1727,109 @@
 "source": "monopolio_264_2026-06",
 "avm_base": 11.83476,
 "median_m2": 393.5
+},
+{
+"colonia_id": "paseo-de-las-lomas-san-gabriel-alvaro-obregon",
+"avm_base": 11.64489,
+"market_m2": 50262,
+"median_m2": 284.1,
+"n": 109,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "el-jaguey-estacion-pantaco-azcapotzalco",
+"avm_base": 11.42847,
+"market_m2": 49382,
+"median_m2": 67.0,
+"n": 12,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "ahuehuetes-anahuac-miguel-hidalgo",
+"avm_base": 11.69225,
+"market_m2": 62803,
+"median_m2": 80.0,
+"n": 139,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "lomas-de-barrilaco-lomas-de-chapultepec-miguel-hidalgo",
+"avm_base": 12.19529,
+"market_m2": 73500,
+"median_m2": 500.0,
+"n": 125,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "ex-hipodromo-de-peralvillo-cuauhtemoc",
+"avm_base": 12.09269,
+"market_m2": 86404,
+"median_m2": 133.3,
+"n": 124,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "san-lucas-barr-coyoacan",
+"avm_base": 11.77878,
+"market_m2": 51038,
+"median_m2": 265.0,
+"n": 24,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "nonoalco-tlatelolco-u-hab-i-cuauhtemoc",
+"avm_base": 11.20295,
+"market_m2": 33870,
+"median_m2": 78.6,
+"n": 22,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "ampliacion-lomas-de-padierna-tlalpan",
+"avm_base": 11.08576,
+"market_m2": 31476,
+"median_m2": 180.0,
+"n": 28,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "cuchilla-agricola-oriental-iztacalco",
+"avm_base": 11.17209,
+"market_m2": 37943,
+"median_m2": 60.0,
+"n": 42,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "moctezuma-1a-seccion-venustiano-carranza",
+"avm_base": 11.18264,
+"market_m2": 36029,
+"median_m2": 72.2,
+"n": 29,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "planetario-lindavista-gustavo-a-madero",
+"avm_base": 11.53596,
+"market_m2": 41250,
+"median_m2": 250.0,
+"n": 91,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "residencial-zacatenco-gustavo-a-madero",
+"avm_base": 11.39592,
+"market_m2": 45194,
+"median_m2": 92.4,
+"n": 28,
+"source": "monopolio_264_2026-06"
+},
+{
+"colonia_id": "club-de-golf-mexico-san-buenaventura-tlalpan",
+"avm_base": 11.53194,
+"market_m2": 37621,
+"median_m2": 407.0,
+"n": 29,
+"source": "monopolio_264_2026-06"
 }
 ]
