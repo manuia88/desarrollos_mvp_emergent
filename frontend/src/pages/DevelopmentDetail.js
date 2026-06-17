@@ -51,6 +51,7 @@ import MarketValueCard from '../components/marketplace/MarketValueCard';
 import ForecastChart from '../components/forecast/ForecastChart';
 import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BuySignal from '../components/marketplace/BuySignal';
+import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
@@ -306,6 +307,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           </div>
 
           <PhotoGallery dev={dev} />
+
+          {/* CORONA · Veredicto del Desarrollo — sube al tope el veredicto (BuySignal) + plusvalía + zona +
+              catastral en un hero glanceable, y cierra ciclo (Atlax agéntico / lead → Cerebro). */}
+          <VeredictoDesarrollo
+            devId={dev.id}
+            onContact={() => openGate({ source: 'veredicto_corona', dev_id: dev.id, dev_name: dev.name })}
+            onAskAtlax={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }))}
+          />
 
           {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
           <section id="ie-scores" data-testid="dev-ie-scores" style={{

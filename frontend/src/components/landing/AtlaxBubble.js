@@ -329,6 +329,19 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   const [tier, setTier] = useState(null);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+
+  // Disparador desde la ficha (corona "Veredicto"): abre Atlax con la pregunta del desarrollo precargada.
+  useEffect(() => {
+    const onAsk = (e) => {
+      const dn = (e.detail && e.detail.devName) || '';
+      setOpen(true);
+      setInput(dn
+        ? `¿Me conviene comprar en ${dn}? Dime si el precio está bien, la plusvalía de la zona y si es buen momento.`
+        : '¿Me conviene este desarrollo? Analiza precio, plusvalía y momento.');
+    };
+    window.addEventListener('dmx:ask-atlax', onAsk);
+    return () => window.removeEventListener('dmx:ask-atlax', onAsk);
+  }, []);
   const [formDismissed, setFormDismissed] = useState(false);
   const scrollRef = useRef(null);
 
