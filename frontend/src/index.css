@@ -100,6 +100,14 @@
   --card-border:  #ECECEC;
 }
 
+/* Body claro para páginas públicas (lo aplica PublicPageShell vía clase) → mata el fondo oscuro residual
+   que asomaba detrás del scope. Sin esto, el <body> oscuro global se veía en overscroll y huecos. */
+body.public-light {
+  background: #FAFAFB;
+  color: #1E2230;
+  color-scheme: light;
+}
+
 /* ════ Auroras (glows animados, fondo claro · nuestros colores) ════ */
 .dmx-aurora { position: absolute; border-radius: 50%; filter: blur(64px); opacity: 0.55; will-change: transform; }
 .dmx-aurora-a { width: 480px; height: 480px; top: -150px; left: -90px;
