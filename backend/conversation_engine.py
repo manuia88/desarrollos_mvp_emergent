@@ -373,6 +373,21 @@ class ConversationEngine:
         # ── long-term memory denorm onto the lead (fail-soft) ────────────────
         await self._denorm_to_lead(thread.get("lead_id"), content, assistant_text, sentiment)
 
+        # ── espejo al BUS de memoria cross-feature (director_memory) ──────────
+        # Antes el Conversation Agent escribía SOLO en db.leads → Atlax/Copilot eran ciegos a él.
+        # Ahora cada turno alimenta el bus que comparten los asistentes (fail-soft, fire-and-forget).
+        try:
+            _tid = thread.get("tenant_id") or "default"
+            _aid = thread.get("asesor_id")
+            _lid = thread.get("lead_id")
+            if _lid and _aid:
+                from director_memory_engine import DirectorMemoryEngine
+                await DirectorMemoryEngine(self.db, _tid).ingest_lead_interaction(
+                    _lid, _aid, "conversation",
+                    f"U: {content[:120]} · IA: {assistant_text[:120]}")
+        except Exception as _me:
+            log.debug(f"[conversation] memory bus mirror skip: {_me}")
+
         # ── cost tracking (fire-and-forget) ──────────────────────────────────
         if used_llm:
             try:

@@ -122,6 +122,17 @@ async def ask_copilot(db, user, question: str,
     history = list(conv.get("messages") or [])
 
     ctx = await aggregate_user_context(db, user)
+    # Bus de memoria cross-feature (director_memory) → Copilot deja de ser CIEGO: ve lo que Atlax y el
+    # Conversation Agent aprendieron del mismo usuario. Fail-soft (nunca rompe la respuesta).
+    try:
+        from director_memory_engine import DirectorMemoryEngine
+        _mem = await DirectorMemoryEngine(db, org).retrieve_for_user(user.user_id, question, top_k=5)
+        if _mem:
+            ctx["memoria_reciente"] = [
+                {"tipo": m.get("source_type"), "resumen": m.get("content_summary")} for m in _mem
+            ]
+    except Exception:
+        pass
     system = (
         SYSTEM_PROMPT
         + "\n\nCONTEXTO DEL USUARIO (JSON):\n"
