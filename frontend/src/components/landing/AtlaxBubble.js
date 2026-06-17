@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../icons';
 import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
 import AtlaxVoiceButton from './AtlaxVoiceButton';
+import { fetchBuySignal } from '../../api/marketplace';
 import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -330,14 +331,34 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
 
-  // Disparador desde la ficha (corona "Veredicto"): abre Atlax con la pregunta del desarrollo precargada.
+  // Paso F · Atlax AGÉNTICO desde la corona: vetea ESTE desarrollo (precio en contexto obra-nueva + plusvalía
+  // oficial + momento de zona, reusa /api/public/buy-signal), lo lee en voz humana y ofrece la acción que
+  // cierra ciclo (agenda → lead → Cerebro · o "parecidos" → loop find_home/lookalike). Setters estables → sin
+  // closures obsoletos; no depende del flag del Cerebro (buy-signal es público).
   useEffect(() => {
-    const onAsk = (e) => {
-      const dn = (e.detail && e.detail.devName) || '';
+    const onAsk = async (e) => {
+      const dn = (e.detail && e.detail.devName) || 'este desarrollo';
+      const devId = e.detail && e.detail.devId;
       setOpen(true);
-      setInput(dn
-        ? `¿Me conviene comprar en ${dn}? Dime si el precio está bien, la plusvalía de la zona y si es buen momento.`
-        : '¿Me conviene este desarrollo? Analiza precio, plusvalía y momento.');
+      setMessages(prev => [...prev, { role: 'user', content: `¿Me conviene ${dn}?`, ts: Date.now() }]);
+      if (!devId) { setInput('¿Me conviene este desarrollo? Analiza precio, plusvalía y momento.'); return; }
+      setBusy(true);
+      try {
+        const d = await fetchBuySignal(devId);
+        const v = d.veredicto, pc = d.precio_contexto, vz = d.valuacion_zona, tm = d.timing;
+        const L = [];
+        if (v && v.titulo) L.push(`**${v.titulo}**${v.lectura ? ' — ' + v.lectura : ''}`);
+        if (pc && pc.posicion && pc.posicion.etiqueta) L.push(`💰 Precio: ${pc.posicion.etiqueta}${pc.este_pm2 ? ` (~$${Math.round(pc.este_pm2 / 1000)}k/m², vs obra nueva comparable)` : ''}.`);
+        if (vz && vz.plusvalia_oficial && vz.plusvalia_oficial.plusvalia_anual_pct != null) L.push(`📈 Plusvalía oficial de la zona: +${vz.plusvalia_oficial.plusvalia_anual_pct}% anual.`);
+        if (tm && tm.fase_label) L.push(`⏱ Momento de la zona: ${tm.fase_label}.`);
+        const summary = L.length
+          ? `Analicé **${dn}** por ti:\n\n${L.join('\n')}\n\n¿Quieres que **agende una visita** o te muestro **otros parecidos**?`
+          : `Revisé ${dn}. Cuéntame tu presupuesto y zona y te digo si encaja.`;
+        setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: summary, _cerebro: d }]);
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'assistant', ts: Date.now(), content: `Revisé ${dn} pero no pude traer el análisis ahora. Cuéntame tu presupuesto y zona y te ayudo aquí mismo.` }]);
+      }
+      setBusy(false);
     };
     window.addEventListener('dmx:ask-atlax', onAsk);
     return () => window.removeEventListener('dmx:ask-atlax', onAsk);
