@@ -1,0 +1,24 @@
+{
+  "accepted": [
+    "accept_in_house_invitation",
+    "accept_invitation",
+    "auth_inmobiliaria_signup",
+    "create_session",
+    "get_asesor_by_slug",
+    "get_compliance_badge",
+    "get_slot_availability",
+    "internal_login",
+    "list_dev_units",
+    "login",
+    "post_public_book",
+    "public_book_appointment",
+    "public_cita_cancel",
+    "public_cita_confirm",
+    "public_cita_reschedule",
+    "public_cita_view",
+    "public_click",
+    "register",
+    "signup_broker",
+    "verify_magic_link"
+  ]
+}

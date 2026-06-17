@@ -68,6 +68,15 @@ jobs:
             --ignore=tests/wave4/test_state_of_cdmx_engine_unit.py \
             --ignore=tests/wave4/test_tour_3dgs_engine_unit.py
 
+      - name: Auditorias estructurales (Candado 1 · anti-parches)
+        # audit:tenant = candado RLS-en-Mongo: falla si un handler NUEVO toca coleccion con dueno
+        # sin guard de tenant/auth. audit:routes = red del candado 6: falla si baja el conteo de
+        # rutas (un router se dejo de registrar en silencio). Deterministas (stub forzado del LLM).
+        run: |
+          cd scripts/audit
+          python audit_tenant.py
+          python audit_routes.py
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
