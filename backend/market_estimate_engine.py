@@ -94,11 +94,10 @@ async def market_for_colonia(db, colonia_id: str, valor_suelo_m2: Optional[float
             "rango": [round(est * 0.78), round(est * 1.25)]}   # banda honesta de incertidumbre
 
 
-# La vivienda NUEVA/preventa cuesta más por m² que la usada (acabados, garantía, financiamiento de obra).
-# El mercado base (market_for_colonia, calibrado con listings mayormente de reventa) ≈ valor de USADA.
-# Para juzgar un DESARROLLO hay que subir el benchmark con esta prima (documentada CDMX ~15-20%, calibrable
-# por zona con la muestra real separando isPresale vs usada). Sin esto, todo desarrollo saldría "ALTO" falso.
-NEW_PREMIUM = 1.18
+# Prima de obra NUEVA vs usada. CALIBRADA con la muestra real Monopolio (16,643 anuncios · 264 colonias):
+# la prima por zona resultó mediana x1.04 (rango x0.48–1.28) — mucho menor y más ruidosa que el ~1.18 que se
+# asumía. Default conservador 1.05; market_comps.premium_zona da el valor REAL por colonia donde hay muestra.
+NEW_PREMIUM = 1.05
 
 
 def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
