@@ -234,6 +234,40 @@ async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, lim
     return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
 
 
+_SCORE_KEYS = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion"]
+
+
+async def _db_colonias_scored(db) -> Dict[str, Dict[str, Any]]:
+    """TODAS las colonias (1,811) con scores reales + valor catastral — base de similar/para-ti/watch.
+    Reemplaza las 16 semilla en RAM por la BD real."""
+    cols: Dict[str, Dict[str, Any]] = {}
+    async for c in db.colonias.find(
+            {"geometry": {"$exists": True}, "scores_reales": {"$exists": True}},
+            {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "scores_reales": 1}):
+        sr = c.get("scores_reales") or {}
+        cols[c["id"]] = {"id": c["id"], "name": c.get("name"), "alcaldia": c.get("alcaldia"),
+                         "scores": {k: sr.get(k) for k in _SCORE_KEYS if isinstance(sr.get(k), (int, float))}}
+    async for v in db.colonia_catastro_byid.find({}, {"_id": 0, "colonia_id": 1, "valor_suelo_m2": 1}):
+        if v.get("colonia_id") in cols:
+            cols[v["colonia_id"]]["valor_m2"] = v.get("valor_suelo_m2")
+    return cols
+
+
+def _similar_to(target: Dict[str, Any], pool: Dict[str, Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
+    """Colonias más parecidas por el vector de scores (distancia euclidiana)."""
+    ts = target.get("scores") or {}
+    if not ts:
+        return []
+
+    def dist(c):
+        s = c.get("scores") or {}
+        return sum((float(ts.get(k, 0)) - float(s.get(k, 0))) ** 2 for k in _SCORE_KEYS) ** 0.5
+    others = [c for cid, c in pool.items() if cid != target.get("id") and c.get("scores")]
+    others.sort(key=dist)
+    return [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"), "valor_m2": c.get("valor_m2")}
+            for c in others[:n]]
+
+
 # ─── Upgrade #1 · "Vigila esta colonia" (watch + alerta de cambio · cierra ciclo de re-engagement) ──
 class WatchIn(BaseModel):
     colonia_id: str
@@ -241,15 +275,29 @@ class WatchIn(BaseModel):
     name: Optional[str] = None
 
 
+async def _colonia_value(db, colonia_id: str) -> Dict[str, Any]:
+    """Valor catastral $/m² + calidad de una colonia desde la BD (cualquiera de las 1,811)."""
+    out: Dict[str, Any] = {}
+    c = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "name": 1, "scores_reales": 1})
+    if c:
+        out["name"] = c.get("name")
+        sr = c.get("scores_reales") or {}
+        vals = [v for v in sr.values() if isinstance(v, (int, float))]
+        out["calidad"] = round(sum(vals) / len(vals)) if vals else None
+    v = await db.colonia_catastro_byid.find_one({"colonia_id": colonia_id}, {"_id": 0, "valor_suelo_m2": 1})
+    out["valor_m2"] = (v or {}).get("valor_suelo_m2")
+    return out
+
+
 @router.post("/api/colonia-watch")
 async def colonia_watch_add(payload: WatchIn, request: Request):
     db = request.app.state.db
-    col = COLONIAS_BY_ID.get(payload.colonia_id) or {}
-    baseline = {"price_m2": col.get("price_m2"), "momentum": col.get("momentum")}
+    cv = await _colonia_value(db, payload.colonia_id)
+    baseline = {"valor_m2": cv.get("valor_m2"), "calidad": cv.get("calidad")}
     await db.colonia_watches.update_one(
         {"watcher": payload.watcher, "colonia_id": payload.colonia_id},
         {"$set": {"watcher": payload.watcher, "colonia_id": payload.colonia_id,
-                  "name": payload.name or col.get("name"), "baseline": baseline,
+                  "name": payload.name or cv.get("name"), "baseline": baseline,
                   "updated_at": datetime.now(timezone.utc)},
          "$setOnInsert": {"created_at": datetime.now(timezone.utc)}},
         upsert=True)
@@ -269,12 +317,12 @@ async def colonia_watch_list(watcher: str, request: Request):
     db = request.app.state.db
     out = []
     async for w in db.colonia_watches.find({"watcher": watcher}, {"_id": 0}).sort("created_at", -1):
-        col = COLONIAS_BY_ID.get(w["colonia_id"]) or {}
-        cur = col.get("price_m2")
-        base = (w.get("baseline") or {}).get("price_m2")
+        cv = await _colonia_value(db, w["colonia_id"])
+        cur = cv.get("valor_m2")
+        base = (w.get("baseline") or {}).get("valor_m2")
         change = round((cur / base - 1) * 100, 1) if (cur and base and cur != base) else None
         out.append({"colonia_id": w["colonia_id"], "name": w.get("name"),
-                    "price_m2": cur, "momentum": col.get("momentum"), "change_pct": change})
+                    "valor_m2": cur, "calidad": cv.get("calidad"), "change_pct": change})
     return {"watching": out, "count": len(out), "alerts": [w for w in out if w["change_pct"]]}
 
 
@@ -328,13 +376,7 @@ async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):
     """Recomendación viva para el comprador: parte de lo que VIGILA (comportamiento real) → colonias
     parecidas; si aún no hay señal, cae a 'tendencia' (mejor momentum). Reusa scores + watchlist."""
     db = request.app.state.db
-    keys = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion"]
-
-    def _mom(c):
-        try:
-            return float(str(c.get("momentum") or "0").replace("%", "").replace("+", ""))
-        except Exception:
-            return 0.0
+    pool = await _db_colonias_scored(db)
     watched = []
     if watcher:
         try:
@@ -344,46 +386,39 @@ async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):
             pass
     scored: Dict[str, float] = {}
     for cid in watched:
-        t = COLONIAS_BY_ID.get(cid)
-        ts = (t or {}).get("scores")
-        if not ts:
+        t = pool.get(cid)
+        if not t or not t.get("scores"):
             continue
-        for c in SEED_COLONIAS:
-            if c["id"] in watched or not c.get("scores"):
+        ts = t["scores"]
+        for ocid, c in pool.items():
+            if ocid in watched or not c.get("scores"):
                 continue
-            d = sum((float(ts.get(k, 0)) - float(c["scores"].get(k, 0))) ** 2 for k in keys) ** 0.5
-            scored[c["id"]] = min(scored.get(c["id"], 9e9), d)
+            d = sum((float(ts.get(k, 0)) - float(c["scores"].get(k, 0))) ** 2 for k in _SCORE_KEYS) ** 0.5
+            scored[ocid] = min(scored.get(ocid, 9e9), d)
     if scored:
         order = sorted(scored.items(), key=lambda kv: kv[1])[:n]
-        recs = [COLONIAS_BY_ID[cid] for cid, _ in order if cid in COLONIAS_BY_ID]
+        recs = [pool[cid] for cid, _ in order if cid in pool]
         basis = "personalizado"
     else:
-        recs = sorted([c for c in SEED_COLONIAS if c.get("momentum")], key=_mom, reverse=True)[:n]
+        # cold-start: las de mayor valor (zonas premium · aspiracional) con dato real
+        recs = sorted([c for c in pool.values() if c.get("valor_m2")],
+                      key=lambda c: c["valor_m2"], reverse=True)[:n]
         basis = "tendencia"
-    out = [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"),
-            "price_m2": c.get("price_m2"), "momentum": c.get("momentum")} for c in recs]
+    out = [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"), "valor_m2": c.get("valor_m2")}
+           for c in recs]
     return {"para_ti": out, "basis": basis, "watched": len(watched)}
 
 
 # ─── Upgrade #3 · "Parecidas a las que te gustaron" (recomendación por similitud · taste-lite) ──
 @router.get("/api/colonias-similar/{colonia_id}")
-async def colonias_similar(colonia_id: str, n: int = 3):
-    """Colonias con perfil PARECIDO (distancia en el vector de 6 scores). Cierra el ciclo de descubrimiento:
-    te gustó X → aquí Y, Z parecidas. Base del taste model (que luego aprende de tu comportamiento)."""
-    target = COLONIAS_BY_ID.get(colonia_id)
+async def colonias_similar(colonia_id: str, request: Request, n: int = 3):
+    """Colonias con perfil PARECIDO (distancia en el vector de scores). Cierra el ciclo de descubrimiento:
+    te gustó X → aquí Y, Z parecidas. Ahora sobre las 1,811 colonias (no solo 16)."""
+    pool = await _db_colonias_scored(request.app.state.db)
+    target = pool.get(colonia_id)
     if not target or not target.get("scores"):
         return {"similar": [], "based_on": None}
-    ts = target["scores"]
-    keys = ["vida", "movilidad", "seguridad", "comercio", "plusvalia", "educacion"]
-
-    def dist(c):
-        s = c.get("scores") or {}
-        return sum((float(ts.get(k, 0)) - float(s.get(k, 0))) ** 2 for k in keys) ** 0.5
-    others = [c for c in SEED_COLONIAS if c.get("id") != colonia_id and c.get("scores")]
-    others.sort(key=dist)
-    out = [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"),
-            "price_m2": c.get("price_m2"), "momentum": c.get("momentum")} for c in others[:n]]
-    return {"similar": out, "based_on": target.get("name")}
+    return {"similar": _similar_to(target, pool, n), "based_on": target.get("name")}
 
 
 @router.get("/api/colonias/{colonia_id}")

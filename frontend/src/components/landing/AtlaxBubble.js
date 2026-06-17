@@ -366,7 +366,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
         if (!al.length) return;
         setMessages((prev) => prev.some((m) => m._watch) ? prev : [{
           role: 'assistant', _watch: true,
-          content: '📈 Novedades en lo que vigilas: ' + al.map((a) => `${a.name} ${a.change_pct > 0 ? '+' : ''}${a.change_pct}% en precio/m²`).join(' · ') + '. ¿Quieres ver los desarrollos?',
+          content: '📈 Novedades en lo que vigilas: ' + al.map((a) => `${a.name} ${a.change_pct > 0 ? '+' : ''}${a.change_pct}% en valor/m²`).join(' · ') + '. ¿Quieres ver los desarrollos?',
         }, ...prev]);
       }).catch(() => {});
   }, [open]);
@@ -474,7 +474,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
       let w = null; try { w = localStorage.getItem('dmx.watcher_id'); } catch {}
       const r = await fetch(`${API}/api/para-ti${w ? `?watcher=${w}` : ''}`);
       const d = await r.json();
-      const list = (d.para_ti || []).map(c => `• ${c.name} (${c.alcaldia}) — $${c.price_m2}k/m² · ${c.momentum} plusvalía`).join('\n');
+      const list = (d.para_ti || []).map(c => `• ${c.name} (${c.alcaldia})${c.valor_m2 ? ` — $${c.valor_m2.toLocaleString('es-MX')}/m² suelo` : ''}`).join('\n');
       const lead = d.basis === 'personalizado'
         ? 'Por lo que has estado viendo y vigilando, creo que te van a gustar:'
         : 'Lo que está más caliente ahora mismo en CDMX:';

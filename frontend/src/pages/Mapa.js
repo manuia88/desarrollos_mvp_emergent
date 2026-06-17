@@ -638,7 +638,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
                     <button key={s.id} onClick={() => { const full = coloniaById[s.id] || s; setSelected(full); if (full.center) mapRef.current && mapRef.current.flyTo({ center: full.center, zoom: 13.4, duration: 700 }); }}
                       style={{ cursor: 'pointer', textAlign: 'left', padding: '8px 11px', borderRadius: 12, background: '#F6F4FF', border: '1px solid #E7E0FF', fontFamily: 'DM Sans' }}>
                       <div style={{ fontWeight: 700, fontSize: 12.5, color: '#1E2230' }}>{s.name}</div>
-                      <div style={{ fontSize: 11, color: '#7C5CFF' }}>${s.price_m2}k/m² · {s.momentum}</div>
+                      <div style={{ fontSize: 11, color: '#7C5CFF' }}>{s.alcaldia}{s.valor_m2 ? ` · $${s.valor_m2.toLocaleString('es-MX')}/m²` : ''}</div>
                     </button>
                   ))}
                 </div>
