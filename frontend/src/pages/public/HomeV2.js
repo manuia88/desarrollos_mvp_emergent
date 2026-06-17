@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav, Aurora } from '../../components/ui';
 import FadeUp from '../../components/animations/FadeUp';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
-import { COLONIAS } from '../../data/colonias';
+import { COLONIAS as COLONIAS_STATIC } from '../../data/colonias';
+import { fetchColonias } from '../../api/marketplace';
+
+// Mapea la colonia del API real (/api/colonias) al shape que usan las fichas. Cierra el gap "data
+// estática": el home ahora consume el endpoint real (y crece solo cuando crece el catálogo).
+const mapApiColonia = (c) => ({
+  key: c.id, name: c.name, alcaldia: c.alcaldia, scores: c.scores || {}, trend: c.trend || [],
+  priceM2: typeof c.price_m2 === 'number' ? `$${c.price_m2}k` : (c.price_m2 || '—'),
+  momentum: c.momentum, momentumPositive: c.momentum_positive,
+  inventory: typeof c.inventory === 'number' ? `${c.inventory} u` : (c.inventory || '—'),
+  tier: c.tier,
+});
 
 /**
  * Home V2 — lenguaje editorial de nistora, CLARO + nuestro morado + auroras + data real.
@@ -158,8 +169,17 @@ export default function HomeV2() {
   // Abre Atlax (la IA, ya viva en /api/atlax/query) sembrando la pregunta del hero.
   const askAI = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: zona || '' } }));
 
-  // Colonias agrupadas por alcaldía (data real) — para el explorador Alcaldía → Colonias.
-  const byAlc = COLONIAS.reduce((m, c) => { (m[c.alcaldia] = m[c.alcaldia] || []).push(c); return m; }, {});
+  // Colonias del API real (/api/colonias) con fallback a la estática (resiliencia).
+  const [colonias, setColonias] = useState(COLONIAS_STATIC);
+  useEffect(() => {
+    let ok = true;
+    fetchColonias().then((list) => {
+      if (ok && Array.isArray(list) && list.length) setColonias(list.map(mapApiColonia));
+    }).catch(() => {});
+    return () => { ok = false; };
+  }, []);
+  // Colonias agrupadas por alcaldía — para el explorador Alcaldía → Colonias.
+  const byAlc = colonias.reduce((m, c) => { (m[c.alcaldia] = m[c.alcaldia] || []).push(c); return m; }, {});
   const activeAlcaldias = ALCALDIAS_16.filter((a) => byAlc[a]);
   const [alc, setAlc] = useState(activeAlcaldias.includes('Cuauhtémoc') ? 'Cuauhtémoc' : activeAlcaldias[0]);
 
