@@ -324,6 +324,37 @@ export default function Mapa({ user, onLogin, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selName]);
 
+  // Plotea los PREDIOS de la colonia como puntos coloreados por valor/m² (densidad por-predio · catastro real).
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    const pts = (catastro && catastro.puntos) || [];
+    const data = {
+      type: 'FeatureCollection',
+      features: pts.map((p) => ({
+        type: 'Feature',
+        properties: { v: p.valor_unitario_suelo || 0, calle: p.calle || '' },
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      })),
+    };
+    const apply = () => {
+      if (m.getSource('catastro-predios')) { m.getSource('catastro-predios').setData(data); return; }
+      m.addSource('catastro-predios', { type: 'geojson', data });
+      m.addLayer({
+        id: 'catastro-predios', type: 'circle', source: 'catastro-predios',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.8, 15, 4, 17, 6.5],
+          'circle-color': ['interpolate', ['linear'], ['get', 'v'],
+            3000, '#CFE8DD', 10000, '#9B7BFF', 25000, '#7C5CFF', 50000, '#C63FAE'],
+          'circle-opacity': 0.78, 'circle-stroke-width': 0,
+        },
+      });
+      m.on('mouseenter', 'catastro-predios', () => { m.getCanvas().style.cursor = 'crosshair'; });
+      m.on('mouseleave', 'catastro-predios', () => { m.getCanvas().style.cursor = ''; });
+    };
+    if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
+  }, [catastro]);
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
