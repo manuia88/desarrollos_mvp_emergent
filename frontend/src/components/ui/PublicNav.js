@@ -8,6 +8,7 @@ import Button from './Button';
  * herramientas (dropdown de las públicas) + Entrar. Sticky, fondo claro, con sombra al hacer scroll.
  */
 const TOOLS = [
+  { label: 'Mapa de Valores', to: '/mapa-valores' },
   { label: 'Simulador de inversión', to: '/simulador' },
   { label: 'Proyector de impuestos', to: '/tools/tax-projector' },
   { label: 'Comparador de colonias', to: '/portal/comparador' },

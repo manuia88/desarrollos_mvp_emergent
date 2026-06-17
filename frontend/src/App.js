@@ -681,6 +681,8 @@ function AppRouter() {
       <Route path="/mapa" element={<MapaCDMXRoute />} />
       <Route path="/mapa/:alcaldia" element={<MapaCDMXRoute />} />
       <Route path="/mapa/:alcaldia/:colonia" element={<MapaCDMXRoute />} />
+      {/* Mapa de Valores DMX — coroplético por colonia coloreado por precio/m² (rescata MapaRoute huérfano) */}
+      <Route path="/mapa-valores" element={<MapaRoute />} />
       {/* W4.18.2B Sub-D — public AVM + colonia landings */}
       <Route path="/valores" element={<Valores />} />
       <Route path="/colonia/:slug" element={<ColoniaLanding />} />

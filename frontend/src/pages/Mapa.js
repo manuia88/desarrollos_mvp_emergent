@@ -41,12 +41,14 @@ function buildGeoJSON(colonias) {
         alcaldia: c.alcaldia,
         ie_score: composite(c),
         price_m2: c.price_m2,
+        seguridad: (c.scores && c.scores.seguridad) || 0,
+        momentum_num: parseFloat(String(c.momentum || '0').replace('%', '')) || 0,
         color: colorFromScore(composite(c)),
       },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [[...c.polygon, c.polygon[0]]],
-      },
+      // Geometría REAL si el catálogo ya la tiene (db.colonias.geometry); si no, el polígono semilla.
+      geometry: (c.geometry && c.geometry.coordinates)
+        ? c.geometry
+        : { type: 'Polygon', coordinates: [[...c.polygon, c.polygon[0]]] },
     })),
   };
 }
@@ -99,8 +101,12 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'fill',
         source: 'colonias',
         paint: {
-          'fill-color': ['get', 'color'],
-          'fill-opacity': 0.55,
+          // Mapa de VALORES: color por precio/m² (rampa morada de marca). Antes coloreaba por IE-score.
+          'fill-color': [
+            'interpolate', ['linear'], ['get', 'price_m2'],
+            30, '#E5DEFF', 55, '#B7A6FF', 80, '#8A6BFF', 105, '#6D4AFF', 140, '#4A2DBF',
+          ],
+          'fill-opacity': 0.62,
         },
       });
       map.addLayer({
