@@ -3070,6 +3070,30 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
             # No perder XP/cierre si el $inc falla: marcar para reintento (reconcile en arranque)
             await db.asesor_operaciones.update_one({"id": oid}, {"$set": {"xp_pending": True}})
             logging.getLogger("dmx.advisor").error(f"[operacion] XP grant falló (oid={oid}) → xp_pending: {_xe}", exc_info=True)
+        # DRPI · venta cerrada → alimenta db.transactions SIEMPRE (es dato, no depende del flag Cerebro).
+        # Antes db.transactions estaba VACÍA → DRPI "no disponible". Idempotente por ref · fail-soft.
+        try:
+            _price = op.get("precio") or op.get("valor_cierre")
+            _pid = op.get("dev_id") or op.get("project_id")
+            _zone = op.get("colonia") or op.get("zone_id")
+            if not _zone and _pid:
+                try:
+                    from cerebro.executors import _demo_project as _dp
+                    _zone = (_dp(_pid) or {}).get("colonia")
+                except Exception:
+                    _zone = None
+            if _price and _zone:
+                from transaction_network_engine import ingest_transaction
+                _sref = str(_pid or oid)
+                if not await db.transactions.find_one({"source_ref": _sref}, {"_id": 1}):
+                    await ingest_transaction(db, {
+                        "zone_id": _zone, "closing_price_mxn": _price,
+                        "property_type": op.get("tipo") or "depto",
+                        "m2": op.get("m2") or op.get("superficie"),
+                        "source_ref": _sref,
+                    }, source="dmx_native")
+        except Exception as _txe:
+            logging.getLogger("dmx.advisor").info(f"[drpi] ingest_transaction operación no aplicó: {_txe}")
         # E6 · venta de PROYECTO cerrada → alimenta el loop del DESARROLLADOR (Cerebro · fail-open)
         # califica las predicciones de ese proyecto (precio/días) y reentrena la valuación de su zona
         try:

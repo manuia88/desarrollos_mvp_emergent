@@ -298,7 +298,30 @@ async def on_deal_closed(db, user, *, ref, outcome, deal=None, actuals=None, lev
     except Exception:
         pass
 
-    return {"ok": True, "resolved": resolved, "lesson": lesson, "retrain": retrain}
+    # (4) Alimentar db.transactions → DRPI (antes el cierre NO poblaba el índice = "precios de cierre"
+    #     fantasma). Solo con precio de cierre + zona reales; idempotente por ref. Fail-soft.
+    tx_id = None
+    try:
+        price = deal.get("sale_price") or acts.get("price")
+        zone_id = zone or deal.get("zone_id") or deal.get("colonia_id")
+        if won and price and zone_id:
+            exists = await db.transactions.find_one({"source_ref": str(ref)}, {"_id": 1})
+            if not exists:
+                from transaction_network_engine import ingest_transaction
+                tx = await ingest_transaction(db, {
+                    "zone_id": zone_id,
+                    "closing_price_mxn": price,
+                    "property_type": deal.get("property_type") or "depto",
+                    "m2": deal.get("m2") or deal.get("surface_m2"),
+                    "listed_price_mxn": deal.get("listed_price") or deal.get("list_price"),
+                    "closed_at": deal.get("closed_at"),
+                    "source_ref": str(ref),
+                }, source="dmx_native")
+                tx_id = (tx or {}).get("id")
+    except Exception as e:
+        log.info(f"[coach] ingest_transaction no aplicó: {e}")
+
+    return {"ok": True, "resolved": resolved, "lesson": lesson, "retrain": retrain, "tx": tx_id}
 
 
 async def learning_snapshot(db, user):
