@@ -20,7 +20,7 @@ const TOOLS = [
 
 const LINKS = [
   { label: 'Comprar', to: '/marketplace' },
-  { label: 'Barrios', to: '/barrios' },
+  { label: 'Colonias', to: '/colonias' },
   { label: 'Asesores', to: '/asesores' },
   { label: 'Desarrolladores', to: '/desarrolladores' },
 ];

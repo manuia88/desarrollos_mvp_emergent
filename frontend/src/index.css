@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:ital,wght@1,500;1,600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -39,6 +39,10 @@
   --sh-elev:   0 24px 80px rgba(0,0,0,0.45);
   --focus-ring: 2px solid var(--indigo);
   --focus-ring-offset: 2px;
+  /* Superficie de tarjeta · en oscuro = panel; en claro se vuelve off-white (#F8F9F8) para
+   * que la tarjeta RESALTE del fondo blanco (regla nistora: card NO puede ser blanca en reposo). */
+  --surface-card: var(--bg-2);
+  --card-border:  var(--border);
 
   /* ── Marco del portal (sidebar · topbar · root) ──────────────────────────
    * Tokens del "caparazón" compartido por todos los portales. El DEFAULT es el
@@ -90,6 +94,10 @@
   --warm: #E2982E;
   --cold: #3B82F6;
   --ok: #1FA06A;
+  /* Página blanca pura + tarjeta off-white tibia (truco nistora · contraste sin sombra). */
+  --bg: #FFFFFF;
+  --surface-card: #F8F9F8;
+  --card-border:  #ECECEC;
 }
 
 /* Marco CLARO · solo asesor. Repinta el caparazón al tema del mockup
