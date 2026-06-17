@@ -58,7 +58,7 @@ function buildCentersGeoJSON(colonias) {
     type: 'FeatureCollection',
     features: colonias.map(c => ({
       type: 'Feature',
-      properties: { name: c.name, price_m2: c.price_m2 },
+      properties: { id: c.id, name: c.name, price_m2: c.price_m2 },
       geometry: { type: 'Point', coordinates: c.center },
     })),
   };
@@ -86,7 +86,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: container.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/light-v11',  // Mapa de Valores: fondo CLARO (v2)
       center: [-99.17, 19.41],
       zoom: 11.2,
     });
@@ -96,17 +96,17 @@ export default function Mapa({ user, onLogin, onLogout }) {
       // Polygons source + layers
       map.addSource('colonias', { type: 'geojson', data: buildGeoJSON(colonias) });
 
+      // Tinte de zona SUTIL por precio (no protagonista — las burbujas + etiquetas llevan la info).
       map.addLayer({
         id: 'colonias-fill',
         type: 'fill',
         source: 'colonias',
         paint: {
-          // Mapa de VALORES: color por precio/m² (rampa morada de marca). Antes coloreaba por IE-score.
           'fill-color': [
             'interpolate', ['linear'], ['get', 'price_m2'],
-            30, '#E5DEFF', 55, '#B7A6FF', 80, '#8A6BFF', 105, '#6D4AFF', 140, '#4A2DBF',
+            30, '#EDE9FF', 55, '#D9CCFF', 80, '#BDA6FF', 105, '#9B7BFF', 140, '#7C5CFF',
           ],
-          'fill-opacity': 0.62,
+          'fill-opacity': 0.30,
         },
       });
       map.addLayer({
@@ -114,24 +114,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
         type: 'line',
         source: 'colonias',
         paint: {
-          'line-color': '#F0EBE0',
-          'line-width': 1,
-          'line-opacity': 0.4,
-        },
-      });
-      map.addLayer({
-        id: 'colonias-labels',
-        type: 'symbol',
-        source: 'colonias',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 11,
-          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-        },
-        paint: {
-          'text-color': '#F0EBE0',
-          'text-halo-color': '#06080F',
-          'text-halo-width': 1,
+          'line-color': 'rgba(109,74,255,0.45)',
+          'line-width': 1.2,
         },
       });
 
@@ -159,6 +143,41 @@ export default function Mapa({ user, onLogin, onLogout }) {
           ],
         },
       });
+
+      // ── Burbujas de VALOR: círculo por colonia (tamaño + color por precio/m²) + etiqueta con el precio ──
+      map.addLayer({
+        id: 'colonia-glow', type: 'circle', source: 'centers',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'price_m2'], 30, 26, 90, 42, 140, 58],
+          'circle-color': ['interpolate', ['linear'], ['get', 'price_m2'], 30, '#A78BFA', 80, '#7C5CFF', 140, '#C63FAE'],
+          'circle-opacity': 0.16, 'circle-blur': 0.9,
+        },
+      });
+      map.addLayer({
+        id: 'colonia-dot', type: 'circle', source: 'centers',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'price_m2'], 30, 7, 90, 12, 140, 17],
+          'circle-color': ['interpolate', ['linear'], ['get', 'price_m2'], 30, '#A78BFA', 80, '#7C5CFF', 140, '#C63FAE'],
+          'circle-stroke-width': 2.5, 'circle-stroke-color': '#ffffff',
+        },
+      });
+      map.addLayer({
+        id: 'colonia-price', type: 'symbol', source: 'centers',
+        layout: {
+          'text-field': ['concat', ['get', 'name'], '\n$', ['to-string', ['get', 'price_m2']], 'k/m²'],
+          'text-size': 12, 'text-offset': [0, 1.3], 'text-anchor': 'top',
+          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+        },
+        paint: { 'text-color': '#2A2140', 'text-halo-color': '#ffffff', 'text-halo-width': 2 },
+      });
+      map.on('click', 'colonia-dot', (e) => {
+        const f = e.features?.[0]; if (!f) return;
+        setSelected(f.properties.id);
+        const c = coloniaById[f.properties.id];
+        if (c) map.flyTo({ center: c.center, zoom: 13.2, duration: 700 });
+      });
+      map.on('mouseenter', 'colonia-dot', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'colonia-dot', () => { map.getCanvas().style.cursor = ''; });
 
       // Click handler
       map.on('click', 'colonias-fill', (e) => {
@@ -215,22 +234,23 @@ export default function Mapa({ user, onLogin, onLogout }) {
         )}
         <div ref={container} style={{ position: 'absolute', inset: 0 }} data-testid="mapa-container" />
 
-        {/* Floating header */}
+        {/* Floating header — tarjeta clara (glass blanco) */}
         <div style={{
           position: 'absolute', top: 20, left: 20, zIndex: Z.DROPDOWN,
-          padding: '14px 18px',
-          background: 'rgba(6,8,15,0.85)',
-          border: '1px solid var(--border-2)',
+          padding: '16px 20px',
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid #ECECEC',
           backdropFilter: 'blur(18px)',
-          borderRadius: 16,
-          maxWidth: 360,
+          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
+          borderRadius: 18,
+          maxWidth: 340,
         }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>{t('mapa.page_title')}</div>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em', marginBottom: 6 }}>
-            {t('mapa.h1')}
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>Mapa de Valores · CDMX</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#1E2230', letterSpacing: '-0.02em', marginBottom: 6 }}>
+            ¿Cuánto cuesta el m² por colonia?
           </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
-            {t('mapa.sub')}
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E', lineHeight: 1.5 }}>
+            Precio por m² real de cada colonia. Toca una para ver su valuación, plusvalía y qué tan segura es.
           </div>
         </div>
 
@@ -238,14 +258,15 @@ export default function Mapa({ user, onLogin, onLogout }) {
         <div style={{
           position: 'absolute', top: 20, right: 20, zIndex: Z.DROPDOWN,
           display: 'flex', gap: 6, padding: 4,
-          background: 'rgba(6,8,15,0.85)',
-          border: '1px solid var(--border-2)',
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid #ECECEC',
           backdropFilter: 'blur(18px)',
+          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
           borderRadius: 9999,
         }}>
           {[
-            { k: 'ie', label: t('mapa.layer_ie') },
-            { k: 'heat', label: t('mapa.layer_heat') },
+            { k: 'ie', label: 'Precio/m²' },
+            { k: 'heat', label: 'Mapa de calor' },
           ].map(l => {
             const active = layer === l.k;
             return (
@@ -255,7 +276,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 style={{
                   padding: '7px 14px', borderRadius: 9999,
                   background: active ? 'var(--grad)' : 'transparent',
-                  color: active ? '#fff' : 'var(--cream-3)',
+                  color: active ? '#fff' : '#5A5F6E',
                   border: 'none',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                   cursor: 'pointer',
@@ -266,24 +287,23 @@ export default function Mapa({ user, onLogin, onLogout }) {
           })}
         </div>
 
-        {/* Legend */}
+        {/* Legend — Precio por m² (rampa morada · tarjeta clara) */}
         <div style={{
           position: 'absolute', bottom: 20, left: 20, zIndex: Z.DROPDOWN,
           padding: '12px 16px',
-          background: 'rgba(6,8,15,0.85)',
-          border: '1px solid var(--border-2)',
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid #ECECEC',
           backdropFilter: 'blur(18px)',
+          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
           borderRadius: 14,
         }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>{t('mapa.legend_score')}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 140, height: 8, borderRadius: 9999,
-              background: 'linear-gradient(to right, rgb(239,68,68), rgb(245,158,11), rgb(34,197,94))',
-            }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: 140, fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', position: 'absolute', bottom: 14, left: 16 }}>
-              <span>0</span><span>50</span><span>100</span>
-            </div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Precio por m²</div>
+          <div style={{
+            width: 160, height: 8, borderRadius: 9999,
+            background: 'linear-gradient(to right, #A78BFA, #7C5CFF, #C63FAE)',
+          }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: 160, fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', marginTop: 5 }}>
+            <span>$30k</span><span>$80k</span><span>$140k+</span>
           </div>
         </div>
 
