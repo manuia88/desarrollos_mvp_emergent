@@ -16,6 +16,7 @@ export default function AtlaxVoiceButton({
   onAudioReady,       // (base64: string, audioId: string) => void (opcional)
   disabled = false,
   compact = false,    // tamaño reducido para inline
+  light = false,      // tema claro (rediseño /v2)
 }) {
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -225,7 +226,7 @@ export default function AtlaxVoiceButton({
           width: compact ? 26 : 30,
           height: compact ? 26 : 30,
           borderRadius: "9999px",
-          border: `1.5px solid ${voiceOut ? "rgba(var(--theme-rgb),0.6)" : "rgba(255,255,255,0.15)"}`,
+          border: `1.5px solid ${voiceOut ? "rgba(var(--theme-rgb),0.6)" : (light ? "rgba(16,24,40,0.18)" : "rgba(255,255,255,0.15)")}`,
           background: voiceOut ? "rgba(var(--theme-rgb),0.15)" : "transparent",
           cursor: "pointer",
           display: "flex",
@@ -240,7 +241,7 @@ export default function AtlaxVoiceButton({
           height={compact ? 12 : 14}
           viewBox="0 0 24 24"
           fill="none"
-          stroke={voiceOut ? "var(--theme)" : "rgba(240,235,224,0.4)"}
+          stroke={voiceOut ? "var(--theme)" : (light ? "rgba(16,24,40,0.5)" : "rgba(240,235,224,0.4)")}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"

@@ -30,6 +30,7 @@ export default function AtlaxThreadsSidebar({
   onSelect,
   onNewThread,
   onClose,
+  light = false,
 }) {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,8 @@ export default function AtlaxThreadsSidebar({
   return (
     <div data-testid="atlax-threads-sidebar" style={{
       position: 'absolute', inset: 0, zIndex: Z.BASE,
-      background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
+      background: light ? '#FFFFFF' : 'linear-gradient(180deg, #0E1220, #0A0D16)',
+      ...(light ? { '--cream': '#1E2230', '--cream-2': '#4A4F5E', '--cream-3': '#8A8F9E', '--border': '#ECECEC' } : {}),
       display: 'flex', flexDirection: 'column',
       animation: 'caya-pop 0.18s ease-out',
     }}>

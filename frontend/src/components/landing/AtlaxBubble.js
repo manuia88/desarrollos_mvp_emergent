@@ -70,7 +70,7 @@ function saveHistory(h) {
 
 
 // ─── LeadCaptureMiniForm (W4.4E.5.1) ─────────────────────────────────────
-function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
+function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false }) {
   const [nombre, setNombre] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -128,7 +128,7 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
   return (
     <form data-testid="caya-lead-form" onSubmit={handleSubmit} style={{
       padding: 12, borderRadius: 12, marginTop: 8,
-      background: 'rgba(13,16,23,0.85)',
+      background: light ? 'rgba(248,249,248,0.95)' : 'rgba(13,16,23,0.85)',
       border: '1px solid rgba(var(--theme-rgb),0.32)',
       backdropFilter: 'blur(24px)',
       display: 'flex', flexDirection: 'column', gap: 7,
@@ -487,6 +487,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           {/* W4.11a · Threads sidebar overlay */}
           {showThreads && (
             <AtlaxThreadsSidebar
+              light={light}
               asistenteToken={asistenteToken}
               activeThreadId={threadId}
               onSelect={selectThread}
@@ -694,6 +695,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             {/* Lead capture mini-form (W4.4E.5.1) */}
             {showLeadForm && asistenteToken && !leadCaptured && !formDismissed && (
               <LeadCaptureMiniForm
+                light={light}
                 asistenteToken={asistenteToken}
                 onSuccess={() => setLeadCaptured(true)}
                 onClose={() => { setShowLeadForm(false); setFormDismissed(true); }}
@@ -727,6 +729,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             background: light ? '#FAFAFB' : '#0A0D16',
           }}>
             <AtlaxVoiceButton
+              light={light}
               sessionToken={asistenteToken || sessionId}
               onTranscript={text => {
                 setInput(text);
