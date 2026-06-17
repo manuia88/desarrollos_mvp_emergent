@@ -358,16 +358,21 @@ export default function Mapa({ user, onLogin, onLogout }) {
         m.on('click', 'catastro-poly-fill', (e) => {
           const f = e.features && e.features[0]; if (!f) return;
           const pr = f.properties;
-          const html = `<div style="font-family:'DM Sans',sans-serif;min-width:180px">
-            <div style="font-weight:700;font-size:12.5px;color:#1E2230;margin-bottom:5px">${(pr.calle || 'Predio').slice(0, 50)}</div>
-            <div style="font-size:11.5px;color:#5A5F6E;line-height:1.6">
-              <b style="color:#7C5CFF">$${Math.round((pr.v || 0) / 1000)}k/m²</b> de suelo<br/>
-              Valor catastral: <b>$${((pr.vs || 0) / 1e6).toFixed(1)}M</b><br/>
-              ${pr.sup ? `Terreno: ${Math.round(pr.sup)} m²<br/>` : ''}${pr.anio ? `Construido: ${pr.anio}` : ''}
+          const mx = (x) => '$' + Math.round(x || 0).toLocaleString('es-MX');
+          const row = (k, v) => v ? `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:#8A8F9E">${k}</span><span style="color:#1E2230;font-weight:600">${v}</span></div>` : '';
+          const html = `<div style="font-family:'DM Sans',sans-serif;min-width:210px">
+            <div style="font-weight:700;font-size:13px;color:#1E2230;margin-bottom:2px">${(pr.calle || 'Predio').slice(0, 55)}</div>
+            <div style="font-size:10.5px;color:#8A8F9E;margin-bottom:8px">${pr.colonia || ''}${pr.cp ? ' · CP ' + pr.cp : ''}</div>
+            <div style="font-size:11.5px;line-height:1.7">
+              ${row('Valor catastral', mx(pr.vs))}
+              ${row('Suelo', mx(pr.v) + '/m²')}
+              ${row('Terreno', pr.sup ? Math.round(pr.sup) + ' m²' : '')}
+              ${row('Construcción', pr.supc ? Math.round(pr.supc) + ' m²' : '')}
+              ${row('Año', pr.anio || '')}
             </div>
-            <div style="font-size:9.5px;color:#9AA0AE;margin-top:6px">Catastro oficial SIGCDMX</div>
+            <div style="font-size:9.5px;color:#9AA0AE;margin-top:7px">Catastro oficial SIGCDMX 2021 · valor del predial</div>
           </div>`;
-          new mapboxgl.Popup({ closeButton: true, maxWidth: '250px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
+          new mapboxgl.Popup({ closeButton: true, maxWidth: '270px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
         });
         m.on('moveend', fetchBbox);
       }
@@ -506,7 +511,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
               </div>
             ) : catastro ? (
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${(catastro.valor_suelo_m2 / 1000).toFixed(1)}k</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E' }}>/m² de suelo · catastro oficial</div>
               </div>
             ) : (
@@ -535,8 +540,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
               );
             })()}
 
-            {/* Sello de calidad de dato (honesto) — solo aparece si NO es dato real */}
-            {(c.calidad_estimada || (!c.has_data && !c.scores)) && (
+            {/* Sello de calidad — solo si NO hay dato real (ni catastro oficial ni scores) */}
+            {!catastro && (c.calidad_estimada || (!c.has_data && !c.scores)) && (
               <div style={{ marginBottom: 10 }}>
                 <DisclosurePill esEstimado quality={c.calidad_estimada ? 'estimated' : 'seeded'} />
               </div>
@@ -558,12 +563,12 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 10 }}>Valor del suelo · Catastro oficial</div>
                 <div style={{ display: 'flex', gap: 22 }}>
                   <div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_suelo_m2 / 1000).toFixed(1)}k<span style={{ fontSize: 11, color: '#8A8F9E', fontWeight: 500 }}> /m²</span></div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}<span style={{ fontSize: 11, color: '#8A8F9E', fontWeight: 500 }}> /m²</span></div>
                     <div style={{ fontSize: 10.5, color: '#5A6B52', marginTop: 3 }}>precio del terreno</div>
                   </div>
                   {catastro.valor_predio_tipico ? (
                     <div>
-                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_predio_tipico / 1e6).toFixed(1)}M</div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_predio_tipico || 0).toLocaleString('es-MX')}</div>
                       <div style={{ fontSize: 10.5, color: '#5A6B52', marginTop: 3 }}>predio típico</div>
                     </div>
                   ) : null}

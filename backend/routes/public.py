@@ -296,11 +296,14 @@ async def predios_bbox(request: Request, w: float, s: float, e: float, n: float,
     feats: List[Dict[str, Any]] = []
     try:
         async for p in db.catastro_predios.find(
-                q, {"_id": 0, "poly": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1, "sup_terreno": 1, "anio": 1}
+                q, {"_id": 0, "poly": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1,
+                    "sup_terreno": 1, "sup_construccion": 1, "anio": 1, "colonia": 1, "cp": 1}
         ).limit(limit):
             feats.append({"type": "Feature", "geometry": p["poly"], "properties": {
                 "v": p.get("valor_unitario_suelo") or 0, "vs": p.get("valor_suelo") or 0,
-                "calle": (p.get("calle") or "")[:60], "sup": p.get("sup_terreno") or 0, "anio": p.get("anio") or ""}})
+                "calle": (p.get("calle") or "")[:60], "sup": p.get("sup_terreno") or 0,
+                "supc": p.get("sup_construccion") or 0, "anio": p.get("anio") or "",
+                "colonia": (p.get("colonia") or "")[:40], "cp": p.get("cp") or ""}})
     except Exception:
         pass
     return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
