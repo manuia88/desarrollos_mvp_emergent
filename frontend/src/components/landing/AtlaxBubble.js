@@ -555,13 +555,13 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                 padding: 20, textAlign: 'center', color: 'var(--cream-3)',
                 fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.55,
               }}>
-                <Sparkle size={20} color="var(--indigo-3)" />
-                <div style={{ fontFamily: 'Outfit', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)', margin: '8px 0 4px' }}>
-                  ¿En qué te ayudo?
+                <Sparkle size={22} color="var(--theme)" />
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '10px 0 4px' }}>
+                  Hola, soy Atlax 👋
                 </div>
                 {isHome
                   ? 'Explora el mercado de CDMX con datos en tiempo real.'
-                  : 'Pregúntame por desarrollos, colonias, precios o documentos verificados.'}
+                  : 'Tu asesor para encontrar tu hogar —o invertir bien— en la Ciudad de México. Te voy guiando.'}
 
                 {isHome ? (
                   <div data-testid="atlax-home-chips" style={{
@@ -592,19 +592,47 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                     ))}
                   </div>
                 ) : (
-                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[
-                      'Casa familiar en Polanco bajo 15M',
-                      'Mejor calidad de aire en CDMX',
-                      'Desarrollos en preventa con amenidades',
-                    ].map((s, i) => (
-                      <button key={i} data-testid={`caya-suggest-${i}`} onClick={() => setInput(s)} style={{
-                        padding: '8px 12px', borderRadius: 9999, fontSize: 11.5,
-                        background: (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)'), border: '1px solid var(--border)',
-                        color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: 'pointer',
-                        textAlign: 'left',
-                      }}>{s}</button>
-                    ))}
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
+                    {/* Opciones guiadas — primer paso del journey (no chatbot en blanco) */}
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 9 }}>¿Cómo te ayudo hoy?</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                        {[
+                          { e: '🏡', l: 'Compro para vivir', p: 'Quiero comprar para vivir en CDMX. ¿Qué colonias me convienen según seguridad, servicios y precio?' },
+                          { e: '📈', l: 'Para invertir', p: 'Busco invertir en CDMX. ¿Qué zonas tienen mejor plusvalía y se rentan rápido?' },
+                          { e: '💰', l: 'Según mi presupuesto', p: 'Tengo un presupuesto definido para vivienda nueva. ¿Qué opciones hay y en qué colonias?' },
+                          { e: '🔍', l: 'Solo explorando', p: 'Estoy explorando el mercado. Muéstrame lo más interesante de CDMX ahorita.' },
+                        ].map((g, i) => (
+                          <button key={i} data-testid={`atlax-guide-${i}`} onClick={() => send(null, g.p)} disabled={busy} style={{
+                            padding: '11px 10px', borderRadius: 12, fontSize: 11.5, fontWeight: 600,
+                            background: light ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(var(--theme-rgb),0.10)',
+                            border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--cream)',
+                            fontFamily: 'DM Sans', cursor: busy ? 'not-allowed' : 'pointer', textAlign: 'left',
+                            display: 'flex', alignItems: 'center', gap: 7, opacity: busy ? 0.5 : 1,
+                          }}>
+                            <span style={{ fontSize: 16, lineHeight: 1 }}>{g.e}</span>{g.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Sugerencias accionables (mandan, no solo rellenan) */}
+                    <div>
+                      <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginBottom: 8 }}>O pregúntame directo:</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {[
+                          'Depa con terraza en Condesa',
+                          '¿Cuánto vale el m² en Polanco?',
+                          'Segura y que suba de precio',
+                          'Entrega inmediata bajo $5M',
+                        ].map((s, i) => (
+                          <button key={i} data-testid={`caya-suggest-${i}`} onClick={() => send(null, s)} disabled={busy} style={{
+                            padding: '7px 12px', borderRadius: 9999, fontSize: 11.5,
+                            background: light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                            color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: busy ? 'not-allowed' : 'pointer',
+                          }}>{s}</button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

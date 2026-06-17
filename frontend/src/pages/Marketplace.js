@@ -13,7 +13,7 @@ import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
-import BuyerCoachWidget from '../components/buyer_coach/BuyerCoachWidget';
+// BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
 import SubscoreFilterPanel from '../components/zones/SubscoreFilterPanel';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
@@ -616,7 +616,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
       <AtlaxBubble />
-      <BuyerCoachWidget />
     </div>
   );
 }

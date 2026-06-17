@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import InvestmentSimulator from '../../components/investment/InvestmentSimulator';
-import BuyerCoachWidget from '../../components/buyer_coach/BuyerCoachWidget';
+import AtlaxBubble from '../../components/landing/AtlaxBubble';  // asistente única (unifica · reemplaza BuyerCoach)
 
 export default function Simulador({ user, onLogout }) {
   const [sp] = useSearchParams();
@@ -66,7 +66,7 @@ export default function Simulador({ user, onLogout }) {
         </div>
       </div>
 
-      <BuyerCoachWidget />
+      <AtlaxBubble />
     </div>
   );
 }
