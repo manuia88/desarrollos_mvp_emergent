@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import Navbar from '../components/landing/Navbar';
+import { LightScope, PublicNav } from '../components/ui';
 import { fetchColonias } from '../api/marketplace';
 import { X, ArrowRight } from '../components/icons';
 import { Z } from '../styles/zIndex';
@@ -436,8 +436,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
   }, [mapReady]);
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+    <LightScope>
+      <PublicNav />
       <main style={{ paddingTop: 60, position: 'relative', height: 'calc(100vh - 60px)' }}>
         {!TOKEN && (
           <div style={{
@@ -690,6 +690,6 @@ export default function Mapa({ user, onLogin, onLogout }) {
           );
         })()}
       </main>
-    </div>
+    </LightScope>
   );
 }
