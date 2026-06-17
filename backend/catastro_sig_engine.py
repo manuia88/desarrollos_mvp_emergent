@@ -133,6 +133,73 @@ async def ingest_shapefile_coords(db, alc: str, batch: int = 5000) -> Dict[str, 
     return {"ok": True, "alcaldia": alc, "coords": n}
 
 
+async def ingest_shapefile_polygons(db, alc: str, batch: int = 3000, tol: float = 0.00002) -> Dict[str, Any]:
+    """Guarda el POLÍGONO del lote (forma real, reproyectada a WGS84 + simplificada) y un centroide
+    indexable (geo) por predio. Habilita dibujar predios como polígonos por viewport/zoom (estilo
+    propiedades.com · la manzana verde)."""
+    import os
+    import tempfile
+    import zipfile
+    url = f"{SHP_BASE}/catastro2021_{alc}.zip"
+    try:
+        async with httpx.AsyncClient(timeout=300, follow_redirects=True) as cli:
+            r = await cli.get(url)
+            if r.status_code != 200:
+                return {"ok": False, "alcaldia": alc, "reason": f"HTTP {r.status_code}", "polys": 0}
+            data = r.content
+    except Exception as e:
+        return {"ok": False, "alcaldia": alc, "reason": str(e)[:120], "polys": 0}
+    import shapefile
+    from pymongo import UpdateOne
+    from pyproj import CRS, Transformer
+    from shapely.geometry import Polygon as ShPoly, mapping
+    n = 0
+    with tempfile.TemporaryDirectory() as td:
+        zp = os.path.join(td, "s.zip")
+        with open(zp, "wb") as f:
+            f.write(data)
+        with zipfile.ZipFile(zp) as z:
+            z.extractall(td)
+        shp = next((os.path.join(td, x) for x in os.listdir(td) if x.endswith(".shp")), None)
+        prj = next((os.path.join(td, x) for x in os.listdir(td) if x.endswith(".prj")), None)
+        if not shp:
+            return {"ok": False, "alcaldia": alc, "reason": "sin .shp", "polys": 0}
+        crs = CRS.from_wkt(open(prj).read()) if prj else CRS.from_epsg(32614)
+        tr = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+        sf = shapefile.Reader(shp[:-4])
+        fld = [f[0] for f in sf.fields[1:]]
+        fi = fld.index("fid") if "fid" in fld else 0
+        ops: List[Any] = []
+        for sr in sf.iterShapeRecords():
+            try:
+                sh = sr.shape
+                if not sh.points:
+                    continue
+                parts = list(sh.parts) + [len(sh.points)]
+                ring = sh.points[parts[0]:parts[1]]   # anillo exterior
+                if len(ring) < 4:
+                    continue
+                lon, lat = tr.transform([p[0] for p in ring], [p[1] for p in ring])
+                poly = ShPoly(list(zip(lon, lat))).simplify(tol, preserve_topology=True)
+                if poly.is_empty or poly.geom_type != "Polygon":
+                    continue
+                cen = poly.centroid
+                ops.append(UpdateOne({"catastro_id": f"{alc}:{str(sr.record[fi])}"},
+                                     {"$set": {"poly": mapping(poly),
+                                               "geo": {"type": "Point", "coordinates": [round(cen.x, 6), round(cen.y, 6)]}}}))
+                if len(ops) >= batch:
+                    await db.catastro_predios.bulk_write(ops, ordered=False); n += len(ops); ops = []
+            except Exception:
+                continue
+        if ops:
+            await db.catastro_predios.bulk_write(ops, ordered=False); n += len(ops)
+    try:
+        await db.catastro_predios.create_index([("geo", "2dsphere")])
+    except Exception:
+        pass
+    return {"ok": True, "alcaldia": alc, "polys": n}
+
+
 async def colonia_catastro(db, colonia_name: str, sample: int = 8) -> Dict[str, Any]:
     """Valor catastral OFICIAL agregado de una colonia + desglose de predios (muestra)."""
     import re as _re

@@ -286,6 +286,26 @@ async def catastro_colonia(colonia: str, request: Request):
         return {"colonia": colonia, "disponible": False, "error": str(e)[:120]}
 
 
+@router.get("/api/catastro/predios-bbox")
+async def predios_bbox(request: Request, w: float, s: float, e: float, n: float, limit: int = 2500):
+    """Predios (POLÍGONOS del lote) dentro del recuadro visible → se cargan solo con zoom cercano.
+    Así se ven las formas reales de los lotes (no puntitos) sin trabar el navegador (estilo propiedades.com)."""
+    db = request.app.state.db
+    box = {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
+    q = {"geo": {"$geoWithin": {"$geometry": box}}, "poly": {"$exists": True}}
+    feats: List[Dict[str, Any]] = []
+    try:
+        async for p in db.catastro_predios.find(
+                q, {"_id": 0, "poly": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1, "sup_terreno": 1, "anio": 1}
+        ).limit(limit):
+            feats.append({"type": "Feature", "geometry": p["poly"], "properties": {
+                "v": p.get("valor_unitario_suelo") or 0, "vs": p.get("valor_suelo") or 0,
+                "calle": (p.get("calle") or "")[:60], "sup": p.get("sup_terreno") or 0, "anio": p.get("anio") or ""}})
+    except Exception:
+        pass
+    return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
+
+
 # ─── #3 "Búsqueda viva / Para ti" — personaliza desde el comportamiento (watchlist) · cold-start trending ──
 @router.get("/api/para-ti")
 async def para_ti(request: Request, watcher: Optional[str] = None, n: int = 6):

@@ -271,7 +271,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
         try { if (typeof p.scores === 'string') p.scores = JSON.parse(p.scores); } catch {}
         try { if (typeof p.trend === 'string') p.trend = JSON.parse(p.trend); } catch {}
         setSelected(p);
-        if (e.lngLat) map.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 13.4, duration: 700 });
+        // Solo acerca si estás LEJOS; si ya estás en zoom de predio, no muevas el mapa (fix "se aleja").
+        if (e.lngLat && map.getZoom() < 14) map.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 13.4, duration: 700 });
       });
       map.on('mouseenter', 'colonias-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'colonias-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -321,51 +322,61 @@ export default function Mapa({ user, onLogin, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selName]);
 
-  // Plotea los PREDIOS de la colonia como puntos coloreados por valor/m² (densidad por-predio · catastro real).
+  // PREDIOS como POLÍGONOS del lote — cargados por VIEWPORT solo a zoom cercano (forma real, no puntos;
+  // no se mezclan con el relleno de colonia porque solo salen al acercar). Click → ficha del predio.
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
-    const pts = (catastro && catastro.puntos) || [];
-    const data = {
-      type: 'FeatureCollection',
-      features: pts.map((p) => ({
-        type: 'Feature',
-        properties: { v: p.valor_unitario_suelo || 0, calle: p.calle || '', vs: p.valor_suelo || 0, sup: p.sup_terreno || 0, anio: p.anio || '' },
-        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-      })),
+    let cancelled = false;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    const ZMIN = 15;
+    const fetchBbox = () => {
+      const src = m.getSource('catastro-poly');
+      if (!src) return;
+      if (m.getZoom() < ZMIN) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
+      const b = m.getBounds();
+      fetch(`${API}/api/catastro/predios-bbox?w=${b.getWest().toFixed(5)}&s=${b.getSouth().toFixed(5)}&e=${b.getEast().toFixed(5)}&n=${b.getNorth().toFixed(5)}&limit=3000`)
+        .then((r) => r.json()).then((gj) => { if (!cancelled && m.getSource('catastro-poly')) m.getSource('catastro-poly').setData(gj); }).catch(() => {});
     };
-    const apply = () => {
-      if (m.getSource('catastro-predios')) { m.getSource('catastro-predios').setData(data); return; }
-      m.addSource('catastro-predios', { type: 'geojson', data });
-      m.addLayer({
-        id: 'catastro-predios', type: 'circle', source: 'catastro-predios',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2, 15, 4.5, 17, 7],
-          'circle-color': ['interpolate', ['linear'], ['get', 'v'],
-            3000, '#7CC9A6', 8000, '#A78BFA', 18000, '#7C5CFF', 35000, '#C63FAE'],
-          'circle-opacity': 0.82, 'circle-stroke-width': 0.5, 'circle-stroke-color': 'rgba(255,255,255,0.6)',
-        },
-      });
-      m.on('mouseenter', 'catastro-predios', () => { m.getCanvas().style.cursor = 'pointer'; });
-      m.on('mouseleave', 'catastro-predios', () => { m.getCanvas().style.cursor = ''; });
-      // (b) Detalle de predio al hacer click → popup con dirección + valor + superficie + año.
-      m.on('click', 'catastro-predios', (e) => {
-        const f = e.features && e.features[0]; if (!f) return;
-        const pr = f.properties;
-        const html = `<div style="font-family:'DM Sans',sans-serif;min-width:170px">
-          <div style="font-weight:700;font-size:12.5px;color:#1E2230;margin-bottom:5px">${(pr.calle || 'Predio').slice(0, 50)}</div>
-          <div style="font-size:11.5px;color:#5A5F6E;line-height:1.6">
-            <b style="color:#7C5CFF">$${Math.round((pr.v || 0) / 1000)}k/m²</b> de suelo<br/>
-            Valor catastral: <b>$${((pr.vs || 0) / 1e6).toFixed(1)}M</b><br/>
-            ${pr.sup ? `Terreno: ${Math.round(pr.sup)} m²<br/>` : ''}${pr.anio ? `Construido: ${pr.anio}` : ''}
-          </div>
-          <div style="font-size:9.5px;color:#9AA0AE;margin-top:6px">Catastro oficial SIGCDMX</div>
-        </div>`;
-        new mapboxgl.Popup({ closeButton: true, maxWidth: '240px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
-      });
+    const setup = () => {
+      if (!m.getSource('catastro-poly')) {
+        m.addSource('catastro-poly', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+        m.addLayer({
+          id: 'catastro-poly-fill', type: 'fill', source: 'catastro-poly',
+          paint: {
+            'fill-color': ['interpolate', ['linear'], ['get', 'v'],
+              3000, '#7CC9A6', 8000, '#A78BFA', 18000, '#7C5CFF', 35000, '#C63FAE'],
+            'fill-opacity': 0.6,
+          },
+        });
+        m.addLayer({
+          id: 'catastro-poly-line', type: 'line', source: 'catastro-poly',
+          paint: { 'line-color': 'rgba(255,255,255,0.65)', 'line-width': 0.5 },
+        });
+        m.on('mouseenter', 'catastro-poly-fill', () => { m.getCanvas().style.cursor = 'pointer'; });
+        m.on('mouseleave', 'catastro-poly-fill', () => { m.getCanvas().style.cursor = ''; });
+        m.on('click', 'catastro-poly-fill', (e) => {
+          const f = e.features && e.features[0]; if (!f) return;
+          const pr = f.properties;
+          const html = `<div style="font-family:'DM Sans',sans-serif;min-width:180px">
+            <div style="font-weight:700;font-size:12.5px;color:#1E2230;margin-bottom:5px">${(pr.calle || 'Predio').slice(0, 50)}</div>
+            <div style="font-size:11.5px;color:#5A5F6E;line-height:1.6">
+              <b style="color:#7C5CFF">$${Math.round((pr.v || 0) / 1000)}k/m²</b> de suelo<br/>
+              Valor catastral: <b>$${((pr.vs || 0) / 1e6).toFixed(1)}M</b><br/>
+              ${pr.sup ? `Terreno: ${Math.round(pr.sup)} m²<br/>` : ''}${pr.anio ? `Construido: ${pr.anio}` : ''}
+            </div>
+            <div style="font-size:9.5px;color:#9AA0AE;margin-top:6px">Catastro oficial SIGCDMX</div>
+          </div>`;
+          new mapboxgl.Popup({ closeButton: true, maxWidth: '250px' }).setLngLat(e.lngLat).setHTML(html).addTo(m);
+        });
+        m.on('moveend', fetchBbox);
+      }
+      fetchBbox();
     };
-    if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
-  }, [catastro]);
+    if (m.isStyleLoaded && m.isStyleLoaded()) setup(); else m.once('idle', setup);
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colonias.length]);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
