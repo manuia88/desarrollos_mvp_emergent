@@ -114,7 +114,7 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
           </button>
         </div>
 
-        {context && (
+        {typeof context === 'string' && context && (
           <div style={{
             marginTop: 18, padding: '10px 12px',
             background: 'rgba(var(--cream-rgb),0.03)',

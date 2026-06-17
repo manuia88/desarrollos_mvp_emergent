@@ -1410,6 +1410,19 @@ class AsistenteEngine:
             "created_by": "_asistente_publico",
         }
         await self.db.leads.insert_one(dict(lead))
+        # Puente al CRM del asesor — antes el lead de Atlax quedaba HUÉRFANO en db.leads (assigned_to=None →
+        # invisible en "Mis Leads", nunca llegaba al asesor ni al Cerebro). Asigna al receptor público y lo
+        # materializa en asesor_contactos (idempotente, FAIL-OPEN · mismo patrón que las otras 6 vías de captura).
+        try:
+            from services.lead_bridge import resolve_house_public_receiver, mirror_lead_to_asesor_contacto
+            rid, inm = await resolve_house_public_receiver(self.db)
+            if rid:
+                lead["assigned_to"] = rid
+                await self.db.leads.update_one({"id": lead_id}, {"$set": {"assigned_to": rid, "inmobiliaria_id": inm}})
+            if not await mirror_lead_to_asesor_contacto(self.db, lead):
+                await self.db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
+        except Exception as _bexc:  # noqa: BLE001
+            log.debug(f"[asistente] mirror lead skip: {_bexc}")
         await self.db.asistente_sessions.update_one(
             {"_id": session_token},
             {"$set": {"captured_lead_id": lead_id}},
