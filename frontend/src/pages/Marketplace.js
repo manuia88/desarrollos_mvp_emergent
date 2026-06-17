@@ -101,7 +101,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   useEffect(() => { fetchColonias().then(setColonias); }, []);
 
   useEffect(() => {
-    setLoading(true);
+    let active = true;  // guard "última respuesta gana": evita que un fetch sin filtro (de mount)
+    setLoading(true);   // resuelva DESPUÉS del filtrado y sobrescriba el resultado (race fix).
     const hasActiveSubscores = Object.keys(subscoreMin).length > 0;
     const merged = {
       ...filters,
@@ -112,9 +113,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       sort,
     };
     fetchDevelopments(merged).then(list => {
+      if (!active) return;
       setDevelopments(list);
       setLoading(false);
-    }).catch(() => { setDevelopments([]); setLoading(false); });
+    }).catch(() => { if (active) { setDevelopments([]); setLoading(false); } });
+    return () => { active = false; };
   }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
 
   // W5.2/W5.3 — Sync subscore_min + forecast_delta_min to URL
