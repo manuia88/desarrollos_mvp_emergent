@@ -95,6 +95,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
   const [similar, setSimilar] = useState([]);     // Upgrade #3 · colonias parecidas a la seleccionada
   const [catastro, setCatastro] = useState(null); // Catastro OFICIAL SIGCDMX por colonia (valor + predios)
   const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
+  const [mapReady, setMapReady] = useState(0);   // se incrementa cada vez que el mapa carga (re-engancha capas)
   const [devs, setDevs] = useState([]);          // desarrollos reales = los PREDIOS que sí vendemos
   useEffect(() => {
     fetchColonias().then(list => {
@@ -278,6 +279,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
       });
       map.on('mouseenter', 'colonias-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'colonias-fill', () => { map.getCanvas().style.cursor = ''; });
+      setMapReady((v) => v + 1);  // señal: el mapa cargó → re-engancha las capas dependientes (predios)
     });
 
     return () => { map.remove(); mapRef.current = null; };
@@ -394,7 +396,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
     if (m.isStyleLoaded && m.isStyleLoaded()) setup(); else m.once('idle', setup);
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colonias.length]);
+  }, [mapReady]);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
