@@ -9,6 +9,58 @@ commit + verificación, detrás del checkpoint. Si uno falla, rollback sin perde
 
 ---
 
+## ⚠️ REVISIÓN v2 — tras doble filtro (Sr Dev + Master Dev). LEE ESTO PRIMERO.
+
+El plan original (abajo) sirve como **catálogo de deuda**, pero como *estrategia de ahora* tenía
+3 fallas reales, confirmadas con evidencia del código:
+
+1. **Secuencia invertida.** El refactor NO desbloquea el soft-launch — eso lo hacen Sentry + el
+   load test (operación). La seguridad ya está cerrada y verificada. Hacer 11-13 días de refactor
+   antes de tener un usuario = optimizar un problema que aún no tienes (parches futuros) mientras
+   el real (ceguera operacional) sigue abierto.
+2. **Candado 2 (proxy de tenant) era TRAMPA y estaba mal dimensionado ~10x.** Dije "30-40 rutas";
+   la realidad medida: **1,711 call-sites** de `db.<coll>` en 215 archivos (`db.leads` 157×,
+   `db.users` 95×…). Y el proxy en Mongo NO es enforcement (el dev igual tiene que usarlo) +
+   deja fuera `aggregate`(69)/`bulk_write`/`count`(232) → cobertura parcial = falsa seguridad.
+   No hay un campo de dueño único (son 10 campos; en `leads` un set de 5).
+3. **Estimaciones ~2x optimistas**, concentradas en candados 2 y 6. Candado 6 (cortar server.py)
+   es TRAMPA pre-launch: 142 archivos hacen `from server import get_current_user` y solo funciona
+   porque los imports son function-local; sin tests E2E sobre 244 rutas, partirlo puede dejar
+   routers a medio registrar en silencio.
+
+### Estrategia corregida (la que se ejecuta)
+
+| Cuándo | Qué | Por qué |
+|---|---|---|
+| **AHORA (tu mano, horas)** | Sentry DSN + env en emergent.sh + load test en staging | Único camino crítico al launch |
+| **½-1 día (yo)** | **`audit_tenant.py` bien hecho** en el CI que ya existe | El keystone real · captura el 80% del valor anti-parche |
+| **SOFT-LAUNCH** | Cientos de usuarios, Sentry vivo, datos reales | — |
+| **Post-launch / al retomar features** | Lo demás, acoplado al módulo que toques | El ROI del refactor llega cuando vuelves a construir |
+
+**`audit_tenant.py` bien hecho** (no como lo describí): extrae rutas vía `app.routes` en runtime
+(no regex); heurística = marcar un handler solo si toca colección-con-dueño Y **no hay ningún
+`assert_*`/`_auth*` en el cuerpo** (NO "filtro dentro del find" — el patrón real es guard-en-otra-
+línea + find-by-id, eso daría falsos positivos masivos); arranca en **WARN + allowlist curada**,
+**falla solo sobre el delta del PR**. Allowlist de colecciones públicas (developments, ie_scores,
+colonias, zones).
+
+### Candados corregidos (cuando se hagan, post-launch)
+- **Candado 2 → RECORTADO.** Mata el proxy. En su lugar: helper explícito `tenant_filter(user, coll)`
+  que devuelve el `$or` correcto, se mete a mano en `find` y compone con `aggregate`
+  (`{"$match": tenant_filter(...)}`). El `audit_tenant` lo vigila. Incremental, no big-bang.
+- **Candado 3 → "por dentro".** No migrar ~400 handlers a `Depends`. Un `check_role(request, *roles)`
+  central que envuelven los ~30 helpers existentes (`_auth_dev`, etc.). Misma ergonomía, una fuente
+  de roles, cero cambios de firma. ~1 día.
+- **Candado 6 → aplazar post-launch.** Y cuando se haga, extraer SOLO middleware/startup/helpers
+  puros, **dejar `get_current_user`/auth en server.py**, con `audit_dead_endpoints` verde antes/después.
+- Candados 4 (openapi-ts) y 5 (data_quality) se mantienen como en el catálogo, post-launch (5 opcional
+  pre-launch si la seed visible molesta).
+
+El detalle original de cada candado queda abajo como referencia, con el dimensionamiento corregido
+por esta revisión.
+
+---
+
 ## NIVEL 1 — CORTA EL SANGRADO (lo que mata más parches)
 
 ### Candado 1 · Suite de auditorías en CI (el keystone)
