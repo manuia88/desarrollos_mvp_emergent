@@ -331,11 +331,21 @@ async def colonia_watch_list(watcher: str, request: Request):
 async def catastro_colonia(colonia: str, request: Request):
     """Valor catastral OFICIAL agregado de la colonia + desglose por predio (Catastro SIGCDMX 2021).
     Esta es la granularidad por-predio que pedía el founder, con dato oficial."""
+    db = request.app.state.db
     try:
         from catastro_sig_engine import colonia_catastro
-        return await colonia_catastro(request.app.state.db, colonia)
+        out = await colonia_catastro(db, colonia)
     except Exception as e:
         return {"colonia": colonia, "disponible": False, "error": str(e)[:120]}
+    # Precio de VENTA (mercado) estimado — capa real (semilla/cierres) o mini-AVM etiquetado. Cierra el gap
+    # con propiedades.com sin scrapear: número honesto con sello de fuente/confianza.
+    try:
+        from market_estimate_engine import market_for_colonia
+        cv = await _colonia_value(db, colonia)
+        out["mercado"] = await market_for_colonia(db, colonia, out.get("valor_suelo_m2"), cv.get("calidad"))
+    except Exception:
+        pass
+    return out
 
 
 @router.get("/api/catastro/predios-bbox")

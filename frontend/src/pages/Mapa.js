@@ -562,10 +562,33 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 )}
               </div>
             ) : catastro ? (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E' }}>/m² de suelo · catastro oficial</div>
-              </div>
+              (() => {
+                const mk = catastro.mercado || {};
+                const real = mk.source === 'mercado';
+                return (
+                  <div style={{ marginBottom: 4 }}>
+                    {mk.precio_venta_m2 ? (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${mk.precio_venta_m2.toLocaleString('es-MX')}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E' }}>/m² {real ? 'venta' : 'venta estimado'}</div>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: real ? '#E4F6EC' : '#FBF2D6', color: real ? '#1FA06A' : '#9A7B16' }}>
+                            {real ? '✓ precio de mercado' : `≈ estimado · confianza ${mk.confianza}`}
+                          </span>
+                        </div>
+                        {!real && mk.rango && (
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#8A8F9E', marginTop: 3 }}>rango ${mk.rango[0].toLocaleString('es-MX')}–${mk.rango[1].toLocaleString('es-MX')}/m² · suelo catastral ${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}/m²</div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 34, lineHeight: 1, color: '#1E2230', letterSpacing: '-0.03em' }}>${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E' }}>/m² de suelo · catastro oficial</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
             ) : (
               <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#5A5F6E', background: '#F1F2F6', borderRadius: 10, padding: '10px 12px', marginBottom: 4 }}>
                 Valuación de esta colonia <b>próximamente</b>. Ya tenemos su frontera; el valor llega al cargar el catastro.
