@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { listSavedSearches, deleteSavedSearch } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import { X, ArrowRight, Search, Bell } from '../../components/icons';
+import { tc } from '../../lib/titleCase';
 
 function describeFilters(filters = {}) {
   const parts = [];
@@ -59,7 +60,7 @@ export default function CompradorSavedSearches() {
               data-testid={`saved-filter-${k}`}
               onClick={() => setFilterFreq(k)}
               style={chipStyle(filterFreq === k)}
-            >{label}</button>
+            >{tc(label)}</button>
           ))}
         </div>
 
@@ -115,7 +116,7 @@ const Header = () => (
         color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.025em',
         margin: 0, lineHeight: 1.1,
       }}>
-        Mis búsquedas guardadas
+        {tc('Mis búsquedas guardadas')}
       </h1>
       <p style={{
         fontFamily: 'DM Sans', fontSize: 13,
@@ -163,7 +164,7 @@ const Empty = () => (
       fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
       color: 'var(--cream, #F0EBE0)', marginBottom: 6,
     }}>
-      No tienes búsquedas aún
+      {tc('No tienes búsquedas aún')}
     </div>
     <div style={{
       fontFamily: 'DM Sans', fontSize: 12,

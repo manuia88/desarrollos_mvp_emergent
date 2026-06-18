@@ -11,6 +11,7 @@ import SmartMatchWidget from '../../components/comprador/SmartMatchWidget';
 import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
 // W3.8 — Cross-sell
 import CompradorCrossSellSection from '../../components/comprador/CompradorCrossSellSection';
+import { tc } from '../../lib/titleCase';
 
 function fmtMxn(n) {
   if (!n) return '—';
@@ -58,7 +59,7 @@ function WidgetCard({ icon: Icon, title, count, subtitle, to, children, testId }
         fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
         color: 'rgba(240,235,224,0.55)', marginTop: 6,
       }}>
-        {title}
+        {tc(title)}
       </div>
       {subtitle && (
         <div style={{
@@ -239,7 +240,7 @@ export default function CompradorDashboard() {
           <div style={{ marginTop: 18, background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))', border: '1px solid rgba(240,235,224,0.1)', borderRadius: 14, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream,#f0ebe0)' }}>✨ Propiedades Para Ti</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream,#f0ebe0)' }}>{tc('✨ Propiedades Para Ti')}</div>
                 <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>
                   {reco.personalizado ? 'Según lo que has visto y buscado' : 'Lo mejor del mercado — se afina conforme exploras'}
                 </div>

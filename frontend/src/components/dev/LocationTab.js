@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Lock, Leaf, Shield, Route, Store } from '../icons';
+import { tc } from '../../lib/titleCase';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -114,7 +115,7 @@ export default function LocationTab({ dev, user, onGateOpen }) {
     <div data-testid="location-tab" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Address */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 6 }}>{t('dev.location_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>{tc(t('dev.location_h'))}</div>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)' }}>
           {dev.address_full}
         </div>
@@ -156,7 +157,7 @@ export default function LocationTab({ dev, user, onGateOpen }) {
 
       {/* Landmark times */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>{t('dev.landmarks_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>{tc(t('dev.landmarks_h'))}</div>
         {user ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }} className="land-grid">
             {landmarks.map(l => (

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from '../icons';
+import { tc } from '../../lib/titleCase';
 
 function Fallback({ hue = 231, seed = 0 }) {
   return (
@@ -33,12 +34,12 @@ export default function PhotoGallery({ dev }) {
   const hue = dev.developer?.logo_hue || 231;
 
   const mediaTabs = [
-    { k: 'fotos', label: t('dev.media.fotos') },
-    { k: 'video', label: t('dev.media.video') },
-    { k: '360', label: t('dev.media.360') },
-    { k: 'planos', label: t('dev.media.planos') },
-    { k: 'ubicacion', label: t('dev.media.ubicacion') },
-    { k: 'street', label: t('dev.media.street') },
+    { k: 'fotos', label: tc(t('dev.media.fotos')) },
+    { k: 'video', label: tc(t('dev.media.video')) },
+    { k: '360', label: tc(t('dev.media.360')) },
+    { k: 'planos', label: tc(t('dev.media.planos')) },
+    { k: 'ubicacion', label: tc(t('dev.media.ubicacion')) },
+    { k: 'street', label: tc(t('dev.media.street')) },
   ];
 
   const showFallback = photos.length === 0 || err[active];

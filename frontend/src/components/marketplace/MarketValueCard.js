@@ -2,6 +2,7 @@
 // Muestra qué atributos suben el valor en el mercado (cubo anónimo) para que el
 // comprador entienda el precio ("zero fear buying"). Público, sin auth.
 import React, { useEffect, useState } from 'react';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -29,9 +30,9 @@ export default function MarketValueCard({ colonia }) {
       background: 'linear-gradient(180deg, rgba(31,160,106,0.06), rgba(99,102,241,0.03))',
       border: '1px solid var(--border)', borderRadius: 16,
     }}>
-      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>Por qué vale · inteligencia de mercado</div>
+      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>{tc('Por qué vale · inteligencia de mercado')}</div>
       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px, 2.4vw, 24px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 4px' }}>
-        Lo que sube el valor en este mercado
+        {tc('Lo que sube el valor en este mercado')}
       </h2>
       <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14, lineHeight: 1.5 }}>
         DMX midió <strong style={{ color: 'var(--cream)' }}>{d.sample_size} unidades</strong> reales (R² {d.r_squared}). Estos atributos suman al precio/m² — <strong style={{ color: 'var(--cream)' }}>no es opinión, es dato.</strong>

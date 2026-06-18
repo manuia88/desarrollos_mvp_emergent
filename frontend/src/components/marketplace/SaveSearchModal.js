@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { saveSearch } from '../../api/marketplace';
 import { X, Bell } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 function FiltersPreview({ filters }) {
   const parts = [];
@@ -121,7 +122,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
               color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.02em',
             }}>
-              Guardar búsqueda
+              {tc('Guardar búsqueda')}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(var(--cream-rgb),0.45)', marginTop: 2 }}>
               Recibe alertas cuando haya nuevas propiedades

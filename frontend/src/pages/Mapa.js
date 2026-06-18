@@ -9,6 +9,7 @@ import { fetchColonias } from '../api/marketplace';
 import { X, ArrowRight } from '../components/icons';
 import { Z } from '../styles/zIndex';
 import DisclosurePill from '../components/shared/DisclosurePill';
+import { tc } from '../lib/titleCase';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -463,7 +464,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
           borderRadius: 18,
           maxWidth: 340,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>Mapa de Valores · CDMX</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>{tc('Mapa de Valores · CDMX')}</div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#1E2230', letterSpacing: '-0.02em', marginBottom: 6 }}>
             ¿Cuánto cuesta el m² por colonia?
           </div>
@@ -499,7 +500,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                   cursor: 'pointer',
                 }}>
-                {l.label}
+                {tc(l.label)}
               </button>
             );
           })}
@@ -515,7 +516,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
           boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
           borderRadius: 14,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>Valor del suelo · $/m²</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>{tc('Valor del suelo · $/m²')}</div>
           <div style={{
             width: 160, height: 8, borderRadius: 9999,
             background: 'linear-gradient(to right, #CFE3F2, #9079D8, #7C5CFF, #9B46CB, #C63FAE)',
@@ -602,7 +603,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
               const col = up ? '#1FA06A' : '#C63FAE';
               return (
                 <div style={{ marginTop: 12, marginBottom: 16 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>Precio/m² · Últimos 24 Meses</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>{tc('Precio/m² · Últimos 24 Meses')}</div>
                   <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h, display: 'block' }} preserveAspectRatio="none">
                     <path d={`M${pts.join(' L')} L${w},${h} L0,${h} Z`} fill={col} opacity="0.12" />
                     <path d={`M${pts.join(' L')}`} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -635,7 +636,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
             {/* Valor del suelo · Catastro oficial (claro: precio del terreno + predio típico + cobertura) */}
             {catastro && (
               <div style={{ marginBottom: 14, padding: '14px', background: '#F1F4F0', border: '1px solid #E2E8DD', borderRadius: 14 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 10 }}>Valor del suelo · Catastro oficial</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#5A6B52', marginBottom: 10 }}>{tc('Valor del suelo · Catastro oficial')}</div>
                 <div style={{ display: 'flex', gap: 22 }}>
                   <div>
                     <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', lineHeight: 1 }}>${(catastro.valor_suelo_m2 || 0).toLocaleString('es-MX')}<span style={{ fontSize: 11, color: '#8A8F9E', fontWeight: 500 }}> /m²</span></div>

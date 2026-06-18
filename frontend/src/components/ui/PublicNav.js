@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from './Button';
+import { tc } from '../../lib/titleCase';
 
 /**
  * DMX UI · PublicNav — navbar público (estilo loft/quintoandar). Conecta TODAS las áreas y los
@@ -63,7 +64,7 @@ export default function PublicNav() {
           {LINKS.map((l) => <NavLink key={l.to} {...l} />)}
           {/* Herramientas dropdown */}
           <div style={{ position: 'relative' }} onMouseEnter={() => setTools(true)} onMouseLeave={() => setTools(false)}>
-            <button style={navBtnStyle} onClick={() => setTools((v) => !v)}>Herramientas ▾</button>
+            <button style={navBtnStyle} onClick={() => setTools((v) => !v)}>{tc('Herramientas')} ▾</button>
             {tools && (
               <div className="dmx-card" style={{
                 position: 'absolute', top: '100%', left: 0, marginTop: 6, minWidth: 248, padding: 7,
@@ -76,7 +77,7 @@ export default function PublicNav() {
                   }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
-                    {tl.label}
+                    {tc(tl.label)}
                   </Link>
                 ))}
               </div>
@@ -87,7 +88,7 @@ export default function PublicNav() {
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)', fontWeight: 600 }}>ES · EN</span>
         <Link to="/favoritos" title="Mis favoritos" data-testid="nav-favoritos"
           style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5 }}>
-          <span style={{ fontSize: 15, color: 'var(--theme)' }}>♥</span> Favoritos
+          <span style={{ fontSize: 15, color: 'var(--theme)' }}>♥</span> {tc('Favoritos')}
           {favCount > 0 && (
             <span data-testid="nav-fav-count" style={{ background: 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '1px 7px', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, minWidth: 18, textAlign: 'center' }}>{favCount}</span>
           )}
@@ -104,7 +105,7 @@ function NavLink({ label, to }) {
     <Link to={to} style={navBtnStyle}
       onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--theme)'; e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.07)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--cream-2)'; e.currentTarget.style.background = 'transparent'; }}>
-      {label}
+      {tc(label)}
     </Link>
   );
 }

@@ -2,6 +2,7 @@
 // index / data marketplace). Precio/m², absorción e inventario por colonia, sin exponer
 // ningún proyecto. Público, sin auth. "DMX no opina, mide."
 import React, { useEffect, useState } from 'react';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const fmt = (n) => (n ? `$${Math.round(n / 1000)}k` : '—');
@@ -24,11 +25,11 @@ export default function DMXMarketIndex() {
       border: '1px solid var(--border)', borderRadius: 16,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-        <div className="eyebrow" style={{ margin: 0 }}>Índice DMX de Mercado · público</div>
+        <div className="eyebrow" style={{ margin: 0 }}>{tc('Índice DMX de Mercado · público')}</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>{d.count} colonias · {d.fuente}</div>
       </div>
       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px, 2.6vw, 26px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 14px' }}>
-        Precio/m² y absorción por colonia
+        {tc('Precio/m² y absorción por colonia')}
       </h2>
 
       {/* header */}

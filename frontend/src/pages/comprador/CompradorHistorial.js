@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { listHistory, clearHistoryAll } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import { Clock, ArrowRight, X } from '../../components/icons';
+import { tc } from '../../lib/titleCase';
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -68,7 +69,7 @@ export default function CompradorHistorial() {
               color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.025em',
               margin: 0, lineHeight: 1.1,
             }}>
-              Mi histórico
+              {tc('Mi histórico')}
             </h1>
             <p style={{
               fontFamily: 'DM Sans', fontSize: 13,
@@ -146,7 +147,7 @@ function FilterGroup({ label, options, value, onChange, testIdPrefix }) {
         color: 'rgba(240,235,224,0.45)',
         textTransform: 'uppercase', letterSpacing: '0.08em',
         marginBottom: 6,
-      }}>{label}</div>
+      }}>{tc(label)}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {options.map(({ k, label: l }) => (
           <button
@@ -154,7 +155,7 @@ function FilterGroup({ label, options, value, onChange, testIdPrefix }) {
             data-testid={`${testIdPrefix}-${k}`}
             onClick={() => onChange(k)}
             style={chipStyle(value === k)}
-          >{l}</button>
+          >{tc(l)}</button>
         ))}
       </div>
     </div>

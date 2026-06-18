@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import { calculateMortgage, saveMortgage } from '../../api/marketplace';
 import { X, Sparkle } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const FIELDS = [
   { k: 'precio',           label: 'Precio del inmueble (MXN)',     type: 'number', required: true },
@@ -302,7 +303,7 @@ export default function MortgageCalculator({
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 16,
                 color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.01em', marginBottom: 12,
               }}>
-                Banca privada
+                {tc('Banca privada')}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {(result.banca || []).map(b => (

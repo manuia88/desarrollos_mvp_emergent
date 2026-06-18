@@ -10,6 +10,7 @@
  * Filtra del lado cliente sobre la lista ya cargada (sin tocar el fetch del servidor).
  */
 import React, { useState, useEffect } from 'react';
+import { tc } from '../../lib/titleCase';
 
 export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrusted }) {
   return devs.filter((d) => {
@@ -72,7 +73,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* ── INVITAR A PERFILAR ── */}
       <div style={{ ...card, padding: 18, background: 'linear-gradient(160deg, rgba(var(--theme-rgb),0.07), #fff)', borderColor: 'rgba(var(--theme-rgb),0.25)' }}>
-        <div style={h}>Encuentra TU lugar</div>
+        <div style={h}>{tc('Encuentra TU lugar')}</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 5, marginBottom: 14, lineHeight: 1.5 }}>
           Dinos qué buscas y te decimos cuáles te convienen de verdad — con tu presupuesto, crédito, plazo y zona.
         </div>
@@ -87,7 +88,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
         <div style={{ ...card, padding: 18 }} data-testid="zona-datos">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
             <div>
-              <div style={eyebrow}>{lockedToSearch ? 'Datos de tu zona' : 'Explora una zona'}</div>
+              <div style={eyebrow}>{tc(lockedToSearch ? 'Datos de tu zona' : 'Explora una zona')}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', marginTop: 2, letterSpacing: '-0.02em' }}>{zone.name}</div>
             </div>
             {/* El selector SOLO aparece cuando NO hay zona de búsqueda (si busca Del Valle, no puede elegir Condesa). */}
@@ -124,7 +125,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
           {/* Calidad de la zona (scores REALES de la colonia) */}
           {(sc.seguridad != null || sc.movilidad != null || sc.comercio != null) && (
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-              <div style={eyebrow}>Calidad de la zona</div>
+              <div style={eyebrow}>{tc('Calidad de la zona')}</div>
               <div style={{ marginTop: 4 }}>
                 <ScoreBar label="Seguridad" v={sc.seguridad} />
                 <ScoreBar label="Movilidad" v={sc.movilidad} />

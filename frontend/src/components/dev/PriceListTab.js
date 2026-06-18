@@ -5,6 +5,7 @@ import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
 import { unitMatchesCriteria, criteriaSummary } from '../../lib/unitMatch';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
+import { tc } from '../../lib/titleCase';
 
 const PUBLIC_VISIBLE_COUNT = 3;
 
@@ -109,9 +110,9 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   };
 
   const tabs = [
-    { k: 'inventario', label: t('dev.subtab_inv') },
-    { k: 'prototipo', label: t('dev.subtab_proto') },
-    { k: 'planta', label: t('dev.subtab_plan'), badge: 'NEW' },
+    { k: 'inventario', label: tc(t('dev.subtab_inv')) },
+    { k: 'prototipo', label: tc(t('dev.subtab_proto')) },
+    { k: 'planta', label: tc(t('dev.subtab_plan')), badge: 'NEW' },
   ];
 
   return (
@@ -173,7 +174,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             {/* Header con el DESARROLLO (para saber a qué pertenecen las unidades) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '18px 22px', background: 'linear-gradient(120deg, rgba(var(--theme-rgb),0.12), rgba(var(--theme-rgb),0.03))', borderBottom: '1px solid var(--border)' }}>
               <div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.02em' }}>Comparar unidades</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{tc('Comparar unidades')}</div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 2 }}>
                   <b style={{ color: 'var(--theme)' }}>{dev.name}</b>{dev.colonia ? ` · ${dev.colonia}` : ''} — las que cumplen tu búsqueda
                 </div>

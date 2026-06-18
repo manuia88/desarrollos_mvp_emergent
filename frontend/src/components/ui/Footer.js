@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { tc } from '../../lib/titleCase';
 
 /**
  * DMX UI · Footer — pie de página compartido del rediseño claro. Sobre tokens (var(--*)) → se adapta al scope.
@@ -26,11 +27,11 @@ export default function Footer() {
           </div>
           {COLS.map((col) => (
             <div key={col.title}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 14 }}>{col.title}</div>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 14 }}>{tc(col.title)}</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {col.links.map(([label, to]) => (
                   <li key={to}>
-                    <Link to={to} style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)', textDecoration: 'none' }}>{label}</Link>
+                    <Link to={to} style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)', textDecoration: 'none' }}>{tc(label)}</Link>
                   </li>
                 ))}
               </ul>

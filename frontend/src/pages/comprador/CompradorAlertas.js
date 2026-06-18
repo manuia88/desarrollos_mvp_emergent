@@ -9,6 +9,7 @@ import AlertSettingsForm from '../../components/comprador/AlertSettingsForm';
 import { fetchAlerts, createAlert, updateAlert, deleteAlert, fetchDeliveries } from '../../api/buyer_alerts';
 import { Plus, Bell, Trash, Check, X, AlertTriangle, Clock } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const TYPE_LABELS = {
   new_match: 'Nuevo match',
@@ -234,14 +235,14 @@ export default function CompradorAlertas() {
               color: 'rgba(99,102,241,0.9)', textTransform: 'uppercase',
               letterSpacing: '0.08em', marginBottom: 10,
             }}>
-              <Bell size={11} />Alertas
+              <Bell size={11} />{tc('Alertas')}
             </div>
             <h1 style={{
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 26,
               color: 'var(--cream, #F0EBE0)', margin: 0,
               letterSpacing: '-0.02em',
             }}>
-              Mis alertas
+              {tc('Mis alertas')}
             </h1>
             <p style={{
               fontFamily: 'DM Sans', fontSize: 13, marginTop: 6,
@@ -447,7 +448,7 @@ export default function CompradorAlertas() {
               color: 'var(--cream, #F0EBE0)', marginBottom: 20,
               letterSpacing: '-0.02em',
             }}>
-              Nueva alerta
+              {tc('Nueva alerta')}
             </div>
             <AlertSettingsForm
               onSubmit={handleCreate}

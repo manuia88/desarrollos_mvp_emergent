@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { listFavorites, deleteFavorite } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import { Heart, X, Share, ArrowRight } from '../../components/icons';
+import { tc } from '../../lib/titleCase';
 
 function fmtMxn(n) {
   if (!n) return '—';
@@ -49,7 +50,7 @@ export default function CompradorFavoritos() {
           color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.025em',
           margin: 0, lineHeight: 1.1,
         }}>
-          Mis favoritos
+          {tc('Mis favoritos')}
         </h1>
         <p style={{
           fontFamily: 'DM Sans', fontSize: 13,
@@ -70,7 +71,7 @@ export default function CompradorFavoritos() {
               data-testid={`fav-filter-${k}`}
               onClick={() => setFilterType(k)}
               style={chipStyle(filterType === k)}
-            >{label}</button>
+            >{tc(label)}</button>
           ))}
         </div>
 
@@ -232,7 +233,7 @@ const Empty = () => (
       fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
       color: 'var(--cream, #F0EBE0)', marginBottom: 6,
     }}>
-      Sin favoritos todavía
+      {tc('Sin favoritos todavía')}
     </div>
     <div style={{
       fontFamily: 'DM Sans', fontSize: 12,

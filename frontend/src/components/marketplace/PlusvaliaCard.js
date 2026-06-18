@@ -3,6 +3,7 @@
 // NO existe un endpoint público dedicado de price-history (ver reporte); usamos lo embebido.
 // Fail-open: sin % ni histórico, no renderiza nada.
 import React from 'react';
+import { tc } from '../../lib/titleCase';
 
 const mxn = (n) => {
   const v = Number(n);
@@ -51,7 +52,7 @@ export default function PlusvaliaCard({ plusvaliaPct, priceHistory }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
         <div>
-          <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', margin: 0 }}>Plusvalía desde el lanzamiento</h3>
+          <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', margin: 0 }}>{tc('Plusvalía desde el lanzamiento')}</h3>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginTop: 4 }}>
             Cómo se ha movido el precio de este desarrollo.
           </div>

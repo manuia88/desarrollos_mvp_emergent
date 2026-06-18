@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Lock } from '../icons';
+import { tc } from '../../lib/titleCase';
 
 export default function ProgressTab({ dev, user, onGateOpen }) {
   const { t } = useTranslation();
@@ -18,7 +19,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div className="eyebrow">{t('dev.progress_h')}</div>
+            <div className="eyebrow">{tc(t('dev.progress_h'))}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 32, color: 'var(--cream)', letterSpacing: '-0.03em' }}>
               {pct}<span style={{ fontSize: 20, color: 'var(--cream-3)' }}>%</span>
               <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', fontWeight: 400, marginLeft: 10 }}>
@@ -45,7 +46,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
 
       {/* 7-phase timeline */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>{t('dev.phases_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>{tc(t('dev.phases_h'))}</div>
         <div style={{ position: 'relative', padding: '20px 0 12px' }}>
           <div style={{
             position: 'absolute', top: 30, left: '5%', right: '5%', height: 2,
@@ -89,7 +90,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
 
       {/* Log */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>{t('dev.log_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>{tc(t('dev.log_h'))}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {visibleLog.map((entry, i) => (
             <div key={i} style={{

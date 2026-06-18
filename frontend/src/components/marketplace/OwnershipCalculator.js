@@ -3,6 +3,7 @@
 // + plusvalía y renta reales de la zona (vía /api/public/ownership). Cierra la decisión de compra.
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchOwnership } from '../../api/marketplace';
+import { tc } from '../../lib/titleCase';
 
 const COL = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
 const BG = { verde: 'rgba(34,197,94,0.12)', ambar: 'rgba(245,158,11,0.12)', rojo: 'rgba(239,68,68,0.12)' };
@@ -73,9 +74,9 @@ export default function OwnershipCalculator({ devId }) {
       background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))',
       border: '1px solid var(--border)', borderRadius: 16,
     }}>
-      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>Decisión de compra</div>
+      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>{tc('Decisión de compra')}</div>
       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 4px' }}>
-        ¿Me conviene comprar?
+        {tc('¿Me conviene comprar?')}
       </h2>
       <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', margin: '0 0 16px', maxWidth: 640, lineHeight: 1.5 }}>
         Comparamos comprar contra rentar e invertir la diferencia, con la hipoteca real y la plusvalía de la zona. Mueve el enganche y los años.

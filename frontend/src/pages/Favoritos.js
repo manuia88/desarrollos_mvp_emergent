@@ -7,6 +7,7 @@ import { LightScope, PublicNav, Footer } from '../components/ui';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
 import { fetchDevelopments, isFavorite, toggleFavorite } from '../api/marketplace';
 import { visitorId } from '../lib/buyerSignal';
+import { tc } from '../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -63,9 +64,9 @@ export default function Favoritos() {
     <LightScope>
       <PublicNav />
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '36px 24px 60px' }}>
-        <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 6 }}>♥ Tu selección</div>
+        <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 6 }}>{tc('♥ Tu selección')}</div>
         <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,3.6vw,36px)', color: 'var(--cream)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>
-          Mis favoritos
+          {tc('Mis favoritos')}
         </h1>
         <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)', margin: '0 0 16px', maxWidth: 640 }}>
           Lo que guardaste, en un solo lugar. Agenda una visita o deja una nota — tu asesor se entera de todo.
@@ -94,7 +95,7 @@ export default function Favoritos() {
         {!loading && items.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface-card)' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 6 }}>Aún no guardas nada</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 6 }}>{tc('Aún no guardas nada')}</div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)', marginBottom: 18 }}>Dale ♥ a los desarrollos que te gusten y aparecerán aquí.</div>
             <Link to="/marketplace" className="btn btn-primary" style={{ textDecoration: 'none' }}>Explorar desarrollos</Link>
           </div>

@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Calendar, ArrowRight } from '../icons';
+import { tc } from '../../lib/titleCase';
 
 function fmt(n) { return '$' + Math.round(n).toLocaleString('es-MX'); }
 
@@ -109,7 +110,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
         borderRadius: 14,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 10 }}>
-          {t('dev.plusvalia_h')}
+          {tc(t('dev.plusvalia_h'))}
         </div>
         <div style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -144,7 +145,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
         borderRadius: 14,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 10 }}>
-          {t('dev.plan_h')}
+          {tc(t('dev.plan_h'))}
         </div>
         <div style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchDeveloper } from '../../api/marketplace';
+import { tc } from '../../lib/titleCase';
 import { Bed, Bath, Car, Ruler, Calendar, Shield, Leaf, Database } from '../icons';
 
 export default function DescriptionTab({ dev }) {
@@ -74,7 +75,7 @@ export default function DescriptionTab({ dev }) {
 
       {/* Description */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>{t('dev.description_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>{tc(t('dev.description_h'))}</div>
         <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-2)', lineHeight: 1.7, textWrap: 'pretty' }}>
           {dev.description}
         </p>
@@ -82,7 +83,7 @@ export default function DescriptionTab({ dev }) {
 
       {/* Project stage timeline */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>{t('dev.stage_timeline_h')}</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>{tc(t('dev.stage_timeline_h'))}</div>
         <div style={{ position: 'relative', padding: '24px 0 16px' }}>
           <div style={{
             position: 'absolute', top: 34, left: '8%', right: '8%', height: 2,
@@ -126,7 +127,7 @@ export default function DescriptionTab({ dev }) {
       {/* Price history chart */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
-          <div className="eyebrow">{t('dev.price_history_h')}</div>
+          <div className="eyebrow">{tc(t('dev.price_history_h'))}</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '3px 10px',
@@ -185,7 +186,7 @@ export default function DescriptionTab({ dev }) {
               {developer.name[0]}
             </div>
             <div>
-              <div className="eyebrow" style={{ marginBottom: 2 }}>{t('dev.dev_by')}</div>
+              <div className="eyebrow" style={{ marginBottom: 2 }}>{tc(t('dev.dev_by'))}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                 {developer.name}
               </div>

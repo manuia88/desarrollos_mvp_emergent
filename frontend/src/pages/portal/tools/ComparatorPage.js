@@ -5,6 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import ComparatorPicker from '../../../components/comparator/ComparatorPicker';
 import ComparatorTable from '../../../components/comparator/ComparatorTable';
 import { postCompare } from '../../../api/compare';
+import { tc } from '../../../lib/titleCase';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -111,7 +112,7 @@ export default function ComparatorPage() {
     <div data-testid="comparator-page" style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
       <header style={{ padding: '56px 24px 24px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ letterSpacing: '0.3em', fontSize: 11, color: INDIGO, textTransform: 'uppercase' }}>DesarrollosMX · Tools</div>
-        <h1 style={{ margin: '12px 0 6px', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 'clamp(2rem, 3.6vw, 2.6rem)', lineHeight: 1.08 }}>{t('comparator.title')}</h1>
+        <h1 style={{ margin: '12px 0 6px', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 'clamp(2rem, 3.6vw, 2.6rem)', lineHeight: 1.08 }}>{tc(t('comparator.title'))}</h1>
         <p style={{ margin: 0, color: MUTED, fontSize: 15, maxWidth: 720 }}>{t('comparator.subtitle')}</p>
       </header>
 

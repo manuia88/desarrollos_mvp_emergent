@@ -5,6 +5,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
 import { sendBuyerSignal, fetchInteres } from '../lib/buyerSignal';
 import { readMatchCriteria } from '../lib/unitMatch';
+import { tc } from '../lib/titleCase';
 import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
@@ -225,14 +226,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   const stageColor = STAGE_COLORS[dev.stage] || '#6366F1';
   const tabs = [
-    { k: 'descripcion', label: t('dev.tab_desc') },
-    { k: 'precios', label: t('dev.tab_prices') },
-    { k: 'avance', label: t('dev.tab_progress') },
-    { k: 'amenidades', label: t('dev.tab_amen') },
-    { k: 'localizacion', label: t('dev.tab_loc') },
-    { k: 'tour', label: 'Tour 360°' },
-    { k: 'tour_3d', label: 'Tour 3D' },
-    { k: 'hipoteca', label: 'Hipoteca' },
+    { k: 'descripcion', label: tc(t('dev.tab_desc')) },
+    { k: 'precios', label: tc(t('dev.tab_prices')) },
+    { k: 'avance', label: tc(t('dev.tab_progress')) },
+    { k: 'amenidades', label: tc(t('dev.tab_amen')) },
+    { k: 'localizacion', label: tc(t('dev.tab_loc')) },
+    { k: 'tour', label: tc('Tour 360°') },
+    { k: 'tour_3d', label: tc('Tour 3D') },
+    { k: 'hipoteca', label: tc('Hipoteca') },
   ];
 
   return (
@@ -353,12 +354,12 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 6 }}>
               <div>
-                <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>Score IE del proyecto</div>
+                <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>{tc('Score IE del proyecto')}</div>
                 <h2 style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px, 2.6vw, 28px)',
                   letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0',
                 }}>
-                  Cómo mide DMX a <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{dev.name}</span>
+                  {tc('Cómo mide DMX a')} <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{dev.name}</span>
                 </h2>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', maxWidth: 360, lineHeight: 1.45 }}>
@@ -511,7 +512,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 borderRadius: 14, padding: '20px 20px',
               }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
-                  Simulador de inversión
+                  {tc('Simulador de inversión')}
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 18 }}>
                   Calcula ROI, TIR y flujo de caja en 3 escenarios para este desarrollo
@@ -683,7 +684,7 @@ function Tour3DTabPanel({ unitId, projectSlug, devId, isAdvisor }) {
         <div data-testid="tour-empty-state" style={{
           fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 6,
         }}>
-          Tour 3D no disponible
+          {tc('Tour 3D no disponible')}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
           Próximamente compartiremos un tour 3D inmersivo de esta unidad.
@@ -727,7 +728,7 @@ function Tour3DTabPanel({ unitId, projectSlug, devId, isAdvisor }) {
         color: 'var(--cream)',
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15 }}>
-          Procesando tour 3D
+          {tc('Procesando tour 3D')}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>
           Te avisaremos cuando esté listo.
@@ -746,7 +747,7 @@ function Tour3DTabPanel({ unitId, projectSlug, devId, isAdvisor }) {
         color: 'var(--cream)',
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15 }}>
-          El procesamiento falló
+          {tc('El procesamiento falló')}
         </div>
         {isAdvisor && (
           <button

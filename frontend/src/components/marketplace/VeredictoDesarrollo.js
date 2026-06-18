@@ -4,6 +4,7 @@
 // Consume /api/public/buy-signal (mismo dato, un solo fetch). El detalle completo sigue abajo en BuySignal.
 import React, { useEffect, useState } from 'react';
 import { fetchBuySignal } from '../../api/marketplace';
+import { tc } from '../../lib/titleCase';
 
 const COL = { verde: '#34d399', ambar: '#fcd34d', rojo: '#fca5a5', theme: '#c4b5fd' };
 const GLOW = { verde: 'rgba(52,211,153,0.18)', ambar: 'rgba(252,211,77,0.16)', rojo: 'rgba(252,165,165,0.14)', theme: 'rgba(196,181,253,0.16)' };
@@ -42,7 +43,7 @@ export default function VeredictoDesarrollo({ devId, onContact, onAskAtlax }) {
       border: `1px solid ${COL[color] || COL.verde}33`,
       boxShadow: `0 1px 40px ${GLOW[color] || GLOW.verde}`,
     }}>
-      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.16em', color: 'var(--cream-3)' }}>El veredicto · inteligencia DMX</div>
+      <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.16em', color: 'var(--cream-3)' }}>{tc('El veredicto · inteligencia DMX')}</div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
         <span style={{ width: 16, height: 16, borderRadius: 999, background: COL[color] || COL.verde, marginTop: 8, flexShrink: 0, boxShadow: `0 0 16px ${COL[color] || COL.verde}` }} />
