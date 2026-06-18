@@ -37,6 +37,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [aiFilters, setAiFilters] = useState(null);
   const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
+  const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
@@ -291,8 +292,18 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     const merged = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
     if (!loading && canSearch && visibleDevs.length === 0) {
       fetchCasiCumple(merged).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
+      // C · conteo predictivo: por cada extra (amenidad/feature), cuántas opciones EXACTAS si lo quitas.
+      const extrasNow = [...new Set([...(merged.amenity || []), ...(merged.unit_feature || [])])];
+      if (extrasNow.length) {
+        Promise.all(extrasNow.map((ex) => {
+          const m2 = { ...merged };
+          m2.amenity = (merged.amenity || []).filter((x) => x !== ex);
+          m2.unit_feature = (merged.unit_feature || []).filter((x) => x !== ex);
+          return fetchDevelopments(m2).then((d) => { const items = Array.isArray(d) ? d : (d?.developments || d?.items || []); return [ex, items.length]; }).catch(() => [ex, null]);
+        })).then((pairs) => { const o = {}; pairs.forEach(([k, v]) => { if (v != null) o[k] = v; }); setRelajCounts(o); });
+      } else { setRelajCounts({}); }
     } else {
-      setCasiResults([]);
+      setCasiResults([]); setRelajCounts({});
     }
   }, [visibleDevs.length, loading, canSearch, filters, aiFilters, coloniaFilter]);
 
@@ -701,12 +712,16 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           <div style={{ marginBottom: 16 }}>
                             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 8 }}>Para ver más, quita lo que estés dispuesto a ceder:</div>
                             <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap' }}>
-                              {[...new Set(extras)].map((ex) => (
-                                <button key={ex} data-testid={`relax-${ex}`} onClick={() => relajarCriterio(ex)}
-                                  style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream-2)' }}>
-                                  ✕ {EXTRA_LABEL[ex] || String(ex).replace(/_/g, ' ')}
-                                </button>
-                              ))}
+                              {[...new Set(extras)].map((ex) => {
+                                const n = relajCounts[ex];
+                                return (
+                                  <button key={ex} data-testid={`relax-${ex}`} onClick={() => relajarCriterio(ex)}
+                                    style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream-2)' }}>
+                                    ✕ {EXTRA_LABEL[ex] || String(ex).replace(/_/g, ' ')}
+                                    {n != null && <span style={{ color: n > 0 ? '#1FA06A' : 'var(--cream-3)', fontWeight: 700 }}> → {n} {n === 1 ? 'opción' : 'opciones'}</span>}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
