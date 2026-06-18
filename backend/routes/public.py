@@ -909,8 +909,9 @@ async def casi_cumple(
     pool = list(DEVELOPMENTS)
     if colonia:
         cset = {c.lower() for c in colonia}
-        inzone = [d for d in pool if d["colonia_id"].lower() in cset]
-        pool = inzone if inzone else pool  # si la zona no tiene nada, sugiere de todo el catálogo
+        # La ZONA es sagrada: si el cliente pidió una zona, los "casi" se quedan en esa zona (nunca cruzamos a otra
+        # que NO pidió). Si no hay nada en su zona, devuelve vacío — honesto.
+        pool = [d for d in pool if d["colonia_id"].lower() in cset]
     scored = []
     for d in pool:
         units = [u for u in (d.get("units") or []) if u.get("status") == "disponible"]
@@ -1178,19 +1179,26 @@ async def generate_dev_briefing(dev_id: str, request: Request):
 
 # ─── AI Search parser ──────────────────────────────────────────────────────────
 AI_SEARCH_SYSTEM = (
-    "Eres el parser de búsqueda natural de DesarrollosMX para CDMX. Recibes una frase del usuario "
-    "y devuelves ESTRICTAMENTE un objeto JSON con los filtros detectables. Schema:\n"
+    "Eres el parser de búsqueda natural de DesarrollosMX (CDMX). La gente se expresa de MIL maneras — tu trabajo es "
+    "entender CUALQUIER frase y devolver ESTRICTAMENTE un JSON con TODOS los filtros que puedas detectar. Sé GENEROSO: "
+    "extrae todo lo que el usuario exprese (dinero, recámaras, amenidades, características, zona, crédito). Schema:\n"
     '{"colonia":[string],"alcaldia":string,"tipo":string,"min_price":number,"max_price":number,'
     '"min_sqm":number,"max_sqm":number,"beds":number,"baths":number,"parking":number,"stage":string,'
-    '"amenity":[string],"unit_feature":[string],"orientacion":[string],"piso_min":number}\n'
-    "Valores: tipo ∈ {dept,casa}. stage ∈ {preventa,entrega_inmediata,en_construccion}. "
-    "unit_feature ∈ {terraza,balcon,roof_garden,estacionamiento_independiente,bodega,pet_friendly}. "
-    "orientacion ∈ {Norte,Sur,Oriente,Poniente}.\n"
-    "Mapea lenguaje natural: 'con terraza'→unit_feature:[terraza]; 'roof garden'→[roof_garden]; "
-    "'cajón/estacionamiento independiente/individual'→[estacionamiento_independiente]; 'bodega'→[bodega]; "
-    "'pet friendly/acepta mascotas'→[pet_friendly]; 'balcón'→[balcon]; 'piso alto'→piso_min:8; "
-    "'departamento/depa'→tipo:dept; 'casa'→tipo:casa; 'entrega inmediata'→stage:entrega_inmediata.\n"
-    "Reglas: omite claves sin evidencia. Precios en MXN. '5M' = 5000000."
+    '"amenity":[string],"unit_feature":[string],"orientacion":[string],"piso_min":number,'
+    '"enganche_max":number,"mensualidad_max":number}\n'
+    "DINERO (MXN): 'mil'=1000, 'millones/mdp/melones'=1000000, '5M'=5000000. RANGO → min_price+max_price: "
+    "'10-15mdp'/'10 a 15 millones'/'entre 10 y 15'→min_price:10000000,max_price:15000000. Tope simple 'hasta 15M'→"
+    "max_price. 'enganche menor a 500 mil / a lo mucho 500,000'→enganche_max:500000. 'mensualidades de máx 20mil / "
+    "que no pasen de 20 mil al mes'→mensualidad_max:20000.\n"
+    "tipo ∈ {dept,casa}. stage ∈ {preventa,entrega_inmediata,en_construccion}. orientacion ∈ {Norte,Sur,Oriente,Poniente}.\n"
+    "unit_feature (de la UNIDAD) ∈ {terraza,balcon,roof_garden,estacionamiento_independiente,bodega,pet_friendly}. "
+    "'roof garden privado'→roof_garden; 'cajón/elevaautos/estacionamiento individual'→estacionamiento_independiente.\n"
+    "amenity (del EDIFICIO) usa SLUGS con guión_bajo. Ejemplos: alberca, gym(gimnasio), spa, sauna, jacuzzi, concierge, "
+    "seguridad(vigilancia 24/7), cowork(coworking), cancha_padel(padel/pádel), cancha_tenis, asadores(parrilla/bbq), "
+    "roof_garden, sky_lounge, cine, area_infantil(juegos niños), business_center, paneles_solares, elevador(ascensor), "
+    "salon_eventos, cava, jardines, pet(pet friendly del edificio), bicicletas. Mapea CUALQUIER amenidad que mencionen a "
+    "su slug (minúsculas, guión_bajo); si no estás seguro del slug exacto, usa el nombre en minúsculas con guión_bajo.\n"
+    "Reglas: omite claves sin evidencia. NO inventes zona si no la dicen (deja colonia fuera)."
 )
 
 
@@ -1232,7 +1240,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             parsed = _json.loads(txt[s:e + 1])
     except Exception:
         parsed = {}
-    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity", "unit_feature", "orientacion", "piso_min"}
+    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity", "unit_feature", "orientacion", "piso_min", "enganche_max", "mensualidad_max"}
     filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
 
     # ── Fallback DETERMINISTA (sin LLM) ──────────────────────────────────────────
@@ -1286,24 +1294,34 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if u in ("mil", "k"):
             return n * 1_000
         return n
+    # Estrategia: saca enganche/mensualidad (van pegados a su palabra) y QUÍTALOS del texto; lo que queda es el
+    # precio → así "10-15mdp con mensualidades max 20mil" no confunde el 20mil con el precio.
+    _work = ql
     if "enganche_max" not in filters:
-        # "millones" ANTES que "mil" (alternancia) para que no agarre el prefijo "mil" de "millones".
-        m = _re.search(r"enganche\D{0,22}?(\d[\d,\. ]*)\s*(millones|mill[oó]n|mdp|mil|k)?", ql)
+        m = _re.search(r"enganche\D{0,22}?(\d[\d,\. ]*)\s*(millones|mill[oó]n|mdp|mil|k)?", _work)
         if m:
             v = _money(m.group(1), m.group(2))
             if v > 0:
                 filters["enganche_max"] = int(v)
+            _work = _work.replace(m.group(0), " ")
     if "mensualidad_max" not in filters:
-        # "mensualidades de 10 a 20 mil" → toma el tope (20 mil). "menos de 15 mil" → 15 mil.
-        mm = _re.findall(r"(\d[\d,\. ]*)\s*(mil|k)?", ql[max(0, ql.find("mensualidad")):]) if "mensualidad" in ql else []
-        vals = [_money(a, b) for a, b in mm if a.strip()]
-        vals = [v for v in vals if 1000 <= v <= 1_000_000]
-        if vals:
-            filters["mensualidad_max"] = int(max(vals))
-    if "max_price" not in filters:
-        m = _re.search(r"(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m\b|mp\b)", ql)
-        if m and "enganche" not in ql and "mensualidad" not in ql:
-            filters["max_price"] = int(float(m.group(1)) * 1_000_000)
+        m = _re.search(r"mensualidad\w*\D{0,18}?(\d[\d,\. ]*)\s*(mil|k|mdp)?", _work)
+        if m:
+            v = _money(m.group(1), m.group(2))
+            if 1000 <= v <= 2_000_000:
+                filters["mensualidad_max"] = int(v)
+            _work = _work.replace(m.group(0), " ")
+    # Precio: RANGO ("10-15mdp", "10 a 15 millones", "entre 10 y 15") o tope simple ("hasta 15 millones", "$15M").
+    if "max_price" not in filters and "min_price" not in filters:
+        mr = _re.search(r"(\d+(?:\.\d+)?)\s*(?:-|–|—|a|y)\s*(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m)\b", _work)
+        if mr:
+            lo, hi = float(mr.group(1)), float(mr.group(2))
+            filters["min_price"] = int(min(lo, hi) * 1_000_000)
+            filters["max_price"] = int(max(lo, hi) * 1_000_000)
+        else:
+            ms = _re.search(r"(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m\b|mp\b)", _work)
+            if ms:
+                filters["max_price"] = int(float(ms.group(1)) * 1_000_000)
     if "stage" not in filters:
         if "preventa" in ql:
             filters["stage"] = "preventa"
@@ -1319,7 +1337,19 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
               "roof": ["roof"],
               # Amenidades aspiracionales (taxonomía canónica) — hoy ningún seed las ofrece → se capturan como
               # DEMANDA/hueco ("padel: N pedidos · 0 ofrecen") y el filtro las respeta honesto (0 si nadie la tiene).
-              "cancha_padel": ["padel", "pádel"], "cancha_tenis": ["cancha de tenis", "tenis"], "paneles_solares": ["panel solar", "paneles solares"]}
+              "cancha_padel": ["padel", "pádel"], "cancha_tenis": ["cancha de tenis", "tenis"], "paneles_solares": ["panel solar", "paneles solares"],
+              "asadores": ["asador", "asadores", "parrilla", "parrillas", "bbq"], "jacuzzi": ["jacuzzi"], "sauna": ["sauna"],
+              "alberca_techada": ["alberca techada"], "area_infantil": ["área infantil", "area infantil", "juegos infantiles", "niños"],
+              "cine": ["cine", "sala de cine"], "lavanderia": ["lavandería", "lavanderia"], "elevador": ["elevador", "ascensor"]}
+    # COBERTURA TOTAL: suma todo el catálogo canónico (~55 amenidades) por su nombre legible → reconoce cualquiera
+    # que el dev pueda ofrecer. El LLM (prod) cubre las frases libres; esto es el respaldo determinista.
+    try:
+        from dmx_unit_schema import AMENITY_TAXONOMY as _TAX
+        for _slugs in _TAX.values():
+            for _slug in _slugs:
+                _AM_KW.setdefault(_slug, [_slug.replace("_", " ")])
+    except Exception:
+        pass
     if "unit_feature" not in filters:
         ufh = [s for s, kws in _UF_KW.items() if any(k in ql for k in kws)]
         if ufh:

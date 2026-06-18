@@ -239,11 +239,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     [developments, budgetMax, stages, onlyTrusted]
   );
 
-  // "Los que más se asemejan": si 0 resultados exactos y hay criterios, trae los más cercanos + qué les falta.
+  // "Los que más se asemejan": si 0 resultados exactos, trae los más cercanos + qué les falta. SOLO con ZONA
+  // (no recomendamos en zonas que el cliente no pidió — la zona es sagrada).
   useEffect(() => {
     const merged = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
-    const hasCrit = Object.keys(merged).some((k) => merged[k] != null && merged[k] !== '' && !(Array.isArray(merged[k]) && merged[k].length === 0));
-    if (!loading && visibleDevs.length === 0 && hasCrit) {
+    const tieneZona = !!(coloniaFilter || (filters.colonia || []).length || (aiFilters && aiFilters.colonia));
+    const otrosCrit = Object.keys(merged).filter((k) => k !== 'colonia').some((k) => merged[k] != null && merged[k] !== '' && !(Array.isArray(merged[k]) && merged[k].length === 0));
+    if (!loading && visibleDevs.length === 0 && tieneZona && otrosCrit) {
       fetchCasiCumple(merged).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
     } else {
       setCasiResults([]);
