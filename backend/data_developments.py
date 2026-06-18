@@ -428,11 +428,9 @@ DEVELOPMENTS_RAW = [
 
 def _photo_urls(dev: dict) -> List[str]:
     """Return 6 photo URLs varied by keyword — stable per dev via seed hash.
-    Fuente: loremflickr (carga real + respeta las keywords → la foto coincide con el
-    cuarto, p.ej. bedroom→recámara). Reemplazó source.unsplash.com (API muerta → gradientes).
-    Las keywords se preservan en el path para que el auto-tag (B5.4 Capa 2) siga funcionando.
-    PRODUCCIÓN: cuando el asesor suba fotos reales, estas URLs se reemplazan y la visión IA
-    (tag_with_vision) las etiqueta con precisión."""
+    Fuente: picsum.photos (SIEMPRE devuelve una foto real, determinista por seed → nunca el "rojo"
+    de error de loremflickr). Las keywords se preservan en el query para que el auto-tag (B5.4 Capa 2)
+    siga funcionando. PRODUCCIÓN: cuando el dev/asesor suba fotos reales, estas URLs se reemplazan."""
     themes = [
         ["modern", "apartment", "architecture"],
         ["luxury", "condo", "interior"],
@@ -451,8 +449,8 @@ def _photo_urls(dev: dict) -> List[str]:
     for i in range(6):
         idx = offsets[i] % len(themes)
         keywords = ",".join(themes[idx])
-        lock = (offsets[i] * 7 + i) % 600 + 1  # imagen estable por dev+índice
-        urls.append(f"https://loremflickr.com/1200/800/{keywords}?lock={lock}")
+        seed = f"{dev['id']}-{i}"  # determinista por dev+índice → misma foto siempre, nunca el rojo
+        urls.append(f"https://picsum.photos/seed/{seed}/1200/800?kw={keywords}")
     return urls
 
 
