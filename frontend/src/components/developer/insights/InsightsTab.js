@@ -7,6 +7,7 @@ import InsightsProyecto from './InsightsProyecto';
 import InsightsResumen from './InsightsResumen';
 import InsightsEngagement from './InsightsEngagement';
 import UnitFunnelPanel from './UnitFunnelPanel';
+import ZoneDemandGapPanel from './ZoneDemandGapPanel';
 import InsightsCashFlow from './InsightsCashFlow';
 import InsightsComparables from './InsightsComparables';
 import InsightsIA from './InsightsIA';
@@ -72,6 +73,7 @@ export default function InsightsTab({ projectId, user }) {
         {active === 'engagement'  && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <UnitFunnelPanel projectId={projectId} />
+            <ZoneDemandGapPanel projectId={projectId} />
             <InsightsEngagement projectId={projectId} />
           </div>
         )}

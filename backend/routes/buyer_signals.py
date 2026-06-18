@@ -148,6 +148,40 @@ async def embudo_unidades(dev_id: str, request: Request):
         return {"ok": True, "unidades": []}
 
 
+@router.get("/api/desarrollo/{dev_id}/demanda-zona")
+async def demanda_zona(dev_id: str, request: Request):
+    """UPGRADE cierra-ciclo comprador→dev: HUECOS de producto en la zona de ESTE desarrollo. Búsquedas COMPLETAS de
+    compradores en su colonia que NO encontraron nada que cumpla todo (demanda_insatisfecha) → qué construir / a qué
+    precio. El mismo dato que ve el superadmin, aterrizado a la zona del dev."""
+    try:
+        db = request.app.state.db
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+            d = DEVELOPMENTS_BY_ID.get(dev_id) or {}
+        except Exception:
+            d = {}
+        zona = d.get("colonia_id")
+        if not zona:
+            return {"ok": True, "zona": None, "huecos": []}
+        from collections import Counter
+        groups: dict = {}
+        async for x in db.demanda_insatisfecha.find({"zona": zona}, {"_id": 0, "criterios": 1, "falta_top": 1}):
+            c = x.get("criterios") or {}
+            key = (c.get("beds"), c.get("max_price"), c.get("min_sqm"))
+            g = groups.setdefault(key, {"personas": 0, "falta": Counter()})
+            g["personas"] += 1
+            for f in (x.get("falta_top") or []):
+                g["falta"][f] += 1
+        huecos = [{"recamaras": k[0], "presupuesto_max": k[1], "m2_min": k[2], "personas": g["personas"],
+                   "lo_que_mas_falta": [f for f, _ in g["falta"].most_common(3)]}
+                  for k, g in groups.items()]
+        huecos.sort(key=lambda h: -h["personas"])
+        return {"ok": True, "zona": zona, "zona_nombre": d.get("colonia"), "huecos": huecos[:8]}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] demanda-zona fail: {e}")
+        return {"ok": True, "zona": None, "huecos": []}
+
+
 @router.get("/api/desarrollo/{dev_id}/interes")
 async def interes_desarrollo(dev_id: str, request: Request):
     """Interés PÚBLICO/agregado de un desarrollo (likes + vistas + guardados · k-anon ≥3 para likes/guardados).
