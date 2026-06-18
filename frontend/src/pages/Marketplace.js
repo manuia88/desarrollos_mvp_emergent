@@ -57,6 +57,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [appliedProfile, setAppliedProfile] = useState(null);
   // E2 · gusto: "parecidos a los que te gustaron" (de los likes del visitor · Netflix-style)
   const [parecidos, setParecidos] = useState([]);
+  // E4 · casamentera: lo que el sistema encontró para ti (de tu búsqueda guardada con alerta)
+  const [alertas, setAlertas] = useState([]);
   const navigate = useNavigate();
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
@@ -85,11 +87,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     try { const s = sessionStorage.getItem('dmx_applied_profile'); if (s) setAppliedProfile(JSON.parse(s)); } catch { /* noop */ }
   }, []);
 
-  // E2 · gusto: trae "parecidos a los que te gustaron" (de los likes del visitor). Vacío si aún no likeó nada.
+  // E2 · gusto + E4 · casamentera: trae los parecidos (de tus likes) y las alertas (de tu búsqueda guardada).
   useEffect(() => {
     const API = process.env.REACT_APP_BACKEND_URL;
-    fetch(`${API}/api/buyer/parecidos?visitor_id=${visitorId()}&limit=6`)
+    const vid = visitorId();
+    fetch(`${API}/api/buyer/parecidos?visitor_id=${vid}&limit=6`)
       .then((r) => r.json()).then((d) => setParecidos(d?.parecidos || [])).catch(() => {});
+    fetch(`${API}/api/buyer/alertas?visitor_id=${vid}`)
+      .then((r) => r.json()).then((d) => setAlertas(d?.alertas || [])).catch(() => {});
   }, []);
 
   // W4.2D1 — Hydrate state from URL params on mount
@@ -464,6 +469,21 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         {/* ── Vista Lista ── */}
         {viewMode === 'lista' && (
           <section style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
+            {/* E4 · casamentera: lo que el sistema encontró para ti (de tu búsqueda guardada con alerta) */}
+            {alertas.length > 0 && (
+              <div data-testid="casamentera-alertas" style={{ marginBottom: 26, padding: '16px 18px', borderRadius: 16, background: 'linear-gradient(120deg, rgba(var(--theme-rgb),0.10), rgba(236,72,153,0.08))', border: '1px solid rgba(var(--theme-rgb),0.3)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', marginBottom: 4 }}>🔔 Encontramos {alertas.length} que encaja{alertas.length > 1 ? 'n' : ''} con tu búsqueda</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 12 }}>Apareció inventario que cumple lo que guardaste — míralo antes que nadie.</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {alertas.slice(0, 4).map((a) => (
+                    <Link key={a.dev_id} to={`/desarrollo/${a.dev_id}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', borderRadius: 12, background: '#fff', border: '1px solid var(--border)', textDecoration: 'none' }}>
+                      <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>{a.dev_name}</span>
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>{a.colonia} · {a.price_from_display}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Perfil aplicado: "Tus mejores opciones" arriba (no atrapa · el grid completo sigue abajo) */}
             {appliedProfile && (() => {
               const byId = {}; developments.forEach((d) => { byId[d.id] = d; });

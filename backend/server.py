@@ -1089,6 +1089,13 @@ try:
 except Exception as _exc:  # noqa: BLE001
     logging.warning(f"[copiloto] buyer_signals include failed: {_exc}")
 
+# Copiloto · E4 casamentera proactiva (búsqueda guardada × inventario → alerta comprador + asesor)
+try:
+    from routes.casamentera import router as casamentera_router
+    app.include_router(casamentera_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] casamentera include failed: {_exc}")
+
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router
 app.include_router(public_market_router)
