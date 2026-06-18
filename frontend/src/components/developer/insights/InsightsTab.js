@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import InsightsProyecto from './InsightsProyecto';
 import InsightsResumen from './InsightsResumen';
 import InsightsEngagement from './InsightsEngagement';
+import UnitFunnelPanel from './UnitFunnelPanel';
 import InsightsCashFlow from './InsightsCashFlow';
 import InsightsComparables from './InsightsComparables';
 import InsightsIA from './InsightsIA';
@@ -68,7 +69,12 @@ export default function InsightsTab({ projectId, user }) {
       <div data-testid="insights-subtab-content">
         {active === 'completa'    && <InsightsProyecto projectId={projectId} user={user} />}
         {active === 'resumen'     && <InsightsResumen projectId={projectId} />}
-        {active === 'engagement'  && <InsightsEngagement projectId={projectId} />}
+        {active === 'engagement'  && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <UnitFunnelPanel projectId={projectId} />
+            <InsightsEngagement projectId={projectId} />
+          </div>
+        )}
         {active === 'cashflow'    && <InsightsCashFlow projectId={projectId} />}
         {active === 'comparables' && <InsightsComparables projectId={projectId} />}
         {active === 'inversion'   && (
