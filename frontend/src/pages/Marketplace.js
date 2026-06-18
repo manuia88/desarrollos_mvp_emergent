@@ -17,7 +17,7 @@ import AtlaxBubble from '../components/landing/AtlaxBubble';
 import OportunidadPanel, { applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
-import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
+import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import Perfilador from '../components/marketplace/Perfilador';
 import { visitorId } from '../lib/buyerSignal';
@@ -35,6 +35,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [filters, setFilters] = useState({});
   const [aiFilters, setAiFilters] = useState(null);
   const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
+  const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [aiLoading, setAiLoading] = useState(false);
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
@@ -237,6 +238,17 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     () => applyOportunidadFilters(developments, { budgetMax, stages, onlyTrusted }),
     [developments, budgetMax, stages, onlyTrusted]
   );
+
+  // "Los que más se asemejan": si 0 resultados exactos y hay criterios, trae los más cercanos + qué les falta.
+  useEffect(() => {
+    const merged = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
+    const hasCrit = Object.keys(merged).some((k) => merged[k] != null && merged[k] !== '' && !(Array.isArray(merged[k]) && merged[k].length === 0));
+    if (!loading && visibleDevs.length === 0 && hasCrit) {
+      fetchCasiCumple(merged).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
+    } else {
+      setCasiResults([]);
+    }
+  }, [visibleDevs.length, loading, filters, aiFilters, coloniaFilter]);
 
   const resultsText = useMemo(
     () => t('marketplace_v2.results_count', { count: visibleDevs.length }),
@@ -596,6 +608,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     const zn = (colonias.find((c) => c.id === acid) || {}).name;
                     const extras = [...(filters.amenity || []), ...(filters.unit_feature || []), ...((aiFilters && aiFilters.amenity) || []), ...((aiFilters && aiFilters.unit_feature) || [])];
                     return (
+                      <>
                       <div data-testid="mkp-empty" style={{
                         padding: '48px 32px', textAlign: 'center',
                         background: '#fff', border: '1px dashed var(--border)',
@@ -620,6 +633,29 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); }} className="btn btn-glass">Limpiar búsqueda</button>
                         </div>
                       </div>
+
+                      {/* Los que MÁS se asemejan + qué les falta (la idea del founder: nombrarlos por filtros) */}
+                      {casiResults.length > 0 && (
+                        <div style={{ marginTop: 28 }} data-testid="casi-cumple">
+                          <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Lo más cercano</div>
+                          <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,22px)', color: 'var(--cream)', letterSpacing: '-0.02em', margin: '0 0 16px' }}>
+                            Los que más se asemejan a tu búsqueda
+                          </h3>
+                          <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+                            {casiResults.map((dev, i) => (
+                              <div key={dev.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                <DevelopmentCard dev={dev} index={i} />
+                                {(dev.match_falta || []).length > 0 && (
+                                  <div style={{ marginTop: 8, padding: '8px 11px', borderRadius: 10, background: 'rgba(224,163,62,0.10)', border: '1px solid rgba(224,163,62,0.30)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                                    Cumple <b style={{ color: 'var(--cream)' }}>{dev.match_met}/{dev.match_total}</b> · le falta: <b style={{ color: '#B9822E' }}>{(dev.match_falta || []).join(', ')}</b>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      </>
                     );
                   })()
                 ) : (

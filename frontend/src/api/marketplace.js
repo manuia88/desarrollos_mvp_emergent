@@ -20,6 +20,19 @@ export async function fetchDevelopment(id) {
   return r.json();
 }
 
+// "Los que más se asemejan" — cuando nada cumple TODO, rankea por criterios cumplidos + dice qué falta.
+export async function fetchCasiCumple(filters = {}) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
+    if (Array.isArray(v)) v.forEach((x) => qs.append(k, x));
+    else qs.append(k, v);
+  }
+  const r = await fetch(`${API}/api/developments/casi?${qs.toString()}`);
+  if (!r.ok) return { casi: [] };
+  return r.json();
+}
+
 // ¿Es Buena Compra? — precio justo (AVM) + buen momento (ciclo) + veredicto. Opcional por-unidad.
 export async function fetchBuySignal(devId, unit = {}) {
   const qs = new URLSearchParams();

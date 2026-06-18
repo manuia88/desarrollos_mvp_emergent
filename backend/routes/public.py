@@ -841,6 +841,81 @@ async def list_developments(
     return cards
 
 
+@router.get("/api/developments/casi")
+async def casi_cumple(
+    request: Request,
+    colonia: Optional[List[str]] = Query(None),
+    min_price: Optional[int] = None, max_price: Optional[int] = None,
+    min_sqm: Optional[int] = None, max_sqm: Optional[int] = None,
+    beds: Optional[int] = None, baths: Optional[int] = None, parking: Optional[int] = None,
+    stage: Optional[str] = None, tipo: Optional[str] = None,
+    amenity: Optional[List[str]] = Query(None),
+    unit_feature: Optional[List[str]] = Query(None),
+    orientacion: Optional[List[str]] = Query(None),
+    limit: int = 6,
+):
+    """"Los que MÁS se asemejan": cuando nada cumple TODO, rankea por cuántos criterios cumple y dice QUÉ LE FALTA
+    a cada uno (la idea del founder: nombrarlos por filtros). Honesto — no finge, muestra el más cercano + el gap."""
+    _AML = {"gym": "gimnasio", "alberca": "alberca", "roof": "roof garden", "concierge": "concierge", "pet": "pet friendly",
+            "seguridad": "seguridad", "spa": "spa", "cowork": "coworking", "bicicletas": "biciestacionamiento",
+            "salon_eventos": "salón de eventos", "cava": "cava", "sky_lounge": "sky lounge", "business_center": "business center",
+            "cancha_padel": "cancha de pádel", "cancha_tenis": "cancha de tenis", "paneles_solares": "paneles solares", "jardines": "jardines"}
+    _UFL = {"balcon": "balcón", "terraza": "terraza", "bodega": "bodega", "roof_garden": "roof garden privado"}
+    _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
+    pool = list(DEVELOPMENTS)
+    if colonia:
+        cset = {c.lower() for c in colonia}
+        inzone = [d for d in pool if d["colonia_id"].lower() in cset]
+        pool = inzone if inzone else pool  # si la zona no tiene nada, sugiere de todo el catálogo
+    scored = []
+    for d in pool:
+        units = [u for u in (d.get("units") or []) if u.get("status") == "disponible"]
+        crit = []  # (label_humano, cumple)
+        if stage:
+            crit.append((f"etapa {stage.replace('_', ' ')}", d.get("stage") == stage))
+        if tipo:
+            crit.append((_tmap.get(tipo.lower(), tipo), d.get("property_type") == _tmap.get(tipo.lower(), tipo.lower())))
+        for a in (amenity or []):
+            crit.append((_AML.get(a, a.replace("_", " ")), a in (d.get("amenities") or [])))
+        if beds is not None:
+            crit.append((f"{beds} recámaras", any((u.get("bedrooms") or 0) >= beds for u in units) or (d.get("bedrooms_range", [0, 0])[1] >= beds)))
+        if baths is not None:
+            crit.append((f"{baths} baños", any((u.get("bathrooms") or 0) >= baths for u in units) or (d.get("bathrooms_range", [0, 0])[1] >= baths)))
+        if parking is not None:
+            crit.append((f"{parking} cajones", any((u.get("parking_spots") or 0) >= parking for u in units) or (d.get("parking_range", [0, 0])[1] >= parking)))
+        if max_price is not None:
+            crit.append((f"hasta ${round(max_price/1e6)}M", any((u.get("price") or 10**12) <= max_price for u in units) or (d.get("price_from", 10**12) <= max_price)))
+        if min_price is not None:
+            crit.append((f"desde ${round(min_price/1e6)}M", any((u.get("price") or 0) >= min_price for u in units) or (d.get("price_to", 0) >= min_price)))
+        if min_sqm is not None:
+            crit.append((f"≥{min_sqm}m²", any((u.get("m2_total") or u.get("m2_privative") or 0) >= min_sqm for u in units) or (d.get("m2_range", [0, 0])[1] >= min_sqm)))
+        if max_sqm is not None:
+            crit.append((f"≤{max_sqm}m²", any((u.get("m2_total") or u.get("m2_privative") or 10**9) <= max_sqm for u in units) or (d.get("m2_range", [0, 0])[0] <= max_sqm)))
+        for f in (unit_feature or []):
+            crit.append((_UFL.get(f, f), any(u.get(f) for u in units) or (f in (d.get("unit_features") or []))))
+        for o in (orientacion or []):
+            crit.append((f"orientación {o}", any((u.get("orientation") or "").lower() == o.lower() for u in units)))
+        if not crit:
+            continue
+        met = sum(1 for _, ok in crit if ok)
+        scored.append({"d": d, "met": met, "total": len(crit), "falta": [l for l, ok in crit if not ok]})
+    # rankea: más criterios cumplidos primero; descarta los que no cumplen casi nada
+    scored = [s for s in scored if s["met"] > 0]
+    scored.sort(key=lambda s: (-s["met"], len(s["falta"])))
+    top = scored[:limit]
+    cards = await _enrich_listing(request.app.state.db, [s["d"] for s in top])
+    by_id = {c.get("id"): c for c in cards}
+    out = []
+    for s in top:
+        c = by_id.get(s["d"]["id"])
+        if c:
+            c["match_met"] = s["met"]
+            c["match_total"] = s["total"]
+            c["match_falta"] = s["falta"]
+            out.append(c)
+    return {"casi": out}
+
+
 @router.get("/api/developments/{dev_id}")
 async def get_development(dev_id: str, request: Request):
     db = request.app.state.db
