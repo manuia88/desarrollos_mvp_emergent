@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
-import { sendBuyerSignal, fetchInteres } from '../lib/buyerSignal';
+import { sendBuyerSignal, fetchInteres, visitorId } from '../lib/buyerSignal';
 import { readMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
 import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
@@ -214,6 +214,21 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     setGateContext(ctx || null);
     setGateOpen(true);
   };
+
+  // ALTO INTENTO: si el comprador se logueó tras abrir un gate (agendar/contactar/cotizar/desbloquear), se vuelve
+  // lead con su perfil (usa el email del usuario + su visitor_id). El login casual del header NO pasa por aquí.
+  const [promoted, setPromoted] = useState(false);
+  useEffect(() => {
+    if (user && gateContext && !promoted) {
+      setPromoted(true);
+      setGateOpen(false);
+      const API = process.env.REACT_APP_BACKEND_URL;
+      fetch(`${API}/api/buyer/promote`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitor_id: visitorId(), dev_id: dev?.id, source: `ficha_${(gateContext && gateContext.source) || 'gate'}` }),
+      }).catch(() => {});
+    }
+  }, [user, gateContext, promoted, dev]);
 
   if (!dev) {
     return (

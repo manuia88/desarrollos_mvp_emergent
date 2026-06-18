@@ -301,6 +301,31 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
     return lead_id, house_inm
 
 
+class PromoteIn(BaseModel):
+    visitor_id: str
+    dev_id: Optional[str] = None
+    source: str = "ficha_alto_intento"
+
+
+@router.post("/api/buyer/promote")
+async def promote_buyer(b: PromoteIn, request: Request):
+    """ALTO INTENTO vía login: tras autenticarse en un gate de la ficha (agendar/contactar/cotizar/desbloquear), el
+    comprador se vuelve lead con su perfil — usa el email/nombre del USUARIO autenticado + su visitor_id. Idempotente
+    (create_buyer_lead dedup por visitor). No crea lead si no hay sesión (login casual del header no pasa por aquí)."""
+    try:
+        from server import get_current_user
+        u = await get_current_user(request)
+        if not u:
+            return {"ok": False, "error": "no auth"}
+        db = request.app.state.db
+        lead_id, _ = await create_buyer_lead(db, b.visitor_id, name=getattr(u, "name", None),
+                                             email=getattr(u, "email", None), dev_id=b.dev_id, source=b.source)
+        return {"ok": True, "lead_id": lead_id}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] promote fail: {e}")
+        return {"ok": False}
+
+
 @router.post("/api/buyer/registrar")
 async def registrar_lead(b: RegistrarLeadIn, request: Request):
     """E3 · El comprador deja sus datos en un momento de ALTO INTENTO → crea/actualiza el lead (wrapper sobre
