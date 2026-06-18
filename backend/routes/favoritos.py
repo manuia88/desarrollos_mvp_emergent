@@ -129,7 +129,9 @@ async def pedir_cita(b: CitaIn, request: Request):
             {"visitor_id": b.visitor_id, "dev_id": b.dev_id},
             {"$set": {"cita": cita_txt, "unidad_cita": b.unit_number, "status": "cita", "updated_at_dt": now}}, upsert=True)
         # Si ya es lead → al tablero del asesor (asesor_lead_properties) + rastro en su timeline. Las dos caras.
-        if b.lead_id:
+        # SEGURIDAD: solo si el lead_id es REALMENTE de este visitante (si no, cualquiera escribiría en el tablero
+        # del asesor de otro lead pasando un lead_id ajeno).
+        if b.lead_id and await db.leads.find_one({"id": b.lead_id, "visitor_id": b.visitor_id}, {"_id": 1}):
             await _push_to_asesor_board(db, b.lead_id, b.dev_id, status="cita", client_cita=cita_txt)
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
@@ -152,7 +154,8 @@ async def dejar_nota(b: NotaIn, request: Request):
         await db.buyer_favoritos.update_one(
             {"visitor_id": b.visitor_id, "dev_id": b.dev_id},
             {"$set": {"nota": b.text[:400], "updated_at_dt": datetime.utcnow()}}, upsert=True)
-        if b.lead_id:
+        # SEGURIDAD: solo espeja al tablero si el lead_id es de este visitante (no aceptar lead_id ajeno).
+        if b.lead_id and await db.leads.find_one({"id": b.lead_id, "visitor_id": b.visitor_id}, {"_id": 1}):
             await _push_to_asesor_board(db, b.lead_id, b.dev_id, client_note=b.text[:400])
         return {"ok": True}
     except Exception as e:  # noqa: BLE001

@@ -66,6 +66,7 @@ class SaveSearchRequest(BaseModel):
     email: str
     filters: Dict[str, Any] = Field(default_factory=dict)
     alert_frequency: str = "weekly"
+    visitor_id: Optional[str] = None   # liga la búsqueda guardada al visitante → la casamentera la puede usar
 
 
 # ─── URL search helpers ───────────────────────────────────────────────────────
@@ -240,6 +241,42 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
         ip_hash=ip_hash,
         user_id=user_id_link,
     )
+
+    # Reconecta la CASAMENTERA: la búsqueda guardada también vive en marketplace_searches con alert=True (la colección
+    # que escanea correr_casamentera). Antes "guardar búsqueda" solo iba a saved_searches (email) y la casamentera
+    # nunca veía nada → las alertas "te avisamos cuando entre inventario" jamás se disparaban. Mapea las claves del
+    # marketplace a las planas que espera el matcher (_profile_from_search / _matching_units).
+    try:
+        from datetime import datetime as _dt
+        f = body.filters or {}
+        def _num(x):
+            try:
+                return int(x)
+            except Exception:
+                return None
+        _col = f.get("colonia")
+        sdoc = {
+            "alert": True,
+            "visitor_id": body.visitor_id,
+            "email": email,
+            "saved_search_id": result.get("search_id"),
+            "colonias": _col if isinstance(_col, list) else ([_col] if _col else []),
+            "precio_max": _num(f.get("max_price")),
+            "recamaras_min": _num(f.get("beds")),
+            "banos_min": _num(f.get("baths")),
+            "estacionamientos_min": _num(f.get("parking")),
+            "m2_min": _num(f.get("min_sqm")),
+            "m2_max": _num(f.get("max_sqm")),
+            "stages": [f["stage"]] if f.get("stage") else [],
+            "plazo": f.get("plazo") or "cualquiera",
+            "features_pedidos": f.get("unit_feature") or [],
+            "source": "saved_search",
+            "created_at_dt": _dt.utcnow(),
+        }
+        key = {"saved_search_id": result["search_id"]} if result.get("search_id") else {"email": email, "alert": True}
+        await db.marketplace_searches.update_one(key, {"$set": sdoc}, upsert=True)
+    except Exception as _e:
+        log.warning(f"[saved-search] casamentera link skip: {_e}")
 
     return result
 

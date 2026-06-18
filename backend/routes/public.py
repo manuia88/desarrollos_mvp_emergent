@@ -99,6 +99,28 @@ def _norm_stage(s, delivery=None):
     return "preventa"
 
 
+def _plazo_ok(delivery, plazo):
+    """¿La fecha de entrega cae en el bucket de plazo pedido? (solo aplica a preventa) menos_3/3_6/6_12/mas_12."""
+    if not plazo:
+        return True
+    import re as _re
+    from datetime import datetime as _dt
+    m = _re.match(r"(\d{4})-(\d{1,2})", str(delivery or ""))
+    if not m:
+        return False
+    now = _dt.utcnow()
+    months = (int(m.group(1)) - now.year) * 12 + (int(m.group(2)) - now.month)
+    if plazo == "menos_3":
+        return 0 < months <= 3
+    if plazo == "3_6":
+        return 3 < months <= 6
+    if plazo == "6_12":
+        return 6 < months <= 12
+    if plazo == "mas_12":
+        return months > 12
+    return True
+
+
 async def _enrich_listing(db, devs: list) -> list:
     """Enriquece las tarjetas del listado con dato FRESCO del dev, en BATCH (3 queries con $in ·
     no llamada por-item · ruta caliente). Cierra el ciclo: lo que el dev edita (precio/unidades/
@@ -682,6 +704,7 @@ async def list_developments(
     baths: Optional[int] = None,
     parking: Optional[int] = None,
     stage: Optional[str] = None,
+    plazo: Optional[str] = None,
     tipo: Optional[str] = None,
     alcaldia: Optional[str] = None,
     unit_feature: Optional[List[str]] = Query(None),
@@ -703,6 +726,8 @@ async def list_developments(
     # ── Filtros a nivel PROYECTO (del DESARROLLO): zona, etapa, tipo, alcaldía, AMENIDADES del edificio, destacado ──
     if stage:
         results = [d for d in results if _norm_stage(d["stage"], d.get("delivery_estimate")) == stage]
+    if plazo:  # plazo de entrega (solo preventa) — antes se mandaba y se ignoraba (cable muerto)
+        results = [d for d in results if _plazo_ok(d.get("delivery_estimate"), plazo)]
     if tipo:
         _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
         _want = _tmap.get(tipo.lower(), tipo.lower())

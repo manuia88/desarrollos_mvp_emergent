@@ -11,17 +11,22 @@
  */
 import React, { useState } from 'react';
 import { saveSearch } from '../../api/marketplace';
+import { visitorId } from '../../lib/buyerSignal';
 import { X, Bell } from '../icons';
 import { Z } from '../../styles/zIndex';
 import { tc } from '../../lib/titleCase';
 
 function FiltersPreview({ filters }) {
+  // Lee las MISMAS claves que usa el marketplace (antes leía price_max/zona/recamaras_min → preview vacío).
   const parts = [];
-  if (filters?.colonia) parts.push(`Colonia: ${filters.colonia}`);
-  if (filters?.zona) parts.push(`Zona: ${filters.zona}`);
+  const cols = filters?.colonia;
+  if (Array.isArray(cols) && cols.length) parts.push(`${cols.length === 1 ? 'Zona' : 'Zonas'}: ${cols.length}`);
+  else if (typeof cols === 'string' && cols) parts.push(`Zona: ${cols}`);
   if (filters?.tipo) parts.push(`Tipo: ${filters.tipo}`);
-  if (filters?.price_max) parts.push(`Hasta $${(filters.price_max / 1_000_000).toFixed(1)}M`);
-  if (filters?.recamaras_min) parts.push(`${filters.recamaras_min}+ rec.`);
+  if (filters?.max_price) parts.push(`Hasta $${(filters.max_price / 1_000_000).toFixed(1)}M`);
+  if (filters?.min_price) parts.push(`Desde $${(filters.min_price / 1_000_000).toFixed(1)}M`);
+  if (filters?.beds) parts.push(`${filters.beds}+ rec.`);
+  if (filters?.min_sqm) parts.push(`${filters.min_sqm}+ m²`);
 
   if (!parts.length) return null;
 
@@ -73,7 +78,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
     setLoading(true);
     setError(null);
     try {
-      await saveSearch(email.trim(), mergedFilters, frequency);
+      await saveSearch(email.trim(), mergedFilters, frequency, visitorId());
       setSuccess(true);
     } catch (err) {
       setError(err?.message || 'Error al guardar la búsqueda. Intenta de nuevo.');

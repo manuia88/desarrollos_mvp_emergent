@@ -206,11 +206,11 @@ export async function parseExternalUrl(url) {
   return data;
 }
 
-export async function saveSearch(email, filters, alertFrequency = 'weekly') {
+export async function saveSearch(email, filters, alertFrequency = 'weekly', visitorId = null) {
   const r = await fetch(`${API}/api/public/saved-search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, filters, alert_frequency: alertFrequency }),
+    body: JSON.stringify({ email, filters, alert_frequency: alertFrequency, visitor_id: visitorId }),
   });
   if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
   const data = await r.json();

@@ -109,7 +109,15 @@ async def correr_casamentera(db, dev_ids=None):
 
 @router.post("/api/casamentera/correr")
 async def correr(request: Request):
-    """Dispara la casamentera (demo/cron). En prod se llamaría al entrar/bajar de precio un desarrollo."""
+    """Dispara la casamentera (cron/interno). En prod se llamaría al entrar/bajar de precio un desarrollo.
+    SEGURIDAD: dispara WhatsApp REAL (costo + molestia al cliente). Es público de ruta pero requiere token interno
+    (x-cron-token == CASAMENTERA_CRON_TOKEN). Fail-CLOSED: si el token no está configurado, NO corre (evita que
+    cualquiera en internet lo abuse para mandar WhatsApp masivos)."""
+    import os
+    from fastapi import HTTPException
+    expected = os.environ.get("CASAMENTERA_CRON_TOKEN")
+    if not expected or request.headers.get("x-cron-token") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
     try:
         db = request.app.state.db
         n = await correr_casamentera(db)
