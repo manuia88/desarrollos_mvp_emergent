@@ -150,6 +150,21 @@ export default function GustoMercado({ filters }) {
                 </div>
               </div>
 
+              {/* Huecos de producto EXACTO (demanda insatisfecha) — cierra ciclo comprador → dev */}
+              {(cube.demanda_granular.demanda_insatisfecha || []).length > 0 && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+                  <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>🧩 Huecos de producto exacto <span style={{ fontWeight: 400 }}>(buscaron esto en zona que SÍ cubrimos y no hay nada → qué construir/precio)</span></div>
+                  {(cube.demanda_granular.demanda_insatisfecha || []).slice(0, 6).map((h, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '3px 0' }}>
+                      <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{String(h.zona || '').replace(/-/g, ' ')}</b>
+                      {h.recamaras ? ` · ${h.recamaras} rec` : ''}{h.presupuesto_max ? ` · ≤$${Math.round(h.presupuesto_max / 1e6)}M` : ''}{h.m2_min ? ` · ≥${h.m2_min}m²` : ''}
+                      {' · '}<b style={{ color: GREEN }}>{h.personas}</b> {h.personas === 1 ? 'persona' : 'personas'}
+                      {(h.lo_que_mas_falta || []).length > 0 && <span style={mute}> · lo que más falta: {(h.lo_que_mas_falta || []).join(', ')}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Intención + frases crudas (cómo habla la gente) */}
               {cube.demanda_granular.intencion && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>

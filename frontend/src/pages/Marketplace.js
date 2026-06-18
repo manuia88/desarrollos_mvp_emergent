@@ -289,7 +289,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   useEffect(() => {
     const merged = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
     if (!loading && canSearch && visibleDevs.length === 0) {
-      fetchCasiCumple(merged).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
+      // visitor_id → el backend capta esta búsqueda completa SIN match exacto como "demanda insatisfecha" (hueco de
+      // producto en zona que SÍ cubrimos) para el dev/superadmin. Cierra ciclo comprador → desarrollador.
+      fetchCasiCumple({ ...merged, visitor_id: visitorId() }).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
       // C · conteo predictivo: por cada extra (amenidad/feature), cuántas opciones EXACTAS si lo quitas.
       const extrasNow = [...new Set([...(merged.amenity || []), ...(merged.unit_feature || [])])];
       if (extrasNow.length) {

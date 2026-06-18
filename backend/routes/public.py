@@ -915,6 +915,7 @@ async def casi_cumple(
     amenity: Optional[List[str]] = Query(None),
     unit_feature: Optional[List[str]] = Query(None),
     orientacion: Optional[List[str]] = Query(None),
+    visitor_id: Optional[str] = None,
     limit: int = 6,
 ):
     """"Los que MÁS se asemejan": cuando nada cumple TODO, rankea por cuántos criterios cumple y dice QUÉ LE FALTA
@@ -977,6 +978,32 @@ async def casi_cumple(
             c["match_total"] = s["total"]
             c["match_falta"] = s["falta"]
             out.append(c)
+    # CIERRA CICLO comprador → desarrollador: una búsqueda COMPLETA en zona que SÍ cubrimos pero donde NADA cumple
+    # todo = HUECO DE PRODUCTO exacto. Lo captamos (dedup por visitor+criterios+día, no infla por re-render) para que
+    # el dev/superadmin vea "X personas buscaron esto exacto en tu zona y no hay nada". Fire-and-forget.
+    if colonia:
+        try:
+            from collections import Counter as _C
+            import json as _json, hashlib as _hl
+            _falta = _C()
+            for s in scored[:limit]:
+                for fl in (s.get("falta") or []):
+                    _falta[fl] += 1
+            crit = {"colonias": list(colonia), "beds": beds, "max_price": max_price, "min_price": min_price,
+                    "min_sqm": min_sqm, "max_sqm": max_sqm, "amenity": list(amenity or []),
+                    "unit_feature": list(unit_feature or []), "stage": stage, "tipo": tipo}
+            sig = _hl.md5(_json.dumps(crit, sort_keys=True, default=str).encode()).hexdigest()[:16]
+            day = datetime.utcnow().strftime("%Y-%m-%d")
+            dedup = f"{visitor_id or 'anon'}|{sig}|{day}"
+            await request.app.state.db.demanda_insatisfecha.update_one(
+                {"dedup": dedup},
+                {"$setOnInsert": {"dedup": dedup, "visitor_id": visitor_id, "criterios": crit,
+                                  "zona": (colonia[0] if colonia else None), "created_at_dt": datetime.utcnow()},
+                 "$set": {"falta_top": [f for f, _ in _falta.most_common(3)],
+                          "best_met": (top[0]["met"] if top else 0), "best_total": (top[0]["total"] if top else 0)}},
+                upsert=True)
+        except Exception:
+            pass
     return {"casi": out}
 
 

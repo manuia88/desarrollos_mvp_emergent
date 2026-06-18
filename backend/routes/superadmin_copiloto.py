@@ -132,6 +132,28 @@ async def buyer_cycle_intel(db, dias: int = 30):
     cede = await _agg(db.buyer_elasticidad, [
         {"$match": F}, {"$group": {"_id": "$cedio", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 10},
     ])
+    # Demanda INSATISFECHA: búsqueda COMPLETA en zona que SÍ cubrimos pero sin nada que cumpla todo = hueco de
+    # producto EXACTO (cierra ciclo comprador → dev). Agrupa por zona+recámaras+presupuesto+m².
+    from collections import Counter as _Cnt
+    insatisf_raw = await _agg(db.demanda_insatisfecha, [
+        {"$match": F},
+        {"$group": {"_id": {"zona": "$zona", "beds": "$criterios.beds", "max_price": "$criterios.max_price",
+                            "min_sqm": "$criterios.min_sqm"},
+                    "personas": {"$sum": 1}, "falta": {"$push": "$falta_top"}}},
+        {"$sort": {"personas": -1}}, {"$limit": 10},
+    ])
+    demanda_insatisfecha = []
+    for g in insatisf_raw:
+        _cnt = _Cnt()
+        for sub in (g.get("falta") or []):
+            for x in (sub or []):
+                _cnt[x] += 1
+        k = g.get("_id") or {}
+        demanda_insatisfecha.append({
+            "zona": k.get("zona"), "recamaras": k.get("beds"), "presupuesto_max": k.get("max_price"),
+            "m2_min": k.get("min_sqm"), "personas": g["personas"],
+            "lo_que_mas_falta": [f for f, _ in _cnt.most_common(3)],
+        })
 
     return {
         "ventana_dias": dias,
@@ -169,7 +191,8 @@ async def buyer_cycle_intel(db, dias: int = 30):
                                               if (_oferta_min.get(w["_id"]) and w.get("presup_prom") and _oferta_min[w["_id"]] > w["presup_prom"])
                                               else "tu precio de entrada cae dentro de lo que buscan")} for w in wtp],
             "elasticidad_en_que_ceden": [{"cedio": c["_id"], "veces": c["n"]} for c in cede],
-            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. disposicion_pago = presupuesto buscado vs precio de entrada del dev por zona.",
+            "demanda_insatisfecha": demanda_insatisfecha,
+            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. disposicion_pago = presupuesto buscado vs precio de entrada del dev por zona. demanda_insatisfecha = búsquedas EXACTAS en zona cubierta sin nada que cumpla = qué producto falta (recámaras+presupuesto+m² + lo que más falta).",
         },
         "es_estimado": busquedas < 30,
         "data_source": "espinazo Copiloto (marketplace_searches + buyer_signals + leads)",
