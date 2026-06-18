@@ -189,4 +189,8 @@ async def recomendar(p: PerfilIn, request: Request):
     # Primero las de match EXACTO (no ampliadas), luego por score.
     results.sort(key=lambda r: (r.get("ampliado", False), -r.get("match_score", 0)))
     results = results[: max(p.limit, 8)]
-    return {"ok": True, "total": len(results), "ampliado": ampliado, "nota": nota, "perfil": p.model_dump(), "resultados": results}
+    # Honestidad: si no eligió zona, decirlo explícito (la ubicación es lo más importante; no mostrar "al azar").
+    sin_zona = not p.colonias
+    if sin_zona and not nota:
+        nota = "No elegiste una zona, así que te sugerimos las mejores de la ciudad para tu perfil. Elige una zona para afinar."
+    return {"ok": True, "total": len(results), "ampliado": ampliado, "sin_zona": sin_zona, "nota": nota, "perfil": p.model_dump(), "resultados": results}

@@ -133,27 +133,15 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
         </>
       )}
     </div>,
-    // 3 · ¿Qué necesitas?
+    // 3 · ¿DÓNDE? (la ubicación es lo más importante → primero y prominente) + el espacio
     <div key="3">
-      <div style={qTitle}>¿Qué necesitas?</div>
-      <div style={qSub}>Lo esencial. El resto lo afinamos viendo opciones.</div>
-      {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['banos_min', 'Baños (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
-        <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>{label}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={() => set({ [key]: Math.max(mn, p[key] - 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>−</button>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', minWidth: 18, textAlign: 'center' }}>{p[key]}{['recamaras_min', 'banos_min'].includes(key) ? '+' : ''}</span>
-            <button onClick={() => set({ [key]: Math.min(mx, p[key] + 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>+</button>
-          </div>
-        </div>
-      ))}
-      {/* Zona — buscador ABIERTO sobre todas las colonias reales (la ubicación es lo más importante;
-          limitar a una lista rompería la búsqueda). Escribe y elige; varias permitidas. */}
-      <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', margin: '18px 0 9px' }}>¿Alguna zona en mente? <span style={{ color: 'var(--cream-3)' }}>(opcional · escribe y elige)</span></div>
+      <div style={qTitle}>¿En qué zona?</div>
+      <div style={qSub}>La ubicación es lo más importante. Elige una o varias zonas — o deja que te sugiramos las mejores para tu perfil.</div>
+      {/* Zona — buscador ABIERTO sobre todas las colonias reales (escribe y elige; varias permitidas). */}
       {p.colonias.length > 0 && (
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 10 }}>
           {p.colonias.map((z) => (
-            <span key={z} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999, background: 'var(--theme)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13 }}>
+            <span key={z} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 9999, background: 'var(--theme)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5 }}>
               {z}<span onClick={() => toggle('colonias', z)} style={{ cursor: 'pointer', fontWeight: 800, opacity: 0.85 }}>×</span>
             </span>
           ))}
@@ -165,7 +153,7 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
           value={zoneQuery}
           onChange={(e) => setZoneQuery(e.target.value)}
           placeholder="Busca una colonia o zona… (ej. Roma Norte, Del Valle)"
-          style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '13px 15px', borderRadius: 12, border: '1.5px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }}
         />
         {zoneSug.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, background: '#fff', border: '1px solid var(--border)', borderRadius: 11, boxShadow: '0 10px 30px rgba(16,18,28,0.14)', zIndex: 5, overflow: 'hidden' }}>
@@ -178,6 +166,23 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
           </div>
         )}
       </div>
+      {p.colonias.length === 0 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--border)', marginTop: 12 }}>
+          <span>🧭</span><span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>¿No tienes zona definida? Está bien — te sugerimos las <b>mejores de la ciudad para tu perfil</b>.</span>
+        </div>
+      )}
+      {/* El espacio */}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream-2)', margin: '22px 0 4px' }}>Y el espacio que necesitas</div>
+      {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['banos_min', 'Baños (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
+        <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>{label}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => set({ [key]: Math.max(mn, p[key] - 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>−</button>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', minWidth: 18, textAlign: 'center' }}>{p[key]}{['recamaras_min', 'banos_min'].includes(key) ? '+' : ''}</span>
+            <button onClick={() => set({ [key]: Math.min(mx, p[key] + 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>+</button>
+          </div>
+        </div>
+      ))}
     </div>,
     // 4 · resultados
     <div key="4">
