@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, Search, Sparkle } from '../icons';
 import { Z } from '../../styles/zIndex';
 
-function Popover({ label, testId, children, badge, onClear, align = 'left', width = 280 }) {
+function Popover({ label, testId, children, badge, onClear, align = 'left', width = 280, openToken = 0 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -13,6 +13,18 @@ function Popover({ label, testId, children, badge, onClear, align = 'left', widt
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
+
+  // Abrir desde fuera (la guía "lo que falta" pide abrir este filtro). openToken cambia → abre + enfoca.
+  useEffect(() => {
+    if (openToken) {
+      setOpen(true);
+      const el = ref.current;
+      if (el) {
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch { /* noop */ }
+        setTimeout(() => { const inp = el.querySelector('input'); if (inp) inp.focus(); }, 120);
+      }
+    }
+  }, [openToken]);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -69,7 +81,9 @@ function Popover({ label, testId, children, badge, onClear, align = 'left', widt
   );
 }
 
-export default function TopFilters({ colonias, filters, setFilters, sort, setSort, onAIQuery, aiLoading, aiFilters, onAIClear }) {
+export default function TopFilters({ colonias, filters, setFilters, sort, setSort, onAIQuery, aiLoading, aiFilters, onAIClear, openKey = null, openNonce = 0 }) {
+  // La guía "lo que falta" pide abrir un filtro concreto: openKey = testId del Popover, openNonce sube cada pedido.
+  const ot = (k) => (openKey === k ? openNonce : 0);
   const { t, i18n } = useTranslation();
   const [aiText, setAiText] = useState('');
   const [locQuery, setLocQuery] = useState('');   // Ubicación · buscador abierto (no lista fija)
@@ -180,6 +194,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         <Popover
           label={t('marketplace_v2.filter_location')}
           testId="filter-location"
+          openToken={ot('filter-location')}
           badge={(filters.colonia || []).length}
           onClear={() => { set('colonia', []); setLocQuery(''); }}>
           <div style={{ width: 250 }}>
@@ -249,6 +264,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         <Popover
           label={t('marketplace_v2.filter_price')}
           testId="filter-price"
+          openToken={ot('filter-price')}
           badge={filters.min_price || filters.max_price ? 1 : 0}
           onClear={() => setFilters({ ...filters, min_price: undefined, max_price: undefined })}>
           <div style={{ width: 240 }}>
@@ -271,6 +287,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         <Popover
           label={t('marketplace_v2.filter_beds')}
           testId="filter-beds"
+          openToken={ot('filter-beds')}
           badge={filters.beds ? 1 : 0}
           onClear={() => set('beds', undefined)}>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -292,6 +309,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         {/* Más filtros · dropdown ANCLADO content-sized (no drawer que se corta) · alineado a la derecha */}
         <Popover
           label="Más filtros"
+          openToken={ot('filter-more')}
           testId="filter-more"
           align="right"
           width={380}

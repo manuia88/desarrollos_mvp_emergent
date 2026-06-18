@@ -15,12 +15,11 @@ import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
 import OportunidadPanel, { applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
-import { Camera, ExternalLink, Bell, Sparkle } from '../components/icons';
+import { Camera, ExternalLink, Bell } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
-import Perfilador from '../components/marketplace/Perfilador';
 import { visitorId } from '../lib/buyerSignal';
 import { useNavigate } from 'react-router-dom';
 // W4.2D1 — URL state sync helpers
@@ -55,10 +54,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   // Batch 26 — Lead-capture tools
   const [quizOpen, setQuizOpen] = useState(false);
-  // Copiloto de Compra E1 — Perfilador (reemplaza "Mi colonia ideal" · dedup de captura de perfil)
-  const [perfiladorOpen, setPerfiladorOpen] = useState(false);
-  // Perfil aplicado a la página (no atrapa en el modal · el grid se personaliza · siempre se puede quitar)
-  const [appliedProfile, setAppliedProfile] = useState(null);
   // E2 · gusto: "parecidos a los que te gustaron" (de los likes del visitor · Netflix-style)
   const [parecidos, setParecidos] = useState([]);
   // E4 · casamentera: lo que el sistema encontró para ti (de tu búsqueda guardada con alerta)
@@ -84,11 +79,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   useEffect(() => {
     document.body.classList.add('public-light');
     return () => document.body.classList.remove('public-light');
-  }, []);
-
-  // Restaura el perfil aplicado al volver de una ficha (el componente se re-monta) → no se pierden las opciones.
-  useEffect(() => {
-    try { const s = sessionStorage.getItem('dmx_applied_profile'); if (s) setAppliedProfile(JSON.parse(s)); } catch { /* noop */ }
   }, []);
 
   // E2 · gusto + E4 · casamentera: trae los parecidos (de tus likes) y las alertas (de tu búsqueda guardada).
@@ -248,15 +238,19 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const hasRecamaras = !!(filters.beds || (aiFilters && aiFilters.beds));
   const hasMetraje = !!(filters.min_sqm || filters.max_sqm || (aiFilters && (aiFilters.min_sqm || aiFilters.max_sqm)));
   const requiredFields = [
-    { label: 'zona', ok: hasZona },
-    { label: 'presupuesto', ok: hasPrecio },
-    { label: 'recámaras', ok: hasRecamaras },
-    { label: 'metros (m²)', ok: hasMetraje },
+    { label: 'zona', ok: hasZona, fkey: 'filter-location', pregunta: '¿En qué zona?' },
+    { label: 'presupuesto', ok: hasPrecio, fkey: 'filter-price', pregunta: '¿Cuánto quieres invertir?' },
+    { label: 'recámaras', ok: hasRecamaras, fkey: 'filter-beds', pregunta: '¿Cuántas recámaras?' },
+    { label: 'metros (m²)', ok: hasMetraje, fkey: 'filter-more', pregunta: '¿Cuántos m²?' },
   ];
   const canSearch = requiredFields.every((f) => f.ok);
+  // Buscador unificado: la guía "lo que falta" abre el dropdown correcto (UN solo set de controles, sin formulario aparte).
+  const [openKey, setOpenKey] = useState(null);
+  const [openNonce, setOpenNonce] = useState(0);
+  const abrirFiltro = (k) => { setOpenKey(k); setOpenNonce((n) => n + 1); };
   const [browseAll, setBrowseAll] = useState(false);   // "Ver todos los desarrollos" — explora sin los 4 obligatorios
-  // Muestra el grid si: busca con los 4 datos · explora todo · O ya aplicó un perfil (el perfilador recabó los datos).
-  const showResults = canSearch || browseAll || !!appliedProfile;
+  // Muestra el grid si: ya están los 4 datos (por barra IA o filtros) · o eligió explorar todo el catálogo.
+  const showResults = canSearch || browseAll;
 
   // C · Elasticidad: el comprador relaja UN criterio (lo que está dispuesto a ceder) → se quita + se CAPTURA.
   const EXTRA_LABEL = { balcon: 'balcón', terraza: 'terraza', roof_garden: 'roof garden', bodega: 'bodega', estacionamiento_independiente: 'cajón independiente', pet_friendly: 'pet friendly', gym: 'gimnasio', alberca: 'alberca', spa: 'spa', cancha_padel: 'cancha de pádel', cancha_tenis: 'cancha de tenis', asadores: 'asadores', concierge: 'concierge', seguridad: 'seguridad', cowork: 'coworking', roof: 'roof garden (común)', sky_lounge: 'sky lounge', cine: 'cine', paneles_solares: 'paneles solares', elevador: 'elevador' };
@@ -377,23 +371,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               >
                 <ExternalLink size={14} /> Buscar por URL
               </button>
-              {/* Copiloto E1 — Perfilador (CTA primario · reemplaza "Mi colonia ideal") */}
-              <button
-                data-testid="quiz-trigger"
-                onClick={() => setPerfiladorOpen(true)}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: 9999,
-                  background: 'var(--theme)',
-                  border: '1px solid var(--theme)',
-                  color: '#fff',
-                  fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 7,
-                }}
-              >
-                <Sparkle size={14} /> Encuentra tu lugar
-              </button>
+              {/* "Encuentra tu lugar" suelto RETIRADO: la barra de búsqueda + las preguntas "lo que falta" son la
+                  entrada única (el Perfilador se fundió ahí). Sin botón duplicado que lleve a otro lado. */}
               {/* W4.18.2A — Ver en mapa (Mapa Cerebro Espacial DMX) */}
               <Link
                 to="/mapa"
@@ -475,6 +454,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
                 onAIClear={() => { setAiFilters(null); setAiNotice(null); }}
+                openKey={openKey}
+                openNonce={openNonce}
               />
               {/* Honestidad de zona: pediste un lugar que no cubrimos → te lo decimos (no fingimos otra zona). */}
               {aiNotice && (
@@ -530,50 +511,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 </div>
               </div>
             )}
-            {/* Perfil aplicado: "Tus mejores opciones" arriba (no atrapa · el grid completo sigue abajo) */}
-            {appliedProfile && (() => {
-              const byId = {}; developments.forEach((d) => { byId[d.id] = d; });
-              const picks = (appliedProfile.results || []).map((r) => ({ dev: byId[r.id], r })).filter((x) => x.dev);
-              const zonas = (appliedProfile.colonias || []).join(' · ');
-              return (
-                <div data-testid="perfil-picks" style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-                    <div>
-                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Tu búsqueda personalizada{zonas ? ` · ${zonas}` : ''}</div>
-                      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,28px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: 0 }}>Tus mejores opciones</h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => setPerfiladorOpen(true)} data-testid="ajustar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--theme)', background: 'rgba(var(--theme-rgb),0.06)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>Ajustar mi búsqueda</button>
-                      <button onClick={() => { setAppliedProfile(null); setBrowseAll(true); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo el marketplace</button>
-                    </div>
-                  </div>
-                  {appliedProfile.nota && (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 18 }}>
-                      <span>💡</span><span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{appliedProfile.nota}</span>
-                    </div>
-                  )}
-                  {picks.length === 0 ? (
-                    <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)' }}>
-                      No hay desarrollos con esos filtros. <button onClick={() => setPerfiladorOpen(true)} style={{ border: 'none', background: 'none', color: 'var(--theme)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Ajusta tu búsqueda</button>.
-                    </div>
-                  ) : (
-                    <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                      {picks.map(({ dev, r }, i) => (
-                        <div key={dev.id} style={{ position: 'relative' }}>
-                          <DevelopmentCard dev={dev} index={i} />
-                          <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: r.sobre_presupuesto ? '#D97706' : r.ampliado ? 'rgba(16,18,28,0.82)' : 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
-                            {r.sobre_presupuesto ? '⚠ sobre tu presupuesto' : r.ampliado ? '◇ cercano a tu perfil' : `✓ ${r.match_score}% para ti`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            {/* Marketplace completo (filtros + grid) — SOLO sin perfil aplicado (con perfil, la vista es la
-                búsqueda personalizada de arriba → no hay grid "neutro" que obligue a re-filtrar = cero doble trabajo). */}
-            {!appliedProfile && (<>
+            {/* Buscador unificado: la barra + los filtros de arriba son la ÚNICA vía de búsqueda (el Perfilador se
+                fundió aquí: escribes libre o respondes "lo que falta" tocando, y eso abre el control correcto). */}
             {/* E2 · gusto: "Porque te gustó X" — parecidos por amenidades/precio a lo que el visitor likeó. */}
             {parecidos.length > 0 && (() => {
               const byId = {}; developments.forEach((d) => { byId[d.id] = d; });
@@ -608,15 +547,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             {showResults && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
                 <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
-                  {browseAll && !canSearch && !appliedProfile ? `Todos los desarrollos · ${developments.length}` : resultsText}
+                  {browseAll && !canSearch ? `Todos los desarrollos · ${developments.length}` : resultsText}
                 </div>
-                {/* Camino claro y REVERSIBLE de vuelta a la búsqueda guiada — "Encuentra tu lugar" es EL camino.
-                    Siempre visible al explorar (salvo cuando ya hay perfil, que tiene su propio "Ajustar"). */}
-                {!appliedProfile && (
-                  <button onClick={() => setPerfiladorOpen(true)} data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
-                    ✨ Encuentra tu lugar
-                  </button>
-                )}
+                {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
+                <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
+                  ✨ Nueva búsqueda
+                </button>
               </div>
             )}
 
@@ -626,7 +563,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   developments={developments}
                   colonias={colonias}
                   selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && aiFilters.colonia)}
-                  onPerfilar={() => setPerfiladorOpen(true)}
+                  onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 />
               </aside>
               <div>
@@ -638,32 +575,29 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   }}>
                     <div style={{ fontSize: 34, marginBottom: 12 }}>🔎</div>
                     <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginBottom: 8 }}>
-                      {requiredFields.some((f) => f.ok) ? 'Te falta completar tu búsqueda' : 'Dinos qué buscas para empezar'}
+                      {requiredFields.some((f) => f.ok) ? 'Ya casi — responde lo que falta' : 'Escribe arriba lo que buscas'}
                     </div>
-                    <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 480, margin: '0 auto 18px', lineHeight: 1.55 }}>
-                      Con estos 4 datos te damos opciones precisas (cualquiera puede ser un rango): <b style={{ color: '#B9822E' }}>te falta {requiredFields.filter((f) => !f.ok).map((f) => f.label).join(', ')}</b>.
+                    <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 500, margin: '0 auto 20px', lineHeight: 1.55 }}>
+                      Usa la barra de arriba (ej. <i>"depa 2 rec en Roma máx 8 millones, 80 m²"</i>) — o responde tocando lo que falta. Con estos 4 datos te damos opciones precisas; cualquiera puede ser un rango.
                     </div>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 22 }}>
+                    {/* Las 4 preguntas: ✓ ya respondida · ○ tócala y se abre el control correcto arriba (un solo set, sin formulario aparte) */}
+                    <div style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 22 }}>
                       {requiredFields.map((f) => (
-                        <span key={f.label} style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 9999,
-                          fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
-                          background: f.ok ? 'rgba(31,160,106,0.10)' : 'var(--bg-3)',
-                          border: '1px solid ' + (f.ok ? 'rgba(31,160,106,0.32)' : 'var(--border)'),
-                          color: f.ok ? '#1FA06A' : 'var(--cream-3)',
-                        }}>{f.ok ? '✓' : '○'} {f.label}</span>
+                        <button key={f.label} data-testid={`falta-${f.fkey}`} disabled={f.ok}
+                          onClick={() => abrirFiltro(f.fkey)} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 16px', borderRadius: 9999,
+                          fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: f.ok ? 'default' : 'pointer',
+                          background: f.ok ? 'rgba(31,160,106,0.10)' : '#fff',
+                          border: '1.5px solid ' + (f.ok ? 'rgba(31,160,106,0.32)' : 'var(--theme)'),
+                          color: f.ok ? '#1FA06A' : 'var(--theme)',
+                        }}>{f.ok ? `✓ ${f.label}` : f.pregunta}</button>
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary" style={{ fontSize: 15 }}>✨ Encuentra tu lugar</button>
-                      <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>o</span>
                       <button data-testid="ver-todos" onClick={() => setBrowseAll(true)}
-                        style={{ padding: '11px 18px', borderRadius: 11, border: '1.5px solid var(--theme)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: 'var(--theme)' }}>
-                        Ver los {developments.length} desarrollos →
+                        style={{ padding: '11px 18px', borderRadius: 11, border: '1.5px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: 'var(--cream-2)' }}>
+                        o ver los {developments.length} desarrollos →
                       </button>
-                    </div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 12 }}>
-                      "Encuentra tu lugar" te hace 4 preguntas y te da las mejores opciones. "Ver los {developments.length}" es explorar todo el catálogo.
                     </div>
                   </div>
                 ) : loading ? (
@@ -797,7 +731,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 )}
               </div>
             </div>
-            </>)}
           </section>
         )}
 
@@ -882,21 +815,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         open={quizOpen}
         onClose={() => setQuizOpen(false)}
         onSelectColonia={(coloniaId) => { setQuizOpen(false); setColoniaFilter(coloniaId); }}
-      />
-
-      {/* Copiloto de Compra E1 — Perfilador → "Tus mejores opciones" */}
-      <Perfilador
-        open={perfiladorOpen}
-        onClose={() => setPerfiladorOpen(false)}
-        initial={appliedProfile}
-        onApply={(prof, data) => {
-          const ap = { ...prof, ...data };
-          setAppliedProfile(ap);
-          // Persiste para que al ir a una ficha y REGRESAR no se pierdan las opciones (el componente se re-monta).
-          try { sessionStorage.setItem('dmx_applied_profile', JSON.stringify(ap)); } catch { /* noop */ }
-          if (data?.results?.[0]) setTimeout(() => window.scrollTo({ top: 360, behavior: 'smooth' }), 60);
-        }}
-        colonias={colonias}
       />
 
       <style>{`
