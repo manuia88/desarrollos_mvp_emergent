@@ -48,6 +48,7 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
   const [meta, setMeta] = useState({ nota: null, ampliado: false });
   const [loading, setLoading] = useState(false);
   const [zoneQuery, setZoneQuery] = useState('');
+  const [savedAlert, setSavedAlert] = useState(false);
   if (!open) return null;
 
   const set = (patch) => setP((prev) => ({ ...prev, ...patch }));
@@ -69,15 +70,25 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
       const r = await fetch(`${API}/api/perfil/recomendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json();
       setResults(d.resultados || []);
-      setMeta({ nota: d.nota || null, ampliado: !!d.ampliado });
+      setMeta({ nota: d.nota || null, ampliado: !!d.ampliado, zonas_cercanas: d.zonas_cercanas || [] });
       setStep(4);
-    } catch { setResults([]); setMeta({ nota: null, ampliado: false }); setStep(4); }
+    } catch { setResults([]); setMeta({ nota: null, ampliado: false, zonas_cercanas: [] }); setStep(4); }
     setLoading(false);
+  };
+
+  // Registra la búsqueda como DEMANDA (→ dev/superadmin vía Grafo). alert=true => quiere aviso (E4 casamentera).
+  const registrar = (alert = false) => {
+    try {
+      fetch(`${API}/api/perfil/registrar-busqueda`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, visitor_id: visitorId(), found_count: (results || []).length, alert }) }).catch(() => {});
+    } catch { /* noop */ }
   };
 
   const close = () => { onClose?.(); };
   // Aplica el perfil al marketplace (no atrapa al usuario en el modal): el grid se personaliza + puede seguir.
-  const applyToMarketplace = () => { onApply?.({ ...p }, { results: results || [], nota: meta.nota, ampliado: meta.ampliado }); onClose?.(); };
+  const applyToMarketplace = () => { registrar(false); onApply?.({ ...p }, { results: results || [], nota: meta.nota, ampliado: meta.ampliado, zonas_cercanas: meta.zonas_cercanas }); onClose?.(); };
+  // Zona cercana → la agrega al perfil y re-busca (el cliente decide; nunca pasmado).
+  const buscarEnZona = (colonia) => { set({ colonias: [...p.colonias, colonia] }); setTimeout(submit, 30); };
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -197,7 +208,20 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
           <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>{meta.nota}</span>
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '42vh', overflowY: 'auto' }}>
+      {/* Zonas cercanas — si tu zona no alcanza, te decimos a dónde sí, cerca (tú eliges, nunca pasmado). */}
+      {(meta.zonas_cercanas || []).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginBottom: 8 }}>📍 ¿Pocas en tu zona? Cerca sí hay (tu presupuesto alcanza):</div>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            {meta.zonas_cercanas.map((z) => (
+              <button key={z.colonia} onClick={() => buscarEnZona(z.colonia)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, border: '1px solid var(--theme)', background: 'rgba(var(--theme-rgb),0.06)', color: 'var(--theme)' }}>
+                + {z.colonia} {z.n ? <span style={{ opacity: 0.7 }}>({z.n})</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '38vh', overflowY: 'auto' }}>
         {(results || []).map((r) => (
           <Link key={r.id} to={`/desarrollo/${r.id}`} onClick={applyToMarketplace} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 13, borderRadius: 13, border: '1px solid var(--border)', background: '#fff', textDecoration: 'none' }}>
             <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 11, background: 'var(--theme)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 800, lineHeight: 1 }}>
@@ -211,6 +235,13 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
           </Link>
         ))}
       </div>
+      {/* Guardar búsqueda + avísame → demanda anónima (dev/superadmin) + alerta cuando entre inventario (E4). */}
+      <button onClick={() => { registrar(true); setSavedAlert(true); }} disabled={savedAlert} data-testid="guardar-busqueda"
+        style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 11, cursor: savedAlert ? 'default' : 'pointer',
+          border: `1px solid ${savedAlert ? 'rgba(31,160,106,0.4)' : 'var(--border)'}`, background: savedAlert ? 'rgba(31,160,106,0.08)' : '#fff',
+          color: savedAlert ? '#1FA06A' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5 }}>
+        {savedAlert ? '✓ Guardada — te avisamos cuando entre algo que encaje' : '🔔 Guardar mi búsqueda y avísame de lo nuevo'}
+      </button>
     </div>,
   ];
 
