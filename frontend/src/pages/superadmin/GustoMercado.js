@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Eye, Camera, MapPin, Heart, Lightbulb } from 'lucide-react';
-import { fetchGustoMercado } from '../../api/superadminDevmaster';
+import { fetchGustoMercado, fetchBuyerCycleIntel } from '../../api/superadminDevmaster';
 
 const dim = { color: 'var(--sa-text-dim)' };
 const mute = { color: 'var(--sa-text-mute)' };
@@ -29,6 +29,7 @@ function Panel({ icon: Icon, title, sub, children, accent }) {
 export default function GustoMercado({ filters }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
+  const [cube, setCube] = useState(null);   // Copiloto · cubo del ciclo del comprador
 
   useEffect(() => {
     let alive = true;
@@ -36,6 +37,7 @@ export default function GustoMercado({ filters }) {
     fetchGustoMercado(filters || {})
       .then(r => { if (alive) setD(r); })
       .catch(e => { if (alive) setErr(e.message); });
+    fetchBuyerCycleIntel(90).then(r => { if (alive) setCube(r); }).catch(() => {});
     return () => { alive = false; };
   }, [filters]);
 
@@ -49,6 +51,50 @@ export default function GustoMercado({ filters }) {
 
   return (
     <div data-testid="gusto-mercado" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Copiloto · EL CUBO DEL CICLO DEL COMPRADOR (Bloomberg CDMX) */}
+      {cube && cube.embudo && (
+        <div data-testid="cubo-comprador" style={{ ...card, borderColor: 'rgba(var(--theme-rgb),0.45)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--sa-text)', margin: 0 }}>🔬 Ciclo del comprador</h3>
+            <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(var(--theme-rgb),0.18)', color: 'var(--theme)' }}>BLOOMBERG CDMX</span>
+          </div>
+          {/* Embudo */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+            {[['Búsquedas', cube.embudo.busquedas], ['Likes', cube.embudo.likes], ['Guardadas', cube.embudo.guardadas_con_alerta], ['Registros', cube.embudo.registros], ['Visitas', cube.embudo.visitas]].map(([l, n], i) => (
+              <div key={l} style={{ flex: 1, minWidth: 84, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--sa-border)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: i === 4 ? GREEN : 'var(--sa-text)' }}>{n}</div>
+                <div style={{ fontSize: 10, ...mute }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {/* Huecos de mercado */}
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>🕳️ Huecos de mercado <span style={{ ...mute, fontWeight: 400 }}>(demanda sin oferta)</span></div>
+              {(cube.huecos_mercado || []).slice(0, 4).map((g, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '4px 0', borderTop: i ? '1px solid var(--sa-border)' : 'none' }}>
+                  <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{g.colonia}</b> · {g.busquedas_sin_oferta} sin oferta{g.presupuesto_prom ? ` · ~$${(g.presupuesto_prom / 1e6).toFixed(1)}M` : ''}
+                </div>
+              ))}
+              {(cube.huecos_mercado || []).length === 0 && <div style={{ fontSize: 11.5, ...mute }}>Sin huecos detectados aún.</div>}
+            </div>
+            {/* Top demanda */}
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>🔥 Top demanda</div>
+              {(cube.top_demanda || []).slice(0, 4).map((t, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '4px 0', borderTop: i ? '1px solid var(--sa-border)' : 'none' }}>
+                  <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{t.colonia}</b> · {t.busquedas} búsq.{t.presupuesto_prom ? ` · ~$${(t.presupuesto_prom / 1e6).toFixed(1)}M` : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 11.5, ...mute, flexWrap: 'wrap' }}>
+            <span>📈 Velocidad: <b style={{ color: cube.velocidad?.tendencia === 'subiendo' ? GREEN : 'var(--sa-text)' }}>{cube.velocidad?.tendencia}</b> ({cube.velocidad?.ultimos_7d} vs {cube.velocidad?.previos_7d})</span>
+            <span>👻 Shadow demand: <b style={{ color: 'var(--sa-text)' }}>{cube.shadow_demand?.ratio_anon_vs_reg}:1</b> anónimas/registradas (el top-of-funnel real)</span>
+          </div>
+        </div>
+      )}
+
       {/* Titular */}
       <div style={{ ...card, borderColor: 'rgba(var(--theme-rgb),0.45)', background: 'linear-gradient(150deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.02))' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>

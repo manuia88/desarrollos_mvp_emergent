@@ -2,6 +2,13 @@
 const API = process.env.REACT_APP_BACKEND_URL;
 export const ASSET_BASE = API;
 
+// Copiloto · el cubo del ciclo del comprador (Bloomberg CDMX)
+export async function fetchBuyerCycleIntel(dias = 30) {
+  const r = await fetch(`${API}/api/superadmin/copiloto/intel?dias=${dias}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('No se pudo cargar el ciclo del comprador');
+  return r.json();
+}
+
 export async function fetchDevmasterProjects(filters = {}) {
   const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v != null && v !== '')).toString();
   const r = await fetch(`${API}/api/superadmin/devmaster/projects${qs ? `?${qs}` : ''}`, { credentials: 'include' });
