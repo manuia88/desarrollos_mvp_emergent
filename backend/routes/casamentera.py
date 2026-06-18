@@ -30,6 +30,33 @@ def _profile_from_search(s):
     )
 
 
+def _matching_units(d, s):
+    """Unidades DISPONIBLES del desarrollo que cumplen lo interno de la búsqueda guardada (alerta a nivel UNIDAD)."""
+    feats = s.get("features_pedidos") or []
+    out = []
+    for u in (d.get("units") or []):
+        if u.get("status") != "disponible":
+            continue
+        if s.get("recamaras_min") and (u.get("bedrooms") or 0) < s["recamaras_min"]:
+            continue
+        if s.get("banos_min") and (u.get("bathrooms") or 0) < s["banos_min"]:
+            continue
+        if s.get("estacionamientos_min") and (u.get("parking_spots") or 0) < s["estacionamientos_min"]:
+            continue
+        if s.get("precio_max") and (u.get("price") or 0) > s["precio_max"]:
+            continue
+        _sqm = u.get("m2_total") or u.get("m2_privative") or 0
+        if s.get("m2_min") and _sqm < s["m2_min"]:
+            continue
+        if s.get("m2_max") and _sqm > s["m2_max"]:
+            continue
+        if feats and not all(u.get(f) for f in feats):
+            continue
+        if u.get("unit_number"):
+            out.append(u.get("unit_number"))
+    return out
+
+
 async def correr_casamentera(db, dev_ids=None):
     """Escanea las búsquedas guardadas (alert=true) × inventario → crea alertas para matches nuevos.
     dev_ids = solo esos desarrollos (ej. uno que acaba de entrar/bajar precio); None = todo el catálogo."""
@@ -44,12 +71,19 @@ async def correr_casamentera(db, dev_ids=None):
         for d in devs:
             if not _passes_extra(d, prof):
                 continue
+            # Alerta a nivel UNIDAD: qué unidades disponibles cumplen (si el dev tiene lista de precios).
+            unidades = _matching_units(d, s)
+            if (d.get("units") or []) and not unidades:
+                continue  # tiene lista pero ninguna unidad disponible cumple → no alertes
             key = f"{s.get('visitor_id')}|{d.get('id')}"
+            _razon = (f"Entró una unidad que cumple: #{unidades[0]}" if unidades
+                      else f"Encaja con tu búsqueda en {(s.get('colonias') or ['tu zona'])[0]}")
             doc = {
                 "dedup": key, "visitor_id": s.get("visitor_id"), "lead_id": s.get("lead_id"),
                 "dev_id": d.get("id"), "dev_name": d.get("name"), "colonia": d.get("colonia"),
                 "price_from_display": d.get("price_from_display"),
-                "razon": f"Encaja con tu búsqueda en {(s.get('colonias') or ['tu zona'])[0]}",
+                "unidades": unidades,
+                "razon": _razon,
                 "created_at_dt": now, "visto": False,
             }
             res = await db.buyer_alerts.update_one({"dedup": key}, {"$setOnInsert": doc}, upsert=True)
@@ -64,7 +98,8 @@ async def correr_casamentera(db, dev_ids=None):
                         phone = ((lead or {}).get("contact") or {}).get("phone")
                         if phone:
                             from routes.whatsapp_copiloto import notify_buyer_wa
-                            await notify_buyer_wa(db, phone, f"🔔 ¡Encontramos algo para ti! {d.get('name')} en {d.get('colonia')} — encaja con lo que buscas. Míralo aquí 👉 {__import__('os').environ.get('FRONTEND_URL','https://desarrollosmx.io')}/desarrollo/{d.get('id')}")
+                            _u = f" (unidad #{unidades[0]})" if unidades else ""
+                            await notify_buyer_wa(db, phone, f"🔔 ¡Encontramos algo para ti! {d.get('name')} en {d.get('colonia')}{_u} — cumple lo que buscas. Míralo aquí 👉 {__import__('os').environ.get('FRONTEND_URL','https://desarrollosmx.io')}/desarrollo/{d.get('id')}")
                     except Exception:
                         pass
       except Exception as _e:  # noqa: BLE001 — una búsqueda con dato malo no tira el scan entero
@@ -91,7 +126,7 @@ async def alertas(request: Request, visitor_id: str):
         db = request.app.state.db
         out = []
         async for a in db.buyer_alerts.find({"visitor_id": visitor_id, "visto": False},
-                                             {"_id": 0, "dev_id": 1, "dev_name": 1, "colonia": 1, "price_from_display": 1, "razon": 1}).limit(10):
+                                             {"_id": 0, "dev_id": 1, "dev_name": 1, "colonia": 1, "price_from_display": 1, "razon": 1, "unidades": 1}).limit(10):
             out.append(a)
         return {"ok": True, "alertas": out}
     except Exception as e:  # noqa: BLE001

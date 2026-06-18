@@ -563,6 +563,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     <Link key={a.dev_id} to={`/desarrollo/${a.dev_id}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', borderRadius: 12, background: '#fff', border: '1px solid var(--border)', textDecoration: 'none' }}>
                       <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>{a.dev_name}</span>
                       <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>{a.colonia} · {a.price_from_display}</span>
+                      {(a.unidades || []).length > 0 && <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#1FA06A' }}>· {a.unidades.length} unidad{a.unidades.length > 1 ? 'es' : ''} (#{a.unidades[0]})</span>}
                     </Link>
                   ))}
                 </div>
