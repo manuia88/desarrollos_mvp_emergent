@@ -159,12 +159,21 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
             "contact": {"name": b.name[:120], "email": (b.email or None), "phone": (b.phone or None)},
             "status": "nuevo", "status_v2": "lead_nuevo", "activo": True,
             "assigned_to": assigned_to, "inmobiliaria_id": house_inm,
-            # Perfil + histórico enganchados (lo que el asesor ve para no preguntar de cero):
+            # F · La búsqueda COMPLETA llega al asesor (no vuelve a preguntar): TODOS los criterios que el comprador
+            # expresó — zona, precio (min+max), recámaras, m² (rango), baños, cajones, etapa, plazo, crédito,
+            # enganche/mensualidad tope, AMENIDADES y FEATURES pedidos, y hasta la frase cruda que escribió.
             "buyer_profile": {
                 "colonias": perfil.get("colonias"), "presupuesto_max": perfil.get("precio_max"),
+                "presupuesto_min": perfil.get("precio_min"),
                 "recamaras_min": perfil.get("recamaras_min"), "banos_min": perfil.get("banos_min"),
+                "m2_min": perfil.get("m2_min"), "m2_max": perfil.get("m2_max"),
                 "estacionamientos_min": perfil.get("estacionamientos_min"), "stages": perfil.get("stages"),
-                "plazo": perfil.get("plazo"), "uso": perfil.get("uso"),
+                "stage_pedido": perfil.get("stage_pedido"), "tipo": perfil.get("tipo_pedido"),
+                "plazo": perfil.get("plazo"), "uso": perfil.get("uso"), "credito": perfil.get("credito"),
+                "enganche_max": perfil.get("enganche_max"), "mensualidad_max": perfil.get("mensualidad_max"),
+                "amenidades_pedidas": perfil.get("amenidades_pedidas") or [],
+                "features_pedidos": perfil.get("features_pedidos") or [],
+                "busqueda_textual": perfil.get("texto_crudo") or perfil.get("query"),
             },
             "liked_devs": liked, "viewed_devs": viewed[:20],
             "visitor_id": b.visitor_id,
