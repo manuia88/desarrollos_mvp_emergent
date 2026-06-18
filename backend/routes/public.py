@@ -1399,10 +1399,19 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                 _qcol = _re.sub(r"\b" + _re.escape(v), " ", _qcol)  # consume el texto → no re-matchea "valle" tras "del valle"
         if found:
             filters["colonia"] = found if len(found) > 1 else found[0]
+    # Recámaras / baños / cajones — palabra COMPLETA o ABREVIATURA de broker (3R · 2b · 2e). Letra sola con \b (segura).
     if "beds" not in filters:
-        m = _re.search(r"(\d+)\s*(rec|rec[aá]mara|habitac|cuarto|dorm)", ql)
+        m = _re.search(r"(\d+)\s*(?:rec\w*|recámara\w*|habitac\w*|cuarto\w*|dorm\w*|r\b)", ql)
         if m:
             filters["beds"] = int(m.group(1))
+    if "baths" not in filters:
+        m = _re.search(r"(\d+)\s*(?:ba[ñn]os?|b\b)", ql)
+        if m:
+            filters["baths"] = int(m.group(1))
+    if "parking" not in filters:
+        m = _re.search(r"(\d+)\s*(?:estacionamiento\w*|caj[oó]n\w*|cajones|autos?|est\b|e\b)", ql)
+        if m:
+            filters["parking"] = int(m.group(1))
     if "tipo" not in filters:
         if "depa" in ql or "departamento" in ql:
             filters["tipo"] = "departamento"
@@ -1553,6 +1562,8 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         pass
     if "unit_feature" not in filters:
         ufh = [s for s, kws in _UF_KW.items() if any(k in ql for k in kws)]
+        if _re.search(r"\brg\b", ql) and "roof_garden" not in ufh:   # "RG" = roof garden (abreviatura de broker)
+            ufh.append("roof_garden")
         if ufh:
             filters["unit_feature"] = ufh
     if "amenity" not in filters:

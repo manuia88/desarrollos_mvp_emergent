@@ -44,6 +44,12 @@ CASOS = [
     ("3 recamaras 2 baños", "beds", 3),
     ("departamento en preventa", "stage", "preventa"),
     ("con balcon y roof garden privado", "unit_feature", ["balcon", "roof_garden"]),
+    # --- Abreviaturas de broker (3R · 2b · 2e · RG) ---
+    ("3R, 2b, 2e, RG 249m2", "beds", 3),
+    ("3R, 2b, 2e, RG 249m2", "baths", 2),
+    ("3R, 2b, 2e, RG 249m2", "parking", 2),
+    ("3R, 2b, 2e, RG 249m2", "unit_feature", ["roof_garden"]),
+    ("3R, 2b, 2e, RG 249m2", "min_sqm", 249),
 ]
 
 ok, fail = 0, []
