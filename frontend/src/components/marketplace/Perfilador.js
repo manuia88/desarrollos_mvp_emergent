@@ -38,9 +38,12 @@ function visitorId() {
   try { let v = localStorage.getItem('dmx_visitor_id'); if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); } return v; } catch { return 'v_anon'; }
 }
 
-export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
-  const [step, setStep] = useState(0);
-  const [p, setP] = useState({ uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, colonias: [] });
+const DEFAULTS = { uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, colonias: [] };
+
+export default function Perfilador({ open, onClose, onApply, colonias = [], initial = null }) {
+  // initial = perfil ya aplicado → "Ajustar" pre-llena (no se empieza de cero). Tras navegar y volver, persiste.
+  const [step, setStep] = useState(initial ? 1 : 0);
+  const [p, setP] = useState(initial ? { ...DEFAULTS, ...initial } : { ...DEFAULTS });
   const [results, setResults] = useState(null);
   const [meta, setMeta] = useState({ nota: null, ampliado: false });
   const [loading, setLoading] = useState(false);

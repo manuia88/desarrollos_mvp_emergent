@@ -83,22 +83,30 @@ def _norm(s: str) -> str:
     return "".join(c for c in (s or "").lower() if c.isalnum())
 
 
-def _passes_extra(dev: Dict[str, Any], p: PerfilIn) -> bool:
-    """Filtros que el motor base no cubre: etapa, plazo de entrega, multi-zona, estacionamientos."""
-    if p.stages and dev.get("stage") not in p.stages:
-        return False
-    if p.colonias:  # ubicación = filtro DURO (lo más importante para el comprador)
+def _passes_extra(dev: Dict[str, Any], p: PerfilIn, ignore_budget: bool = False, ignore_plazo: bool = False) -> bool:
+    """Gate DURO real (search() solo trata estos como match parcial → coalaban $14.5M con $8M de tope).
+    La ZONA es sagrada (nunca se relaja). ignore_budget/ignore_plazo permiten ampliar DENTRO de la zona."""
+    # Zona — DURA, nunca se relaja (la ubicación es lo más importante).
+    if p.colonias:
         zt = {_norm(c) for c in p.colonias}
         if _norm(dev.get("colonia_id") or "") not in zt and _norm(dev.get("colonia") or "") not in zt:
             return False
-    if p.estacionamientos_min:
-        pr = dev.get("parking_range") or [0, 0]
-        if (pr[1] if len(pr) == 2 else 0) < p.estacionamientos_min:
-            return False
-    if p.plazo and p.plazo != "cualquiera":
+    # Etapa, recámaras, baños — duras (son necesidades reales del comprador).
+    if p.stages and dev.get("stage") not in p.stages:
+        return False
+    if p.recamaras_min and (lambda r: (r[1] if len(r) == 2 else 0))(dev.get("bedrooms_range") or [0, 0]) < p.recamaras_min:
+        return False
+    if p.banos_min and (lambda r: (r[1] if len(r) == 2 else 0))(dev.get("bathrooms_range") or [0, 0]) < p.banos_min:
+        return False
+    if p.estacionamientos_min and (lambda r: (r[1] if len(r) == 2 else 0))(dev.get("parking_range") or [0, 0]) < p.estacionamientos_min:
+        return False
+    # Presupuesto — duro salvo que lo relajemos explícitamente (dentro de la zona).
+    if not ignore_budget and p.presupuesto_max and (dev.get("price_from") or 0) > p.presupuesto_max:
+        return False
+    # Plazo de entrega — duro salvo relajación explícita.
+    if not ignore_plazo and p.plazo and p.plazo != "cualquiera":
         lo, hi = _PLAZO_RANGE.get(p.plazo, (0, 9999))
         months = _months_until(dev.get("delivery_estimate"))
-        # entrega_inmediata sin fecha → 0 meses; preventa sin fecha → no la descartamos por plazo.
         if dev.get("stage") == "entrega_inmediata":
             months = months if months is not None else 0
         if months is not None and not (lo <= months <= hi):
@@ -133,28 +141,34 @@ def _reasons(dev: Dict[str, Any], p: PerfilIn) -> List[str]:
     return out[:4]
 
 
-async def _run_search(rs_search, db, by_id, prof: PerfilIn) -> List[Dict[str, Any]]:
-    """Una pasada: perfil → search() → rehidrata dev + filtros duros (etapa/plazo/zona/cajones) + razones."""
+async def _run_search(rs_search, db, by_id, prof: PerfilIn, ignore_budget: bool = False, ignore_plazo: bool = False) -> List[Dict[str, Any]]:
+    """Una pasada: perfil → search() → rehidrata dev + gate DURO (_passes_extra) + razones.
+    ignore_budget/ignore_plazo permiten ampliar DENTRO de la zona (la zona NUNCA se relaja)."""
     parsed = _build_parsed(prof)
     scored = await rs_search(db, parsed, limit=max(prof.limit * 3, 30))
     out, seen = [], set()
     for item in scored:
         dev = by_id.get(item.get("entity_id"))
-        if not dev or not _passes_extra(dev, prof) or dev.get("id") in seen:
+        if not dev or dev.get("id") in seen:
+            continue
+        if not _passes_extra(dev, prof, ignore_budget=ignore_budget, ignore_plazo=ignore_plazo):
             continue
         seen.add(dev.get("id"))
+        over = bool(prof.presupuesto_max and (dev.get("price_from") or 0) > prof.presupuesto_max)
         out.append({
             "id": dev.get("id"), "name": dev.get("name"), "colonia": dev.get("colonia"),
             "price_from": dev.get("price_from"), "price_from_display": dev.get("price_from_display"),
             "price_m2_dev": dev.get("price_m2_dev"), "stage": dev.get("stage"),
             "match_score": round(item.get("match_score", 0)), "match_reasons": _reasons(dev, prof),
+            "sobre_presupuesto": over,
         })
     return out
 
 
 @router.post("/api/perfil/recomendar")
 async def recomendar(p: PerfilIn, request: Request):
-    """Perfil estructurado → desarrollos rankeados con match transparente + FALLBACK HONESTO (nunca vacío)."""
+    """Perfil → desarrollos con match transparente. La ZONA es sagrada (nunca se relaja); si hay pocas en tu zona
+    se relaja PLAZO y luego PRESUPUESTO dentro de la zona, honesto. Nunca salta a otras zonas."""
     try:
         from reverse_search_engine import search as rs_search
         from data_developments import DEVELOPMENTS
@@ -162,35 +176,35 @@ async def recomendar(p: PerfilIn, request: Request):
         db = request.app.state.db
     except Exception as e:  # noqa: BLE001
         log.warning(f"[perfil/recomendar] init falló: {e}")
-        return {"ok": True, "total": 0, "ampliado": False, "nota": None, "perfil": p.model_dump(), "resultados": []}
+        return {"ok": True, "total": 0, "nota": None, "perfil": p.model_dump(), "resultados": []}
 
     MIN = 3
-    results = await _run_search(rs_search, db, by_id, p)
+    results = await _run_search(rs_search, db, by_id, p)  # estricto (todo duro)
     seen = {r["id"] for r in results}
-    ampliado, nota = False, None
+    relax_plazo = relax_budget = False
 
     if len(results) < MIN:
-        # 1) Relaja lo MENOS importante (plazo + m²) · conserva zona, presupuesto, recámaras, baños.
-        p2 = p.model_copy(update={"plazo": "cualquiera", "m2_min": None, "m2_max": None})
-        for r in await _run_search(rs_search, db, by_id, p2):
+        # 1) Relaja el PLAZO de entrega · DENTRO de la zona (presupuesto/recámaras se conservan).
+        for r in await _run_search(rs_search, db, by_id, p, ignore_plazo=True):
             if r["id"] not in seen:
-                r["ampliado"] = True; results.append(r); seen.add(r["id"]); ampliado = True
-        # 2) Si sigue corto y había zona fija → amplía a otras zonas (honesto: la ubicación es lo más importante,
-        #    pero con poco inventario es mejor mostrar lo cercano que dejarte sin nada).
-        if len(results) < MIN and p.colonias:
-            p3 = p2.model_copy(update={"colonias": []})
-            for r in await _run_search(rs_search, db, by_id, p3):
+                r["ampliado"] = True; results.append(r); seen.add(r["id"]); relax_plazo = True
+        # 2) Relaja el PRESUPUESTO · DENTRO de la zona (marcadas "sobre presupuesto"). La zona NUNCA se toca.
+        if len(results) < MIN:
+            for r in await _run_search(rs_search, db, by_id, p, ignore_budget=True, ignore_plazo=True):
                 if r["id"] not in seen:
-                    r["ampliado"] = True; results.append(r); seen.add(r["id"]); ampliado = True
-            nota = "Hay pocas opciones en tu zona exacta — te mostramos lo más cercano en otras zonas."
-        elif ampliado:
-            nota = "Ampliamos un poco tu búsqueda para darte más opciones."
+                    r["ampliado"] = True; results.append(r); seen.add(r["id"]); relax_budget = True
 
-    # Primero las de match EXACTO (no ampliadas), luego por score.
-    results.sort(key=lambda r: (r.get("ampliado", False), -r.get("match_score", 0)))
+    # Orden: match exacto primero, los sobre-presupuesto al final, luego por score.
+    results.sort(key=lambda r: (r.get("ampliado", False), r.get("sobre_presupuesto", False), -r.get("match_score", 0)))
     results = results[: max(p.limit, 8)]
-    # Honestidad: si no eligió zona, decirlo explícito (la ubicación es lo más importante; no mostrar "al azar").
-    sin_zona = not p.colonias
-    if sin_zona and not nota:
-        nota = "No elegiste una zona, así que te sugerimos las mejores de la ciudad para tu perfil. Elige una zona para afinar."
-    return {"ok": True, "total": len(results), "ampliado": ampliado, "sin_zona": sin_zona, "nota": nota, "perfil": p.model_dump(), "resultados": results}
+
+    # Nota honesta y SIEMPRE referida a la zona elegida (nunca "otras zonas").
+    zona_txt = p.colonias[0] if len(p.colonias) == 1 else "tu zona"
+    nota = None
+    if len(results) == 0:
+        nota = f"Todavía no hay desarrollos en {zona_txt} con esos filtros. Prueba otra zona o ajusta tu perfil."
+    elif relax_budget:
+        nota = f"Hay pocas opciones en {zona_txt} con tu presupuesto — algunas de estas están un poco arriba."
+    elif relax_plazo:
+        nota = f"Para darte más opciones en {zona_txt}, ampliamos el plazo de entrega."
+    return {"ok": True, "total": len(results), "nota": nota, "perfil": p.model_dump(), "resultados": results}

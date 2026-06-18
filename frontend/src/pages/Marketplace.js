@@ -457,38 +457,47 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             {/* Perfil aplicado: "Tus mejores opciones" arriba (no atrapa · el grid completo sigue abajo) */}
             {appliedProfile && (() => {
               const byId = {}; developments.forEach((d) => { byId[d.id] = d; });
-              const picks = (appliedProfile.results || []).map((r) => ({ dev: byId[r.id], r })).filter((x) => x.dev).slice(0, 6);
-              if (picks.length === 0) return null;
+              const picks = (appliedProfile.results || []).map((r) => ({ dev: byId[r.id], r })).filter((x) => x.dev);
+              const zonas = (appliedProfile.colonias || []).join(' · ');
               return (
-                <div data-testid="perfil-picks" style={{ marginBottom: 34 }}>
+                <div data-testid="perfil-picks" style={{ marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
                     <div>
-                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Hechas para ti</div>
+                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Tu búsqueda personalizada{zonas ? ` · ${zonas}` : ''}</div>
                       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,28px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: 0 }}>Tus mejores opciones</h2>
                     </div>
-                    <button onClick={() => { setAppliedProfile(null); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Quitar mi perfil ✕</button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => setPerfiladorOpen(true)} data-testid="ajustar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--theme)', background: 'rgba(var(--theme-rgb),0.06)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>Ajustar mi búsqueda</button>
+                      <button onClick={() => { setAppliedProfile(null); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo ✕</button>
+                    </div>
                   </div>
                   {appliedProfile.nota && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 18 }}>
                       <span>💡</span><span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{appliedProfile.nota}</span>
                     </div>
                   )}
-                  <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                    {picks.map(({ dev, r }, i) => (
-                      <div key={dev.id} style={{ position: 'relative' }}>
-                        <DevelopmentCard dev={dev} index={i} />
-                        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: r.ampliado ? 'rgba(16,18,28,0.82)' : 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
-                          {r.ampliado ? '◇ cercano a tu perfil' : `✓ ${r.match_score}% para ti`}
+                  {picks.length === 0 ? (
+                    <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)' }}>
+                      No hay desarrollos con esos filtros. <button onClick={() => setPerfiladorOpen(true)} style={{ border: 'none', background: 'none', color: 'var(--theme)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Ajusta tu búsqueda</button>.
+                    </div>
+                  ) : (
+                    <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                      {picks.map(({ dev, r }, i) => (
+                        <div key={dev.id} style={{ position: 'relative' }}>
+                          <DevelopmentCard dev={dev} index={i} />
+                          <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: r.sobre_presupuesto ? '#D97706' : r.ampliado ? 'rgba(16,18,28,0.82)' : 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
+                            {r.sobre_presupuesto ? '⚠ sobre tu presupuesto' : r.ampliado ? '◇ cercano a tu perfil' : `✓ ${r.match_score}% para ti`}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: 30, paddingTop: 20, borderTop: '1px solid var(--border)', fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream-2)' }}>
-                    ¿Ninguna te late? Explora todo el marketplace ↓
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })()}
+            {/* Marketplace completo (filtros + grid) — SOLO sin perfil aplicado (con perfil, la vista es la
+                búsqueda personalizada de arriba → no hay grid "neutro" que obligue a re-filtrar = cero doble trabajo). */}
+            {!appliedProfile && (<>
             <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
               {resultsText}
             </div>
@@ -563,6 +572,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 )}
               </div>
             </div>
+            </>)}
           </section>
         )}
 
@@ -653,6 +663,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <Perfilador
         open={perfiladorOpen}
         onClose={() => setPerfiladorOpen(false)}
+        initial={appliedProfile}
         onApply={(prof, data) => {
           const ap = { ...prof, ...data };
           setAppliedProfile(ap);
