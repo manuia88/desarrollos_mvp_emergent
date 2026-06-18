@@ -249,8 +249,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [openKey, setOpenKey] = useState(null);
   const [openNonce, setOpenNonce] = useState(0);
   const abrirFiltro = (k) => { setOpenKey(k); setOpenNonce((n) => n + 1); };
-  const [browseAll, setBrowseAll] = useState(false);   // "Ver todos los desarrollos" — explora sin los 4 obligatorios
-  // Muestra el grid si: ya están los 4 datos (por barra IA o filtros) · o eligió explorar todo el catálogo.
+  // Al ENTRAR se ven los proyectos (no pantalla vacía). La búsqueda guiada es ayuda, no muro. "Nueva búsqueda" la reabre.
+  const [browseAll, setBrowseAll] = useState(true);
   const showResults = canSearch || browseAll;
 
   // C · Elasticidad: el comprador relaja UN criterio (lo que está dispuesto a ceder) → se quita + se CAPTURA.
