@@ -676,25 +676,41 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         </div>
                       </div>
 
-                      {/* Los que MÁS se asemejan + qué les falta (la idea del founder: nombrarlos por filtros) */}
+                      {/* Los que MÁS se asemejan, agrupados por TIERS humanos (no "9/10" crudo · falsa precisión) */}
                       {casiResults.length > 0 && (
                         <div style={{ marginTop: 28 }} data-testid="casi-cumple">
                           <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Lo más cercano</div>
-                          <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,22px)', color: 'var(--cream)', letterSpacing: '-0.02em', margin: '0 0 16px' }}>
+                          <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,22px)', color: 'var(--cream)', letterSpacing: '-0.02em', margin: '0 0 18px' }}>
                             Los que más se asemejan a tu búsqueda
                           </h3>
-                          <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
-                            {casiResults.map((dev, i) => (
-                              <div key={dev.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                                <DevelopmentCard dev={dev} index={i} />
-                                {(dev.match_falta || []).length > 0 && (
-                                  <div style={{ marginTop: 8, padding: '8px 11px', borderRadius: 10, background: 'rgba(224,163,62,0.10)', border: '1px solid rgba(224,163,62,0.30)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-                                    Cumple <b style={{ color: 'var(--cream)' }}>{dev.match_met}/{dev.match_total}</b> · le falta: <b style={{ color: '#B9822E' }}>{(dev.match_falta || []).join(', ')}</b>
-                                  </div>
-                                )}
+                          {[
+                            { lo: 1, hi: 1, title: 'Casi perfectas', sub: 'solo les falta un detalle' },
+                            { lo: 2, hi: 2, title: 'Muy buenas', sub: 'les faltan dos cosas' },
+                            { lo: 3, hi: 99, title: 'Cercanas', sub: 'les faltan algunas' },
+                          ].map((tier) => {
+                            const grp = casiResults.filter((d) => { const n = (d.match_falta || []).length; return n >= tier.lo && n <= tier.hi; });
+                            if (!grp.length) return null;
+                            return (
+                              <div key={tier.title} style={{ marginBottom: 24 }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+                                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{tier.title}</span>
+                                  <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>· {tier.sub} ({grp.length})</span>
+                                </div>
+                                <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+                                  {grp.map((dev, i) => (
+                                    <div key={dev.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                      <DevelopmentCard dev={dev} index={i} />
+                                      {(dev.match_falta || []).length > 0 && (
+                                        <div style={{ marginTop: 8, padding: '8px 11px', borderRadius: 10, background: 'rgba(224,163,62,0.10)', border: '1px solid rgba(224,163,62,0.30)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                                          Cumple <b style={{ color: 'var(--cream)' }}>{dev.match_met}/{dev.match_total}</b> · le falta: <b style={{ color: '#B9822E' }}>{(dev.match_falta || []).join(', ')}</b>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
                       )}
                       </>
