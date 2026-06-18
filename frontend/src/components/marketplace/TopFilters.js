@@ -163,16 +163,24 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
             <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--green)' }}>
               {t('marketplace_v2.ai_understood')}
             </span>
-            {Object.entries(aiFilters).map(([k, v]) => (
-              <span key={k} style={{
-                padding: '2px 10px', borderRadius: 9999,
-                background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)',
-                fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)',
-              }}>
-                <span style={{ color: 'var(--cream-3)' }}>{k}:</span>{' '}
-                {Array.isArray(v) ? v.join(', ') : typeof v === 'number' ? v.toLocaleString() : String(v)}
-              </span>
-            ))}
+            {Object.entries(aiFilters).filter(([k]) => k !== '_q').map(([k, v]) => {
+              const LBL = { colonia: 'zonas', alcaldia: 'alcaldía', tipo: 'tipo', min_price: 'desde', max_price: 'hasta', min_sqm: 'm² desde', max_sqm: 'm² hasta', beds: 'recámaras', baths: 'baños', parking: 'cajones', stage: 'etapa', plazo: 'entrega', amenity: 'amenidades', unit_feature: 'incluye', orientacion: 'orientación', piso_min: 'piso desde', enganche_max: 'enganche hasta', mensualidad_max: 'mensualidad hasta', apartado_max: 'apartado hasta' };
+              const PLAZO = { menos_3: 'en menos de 3 meses', '3_6': 'en 3-6 meses', '6_12': 'en 6-12 meses', mas_12: 'en +12 meses' };
+              const MONEY = ['min_price', 'max_price', 'enganche_max', 'mensualidad_max', 'apartado_max'];
+              const val = k === 'plazo' ? (PLAZO[v] || v)
+                : Array.isArray(v) ? v.map((x) => String(x).replace(/-/g, ' ')).join(', ')
+                : MONEY.includes(k) ? `$${Number(v).toLocaleString()}`
+                : typeof v === 'number' ? v.toLocaleString() : String(v).replace(/_/g, ' ');
+              return (
+                <span key={k} style={{
+                  padding: '2px 10px', borderRadius: 9999,
+                  background: 'rgba(var(--cream-rgb),0.06)', border: '1px solid var(--border)',
+                  fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)',
+                }}>
+                  <span style={{ color: 'var(--cream-3)' }}>{LBL[k] || k}:</span>{' '}{val}
+                </span>
+              );
+            })}
             <button onClick={onAIClear} data-testid="ai-clear"
               style={{
                 marginLeft: 'auto',

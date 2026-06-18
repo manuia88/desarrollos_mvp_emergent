@@ -714,6 +714,7 @@ async def list_developments(
     featured: Optional[bool] = None,
     enganche_max: Optional[int] = None,
     mensualidad_max: Optional[int] = None,
+    apartado_max: Optional[int] = None,
     sort: Optional[str] = "recent",
     limit: int = 100,
     subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
@@ -747,7 +748,7 @@ async def list_developments(
     #    Fallback a los rangos del proyecto si un desarrollo no trae lista de unidades. ────────────────────────────
     _ufset = [f.lower() for f in (unit_feature or [])]
     _oset = {o.lower() for o in (orientacion or [])}
-    _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min, enganche_max, mensualidad_max)) or _ufset or _oset
+    _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min, enganche_max, mensualidad_max, apartado_max)) or _ufset or _oset
     match_counts: Dict[str, int] = {}
     match_samples: Dict[str, list] = {}
     _fin_by_dev: Dict[str, dict] = {}
@@ -803,13 +804,15 @@ async def list_developments(
                 return False
             if _oset and (u.get("orientation") or "").lower() not in _oset:
                 return False
-            if enganche_max is not None or mensualidad_max is not None:
+            if enganche_max is not None or mensualidad_max is not None or apartado_max is not None:
                 f = _unit_finance(u.get("price"), fin)
                 if not f:
                     return False  # el dev no publicó esquema de pago → no prometemos el enganche
                 if enganche_max is not None and f["enganche"] > enganche_max:
                     return False
                 if mensualidad_max is not None and f["mensualidad"] > mensualidad_max:
+                    return False
+                if apartado_max is not None and (f.get("apartado") or 0) > apartado_max:
                     return False
             return True
 
@@ -1258,14 +1261,19 @@ AI_SEARCH_SYSTEM = (
     "entender CUALQUIER frase y devolver ESTRICTAMENTE un JSON con TODOS los filtros que puedas detectar. Sé GENEROSO: "
     "extrae todo lo que el usuario exprese (dinero, recámaras, amenidades, características, zona, crédito). Schema:\n"
     '{"colonia":[string],"alcaldia":string,"tipo":string,"min_price":number,"max_price":number,'
-    '"min_sqm":number,"max_sqm":number,"beds":number,"baths":number,"parking":number,"stage":string,'
+    '"min_sqm":number,"max_sqm":number,"beds":number,"baths":number,"parking":number,"stage":string,"plazo":string,'
     '"amenity":[string],"unit_feature":[string],"orientacion":[string],"piso_min":number,'
-    '"enganche_max":number,"mensualidad_max":number}\n'
-    "DINERO (MXN): 'mil'=1000, 'millones/mdp/melones'=1000000, '5M'=5000000. RANGO → min_price+max_price: "
-    "'10-15mdp'/'10 a 15 millones'/'entre 10 y 15'→min_price:10000000,max_price:15000000. Tope simple 'hasta 15M'→"
-    "max_price. 'enganche menor a 500 mil / a lo mucho 500,000'→enganche_max:500000. 'mensualidades de máx 20mil / "
-    "que no pasen de 20 mil al mes'→mensualidad_max:20000.\n"
-    "tipo ∈ {dept,casa}. stage ∈ {preventa,entrega_inmediata,en_construccion}. orientacion ∈ {Norte,Sur,Oriente,Poniente}.\n"
+    '"enganche_max":number,"mensualidad_max":number,"apartado_max":number}\n'
+    "ZONA: colonia es LISTA — devuelve TODAS las que mencione, no solo una. 'en polanco o condesa, del valle, napoles'→"
+    'colonia:["polanco","condesa","del-valle","napoles"] (slug minúsculas con guión).\n'
+    "DINERO (MXN): 'mil'=1000, 'millones/mdp/melones'=1000000, '5M'=5000000. APLICA la magnitud al RANGO completo. "
+    "RANGO precio → min_price+max_price: '10-15mdp'/'entre 10 y 15 millones'→min_price:10000000,max_price:15000000. "
+    "Tope simple 'hasta 15M'→max_price. ENGANCHE: 'enganche menor a 500 mil'→enganche_max:500000; con RANGO 'enganche "
+    "entre 500 y 700 mil'→enganche_max:700000 (el número MÁS ALTO del rango × la magnitud). 'mensualidades de máx 20mil "
+    "/ que no pasen de 20 mil al mes'→mensualidad_max:20000. APARTADO: 'apartado de 10 mil / con 10,000 de apartado'→"
+    "apartado_max:10000.\n"
+    "tipo ∈ {dept,casa}. stage ∈ {preventa,entrega_inmediata}. plazo (solo preventa, cuándo la entregan) ∈ "
+    "{menos_3,3_6,6_12,mas_12}: 'a 2 años / en 24 meses'→mas_12; 'en 6 meses'→6_12. orientacion ∈ {Norte,Sur,Oriente,Poniente}.\n"
     "unit_feature (de la UNIDAD) ∈ {terraza,balcon,roof_garden,estacionamiento_independiente,bodega,pet_friendly}. "
     "'roof garden privado'→roof_garden; 'cajón/elevaautos/estacionamiento individual'→estacionamiento_independiente.\n"
     "amenity (del EDIFICIO) usa SLUGS con guión_bajo. Ejemplos: alberca, gym(gimnasio), spa, sauna, jacuzzi, concierge, "
@@ -1347,7 +1355,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             parsed = _json.loads(txt[s:e + 1])
     except Exception:
         parsed = {}
-    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity", "unit_feature", "orientacion", "piso_min", "enganche_max", "mensualidad_max"}
+    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "plazo", "amenity", "unit_feature", "orientacion", "piso_min", "enganche_max", "mensualidad_max", "apartado_max"}
     filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
 
     # ── Fallback DETERMINISTA (sin LLM) ──────────────────────────────────────────
@@ -1355,13 +1363,16 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     # zona/recámaras/precio/tipo/etapa del texto crudo para que "depa 3 rec en del valle" RESPETE Del Valle (zona =
     # filtro DURO, regla del founder). También es un backstop confiable en prod (corrige lo que el LLM omite).
     import re as _re
+    import unicodedata as _ud
     ql = q.lower()
+    _fold = lambda s: _ud.normalize("NFKD", s or "").encode("ascii", "ignore").decode("ascii")  # quita acentos: nápoles→napoles
+    qfold = _fold(ql)
     _DIRS = (" centro", " norte", " sur", " oriente", " poniente", " 1a seccion", " 2a seccion", " i", " ii")
     if "colonia" not in filters:
         cand = []  # (texto_a_buscar, colonia_id) · gana el match más LARGO (evita "valle" antes que "del valle")
         seen_ids = set()
         for c in SEED_COLONIAS:
-            nm = (c.get("name") or "").lower().strip()
+            nm = _fold((c.get("name") or "").lower().strip())
             cid = c.get("id")
             if not nm or not cid:
                 continue
@@ -1374,15 +1385,20 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                     cand.append((v, cid))
             seen_ids.add(cid)
         for d in DEVELOPMENTS:  # colonias con inventario que no estén en el seed
-            nm = (d.get("colonia") or "").lower().strip()
+            nm = _fold((d.get("colonia") or "").lower().strip())
             cid = d.get("colonia_id")
             if nm and cid and cid not in seen_ids and len(nm) >= 4:
                 cand.append((nm, cid))
         cand.sort(key=lambda x: len(x[0]), reverse=True)
+        _qcol, found = qfold, []   # MULTI-colonia (sin acentos): "polanco o condesa, del valle, napoles" → TODAS
         for v, cid in cand:
-            if _re.search(r"\b" + _re.escape(v), ql):
-                filters["colonia"] = cid
-                break
+            if cid in found:
+                continue
+            if _re.search(r"\b" + _re.escape(v), _qcol):
+                found.append(cid)
+                _qcol = _re.sub(r"\b" + _re.escape(v), " ", _qcol)  # consume el texto → no re-matchea "valle" tras "del valle"
+        if found:
+            filters["colonia"] = found if len(found) > 1 else found[0]
     if "beds" not in filters:
         m = _re.search(r"(\d+)\s*(rec|rec[aá]mara|habitac|cuarto|dorm)", ql)
         if m:
@@ -1404,24 +1420,38 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     # Estrategia: saca enganche/mensualidad (van pegados a su palabra) y QUÍTALOS del texto; lo que queda es el
     # precio → así "10-15mdp con mensualidades max 20mil" no confunde el 20mil con el precio.
     _work = ql
+
+    def _cap_for(kw):
+        """Tope (max) de un campo de dinero pegado a su palabra, soportando RANGO + magnitud:
+        'enganche entre 500 y 700 mil'→700000 · 'menor a 500 mil'→500000 · 'apartado de 10 mil'→10000."""
+        m = _re.search(kw + r"[^0-9]{0,25}?(\d[\d,\.]*)(?:\s*(?:a|y|hasta|-)\s*(\d[\d,\.]*))?\s*(millones|mill[oó]n|mdp|mil|k)?\b", _work)
+        if not m:
+            return None, None
+        a = _money(m.group(1), m.group(3))
+        b = _money(m.group(2), m.group(3)) if m.group(2) else None
+        cap = max(a, b) if b else a       # con rango, el tope = el número MÁS ALTO (lo más que pondría)
+        return (int(cap) if cap and cap > 0 else None), m.group(0)
+
     if "enganche_max" not in filters:
-        m = _re.search(r"enganche\D{0,22}?(\d[\d,\. ]*)\s*(millones|mill[oó]n|mdp|mil|k)?", _work)
-        if m:
-            v = _money(m.group(1), m.group(2))
-            if v > 0:
-                filters["enganche_max"] = int(v)
-            _work = _work.replace(m.group(0), " ")
+        cap, span = _cap_for(r"enganche")
+        if cap:
+            filters["enganche_max"] = cap
+            _work = _work.replace(span, " ")
     if "mensualidad_max" not in filters:
-        m = _re.search(r"mensualidad\w*\D{0,18}?(\d[\d,\. ]*)\s*(mil|k|mdp)?", _work)
-        if m:
-            v = _money(m.group(1), m.group(2))
-            if 1000 <= v <= 2_000_000:
-                filters["mensualidad_max"] = int(v)
-            _work = _work.replace(m.group(0), " ")
+        cap, span = _cap_for(r"mensualidad\w*")
+        if cap and 500 <= cap <= 2_000_000:
+            filters["mensualidad_max"] = cap
+            _work = _work.replace(span, " ")
+    if "apartado_max" not in filters:
+        cap, span = _cap_for(r"apartado")
+        if cap:
+            filters["apartado_max"] = cap
+            _work = _work.replace(span, " ")
     # Metraje (m²): RANGO "80 a 200 m2 / entre 80 y 200 metros" o tope "hasta 150 m2 / desde 80 m2 / 120 metros".
     _U = r"(?:m2|m²|mts|metros\b|m\.?c)"
     if "min_sqm" not in filters and "max_sqm" not in filters:
-        mq = _re.search(r"(\d{2,4})\s*(?:-|–|—|a|y)\s*(\d{2,4})\s*" + _U, _work)
+        mq = (_re.search(r"(\d{2,4})\s*(?:-|–|—|a|y)\s*(\d{2,4})\s*" + _U, _work)         # "100 a 250 m2"
+              or _re.search(r"(\d{2,4})\s*" + _U + r"\s*(?:-|–|—|a|y|hasta)\s*(\d{2,4})", _work))  # "100m2 a 250"
         if mq:
             lo, hi = int(mq.group(1)), int(mq.group(2))
             filters["min_sqm"], filters["max_sqm"] = min(lo, hi), max(lo, hi)
@@ -1452,6 +1482,12 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             filters["stage"] = "preventa"
         elif "inmediata" in ql or "entrega inmediata" in ql or "lista" in ql:
             filters["stage"] = "entrega_inmediata"
+    if "plazo" not in filters:  # "a 2 años / en 24 meses / entrega en 8 meses" → bucket de plazo (preventa)
+        mp = _re.search(r"(\d{1,3})\s*(años|anios|año|anos|ano)\b", _work) or _re.search(r"(\d{1,3})\s*meses\b", _work)
+        if mp:
+            es_anios = bool(_re.search(r"a[nñ]", mp.group(0)))
+            meses = int(mp.group(1)) * (12 if es_anios else 1)
+            filters["plazo"] = "menos_3" if meses <= 3 else "3_6" if meses <= 6 else "6_12" if meses <= 12 else "mas_12"
     # Amenidades (edificio) + features de la unidad — granularidad fina sin LLM. Solo el vocabulario REAL del
     # catálogo (no se inventa lo que no existe, ej. "campo de golf" no está en desarrollos urbanos de CDMX).
     _UF_KW = {"balcon": ["balcon", "balcón"], "terraza": ["terraza"], "bodega": ["bodega"], "roof_garden": ["roof garden", "roofgarden", "roof-garden"]}
