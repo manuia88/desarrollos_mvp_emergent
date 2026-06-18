@@ -224,6 +224,23 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
     except Exception as e:
         log.warning(f"[grafo] marketplace_searches fail-open: {e}")
 
+    # 2c. Copiloto · espinazo: los LIKES del comprador (buyer_signals) suman como INTERÉS por colonia → el dev y
+    # el superadmin ven no solo qué se busca, sino qué se DESEA (señal más fuerte). Cierra el ciclo del like.
+    likes_by_col: Counter = Counter()
+    try:
+        async for ls in db.buyer_signals.find(
+                {"type": "like", "active": True, "created_at_dt": {"$gte": now - timedelta(days=dias)}},
+                {"_id": 0, "colonia": 1}):
+            nm = str(ls.get("colonia") or "").strip().lower()
+            if not nm:
+                continue
+            cc = COLONIAS_BY_ID.get(nm)
+            nm = str((cc or {}).get("name", nm)).strip().lower()
+            likes_by_col[nm] += 1
+            col_total[nm] += 1  # el deseo cuenta para la banda de demanda de la colonia
+    except Exception as e:
+        log.warning(f"[grafo] buyer_signals likes fail-open: {e}")
+
     # 3. Banda honesta de demanda por colonia (percentil real del total de búsquedas).
     try:
         import metric_normalizer as _mn
@@ -280,6 +297,7 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
             "alcaldia": col_doc.get("alcaldia") if col_doc else None,
             "demanda_total": total,
             "busquedas_marketplace": mkt_by_name.get(col_name_l, 0),  # P2.6 · señal del comprador
+            "likes_comprador": likes_by_col.get(col_name_l, 0),       # Copiloto · deseo (like) por colonia
             "banda": banda_nivel,
             "etiqueta": banda_et,
             "segmento_dominante": dominante,
@@ -303,6 +321,7 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
             "alcaldia": col_doc.get("alcaldia") if col_doc else None,
             "demanda_total": cnt,
             "busquedas_marketplace": cnt,
+            "likes_comprador": likes_by_col.get(nm_l, 0),
             "banda": banda.get("nivel", "sin_dato"),
             "etiqueta": banda.get("etiqueta", "Búsquedas del comprador"),
             "segmento_dominante": None,
