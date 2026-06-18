@@ -120,6 +120,9 @@ class CitaIn(BaseModel):
 async def pedir_cita(b: CitaIn, request: Request):
     """El comprador pide visita de un favorito (o de una UNIDAD específica). Si ya es lead, cae en el tablero del
     asesor con la unidad exacta (status cita) + timeline."""
+    from services.ratelimit import allow, client_ip
+    if not allow("favoritos", client_ip(request), 40):
+        return {"ok": True, "throttled": True}
     try:
         db = request.app.state.db
         now = datetime.utcnow()
@@ -149,6 +152,9 @@ class NotaIn(BaseModel):
 @router.post("/api/buyer/favoritos/nota")
 async def dejar_nota(b: NotaIn, request: Request):
     """El comprador deja una nota en un favorito. Si ya es lead, el asesor la ve en su tablero."""
+    from services.ratelimit import allow, client_ip
+    if not allow("favoritos", client_ip(request), 40):
+        return {"ok": True, "throttled": True}
     try:
         db = request.app.state.db
         await db.buyer_favoritos.update_one(
@@ -163,11 +169,11 @@ async def dejar_nota(b: NotaIn, request: Request):
         return {"ok": False}
 
 
-async def _push_to_asesor_board(db, lead_id, dev_id, status=None, client_cita=None, client_note=None):
+async def _push_to_asesor_board(db, lead_id, dev_id, status=None, client_cita=None, client_note=None, client_units=None):
     """Upsert de UNA propiedad en el tablero del asesor (asesor_lead_properties) — la cara del asesor del favorito."""
     try:
-        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "assigned_to": 1})
-        owner = (lead or {}).get("assigned_to")
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "assigned_to": 1, "asesor_id": 1})
+        owner = (lead or {}).get("assigned_to") or (lead or {}).get("asesor_id")
         if not owner:
             return
         cont = await db.asesor_contactos.find_one({"owner_id": owner, "source_lead_id": lead_id}, {"_id": 0, "id": 1})
@@ -182,6 +188,8 @@ async def _push_to_asesor_board(db, lead_id, dev_id, status=None, client_cita=No
             sset["client_cita"] = client_cita
         if client_note is not None:
             sset["client_note"] = client_note
+        if client_units:  # las UNIDADES específicas que guardó/quiere (#02A) → el asesor las ve exactas
+            sset["client_units"] = client_units
         import uuid as _u
         await db.asesor_lead_properties.update_one(
             {"owner_id": owner, "contacto_id": contacto_id, "dev_id": dev_id},
@@ -204,6 +212,14 @@ async def mirror_favoritos_to_board(db, visitor_id, lead_id):
             {"visitor_id": visitor_id, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1}):
             if s.get("entity_id") and s["entity_id"] not in ids:
                 ids.append(s["entity_id"])
+        # Unidades guardadas (♥ en una unidad): el dev también es favorito y el asesor debe ver QUÉ unidad guardó.
+        units_by_dev = {}
+        async for s in db.buyer_signals.find(
+            {"visitor_id": visitor_id, "type": "unit_save", "active": True}, {"_id": 0, "entity_id": 1, "unit_number": 1}):
+            if s.get("entity_id") and s.get("unit_number"):
+                units_by_dev.setdefault(s["entity_id"], []).append(s["unit_number"])
+                if s["entity_id"] not in ids:
+                    ids.append(s["entity_id"])
         extras = {}
         async for f in db.buyer_favoritos.find({"visitor_id": visitor_id}, {"_id": 0, "dev_id": 1, "cita": 1, "nota": 1, "status": 1}):
             extras[f.get("dev_id")] = f
@@ -212,7 +228,8 @@ async def mirror_favoritos_to_board(db, visitor_id, lead_id):
             await _push_to_asesor_board(
                 db, lead_id, i,
                 status=("cita" if ex.get("cita") else "le_gusto"),
-                client_cita=ex.get("cita"), client_note=ex.get("nota"))
+                client_cita=ex.get("cita"), client_note=ex.get("nota"),
+                client_units=units_by_dev.get(i))
         return len(ids)
     except Exception as e:  # noqa: BLE001
         log.info(f"[favoritos] mirror to board skip: {e}")

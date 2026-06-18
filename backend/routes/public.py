@@ -1008,6 +1008,9 @@ async def casi_cumple(
     # el dev/superadmin vea "X personas buscaron esto exacto en tu zona y no hay nada". Fire-and-forget.
     if colonia:
         try:
+            from services.ratelimit import allow, client_ip
+            if not allow("demanda_insatisf", client_ip(request), 30):
+                return {"casi": out}   # rate-limit: no dejes que un bot (rotando visitor_id) envenene el cubo
             from collections import Counter as _C
             import json as _json, hashlib as _hl
             _falta = _C()

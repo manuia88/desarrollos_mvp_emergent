@@ -57,6 +57,10 @@ async def buyer_signal(s: SignalIn, request: Request):
     """Registra una señal de conducta del comprador (anónima). Fail-open. Es el espinazo de las 8 capas."""
     if s.type not in VALID:
         return {"ok": False, "error": "tipo inválido"}
+    # Rate-limit por IP real: frena bots que inflen el espinazo de señales (envenenan gusto/demanda). Fail-soft.
+    from services.ratelimit import allow, client_ip
+    if not allow("buyer_signal", client_ip(request), 90):
+        return {"ok": True, "throttled": True}
     try:
         db = request.app.state.db
         await _ensure_index(db)
@@ -107,6 +111,9 @@ class ElasticidadIn(BaseModel):
 async def registrar_elasticidad(b: ElasticidadIn, request: Request):
     """C · Elasticidad: cuando el comprador RELAJA un criterio (no había match), registramos QUÉ cedió. Revela en qué
     transige la gente (amenidad antes que zona, m² antes que precio…) → oro para precio/producto del dev + superadmin."""
+    from services.ratelimit import allow, client_ip
+    if not allow("elasticidad", client_ip(request), 40):
+        return {"ok": True, "throttled": True}
     try:
         db = request.app.state.db
         from datetime import datetime as _dt

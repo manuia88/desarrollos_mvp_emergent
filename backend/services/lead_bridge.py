@@ -212,6 +212,21 @@ async def resolve_house_public_receiver(db):
         return (None, None)
 
 
+async def _replay_favoritos(db, lead: dict):
+    """Cuando el contacto del asesor ya existe, baja los favoritos/citas/notas/unidades del comprador a su tablero
+    (Ficha360). Cierra la promesa "las dos caras" incluso si el asesor se activó DESPUÉS de que el comprador eligió.
+    Idempotente (upserts). Fail-open."""
+    try:
+        vid = lead.get("visitor_id")
+        lid = lead.get("id")
+        if not vid or not lid:
+            return
+        from routes.favoritos import mirror_favoritos_to_board
+        await mirror_favoritos_to_board(db, vid, lid)
+    except Exception:
+        pass
+
+
 async def retry_pending_mirrors(db, limit: int = 500) -> int:
     """AUTO-REPARABLE: re-intenta el espejo al CRM de los leads marcados `mirror_pending`
     (el espejo falló al crearlos → no aparecían en "Mis Leads"). Al lograrlo, limpia la
@@ -224,6 +239,7 @@ async def retry_pending_mirrors(db, limit: int = 500) -> int:
             try:
                 if await mirror_lead_to_asesor_contacto(db, ld):
                     await db.leads.update_one({"id": ld.get("id")}, {"$unset": {"mirror_pending": ""}})
+                    await _replay_favoritos(db, ld)  # ahora que el contacto SÍ existe, baja sus favoritos al tablero
                     n += 1
             except Exception:
                 continue
@@ -245,6 +261,7 @@ async def backfill_owner(db, owner_user_id: str, limit: int = 2000) -> int:
         ).limit(limit)
         async for ld in cur:
             if await mirror_lead_to_asesor_contacto(db, ld):
+                await _replay_favoritos(db, ld)  # baja sus favoritos al tablero al activar/backfill el asesor
                 n += 1
     except Exception as e:
         log.warning(f"[lead_bridge] backfill_owner fail-open: {e}")
