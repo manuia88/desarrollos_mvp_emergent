@@ -181,6 +181,13 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
         # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
         await db.buyer_signals.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
         await db.marketplace_searches.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
+        # 6. LAS DOS CARAS: los favoritos (+ citas/notas) del comprador caen al tablero del asesor (Ficha360), el
+        #    mismo que alimenta su link Tinder. Fail-open.
+        try:
+            from routes.favoritos import mirror_favoritos_to_board
+            await mirror_favoritos_to_board(db, b.visitor_id, lead_id)
+        except Exception:
+            pass
         return {"ok": True, "lead_id": lead_id, "asignado": "tu inmobiliaria" if house_inm else "asesor"}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] registrar lead fail: {e}")

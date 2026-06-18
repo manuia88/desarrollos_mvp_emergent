@@ -76,6 +76,10 @@ export default function PublicNav() {
         </nav>
 
         <span style={{ fontSize: 12.5, color: 'var(--cream-3)', fontWeight: 600 }}>ES · EN</span>
+        <Link to="/favoritos" title="Mis favoritos" data-testid="nav-favoritos"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5 }}>
+          <span style={{ fontSize: 15, color: 'var(--theme)' }}>♥</span> Favoritos
+        </Link>
         <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
         <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
       </div>

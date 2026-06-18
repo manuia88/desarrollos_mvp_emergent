@@ -45,6 +45,7 @@ const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowe
 // ─── Lazy-loaded page routes ───────────────────────────────────────────────────
 // Marketplace
 const Marketplace       = lazy(() => import('./pages/Marketplace'));
+const Favoritos         = lazy(() => import('./pages/Favoritos'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
 const Mapa              = lazy(() => import('./pages/Mapa'));
@@ -676,6 +677,7 @@ function AppRouter() {
       <Route path="/v2" element={<HomeV2 />} />{/* rediseño · preview fondo claro */}
       <Route path="/p/:token" element={<SwipeLinkRoute />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
+      <Route path="/favoritos" element={<Suspense fallback={null}><Favoritos /></Suspense>} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
       {/* UNIFICADO 2026-06-17: /mapa y /mapa-valores apuntan al MISMO mapa bueno (Mapa de Valores · Mapa.js).

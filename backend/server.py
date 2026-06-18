@@ -1110,6 +1110,12 @@ try:
 except Exception as _exc:  # noqa: BLE001
     logging.warning(f"[copiloto] flywheel include failed: {_exc}")
 
+try:
+    from routes.favoritos import router as favoritos_router
+    app.include_router(favoritos_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] favoritos include failed: {_exc}")
+
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router
 app.include_router(public_market_router)
