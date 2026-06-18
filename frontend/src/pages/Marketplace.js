@@ -567,6 +567,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 92, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
                 <OportunidadPanel
                   developments={developments}
+                  colonias={colonias}
+                  selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && aiFilters.colonia)}
                   onPerfilar={() => setPerfiladorOpen(true)}
                 />
               </aside>
