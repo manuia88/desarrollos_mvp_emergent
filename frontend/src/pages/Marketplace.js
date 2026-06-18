@@ -14,7 +14,7 @@ import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
-import OportunidadPanel, { computeRadar, applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
+import OportunidadPanel, { applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
@@ -91,8 +91,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   useEffect(() => {
     const API = process.env.REACT_APP_BACKEND_URL;
     const vid = visitorId();
-    fetch(`${API}/api/buyer/parecidos?visitor_id=${vid}&limit=6`)
-      .then((r) => r.json()).then((d) => setParecidos(d?.parecidos || [])).catch(() => {});
+    let dismissed = false;
+    try { dismissed = sessionStorage.getItem('dmx_dismiss_parecidos') === '1'; } catch { /* noop */ }
+    if (!dismissed) {
+      fetch(`${API}/api/buyer/parecidos?visitor_id=${vid}&limit=6`)
+        .then((r) => r.json()).then((d) => setParecidos(d?.parecidos || [])).catch(() => {});
+    }
     fetch(`${API}/api/buyer/alertas?visitor_id=${vid}`)
       .then((r) => r.json()).then((d) => setAlertas(d?.alertas || [])).catch(() => {});
   }, []);
@@ -225,14 +229,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   const handleClearColoniaFilter = () => setColoniaFilter(null);
 
-  // Oportunidades: filtra la lista cargada (presupuesto/etapa/confianza) + calcula el Radar (top 3).
+  // Oportunidades: filtra la lista cargada (presupuesto/etapa/confianza). El Radar genérico se retiró.
   const visibleDevs = useMemo(
     () => applyOportunidadFilters(developments, { budgetMax, stages, onlyTrusted }),
     [developments, budgetMax, stages, onlyTrusted]
-  );
-  const radar = useMemo(
-    () => computeRadar(visibleDevs.length ? visibleDevs : developments),
-    [visibleDevs, developments]
   );
 
   const resultsText = useMemo(
@@ -535,10 +535,16 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               if (picks.length === 0) return null;
               return (
                 <div data-testid="parecidos" style={{ marginBottom: 30 }}>
-                  <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Por tu gusto</div>
-                  <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,24px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: '0 0 14px' }}>
-                    Parecidos a los que te gustaron
-                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div>
+                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Por tu gusto</div>
+                      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,24px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: '0 0 14px' }}>
+                        Parecidos a los que te gustaron
+                      </h2>
+                    </div>
+                    <button onClick={() => { setParecidos([]); try { sessionStorage.setItem('dmx_dismiss_parecidos', '1'); } catch { /* noop */ } }} data-testid="dismiss-parecidos" title="Ocultar"
+                      style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1 }}>✕</button>
+                  </div>
                   <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
                     {picks.map(({ dev, r }, i) => (
                       <div key={dev.id} style={{ position: 'relative' }}>
@@ -561,7 +567,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 92, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
                 <OportunidadPanel
                   developments={developments}
-                  radar={radar}
                   onPerfilar={() => setPerfiladorOpen(true)}
                 />
               </aside>
