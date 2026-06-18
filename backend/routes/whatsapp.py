@@ -77,6 +77,18 @@ async def whatsapp_inbound_webhook(request: Request):
     except ValueError as exc:
         raise HTTPException(401, str(exc))
 
+    # Copiloto E6: si es un comprador NUEVO/público (no contacto de asesor), Atlax conversa y lo lleva a la
+    # plataforma. Fail-open (el candado vive en handle_buyer_wa; jamás secuestra hilos del asesor).
+    try:
+        from_num = (payload.get("From") or payload.get("from") or "").replace("whatsapp:", "")
+        body = payload.get("Body") or payload.get("body") or ""
+        if from_num and body:
+            from routes.whatsapp_copiloto import handle_buyer_wa
+            await handle_buyer_wa(db, from_num, body)
+    except Exception as _ce:
+        import logging as _l
+        _l.getLogger("dmx.whatsapp").info(f"[copiloto wa] no aplicó: {_ce}")
+
     return JSONResponse({"ok": True, **result})
 
 

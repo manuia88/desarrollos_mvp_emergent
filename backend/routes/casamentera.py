@@ -55,11 +55,16 @@ async def correr_casamentera(db, dev_ids=None):
             res = await db.buyer_alerts.update_one({"dedup": key}, {"$setOnInsert": doc}, upsert=True)
             if res.upserted_id is not None:
                 created += 1
-                # Si ya es lead (E3), deja rastro en el CRM del asesor: nueva coincidencia para dar seguimiento.
+                # Si ya es lead (E3), deja rastro en el CRM del asesor + AVISA por WhatsApp (E6) si dejó teléfono.
                 if s.get("lead_id"):
                     try:
+                        lead = await db.leads.find_one({"id": s["lead_id"]}, {"_id": 0, "contact": 1})
                         await db.leads.update_one({"id": s["lead_id"]}, {"$push": {"casamentera_matches": {"dev_id": d.get("id"), "dev_name": d.get("name"), "at": now.isoformat()}},
                                                                           "$set": {"last_activity_at": now.isoformat()}})
+                        phone = ((lead or {}).get("contact") or {}).get("phone")
+                        if phone:
+                            from routes.whatsapp_copiloto import notify_buyer_wa
+                            await notify_buyer_wa(db, phone, f"🔔 ¡Encontramos algo para ti! {d.get('name')} en {d.get('colonia')} — encaja con lo que buscas. Míralo aquí 👉 {__import__('os').environ.get('FRONTEND_URL','https://desarrollosmx.io')}/desarrollo/{d.get('id')}")
                     except Exception:
                         pass
       except Exception as _e:  # noqa: BLE001 — una búsqueda con dato malo no tira el scan entero
