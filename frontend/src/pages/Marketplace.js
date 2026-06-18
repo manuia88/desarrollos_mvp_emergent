@@ -14,7 +14,7 @@ import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
-import SubscoreFilterPanel from '../components/zones/SubscoreFilterPanel';
+import OportunidadPanel, { computeRadar, applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
@@ -55,6 +55,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [subscoreMin, setSubscoreMin] = useState({});
   // W5.3 Parte 2B Sub-E — Forecast 12m growth minimum filter
   const [forecastDeltaMin, setForecastDeltaMin] = useState(0);
+  // Oportunidades (rediseño 2026-06-18) — 3 filtros humanos que reemplazan los scores subjetivos.
+  // Client-side sobre la lista ya cargada (sin tocar el fetch del servidor).
+  const [budgetMax, setBudgetMax] = useState(0);
+  const [stages, setStages] = useState([]);
+  const [onlyTrusted, setOnlyTrusted] = useState(false);
 
   // Mapbox refs
   const mapContainer = useRef(null);
@@ -195,9 +200,19 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   const handleClearColoniaFilter = () => setColoniaFilter(null);
 
+  // Oportunidades: filtra la lista cargada (presupuesto/etapa/confianza) + calcula el Radar (top 3).
+  const visibleDevs = useMemo(
+    () => applyOportunidadFilters(developments, { budgetMax, stages, onlyTrusted }),
+    [developments, budgetMax, stages, onlyTrusted]
+  );
+  const radar = useMemo(
+    () => computeRadar(visibleDevs.length ? visibleDevs : developments),
+    [visibleDevs, developments]
+  );
+
   const resultsText = useMemo(
-    () => t('marketplace_v2.results_count', { count: developments.length }),
-    [t, developments.length]
+    () => t('marketplace_v2.results_count', { count: visibleDevs.length }),
+    [t, visibleDevs.length]
   );
 
   return (
@@ -436,19 +451,21 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 280px) 1fr', gap: 24, alignItems: 'flex-start' }}>
               <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 130 }}>
-                <SubscoreFilterPanel
-                  value={subscoreMin}
-                  onApply={(v) => setSubscoreMin(v)}
-                  onClear={() => setSubscoreMin({})}
-                  compact={false}
-                  forecastValue={forecastDeltaMin}
-                  onForecastChange={(v) => setForecastDeltaMin(Number(v) || 0)}
+                <OportunidadPanel
+                  developments={developments}
+                  radar={radar}
+                  budgetMax={budgetMax}
+                  setBudgetMax={setBudgetMax}
+                  stages={stages}
+                  setStages={setStages}
+                  onlyTrusted={onlyTrusted}
+                  setOnlyTrusted={setOnlyTrusted}
                 />
               </aside>
               <div>
                 {loading ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
-                ) : developments.length === 0 ? (
+                ) : visibleDevs.length === 0 ? (
                   <div data-testid="mkp-empty" style={{
                     padding: 60, textAlign: 'center',
                     background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
@@ -462,7 +479,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     gridTemplateColumns: 'repeat(3, 1fr)',
                     gap: 20,
                   }}>
-                    {developments.map((d, i) => (
+                    {visibleDevs.map((d, i) => (
                       <div key={d.id} data-testid="development-card" style={{ position: 'relative' }}>
                         <DevelopmentCard dev={d} index={i} />
                         {/* W5.x F4.2 — botón "+ Comparar" outline · localStorage basket */}
