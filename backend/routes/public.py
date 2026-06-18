@@ -1100,6 +1100,22 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             filters["stage"] = "preventa"
         elif "inmediata" in ql or "entrega inmediata" in ql or "lista" in ql:
             filters["stage"] = "entrega_inmediata"
+    # Amenidades (edificio) + features de la unidad — granularidad fina sin LLM. Solo el vocabulario REAL del
+    # catálogo (no se inventa lo que no existe, ej. "campo de golf" no está en desarrollos urbanos de CDMX).
+    _UF_KW = {"balcon": ["balcon", "balcón"], "terraza": ["terraza"], "bodega": ["bodega"], "roof_garden": ["roof garden", "roofgarden", "roof-garden"]}
+    _AM_KW = {"gym": ["gimnasio", "gym"], "alberca": ["alberca", "piscina"], "spa": ["spa"], "cowork": ["coworking", "cowork"],
+              "concierge": ["concierge", "conserje"], "seguridad": ["seguridad", "vigilancia"], "bicicletas": ["bicicleta", "biciclet"],
+              "salon_eventos": ["salón de eventos", "salon de eventos", "salon eventos"], "cava": ["cava"], "sky_lounge": ["sky lounge", "skylounge"],
+              "business_center": ["business center", "centro de negocios"], "pet": ["pet friendly", "pet-friendly", "mascota"], "jardines": ["jardín", "jardin", "jardines"],
+              "roof": ["roof"]}
+    if "unit_feature" not in filters:
+        ufh = [s for s, kws in _UF_KW.items() if any(k in ql for k in kws)]
+        if ufh:
+            filters["unit_feature"] = ufh
+    if "amenity" not in filters:
+        amh = [s for s, kws in _AM_KW.items() if any(k in ql for k in kws) and not (s == "roof" and ("unit_feature" in filters and "roof_garden" in filters.get("unit_feature", [])))]
+        if amh:
+            filters["amenity"] = amh
     await db.ai_search_cache.update_one(
         {"cache_key": cache_key},
         {"$set": {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}},
