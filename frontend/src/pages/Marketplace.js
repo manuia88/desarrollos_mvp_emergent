@@ -507,12 +507,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 <OportunidadPanel
                   developments={developments}
                   radar={radar}
-                  budgetMax={budgetMax}
-                  setBudgetMax={setBudgetMax}
-                  stages={stages}
-                  setStages={setStages}
-                  onlyTrusted={onlyTrusted}
-                  setOnlyTrusted={setOnlyTrusted}
+                  onPerfilar={() => setPerfiladorOpen(true)}
                 />
               </aside>
               <div>

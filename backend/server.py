@@ -1082,6 +1082,13 @@ try:
 except Exception as _exc:  # noqa: BLE001
     logging.warning(f"[copiloto] perfil_recomendar include failed: {_exc}")
 
+# Copiloto · espinazo de señales del comprador (8 capas · visitor_id)
+try:
+    from routes.buyer_signals import router as buyer_signals_router
+    app.include_router(buyer_signals_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] buyer_signals include failed: {_exc}")
+
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router
 app.include_router(public_market_router)

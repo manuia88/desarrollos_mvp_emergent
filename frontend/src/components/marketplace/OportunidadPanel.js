@@ -48,12 +48,12 @@ export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrus
 
 const money = (n) => '$' + (n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1) + 'M' : Math.round(n / 1e3) + 'k');
 
-export default function OportunidadPanel({ developments = [], radar = [], budgetMax, setBudgetMax, stages = [], setStages, onlyTrusted, setOnlyTrusted }) {
-  const prices = developments.map((d) => Number(d.price_from) || 0).filter(Boolean);
-  const min = prices.length ? Math.min(...prices) : 1e6;
-  const max = prices.length ? Math.max(...prices) : 5e7;
-  const budget = budgetMax || max;
-  const toggleStage = (k) => setStages(stages.includes(k) ? stages.filter((s) => s !== k) : [...stages, k]);
+export default function OportunidadPanel({ developments = [], radar = [], onPerfilar }) {
+  // Pulso de mercado (inteligencia que ningún portal da) — del catálogo cargado, real.
+  const nDevs = developments.length;
+  const nColonias = new Set(developments.map((d) => d.colonia).filter(Boolean)).size;
+  const plusvVals = developments.map((d) => { const m = String(d.plusvalia_zona || '').match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; }).filter((v) => v != null);
+  const plusvProm = plusvVals.length ? (plusvVals.reduce((a, b) => a + b, 0) / plusvVals.length).toFixed(1) : null;
 
   const card = { background: '#fff', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 1px 2px rgba(16,18,28,0.05)' };
   const eyebrow = { fontSize: 10.5, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 };
@@ -84,56 +84,29 @@ export default function OportunidadPanel({ developments = [], radar = [], budget
         </div>
       </div>
 
-      {/* ── CAPA 2 · FILTROS HUMANOS ── */}
-      <div style={{ ...card, padding: 18 }}>
-        <div style={eyebrow}>Afina con lo que importa</div>
-        <div style={h}>Tu búsqueda</div>
-
-        {/* ¿Me alcanza? */}
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>¿Cuánto quieres invertir?</span>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--theme)' }}>hasta {money(budget)}</span>
-          </div>
-          <input type="range" data-testid="filtro-presupuesto" min={min} max={max} step={500000} value={budget}
-            onChange={(e) => setBudgetMax(Number(e.target.value))}
-            style={{ width: '100%', accentColor: 'var(--theme)', cursor: 'pointer' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2 }}>
-            <span>{money(min)}</span><span>{money(max)}</span>
-          </div>
+      {/* ── INVITAR A PERFILAR (NO duplica filtros: la búsqueda vive en el Perfilador) ── */}
+      <div style={{ ...card, padding: 18, background: 'linear-gradient(160deg, rgba(var(--theme-rgb),0.07), #fff)', borderColor: 'rgba(var(--theme-rgb),0.25)' }}>
+        <div style={h}>Encuentra TU lugar</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 5, marginBottom: 14, lineHeight: 1.5 }}>
+          Dinos qué buscas y te decimos cuáles te convienen de verdad — con tu presupuesto, crédito, plazo y zona.
         </div>
-
-        {/* ¿Cuándo entregan? */}
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream)', marginBottom: 9 }}>¿Cuándo lo quieres?</div>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {STAGES.map((s) => {
-              const on = stages.includes(s.key);
-              return (
-                <button key={s.key} type="button" data-testid={`filtro-etapa-${s.key}`} onClick={() => toggleStage(s.key)}
-                  style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
-                    background: on ? 'var(--theme)' : '#fff', color: on ? '#fff' : 'var(--cream-2)',
-                    border: `1px solid ${on ? 'var(--theme)' : 'var(--border)'}` }}>
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ¿Confío en quién construye? */}
-        <button type="button" data-testid="filtro-confianza" onClick={() => setOnlyTrusted(!onlyTrusted)}
-          style={{ marginTop: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-            padding: '12px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-            background: onlyTrusted ? 'rgba(31,160,106,0.08)' : '#fff', border: `1px solid ${onlyTrusted ? 'rgba(31,160,106,0.4)' : 'var(--border)'}` }}>
-          <span>
-            <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>Solo en quién confío</span>
-            <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 1 }}>Desarrolladores verificados · entrega en tiempo</span>
-          </span>
-          <span style={{ flexShrink: 0, width: 38, height: 22, borderRadius: 9999, background: onlyTrusted ? '#1FA06A' : 'var(--border)', position: 'relative', transition: 'background .18s' }}>
-            <span style={{ position: 'absolute', top: 2, left: onlyTrusted ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-          </span>
+        <button type="button" data-testid="panel-perfilar" onClick={() => onPerfilar?.()}
+          style={{ width: '100%', padding: '12px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14 }}>
+          ✨ Empezar mi búsqueda
         </button>
+      </div>
+
+      {/* ── PULSO DE MERCADO (inteligencia que ningún portal da · no es filtro) ── */}
+      <div style={{ ...card, padding: 18 }}>
+        <div style={eyebrow}>El mercado hoy</div>
+        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+          {[[nDevs, 'desarrollos'], [nColonias, 'colonias'], [plusvProm != null ? `+${plusvProm}%` : '—', 'plusvalía prom.']].map(([n, l], i) => (
+            <div key={i} style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{n}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 1 }}>{l}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

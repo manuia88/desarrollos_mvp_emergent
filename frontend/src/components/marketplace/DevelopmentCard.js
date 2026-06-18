@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight, Sparkle } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
 import ProbabilityBadge from '../shared/ProbabilityBadge';
 import { Z } from '../../styles/zIndex';
@@ -114,10 +115,14 @@ export default function DevelopmentCard({ dev, index = 0 }) {
 
   const onToggleFav = (e) => {
     e.preventDefault(); e.stopPropagation();
-    setSaved(toggleFavorite(dev.id));
+    const ns = toggleFavorite(dev.id);
+    setSaved(ns);
+    // Señal de DOS caras: afina el gusto del comprador + le dice al dev que su desarrollo interesa.
+    sendBuyerSignal(ns ? 'like' : 'unlike', { entity_id: dev.id, colonia: dev.colonia });
   };
   const onShare = (e) => {
     e.preventDefault(); e.stopPropagation();
+    sendBuyerSignal('share', { entity_id: dev.id, colonia: dev.colonia });
     if (navigator.share) {
       navigator.share({ title: dev.name, url: `${window.location.origin}/desarrollo/${dev.id}` }).catch(() => {});
     } else {
