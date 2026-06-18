@@ -88,6 +88,29 @@ async def buyer_signal(s: SignalIn, request: Request):
         return {"ok": False}
 
 
+class ElasticidadIn(BaseModel):
+    visitor_id: Optional[str] = None
+    cedio: str                       # qué relajó: "amenity:cancha_padel" | "unit_feature:balcon" | "baths" …
+    texto: Optional[str] = None      # la búsqueda original (contexto)
+
+
+@router.post("/api/buyer/elasticidad")
+async def registrar_elasticidad(b: ElasticidadIn, request: Request):
+    """C · Elasticidad: cuando el comprador RELAJA un criterio (no había match), registramos QUÉ cedió. Revela en qué
+    transige la gente (amenidad antes que zona, m² antes que precio…) → oro para precio/producto del dev + superadmin."""
+    try:
+        db = request.app.state.db
+        from datetime import datetime as _dt
+        await db.buyer_elasticidad.insert_one({
+            "visitor_id": b.visitor_id, "cedio": b.cedio[:60], "texto": (b.texto or "")[:200],
+            "created_at_dt": _dt.utcnow(),
+        })
+        return {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] elasticidad fail: {e}")
+        return {"ok": False}
+
+
 @router.get("/api/desarrollo/{dev_id}/interes")
 async def interes_desarrollo(dev_id: str, request: Request):
     """Interés PÚBLICO/agregado de un desarrollo (likes + vistas + guardados · k-anon ≥3 para likes/guardados).

@@ -254,6 +254,21 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   ];
   const canSearch = requiredFields.every((f) => f.ok);
 
+  // C · Elasticidad: el comprador relaja UN criterio (lo que está dispuesto a ceder) → se quita + se CAPTURA.
+  const EXTRA_LABEL = { balcon: 'balcón', terraza: 'terraza', roof_garden: 'roof garden', bodega: 'bodega', estacionamiento_independiente: 'cajón independiente', pet_friendly: 'pet friendly', gym: 'gimnasio', alberca: 'alberca', spa: 'spa', cancha_padel: 'cancha de pádel', cancha_tenis: 'cancha de tenis', asadores: 'asadores', concierge: 'concierge', seguridad: 'seguridad', cowork: 'coworking', roof: 'roof garden (común)', sky_lounge: 'sky lounge', cine: 'cine', paneles_solares: 'paneles solares', elevador: 'elevador' };
+  const relajarCriterio = (slug) => {
+    const rm = (obj) => { if (!obj) return obj; const n = { ...obj }; ['amenity', 'unit_feature'].forEach((k) => { if (Array.isArray(n[k])) n[k] = n[k].filter((x) => x !== slug); }); return n; };
+    const tipo = ((filters.amenity || []).includes(slug) || (aiFilters && (aiFilters.amenity || []).includes(slug))) ? 'amenity' : 'unit_feature';
+    setFilters((f) => rm(f));
+    setAiFilters((a) => rm(a));
+    try {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/elasticidad`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitor_id: visitorId(), cedio: `${tipo}:${slug}`, texto: (aiFilters && aiFilters._q) || '' }),
+      });
+    } catch { /* noop */ }
+  };
+
   // Guarda la búsqueda activa → la ficha del desarrollo resalta las unidades que cumplen (ficha consciente).
   useEffect(() => {
     const c = {
@@ -682,13 +697,20 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                             ? 'Pediste varias amenidades y características a la vez. Quita alguna para ver más opciones — en esa zona quizá no existan todas juntas.'
                             : 'Prueba con otra zona o ajusta los filtros.'}
                         </div>
+                        {extras.length > 0 && (
+                          <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 8 }}>Para ver más, quita lo que estés dispuesto a ceder:</div>
+                            <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap' }}>
+                              {[...new Set(extras)].map((ex) => (
+                                <button key={ex} data-testid={`relax-${ex}`} onClick={() => relajarCriterio(ex)}
+                                  style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream-2)' }}>
+                                  ✕ {EXTRA_LABEL[ex] || String(ex).replace(/_/g, ' ')}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          {extras.length > 0 && (
-                            <button data-testid="empty-relax" onClick={() => {
-                              setFilters((f) => { const n = { ...f }; delete n.amenity; delete n.unit_feature; return n; });
-                              setAiFilters((a) => { if (!a) return a; const n = { ...a }; delete n.amenity; delete n.unit_feature; return n; });
-                            }} className="btn btn-primary">Quitar amenidades y extras</button>
-                          )}
                           <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); }} className="btn btn-glass">Limpiar búsqueda</button>
                         </div>
                       </div>

@@ -128,6 +128,10 @@ async def buyer_cycle_intel(db, dias: int = 30):
         _pf = _d.get("price_from") or 0
         if _z and _pf and (_z not in _oferta_min or _pf < _oferta_min[_z]):
             _oferta_min[_z] = _pf
+    # C · Elasticidad: en qué CEDE la gente cuando no hay match (lo que más relajan).
+    cede = await _agg(db.buyer_elasticidad, [
+        {"$match": F}, {"$group": {"_id": "$cedio", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 10},
+    ])
 
     return {
         "ventana_dias": dias,
@@ -164,6 +168,7 @@ async def buyer_cycle_intel(db, dias: int = 30):
                                   "lectura": ("la gente busca debajo de tu precio de entrada — estás arriba de la demanda"
                                               if (_oferta_min.get(w["_id"]) and w.get("presup_prom") and _oferta_min[w["_id"]] > w["presup_prom"])
                                               else "tu precio de entrada cae dentro de lo que buscan")} for w in wtp],
+            "elasticidad_en_que_ceden": [{"cedio": c["_id"], "veces": c["n"]} for c in cede],
             "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. disposicion_pago = presupuesto buscado vs precio de entrada del dev por zona.",
         },
         "es_estimado": busquedas < 30,
