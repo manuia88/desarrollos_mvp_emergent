@@ -734,7 +734,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 900px) { .dev-grid { grid-template-columns: repeat(2, 1fr) !important; } }
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
-      <AtlaxBubble />
+      <AtlaxBubble theme="light" />
       {viewMode === 'lista' && <Footer />}
     </LightScope>
   );
