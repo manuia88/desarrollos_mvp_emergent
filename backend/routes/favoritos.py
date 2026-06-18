@@ -112,21 +112,25 @@ class CitaIn(BaseModel):
     visitor_id: str
     dev_id: str
     when: str                       # texto libre ("Sábado 11am") · igual que el swipe del asesor
+    unit_number: Optional[str] = None  # la UNIDAD específica que quiere visitar (#02A) → el asesor la ve exacta
     lead_id: Optional[str] = None   # si ya es lead (el front lo pasa tras registrar)
 
 
 @router.post("/api/buyer/favoritos/cita")
 async def pedir_cita(b: CitaIn, request: Request):
-    """El comprador pide visita de un favorito. Si ya es lead, cae en el tablero del asesor (status cita) + timeline."""
+    """El comprador pide visita de un favorito (o de una UNIDAD específica). Si ya es lead, cae en el tablero del
+    asesor con la unidad exacta (status cita) + timeline."""
     try:
         db = request.app.state.db
         now = datetime.utcnow()
+        # La cita lleva la UNIDAD: el asesor ve "quiere visitar el #02A", no solo el desarrollo.
+        cita_txt = (f"Unidad #{b.unit_number}: {b.when[:70]}" if b.unit_number else b.when[:80])
         await db.buyer_favoritos.update_one(
             {"visitor_id": b.visitor_id, "dev_id": b.dev_id},
-            {"$set": {"cita": b.when[:80], "status": "cita", "updated_at_dt": now}}, upsert=True)
+            {"$set": {"cita": cita_txt, "unidad_cita": b.unit_number, "status": "cita", "updated_at_dt": now}}, upsert=True)
         # Si ya es lead → al tablero del asesor (asesor_lead_properties) + rastro en su timeline. Las dos caras.
         if b.lead_id:
-            await _push_to_asesor_board(db, b.lead_id, b.dev_id, status="cita", client_cita=b.when[:80])
+            await _push_to_asesor_board(db, b.lead_id, b.dev_id, status="cita", client_cita=cita_txt)
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[favoritos] cita fail: {e}")

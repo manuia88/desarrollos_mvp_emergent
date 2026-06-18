@@ -79,6 +79,22 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
     setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u.unit_number); else n.delete(u.unit_number); return n; });
     try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia_id || dev.colonia }); } catch { /* noop */ }
   };
+  // Agendar visita de la UNIDAD específica → el asesor ve "quiere visitar el #02A".
+  const [citaUnits, setCitaUnits] = useState(() => new Set());
+  const agendarUnit = (u) => {
+    if (citaUnits.has(u.unit_number)) return;
+    let leadId = null; try { leadId = localStorage.getItem('dmx_lead_id'); } catch { /* noop */ }
+    let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch { /* noop */ }
+    setCitaUnits((s) => new Set(s).add(u.unit_number));
+    try {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/favoritos/cita`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitor_id: vid, dev_id: dev.id, unit_number: u.unit_number, when: 'Por confirmar', lead_id: leadId }),
+      });
+    } catch { /* noop */ }
+    // Si aún no es lead, abre el registro (al registrarse, la cita de la unidad fluye al asesor).
+    if (!leadId) onGateOpen(`Agenda tu visita del #${u.unit_number} — déjanos tus datos y tu asesor te contacta.`);
+  };
 
   const onFloorUnitClick = (u) => {
     if (!isRegistered) { onGateOpen(t('dev.gate_context_plan')); return; }
@@ -346,6 +362,8 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             matchIds={matchIds}
             onSaveUnit={toggleSaveUnit}
             savedUnits={savedUnits}
+            onAgendarUnit={agendarUnit}
+            citaUnits={citaUnits}
           />
           {!isRegistered && filtered.length > visibleCount && (
             <div
@@ -413,7 +431,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   );
 }
 
-function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {}, matchIds = new Set(), onSaveUnit, savedUnits = new Set() }) {
+function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {}, matchIds = new Set(), onSaveUnit, savedUnits = new Set(), onAgendarUnit, citaUnits = new Set() }) {
   const cols = [
     { k: 'unit_number', label: 'ID', w: 60 },
     { k: 'prototype', label: 'Proto', w: 50 },
@@ -498,6 +516,13 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
                       onClick={e => { e.stopPropagation(); onSaveUnit(u); }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, marginRight: 6, color: savedUnits.has(u.unit_number) ? 'var(--theme)' : 'var(--cream-3)' }}>
                       {savedUnits.has(u.unit_number) ? '♥' : '♡'}
+                    </button>
+                  )}
+                  {onAgendarUnit && (
+                    <button data-testid={`row-cita-${u.id}`} title="Agendar visita de esta unidad"
+                      onClick={e => { e.stopPropagation(); onAgendarUnit(u); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, marginRight: 6, color: citaUnits.has(u.unit_number) ? '#1FA06A' : 'var(--cream-3)' }}>
+                      {citaUnits.has(u.unit_number) ? '✓📅' : '📅'}
                     </button>
                   )}
                   <button data-testid={`row-info-${u.id}`}
