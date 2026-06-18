@@ -191,7 +191,7 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '42vh', overflowY: 'auto' }}>
         {(results || []).map((r) => (
-          <Link key={r.id} to={`/desarrollo/${r.id}`} onClick={close} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 13, borderRadius: 13, border: '1px solid var(--border)', background: '#fff', textDecoration: 'none' }}>
+          <Link key={r.id} to={`/desarrollo/${r.id}`} onClick={applyToMarketplace} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 13, borderRadius: 13, border: '1px solid var(--border)', background: '#fff', textDecoration: 'none' }}>
             <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 11, background: 'var(--theme)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 800, lineHeight: 1 }}>
               <span style={{ fontSize: 15 }}>{r.match_score}</span><span style={{ fontSize: 8, opacity: 0.85 }}>match</span>
             </div>
