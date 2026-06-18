@@ -108,3 +108,80 @@ async def interes_desarrollo(dev_id: str, request: Request):
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] interes fail-open: {e}")
         return {"ok": True, "likes": 0, "saves": 0, "views": 0, "interes": "bajo"}
+
+
+class RegistrarLeadIn(BaseModel):
+    visitor_id: str
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    dev_id: Optional[str] = None       # si se registró desde una ficha
+    source: str = "marketplace_save"   # de dónde (guardar búsqueda / contacto ficha / alerta)
+
+
+@router.post("/api/buyer/registrar")
+async def registrar_lead(b: RegistrarLeadIn, request: Request):
+    """E3 · El lead deja sus datos en un MOMENTO DE VALOR → se crea el lead, se ENGANCHA todo su histórico anónimo
+    (búsquedas, likes, vistas por visitor_id), se ASIGNA (sin referidor → la inmobiliaria de la CASA; la regla del
+    founder vía resolve_house_public_receiver) y se ESPEJA al CRM del asesor (mirror_lead_to_asesor_contacto).
+    Cierra el triángulo comprador↔asesor↔dev: el asesor ve QUÉ quiere (perfil) y QUÉ le gustó (likes)."""
+    from datetime import datetime as _dt
+    import uuid as _u
+    try:
+        db = request.app.state.db
+        # 1. Perfil: el último marketplace_search de este visitor (lo que busca de verdad).
+        perfil = await db.marketplace_searches.find_one(
+            {"visitor_id": b.visitor_id}, {"_id": 0}, sort=[("created_at_dt", -1)]) or {}
+        # 2. Histórico de conducta: qué likeó y qué vio (capa C/D).
+        liked, viewed = [], []
+        async for s in db.buyer_signals.find({"visitor_id": b.visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+            if s.get("entity_id"):
+                liked.append(s["entity_id"])
+        async for s in db.buyer_signals.find({"visitor_id": b.visitor_id, "type": "ficha_view"}, {"_id": 0, "entity_id": 1}).limit(50):
+            if s.get("entity_id") and s["entity_id"] not in viewed:
+                viewed.append(s["entity_id"])
+        if b.dev_id and b.dev_id not in liked:
+            viewed.insert(0, b.dev_id)
+        # 3. Asignación: sin referidor → la CASA (regla founder). (La atribución por link de asesor/dev se cablea
+        #    con la cookie dmx_ref en una iteración; el grueso del marketplace público cae a la casa.)
+        assigned_to, house_inm = None, None
+        try:
+            from services.lead_bridge import resolve_house_public_receiver
+            rid, house_inm = await resolve_house_public_receiver(db)
+            assigned_to = rid
+        except Exception:
+            pass
+        now = _dt.utcnow()
+        lead_id = f"lead_{_u.uuid4().hex[:12]}"
+        lead = {
+            "id": lead_id, "dev_org_id": "default",
+            "source": f"copiloto_{b.source}",
+            "contact": {"name": b.name[:120], "email": (b.email or None), "phone": (b.phone or None)},
+            "status": "nuevo", "status_v2": "lead_nuevo", "activo": True,
+            "assigned_to": assigned_to, "inmobiliaria_id": house_inm,
+            # Perfil + histórico enganchados (lo que el asesor ve para no preguntar de cero):
+            "buyer_profile": {
+                "colonias": perfil.get("colonias"), "presupuesto_max": perfil.get("precio_max"),
+                "recamaras_min": perfil.get("recamaras_min"), "banos_min": perfil.get("banos_min"),
+                "estacionamientos_min": perfil.get("estacionamientos_min"), "stages": perfil.get("stages"),
+                "plazo": perfil.get("plazo"), "uso": perfil.get("uso"),
+            },
+            "liked_devs": liked, "viewed_devs": viewed[:20],
+            "visitor_id": b.visitor_id,
+            "created_at": now.isoformat(), "updated_at": now.isoformat(), "last_activity_at": now.isoformat(),
+            "created_by": "_copiloto",
+        }
+        await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
+        # 4. Espeja al CRM del asesor (idempotente, dedup, aislamiento). Auto-reparable.
+        try:
+            from services.lead_bridge import mirror_lead_to_asesor_contacto
+            await mirror_lead_to_asesor_contacto(db, lead)
+        except Exception:
+            await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
+        # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
+        await db.buyer_signals.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
+        await db.marketplace_searches.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
+        return {"ok": True, "lead_id": lead_id, "asignado": "tu inmobiliaria" if house_inm else "asesor"}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] registrar lead fail: {e}")
+        return {"ok": False}

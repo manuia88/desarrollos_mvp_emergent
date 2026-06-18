@@ -49,7 +49,21 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
   const [loading, setLoading] = useState(false);
   const [zoneQuery, setZoneQuery] = useState('');
   const [savedAlert, setSavedAlert] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regContact, setRegContact] = useState('');
   if (!open) return null;
+
+  // E3 · registro: deja sus datos → se crea el lead con su perfil + histórico (enganchado por visitor_id) +
+  // asignado a la casa (regla founder) + espejado al asesor. Antes registra la demanda anónima (alert).
+  const registrarLead = () => {
+    registrar(true);
+    const isEmail = regContact.includes('@');
+    try {
+      fetch(`${API}/api/buyer/registrar`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitor_id: visitorId(), name: regName.trim(), email: isEmail ? regContact.trim() : null, phone: isEmail ? null : regContact.trim(), source: 'guardar_busqueda' }) }).catch(() => {});
+    } catch { /* noop */ }
+    setSavedAlert(true);
+  };
 
   const set = (patch) => setP((prev) => ({ ...prev, ...patch }));
   const toggle = (key, val) => set({ [key]: p[key].includes(val) ? p[key].filter((x) => x !== val) : [...p[key], val] });
@@ -235,13 +249,29 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
           </Link>
         ))}
       </div>
-      {/* Guardar búsqueda + avísame → demanda anónima (dev/superadmin) + alerta cuando entre inventario (E4). */}
-      <button onClick={() => { registrar(true); setSavedAlert(true); }} disabled={savedAlert} data-testid="guardar-busqueda"
-        style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 11, cursor: savedAlert ? 'default' : 'pointer',
-          border: `1px solid ${savedAlert ? 'rgba(31,160,106,0.4)' : 'var(--border)'}`, background: savedAlert ? 'rgba(31,160,106,0.08)' : '#fff',
-          color: savedAlert ? '#1FA06A' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5 }}>
-        {savedAlert ? '✓ Guardada — te avisamos cuando entre algo que encaje' : '🔔 Guardar mi búsqueda y avísame de lo nuevo'}
-      </button>
+      {/* E3 · Guardar + avísame → deja contacto → se crea el lead (perfil + likes enganchados, asignado a la casa,
+          espejado al asesor) + alerta cuando entre inventario (E4). */}
+      {savedAlert ? (
+        <div data-testid="guardar-ok" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 11, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.4)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#1FA06A', textAlign: 'center' }}>
+          ✓ Listo, {regName ? regName.split(' ')[0] : ''} — te avisamos cuando entre algo que encaje en {(p.colonias[0] || 'tu zona')}.
+        </div>
+      ) : (
+        <div style={{ marginTop: 14, padding: 14, borderRadius: 13, background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)', marginBottom: 3 }}>🔔 ¿Te avisamos cuando entre algo que encaje?</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10 }}>Guardamos tu búsqueda y un asesor te contacta solo con lo que sí te sirve.</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Tu nombre" data-testid="reg-name"
+              style={{ flex: '1 1 120px', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)', outline: 'none' }} />
+            <input value={regContact} onChange={(e) => setRegContact(e.target.value)} placeholder="WhatsApp o email" data-testid="reg-contact"
+              style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)', outline: 'none' }} />
+          </div>
+          <button onClick={registrarLead} disabled={!regName.trim() || !regContact.trim()} data-testid="guardar-busqueda"
+            style={{ width: '100%', marginTop: 10, padding: '11px', borderRadius: 10, cursor: (!regName.trim() || !regContact.trim()) ? 'default' : 'pointer', border: 'none',
+              background: (!regName.trim() || !regContact.trim()) ? 'var(--border)' : 'var(--theme)', color: (!regName.trim() || !regContact.trim()) ? 'var(--cream-3)' : '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14 }}>
+            Avísame
+          </button>
+        </div>
+      )}
     </div>,
   ];
 

@@ -287,6 +287,7 @@ async def registrar_busqueda(b: GuardarBusquedaIn, request: Request):
             "estacionamientos_min": b.estacionamientos_min, "precio_max": b.presupuesto_max,
             "m2_min": b.m2_min, "uso": b.uso, "stages": b.stages, "plazo": b.plazo,
             "results_count": b.found_count, "unmet": (b.found_count == 0), "alert": bool(b.alert),
+            "visitor_id": (b.visitor_id or None),   # espinazo: para enganchar el perfil al lead al registrarse (E3)
             "ip_hash": _h.sha256(f"{ip}:dmx_mks".encode()).hexdigest()[:16] if ip else None,
             "created_at": now.isoformat(), "created_at_dt": now,
         }
