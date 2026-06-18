@@ -1048,6 +1048,58 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         parsed = {}
     allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity", "unit_feature", "orientacion", "piso_min"}
     filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
+
+    # ── Fallback DETERMINISTA (sin LLM) ──────────────────────────────────────────
+    # El parser LLM puede estar apagado (local) o no sacar la zona → resultados en zonas que NADIE pidió. Esto saca
+    # zona/recámaras/precio/tipo/etapa del texto crudo para que "depa 3 rec en del valle" RESPETE Del Valle (zona =
+    # filtro DURO, regla del founder). También es un backstop confiable en prod (corrige lo que el LLM omite).
+    import re as _re
+    ql = q.lower()
+    _DIRS = (" centro", " norte", " sur", " oriente", " poniente", " 1a seccion", " 2a seccion", " i", " ii")
+    if "colonia" not in filters:
+        cand = []  # (texto_a_buscar, colonia_id) · gana el match más LARGO (evita "valle" antes que "del valle")
+        seen_ids = set()
+        for c in SEED_COLONIAS:
+            nm = (c.get("name") or "").lower().strip()
+            cid = c.get("id")
+            if not nm or not cid:
+                continue
+            variants = {nm}
+            for d in _DIRS:
+                if nm.endswith(d):
+                    variants.add(nm[:-len(d)].strip())
+            for v in variants:
+                if len(v) >= 4:
+                    cand.append((v, cid))
+            seen_ids.add(cid)
+        for d in DEVELOPMENTS:  # colonias con inventario que no estén en el seed
+            nm = (d.get("colonia") or "").lower().strip()
+            cid = d.get("colonia_id")
+            if nm and cid and cid not in seen_ids and len(nm) >= 4:
+                cand.append((nm, cid))
+        cand.sort(key=lambda x: len(x[0]), reverse=True)
+        for v, cid in cand:
+            if _re.search(r"\b" + _re.escape(v), ql):
+                filters["colonia"] = cid
+                break
+    if "beds" not in filters:
+        m = _re.search(r"(\d+)\s*(rec|rec[aá]mara|habitac|cuarto|dorm)", ql)
+        if m:
+            filters["beds"] = int(m.group(1))
+    if "tipo" not in filters:
+        if "depa" in ql or "departamento" in ql:
+            filters["tipo"] = "departamento"
+        elif "casa" in ql:
+            filters["tipo"] = "casa"
+    if "max_price" not in filters:
+        m = _re.search(r"(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m\b|mp\b)", ql)
+        if m:
+            filters["max_price"] = int(float(m.group(1)) * 1_000_000)
+    if "stage" not in filters:
+        if "preventa" in ql:
+            filters["stage"] = "preventa"
+        elif "inmediata" in ql or "entrega inmediata" in ql or "lista" in ql:
+            filters["stage"] = "entrega_inmediata"
     await db.ai_search_cache.update_one(
         {"cache_key": cache_key},
         {"$set": {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}},
