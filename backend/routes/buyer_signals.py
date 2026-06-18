@@ -266,8 +266,8 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
     else:
         assigned_to, house_inm = None, None
         try:
-            from services.lead_bridge import resolve_house_public_receiver
-            rid, house_inm = await resolve_house_public_receiver(db)
+            from services.lead_bridge import resolve_public_lead_owner
+            rid, house_inm = await resolve_public_lead_owner(db, liked, viewed, perfil.get("colonias"))
             assigned_to = rid
         except Exception:
             pass
@@ -298,6 +298,13 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
         await mirror_favoritos_to_board(db, visitor_id, lead_id)
     except Exception:
         pass
+    # 7. El admin de la casa SIEMPRE se entera del lead NUEVO (asignado o por asignar) y puede reasignar. Solo en alta.
+    if not existing:
+        try:
+            from services.lead_bridge import notify_house_admin_new_lead
+            await notify_house_admin_new_lead(db, lead, assigned_to=lead.get("assigned_to"))
+        except Exception:
+            pass
     return lead_id, house_inm
 
 

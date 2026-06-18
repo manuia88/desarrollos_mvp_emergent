@@ -212,6 +212,66 @@ async def resolve_house_public_receiver(db):
         return (None, None)
 
 
+async def resolve_public_lead_owner(db, liked_devs=None, viewed_devs=None, colonias=None):
+    """Asignación INTELIGENTE de un lead PÚBLICO (sin referidor) entre los asesores de la inmobiliaria de la casa:
+      1) AFINIDAD: si un asesor cubre la ZONA o el PROYECTO que al comprador le interesó → a ese asesor (lo conoce →
+         regla 1 broker×proyecto, sin lead frío).
+      2) ROUND-ROBIN: si no hay afinidad, al asesor con MENOS leads activos (reparto justo, sin cuello de botella).
+    Instantáneo, nunca espera. Devuelve (owner_user_id, inmobiliaria_id). (None, inm) si aún no hay asesores ACTIVADOS
+    en la casa → el lead queda reclamable y se notifica al admin (que puede asignarlo a mano)."""
+    try:
+        inm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
+        if not inm:
+            return (None, None)
+        roster = await db.inmobiliaria_internal_users.find(
+            {"inmobiliaria_id": inm["id"], "status": "active", "role": "asesor", "user_id": {"$nin": [None, ""]}},
+            {"_id": 0, "user_id": 1, "zonas": 1, "projects": 1}).to_list(100)
+        if not roster:
+            return (None, inm["id"])  # nadie activado aún → reclamable (+ notificación al admin)
+        liked = set((liked_devs or []) + (viewed_devs or []))
+        cols = {str(c).lower() for c in (colonias or [])}
+        # 1) AFINIDAD por proyecto o zona
+        for r in roster:
+            if (set(r.get("projects") or []) & liked) or ({str(z).lower() for z in (r.get("zonas") or [])} & cols):
+                return (r["user_id"], inm["id"])
+        # 2) ROUND-ROBIN: el de menos leads activos (reparto parejo)
+        best, best_n = roster[0]["user_id"], None
+        for r in roster:
+            n = await db.leads.count_documents({"assigned_to": r["user_id"], "activo": True})
+            if best_n is None or n < best_n:
+                best, best_n = r["user_id"], n
+        return (best, inm["id"])
+    except Exception as e:
+        log.warning(f"[lead_bridge] resolve_public_lead_owner fail-open: {e}")
+        return (None, None)
+
+
+async def notify_house_admin_new_lead(db, lead: dict, assigned_to=None):
+    """Avisa al admin de la inmobiliaria de la casa que entró un lead público (asignado a X, o por asignar si nadie).
+    Así el admin SIEMPRE se entera y puede reasignar. Fail-open."""
+    try:
+        inm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
+        if not inm:
+            return
+        admins = await db.inmobiliaria_internal_users.find(
+            {"inmobiliaria_id": inm["id"], "status": "active", "role": "admin", "user_id": {"$nin": [None, ""]}},
+            {"_id": 0, "user_id": 1}).to_list(20)
+        if not admins:
+            return
+        nombre = ((lead.get("contact") or {}).get("name")) or "Comprador"
+        temp = lead.get("temperatura") or "frio"
+        cuerpo = (f"Nuevo lead público {('· ' + temp.upper()) if temp == 'caliente' else ''} — "
+                  + ("asignado automáticamente." if assigned_to else "por asignar (tócalo para repartirlo)."))
+        from routes.dev_batch14 import create_notification
+        for a in admins:
+            await create_notification(
+                db, a["user_id"], "lead_publico_nuevo", f"Nuevo lead: {nombre}", cuerpo,
+                action_url="/desarrollador/crm/leads", priority=("high" if temp == "caliente" else "med"),
+                org_id=inm["id"])
+    except Exception as e:  # noqa: BLE001
+        log.info(f"[lead_bridge] notify_house_admin skip: {e}")
+
+
 async def _replay_favoritos(db, lead: dict):
     """Cuando el contacto del asesor ya existe, baja los favoritos/citas/notas/unidades del comprador a su tablero
     (Ficha360). Cierra la promesa "las dos caras" incluso si el asesor se activó DESPUÉS de que el comprador eligió.
