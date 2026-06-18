@@ -81,6 +81,12 @@ def _dev_public(d: dict, include_units: bool = False) -> dict:
     return out
 
 
+def _norm_stage(s):
+    """Solo 2 etapas de cara al comprador: PREVENTA o ENTREGA INMEDIATA. 'en construcción'/'exclusiva'/etc. (aún no
+    entregado) = preventa; la temporalidad fina vive en delivery_estimate + el filtro de plazo."""
+    return "entrega_inmediata" if str(s or "").lower() in ("entrega_inmediata", "entregado", "lista", "listo") else "preventa"
+
+
 async def _enrich_listing(db, devs: list) -> list:
     """Enriquece las tarjetas del listado con dato FRESCO del dev, en BATCH (3 queries con $in ·
     no llamada por-item · ruta caliente). Cierra el ciclo: lo que el dev edita (precio/unidades/
@@ -134,6 +140,7 @@ async def _enrich_listing(db, devs: list) -> list:
     out = []
     for d in devs:
         card = _dev_public(d)
+        card["stage"] = _norm_stage(card.get("stage"))   # solo preventa / entrega inmediata de cara al comprador
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
         m2lo = (d.get("m2_range") or [0])[0] or 0
@@ -683,7 +690,7 @@ async def list_developments(
         results = [d for d in results if d["colonia_id"].lower() in cset]
     # ── Filtros a nivel PROYECTO (del DESARROLLO): zona, etapa, tipo, alcaldía, AMENIDADES del edificio, destacado ──
     if stage:
-        results = [d for d in results if d["stage"] == stage]
+        results = [d for d in results if _norm_stage(d["stage"]) == stage]
     if tipo:
         _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
         _want = _tmap.get(tipo.lower(), tipo.lower())
@@ -917,7 +924,7 @@ async def casi_cumple(
         units = [u for u in (d.get("units") or []) if u.get("status") == "disponible"]
         crit = []  # (label_humano, cumple)
         if stage:
-            crit.append((f"etapa {stage.replace('_', ' ')}", d.get("stage") == stage))
+            crit.append((f"etapa {stage.replace('_', ' ')}", _norm_stage(d.get("stage")) == stage))
         if tipo:
             crit.append((_tmap.get(tipo.lower(), tipo), d.get("property_type") == _tmap.get(tipo.lower(), tipo.lower())))
         for a in (amenity or []):
@@ -985,6 +992,7 @@ async def get_development(dev_id: str, request: Request):
                 out["amenities"] = ov["amenidades"]  # el dev es la fuente de verdad
     except Exception:
         pass
+    out["stage"] = _norm_stage(out.get("stage"))   # ficha pública: solo preventa / entrega inmediata
     return out
 
 

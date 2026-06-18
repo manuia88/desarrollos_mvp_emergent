@@ -24,6 +24,19 @@ const STAGE_COLORS = {
 const STAGE_SOLID = { preventa: '#0E9F6E', en_construccion: '#D97706', entrega_inmediata: '#2563EB', exclusiva: '#7C3AED' };
 const stageColorOf = (s) => STAGE_SOLID[s] || '#7C3AED';
 
+// Temporalidad de la preventa (mismos buckets que el filtro de plazo) desde delivery_estimate "YYYY-MM".
+function entregaBucket(est) {
+  const m = String(est || '').match(/(\d{4})-(\d{1,2})/);
+  if (!m) return null;
+  const now = new Date();
+  const months = (+m[1] - now.getFullYear()) * 12 + (+m[2] - 1 - now.getMonth());
+  if (months <= 0) return 'entrega ya';
+  if (months <= 3) return '<3 meses';
+  if (months <= 6) return '3-6 meses';
+  if (months <= 12) return '6-12 meses';
+  return '+12 meses';
+}
+
 function Fallback({ hue = 231, seed = 0 }) {
   return (
     <svg viewBox="0 0 400 240" style={{ width: '100%', height: '100%' }} preserveAspectRatio="xMidYMid slice">
@@ -177,6 +190,9 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, letterSpacing: '0.07em', textTransform: 'uppercase',
         }}>
           {t(`marketplace_v2.stage.${dev.stage}`)}
+          {dev.stage === 'preventa' && entregaBucket(dev.delivery_estimate) && (
+            <span style={{ opacity: 0.75, fontWeight: 600 }}> · {entregaBucket(dev.delivery_estimate)}</span>
+          )}
         </div>
 
         {/* Compliance + rank (overlays sutiles existentes) */}
