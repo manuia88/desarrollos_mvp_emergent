@@ -92,6 +92,18 @@ export default function GustoMercado({ filters }) {
             <span>📈 Velocidad: <b style={{ color: cube.velocidad?.tendencia === 'subiendo' ? GREEN : 'var(--sa-text)' }}>{cube.velocidad?.tendencia}</b> ({cube.velocidad?.ultimos_7d} vs {cube.velocidad?.previos_7d})</span>
             <span>👻 Shadow demand: <b style={{ color: 'var(--sa-text)' }}>{cube.shadow_demand?.ratio_anon_vs_reg}:1</b> anónimas/registradas (el top-of-funnel real)</span>
           </div>
+          {/* E7 · cierres: la inteligencia de conversión/compromiso (el moat) */}
+          {cube.cierres && cube.cierres.n > 0 && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>🏆 De los que SÍ cerraron <span style={{ ...mute, fontWeight: 400 }}>({cube.cierres.n} cierres · el moat que se mejora solo)</span></div>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12, color: 'var(--sa-text-dim)' }}>
+                <span><b style={{ color: 'var(--sa-text)' }}>{cube.cierres.pct_subio_presupuesto}%</b> subió presupuesto</span>
+                <span><b style={{ color: 'var(--sa-text)' }}>{cube.cierres.pct_cambio_zona}%</b> cambió de zona</span>
+                <span><b style={{ color: GREEN }}>{cube.cierres.pct_like_antes_de_comprar}%</b> dio like antes de comprar</span>
+                {cube.cierres.ciclo_dias_prom != null && <span>ciclo ~<b style={{ color: 'var(--sa-text)' }}>{cube.cierres.ciclo_dias_prom}</b> días</span>}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

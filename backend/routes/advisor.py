@@ -3109,6 +3109,15 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                     deal={"sale_price": op.get("precio") or op.get("valor_cierre")})
         except Exception as _ce:
             logging.getLogger("dmx.advisor").info(f"[cerebro] hook venta-proyecto no aplicó: {_ce}")
+        # Copiloto E7 · flywheel: el cierre captura el VIAJE del comprador (si hay lead) + alimenta el AVM (precio
+        # real) y el cubo del superadmin. Fail-open (jamás rompe el cierre del asesor).
+        try:
+            from routes.copiloto_flywheel import record_closing
+            await record_closing(db, lead_id=(op.get("lead_id") or op.get("contacto_id")),
+                                  dev_id=(op.get("dev_id") or op.get("project_id")),
+                                  price_closed=(op.get("precio") or op.get("valor_cierre")))
+        except Exception as _fe:
+            logging.getLogger("dmx.advisor").info(f"[copiloto] flywheel hook no aplicó: {_fe}")
         # Cierra el ciclo asesor→dev→comprador: si la operación trae unidad, márcala VENDIDA →
         # sube al ritmo de venta del dev (weekly_sales), a la ficha pública y al cubo del superadmin.
         try:

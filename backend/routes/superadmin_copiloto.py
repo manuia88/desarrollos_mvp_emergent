@@ -78,6 +78,14 @@ async def buyer_cycle_intel(db, dias: int = 30):
     anon = await _count(db.marketplace_searches, {"lead_id": {"$in": [None]}, **F})
     reg = await _count(db.marketplace_searches, {"lead_id": {"$nin": [None]}, **F})
 
+    # ── CIERRES (E7 · flywheel) ── la inteligencia de CONVERSIÓN y COMPROMISO (el moat que se mejora solo).
+    cierres = await _count(db.copiloto_closings, {})
+    subio_pres = await _count(db.copiloto_closings, {"desajuste.subio_presupuesto": True})
+    cambio_zona = await _count(db.copiloto_closings, {"desajuste.cambio_zona": True})
+    like_antes = await _count(db.copiloto_closings, {"conducta.dio_like_al_comprado": True})
+    ciclo = await _agg(db.copiloto_closings, [{"$group": {"_id": None, "dias": {"$avg": "$recorrido.dias_a_cierre"}}}])
+    pct = lambda n: round(n / cierres * 100) if cierres else 0  # noqa: E731
+
     return {
         "ventana_dias": dias,
         "embudo": {
@@ -94,6 +102,10 @@ async def buyer_cycle_intel(db, dias: int = 30):
                       "tendencia": "subiendo" if last7 > prev7 else "bajando" if last7 < prev7 else "estable"},
         "shadow_demand": {"anonimas": anon, "registradas": reg, "ratio_anon_vs_reg": round(anon / max(reg, 1), 1),
                           "lectura": "Por cada lead registrado hay N búsquedas anónimas (el verdadero top-of-funnel)."},
+        "cierres": {"n": cierres, "pct_subio_presupuesto": pct(subio_pres), "pct_cambio_zona": pct(cambio_zona),
+                    "pct_like_antes_de_comprar": pct(like_antes),
+                    "ciclo_dias_prom": round(ciclo[0]["dias"], 1) if (ciclo and ciclo[0].get("dias") is not None) else None,
+                    "lectura": "Qué transigen los que SÍ cierran (presupuesto/zona) + el gusto predice la compra (el moat)."},
         "es_estimado": busquedas < 30,
         "data_source": "espinazo Copiloto (marketplace_searches + buyer_signals + leads)",
     }

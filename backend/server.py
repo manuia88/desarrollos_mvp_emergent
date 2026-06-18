@@ -1103,6 +1103,13 @@ try:
 except Exception as _exc:  # noqa: BLE001
     logging.warning(f"[copiloto] superadmin_copiloto include failed: {_exc}")
 
+# Copiloto · E7 flywheel (cierre captura el viaje completo → entrena AVM/recs/lookalike · capa H)
+try:
+    from routes.copiloto_flywheel import router as flywheel_router
+    app.include_router(flywheel_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] flywheel include failed: {_exc}")
+
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router
 app.include_router(public_market_router)
