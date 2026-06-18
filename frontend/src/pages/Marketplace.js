@@ -15,7 +15,7 @@ import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
 import OportunidadPanel, { applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
-import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
+import { Camera, ExternalLink, Bell, Sparkle } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
@@ -416,24 +416,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 </svg>
                 Ver en mapa
               </Link>
-              {/* Batch 26 — Comparador */}
-              <button
-                data-testid="comparator-trigger"
-                onClick={() => navigate('/comparar')}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: 9999,
-                  background: 'var(--surface-card)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--cream)',
-                  fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <BarChart size={14} /> Comparar
-              </button>
+              {/* Comparador del hero RETIRADO: había 2 entradas a páginas distintas (/comparar vs /portal/comparador).
+                  Se deja UNA sola vía: agregas desarrollos con el botón comparar de la tarjeta → el FAB (abajo-izq)
+                  abre el comparador con tu selección. Patrón único, sin confusión. */}
               {/* Toggle Lista/Mapa retirado: el mapa vive en "Ver en mapa" (/mapa). Tener ambos confundía y el mapa
                   in-página salía en blanco sin token. El marketplace es la lista; el mapa es la página dedicada. */}
             </div>

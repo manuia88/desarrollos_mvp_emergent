@@ -81,10 +81,22 @@ def _dev_public(d: dict, include_units: bool = False) -> dict:
     return out
 
 
-def _norm_stage(s):
-    """Solo 2 etapas de cara al comprador: PREVENTA o ENTREGA INMEDIATA. 'en construcción'/'exclusiva'/etc. (aún no
-    entregado) = preventa; la temporalidad fina vive en delivery_estimate + el filtro de plazo."""
-    return "entrega_inmediata" if str(s or "").lower() in ("entrega_inmediata", "entregado", "lista", "listo") else "preventa"
+def _norm_stage(s, delivery=None):
+    """Solo 2 etapas de cara al comprador: PREVENTA o ENTREGA INMEDIATA. Clasifica por la FECHA de entrega (no solo
+    la etiqueta): si la entrega ya llegó (fecha pasada o este mes) = ENTREGA INMEDIATA; si falta, = PREVENTA. Así
+    nunca sale el contradictorio 'preventa · entrega ya'."""
+    if str(s or "").lower() in ("entrega_inmediata", "entregado", "lista", "listo"):
+        return "entrega_inmediata"
+    if delivery:
+        import re as _re
+        from datetime import datetime as _dt
+        m = _re.match(r"(\d{4})-(\d{1,2})", str(delivery))
+        if m:
+            now = _dt.utcnow()
+            months = (int(m.group(1)) - now.year) * 12 + (int(m.group(2)) - now.month)
+            if months <= 0:
+                return "entrega_inmediata"
+    return "preventa"
 
 
 async def _enrich_listing(db, devs: list) -> list:
@@ -140,7 +152,7 @@ async def _enrich_listing(db, devs: list) -> list:
     out = []
     for d in devs:
         card = _dev_public(d)
-        card["stage"] = _norm_stage(card.get("stage"))   # solo preventa / entrega inmediata de cara al comprador
+        card["stage"] = _norm_stage(card.get("stage"), d.get("delivery_estimate"))   # por fecha de entrega real
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
         m2lo = (d.get("m2_range") or [0])[0] or 0
@@ -690,7 +702,7 @@ async def list_developments(
         results = [d for d in results if d["colonia_id"].lower() in cset]
     # ── Filtros a nivel PROYECTO (del DESARROLLO): zona, etapa, tipo, alcaldía, AMENIDADES del edificio, destacado ──
     if stage:
-        results = [d for d in results if _norm_stage(d["stage"]) == stage]
+        results = [d for d in results if _norm_stage(d["stage"], d.get("delivery_estimate")) == stage]
     if tipo:
         _tmap = {"dept": "departamento", "depto": "departamento", "departamento": "departamento", "casa": "casa", "casas": "casa"}
         _want = _tmap.get(tipo.lower(), tipo.lower())
@@ -924,7 +936,7 @@ async def casi_cumple(
         units = [u for u in (d.get("units") or []) if u.get("status") == "disponible"]
         crit = []  # (label_humano, cumple)
         if stage:
-            crit.append((f"etapa {stage.replace('_', ' ')}", _norm_stage(d.get("stage")) == stage))
+            crit.append((f"etapa {stage.replace('_', ' ')}", _norm_stage(d.get("stage"), d.get("delivery_estimate")) == stage))
         if tipo:
             crit.append((_tmap.get(tipo.lower(), tipo), d.get("property_type") == _tmap.get(tipo.lower(), tipo.lower())))
         for a in (amenity or []):
@@ -992,7 +1004,7 @@ async def get_development(dev_id: str, request: Request):
                 out["amenities"] = ov["amenidades"]  # el dev es la fuente de verdad
     except Exception:
         pass
-    out["stage"] = _norm_stage(out.get("stage"))   # ficha pública: solo preventa / entrega inmediata
+    out["stage"] = _norm_stage(out.get("stage"), out.get("delivery_estimate"))   # por fecha de entrega real
     return out
 
 

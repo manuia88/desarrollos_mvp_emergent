@@ -30,7 +30,7 @@ function entregaBucket(est) {
   if (!m) return null;
   const now = new Date();
   const months = (+m[1] - now.getFullYear()) * 12 + (+m[2] - 1 - now.getMonth());
-  if (months <= 0) return 'entrega ya';
+  if (months <= 0) return null;   // si ya se entrega, es ENTREGA INMEDIATA (no preventa) — no bucket contradictorio
   if (months <= 3) return '<3 meses';
   if (months <= 6) return '3-6 meses';
   if (months <= 12) return '6-12 meses';
