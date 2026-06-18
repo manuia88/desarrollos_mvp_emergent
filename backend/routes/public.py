@@ -1334,6 +1334,24 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             if 1000 <= v <= 2_000_000:
                 filters["mensualidad_max"] = int(v)
             _work = _work.replace(m.group(0), " ")
+    # Metraje (m²): RANGO "80 a 200 m2 / entre 80 y 200 metros" o tope "hasta 150 m2 / desde 80 m2 / 120 metros".
+    _U = r"(?:m2|m²|mts|metros\b|m\.?c)"
+    if "min_sqm" not in filters and "max_sqm" not in filters:
+        mq = _re.search(r"(\d{2,4})\s*(?:-|–|—|a|y)\s*(\d{2,4})\s*" + _U, _work)
+        if mq:
+            lo, hi = int(mq.group(1)), int(mq.group(2))
+            filters["min_sqm"], filters["max_sqm"] = min(lo, hi), max(lo, hi)
+            _work = _work.replace(mq.group(0), " ")
+        else:
+            qhasta = _re.search(r"(?:hasta|m[aá]ximo|max|menos de)\s*(\d{2,4})\s*" + _U, _work)
+            qdesde = _re.search(r"(?:desde|m[ií]nimo|min|al menos|m[aá]s de)\s*(\d{2,4})\s*" + _U, _work)
+            qsingle = _re.search(r"(\d{2,4})\s*" + _U, _work)
+            if qhasta:
+                filters["max_sqm"] = int(qhasta.group(1)); _work = _work.replace(qhasta.group(0), " ")
+            elif qdesde:
+                filters["min_sqm"] = int(qdesde.group(1)); _work = _work.replace(qdesde.group(0), " ")
+            elif qsingle:
+                filters["min_sqm"] = int(qsingle.group(1)); _work = _work.replace(qsingle.group(0), " ")
     # Precio: RANGO ("10-15mdp", "10 a 15 millones", "entre 10 y 15") o tope simple ("hasta 15 millones", "$15M").
     if "max_price" not in filters and "min_price" not in filters:
         mr = _re.search(r"(\d+(?:\.\d+)?)\s*(?:-|–|—|a|y)\s*(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m)\b", _work)

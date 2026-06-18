@@ -18,6 +18,7 @@ import OportunidadPanel, { applyOportunidadFilters } from '../components/marketp
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
+import { saveMatchCriteria } from '../lib/unitMatch';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import Perfilador from '../components/marketplace/Perfilador';
 import { visitorId } from '../lib/buyerSignal';
@@ -252,6 +253,22 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     { label: 'metros (m²)', ok: hasMetraje },
   ];
   const canSearch = requiredFields.every((f) => f.ok);
+
+  // Guarda la búsqueda activa → la ficha del desarrollo resalta las unidades que cumplen (ficha consciente).
+  useEffect(() => {
+    const c = {
+      beds: filters.beds || (aiFilters && aiFilters.beds),
+      baths: filters.baths || (aiFilters && aiFilters.baths),
+      parking: filters.parking || (aiFilters && aiFilters.parking),
+      min_price: filters.min_price || (aiFilters && aiFilters.min_price),
+      max_price: filters.max_price || budgetMax || (aiFilters && aiFilters.max_price),
+      min_sqm: filters.min_sqm || (aiFilters && aiFilters.min_sqm),
+      max_sqm: filters.max_sqm || (aiFilters && aiFilters.max_sqm),
+      unit_feature: [...(filters.unit_feature || []), ...((aiFilters && aiFilters.unit_feature) || [])],
+      orientacion: [...(filters.orientacion || []), ...((aiFilters && aiFilters.orientacion) || [])],
+    };
+    saveMatchCriteria(canSearch ? c : null);
+  }, [canSearch, filters, aiFilters, budgetMax]);
 
   // "Los que más se asemejan": si 0 resultados exactos, trae los más cercanos + qué les falta. SOLO con ZONA
   // (no recomendamos en zonas que el cliente no pidió — la zona es sagrada).

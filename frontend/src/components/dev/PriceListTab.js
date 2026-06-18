@@ -3,10 +3,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
+import { unitMatchesCriteria, criteriaSummary } from '../../lib/unitMatch';
 
 const PUBLIC_VISIBLE_COUNT = 3;
 
-export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSelectUnit }) {
+export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSelectUnit, matchCriteria }) {
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState('inventario');
   const [statusF, setStatusF] = useState('todos');
@@ -14,6 +15,13 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   const [bathsF, setBathsF] = useState(0);
   const [parkingF, setParkingF] = useState(0);
   const [hover, setHover] = useState(null);
+  const [onlyMatch, setOnlyMatch] = useState(false);
+
+  // Ficha consciente: qué unidades cumplen la búsqueda del comprador (resaltar en la lista).
+  const matchIds = useMemo(() => {
+    if (!matchCriteria) return new Set();
+    return new Set((dev.units || []).filter((u) => unitMatchesCriteria(u, matchCriteria)).map((u) => u.id));
+  }, [dev.units, matchCriteria]);
   const [verdicts, setVerdicts] = useState({});   // {unit_id: {etiqueta,color}} · nuestro AVM por unidad
 
   // Posición de precio por unidad vs mercado real (AVM hedónico propio) — 1 sola llamada batch.
@@ -44,12 +52,15 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
 
   const filtered = useMemo(() => {
     let u = dev.units || [];
+    if (onlyMatch && matchIds.size) u = u.filter(x => matchIds.has(x.id));
     if (statusF !== 'todos') u = u.filter(x => x.status === statusF);
     if (bedsF) u = u.filter(x => x.bedrooms >= bedsF);
     if (bathsF) u = u.filter(x => x.bathrooms >= bathsF);
     if (parkingF) u = u.filter(x => x.parking_spots >= parkingF);
+    // Las que cumplen la búsqueda, primero.
+    if (matchIds.size) u = [...u].sort((a, b) => (matchIds.has(b.id) ? 1 : 0) - (matchIds.has(a.id) ? 1 : 0));
     return u;
-  }, [dev.units, statusF, bedsF, bathsF, parkingF]);
+  }, [dev.units, statusF, bedsF, bathsF, parkingF, onlyMatch, matchIds]);
 
   const visibleCount = isRegistered ? filtered.length : Math.min(PUBLIC_VISIBLE_COUNT, filtered.length);
 
@@ -105,6 +116,20 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
           );
         })}
       </div>
+
+      {/* Ficha consciente: banner "Tu búsqueda" + toggle "solo las que cumplen" */}
+      {matchCriteria && matchIds.size > 0 && (
+        <div data-testid="pricelist-tu-busqueda" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14, padding: '11px 15px', borderRadius: 12, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.30)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>
+            <span style={{ fontWeight: 700, color: '#1FA06A' }}>✓ {matchIds.size} {matchIds.size === 1 ? 'unidad cumple' : 'unidades cumplen'} tu búsqueda</span>
+            {criteriaSummary(matchCriteria) ? <span style={{ color: 'var(--cream-3)' }}> · {criteriaSummary(matchCriteria)}</span> : null}
+          </div>
+          <button onClick={() => setOnlyMatch((v) => !v)} data-testid="pricelist-only-match"
+            style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid ' + (onlyMatch ? 'var(--theme)' : 'var(--border)'), background: onlyMatch ? 'var(--theme)' : '#fff', color: onlyMatch ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+            {onlyMatch ? '✓ Solo las que cumplen' : 'Solo las que cumplen'}
+          </button>
+        </div>
+      )}
 
       {/* Filter pills */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '10px 12px', background: 'rgba(var(--cream-rgb),0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -228,6 +253,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             selectedUnit={selectedUnit}
             t={t}
             verdicts={verdicts}
+            matchIds={matchIds}
           />
           {!isRegistered && filtered.length > visibleCount && (
             <div
@@ -295,7 +321,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   );
 }
 
-function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {} }) {
+function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {}, matchIds = new Set() }) {
   const cols = [
     { k: 'unit_number', label: 'ID', w: 60 },
     { k: 'prototype', label: 'Proto', w: 50 },
@@ -354,6 +380,7 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
           {units.map((u, idx) => {
             const locked = !isRegistered && idx >= visibleCount;
             const isSelected = selectedUnit?.id === u.id;
+            const isMatch = matchIds.has(u.id);
             return (
               <tr key={u.id}
                 data-testid={`price-row-${u.id}`}
@@ -361,13 +388,15 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
                 style={{
                   borderBottom: '1px solid var(--border)',
                   cursor: 'pointer',
-                  background: isSelected ? 'rgba(var(--theme-rgb),0.10)' : 'transparent',
+                  background: isSelected ? 'rgba(var(--theme-rgb),0.10)' : isMatch ? 'rgba(31,160,106,0.07)' : 'transparent',
+                  boxShadow: isMatch ? 'inset 3px 0 0 #1FA06A' : 'none',
                   filter: locked ? 'blur(4px)' : 'none',
                   transition: 'background 0.2s',
                   position: 'relative',
                 }}>
-                {cols.map(c => (
+                {cols.map((c, ci) => (
                   <td key={c.k} style={{ padding: '10px 12px', color: 'var(--cream-2)' }}>
+                    {ci === 0 && isMatch ? <span title="Cumple tu búsqueda" style={{ color: '#1FA06A', fontWeight: 800, marginRight: 4 }}>✓</span> : null}
                     {c.render ? c.render(u[c.k]) : u[c.k]}
                   </td>
                 ))}

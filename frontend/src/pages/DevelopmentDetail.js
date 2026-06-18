@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
 import { sendBuyerSignal, fetchInteres } from '../lib/buyerSignal';
+import { readMatchCriteria } from '../lib/unitMatch';
 import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
@@ -91,6 +92,8 @@ function _applyPriceMod(base, mod) {
 export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const { t } = useTranslation();
   const { id } = useParams();
+  // Ficha consciente: la última búsqueda del comprador → resaltar las unidades que cumplen en la lista de precios.
+  const [matchCriteria] = useState(() => readMatchCriteria());
   const [dev, setDev] = useState(null);
   const [pxExp, setPxExp] = useState(null); // experiment_id activo para rastrear el lead
   // Default a 'precios': en un marketplace lo primero que el comprador quiere ver es la lista
@@ -464,7 +467,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 <PriceListTab dev={dev} user={user}
                   onGateOpen={openGate}
                   selectedUnit={selectedUnit}
-                  onSelectUnit={setSelectedUnit} />
+                  onSelectUnit={setSelectedUnit}
+                  matchCriteria={matchCriteria} />
               )}
               {tab === 'avance' && <ProgressTab dev={dev} user={user} onGateOpen={openGate} />}
               {tab === 'amenidades' && <AmenitiesTab dev={dev} />}
