@@ -354,5 +354,7 @@ export function toggleFavorite(id) {
   const cur = getFavorites();
   const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
   localStorage.setItem(FAV_KEY, JSON.stringify(next));
+  // Avisa a la UI (nav contador + toast) que el set de favoritos cambió.
+  try { window.dispatchEvent(new CustomEvent('dmx:favorites', { detail: { count: next.length, added: next.includes(id) } })); } catch { /* noop */ }
   return next.includes(id);
 }

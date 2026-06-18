@@ -29,10 +29,19 @@ const LINKS = [
 export default function PublicNav() {
   const [scrolled, setScrolled] = useState(false);
   const [tools, setTools] = useState(false);
+  const [favCount, setFavCount] = useState(0);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
     on(); window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
+  }, []);
+  useEffect(() => {
+    const read = () => { try { setFavCount(JSON.parse(localStorage.getItem('dmx.favorites') || '[]').length); } catch { setFavCount(0); } };
+    read();
+    const onFav = (e) => setFavCount(e?.detail?.count ?? 0);
+    window.addEventListener('dmx:favorites', onFav);
+    window.addEventListener('focus', read);
+    return () => { window.removeEventListener('dmx:favorites', onFav); window.removeEventListener('focus', read); };
   }, []);
 
   return (
@@ -79,6 +88,9 @@ export default function PublicNav() {
         <Link to="/favoritos" title="Mis favoritos" data-testid="nav-favoritos"
           style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5 }}>
           <span style={{ fontSize: 15, color: 'var(--theme)' }}>♥</span> Favoritos
+          {favCount > 0 && (
+            <span data-testid="nav-fav-count" style={{ background: 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '1px 7px', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, minWidth: 18, textAlign: 'center' }}>{favCount}</span>
+          )}
         </Link>
         <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
         <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>

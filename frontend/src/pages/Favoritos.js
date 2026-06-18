@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../components/ui';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
-import { fetchDevelopments } from '../api/marketplace';
+import { fetchDevelopments, isFavorite, toggleFavorite } from '../api/marketplace';
 import { visitorId } from '../lib/buyerSignal';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -48,6 +48,7 @@ export default function Favoritos() {
 
   const quitar = async (devId) => {
     setFavMeta((m) => m.filter((x) => x.dev_id !== devId));
+    if (isFavorite(devId)) toggleFavorite(devId);   // sincroniza el corazón de las tarjetas + el contador del nav
     try { await fetch(`${API}/api/buyer/favoritos/quitar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitor_id: vid, dev_id: devId }) }); } catch { /* noop */ }
   };
 
@@ -66,9 +67,19 @@ export default function Favoritos() {
         <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,3.6vw,36px)', color: 'var(--cream)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>
           Mis favoritos
         </h1>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)', margin: '0 0 22px', maxWidth: 640 }}>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)', margin: '0 0 16px', maxWidth: 640 }}>
           Lo que guardaste, en un solo lugar. Agenda una visita o deja una nota — tu asesor se entera de todo.
         </p>
+        {!loading && items.length > 0 && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 10, background: leadId ? 'rgba(31,160,106,0.10)' : 'rgba(var(--theme-rgb),0.07)', border: '1px solid ' + (leadId ? 'rgba(31,160,106,0.28)' : 'rgba(var(--theme-rgb),0.22)'), marginBottom: 22 }}>
+            <span style={{ fontSize: 15 }}>{leadId ? '✅' : '💡'}</span>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+              {leadId
+                ? 'Estás registrado: tu asesor ve tus favoritos, visitas y notas, y te ayuda con cada uno.'
+                : 'Se guardan en este equipo. Agenda una visita (con tu WhatsApp) y un asesor te contacta y te acompaña.'}
+            </span>
+          </div>
+        )}
 
         {!loading && items.length > 0 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
