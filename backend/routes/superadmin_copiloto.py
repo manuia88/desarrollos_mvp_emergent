@@ -109,6 +109,13 @@ async def buyer_cycle_intel(db, dias: int = 30):
         {"$match": {"credito": {"$nin": [None, "", "none"]}, **F}},
         {"$group": {"_id": "$credito", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 6},
     ])
+    # A · captura total: intención completa (4 datos) vs exploratoria/abandonada + las frases CRUDAS recientes.
+    completas = await _count(db.marketplace_searches, {"completa": True, **F})
+    exploratorias = await _count(db.marketplace_searches, {"source": "ai_search", "completa": {"$ne": True}, **F})
+    frases = await _agg(db.marketplace_searches, [
+        {"$match": {"texto_crudo": {"$nin": [None, ""]}, **F}},
+        {"$sort": {"created_at_dt": -1}}, {"$limit": 14}, {"$project": {"_id": 0, "t": "$texto_crudo"}},
+    ])
 
     return {
         "ventana_dias": dias,
@@ -136,7 +143,10 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "features_pedidos": [{"feature": f["_id"], "pedidos": f["n"]} for f in feat_ped],
             "zonas_fuera_de_cobertura": [{"zona": z["_id"], "pedidos": z["n"]} for z in zonas_nd],
             "creditos_pedidos": [{"credito": c["_id"], "pedidos": c["n"]} for c in cred_ped],
-            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir.",
+            "intencion": {"completas": completas, "exploratorias": exploratorias,
+                          "lectura": "Completas = pidieron los 4 datos (zona+precio+recámaras+m²). Exploratorias = se quedaron a medias (también es demanda: querían algo pero no concretaron)."},
+            "frases_recientes": [f["t"] for f in frases],
+            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. Las frases crudas revelan cómo habla la gente.",
         },
         "es_estimado": busquedas < 30,
         "data_source": "espinazo Copiloto (marketplace_searches + buyer_signals + leads)",

@@ -1408,17 +1408,25 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _ip = (request.client.host if request.client else "") or "x"
         # Supply coarse: ¿cuántos desarrollos ofrecen TODAS las amenidades pedidas? (0 = hueco claro)
         _supply = sum(1 for d in DEVELOPMENTS if set(_amen).issubset(set(d.get("amenities", [])))) if _amen else None
+        # A · CAPTURA TOTAL: los 4 obligatorios marcan si la intención fue COMPLETA o exploratoria/abandonada (las
+        # incompletas también son demanda: "quería X pero no completó"). Guardamos el texto CRUDO para descubrir
+        # cómo habla la gente (mejora el parser + revela demanda que ni mapeamos).
+        _completa = bool(filters.get("colonia") and filters.get("max_price") and filters.get("beds")
+                         and (filters.get("min_sqm") or filters.get("max_sqm")))
         await db.marketplace_searches.insert_one({
             "source": "ai_search",
             "colonias": [filters["colonia"]] if filters.get("colonia") else [],
             "colonia_id": filters.get("colonia"),
             "recamaras_min": filters.get("beds"), "banos_min": filters.get("baths"),
-            "precio_max": filters.get("max_price"), "stage_pedido": filters.get("stage"),
-            "tipo_pedido": filters.get("tipo"),
+            "precio_min": filters.get("min_price"), "precio_max": filters.get("max_price"),
+            "m2_min": filters.get("min_sqm"), "m2_max": filters.get("max_sqm"),
+            "enganche_max": filters.get("enganche_max"), "mensualidad_max": filters.get("mensualidad_max"),
+            "stage_pedido": filters.get("stage"), "tipo_pedido": filters.get("tipo"),
             "amenidades_pedidas": _amen, "features_pedidos": filters.get("unit_feature") or [],
             "zona_no_disponible": zona_no_disponible,
             "unmet": bool(zona_no_disponible) or (_supply == 0),
-            "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
+            "completa": _completa,
+            "texto_crudo": q[:300], "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
             "created_at_dt": _dt.utcnow(),
         })
     except Exception:
