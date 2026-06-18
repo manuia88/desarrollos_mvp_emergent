@@ -1,23 +1,33 @@
 // Mis Favoritos — la cara pública del "link tipo Tinder" del asesor (2026-06-18).
-// El comprador ve lo que guardó, lo quita, agenda una visita o deja una nota. Al agendar/registrarse, todo cae al
-// tablero de su asesor (Ficha360) → las dos caras enteradas. Identidad = visitor_id (localStorage).
-import React, { useCallback, useEffect, useState } from 'react';
+// Reusa la MISMA tarjeta del marketplace (DevelopmentCard) → diseño idéntico. Bajo cada tarjeta: Agendar visita /
+// Nota / Quitar. Al agendar/registrarse, todo cae al tablero del asesor (Ficha360). Identidad = visitor_id.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../components/ui';
+import DevelopmentCard from '../components/marketplace/DevelopmentCard';
+import { fetchDevelopments } from '../api/marketplace';
 import { visitorId } from '../lib/buyerSignal';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function Favoritos() {
-  const [favoritos, setFavoritos] = useState([]);
+  const [favMeta, setFavMeta] = useState([]);      // [{dev_id, cita, nota, status}]
+  const [allDevs, setAllDevs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openForm, setOpenForm] = useState(null);   // { devId, kind: 'cita'|'nota' }
+  const [openForm, setOpenForm] = useState(null);  // { devId, kind }
+  const [tab, setTab] = useState('todos');          // todos | cita | nota
   const vid = visitorId();
   const leadId = (() => { try { return localStorage.getItem('dmx_lead_id') || null; } catch { return null; } })();
 
   const load = useCallback(() => {
-    fetch(`${API}/api/buyer/favoritos?visitor_id=${vid}`)
-      .then((r) => r.json()).then((d) => setFavoritos(d?.favoritos || [])).catch(() => {}).finally(() => setLoading(false));
+    Promise.all([
+      fetch(`${API}/api/buyer/favoritos?visitor_id=${vid}`).then((r) => r.json()).catch(() => ({ favoritos: [] })),
+      fetchDevelopments({}).catch(() => ({ developments: [] })),
+    ]).then(([fav, devsResp]) => {
+      setFavMeta(fav?.favoritos || []);
+      const devs = Array.isArray(devsResp) ? devsResp : (devsResp?.developments || devsResp?.items || []);
+      setAllDevs(devs);
+    }).finally(() => setLoading(false));
   }, [vid]);
 
   useEffect(() => {
@@ -26,26 +36,51 @@ export default function Favoritos() {
     return () => document.body.classList.remove('public-light');
   }, [load]);
 
+  // Une cada favorito (id + cita/nota) con su desarrollo COMPLETO del marketplace → tarjeta idéntica.
+  const items = useMemo(() => {
+    const byId = new Map(allDevs.map((d) => [d.id, d]));
+    return favMeta.map((f) => ({ ...f, dev: byId.get(f.dev_id) })).filter((x) => x.dev);
+  }, [favMeta, allDevs]);
+
+  const shown = items.filter((x) => tab === 'todos' || (tab === 'cita' && x.cita) || (tab === 'nota' && x.nota));
+  const nCita = items.filter((x) => x.cita).length;
+  const nNota = items.filter((x) => x.nota).length;
+
   const quitar = async (devId) => {
-    setFavoritos((f) => f.filter((x) => x.dev_id !== devId));
+    setFavMeta((m) => m.filter((x) => x.dev_id !== devId));
     try { await fetch(`${API}/api/buyer/favoritos/quitar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitor_id: vid, dev_id: devId }) }); } catch { /* noop */ }
   };
+
+  const TabBtn = ({ k, label, n }) => (
+    <button onClick={() => setTab(k)} data-testid={`fav-tab-${k}`}
+      style={{ padding: '8px 16px', borderRadius: 9999, border: '1px solid ' + (tab === k ? 'var(--theme)' : 'var(--border)'), background: tab === k ? 'var(--theme)' : '#fff', color: tab === k ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+      {label}{n != null && <span style={{ opacity: 0.7, marginLeft: 5 }}>{n}</span>}
+    </button>
+  );
 
   return (
     <LightScope>
       <PublicNav />
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '36px 24px 60px' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '36px 24px 60px' }}>
         <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 6 }}>♥ Tu selección</div>
         <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,3.6vw,36px)', color: 'var(--cream)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>
           Mis favoritos
         </h1>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)', margin: '0 0 28px', maxWidth: 620 }}>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)', margin: '0 0 22px', maxWidth: 640 }}>
           Lo que guardaste, en un solo lugar. Agenda una visita o deja una nota — tu asesor se entera de todo.
         </p>
 
+        {!loading && items.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+            <TabBtn k="todos" label="Todos" n={items.length} />
+            <TabBtn k="cita" label="Con visita" n={nCita} />
+            <TabBtn k="nota" label="Con nota" n={nNota} />
+          </div>
+        )}
+
         {loading && <div style={{ fontFamily: 'DM Sans', color: 'var(--cream-3)' }}>Cargando…</div>}
 
-        {!loading && favoritos.length === 0 && (
+        {!loading && items.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface-card)' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 6 }}>Aún no guardas nada</div>
@@ -54,31 +89,31 @@ export default function Favoritos() {
           </div>
         )}
 
-        {!loading && favoritos.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-            {favoritos.map((f) => (
-              <div key={f.dev_id} className="dmx-card" data-testid={`fav-${f.dev_id}`}
-                style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--surface-card)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
-                <Link to={`/desarrollo/${f.dev_id}`} style={{ display: 'block', position: 'relative', height: 168, background: '#e9e9ee' }}>
-                  {f.photo && <img src={f.photo} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  {f.cita && <span style={{ position: 'absolute', top: 10, left: 10, padding: '4px 10px', borderRadius: 9999, background: 'var(--theme)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11 }}>📅 Visita pedida</span>}
-                </Link>
-                <div style={{ padding: 15, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>{f.name}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginTop: 2 }}>{f.colonia}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--theme)', marginTop: 8 }}>{f.price_from_display}</div>
-                  {f.nota && <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.06)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>📝 {f.nota}</div>}
+        {!loading && shown.length > 0 && (
+          <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+            {shown.map(({ dev, cita, nota }, i) => (
+              <div key={dev.id} data-testid={`fav-${dev.id}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* MISMA tarjeta del marketplace */}
+                <DevelopmentCard dev={dev} index={i} />
 
-                  {openForm?.devId === f.dev_id
-                    ? <InlineForm kind={openForm.kind} devId={f.dev_id} vid={vid} leadId={leadId} onDone={() => { setOpenForm(null); load(); }} onCancel={() => setOpenForm(null)} />
-                    : (
-                      <div style={{ display: 'flex', gap: 7, marginTop: 'auto', paddingTop: 13, flexWrap: 'wrap' }}>
-                        <button onClick={() => setOpenForm({ devId: f.dev_id, kind: 'cita' })} data-testid={`fav-cita-${f.dev_id}`} className="btn btn-primary" style={{ flex: 1, fontSize: 12.5, padding: '8px 10px' }}>📅 Agendar visita</button>
-                        <button onClick={() => setOpenForm({ devId: f.dev_id, kind: 'nota' })} className="btn btn-glass" style={{ fontSize: 12.5, padding: '8px 11px' }}>📝 Nota</button>
-                        <button onClick={() => quitar(f.dev_id)} data-testid={`fav-quitar-${f.dev_id}`} title="Quitar de favoritos" className="btn btn-glass" style={{ fontSize: 12.5, padding: '8px 11px' }}>✕</button>
-                      </div>
-                    )}
-                </div>
+                {/* cita / nota actuales */}
+                {(cita || nota) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                    {cita && <div style={{ padding: '7px 11px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.08)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>📅 Visita: <b>{cita}</b></div>}
+                    {nota && <div style={{ padding: '7px 11px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.06)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>📝 {nota}</div>}
+                  </div>
+                )}
+
+                {/* Acciones */}
+                {openForm?.devId === dev.id
+                  ? <InlineForm kind={openForm.kind} devId={dev.id} vid={vid} leadId={leadId} onDone={() => { setOpenForm(null); load(); }} onCancel={() => setOpenForm(null)} />
+                  : (
+                    <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
+                      <button onClick={() => setOpenForm({ devId: dev.id, kind: 'cita' })} data-testid={`fav-cita-${dev.id}`} className="btn btn-primary" style={{ flex: 1, fontSize: 12.5, padding: '9px 10px' }}>📅 Agendar visita</button>
+                      <button onClick={() => setOpenForm({ devId: dev.id, kind: 'nota' })} className="btn btn-glass" style={{ fontSize: 12.5, padding: '9px 11px' }}>📝 Nota</button>
+                      <button onClick={() => quitar(dev.id)} data-testid={`fav-quitar-${dev.id}`} title="Quitar de favoritos" className="btn btn-glass" style={{ fontSize: 12.5, padding: '9px 12px' }}>✕</button>
+                    </div>
+                  )}
               </div>
             ))}
           </div>
@@ -115,11 +150,12 @@ function InlineForm({ kind, devId, vid, leadId, onDone, onCancel }) {
   };
 
   return (
-    <div style={{ marginTop: 'auto', paddingTop: 13 }}>
+    <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface-card)' }}>
       {kind === 'nota'
         ? <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Tu nota (ej. me encanta pero le falta luz)…" rows={2} style={{ ...inStyle, resize: 'vertical' }} />
         : (
           <>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', fontWeight: 600, marginBottom: 7 }}>Agenda tu visita {leadId ? '' : '— y te contactamos'}</div>
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder="¿Cuándo te queda? (ej. sábado 11am)" style={inStyle} />
             {!leadId && (
               <>
@@ -130,8 +166,8 @@ function InlineForm({ kind, devId, vid, leadId, onDone, onCancel }) {
           </>
         )}
       <div style={{ display: 'flex', gap: 7 }}>
-        <button onClick={submit} disabled={busy || (kind === 'cita' && !leadId && (!name || !phone))} className="btn btn-primary" style={{ flex: 1, fontSize: 12.5, padding: '8px 10px' }}>{busy ? '…' : (kind === 'nota' ? 'Guardar nota' : 'Pedir visita')}</button>
-        <button onClick={onCancel} className="btn btn-glass" style={{ fontSize: 12.5, padding: '8px 11px' }}>Cancelar</button>
+        <button onClick={submit} disabled={busy || (kind === 'cita' && !leadId && (!name || !phone))} className="btn btn-primary" style={{ flex: 1, fontSize: 12.5, padding: '9px 10px' }}>{busy ? '…' : (kind === 'nota' ? 'Guardar nota' : 'Pedir visita')}</button>
+        <button onClick={onCancel} className="btn btn-glass" style={{ fontSize: 12.5, padding: '9px 12px' }}>Cancelar</button>
       </div>
     </div>
   );
