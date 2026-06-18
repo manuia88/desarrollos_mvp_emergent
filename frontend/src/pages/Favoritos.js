@@ -102,14 +102,19 @@ export default function Favoritos() {
 
         {!loading && shown.length > 0 && (
           <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
-            {shown.map(({ dev, cita, nota }, i) => (
+            {shown.map(({ dev, cita, nota, unidades_guardadas }, i) => (
               <div key={dev.id} data-testid={`fav-${dev.id}`} style={{ display: 'flex', flexDirection: 'column' }}>
                 {/* MISMA tarjeta del marketplace */}
                 <DevelopmentCard dev={dev} index={i} />
 
-                {/* cita / nota actuales */}
-                {(cita || nota) && (
+                {/* unidades específicas guardadas (unidad como átomo) + cita / nota */}
+                {((unidades_guardadas || []).length > 0 || cita || nota) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                    {(unidades_guardadas || []).length > 0 && (
+                      <div style={{ padding: '7px 11px', borderRadius: 9, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.26)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        ♥ Unidades guardadas: <b style={{ color: 'var(--cream)' }}>{unidades_guardadas.map((u) => `#${u}`).join(', ')}</b>
+                      </div>
+                    )}
                     {cita && <div style={{ padding: '7px 11px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.08)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>📅 Visita: <b>{cita}</b></div>}
                     {nota && <div style={{ padding: '7px 11px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.06)', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>📝 {nota}</div>}
                   </div>

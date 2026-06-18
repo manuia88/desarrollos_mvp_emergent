@@ -59,11 +59,27 @@ async def listar_favoritos(request: Request, visitor_id: str):
             {"_id": 0, "entity_id": 1, "created_at_dt": 1}, sort=[("created_at_dt", -1)]):
             if s.get("entity_id") and s["entity_id"] not in ids:
                 ids.append(s["entity_id"])
-        # 2. Extra del tablero (cita/nota/status) por dev.
+        # 2. UNIDADES guardadas (unidad como átomo) → por dev. Un dev con unidad guardada también es favorito.
+        unidades = {}
+        async for s in db.buyer_signals.find(
+            {"visitor_id": visitor_id, "type": "unit_save", "active": True},
+            {"_id": 0, "entity_id": 1, "unit_number": 1}):
+            if s.get("entity_id") and s.get("unit_number"):
+                unidades.setdefault(s["entity_id"], []).append(s["unit_number"])
+                if s["entity_id"] not in ids:
+                    ids.append(s["entity_id"])
+        # 3. Extra del tablero (cita/nota/status) por dev.
         extras = {}
         async for f in db.buyer_favoritos.find({"visitor_id": visitor_id}, {"_id": 0, "dev_id": 1, "cita": 1, "nota": 1, "status": 1}):
             extras[f.get("dev_id")] = f
-        favoritos = [_card(i, extras.get(i)) for i in ids if _dev(i)]
+        favoritos = []
+        for i in ids:
+            if not _dev(i):
+                continue
+            card = _card(i, extras.get(i))
+            if unidades.get(i):
+                card["unidades_guardadas"] = unidades[i]
+            favoritos.append(card)
         return {"ok": True, "favoritos": favoritos, "total": len(favoritos)}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[favoritos] listar fail-open: {e}")
