@@ -52,6 +52,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [quizOpen, setQuizOpen] = useState(false);
   // Copiloto de Compra E1 — Perfilador (reemplaza "Mi colonia ideal" · dedup de captura de perfil)
   const [perfiladorOpen, setPerfiladorOpen] = useState(false);
+  // Perfil aplicado a la página (no atrapa en el modal · el grid se personaliza · siempre se puede quitar)
+  const [appliedProfile, setAppliedProfile] = useState(null);
   const navigate = useNavigate();
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
@@ -447,6 +449,41 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         {/* ── Vista Lista ── */}
         {viewMode === 'lista' && (
           <section style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
+            {/* Perfil aplicado: "Tus mejores opciones" arriba (no atrapa · el grid completo sigue abajo) */}
+            {appliedProfile && (() => {
+              const byId = {}; developments.forEach((d) => { byId[d.id] = d; });
+              const picks = (appliedProfile.results || []).map((r) => ({ dev: byId[r.id], r })).filter((x) => x.dev).slice(0, 6);
+              if (picks.length === 0) return null;
+              return (
+                <div data-testid="perfil-picks" style={{ marginBottom: 34 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Hechas para ti</div>
+                      <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,28px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: 0 }}>Tus mejores opciones</h2>
+                    </div>
+                    <button onClick={() => setAppliedProfile(null)} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Quitar mi perfil ✕</button>
+                  </div>
+                  {appliedProfile.nota && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 18 }}>
+                      <span>💡</span><span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{appliedProfile.nota}</span>
+                    </div>
+                  )}
+                  <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                    {picks.map(({ dev, r }, i) => (
+                      <div key={dev.id} style={{ position: 'relative' }}>
+                        <DevelopmentCard dev={dev} index={i} />
+                        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: r.ampliado ? 'rgba(16,18,28,0.82)' : 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
+                          {r.ampliado ? '◇ cercano a tu perfil' : `✓ ${r.match_score}% para ti`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 30, paddingTop: 20, borderTop: '1px solid var(--border)', fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream-2)' }}>
+                    ¿Ninguna te late? Explora todo el marketplace ↓
+                  </div>
+                </div>
+              );
+            })()}
             <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
               {resultsText}
             </div>
@@ -608,7 +645,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       />
 
       {/* Copiloto de Compra E1 — Perfilador → "Tus mejores opciones" */}
-      <Perfilador open={perfiladorOpen} onClose={() => setPerfiladorOpen(false)} colonias={colonias} />
+      <Perfilador
+        open={perfiladorOpen}
+        onClose={() => setPerfiladorOpen(false)}
+        onApply={(prof, data) => { setAppliedProfile({ ...prof, ...data }); if (data?.results?.[0]) setTimeout(() => window.scrollTo({ top: 360, behavior: 'smooth' }), 60); }}
+        colonias={colonias}
+      />
 
       <style>{`
         @media (max-width: 1200px) { .dev-grid { grid-template-columns: repeat(3, 1fr) !important; } }

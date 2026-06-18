@@ -133,39 +133,60 @@ def _reasons(dev: Dict[str, Any], p: PerfilIn) -> List[str]:
     return out[:4]
 
 
+async def _run_search(rs_search, db, by_id, prof: PerfilIn) -> List[Dict[str, Any]]:
+    """Una pasada: perfil → search() → rehidrata dev + filtros duros (etapa/plazo/zona/cajones) + razones."""
+    parsed = _build_parsed(prof)
+    scored = await rs_search(db, parsed, limit=max(prof.limit * 3, 30))
+    out, seen = [], set()
+    for item in scored:
+        dev = by_id.get(item.get("entity_id"))
+        if not dev or not _passes_extra(dev, prof) or dev.get("id") in seen:
+            continue
+        seen.add(dev.get("id"))
+        out.append({
+            "id": dev.get("id"), "name": dev.get("name"), "colonia": dev.get("colonia"),
+            "price_from": dev.get("price_from"), "price_from_display": dev.get("price_from_display"),
+            "price_m2_dev": dev.get("price_m2_dev"), "stage": dev.get("stage"),
+            "match_score": round(item.get("match_score", 0)), "match_reasons": _reasons(dev, prof),
+        })
+    return out
+
+
 @router.post("/api/perfil/recomendar")
 async def recomendar(p: PerfilIn, request: Request):
-    """Perfil estructurado → desarrollos rankeados con match transparente. Cero LLM."""
-    scored: List[Dict[str, Any]] = []
-    by_id: Dict[str, Any] = {}
+    """Perfil estructurado → desarrollos rankeados con match transparente + FALLBACK HONESTO (nunca vacío)."""
     try:
         from reverse_search_engine import search as rs_search
         from data_developments import DEVELOPMENTS
         by_id = {d.get("id"): d for d in DEVELOPMENTS}
         db = request.app.state.db
-        parsed = _build_parsed(p)
-        # search() devuelve items APLANADOS (entity_id + match_score + explanation), no el dev completo.
-        scored = await rs_search(db, parsed, limit=max(p.limit * 3, 30))
     except Exception as e:  # noqa: BLE001
-        log.warning(f"[perfil/recomendar] motor falló: {e}")
+        log.warning(f"[perfil/recomendar] init falló: {e}")
+        return {"ok": True, "total": 0, "ampliado": False, "nota": None, "perfil": p.model_dump(), "resultados": []}
 
-    results: List[Dict[str, Any]] = []
-    for item in scored:
-        dev = by_id.get(item.get("entity_id"))   # rehidrata el dev completo para mis filtros extra
-        if not dev or not _passes_extra(dev, p):
-            continue
-        results.append({
-            "id": dev.get("id"),
-            "name": dev.get("name"),
-            "colonia": dev.get("colonia"),
-            "price_from": dev.get("price_from"),
-            "price_from_display": dev.get("price_from_display"),
-            "price_m2_dev": dev.get("price_m2_dev"),
-            "stage": dev.get("stage"),
-            "match_score": round(item.get("match_score", 0)),
-            "match_reasons": _reasons(dev, p),
-        })
-        if len(results) >= p.limit:
-            break
+    MIN = 3
+    results = await _run_search(rs_search, db, by_id, p)
+    seen = {r["id"] for r in results}
+    ampliado, nota = False, None
 
-    return {"ok": True, "perfil": p.model_dump(), "total": len(results), "resultados": results}
+    if len(results) < MIN:
+        # 1) Relaja lo MENOS importante (plazo + m²) · conserva zona, presupuesto, recámaras, baños.
+        p2 = p.model_copy(update={"plazo": "cualquiera", "m2_min": None, "m2_max": None})
+        for r in await _run_search(rs_search, db, by_id, p2):
+            if r["id"] not in seen:
+                r["ampliado"] = True; results.append(r); seen.add(r["id"]); ampliado = True
+        # 2) Si sigue corto y había zona fija → amplía a otras zonas (honesto: la ubicación es lo más importante,
+        #    pero con poco inventario es mejor mostrar lo cercano que dejarte sin nada).
+        if len(results) < MIN and p.colonias:
+            p3 = p2.model_copy(update={"colonias": []})
+            for r in await _run_search(rs_search, db, by_id, p3):
+                if r["id"] not in seen:
+                    r["ampliado"] = True; results.append(r); seen.add(r["id"]); ampliado = True
+            nota = "Hay pocas opciones en tu zona exacta — te mostramos lo más cercano en otras zonas."
+        elif ampliado:
+            nota = "Ampliamos un poco tu búsqueda para darte más opciones."
+
+    # Primero las de match EXACTO (no ampliadas), luego por score.
+    results.sort(key=lambda r: (r.get("ampliado", False), -r.get("match_score", 0)))
+    results = results[: max(p.limit, 8)]
+    return {"ok": True, "total": len(results), "ampliado": ampliado, "nota": nota, "perfil": p.model_dump(), "resultados": results}

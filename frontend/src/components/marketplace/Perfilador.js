@@ -38,10 +38,11 @@ function visitorId() {
   try { let v = localStorage.getItem('dmx_visitor_id'); if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); } return v; } catch { return 'v_anon'; }
 }
 
-export default function Perfilador({ open, onClose, colonias = [] }) {
+export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
   const [step, setStep] = useState(0);
   const [p, setP] = useState({ uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, colonias: [] });
   const [results, setResults] = useState(null);
+  const [meta, setMeta] = useState({ nota: null, ampliado: false });
   const [loading, setLoading] = useState(false);
   const [zoneQuery, setZoneQuery] = useState('');
   if (!open) return null;
@@ -65,12 +66,15 @@ export default function Perfilador({ open, onClose, colonias = [] }) {
       const r = await fetch(`${API}/api/perfil/recomendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json();
       setResults(d.resultados || []);
+      setMeta({ nota: d.nota || null, ampliado: !!d.ampliado });
       setStep(4);
-    } catch { setResults([]); setStep(4); }
+    } catch { setResults([]); setMeta({ nota: null, ampliado: false }); setStep(4); }
     setLoading(false);
   };
 
   const close = () => { onClose?.(); };
+  // Aplica el perfil al marketplace (no atrapa al usuario en el modal): el grid se personaliza + puede seguir.
+  const applyToMarketplace = () => { onApply?.({ ...p }, { results: results || [], nota: meta.nota, ampliado: meta.ampliado }); onClose?.(); };
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -178,8 +182,14 @@ export default function Perfilador({ open, onClose, colonias = [] }) {
     // 4 · resultados
     <div key="4">
       <div style={qTitle}>Tus mejores opciones</div>
-      <div style={qSub}>{results?.length ? `${results.length} desarrollos para tu perfil — y por qué.` : 'Ajusta tu perfil para ver opciones.'}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '46vh', overflowY: 'auto' }}>
+      <div style={qSub}>{results?.length ? `${results.length} desarrollos para tu perfil — y por qué.` : 'No encontramos match. Amplía presupuesto o zona, o explora todo.'}</div>
+      {meta.nota && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 14 }}>
+          <span style={{ fontSize: 15 }}>💡</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>{meta.nota}</span>
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '42vh', overflowY: 'auto' }}>
         {(results || []).map((r) => (
           <Link key={r.id} to={`/desarrollo/${r.id}`} onClick={close} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 13, borderRadius: 13, border: '1px solid var(--border)', background: '#fff', textDecoration: 'none' }}>
             <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 11, background: 'var(--theme)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 800, lineHeight: 1 }}>
@@ -215,7 +225,8 @@ export default function Perfilador({ open, onClose, colonias = [] }) {
           {step > 0 && step < 4 && <button onClick={back} style={{ padding: '11px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Atrás</button>}
           {step < 3 && <button onClick={next} disabled={step === 0 && !p.uso} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: step === 0 && !p.uso ? 'var(--border)' : 'var(--theme)', color: '#fff', cursor: step === 0 && !p.uso ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Continuar</button>}
           {step === 3 && <button onClick={submit} disabled={loading} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>{loading ? 'Buscando…' : 'Ver mis mejores opciones'}</button>}
-          {step === 4 && <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: 'var(--cream-2)' }}>Ajustar mi perfil</button>}
+          {step === 4 && <button onClick={() => setStep(1)} style={{ padding: '12px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Ajustar</button>}
+          {step === 4 && <button onClick={applyToMarketplace} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Ver en el marketplace →</button>}
         </div>
       </div>
     </div>
