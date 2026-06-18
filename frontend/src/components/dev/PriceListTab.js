@@ -17,6 +17,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   const [parkingF, setParkingF] = useState(0);
   const [hover, setHover] = useState(null);
   const [onlyMatch, setOnlyMatch] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // Ficha consciente: qué unidades cumplen la búsqueda del comprador (resaltar en la lista).
   const matchIds = useMemo(() => {
@@ -134,10 +135,57 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             <span style={{ fontWeight: 700, color: '#1FA06A' }}>✓ {matchIds.size} {matchIds.size === 1 ? 'unidad cumple' : 'unidades cumplen'} tu búsqueda</span>
             {criteriaSummary(matchCriteria) ? <span style={{ color: 'var(--cream-3)' }}> · {criteriaSummary(matchCriteria)}</span> : null}
           </div>
-          <button onClick={() => setOnlyMatch((v) => !v)} data-testid="pricelist-only-match"
-            style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid ' + (onlyMatch ? 'var(--theme)' : 'var(--border)'), background: onlyMatch ? 'var(--theme)' : '#fff', color: onlyMatch ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
-            {onlyMatch ? '✓ Solo las que cumplen' : 'Solo las que cumplen'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {matchIds.size >= 2 && (
+              <button onClick={() => setCompareOpen(true)} data-testid="pricelist-compare"
+                style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+                ⊞ Comparar las {matchIds.size}
+              </button>
+            )}
+            <button onClick={() => setOnlyMatch((v) => !v)} data-testid="pricelist-only-match"
+              style={{ padding: '6px 12px', borderRadius: 9999, border: '1px solid ' + (onlyMatch ? 'var(--theme)' : 'var(--border)'), background: onlyMatch ? 'var(--theme)' : '#fff', color: onlyMatch ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              {onlyMatch ? '✓ Solo las que cumplen' : 'Solo las que cumplen'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Comparador de las unidades que CUMPLEN (lado a lado · elige dentro del desarrollo) */}
+      {compareOpen && matchIds.size >= 2 && (
+        <div onClick={() => setCompareOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,18,24,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} data-testid="compare-modal" style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--border)', maxWidth: 'min(900px, 96vw)', maxHeight: '88vh', overflow: 'auto', padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>Comparar las que cumplen tu búsqueda</div>
+              <button onClick={() => setCompareOpen(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 9999, width: 28, height: 28, cursor: 'pointer', color: 'var(--cream-2)' }}>✕</button>
+            </div>
+            {(() => {
+              const us = (dev.units || []).filter((u) => matchIds.has(u.id)).slice(0, 5);
+              const rows = [
+                ['Precio', (u) => u.price_display || (u.price ? `$${u.price.toLocaleString('es-MX')}` : '—')],
+                ['Recámaras', (u) => u.bedrooms ?? '—'], ['Baños', (u) => u.bathrooms ?? '—'],
+                ['Cajones', (u) => u.parking_spots ?? '—'], ['m² totales', (u) => u.m2_total || u.m2_privative || '—'],
+                ['Balcón m²', (u) => u.m2_balcony || '—'], ['Nivel', (u) => u.level ?? '—'],
+                ['Orientación', (u) => u.orientation || '—'], ['Vista', (u) => u.vista || '—'],
+                ['Bodega', (u) => (u.bodega ? 'Sí' : 'No')],
+              ];
+              return (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
+                  <thead><tr>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--cream-3)', fontSize: 11 }}>—</th>
+                    {us.map((u) => <th key={u.id} style={{ textAlign: 'left', padding: '8px 10px', fontFamily: 'Outfit', fontWeight: 800, color: 'var(--cream)' }}>#{u.unit_number}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {rows.map(([label, fn]) => (
+                      <tr key={label} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 10px', color: 'var(--cream-3)' }}>{label}</td>
+                        {us.map((u) => <td key={u.id} style={{ padding: '8px 10px', color: 'var(--cream)', fontWeight: label === 'Precio' ? 700 : 400 }}>{fn(u)}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
+          </div>
         </div>
       )}
 
