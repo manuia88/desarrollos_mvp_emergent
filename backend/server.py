@@ -1075,6 +1075,13 @@ app.include_router(maps_cross_router)
 from routes.avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
+# Copiloto de Compra · Etapa 1 — Perfilador → recomendación estructurada (sin LLM)
+try:
+    from routes.perfil_recomendar import router as perfil_router
+    app.include_router(perfil_router)
+except Exception as _exc:  # noqa: BLE001
+    logging.warning(f"[copiloto] perfil_recomendar include failed: {_exc}")
+
 # Fase 3.4 · lente del comprador — inteligencia de mercado pública (cubo anónimo)
 from routes.public_market import router as public_market_router
 app.include_router(public_market_router)
