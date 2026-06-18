@@ -1,8 +1,16 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-17
+**Última actualización**: 2026-06-18
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+> **2026-06-18 · F6 · Copiloto de Compra (portal público) — hardening end-to-end**: buscador UNIFICADO (una entrada,
+> 4 obligatorios como preguntas, Perfilador retirado) · solo 2 etapas por fecha + filtro plazo vivo · casamentera
+> RECONECTADA + **cron horario** · demanda insatisfecha → superadmin + dev · ALTO INTENTO → lead (idempotente +
+> temperatura · saved-search/login-gate/promote) · **asignación inteligente** (afinidad zona/proyecto → round-robin +
+> admin notifica) · unidad guardada→tablero + espejo auto-reparable · Title Case en todo el portal · seguridad
+> (lead_id/rate-limit/token cron) · auditoría 4 agentes. Cero deuda · verificado E2E. Doc: **`memory/COPILOTO_PUBLIC_STATE.md`**.
+> **Config founder (no código):** activar asesores reales de la casa · `CASAMENTERA_CRON_TOKEN` (solo trigger externo) · limpiar demo casa1/casa2.
 
 > **2026-06-17 · FASE F6 (branch `dev-redesign-tandas`)**: rediseño público marketplace/mapa (nistora claro) +
 > cableado de cables muertos cross-portal (leads→CRM · db.transactions→DRPI · asistentes comparten bus · Salud

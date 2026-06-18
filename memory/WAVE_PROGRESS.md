@@ -22,6 +22,23 @@ Rediseño del marketplace/mapa público (estilo nistora, claro) + cableado de lo
 
 **Cerebro:** prendido en LOCAL (no deploy). **Pendiente founder (deploy):** prender CEREBRO_ENABLED + Neo4j en nube. **Pendiente escala:** edges KG + lookalike (volumen). ~16 commits en `dev-redesign-tandas`.
 
+### Tanda 2026-06-18 · Copiloto de Compra (portal público) — hardening end-to-end + alto intento + cron
+Doc canónico: **`memory/COPILOTO_PUBLIC_STATE.md`**. Cero deuda. Verificado E2E.
+
+| Pieza | Qué | Estado |
+|---|---|---|
+| **Buscador unificado** | UNA entrada (barra + filtros); 4 obligatorios como preguntas que abren el control (openToken); Perfilador retirado/borrado | ✅ |
+| **Solo 2 etapas + plazo** | preventa/entrega-inmediata por FECHA (`_norm_stage`) + filtro de plazo que antes se ignoraba (`_plazo_ok`) | ✅ |
+| **Casamentera reconectada + CRON** | guardar búsqueda → `marketplace_searches{alert}` + `scheduler_casamentera.py` horario → buyer_alerts + WA + tablero | ✅ |
+| **Demanda insatisfecha** | `/casi` capta hueco de producto → cubo superadmin (GustoMercado) + dev (`ZoneDemandGapPanel` /demanda-zona) | ✅ |
+| **Alto intento → lead** | `create_buyer_lead` idempotente + temperatura por conducta · saved-search+email · login-gate `/buyer/promote` (NO login casual/like) | ✅ |
+| **Asignación inteligente** | `resolve_public_lead_owner`: afinidad zona/proyecto → round-robin + admin notificado/reasigna | ✅ |
+| **Unidad guardada → tablero** | `client_units` en `_push_to_asesor_board` + espejo auto-reparable (`_replay_favoritos` en retry/backfill) | ✅ |
+| **Title Case inteligente** | `lib/titleCase.js` aplicado a títulos de TODO el portal (~27 archivos) | ✅ |
+| **Seguridad + auditoría** | lead_id verificado · `/correr` con token · rate-limit escrituras (`services/ratelimit.py`) · 4 agentes + verificación propia | ✅ |
+
+**Pendiente founder (config/deploy, NO código):** activar asesores REALES de la casa (+ zonas/proyectos opcional) · `CASAMENTERA_CRON_TOKEN` (solo trigger externo) · limpiar demo `casa1/casa2`. Detalle en `COPILOTO_PUBLIC_STATE.md` §config.
+
 ---
 
 ## 💎 FASE F5 · MODELO DEL MUNDO / DATA UTILITY ✅ COMPLETA (2026-06-10)
