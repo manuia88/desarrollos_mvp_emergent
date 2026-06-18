@@ -544,7 +544,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => setPerfiladorOpen(true)} data-testid="ajustar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--theme)', background: 'rgba(var(--theme-rgb),0.06)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>Ajustar mi búsqueda</button>
-                      <button onClick={() => { setAppliedProfile(null); setBrowseAll(true); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo ✕</button>
+                      <button onClick={() => { setAppliedProfile(null); setBrowseAll(true); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo el marketplace</button>
                     </div>
                   </div>
                   {appliedProfile.nota && (
@@ -606,8 +606,17 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               );
             })()}
             {showResults && (
-              <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
-                {resultsText}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+                <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
+                  {browseAll && !canSearch && !appliedProfile ? `Todos los desarrollos · ${developments.length}` : resultsText}
+                </div>
+                {/* Camino claro y REVERSIBLE de vuelta a la búsqueda guiada — "Encuentra tu lugar" es EL camino.
+                    Siempre visible al explorar (salvo cuando ya hay perfil, que tiene su propio "Ajustar"). */}
+                {!appliedProfile && (
+                  <button onClick={() => setPerfiladorOpen(true)} data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
+                    ✨ Encuentra tu lugar
+                  </button>
+                )}
               </div>
             )}
 
@@ -645,9 +654,16 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         }}>{f.ok ? '✓' : '○'} {f.label}</span>
                       ))}
                     </div>
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary">✨ Empezar mi búsqueda</button>
-                      <button data-testid="ver-todos" onClick={() => setBrowseAll(true)} className="btn btn-glass">Ver todos los {developments.length} desarrollos</button>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary" style={{ fontSize: 15 }}>✨ Encuentra tu lugar</button>
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>o</span>
+                      <button data-testid="ver-todos" onClick={() => setBrowseAll(true)}
+                        style={{ padding: '11px 18px', borderRadius: 11, border: '1.5px solid var(--theme)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: 'var(--theme)' }}>
+                        Ver los {developments.length} desarrollos →
+                      </button>
+                    </div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 12 }}>
+                      "Encuentra tu lugar" te hace 4 preguntas y te da las mejores opciones. "Ver los {developments.length}" es explorar todo el catálogo.
                     </div>
                   </div>
                 ) : loading ? (
