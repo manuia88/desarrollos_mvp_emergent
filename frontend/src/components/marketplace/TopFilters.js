@@ -164,7 +164,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
               {t('marketplace_v2.ai_understood')}
             </span>
             {Object.entries(aiFilters).filter(([k]) => k !== '_q').map(([k, v]) => {
-              const LBL = { colonia: 'zonas', alcaldia: 'alcaldía', tipo: 'tipo', min_price: 'desde', max_price: 'hasta', min_sqm: 'm² desde', max_sqm: 'm² hasta', beds: 'recámaras', baths: 'baños', parking: 'cajones', stage: 'etapa', plazo: 'entrega', amenity: 'amenidades', unit_feature: 'incluye', orientacion: 'orientación', piso_min: 'piso desde', enganche_max: 'enganche hasta', mensualidad_max: 'mensualidad hasta', apartado_max: 'apartado hasta' };
+              const LBL = { colonia: 'zonas', alcaldia: 'alcaldía', tipo: 'tipo', min_price: 'desde', max_price: 'hasta', min_sqm: 'm² desde', max_sqm: 'm² hasta', beds: 'recámaras', baths: 'baños', parking: 'cajones', stage: 'etapa', plazo: 'entrega', amenity: 'amenidades', unit_feature: 'incluye', orientacion: 'orientación', piso_min: 'piso desde', enganche_max: 'enganche hasta', mensualidad_max: 'mensualidad hasta', apartado_max: 'apartado hasta', credito: 'crédito', descuento_min: 'descuento', esquema_pago: 'esquema' };
               const PLAZO = { menos_3: 'en menos de 3 meses', '3_6': 'en 3-6 meses', '6_12': 'en 6-12 meses', mas_12: 'en +12 meses' };
               const MONEY = ['min_price', 'max_price', 'enganche_max', 'mensualidad_max', 'apartado_max'];
               const val = k === 'plazo' ? (PLAZO[v] || v)

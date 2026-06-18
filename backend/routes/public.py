@@ -1355,7 +1355,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             parsed = _json.loads(txt[s:e + 1])
     except Exception:
         parsed = {}
-    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "plazo", "amenity", "unit_feature", "orientacion", "piso_min", "enganche_max", "mensualidad_max", "apartado_max"}
+    allowed = {"colonia", "alcaldia", "tipo", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "plazo", "amenity", "unit_feature", "orientacion", "piso_min", "enganche_max", "mensualidad_max", "apartado_max", "credito", "descuento_min", "esquema_pago"}
     filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
 
     # ── Fallback DETERMINISTA (sin LLM) ──────────────────────────────────────────
@@ -1537,6 +1537,28 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             meses = n * 12 if u[0] == "a" else n / 30 if u[0] == "d" else n
             if meses > 0:
                 filters["plazo"] = "menos_3" if meses <= 3 else "3_6" if meses <= 6 else "6_12" if meses <= 12 else "mas_12"
+    # CRÉDITO (vocabulario finito de instituciones MX) · DESCUENTO/promo · ESQUEMA de pago — categorías, no casos sueltos.
+    if "credito" not in filters:
+        _cr = []
+        if _re.search(r"\binfonavit\b|\binfo\b", ql): _cr.append("infonavit")
+        if _re.search(r"\bcofinavit\b|\bcofi\b", ql): _cr.append("cofinavit")
+        if _re.search(r"\bfovissste\b|\bfovi\b", ql): _cr.append("fovissste")
+        if _re.search(r"bancari|hipotecari|cr[eé]dito hipotecario|\bch\b|\bcred\b", ql): _cr.append("hipotecario")
+        if _re.search(r"\bcontado\b", ql): _cr.append("contado")
+        if _cr:
+            filters["credito"] = list(dict.fromkeys(_cr))
+    if "descuento_min" not in filters:
+        md = _re.search(r"(\d{1,2})\s*%?\s*(?:off|de descuento|descuento|dscto)", ql)
+        if md:
+            filters["descuento_min"] = int(md.group(1))
+        elif _re.search(r"\bdescuento\b|\boff\b|promoci[oó]n", ql):
+            filters["descuento_min"] = 1   # quiere descuento (sin % específico)
+    if "esquema_pago" not in filters:    # "30/70 · 20/40/40" (% enganche / mensualidades / escritura)
+        me = _re.search(r"\b(\d{1,2})\s*/\s*(\d{1,2})(?:\s*/\s*(\d{1,2}))?\b", ql)
+        if me:
+            parts = [int(x) for x in me.groups() if x]
+            if 90 <= sum(parts) <= 110:
+                filters["esquema_pago"] = "/".join(str(p) for p in parts)
     # Amenidades (edificio) + features de la unidad — granularidad fina sin LLM. Solo el vocabulario REAL del
     # catálogo (no se inventa lo que no existe, ej. "campo de golf" no está en desarrollos urbanos de CDMX).
     _UF_KW = {"balcon": ["balcon", "balcón"], "terraza": ["terraza"], "bodega": ["bodega"], "roof_garden": ["roof garden", "roofgarden", "roof-garden"]}
