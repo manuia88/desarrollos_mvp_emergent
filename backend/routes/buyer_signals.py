@@ -185,3 +185,65 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] registrar lead fail: {e}")
         return {"ok": False}
+
+
+def _amen_set(dev):
+    return {str(a).strip().lower() for a in (dev.get("amenities") or []) if a}
+
+
+@router.get("/api/buyer/parecidos")
+async def parecidos(request: Request, visitor_id: str, limit: int = 6):
+    """E2 · perfil de GUSTO: de lo que el comprador LIKEÓ, infiere su gusto (amenidades, precio/m², recámaras,
+    estilo de zona) y recomienda PARECIDOS — "porque te gustó X". Netflix-style, sobre el espinazo buyer_signals.
+    Reusa la señal del like (= swipe right). No pide formularios."""
+    try:
+        db = request.app.state.db
+        from data_developments import DEVELOPMENTS
+        by_id = {d.get("id"): d for d in DEVELOPMENTS}
+        liked_ids = []
+        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+            if s.get("entity_id"):
+                liked_ids.append(s["entity_id"])
+        liked = [by_id[i] for i in liked_ids if i in by_id]
+        if not liked:
+            return {"ok": True, "gusto": None, "parecidos": []}
+
+        # Perfil de gusto agregado (capa C).
+        amen_pref = {}
+        for d in liked:
+            for a in _amen_set(d):
+                amen_pref[a] = amen_pref.get(a, 0) + 1
+        top_amen = sorted(amen_pref, key=amen_pref.get, reverse=True)[:6]
+        pm2 = [d.get("price_m2_dev") for d in liked if d.get("price_m2_dev")]
+        pm2_avg = sum(pm2) / len(pm2) if pm2 else None
+        rec_pref = max((d.get("bedrooms_range") or [0, 0])[1] for d in liked) if liked else None
+
+        # Similaridad de cada dev (no likeado) al gusto.
+        out = []
+        for d in DEVELOPMENTS:
+            if d.get("id") in liked_ids:
+                continue
+            da = _amen_set(d)
+            inter = len(da & set(top_amen))
+            amen_sim = inter / max(len(top_amen), 1)
+            price_sim = 1.0
+            if pm2_avg and d.get("price_m2_dev"):
+                price_sim = max(0.0, 1 - abs(d["price_m2_dev"] - pm2_avg) / max(pm2_avg, 1))
+            rec_sim = 1.0 if (rec_pref and (d.get("bedrooms_range") or [0, 0])[1] >= rec_pref) else 0.6
+            score = amen_sim * 0.5 + price_sim * 0.35 + rec_sim * 0.15
+            # de cuál liked se parece más (para "porque te gustó X")
+            best_ref = max(liked, key=lambda L: len(_amen_set(L) & da)) if liked else None
+            out.append({
+                "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"),
+                "price_from_display": d.get("price_from_display"), "price_m2_dev": d.get("price_m2_dev"),
+                "match_amenidades": [a.replace("_", " ") for a in (da & set(top_amen))][:3],
+                "porque": (best_ref or {}).get("name"),
+                "sim": round(score * 100),
+            })
+        out.sort(key=lambda x: x["sim"], reverse=True)
+        return {"ok": True,
+                "gusto": {"amenidades": [a.replace("_", " ") for a in top_amen], "precio_m2_prom": round(pm2_avg) if pm2_avg else None, "recamaras": rec_pref},
+                "parecidos": out[:limit]}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] parecidos fail: {e}")
+        return {"ok": True, "gusto": None, "parecidos": []}

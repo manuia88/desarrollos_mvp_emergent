@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import Perfilador from '../components/marketplace/Perfilador';
+import { visitorId } from '../lib/buyerSignal';
 import { useNavigate } from 'react-router-dom';
 // W4.2D1 — URL state sync helpers
 import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
@@ -54,6 +55,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [perfiladorOpen, setPerfiladorOpen] = useState(false);
   // Perfil aplicado a la página (no atrapa en el modal · el grid se personaliza · siempre se puede quitar)
   const [appliedProfile, setAppliedProfile] = useState(null);
+  // E2 · gusto: "parecidos a los que te gustaron" (de los likes del visitor · Netflix-style)
+  const [parecidos, setParecidos] = useState([]);
   const navigate = useNavigate();
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
@@ -80,6 +83,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // Restaura el perfil aplicado al volver de una ficha (el componente se re-monta) → no se pierden las opciones.
   useEffect(() => {
     try { const s = sessionStorage.getItem('dmx_applied_profile'); if (s) setAppliedProfile(JSON.parse(s)); } catch { /* noop */ }
+  }, []);
+
+  // E2 · gusto: trae "parecidos a los que te gustaron" (de los likes del visitor). Vacío si aún no likeó nada.
+  useEffect(() => {
+    const API = process.env.REACT_APP_BACKEND_URL;
+    fetch(`${API}/api/buyer/parecidos?visitor_id=${visitorId()}&limit=6`)
+      .then((r) => r.json()).then((d) => setParecidos(d?.parecidos || [])).catch(() => {});
   }, []);
 
   // W4.2D1 — Hydrate state from URL params on mount
@@ -498,6 +508,31 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             {/* Marketplace completo (filtros + grid) — SOLO sin perfil aplicado (con perfil, la vista es la
                 búsqueda personalizada de arriba → no hay grid "neutro" que obligue a re-filtrar = cero doble trabajo). */}
             {!appliedProfile && (<>
+            {/* E2 · gusto: "Porque te gustó X" — parecidos por amenidades/precio a lo que el visitor likeó. */}
+            {parecidos.length > 0 && (() => {
+              const byId = {}; developments.forEach((d) => { byId[d.id] = d; });
+              const picks = parecidos.map((r) => ({ dev: byId[r.id], r })).filter((x) => x.dev).slice(0, 3);
+              if (picks.length === 0) return null;
+              return (
+                <div data-testid="parecidos" style={{ marginBottom: 30 }}>
+                  <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Por tu gusto</div>
+                  <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,24px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: '0 0 14px' }}>
+                    Parecidos a los que te gustaron
+                  </h2>
+                  <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                    {picks.map(({ dev, r }, i) => (
+                      <div key={dev.id} style={{ position: 'relative' }}>
+                        <DevelopmentCard dev={dev} index={i} />
+                        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
+                          porque te gustó {(r.porque || '').split(' ')[0]}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 26, paddingTop: 18, borderTop: '1px solid var(--border)' }} />
+                </div>
+              );
+            })()}
             <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
               {resultsText}
             </div>
