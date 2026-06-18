@@ -38,7 +38,7 @@ function visitorId() {
   try { let v = localStorage.getItem('dmx_visitor_id'); if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); } return v; } catch { return 'v_anon'; }
 }
 
-const DEFAULTS = { uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, colonias: [] };
+const DEFAULTS = { uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, m2_max: null, colonias: [] };
 
 export default function Perfilador({ open, onClose, onApply, colonias = [], initial = null }) {
   // initial = perfil ya aplicado → "Ajustar" pre-llena (no se empieza de cero). Tras navegar y volver, persiste.
@@ -201,18 +201,16 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
       )}
       {/* El espacio */}
       <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream-2)', margin: '22px 0 4px' }}>Y el espacio que necesitas</div>
-      {/* m² mínimo — OBLIGATORIO (uno de los 4). Sin default: el comprador elige. */}
+      {/* m² — CAMPO LIBRE (escribe el que sea, ej. 80) · OBLIGATORIO (rango opcional). */}
       <div style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>Metros cuadrados (mínimo) <span style={{ color: 'var(--theme)' }}>*</span></span>
-        </div>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {[50, 70, 90, 120, 150, 200].map((m) => (
-            <button key={m} data-testid={`perfilador-m2-${m}`} onClick={() => set({ m2_min: p.m2_min === m ? null : m })}
-              style={{ padding: '8px 14px', borderRadius: 9999, border: '1px solid ' + (p.m2_min === m ? 'var(--theme)' : 'var(--border)'), background: p.m2_min === m ? 'var(--theme)' : '#fff', color: p.m2_min === m ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              {m}+ m²
-            </button>
-          ))}
+        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', marginBottom: 8 }}>Metros cuadrados <span style={{ color: 'var(--theme)' }}>*</span></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input type="number" inputMode="numeric" data-testid="perfilador-m2-min" value={p.m2_min ?? ''} onChange={(e) => set({ m2_min: e.target.value ? Math.max(1, +e.target.value) : null })}
+            placeholder="Desde (ej. 80)" style={{ flex: 1, padding: '11px 13px', borderRadius: 11, border: '1.5px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 14.5, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }} />
+          <span style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>a</span>
+          <input type="number" inputMode="numeric" data-testid="perfilador-m2-max" value={p.m2_max ?? ''} onChange={(e) => set({ m2_max: e.target.value ? +e.target.value : null })}
+            placeholder="Hasta (opcional)" style={{ flex: 1, padding: '11px 13px', borderRadius: 11, border: '1.5px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 14.5, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }} />
+          <span style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>m²</span>
         </div>
       </div>
       {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['banos_min', 'Baños (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
@@ -306,7 +304,15 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
         {/* navegación */}
         <div style={{ display: 'flex', gap: 10, marginTop: 26, alignItems: 'center' }}>
           {step > 0 && step < 4 && <button onClick={back} style={{ padding: '11px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Atrás</button>}
-          {step < 3 && <button onClick={next} disabled={step === 0 && !p.uso} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: step === 0 && !p.uso ? 'var(--border)' : 'var(--theme)', color: '#fff', cursor: step === 0 && !p.uso ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Continuar</button>}
+          {step < 3 && (() => {
+            // Cada paso pide lo suyo (todos obligatorios): para qué · cuánto+enganche+crédito · etapa.
+            const falta = step === 0 ? (!p.uso ? 'Elige para qué lo quieres' : null)
+              : step === 1 ? (!p.credito ? 'Elige cómo lo pagarás' : null)
+              : step === 2 ? (!(p.stages || []).length ? 'Elige preventa o entrega inmediata' : null) : null;
+            return (
+              <button onClick={next} disabled={!!falta} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: falta ? 'var(--border)' : 'var(--theme)', color: falta ? 'var(--cream-3)' : '#fff', cursor: falta ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>{falta || 'Continuar'}</button>
+            );
+          })()}
           {step === 3 && (() => {
             const noZona = p.colonias.length === 0;
             const noM2 = !p.m2_min;
