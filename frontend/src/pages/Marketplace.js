@@ -19,6 +19,7 @@ import { Camera, ExternalLink, Bell } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
+import { tc } from '../lib/titleCase';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import { visitorId } from '../lib/buyerSignal';
 import { useNavigate } from 'react-router-dom';
@@ -316,7 +317,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <PublicNav />
       <main style={{ paddingTop: 8 }}>
         <section style={{ maxWidth: 1440, margin: '0 auto', padding: '32px 32px 12px' }}>
-          <div className="eyebrow" style={{ marginBottom: 12 }}>{t('marketplace_v2.hero_eyebrow')}</div>
+          <div className="eyebrow" style={{ marginBottom: 12 }}>{tc(t('marketplace_v2.hero_eyebrow'))}</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h1 style={{
@@ -324,7 +325,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 letterSpacing: '-0.028em', color: 'var(--cream)', lineHeight: 1.05,
                 marginBottom: 12, maxWidth: 880, textWrap: 'balance',
               }}>
-                {t('marketplace_v2.hero_h1')}
+                {tc(t('marketplace_v2.hero_h1'))}
               </h1>
               <p style={{
                 fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-2)',
@@ -522,9 +523,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 <div data-testid="parecidos" style={{ marginBottom: 30 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div>
-                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Por tu gusto</div>
+                      <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>{tc('✨ Por tu gusto')}</div>
                       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,24px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: '0 0 14px' }}>
-                        Parecidos a los que te gustaron
+                        {tc('Parecidos a los que te gustaron')}
                       </h2>
                     </div>
                     <button onClick={() => { setParecidos([]); try { sessionStorage.setItem('dmx_dismiss_parecidos', '1'); } catch { /* noop */ } }} data-testid="dismiss-parecidos" title="Ocultar"
@@ -575,7 +576,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   }}>
                     <div style={{ fontSize: 34, marginBottom: 12 }}>🔎</div>
                     <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginBottom: 8 }}>
-                      {requiredFields.some((f) => f.ok) ? 'Ya casi — responde lo que falta' : 'Escribe arriba lo que buscas'}
+                      {tc(requiredFields.some((f) => f.ok) ? 'Ya casi — responde lo que falta' : 'Escribe arriba lo que buscas')}
                     </div>
                     <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 500, margin: '0 auto 20px', lineHeight: 1.55 }}>
                       Usa la barra de arriba (ej. <i>"depa 2 rec en Roma máx 8 millones, 80 m²"</i>) — o responde tocando lo que falta. Con estos 4 datos te damos opciones precisas; cualquiera puede ser un rango.
@@ -648,9 +649,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                       {/* Los que MÁS se asemejan, agrupados por TIERS humanos (no "9/10" crudo · falsa precisión) */}
                       {casiResults.length > 0 && (
                         <div style={{ marginTop: 28 }} data-testid="casi-cumple">
-                          <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Lo más cercano</div>
+                          <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>{tc('Lo más cercano')}</div>
                           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,22px)', color: 'var(--cream)', letterSpacing: '-0.02em', margin: '0 0 18px' }}>
-                            Los que más se asemejan a tu búsqueda
+                            {tc('Los que más se asemejan a tu búsqueda')}
                           </h3>
                           {[
                             { lo: 1, hi: 1, title: 'Casi perfectas', sub: 'solo les falta un detalle' },
@@ -662,7 +663,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                             return (
                               <div key={tier.title} style={{ marginBottom: 24 }}>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-                                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{tier.title}</span>
+                                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{tc(tier.title)}</span>
                                   <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>· {tier.sub} ({grp.length})</span>
                                 </div>
                                 <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
