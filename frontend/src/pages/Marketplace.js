@@ -19,6 +19,7 @@ import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/ico
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
+import Perfilador from '../components/marketplace/Perfilador';
 import { useNavigate } from 'react-router-dom';
 // W4.2D1 — URL state sync helpers
 import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
@@ -49,6 +50,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   // Batch 26 — Lead-capture tools
   const [quizOpen, setQuizOpen] = useState(false);
+  // Copiloto de Compra E1 — Perfilador (reemplaza "Mi colonia ideal" · dedup de captura de perfil)
+  const [perfiladorOpen, setPerfiladorOpen] = useState(false);
   const navigate = useNavigate();
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
@@ -277,23 +280,22 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               >
                 <ExternalLink size={14} /> Buscar por URL
               </button>
-              {/* Batch 26 — Quiz "Mi colonia ideal" */}
+              {/* Copiloto E1 — Perfilador (CTA primario · reemplaza "Mi colonia ideal") */}
               <button
                 data-testid="quiz-trigger"
-                onClick={() => setQuizOpen(true)}
+                onClick={() => setPerfiladorOpen(true)}
                 style={{
                   padding: '9px 16px',
                   borderRadius: 9999,
-                  background: 'rgba(99,102,241,0.12)',
-                  border: '1px solid rgba(99,102,241,0.35)',
-                  color: 'rgba(99,102,241,0.95)',
+                  background: 'var(--theme)',
+                  border: '1px solid var(--theme)',
+                  color: '#fff',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 7,
-                  backdropFilter: 'blur(8px)',
                 }}
               >
-                <Sparkle size={14} /> Mi colonia ideal
+                <Sparkle size={14} /> Encuentra tu lugar
               </button>
               {/* W4.18.2A — Ver en mapa (Mapa Cerebro Espacial DMX) */}
               <Link
@@ -604,6 +606,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         onClose={() => setQuizOpen(false)}
         onSelectColonia={(coloniaId) => { setQuizOpen(false); setColoniaFilter(coloniaId); }}
       />
+
+      {/* Copiloto de Compra E1 — Perfilador → "Tus mejores opciones" */}
+      <Perfilador open={perfiladorOpen} onClose={() => setPerfiladorOpen(false)} />
 
       <style>{`
         @media (max-width: 1200px) { .dev-grid { grid-template-columns: repeat(3, 1fr) !important; } }
