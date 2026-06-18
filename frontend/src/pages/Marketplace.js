@@ -591,13 +591,37 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 {loading ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
                 ) : visibleDevs.length === 0 ? (
-                  <div data-testid="mkp-empty" style={{
-                    padding: 60, textAlign: 'center',
-                    background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
-                    borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)',
-                  }}>
-                    {t('marketplace_v2.empty')}
-                  </div>
+                  (() => {
+                    const acid = coloniaFilter || (filters.colonia || [])[0] || (aiFilters && aiFilters.colonia);
+                    const zn = (colonias.find((c) => c.id === acid) || {}).name;
+                    const extras = [...(filters.amenity || []), ...(filters.unit_feature || []), ...((aiFilters && aiFilters.amenity) || []), ...((aiFilters && aiFilters.unit_feature) || [])];
+                    return (
+                      <div data-testid="mkp-empty" style={{
+                        padding: '48px 32px', textAlign: 'center',
+                        background: '#fff', border: '1px dashed var(--border)',
+                        borderRadius: 18, fontFamily: 'DM Sans', color: 'var(--cream-2)',
+                      }}>
+                        <div style={{ fontSize: 34, marginBottom: 10 }}>🔍</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: 'var(--cream)', marginBottom: 6 }}>
+                          No hay desarrollos con todo eso junto{zn ? ` en ${zn}` : ''}
+                        </div>
+                        <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 460, margin: '0 auto 18px', lineHeight: 1.5 }}>
+                          {extras.length > 0
+                            ? 'Pediste varias amenidades y características a la vez. Quita alguna para ver más opciones — en esa zona quizá no existan todas juntas.'
+                            : 'Prueba con otra zona o ajusta los filtros.'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {extras.length > 0 && (
+                            <button data-testid="empty-relax" onClick={() => {
+                              setFilters((f) => { const n = { ...f }; delete n.amenity; delete n.unit_feature; return n; });
+                              setAiFilters((a) => { if (!a) return a; const n = { ...a }; delete n.amenity; delete n.unit_feature; return n; });
+                            }} className="btn btn-primary">Quitar amenidades y extras</button>
+                          )}
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); }} className="btn btn-glass">Limpiar búsqueda</button>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="dev-grid" style={{
                     display: 'grid',
