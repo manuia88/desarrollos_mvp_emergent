@@ -259,9 +259,16 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           {(dev.units_match_sample || []).length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {dev.units_match_sample.slice(0, 3).map((u) => (
-                <div key={u.unit_number} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
-                  <span><b style={{ color: 'var(--cream)' }}>#{u.unit_number}</b> · {u.bedrooms} rec · {u.m2_total}m²{u.orientation ? ` · ${u.orientation}` : ''}</span>
-                  <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{u.price_display}</span>
+                <div key={u.unit_number} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span><b style={{ color: 'var(--cream)' }}>#{u.unit_number}</b> · {u.bedrooms} rec · {u.m2_total}m²{u.orientation ? ` · ${u.orientation}` : ''}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{u.price_display}</span>
+                  </div>
+                  {u.enganche > 0 && (
+                    <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 1 }}>
+                      enganche ${Math.round(u.enganche).toLocaleString('es-MX')}{u.mensualidad > 0 ? ` · $${Math.round(u.mensualidad).toLocaleString('es-MX')}/mes` : ''}
+                    </div>
+                  )}
                 </div>
               ))}
               {dev.units_match > 3 && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>+{dev.units_match - 3} más</div>}

@@ -670,6 +670,8 @@ async def list_developments(
     piso_min: Optional[int] = None,
     amenity: Optional[List[str]] = Query(None),
     featured: Optional[bool] = None,
+    enganche_max: Optional[int] = None,
+    mensualidad_max: Optional[int] = None,
     sort: Optional[str] = "recent",
     limit: int = 100,
     subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
@@ -701,11 +703,38 @@ async def list_developments(
     #    Fallback a los rangos del proyecto si un desarrollo no trae lista de unidades. ────────────────────────────
     _ufset = [f.lower() for f in (unit_feature or [])]
     _oset = {o.lower() for o in (orientacion or [])}
-    _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min)) or _ufset or _oset
+    _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min, enganche_max, mensualidad_max)) or _ufset or _oset
     match_counts: Dict[str, int] = {}
     match_samples: Dict[str, list] = {}
+    _fin_by_dev: Dict[str, dict] = {}
+    _cbd = None
     if _has_unit_crit:
-        def _unit_ok(u: dict) -> bool:
+        # Esquemas de pago REALES del dev (los cambia cuando quiera) → enganche$/mensualidad$ por unidad. Se cargan en
+        # TODA búsqueda de unidad para MOSTRAR el enganche aunque no se filtre por él ("enganche desde $X · $Y/mes").
+        try:
+            from payment_schemes import compute_breakdown as _cbd_fn
+            _cbd = _cbd_fn
+            async for _ps in request.app.state.db.dev_payment_schemes.find({}, {"_id": 0, "project_id": 1, "schemes": 1, "fecha_inicio": 1, "fecha_entrega": 1}):
+                _fin_by_dev[_ps.get("project_id")] = _ps
+        except Exception:
+            _cbd = None
+
+        def _unit_finance(price, fin):
+            """El MEJOR escenario para el comprador: el esquema con menor enganche (el dev ofrece varios)."""
+            if not fin or not price or _cbd is None:
+                return None
+            best = None
+            for s in (fin.get("schemes") or []):
+                try:
+                    bd = _cbd(price, s, fin.get("fecha_inicio"), fin.get("fecha_entrega"))
+                    eng = bd.get("firma") or 0
+                    if best is None or eng < best["enganche"]:
+                        best = {"enganche": eng, "mensualidad": bd.get("mensualidad") or 0, "apartado": bd.get("apartado") or 0, "esquema": s.get("nombre")}
+                except Exception:
+                    continue
+            return best
+
+        def _unit_ok(u: dict, fin: dict = None) -> bool:
             if u.get("status") != "disponible":
                 return False
             if beds is not None and (u.get("bedrooms") or 0) < beds:
@@ -730,6 +759,14 @@ async def list_developments(
                 return False
             if _oset and (u.get("orientation") or "").lower() not in _oset:
                 return False
+            if enganche_max is not None or mensualidad_max is not None:
+                f = _unit_finance(u.get("price"), fin)
+                if not f:
+                    return False  # el dev no publicó esquema de pago → no prometemos el enganche
+                if enganche_max is not None and f["enganche"] > enganche_max:
+                    return False
+                if mensualidad_max is not None and f["mensualidad"] > mensualidad_max:
+                    return False
             return True
 
         def _range_ok(d: dict) -> bool:
@@ -752,24 +789,31 @@ async def list_developments(
                 return False
             return True
 
-        def _unit_card(u: dict) -> dict:
-            # Lo mínimo para NOMBRAR la unidad en el front (unidad real disponible que cumple).
-            return {
+        def _unit_card(u: dict, fin: dict = None) -> dict:
+            # Lo mínimo para NOMBRAR la unidad en el front + el enganche/mensualidad REAL (esquema del dev).
+            card = {
                 "unit_number": u.get("unit_number"), "prototype": u.get("prototype"), "level": u.get("level"),
                 "bedrooms": u.get("bedrooms"), "bathrooms": u.get("bathrooms"), "parking_spots": u.get("parking_spots"),
                 "m2_total": u.get("m2_total") or u.get("m2_privative"), "price": u.get("price"),
                 "price_display": u.get("price_display"), "orientation": u.get("orientation"), "vista": u.get("vista"),
             }
+            f = _unit_finance(u.get("price"), fin)
+            if f:
+                card["enganche"] = f["enganche"]
+                card["mensualidad"] = f["mensualidad"]
+                card["esquema"] = f["esquema"]
+            return card
 
         _kept = []
         for d in results:
+            fin = _fin_by_dev.get(d.get("id"))
             units = d.get("units") or []
             if units:
-                mu = [u for u in units if _unit_ok(u)]
+                mu = [u for u in units if _unit_ok(u, fin)]
                 if mu:
                     _kept.append(d)
                     match_counts[d["id"]] = len(mu)
-                    match_samples[d["id"]] = [_unit_card(u) for u in sorted(mu, key=lambda x: x.get("price") or 0)[:4]]
+                    match_samples[d["id"]] = [_unit_card(u, fin) for u in sorted(mu, key=lambda x: x.get("price") or 0)[:4]]
             elif _range_ok(d):
                 _kept.append(d)  # cumple por rango, sin lista de unidades detallada (no count)
         results = _kept
@@ -1233,9 +1277,32 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             filters["tipo"] = "departamento"
         elif "casa" in ql:
             filters["tipo"] = "casa"
+    # Enganche / mensualidad ANTES que el precio (para que "enganche menor a 500 mil" no se lea como precio).
+    def _money(num, unit):
+        n = float((num or "0").replace(",", "").replace(" ", ""))
+        u = (unit or "").lower()
+        if "mill" in u or u in ("mdp", "mp"):
+            return n * 1_000_000
+        if u in ("mil", "k"):
+            return n * 1_000
+        return n
+    if "enganche_max" not in filters:
+        # "millones" ANTES que "mil" (alternancia) para que no agarre el prefijo "mil" de "millones".
+        m = _re.search(r"enganche\D{0,22}?(\d[\d,\. ]*)\s*(millones|mill[oó]n|mdp|mil|k)?", ql)
+        if m:
+            v = _money(m.group(1), m.group(2))
+            if v > 0:
+                filters["enganche_max"] = int(v)
+    if "mensualidad_max" not in filters:
+        # "mensualidades de 10 a 20 mil" → toma el tope (20 mil). "menos de 15 mil" → 15 mil.
+        mm = _re.findall(r"(\d[\d,\. ]*)\s*(mil|k)?", ql[max(0, ql.find("mensualidad")):]) if "mensualidad" in ql else []
+        vals = [_money(a, b) for a, b in mm if a.strip()]
+        vals = [v for v in vals if 1000 <= v <= 1_000_000]
+        if vals:
+            filters["mensualidad_max"] = int(max(vals))
     if "max_price" not in filters:
         m = _re.search(r"(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m\b|mp\b)", ql)
-        if m:
+        if m and "enganche" not in ql and "mensualidad" not in ql:
             filters["max_price"] = int(float(m.group(1)) * 1_000_000)
     if "stage" not in filters:
         if "preventa" in ql:
