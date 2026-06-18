@@ -1408,29 +1408,67 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             filters["tipo"] = "departamento"
         elif "casa" in ql:
             filters["tipo"] = "casa"
-    # Enganche / mensualidad ANTES que el precio (para que "enganche menor a 500 mil" no se lea como precio).
-    def _money(num, unit):
-        n = float((num or "0").replace(",", "").replace(" ", ""))
-        u = (unit or "").lower()
-        if "mill" in u or u in ("mdp", "mp"):
-            return n * 1_000_000
-        if u in ("mil", "k"):
-            return n * 1_000
-        return n
-    # Estrategia: saca enganche/mensualidad (van pegados a su palabra) y QUÍTALOS del texto; lo que queda es el
-    # precio → así "10-15mdp con mensualidades max 20mil" no confunde el 20mil con el precio.
+    # ── Normalizador de DINERO (robusto): dígitos · palabras · mixto · compuesto · magnitudes ──
+    # 'mil'/'k'=1e3 · 'millón/millones/mdp/melones'=1e6. Palabras: medio=0.5, un..diez, cien, quinientos, etc.
+    _NUMWORD = {"medio": 0.5, "media": 0.5, "un": 1, "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4,
+                "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "once": 11, "doce": 12,
+                "quince": 15, "veinte": 20, "treinta": 30, "cuarenta": 40, "cincuenta": 50, "cien": 100, "ciento": 100,
+                "doscientos": 200, "trescientos": 300, "cuatrocientos": 400, "quinientos": 500, "setecientos": 700, "ochocientos": 800}
+    _NUMRE = r"\d[\d,\.]*|medio|media|un[oa]?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|veinte|treinta|cuarenta|cincuenta|cien(?:to)?|doscientos|trescientos|cuatrocientos|quinientos|setecientos|ochocientos"
+    _MAGRE = r"mill[oó]n\w*|mdp|mel[oó]n\w*|mil|k"
+
+    def _magval(w):
+        w = (w or "").lower()
+        return 1_000_000 if (w.startswith("mill") or w.startswith("mel") or w == "mdp") else 1_000 if w in ("mil", "k") else 1
+
+    def _one(phrase):  # UN grupo número+magnitud → valor. '500 mil'→500000 · 'medio millón'→500000 · '2.5 millones'→2.5e6
+        m = _re.match(r"\s*(" + _NUMRE + r")\s*(" + _MAGRE + r")?", (phrase or "").lower())
+        if not m:
+            return None
+        n = _NUMWORD.get(m.group(1))
+        if n is None:
+            try:
+                n = float(m.group(1).replace(",", "").replace(" ", ""))
+            except ValueError:
+                return None
+        return n * _magval(m.group(2))
+
+    def _money_phrase(text):  # COMPUESTO: '2mil 500'→2500 · '2 millones 500 mil'→2.5e6 (suma grupos descendentes)
+        toks = _re.findall(r"(" + _NUMRE + r")\s*(" + _MAGRE + r")?", (text or "").lower())
+        total, any_ = 0.0, False
+        for num_s, mag_s in toks:
+            v = _one(num_s + " " + mag_s)
+            if v is not None:
+                total += v
+                any_ = True
+        return total if (any_ and total > 0) else None
+
+    # Estrategia: saca enganche/mensualidad/apartado (van pegados a su palabra) y QUÍTALOS del texto; lo que queda es
+    # el precio → así "10-15mdp con mensualidades max 20mil" no confunde el 20mil con el precio.
     _work = ql
 
     def _cap_for(kw):
-        """Tope (max) de un campo de dinero pegado a su palabra, soportando RANGO + magnitud:
-        'enganche entre 500 y 700 mil'→700000 · 'menor a 500 mil'→500000 · 'apartado de 10 mil'→10000."""
-        m = _re.search(kw + r"[^0-9]{0,25}?(\d[\d,\.]*)(?:\s*(?:a|y|hasta|-)\s*(\d[\d,\.]*))?\s*(millones|mill[oó]n|mdp|mil|k)?\b", _work)
-        if not m:
-            return None, None
-        a = _money(m.group(1), m.group(3))
-        b = _money(m.group(2), m.group(3)) if m.group(2) else None
-        cap = max(a, b) if b else a       # con rango, el tope = el número MÁS ALTO (lo más que pondría)
-        return (int(cap) if cap and cap > 0 else None), m.group(0)
+        """Tope (max) de un campo de dinero pegado a su palabra. Soporta RANGO ('entre 500 y 700 mil'→700000),
+        COMPUESTO ('2mil 500'→2500), palabras ('medio millón'→500000) y operadores (menor/hasta/máximo)."""
+        # 1) RANGO explícito "A (a|y|hasta|-) B [magnitud]" → el mayor × la magnitud común
+        m = _re.search(kw + r"[^0-9]{0,22}?(" + _NUMRE + r")\s*(?:a|y|hasta|-|–)\s*(" + _NUMRE + r")\s*(" + _MAGRE + r")?\b", _work)
+        if m:
+            mag = m.group(3)
+            a = (_one(m.group(1) + " " + (mag or "")) or 0)
+            b = (_one(m.group(2) + " " + (mag or "")) or 0)
+            cap = max(a, b)
+            return (int(cap) if cap > 0 else None), m.group(0)
+        # 2) COMPUESTO/simple: hasta 2 grupos pegados ('2mil 500'); el 2º solo si NO lo sigue una palabra (no "10 mil 3 rec")
+        m = _re.search(kw + r"[^0-9]{0,22}?((?:" + _NUMRE + r")\s*(?:" + _MAGRE + r")?(?:\s+(?:" + _NUMRE + r")\s*(?:" + _MAGRE + r")?(?![a-zñáéíóú]))?)", _work)
+        if m:
+            cap = _money_phrase(m.group(1))
+            return (int(cap) if cap and cap > 0 else None), m.group(0)
+        # 3) NÚMERO antes de la palabra: "2,500 de apartado", "500 mil de enganche"
+        m = _re.search(r"((?:" + _NUMRE + r")\s*(?:" + _MAGRE + r")?(?:\s+(?:" + _NUMRE + r")\s*(?:" + _MAGRE + r")?)?)\s*(?:de|en)?\s*" + kw, _work)
+        if m:
+            cap = _money_phrase(m.group(1))
+            return (int(cap) if cap and cap > 0 else None), m.group(0)
+        return None, None
 
     if "enganche_max" not in filters:
         cap, span = _cap_for(r"enganche")
@@ -1482,12 +1520,14 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             filters["stage"] = "preventa"
         elif "inmediata" in ql or "entrega inmediata" in ql or "lista" in ql:
             filters["stage"] = "entrega_inmediata"
-    if "plazo" not in filters:  # "a 2 años / en 24 meses / entrega en 8 meses" → bucket de plazo (preventa)
-        mp = _re.search(r"(\d{1,3})\s*(años|anios|año|anos|ano)\b", _work) or _re.search(r"(\d{1,3})\s*meses\b", _work)
+    if "plazo" not in filters:  # tiempo de entrega en AÑOS/MESES/DÍAS, dígitos o palabras ("a 2 años", "en 90 dias")
+        mp = _re.search(r"(" + _NUMRE + r")\s*(años?|anios?|anos?|meses|mes|d[ií]as?)\b", _work)
         if mp:
-            es_anios = bool(_re.search(r"a[nñ]", mp.group(0)))
-            meses = int(mp.group(1)) * (12 if es_anios else 1)
-            filters["plazo"] = "menos_3" if meses <= 3 else "3_6" if meses <= 6 else "6_12" if meses <= 12 else "mas_12"
+            n = _one(mp.group(1)) or 0
+            u = mp.group(2)
+            meses = n * 12 if u[0] == "a" else n / 30 if u[0] == "d" else n
+            if meses > 0:
+                filters["plazo"] = "menos_3" if meses <= 3 else "3_6" if meses <= 6 else "6_12" if meses <= 12 else "mas_12"
     # Amenidades (edificio) + features de la unidad — granularidad fina sin LLM. Solo el vocabulario REAL del
     # catálogo (no se inventa lo que no existe, ej. "campo de golf" no está en desarrollos urbanos de CDMX).
     _UF_KW = {"balcon": ["balcon", "balcón"], "terraza": ["terraza"], "bodega": ["bodega"], "roof_garden": ["roof garden", "roofgarden", "roof-garden"]}
