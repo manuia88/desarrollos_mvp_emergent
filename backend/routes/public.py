@@ -1207,19 +1207,28 @@ class AISearchIn(BaseModel):
 
 
 _AI_RATE: Dict[str, list] = {}
-_AI_RATE_MAX = int(os.environ.get("AI_SEARCH_MAX_PER_HOUR", "40"))
+_AI_RATE_MAX = int(os.environ.get("AI_SEARCH_MAX_PER_HOUR", "40"))      # por IP/hora
+_AI_RATE_MAX_DAY = int(os.environ.get("AI_SEARCH_MAX_PER_DAY", "2000"))  # TECHO GLOBAL diario (todas las IPs)
+_AI_GLOBAL: list = []
 
 
 def _ai_rate_ok(ip: str) -> bool:
-    """Cap de costo del LLM: máx N búsquedas con IA por IP/hora. Si se pasa → False (se usa el parser gratis)."""
+    """Cap de costo del LLM (2 candados): por IP/hora Y un TECHO GLOBAL diario. Si se pasa cualquiera → False y se
+    usa el parser DETERMINISTA gratis (la búsqueda nunca se cae). Así el gasto de API tiene piso y techo duros."""
     import time as _t
     now = _t.time()
+    # Candado global diario (protege contra muchas IPs juntas).
+    _AI_GLOBAL[:] = [t for t in _AI_GLOBAL if now - t < 86400]
+    if len(_AI_GLOBAL) >= _AI_RATE_MAX_DAY:
+        return False
+    # Candado por IP/hora.
     bucket = [t for t in _AI_RATE.get(ip, []) if now - t < 3600]
     if len(bucket) >= _AI_RATE_MAX:
         _AI_RATE[ip] = bucket
         return False
     bucket.append(now)
     _AI_RATE[ip] = bucket
+    _AI_GLOBAL.append(now)
     return True
 
 
