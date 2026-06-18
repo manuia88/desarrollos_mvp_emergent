@@ -245,6 +245,20 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         </div>
       </div>
 
+      {/* ── UNIDADES que cumplen lo que pediste (match por unidad REAL disponible, no solo proyecto) ── */}
+      {dev.units_match > 0 && (
+        <div style={{ padding: '12px 18px 0' }} data-testid={`units-match-${dev.id}`}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+            color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
+            border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
+          }} title="Unidades disponibles en la lista de precios que cumplen tu búsqueda">
+            ✓ {dev.units_match} {dev.units_match === 1 ? 'unidad disponible que cumple' : 'unidades disponibles que cumplen'}
+          </span>
+        </div>
+      )}
+
       {/* ── PLUSVALÍA de la zona (señal de inversión · separada del precio) ── */}
       {dev.plusvalia_zona && (
         <div style={{ padding: '12px 18px 0' }}>
