@@ -124,206 +124,154 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const next = (e) => { e.preventDefault(); e.stopPropagation(); setSlide(s => (s + 1) % photos.length); };
 
   const showFallback = photos.length === 0 || imgError[slide];
+  // Specs (xproperty: fila horizontal con iconos + divisores) — rango a-b o valor único.
+  const rng = (r) => !r ? null : (r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+  const specs = [
+    { Icon: Bed, v: rng(dev.bedrooms_range), unit: 'rec' },
+    { Icon: Bath, v: rng(dev.bathrooms_range), unit: 'baños' },
+    { Icon: Ruler, v: rng(dev.m2_range), unit: 'm²' },
+  ].filter(s => s.v != null);
 
   return (
     <Link
       to={`/desarrollo/${dev.id}${rank?.badge_tier ? '#ie-scores' : ''}`}
-      className="card"
+      className="dmx-card"
       data-testid={`dev-card-${dev.id}`}
       style={{
         display: 'flex', flexDirection: 'column', textDecoration: 'none', color: 'inherit',
-        height: 480, overflow: 'hidden',
+        background: '#fff', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 1px 2px rgba(16,18,28,0.05)',
       }}
     >
-      {/* Stage header band */}
-      <div style={{
-        height: 28,
-        background: stageCfg.bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5,
-        letterSpacing: '0.14em', textTransform: 'uppercase',
-        color: '#fff',
-        boxShadow: `0 1px 0 ${stageCfg.glow}`,
-      }}>
-        {t(`marketplace_v2.stage.${dev.stage}`)}
-      </div>
-
-      {/* Photo area */}
-      <div style={{ position: 'relative', height: 198, overflow: 'hidden', background: '#0A0D16' }}>
-        {/* IE rank badge (Phase B3 chunk 1-bis) — bottom-left overlay */}
-        {rank?.badge_tier && <IERankPill rank={rank} />}
-        {/* Compliance badge (Phase 7.4) — top-right overlay */}
-        <ComplianceBadgeOverlay devId={dev.id} />
+      {/* ── FOTO (xproperty: precio sobre la imagen) ── */}
+      <div style={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', background: '#EEF0F4' }}>
         {showFallback ? (
           <Fallback hue={hue} seed={index} />
         ) : (
-          <img
-            src={photos[slide]}
-            alt={dev.name}
+          <img src={photos[slide]} alt={dev.name}
             onError={() => setImgError(e => ({ ...e, [slide]: true }))}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         )}
 
-        {/* Top overlays */}
-        <button onClick={onShare} data-testid={`share-btn-${dev.id}`} className="btn-icon-circle"
-          style={{ position: 'absolute', top: 10, left: 10 }}>
-          <Share size={13} />
-        </button>
-        <button onClick={onToggleFav} data-testid={`fav-btn-${dev.id}`} className="btn-icon-circle"
-          style={{ position: 'absolute', top: 10, right: 10 }}>
-          <Heart size={13} filled={saved} />
-        </button>
+        {/* Precio — pill oscuro arriba-izquierda (patrón xproperty) */}
+        <div style={{
+          position: 'absolute', top: 14, left: 14, zIndex: Z.BASE,
+          background: 'rgba(16,18,28,0.80)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          color: '#fff', borderRadius: 13, padding: '9px 15px',
+          fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, letterSpacing: '-0.02em', lineHeight: 1,
+        }}>
+          {dev.price_from_display}
+          <span style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 500, opacity: 0.7, marginLeft: 4 }}>desde</span>
+        </div>
 
-        {/* Carousel nav */}
+        {/* Etapa — pill de color bajo el precio */}
+        <div style={{
+          position: 'absolute', top: 54, left: 14, zIndex: Z.BASE,
+          background: stageCfg.bg, color: '#fff', borderRadius: 9999, padding: '4px 11px',
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase',
+        }}>
+          {t(`marketplace_v2.stage.${dev.stage}`)}
+        </div>
+
+        {/* Compliance (top-right) + rank (bottom-left) — overlays existentes */}
+        <ComplianceBadgeOverlay devId={dev.id} />
+        {rank?.badge_tier && <IERankPill rank={rank} />}
+
+        {/* Share / Favorito — esquina superior derecha */}
+        <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 7, zIndex: Z.BASE }}>
+          <button onClick={onShare} data-testid={`share-btn-${dev.id}`} className="btn-icon-circle"><Share size={13} /></button>
+          <button onClick={onToggleFav} data-testid={`fav-btn-${dev.id}`} className="btn-icon-circle"><Heart size={13} filled={saved} /></button>
+        </div>
+
+        {/* Carrusel */}
         {photos.length > 1 && (
           <>
-            <button onClick={prev} className="btn-icon-circle carousel-arrow"
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}>
-              <ChevronLeft size={12} />
-            </button>
-            <button onClick={next} className="btn-icon-circle carousel-arrow"
-              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>
-              <ChevronRight size={12} />
-            </button>
+            <button onClick={prev} className="btn-icon-circle carousel-arrow" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}><ChevronLeft size={12} /></button>
+            <button onClick={next} className="btn-icon-circle carousel-arrow" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}><ChevronRight size={12} /></button>
+            <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
+              {photos.slice(0, Math.min(photos.length, 5)).map((_, i) => (
+                <div key={i} style={{ width: i === slide ? 16 : 5, height: 5, borderRadius: 9999, background: i === slide ? '#fff' : 'rgba(255,255,255,0.55)', transition: 'width 0.2s' }} />
+              ))}
+            </div>
           </>
-        )}
-        {photos.length > 1 && (
-          <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
-            {photos.slice(0, Math.min(photos.length, 5)).map((_, i) => (
-              <div key={i} style={{
-                width: i === slide ? 14 : 5, height: 5, borderRadius: 9999,
-                background: i === slide ? '#fff' : 'rgba(var(--cream-rgb),0.3)',
-                transition: 'width 0.2s',
-              }} />
-            ))}
-          </div>
         )}
       </div>
 
-      {/* Content */}
-      <div style={{ padding: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--cream-3)' }}>
-          <MapPin size={11} color="var(--cream-3)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
-            {dev.street} · {dev.colonia}
-          </span>
-        </div>
-
-        <div style={{
-          fontFamily: 'Outfit', fontWeight: 800, fontSize: 18,
-          color: 'var(--cream)', lineHeight: 1.15, letterSpacing: '-0.025em',
-        }}>
-          {dev.name}
-        </div>
-
-        <div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>
-            {t('marketplace_v2.card_from')}
-          </div>
-          <div style={{
-            fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
-            color: 'var(--cream)', lineHeight: 1.1, letterSpacing: '-0.028em',
-          }}>
-            {dev.price_from_display} <span style={{ fontSize: 12, color: 'var(--cream-3)', fontWeight: 500, letterSpacing: 0 }}>MXN</span>
-          </div>
-        </div>
-
-        {/* Señales de VALOR — AVM ligero (precio/m² vs zona) + plusvalía real + forecast (cuando hay) */}
-        {(dev.price_m2_dev || dev.plusvalia_zona) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
-            {dev.price_m2_dev && (
-              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-                ${Math.round(dev.price_m2_dev / 1000)}k/m²
-              </span>
-            )}
-            {typeof dev.precio_vs_zona_pct === 'number' && (
-              <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }} title="Precio/m² vs el promedio de la colonia">
-                {dev.precio_vs_zona_pct > 0 ? '+' : ''}{dev.precio_vs_zona_pct}% vs zona
-              </span>
-            )}
-            {dev.plusvalia_zona && (
-              <span style={{
-                marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-                color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.12)',
-                border: '1px solid rgba(31,160,106,0.28)', borderRadius: 999, padding: '3px 9px',
-              }} title="Plusvalía reciente de la colonia">
-                ↗ Plusvalía {dev.plusvalia_zona}
-                {typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Meta row — icons large, text cream (not cream-3) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 2 }}>
-          {[
-            { Icon: Bed, a: dev.bedrooms_range?.[0], b: dev.bedrooms_range?.[1], unit: 'rec' },
-            { Icon: Bath, a: dev.bathrooms_range?.[0], b: dev.bathrooms_range?.[1], unit: 'baños' },
-            { Icon: Car, a: dev.parking_range?.[0], b: dev.parking_range?.[1], unit: 'cajón' },
-            { Icon: Ruler, a: dev.m2_range?.[0], b: dev.m2_range?.[1], unit: 'm²' },
-          ].map(({ Icon, a, b, unit }, i) => (
-            <div key={i} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '8px 4px',
-              background: 'rgba(var(--cream-rgb),0.04)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-            }}>
-              <Icon size={13} color="var(--indigo-3)" />
-              <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream)' }}>
-                {a === b ? a : `${a}-${b}`}
-              </span>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', letterSpacing: '0.05em' }}>
-                {unit}
-              </span>
-            </div>
+      {/* ── FILA DE SPECS (xproperty: iconos + divisores) ── */}
+      {specs.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px 0' }}>
+          {specs.map((s, i) => (
+            <React.Fragment key={s.unit}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                <s.Icon size={15} color="var(--theme)" />
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream)' }}>
+                  {s.v} <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11.5 }}>{s.unit}</span>
+                </span>
+              </div>
+              {i < specs.length - 1 && <div style={{ width: 1, height: 22, background: 'var(--border)' }} />}
+            </React.Fragment>
           ))}
         </div>
+      )}
 
-        {/* Cross-Portal v2 · amenidades enriquecidas (del proyecto del dev · viene en el batch) */}
-        {dev.amenidades_count > 0 && (
-          <div data-testid="card-amenidades" style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
-            <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>{dev.amenidades_count} amenidades</span>
-            {(dev.servicios_top || []).length > 0 && (
-              <span>· {(dev.servicios_top || []).map(s => String(s).replace(/_/g, ' ')).join(' · ')}</span>
-            )}
-          </div>
-        )}
-
-        {/* Footer: developer + probability badge */}
-        <div style={{
-          marginTop: 'auto',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingTop: 10, borderTop: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `linear-gradient(135deg, hsl(${hue},70%,52%), hsl(${(hue + 40) % 360},70%,42%))`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'Outfit', fontWeight: 800, fontSize: 10, color: '#fff',
-            }}>
-              {dev.developer?.name?.[0] || 'D'}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-              <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, color: 'var(--cream-2)' }}>
-                {dev.developer?.name}
-              </span>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)' }}>
-                {t('marketplace_v2.card_developer_since', { year: dev.developer?.founded_year })} · {t('marketplace_v2.card_units_available', { n: dev.units_available })}
-              </span>
-            </div>
-          </div>
-          {/* W5.19 — Probability Badge compacto: sells_complete */}
-          <ProbabilityBadge
-            type="sells_complete"
-            entity_id={dev.id}
-            params={{ months: 12 }}
-            format="compact"
-          />
+      {/* ── TÍTULO + UBICACIÓN ── */}
+      <div style={{ padding: '14px 18px 0' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: 'var(--cream)', lineHeight: 1.18, letterSpacing: '-0.025em' }}>
+          {dev.name}
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
+          <MapPin size={12} color="var(--cream-3)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>{dev.street} · {dev.colonia}</span>
+        </div>
+      </div>
+
+      {/* ── SEÑALES DE VALOR ($/m² + vs zona + plusvalía) ── */}
+      {(dev.price_m2_dev || dev.plusvalia_zona) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px 0', flexWrap: 'wrap' }}>
+          {dev.price_m2_dev && (
+            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-2)' }}>
+              ${Math.round(dev.price_m2_dev / 1000)}k/m²
+            </span>
+          )}
+          {typeof dev.precio_vs_zona_pct === 'number' && (
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }} title="Precio/m² vs el promedio de la colonia">
+              {dev.precio_vs_zona_pct > 0 ? '+' : ''}{dev.precio_vs_zona_pct}% vs zona
+            </span>
+          )}
+          {dev.plusvalia_zona && (
+            <span style={{
+              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+              color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.10)',
+              border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '3px 9px',
+            }} title="Plusvalía reciente de la colonia">
+              ↗ {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+            </span>
+          )}
+        </div>
+      )}
+
+      {dev.amenidades_count > 0 && (
+        <div data-testid="card-amenidades" style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', padding: '10px 18px 0' }}>
+          <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>{dev.amenidades_count} amenidades</span>
+          {(dev.servicios_top || []).length > 0 && <span>· {(dev.servicios_top || []).slice(0, 2).map(s => String(s).replace(/_/g, ' ')).join(' · ')}</span>}
+        </div>
+      )}
+
+      {/* ── PIE: desarrollador + ver detalles + probabilidad ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '14px 18px', marginTop: 14, borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+            background: `linear-gradient(135deg, hsl(${hue},70%,52%), hsl(${(hue + 40) % 360},70%,42%))`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, color: '#fff',
+          }}>{dev.developer?.name?.[0] || 'D'}</div>
+          <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, color: 'var(--cream-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {dev.developer?.name}
+          </span>
+        </div>
+        <ProbabilityBadge type="sells_complete" entity_id={dev.id} params={{ months: 12 }} format="compact" />
       </div>
     </Link>
   );
