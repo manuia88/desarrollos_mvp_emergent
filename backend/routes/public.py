@@ -679,20 +679,7 @@ async def list_developments(
     if colonia:
         cset = {c.lower() for c in colonia}
         results = [d for d in results if d["colonia_id"].lower() in cset]
-    if min_price is not None:
-        results = [d for d in results if d["price_to"] >= min_price]
-    if max_price is not None:
-        results = [d for d in results if d["price_from"] <= max_price]
-    if min_sqm is not None:
-        results = [d for d in results if d["m2_range"][1] >= min_sqm]
-    if max_sqm is not None:
-        results = [d for d in results if d["m2_range"][0] <= max_sqm]
-    if beds is not None:
-        results = [d for d in results if d["bedrooms_range"][1] >= beds]
-    if baths is not None:
-        results = [d for d in results if d["bathrooms_range"][1] >= baths]
-    if parking is not None:
-        results = [d for d in results if d["parking_range"][1] >= parking]
+    # ── Filtros a nivel PROYECTO (del DESARROLLO): zona, etapa, tipo, alcaldía, AMENIDADES del edificio, destacado ──
     if stage:
         results = [d for d in results if d["stage"] == stage]
     if tipo:
@@ -702,19 +689,74 @@ async def list_developments(
     if alcaldia:
         _na = alcaldia.lower().replace("_", " ").strip()
         results = [d for d in results if (d.get("alcaldia") or "").lower().replace("_", " ").strip() == _na]
-    if unit_feature:
-        fset = {f.lower() for f in unit_feature}
-        results = [d for d in results if fset.issubset({x.lower() for x in d.get("unit_features", [])})]
-    if orientacion:
-        oset = {o.lower() for o in orientacion}
-        results = [d for d in results if oset & {x.lower() for x in d.get("orientations", [])}]
-    if piso_min is not None:
-        results = [d for d in results if d.get("max_level", 0) >= piso_min]
     if amenity:
-        aset = set(amenity)
+        aset = set(amenity)  # amenidades = del EDIFICIO → se piden al desarrollo (gym/alberca/roof/concierge…)
         results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
     if featured is not None:
         results = [d for d in results if d["featured"] == featured]
+
+    # ── Filtros a nivel UNIDAD (depto individual): lo INTERNO del depto (recámaras/baños/cajones/m²/precio/balcón/
+    #    terraza/roof garden/orientación/piso) se valida contra la LISTA DE PRECIOS real → el desarrollo aparece solo
+    #    si tiene ≥1 unidad DISPONIBLE que cumple TODO junto. Así separamos "lo del depto" de "lo del edificio".
+    #    Fallback a los rangos del proyecto si un desarrollo no trae lista de unidades. ────────────────────────────
+    _ufset = [f.lower() for f in (unit_feature or [])]
+    _oset = {o.lower() for o in (orientacion or [])}
+    _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min)) or _ufset or _oset
+    match_counts: Dict[str, int] = {}
+    if _has_unit_crit:
+        def _unit_ok(u: dict) -> bool:
+            if u.get("status") != "disponible":
+                return False
+            if beds is not None and (u.get("bedrooms") or 0) < beds:
+                return False
+            if baths is not None and (u.get("bathrooms") or 0) < baths:
+                return False
+            if parking is not None and (u.get("parking_spots") or 0) < parking:
+                return False
+            _sqm = u.get("m2_total") or u.get("m2_privative") or 0
+            if min_sqm is not None and _sqm < min_sqm:
+                return False
+            if max_sqm is not None and _sqm > max_sqm:
+                return False
+            _pr = u.get("price") or 0
+            if min_price is not None and _pr < min_price:
+                return False
+            if max_price is not None and _pr > max_price:
+                return False
+            if piso_min is not None and (u.get("level") or 0) < piso_min:
+                return False
+            if _ufset and not all(u.get(f) for f in _ufset):
+                return False
+            if _oset and (u.get("orientation") or "").lower() not in _oset:
+                return False
+            return True
+
+        def _dev_match_count(d: dict) -> int:
+            units = d.get("units") or []
+            if units:
+                return sum(1 for u in units if _unit_ok(u))
+            # Sin lista de precios → cae a los rangos del proyecto (no perder desarrollos sin inventario detallado).
+            if beds is not None and d.get("bedrooms_range", [0, 0])[1] < beds:
+                return 0
+            if baths is not None and d.get("bathrooms_range", [0, 0])[1] < baths:
+                return 0
+            if parking is not None and d.get("parking_range", [0, 0])[1] < parking:
+                return 0
+            if min_sqm is not None and d.get("m2_range", [0, 0])[1] < min_sqm:
+                return 0
+            if max_sqm is not None and d.get("m2_range", [0, 0])[0] > max_sqm:
+                return 0
+            if max_price is not None and d.get("price_from", 0) > max_price:
+                return 0
+            if min_price is not None and d.get("price_to", 10**12) < min_price:
+                return 0
+            if _ufset and not set(_ufset).issubset({x.lower() for x in d.get("unit_features", [])}):
+                return 0
+            return 1
+
+        _scored = [(d, _dev_match_count(d)) for d in results]
+        results = [d for d, n in _scored if n > 0]
+        match_counts = {d["id"]: n for d, n in _scored if n > 0}
 
     # W5.2 Sub-C — Filter by zone sub-scores
     if subscore_min:
@@ -771,7 +813,14 @@ async def list_developments(
     elif sort == "sqm_desc":
         results.sort(key=lambda d: -d["m2_range"][1])
     # Enriquecimiento en batch (precio fresco + amenidades + foto real del dev) · cierra ciclo.
-    return await _enrich_listing(request.app.state.db, results[:limit])
+    cards = await _enrich_listing(request.app.state.db, results[:limit])
+    # Adjunta cuántas unidades DISPONIBLES cumplen lo interno del depto (para mostrar "N unidades que cumplen").
+    if match_counts:
+        for c in cards:
+            mc = match_counts.get(c.get("id"))
+            if mc is not None:
+                c["units_match"] = mc
+    return cards
 
 
 @router.get("/api/developments/{dev_id}")
