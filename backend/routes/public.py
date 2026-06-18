@@ -1174,7 +1174,10 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
               "concierge": ["concierge", "conserje"], "seguridad": ["seguridad", "vigilancia"], "bicicletas": ["bicicleta", "biciclet"],
               "salon_eventos": ["salón de eventos", "salon de eventos", "salon eventos"], "cava": ["cava"], "sky_lounge": ["sky lounge", "skylounge"],
               "business_center": ["business center", "centro de negocios"], "pet": ["pet friendly", "pet-friendly", "mascota"], "jardines": ["jardín", "jardin", "jardines"],
-              "roof": ["roof"]}
+              "roof": ["roof"],
+              # Amenidades aspiracionales (taxonomía canónica) — hoy ningún seed las ofrece → se capturan como
+              # DEMANDA/hueco ("padel: N pedidos · 0 ofrecen") y el filtro las respeta honesto (0 si nadie la tiene).
+              "cancha_padel": ["padel", "pádel"], "cancha_tenis": ["cancha de tenis", "tenis"], "paneles_solares": ["panel solar", "paneles solares"]}
     if "unit_feature" not in filters:
         ufh = [s for s, kws in _UF_KW.items() if any(k in ql for k in kws)]
         if ufh:
@@ -1198,6 +1201,33 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
     await db.ai_search_cache.update_one({"cache_key": cache_key}, {"$set": out}, upsert=True)
+
+    # ── B · CAPTURA DE DEMANDA GRANULAR ──────────────────────────────────────────
+    # Cada "Buscar con IA" es una señal de lo que el mercado QUIERE — incluso lo que NO podemos cumplir (padel,
+    # zapata, Cofinavit, Interlomas) = los HUECOS, el dato más valioso. Anónimo (ip_hash). Fail-open. Alimenta el
+    # cubo de demanda para dev/superadmin (no perdemos ninguna intención del comprador).
+    try:
+        import hashlib as _hl
+        from datetime import datetime as _dt
+        _amen = filters.get("amenity") or []
+        _ip = (request.client.host if request.client else "") or "x"
+        # Supply coarse: ¿cuántos desarrollos ofrecen TODAS las amenidades pedidas? (0 = hueco claro)
+        _supply = sum(1 for d in DEVELOPMENTS if set(_amen).issubset(set(d.get("amenities", [])))) if _amen else None
+        await db.marketplace_searches.insert_one({
+            "source": "ai_search",
+            "colonias": [filters["colonia"]] if filters.get("colonia") else [],
+            "colonia_id": filters.get("colonia"),
+            "recamaras_min": filters.get("beds"), "banos_min": filters.get("baths"),
+            "precio_max": filters.get("max_price"), "stage_pedido": filters.get("stage"),
+            "tipo_pedido": filters.get("tipo"),
+            "amenidades_pedidas": _amen, "features_pedidos": filters.get("unit_feature") or [],
+            "zona_no_disponible": zona_no_disponible,
+            "unmet": bool(zona_no_disponible) or (_supply == 0),
+            "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
+            "created_at_dt": _dt.utcnow(),
+        })
+    except Exception:
+        pass
     return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible}
 
 

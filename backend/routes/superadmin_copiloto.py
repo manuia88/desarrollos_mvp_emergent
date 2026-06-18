@@ -86,6 +86,30 @@ async def buyer_cycle_intel(db, dias: int = 30):
     ciclo = await _agg(db.copiloto_closings, [{"$group": {"_id": None, "dias": {"$avg": "$recorrido.dias_a_cierre"}}}])
     pct = lambda n: round(n / cierres * 100) if cierres else 0  # noqa: E731
 
+    # ── DEMANDA GRANULAR (B) ── lo que el mercado PIDE por dimensión fina + el HUECO (pedido vs ofertado).
+    # Lo que NO podemos cumplir (amenidad rara, zona fuera de cobertura) es el dato más valioso: dónde está el dinero.
+    from data_developments import DEVELOPMENTS as _DEVS
+    _supply_amen: dict = {}
+    for _d in _DEVS:
+        for _a in (_d.get("amenities") or []):
+            _supply_amen[_a] = _supply_amen.get(_a, 0) + 1
+    amen_ped = await _agg(db.marketplace_searches, [
+        {"$match": F}, {"$unwind": "$amenidades_pedidas"},
+        {"$group": {"_id": "$amenidades_pedidas", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 12},
+    ])
+    feat_ped = await _agg(db.marketplace_searches, [
+        {"$match": F}, {"$unwind": "$features_pedidos"},
+        {"$group": {"_id": "$features_pedidos", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 8},
+    ])
+    zonas_nd = await _agg(db.marketplace_searches, [
+        {"$match": {"zona_no_disponible": {"$nin": [None, ""]}, **F}},
+        {"$group": {"_id": "$zona_no_disponible", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 10},
+    ])
+    cred_ped = await _agg(db.marketplace_searches, [
+        {"$match": {"credito": {"$nin": [None, "", "none"]}, **F}},
+        {"$group": {"_id": "$credito", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 6},
+    ])
+
     return {
         "ventana_dias": dias,
         "embudo": {
@@ -106,6 +130,14 @@ async def buyer_cycle_intel(db, dias: int = 30):
                     "pct_like_antes_de_comprar": pct(like_antes),
                     "ciclo_dias_prom": round(ciclo[0]["dias"], 1) if (ciclo and ciclo[0].get("dias") is not None) else None,
                     "lectura": "Qué transigen los que SÍ cierran (presupuesto/zona) + el gusto predice la compra (el moat)."},
+        "demanda_granular": {
+            "amenidades_pedidas": [{"amenidad": a["_id"], "pedidos": a["n"],
+                                    "desarrollos_que_la_ofrecen": _supply_amen.get(a["_id"], 0)} for a in amen_ped],
+            "features_pedidos": [{"feature": f["_id"], "pedidos": f["n"]} for f in feat_ped],
+            "zonas_fuera_de_cobertura": [{"zona": z["_id"], "pedidos": z["n"]} for z in zonas_nd],
+            "creditos_pedidos": [{"credito": c["_id"], "pedidos": c["n"]} for c in cred_ped],
+            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir.",
+        },
         "es_estimado": busquedas < 30,
         "data_source": "espinazo Copiloto (marketplace_searches + buyer_signals + leads)",
     }
