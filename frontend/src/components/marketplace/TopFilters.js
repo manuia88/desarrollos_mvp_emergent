@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, Search, Sparkle } from '../icons';
 import { Z } from '../../styles/zIndex';
 
-function Popover({ label, testId, children, badge, onClear }) {
+function Popover({ label, testId, children, badge, onClear, align = 'left', width = 280 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -43,12 +43,14 @@ function Popover({ label, testId, children, badge, onClear }) {
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-          minWidth: 280, zIndex: Z.DROPDOWN,
-          background: 'var(--surface-card)',
-          border: '1px solid var(--border-2)',
+          position: 'absolute', top: 'calc(100% + 6px)',
+          ...(align === 'right' ? { right: 0 } : { left: 0 }),
+          width, maxWidth: 'calc(100vw - 32px)', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto',
+          zIndex: Z.DROPDOWN,
+          background: 'var(--surface-card, #fff)',
+          border: '1px solid var(--border)',
           borderRadius: 14, padding: 16,
-          boxShadow: 'var(--sh-elev)',
+          boxShadow: '0 20px 50px rgba(16,18,28,0.16)',
         }}>
           {children}
           {badge > 0 && onClear && (
@@ -70,7 +72,6 @@ function Popover({ label, testId, children, badge, onClear }) {
 export default function TopFilters({ colonias, filters, setFilters, sort, setSort, onAIQuery, aiLoading, aiFilters, onAIClear }) {
   const { t, i18n } = useTranslation();
   const [aiText, setAiText] = useState('');
-  const [moreOpen, setMoreOpen] = useState(false);
   const [locQuery, setLocQuery] = useState('');   // Ubicación · buscador abierto (no lista fija)
 
   const set = (k, v) => setFilters({ ...filters, [k]: v });
@@ -288,21 +289,43 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
           </div>
         </Popover>
 
-        {/* More filters drawer button */}
-        <button
-          data-testid="filter-more"
-          onClick={() => setMoreOpen(true)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '9px 14px',
-            background: 'var(--bg-3)', border: '1px solid var(--border)',
-            borderRadius: 9999,
-            fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
-            color: 'var(--cream-2)',
-            cursor: 'pointer',
-          }}>
-          {t('marketplace_v2.filter_more')}
-        </button>
+        {/* Más filtros · dropdown ANCLADO content-sized (no drawer que se corta) · alineado a la derecha */}
+        <Popover
+          label="Más filtros"
+          testId="filter-more"
+          align="right"
+          width={380}
+          badge={(filters.baths ? 1 : 0) + (filters.parking ? 1 : 0) + ((filters.min_sqm || filters.max_sqm) ? 1 : 0) + ((filters.amenity || []).length)}
+          onClear={() => setFilters({ ...filters, baths: undefined, parking: undefined, min_sqm: undefined, max_sqm: undefined, amenity: [] })}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Metros cuadrados (m²)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+            <input type="number" placeholder="Desde" data-testid="more-min-sqm"
+              value={filters.min_sqm || ''} onChange={e => set('min_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
+            <input type="number" placeholder="Hasta" data-testid="more-max-sqm"
+              value={filters.max_sqm || ''} onChange={e => set('max_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
+          </div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Baños</div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+            {[1, 2, 3, 4].map(n => (
+              <button key={n} data-testid={`more-baths-${n}`} onClick={() => set('baths', filters.baths === n ? undefined : n)}
+                className={`filter-chip${filters.baths === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
+            ))}
+          </div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Estacionamientos</div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+            {[1, 2, 3, 4].map(n => (
+              <button key={n} data-testid={`more-parking-${n}`} onClick={() => set('parking', filters.parking === n ? undefined : n)}
+                className={`filter-chip${filters.parking === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
+            ))}
+          </div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Amenidades</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {AMENITIES.map(a => (
+              <button key={a} data-testid={`more-amenity-${a}`} onClick={() => toggle('amenity', a)}
+                className={`filter-chip${(filters.amenity || []).includes(a) ? ' active' : ''}`}>{AMEN_LABEL[a] || a}</button>
+            ))}
+          </div>
+        </Popover>
 
         <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{t('marketplace_v2.sort_label')}</span>
@@ -324,76 +347,6 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         </div>
       </div>
 
-      {/* More filters drawer · header fijo + cuerpo con scroll + botones SIEMPRE visibles abajo (no se corta) */}
-      {moreOpen && (
-        <div
-          onClick={() => setMoreOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: (Z.MODAL || Z.DROPDOWN || 9000),
-            background: 'rgba(15,18,24,0.5)', backdropFilter: 'blur(4px)',
-            display: 'flex', justifyContent: 'flex-end',
-          }}>
-          <div
-            onClick={e => e.stopPropagation()}
-            data-testid="more-filters-drawer"
-            style={{
-              width: 440, maxWidth: '100%', height: '100%',
-              background: 'var(--surface-card, #fff)', borderLeft: '1px solid var(--border)',
-              display: 'flex', flexDirection: 'column',
-              boxShadow: '-24px 0 70px rgba(0,0,0,0.20)',
-              animation: 'slidein 0.25s ease-out',
-            }}>
-            {/* HEADER fijo */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Más filtros</div>
-              <button onClick={() => setMoreOpen(false)} className="btn-icon-circle" data-testid="more-close"><X size={12} /></button>
-            </div>
-
-            {/* CUERPO con scroll */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: 22 }}>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Metros cuadrados (m²)</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
-                <input type="number" placeholder="Desde" data-testid="more-min-sqm"
-                  value={filters.min_sqm || ''} onChange={e => set('min_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
-                <input type="number" placeholder="Hasta" data-testid="more-max-sqm"
-                  value={filters.max_sqm || ''} onChange={e => set('max_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
-              </div>
-
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Baños</div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
-                {[1, 2, 3, 4].map(n => (
-                  <button key={n} data-testid={`more-baths-${n}`} onClick={() => set('baths', filters.baths === n ? undefined : n)}
-                    className={`filter-chip${filters.baths === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
-                ))}
-              </div>
-
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Estacionamientos</div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
-                {[1, 2, 3, 4].map(n => (
-                  <button key={n} data-testid={`more-parking-${n}`} onClick={() => set('parking', filters.parking === n ? undefined : n)}
-                    className={`filter-chip${filters.parking === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
-                ))}
-              </div>
-
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Amenidades</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {AMENITIES.map(a => (
-                  <button key={a} data-testid={`more-amenity-${a}`} onClick={() => toggle('amenity', a)}
-                    className={`filter-chip${(filters.amenity || []).includes(a) ? ' active' : ''}`}>{AMEN_LABEL[a] || a}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* FOOTER fijo · botones siempre visibles */}
-            <div style={{ display: 'flex', gap: 10, padding: '14px 22px', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'var(--surface-card, #fff)' }}>
-              <button onClick={() => setFilters({})} data-testid="more-reset" className="btn btn-glass" style={{ flex: 1 }}>Restablecer</button>
-              <button onClick={() => setMoreOpen(false)} data-testid="more-apply" className="btn btn-primary" style={{ flex: 1.4 }}>Ver resultados</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`@keyframes slidein { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
     </div>
   );
 }
