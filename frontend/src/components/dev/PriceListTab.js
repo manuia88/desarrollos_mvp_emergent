@@ -153,36 +153,68 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
       {/* Comparador de las unidades que CUMPLEN (lado a lado · elige dentro del desarrollo) */}
       {compareOpen && matchIds.size >= 2 && (
         <div onClick={() => setCompareOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,18,24,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} data-testid="compare-modal" style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--border)', maxWidth: 'min(900px, 96vw)', maxHeight: '88vh', overflow: 'auto', padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>Comparar las que cumplen tu búsqueda</div>
-              <button onClick={() => setCompareOpen(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 9999, width: 28, height: 28, cursor: 'pointer', color: 'var(--cream-2)' }}>✕</button>
+          <div onClick={(e) => e.stopPropagation()} data-testid="compare-modal" style={{ background: 'var(--surface-card, #fff)', borderRadius: 18, border: '1px solid var(--border)', maxWidth: 'min(940px, 96vw)', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 70px rgba(0,0,0,0.25)' }}>
+            {/* Header con el DESARROLLO (para saber a qué pertenecen las unidades) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '18px 22px', background: 'linear-gradient(120deg, rgba(var(--theme-rgb),0.12), rgba(var(--theme-rgb),0.03))', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.02em' }}>Comparar unidades</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 2 }}>
+                  <b style={{ color: 'var(--theme)' }}>{dev.name}</b>{dev.colonia ? ` · ${dev.colonia}` : ''} — las que cumplen tu búsqueda
+                </div>
+              </div>
+              <button onClick={() => setCompareOpen(false)} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 9999, width: 30, height: 30, cursor: 'pointer', color: 'var(--cream-2)', flexShrink: 0 }}>✕</button>
             </div>
             {(() => {
               const us = (dev.units || []).filter((u) => matchIds.has(u.id)).slice(0, 5);
+              const num = (v) => (typeof v === 'number' ? v : null);
+              const minPrice = Math.min(...us.map((u) => u.price || Infinity));
+              const maxM2 = Math.max(...us.map((u) => u.m2_total || u.m2_privative || 0));
+              const maxBal = Math.max(...us.map((u) => u.m2_balcony || 0));
               const rows = [
-                ['Precio', (u) => u.price_display || (u.price ? `$${u.price.toLocaleString('es-MX')}` : '—')],
-                ['Recámaras', (u) => u.bedrooms ?? '—'], ['Baños', (u) => u.bathrooms ?? '—'],
-                ['Cajones', (u) => u.parking_spots ?? '—'], ['m² totales', (u) => u.m2_total || u.m2_privative || '—'],
-                ['Balcón m²', (u) => u.m2_balcony || '—'], ['Nivel', (u) => u.level ?? '—'],
-                ['Orientación', (u) => u.orientation || '—'], ['Vista', (u) => u.vista || '—'],
-                ['Bodega', (u) => (u.bodega ? 'Sí' : 'No')],
+                { label: 'Precio', get: (u) => u.price_display || (u.price ? `$${u.price.toLocaleString('es-MX')}` : '—'), best: (u) => u.price && u.price === minPrice, tag: 'mejor precio', strong: true },
+                { label: 'Recámaras', get: (u) => u.bedrooms ?? '—' },
+                { label: 'Baños', get: (u) => u.bathrooms ?? '—' },
+                { label: 'Cajones', get: (u) => u.parking_spots ?? '—' },
+                { label: 'm² totales', get: (u) => u.m2_total || u.m2_privative || '—', best: (u) => maxM2 && (u.m2_total || u.m2_privative) === maxM2, tag: 'más grande' },
+                { label: 'Balcón m²', get: (u) => u.m2_balcony || '—', best: (u) => maxBal && u.m2_balcony === maxBal },
+                { label: 'Nivel', get: (u) => u.level ?? '—' },
+                { label: 'Orientación', get: (u) => u.orientation || '—' },
+                { label: 'Vista', get: (u) => u.vista || '—' },
+                { label: 'Bodega', get: (u) => (u.bodega ? '✓ Sí' : '—'), best: (u) => !!u.bodega },
               ];
+              void num;
               return (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
-                  <thead><tr>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--cream-3)', fontSize: 11 }}>—</th>
-                    {us.map((u) => <th key={u.id} style={{ textAlign: 'left', padding: '8px 10px', fontFamily: 'Outfit', fontWeight: 800, color: 'var(--cream)' }}>#{u.unit_number}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {rows.map(([label, fn]) => (
-                      <tr key={label} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 10px', color: 'var(--cream-3)' }}>{label}</td>
-                        {us.map((u) => <td key={u.id} style={{ padding: '8px 10px', color: 'var(--cream)', fontWeight: label === 'Precio' ? 700 : 400 }}>{fn(u)}</td>)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{ padding: 18, overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontFamily: 'DM Sans', fontSize: 12.5 }}>
+                    <thead><tr>
+                      <th style={{ textAlign: 'left', padding: '6px 10px' }} />
+                      {us.map((u) => (
+                        <th key={u.id} style={{ padding: 8, minWidth: 110 }}>
+                          <div style={{ background: 'var(--theme)', color: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+                            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15 }}>#{u.unit_number}</div>
+                            <div style={{ fontSize: 10, opacity: 0.85 }}>{dev.name}</div>
+                          </div>
+                        </th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {rows.map((r, ri) => (
+                        <tr key={r.label} style={{ background: ri % 2 ? 'rgba(var(--cream-rgb),0.03)' : 'transparent' }}>
+                          <td style={{ padding: '10px 10px', color: 'var(--cream-3)', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.label}</td>
+                          {us.map((u) => {
+                            const isBest = r.best && r.best(u);
+                            return (
+                              <td key={u.id} style={{ padding: '10px 8px', textAlign: 'center', color: isBest ? '#1FA06A' : 'var(--cream)', fontWeight: (r.strong || isBest) ? 700 : 400, fontSize: r.strong ? 13.5 : 12.5 }}>
+                                {r.get(u)}
+                                {isBest && r.tag && <div style={{ fontSize: 9.5, color: '#1FA06A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{r.tag}</div>}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               );
             })()}
           </div>
