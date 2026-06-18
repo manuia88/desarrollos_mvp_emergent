@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
+import { sendBuyerSignal, fetchInteres } from '../lib/buyerSignal';
 import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
@@ -103,6 +104,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [brochureOpen, setBrochureOpen] = useState(false);
   // W6.MOV.5 — Construction Quality Index (score + breakdown 4 dims)
   const [cqData, setCqData] = useState(null);
+  // Copiloto · espinazo: interés agregado del desarrollo (prueba social · k-anon).
+  const [interes, setInteres] = useState(null);
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('lead');
   const contactoId = searchParams.get('contacto');
@@ -110,6 +113,18 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   // W5.x F7 — Behavioral tracker (escucha scroll/time/exit-intent · dispara modal vía CustomEvent)
   useBehavioralTracker({ enabled: !!dev?.id, pageType: 'development', entityId: dev?.id });
+
+  // Copiloto · espinazo: registra la VISTA de ficha + el TIEMPO (dwell) al salir + trae el interés (prueba social).
+  useEffect(() => {
+    if (!dev?.id) return;
+    const t0 = Date.now();
+    sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: dev.colonia });
+    fetchInteres(dev.id).then(setInteres);
+    return () => {
+      const ms = Date.now() - t0;
+      if (ms > 1500) sendBuyerSignal('dwell', { entity_id: dev.id, colonia: dev.colonia, dwell_ms: Math.min(ms, 600000) });
+    };
+  }, [dev?.id, dev?.colonia]);
 
   useEffect(() => {
     let alive = true;
@@ -257,6 +272,16 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 {dev.name}
               </h1>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Copiloto · prueba social del espinazo (interés agregado, k-anon) */}
+                {interes && (interes.likes > 0 || interes.saves > 0) && (
+                  <span data-testid="dev-interes" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 12px', borderRadius: 9999,
+                    background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.3)',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: '#DB2777',
+                  }}>
+                    🔥 {interes.likes >= interes.saves ? `${interes.likes} le dieron like` : `${interes.saves} lo guardaron`}{interes.interes === 'alto' ? ' · muy buscado' : ''}
+                  </span>
+                )}
                 <ComplianceBadgeInline devId={dev.id} />
                 {cqData && cqData.score !== null && (
                   <ConstructionQualityBadge
