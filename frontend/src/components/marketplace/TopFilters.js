@@ -83,8 +83,10 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
   const TIPOS = [['departamento', 'Departamento'], ['casa', 'Casa']];
   const ETAPAS = [['preventa', 'Preventa'], ['entrega_inmediata', 'Entrega inmediata']];
   const PLAZOS = [['menos_3', 'En menos de 3 meses'], ['3_6', '3 a 6 meses'], ['6_12', '6 a 12 meses'], ['mas_12', 'Más de 12 meses']];
-  const AMENITIES = ['balcon', 'terraza', 'roof_garden', 'gym', 'alberca', 'concierge', 'pet', 'seguridad', 'spa', 'cowork', 'bicicletas', 'salon_eventos'];
-  const AMEN_LABEL = { balcon: 'Balcón', terraza: 'Terraza', roof_garden: 'Roof garden', gym: 'Gym', alberca: 'Alberca', concierge: 'Concierge', pet: 'Pet friendly', seguridad: 'Seguridad', spa: 'Spa', cowork: 'Coworking', bicicletas: 'Bicicletas', salon_eventos: 'Salón de eventos' };
+  // Amenidades = lista CANÓNICA del módulo dev (AmenitiesTab AMENITY_SVG), ordenadas por uso real en el catálogo.
+  // Mismo vocabulario que el dev tagea → el filtro encuentra lo que existe (sin slugs huérfanos).
+  const AMENITIES = ['gym', 'seguridad', 'pet', 'roof', 'cowork', 'alberca', 'salon_eventos', 'bicicletas', 'spa', 'concierge', 'business_center', 'jardines', 'estacionamiento', 'sky_lounge', 'cava', 'area_pets'];
+  const AMEN_LABEL = { gym: 'Gimnasio', seguridad: 'Seguridad 24/7', pet: 'Pet friendly', roof: 'Roof garden', cowork: 'Coworking', alberca: 'Alberca', salon_eventos: 'Salón de eventos', bicicletas: 'Biciestacionamiento', spa: 'Spa', concierge: 'Concierge', business_center: 'Business center', jardines: 'Jardines', estacionamiento: 'Estacionamiento', sky_lounge: 'Sky lounge', cava: 'Cava', area_pets: 'Área para mascotas' };
   // Ubicación buscable sobre TODAS las colonias reales.
   const locSug = locQuery.trim().length >= 2
     ? (colonias || []).filter(c => (c.name || '').toLowerCase().includes(locQuery.toLowerCase()) && !(filters.colonia || []).includes(c.id)).slice(0, 6)
@@ -322,96 +324,70 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         </div>
       </div>
 
-      {/* More filters drawer */}
+      {/* More filters drawer · header fijo + cuerpo con scroll + botones SIEMPRE visibles abajo (no se corta) */}
       {moreOpen && (
         <div
           onClick={() => setMoreOpen(false)}
           style={{
-            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
-            background: 'rgba(var(--bg-rgb),0.78)',
-            backdropFilter: 'blur(12px)',
+            position: 'fixed', inset: 0, zIndex: (Z.MODAL || Z.DROPDOWN || 9000),
+            background: 'rgba(15,18,24,0.5)', backdropFilter: 'blur(4px)',
             display: 'flex', justifyContent: 'flex-end',
           }}>
           <div
             onClick={e => e.stopPropagation()}
             data-testid="more-filters-drawer"
             style={{
-              width: 420, maxWidth: '100%', height: '100%',
-              background: 'var(--surface-card)', borderLeft: '1px solid var(--border-2)',
-              padding: 24, overflowY: 'auto',
+              width: 440, maxWidth: '100%', height: '100%',
+              background: 'var(--surface-card, #fff)', borderLeft: '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '-24px 0 70px rgba(0,0,0,0.20)',
               animation: 'slidein 0.25s ease-out',
             }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>
-                {t('marketplace_v2.more_filters_h')}
+            {/* HEADER fijo */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Más filtros</div>
+              <button onClick={() => setMoreOpen(false)} className="btn-icon-circle" data-testid="more-close"><X size={12} /></button>
+            </div>
+
+            {/* CUERPO con scroll */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 22 }}>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Metros cuadrados (m²)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
+                <input type="number" placeholder="Desde" data-testid="more-min-sqm"
+                  value={filters.min_sqm || ''} onChange={e => set('min_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
+                <input type="number" placeholder="Hasta" data-testid="more-max-sqm"
+                  value={filters.max_sqm || ''} onChange={e => set('max_sqm', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
               </div>
-              <button onClick={() => setMoreOpen(false)} className="btn-icon-circle" data-testid="more-close">
-                <X size={12} />
-              </button>
+
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Baños</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
+                {[1, 2, 3, 4].map(n => (
+                  <button key={n} data-testid={`more-baths-${n}`} onClick={() => set('baths', filters.baths === n ? undefined : n)}
+                    className={`filter-chip${filters.baths === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
+                ))}
+              </div>
+
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Estacionamientos</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
+                {[1, 2, 3, 4].map(n => (
+                  <button key={n} data-testid={`more-parking-${n}`} onClick={() => set('parking', filters.parking === n ? undefined : n)}
+                    className={`filter-chip${filters.parking === n ? ' active' : ''}`} style={{ minWidth: 44 }}>{n}+</button>
+                ))}
+              </div>
+
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Amenidades</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {AMENITIES.map(a => (
+                  <button key={a} data-testid={`more-amenity-${a}`} onClick={() => toggle('amenity', a)}
+                    className={`filter-chip${(filters.amenity || []).includes(a) ? ' active' : ''}`}>{AMEN_LABEL[a] || a}</button>
+                ))}
+              </div>
             </div>
 
-            <div className="eyebrow" style={{ marginBottom: 8 }}>{t('marketplace_v2.more_sqm')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
-              <input type="number" placeholder="m² desde" data-testid="more-min-sqm"
-                value={filters.min_sqm || ''}
-                onChange={e => set('min_sqm', e.target.value ? +e.target.value : undefined)}
-                style={drawerInputStyle} />
-              <input type="number" placeholder="m² hasta" data-testid="more-max-sqm"
-                value={filters.max_sqm || ''}
-                onChange={e => set('max_sqm', e.target.value ? +e.target.value : undefined)}
-                style={drawerInputStyle} />
-            </div>
-
-            <div className="eyebrow" style={{ marginBottom: 8 }}>{t('marketplace_v2.more_baths')}</div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-              {[1, 2, 3].map(n => {
-                const active = filters.baths === n;
-                return (
-                  <button key={n} data-testid={`more-baths-${n}`}
-                    onClick={() => set('baths', active ? undefined : n)}
-                    className={`filter-chip${active ? ' active' : ''}`}>
-                    {n}+
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="eyebrow" style={{ marginBottom: 8 }}>{t('marketplace_v2.more_parking')}</div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-              {[1, 2, 3].map(n => {
-                const active = filters.parking === n;
-                return (
-                  <button key={n} data-testid={`more-parking-${n}`}
-                    onClick={() => set('parking', active ? undefined : n)}
-                    className={`filter-chip${active ? ' active' : ''}`}>
-                    {n}+
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="eyebrow" style={{ marginBottom: 8 }}>{t('marketplace_v2.more_amenity')}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
-              {AMENITIES.map(a => {
-                const active = (filters.amenity || []).includes(a);
-                return (
-                  <button key={a}
-                    data-testid={`more-amenity-${a}`}
-                    onClick={() => toggle('amenity', a)}
-                    className={`filter-chip${active ? ' active' : ''}`}>
-                    {AMEN_LABEL[a] || a}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-              <button onClick={() => setFilters({})} data-testid="more-reset" className="btn btn-glass" style={{ flex: 1 }}>
-                {t('marketplace_v2.filter_reset')}
-              </button>
-              <button onClick={() => setMoreOpen(false)} data-testid="more-apply" className="btn btn-primary" style={{ flex: 1 }}>
-                {t('marketplace_v2.filter_apply')}
-              </button>
+            {/* FOOTER fijo · botones siempre visibles */}
+            <div style={{ display: 'flex', gap: 10, padding: '14px 22px', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'var(--surface-card, #fff)' }}>
+              <button onClick={() => setFilters({})} data-testid="more-reset" className="btn btn-glass" style={{ flex: 1 }}>Restablecer</button>
+              <button onClick={() => setMoreOpen(false)} data-testid="more-apply" className="btn btn-primary" style={{ flex: 1.4 }}>Ver resultados</button>
             </div>
           </div>
         </div>
