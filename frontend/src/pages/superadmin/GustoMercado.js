@@ -104,6 +104,31 @@ export default function GustoMercado({ filters }) {
               </div>
             </div>
           )}
+          {/* B · Demanda granular: qué pide el mercado por dimensión + el hueco (pedido vs ofertado) */}
+          {cube.demanda_granular && ((cube.demanda_granular.amenidades_pedidas || []).length > 0 || (cube.demanda_granular.zonas_fuera_de_cobertura || []).length > 0) && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>📊 Demanda fina <span style={{ ...mute, fontWeight: 400 }}>(qué pide el mercado · pedido vs ofertado)</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>Amenidades pedidas</div>
+                  {(cube.demanda_granular.amenidades_pedidas || []).slice(0, 5).map((a, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '3px 0' }}>
+                      <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{String(a.amenidad).replace(/_/g, ' ')}</b> · {a.pedidos} ped · <span style={{ color: a.desarrollos_que_la_ofrecen === 0 ? '#E0A33E' : 'var(--sa-text-dim)' }}>{a.desarrollos_que_la_ofrecen} ofrecen{a.desarrollos_que_la_ofrecen === 0 ? ' ⚠' : ''}</span>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>Zonas fuera de cobertura (dónde expandir)</div>
+                  {(cube.demanda_granular.zonas_fuera_de_cobertura || []).slice(0, 5).map((z, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '3px 0' }}>
+                      <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{z.zona}</b> · {z.pedidos} pedidos
+                    </div>
+                  ))}
+                  {(cube.demanda_granular.zonas_fuera_de_cobertura || []).length === 0 && <div style={{ fontSize: 11.5, ...mute }}>Todo lo pedido está en cobertura.</div>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
