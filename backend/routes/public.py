@@ -1315,6 +1315,35 @@ def _ai_rate_ok(ip: str) -> bool:
     return True
 
 
+def _parse_misses(q, filters):
+    """BUCLE DE FALLAS DE LECTURA: conceptos que el texto MENCIONA pero el parser NO capturó. En vez de adivinar las
+    infinitas formas de expresarse, el sistema marca lo que falló en búsquedas REALES → el superadmin lo ve y afinamos
+    con DATOS (o sube la palanca prendiendo el LLM). Devuelve la lista de conceptos no leídos."""
+    import re as _r
+    ql = (q or "").lower()
+    cap = lambda *ks: any(filters.get(k) for k in ks)
+    checks = [
+        ("enganche", r"enganche", "enganche_max"),
+        ("apartado", r"apartado", "apartado_max"),
+        ("mensualidad", r"mensualidad", "mensualidad_max"),
+        ("descuento", r"\boff\b|descuento|dscto|%", "descuento_min"),
+        ("esquema_pago", r"\b\d{1,2}\s*/\s*\d{1,2}\b", "esquema_pago"),
+        ("credito", r"infonavit|cofinavit|fovissste|hipotecari|\bcred\b|\bch\b|contado", "credito"),
+        ("recamaras", r"\d\s*(?:rec|recámara|recamara|r\b)", "beds"),
+        ("banos", r"\d\s*(?:ba[ñn]o|b\b)", "baths"),
+        ("estacionamiento", r"\d\s*(?:estac|caj[oó]n|cajones|\be\b)", "parking"),
+        ("plazo", r"\d\s*(?:años?|anios?|meses|d[ií]as)", "plazo"),
+        ("precio", r"mill[oó]n|mdp|presupuesto", "min_price"),
+        ("m2", r"\bm2\b|\bm²\b|metros\b", "min_sqm"),
+    ]
+    miss = []
+    for name, rx, key in checks:
+        captured = cap(key) or (key == "min_price" and cap("max_price")) or (key == "min_sqm" and cap("max_sqm"))
+        if not captured and _r.search(rx, ql):
+            miss.append(name)
+    return miss
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
@@ -1624,10 +1653,14 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         # cómo habla la gente (mejora el parser + revela demanda que ni mapeamos).
         _completa = bool(filters.get("colonia") and filters.get("max_price") and filters.get("beds")
                          and (filters.get("min_sqm") or filters.get("max_sqm")))
+        _col = filters.get("colonia")
+        _cols = _col if isinstance(_col, list) else ([_col] if _col else [])
+        _miss = _parse_misses(q, filters)   # bucle de fallas de lectura
         await db.marketplace_searches.insert_one({
             "source": "ai_search",
-            "colonias": [filters["colonia"]] if filters.get("colonia") else [],
-            "colonia_id": filters.get("colonia"),
+            "colonias": _cols,
+            "colonia_id": (_cols[0] if _cols else None),
+            "parse_miss": _miss,
             "recamaras_min": filters.get("beds"), "banos_min": filters.get("baths"),
             "precio_min": filters.get("min_price"), "precio_max": filters.get("max_price"),
             "m2_min": filters.get("min_sqm"), "m2_max": filters.get("max_sqm"),
@@ -1640,6 +1673,13 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             "texto_crudo": q[:300], "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
             "created_at_dt": _dt.utcnow(),
         })
+        # Colección dedicada de FALLAS DE LECTURA (solo cuando hubo conceptos no leídos) → el superadmin las revisa.
+        if _miss:
+            await db.parse_misses.insert_one({
+                "texto": q[:300], "miss": _miss, "capto": sorted(filters.keys()),
+                "fuente": ("llm" if EMERGENT_LLM_KEY else "determinista"),
+                "created_at_dt": _dt.utcnow(),
+            })
     except Exception:
         pass
     return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible}

@@ -185,6 +185,31 @@ export default function GustoMercado({ filters }) {
         </div>
       )}
 
+      {/* Salud del buscador — bucle de fallas de lectura (lo que la gente escribió y el parser NO leyó) */}
+      {cube && cube.salud_buscador && (cube.salud_buscador.conceptos_no_leidos || []).length > 0 && (
+        <div style={{ ...card, marginBottom: 16 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>🔎 Salud del buscador <span style={{ ...mute, fontWeight: 400 }}>(lo que escribieron y el buscador NO entendió · data real, no adivinanza)</span></div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {(cube.salud_buscador.conceptos_no_leidos || []).map((c, i) => (
+              <span key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 9999, padding: '3px 10px' }}>
+                {String(c.concepto).replace(/_/g, ' ')} · <b style={{ color: 'var(--sa-text)' }}>{c.veces}</b>
+              </span>
+            ))}
+          </div>
+          {(cube.salud_buscador.frases_recientes || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>Frases recientes que no leyó:</div>
+              {(cube.salud_buscador.frases_recientes || []).slice(0, 8).map((f, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '2px 0' }}>
+                  "{f.texto}" <span style={mute}>→ {(f.no_leyo || []).join(', ')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 11, ...mute, marginTop: 8 }}>{cube.salud_buscador.lectura}</div>
+        </div>
+      )}
+
       {/* Titular */}
       <div style={{ ...card, borderColor: 'rgba(var(--theme-rgb),0.45)', background: 'linear-gradient(150deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.02))' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>

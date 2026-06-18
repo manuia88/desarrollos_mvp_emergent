@@ -155,7 +155,25 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "lo_que_mas_falta": [f for f, _ in _cnt.most_common(3)],
         })
 
+    # SALUD DEL BUSCADOR (bucle de fallas de lectura): conceptos que la gente escribió y el parser NO leyó.
+    miss_cnt = _Cnt()
+    frases_miss = []
+    try:
+        async for x in db.parse_misses.find(F, {"_id": 0, "texto": 1, "miss": 1, "fuente": 1}).sort("created_at_dt", -1).limit(200):
+            for m in (x.get("miss") or []):
+                miss_cnt[m] += 1
+            if len(frases_miss) < 12 and x.get("texto"):
+                frases_miss.append({"texto": x["texto"][:120], "no_leyo": x.get("miss"), "fuente": x.get("fuente")})
+    except Exception:
+        pass
+    salud_buscador = {
+        "conceptos_no_leidos": [{"concepto": k, "veces": v} for k, v in miss_cnt.most_common(12)],
+        "frases_recientes": frases_miss,
+        "lectura": "Lo que la gente escribió y el buscador NO entendió. Prender el LLM resuelve la mayoría; lo que persista = afinar el respaldo o agregar el campo. Es data real, no adivinanza.",
+    }
+
     return {
+        "salud_buscador": salud_buscador,
         "ventana_dias": dias,
         "embudo": {
             "busquedas": busquedas, "likes": likes, "guardadas_con_alerta": guardadas,
