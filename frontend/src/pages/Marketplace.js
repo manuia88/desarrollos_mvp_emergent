@@ -608,7 +608,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       />
 
       {/* Copiloto de Compra E1 — Perfilador → "Tus mejores opciones" */}
-      <Perfilador open={perfiladorOpen} onClose={() => setPerfiladorOpen(false)} />
+      <Perfilador open={perfiladorOpen} onClose={() => setPerfiladorOpen(false)} colonias={colonias} />
 
       <style>{`
         @media (max-width: 1200px) { .dev-grid { grid-template-columns: repeat(3, 1fr) !important; } }

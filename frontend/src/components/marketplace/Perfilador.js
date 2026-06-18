@@ -25,31 +25,35 @@ const CREDITOS = [
   { k: 'fovissste', t: 'Fovissste' }, { k: 'contado', t: 'De contado' },
 ];
 const ETAPAS = [
-  { k: 'preventa', t: 'Preventa', d: 'Mejor precio' },
-  { k: 'en_construccion', t: 'En construcción', d: 'Avanzado' },
-  { k: 'entrega_inmediata', t: 'Listo para entrar', d: 'Ya' },
+  { k: 'preventa', t: 'Preventa', d: 'Mejor precio, entrega después' },
+  { k: 'entrega_inmediata', t: 'Entrega inmediata', d: 'Listo para entrar ya' },
 ];
 const PLAZOS = [
   { k: 'menos_3', t: 'En menos de 3 meses' }, { k: '3_6', t: '3 a 6 meses' },
   { k: '6_12', t: '6 a 12 meses' }, { k: 'mas_12', t: 'No tengo prisa' },
 ];
-const ZONAS = ['Polanco', 'Roma Norte', 'Condesa', 'Juárez', 'Del Valle', 'Nápoles', 'Coyoacán', 'Lomas de Chapultepec', 'Jardines del Pedregal', 'Cuauhtémoc'];
 
 const money = (n) => '$' + (n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1) + 'M' : Math.round(n / 1e3) + 'k');
 function visitorId() {
   try { let v = localStorage.getItem('dmx_visitor_id'); if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); } return v; } catch { return 'v_anon'; }
 }
 
-export default function Perfilador({ open, onClose }) {
+export default function Perfilador({ open, onClose, colonias = [] }) {
   const [step, setStep] = useState(0);
-  const [p, setP] = useState({ uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, estacionamientos_min: 1, m2_min: null, colonias: [] });
+  const [p, setP] = useState({ uso: '', presupuesto_max: 8000000, enganche: 20, credito: '', stages: [], plazo: 'cualquiera', recamaras_min: 2, banos_min: 1, estacionamientos_min: 1, m2_min: null, colonias: [] });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [zoneQuery, setZoneQuery] = useState('');
   if (!open) return null;
 
   const set = (patch) => setP((prev) => ({ ...prev, ...patch }));
   const toggle = (key, val) => set({ [key]: p[key].includes(val) ? p[key].filter((x) => x !== val) : [...p[key], val] });
-  const isPreventa = p.stages.includes('preventa') || p.stages.includes('en_construccion');
+  const isPreventa = p.stages.includes('preventa');
+  // Zona: buscador abierto sobre TODAS las colonias reales (no una lista de 10 que rompa la búsqueda).
+  const zoneSug = zoneQuery.trim().length >= 2
+    ? colonias.filter((c) => (c.name || '').toLowerCase().includes(zoneQuery.toLowerCase()) && !p.colonias.includes(c.name)).slice(0, 6)
+    : [];
+  const addZone = (name) => { set({ colonias: [...p.colonias, name] }); setZoneQuery(''); };
 
   const submit = async () => {
     setLoading(true);
@@ -129,19 +133,46 @@ export default function Perfilador({ open, onClose }) {
     <div key="3">
       <div style={qTitle}>¿Qué necesitas?</div>
       <div style={qSub}>Lo esencial. El resto lo afinamos viendo opciones.</div>
-      {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
+      {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['banos_min', 'Baños (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
         <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>{label}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button onClick={() => set({ [key]: Math.max(mn, p[key] - 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>−</button>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', minWidth: 18, textAlign: 'center' }}>{p[key]}{key === 'recamaras_min' ? '+' : ''}</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', minWidth: 18, textAlign: 'center' }}>{p[key]}{['recamaras_min', 'banos_min'].includes(key) ? '+' : ''}</span>
             <button onClick={() => set({ [key]: Math.min(mx, p[key] + 1) })} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 18, color: 'var(--cream-2)' }}>+</button>
           </div>
         </div>
       ))}
-      <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', margin: '18px 0 9px' }}>¿Alguna zona en mente? (opcional · varias)</div>
-      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-        {ZONAS.map((z) => <button key={z} style={chip(p.colonias.includes(z))} onClick={() => toggle('colonias', z)}>{z}</button>)}
+      {/* Zona — buscador ABIERTO sobre todas las colonias reales (la ubicación es lo más importante;
+          limitar a una lista rompería la búsqueda). Escribe y elige; varias permitidas. */}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', margin: '18px 0 9px' }}>¿Alguna zona en mente? <span style={{ color: 'var(--cream-3)' }}>(opcional · escribe y elige)</span></div>
+      {p.colonias.length > 0 && (
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 10 }}>
+          {p.colonias.map((z) => (
+            <span key={z} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999, background: 'var(--theme)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13 }}>
+              {z}<span onClick={() => toggle('colonias', z)} style={{ cursor: 'pointer', fontWeight: 800, opacity: 0.85 }}>×</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ position: 'relative' }}>
+        <input
+          data-testid="perfilador-zona"
+          value={zoneQuery}
+          onChange={(e) => setZoneQuery(e.target.value)}
+          placeholder="Busca una colonia o zona… (ej. Roma Norte, Del Valle)"
+          style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }}
+        />
+        {zoneSug.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, background: '#fff', border: '1px solid var(--border)', borderRadius: 11, boxShadow: '0 10px 30px rgba(16,18,28,0.14)', zIndex: 5, overflow: 'hidden' }}>
+            {zoneSug.map((c) => (
+              <button key={c.id || c.name} onClick={() => addZone(c.name)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-card)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+                {c.name} {c.alcaldia && <span style={{ color: 'var(--cream-3)', fontSize: 12 }}>· {c.alcaldia}</span>}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>,
     // 4 · resultados

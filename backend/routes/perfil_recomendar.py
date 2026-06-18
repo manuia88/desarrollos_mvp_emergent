@@ -46,6 +46,7 @@ class PerfilIn(BaseModel):
     stages: List[str] = []                     # preventa | en_construccion | entrega_inmediata
     plazo: str = "cualquiera"                  # menos_3 | 3_6 | 6_12 | mas_12 | cualquiera
     recamaras_min: Optional[int] = None
+    banos_min: Optional[int] = None
     estacionamientos_min: Optional[int] = None
     m2_min: Optional[float] = None
     m2_max: Optional[float] = None
@@ -62,13 +63,14 @@ def _build_parsed(p: PerfilIn) -> Dict[str, Any]:
         hf["precio_max"] = p.presupuesto_max
     if p.recamaras_min:
         hf["recamaras_min"] = p.recamaras_min
+    if p.banos_min:
+        hf["banos_min"] = p.banos_min
     if p.m2_min:
         hf["m2_min"] = p.m2_min
     if p.m2_max:
         hf["m2_max"] = p.m2_max
-    # Multi-zona: el motor filtra por 1 colonia/alcaldía; con varias hacemos el filtro de zona aparte (abajo).
-    if len(p.colonias) == 1:
-        hf["colonia"] = p.colonias[0]
+    # Zona NO va al motor (la trataría como match parcial → colaría zonas equivocadas). La ubicación es lo más
+    # importante → se filtra DURO en _passes_extra (cualquier nº de zonas).
     return {
         "hard_filters": hf,
         "soft_criteria": list(p.must_haves or []),
@@ -85,7 +87,7 @@ def _passes_extra(dev: Dict[str, Any], p: PerfilIn) -> bool:
     """Filtros que el motor base no cubre: etapa, plazo de entrega, multi-zona, estacionamientos."""
     if p.stages and dev.get("stage") not in p.stages:
         return False
-    if len(p.colonias) > 1:
+    if p.colonias:  # ubicación = filtro DURO (lo más importante para el comprador)
         zt = {_norm(c) for c in p.colonias}
         if _norm(dev.get("colonia_id") or "") not in zt and _norm(dev.get("colonia") or "") not in zt:
             return False
@@ -120,6 +122,10 @@ def _reasons(dev: Dict[str, Any], p: PerfilIn) -> List[str]:
         rng = dev.get("bedrooms_range") or [0, 0]
         if (rng[1] if len(rng) == 2 else 0) >= p.recamaras_min:
             out.append(f"Tiene {p.recamaras_min}+ recámaras")
+    if p.banos_min:
+        rng = dev.get("bathrooms_range") or [0, 0]
+        if (rng[1] if len(rng) == 2 else 0) >= p.banos_min:
+            out.append(f"{p.banos_min}+ baños")
     if p.estacionamientos_min:
         out.append(f"{p.estacionamientos_min}+ estacionamientos")
     if dev.get("plusvalia_zona"):
