@@ -207,4 +207,93 @@ async def recomendar(p: PerfilIn, request: Request):
         nota = f"Hay pocas opciones en {zona_txt} con tu presupuesto — algunas de estas están un poco arriba."
     elif relax_plazo:
         nota = f"Para darte más opciones en {zona_txt}, ampliamos el plazo de entrega."
-    return {"ok": True, "total": len(results), "nota": nota, "perfil": p.model_dump(), "resultados": results}
+
+    # Zonas cercanas con inventario que SÍ encaja (para no dejar al cliente pasmado · él decide, no en silencio).
+    exact = [r for r in results if not r.get("ampliado") and not r.get("sobre_presupuesto")]
+    zonas_cercanas = _zonas_cercanas(by_id, p) if len(exact) < 2 else []
+
+    return {"ok": True, "total": len(results), "nota": nota, "zonas_cercanas": zonas_cercanas,
+            "perfil": p.model_dump(), "resultados": results}
+
+
+def _zonas_cercanas(by_id: Dict[str, Any], p: PerfilIn, k: int = 3) -> List[Dict[str, Any]]:
+    """Zonas ALEDAÑAS (por cercanía geográfica) que SÍ tienen inventario en tu presupuesto — el cliente elige,
+    nunca se le imponen. Si su zona no alcanza, le mostramos a dónde sí, cerca."""
+    try:
+        from data_seed import COLONIAS_BY_ID
+    except Exception:
+        COLONIAS_BY_ID = {}
+    chosen = [_norm(c) for c in (p.colonias or [])]
+    if not chosen:
+        return []
+    # Centro de la(s) zona(s) elegida(s).
+    centers = []
+    for c in COLONIAS_BY_ID.values():
+        if _norm(c.get("name") or "") in chosen or _norm(c.get("id") or "") in chosen:
+            ce = c.get("center")
+            if ce:
+                centers.append(ce)
+    if not centers:
+        return []
+    cx = sum(c[0] for c in centers) / len(centers)
+    cy = sum(c[1] for c in centers) / len(centers)
+    # Colonias con AL MENOS un dev que encaja en presupuesto+recámaras (sin el filtro de zona).
+    pz = p.model_copy(update={"colonias": []})
+    by_col: Dict[str, Dict[str, Any]] = {}
+    for dev in by_id.values():
+        if _norm(dev.get("colonia") or "") in chosen:
+            continue  # su zona ya la vio
+        if not _passes_extra(dev, pz):
+            continue
+        col = dev.get("colonia") or dev.get("colonia_id")
+        cc = COLONIAS_BY_ID.get(_norm(dev.get("colonia_id") or ""))
+        ce = (cc or {}).get("center")
+        if not ce or not col:
+            continue
+        dist = ((ce[0] - cx) ** 2 + (ce[1] - cy) ** 2) ** 0.5
+        cur = by_col.get(col)
+        if not cur or dist < cur["dist"]:
+            by_col[col] = {"colonia": col, "dist": dist, "n": 1}
+        else:
+            cur["n"] += 1
+    out = sorted(by_col.values(), key=lambda x: x["dist"])[:k]
+    return [{"colonia": o["colonia"], "n": o["n"]} for o in out]
+
+
+class GuardarBusquedaIn(PerfilIn):
+    visitor_id: Optional[str] = None
+    found_count: int = 0
+    alert: bool = False   # el cliente quiere que le avisemos cuando entre inventario (E4 casamentera)
+
+
+@router.post("/api/perfil/registrar-busqueda")
+async def registrar_busqueda(b: GuardarBusquedaIn, request: Request):
+    """Registra la búsqueda del comprador como DEMANDA anónima en marketplace_searches → el Grafo del Comprador la
+    agrega (k-anon ≥3) para DEV (/api/dev/grafo-comprador) y SUPERADMIN (/api/superadmin/grafo-comprador) +
+    demand-gap. Cierra el ciclo (no standalone). Las búsquedas SIN resultado (unmet) son el dato de hueco de
+    mercado más valioso. Anónimo (ip_hash, sin PII); se vuelve lead solo cuando el cliente contacta (E3)."""
+    import hashlib as _h, uuid as _u
+    from datetime import datetime as _dt
+    try:
+        db = request.app.state.db
+        ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+              or (request.client.host if request.client else ""))
+        now = _dt.utcnow()
+        cols = [_norm(c) for c in (b.colonias or []) if c]
+        doc = {
+            "id": f"mks_{_u.uuid4().hex[:12]}", "source": "perfilador",
+            "colonias": cols, "colonia_id": (cols[0] if cols else None),
+            "recamaras_min": b.recamaras_min, "banos_min": b.banos_min,
+            "estacionamientos_min": b.estacionamientos_min, "precio_max": b.presupuesto_max,
+            "m2_min": b.m2_min, "uso": b.uso, "stages": b.stages, "plazo": b.plazo,
+            "results_count": b.found_count, "unmet": (b.found_count == 0), "alert": bool(b.alert),
+            "ip_hash": _h.sha256(f"{ip}:dmx_mks".encode()).hexdigest()[:16] if ip else None,
+            "created_at": now.isoformat(), "created_at_dt": now,
+        }
+        # Dedup: 1 búsqueda viva por visitor + perfil (upsert) → no inflar la demanda con recálculos.
+        key = _h.sha256(f"{b.visitor_id}|{cols}|{b.presupuesto_max}|{b.recamaras_min}|{b.stages}".encode()).hexdigest()[:20]
+        await db.marketplace_searches.update_one({"dedup_key": key}, {"$set": {**doc, "dedup_key": key}}, upsert=True)
+        return {"ok": True, "registrada": True}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[perfil/registrar] fail-open: {e}")
+        return {"ok": False}

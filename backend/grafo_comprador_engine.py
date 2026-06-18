@@ -184,20 +184,43 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
     except Exception as e:
         log.warning(f"[grafo] búsquedas agg fail-open: {e}")
 
-    # 2b. P2.6 · comprador→grafo: las búsquedas del MARKETPLACE (demanda revelada anónima del
-    # comprador) entran como señal de demanda por colonia, junto a las del asesor. Cierra el ciclo.
+    # 2b. P2.6 + Copiloto E5 · comprador→grafo: las búsquedas del MARKETPLACE/Perfilador (demanda revelada anónima)
+    # entran como señal de demanda por colonia, JUNTO a las del asesor. Las del Perfilador traen el perfil completo
+    # (recámaras/precio/etapa) → alimentan las celdas RICAS, no solo conteos. Cierra el ciclo dev/superadmin.
     mkt_by_name: Counter = Counter()
     try:
+        proj2 = {"_id": 0, "colonia_id": 1, "colonias": 1, "recamaras_min": 1, "banos_min": 1,
+                 "estacionamientos_min": 1, "precio_max": 1, "m2_min": 1, "amenidades": 1}
         async for s in db.marketplace_searches.find(
-                {"created_at_dt": {"$gte": now - timedelta(days=dias)}},
-                {"_id": 0, "colonia_id": 1, "colonias": 1}):
+                {"created_at_dt": {"$gte": now - timedelta(days=dias)}}, proj2):
             slugs = s.get("colonias") or ([s.get("colonia_id")] if s.get("colonia_id") else [])
+            names = []
             for sl in slugs:
                 cc = COLONIAS_BY_ID.get(str(sl).strip().lower())
                 nm = str((cc or {}).get("name", sl)).strip().lower()
                 if nm:
-                    mkt_by_name[nm] += 1
-                    col_total[nm] += 1   # suma a la demanda total de la colonia (banda honesta)
+                    names.append(nm)
+            if not names:
+                continue
+            seg, _, _ = infer_segment(s, None)
+            amen = [str(a).strip().lower() for a in (s.get("amenidades") or [])]
+            for nm in names:
+                mkt_by_name[nm] += 1
+                col_total[nm] += 1
+                cell = cells[(nm, seg)]   # celda RICA (igual que las búsquedas del asesor)
+                cell["n"] += 1
+                if s.get("recamaras_min") is not None:
+                    cell["rec"].append(s["recamaras_min"])
+                if s.get("banos_min") is not None:
+                    cell["ban"].append(s["banos_min"])
+                if s.get("estacionamientos_min") is not None:
+                    cell["caj"].append(s["estacionamientos_min"])
+                if s.get("precio_max"):
+                    cell["precio"].append(int(s["precio_max"]))
+                if s.get("m2_min"):
+                    cell["m2"].append(int(s["m2_min"]))
+                for a in amen:
+                    cell["amen"][a] += 1
     except Exception as e:
         log.warning(f"[grafo] marketplace_searches fail-open: {e}")
 
