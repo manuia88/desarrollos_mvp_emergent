@@ -239,18 +239,30 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     [developments, budgetMax, stages, onlyTrusted]
   );
 
+  // Campos OBLIGATORIOS para buscar (regla founder): ZONA + PRESUPUESTO + RECÁMARAS + METRAJE (m²). Cualquiera puede
+  // ser multi/rango. Sin los 4 → no hay búsqueda; la alerta dice EXACTAMENTE cuáles faltan (filtros más asertivos).
+  const hasZona = !!(coloniaFilter || (filters.colonia || []).length || (aiFilters && aiFilters.colonia));
+  const hasPrecio = !!(filters.min_price || filters.max_price || budgetMax || (aiFilters && (aiFilters.min_price || aiFilters.max_price)));
+  const hasRecamaras = !!(filters.beds || (aiFilters && aiFilters.beds));
+  const hasMetraje = !!(filters.min_sqm || filters.max_sqm || (aiFilters && (aiFilters.min_sqm || aiFilters.max_sqm)));
+  const requiredFields = [
+    { label: 'zona', ok: hasZona },
+    { label: 'presupuesto', ok: hasPrecio },
+    { label: 'recámaras', ok: hasRecamaras },
+    { label: 'metros (m²)', ok: hasMetraje },
+  ];
+  const canSearch = requiredFields.every((f) => f.ok);
+
   // "Los que más se asemejan": si 0 resultados exactos, trae los más cercanos + qué les falta. SOLO con ZONA
   // (no recomendamos en zonas que el cliente no pidió — la zona es sagrada).
   useEffect(() => {
     const merged = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
-    const tieneZona = !!(coloniaFilter || (filters.colonia || []).length || (aiFilters && aiFilters.colonia));
-    const otrosCrit = Object.keys(merged).filter((k) => k !== 'colonia').some((k) => merged[k] != null && merged[k] !== '' && !(Array.isArray(merged[k]) && merged[k].length === 0));
-    if (!loading && visibleDevs.length === 0 && tieneZona && otrosCrit) {
+    if (!loading && canSearch && visibleDevs.length === 0) {
       fetchCasiCumple(merged).then((r) => setCasiResults(r?.casi || [])).catch(() => setCasiResults([]));
     } else {
       setCasiResults([]);
     }
-  }, [visibleDevs.length, loading, filters, aiFilters, coloniaFilter]);
+  }, [visibleDevs.length, loading, canSearch, filters, aiFilters, coloniaFilter]);
 
   const resultsText = useMemo(
     () => t('marketplace_v2.results_count', { count: visibleDevs.length }),
@@ -588,9 +600,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 </div>
               );
             })()}
-            <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
-              {resultsText}
-            </div>
+            {canSearch && (
+              <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
+                {resultsText}
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 280px) 1fr', gap: 24, alignItems: 'flex-start' }}>
               <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 92, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
@@ -602,7 +616,33 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 />
               </aside>
               <div>
-                {loading ? (
+                {!canSearch ? (
+                  <div data-testid="mkp-needs-zona-precio" style={{
+                    padding: '52px 32px', textAlign: 'center',
+                    background: '#fff', border: '1px dashed var(--border)', borderRadius: 18,
+                    fontFamily: 'DM Sans', color: 'var(--cream-2)',
+                  }}>
+                    <div style={{ fontSize: 34, marginBottom: 12 }}>🔎</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginBottom: 8 }}>
+                      {requiredFields.some((f) => f.ok) ? 'Te falta completar tu búsqueda' : 'Dinos qué buscas para empezar'}
+                    </div>
+                    <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 480, margin: '0 auto 18px', lineHeight: 1.55 }}>
+                      Con estos 4 datos te damos opciones precisas (cualquiera puede ser un rango): <b style={{ color: '#B9822E' }}>te falta {requiredFields.filter((f) => !f.ok).map((f) => f.label).join(', ')}</b>.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 22 }}>
+                      {requiredFields.map((f) => (
+                        <span key={f.label} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 9999,
+                          fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
+                          background: f.ok ? 'rgba(31,160,106,0.10)' : 'var(--bg-3)',
+                          border: '1px solid ' + (f.ok ? 'rgba(31,160,106,0.32)' : 'var(--border)'),
+                          color: f.ok ? '#1FA06A' : 'var(--cream-3)',
+                        }}>{f.ok ? '✓' : '○'} {f.label}</span>
+                      ))}
+                    </div>
+                    <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary">✨ Empezar mi búsqueda</button>
+                  </div>
+                ) : loading ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
                 ) : visibleDevs.length === 0 ? (
                   (() => {

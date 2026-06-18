@@ -1206,6 +1206,23 @@ class AISearchIn(BaseModel):
     query: str
 
 
+_AI_RATE: Dict[str, list] = {}
+_AI_RATE_MAX = int(os.environ.get("AI_SEARCH_MAX_PER_HOUR", "40"))
+
+
+def _ai_rate_ok(ip: str) -> bool:
+    """Cap de costo del LLM: máx N búsquedas con IA por IP/hora. Si se pasa → False (se usa el parser gratis)."""
+    import time as _t
+    now = _t.time()
+    bucket = [t for t in _AI_RATE.get(ip, []) if now - t < 3600]
+    if len(bucket) >= _AI_RATE_MAX:
+        _AI_RATE[ip] = bucket
+        return False
+    bucket.append(now)
+    _AI_RATE[ip] = bucket
+    return True
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
@@ -1222,7 +1239,13 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
             return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible")}
     parsed = {}
+    # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
+    # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
+    _ip = (request.client.host if request.client else "") or "x"
+    _allow_llm = _ai_rate_ok(_ip)
     try:
+        if not _allow_llm:
+            raise RuntimeError("ai_rate_limited")  # salta al fallback determinista
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
