@@ -268,6 +268,10 @@ body.public-light .btn-icon-circle {
 }
 .theme-light-scope .btn-icon-circle:hover,
 body.public-light .btn-icon-circle:hover { background: #fff; }
+/* Botón "+ Comparar" en la tarjeta: aparece al hover (no satura la imagen por defecto). */
+.mkt-compare-btn { opacity: 0; transition: opacity .15s ease; }
+[data-testid="development-card"]:hover .mkt-compare-btn { opacity: 1; }
+@media (hover: none) { .mkt-compare-btn { opacity: 1; } }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .card {

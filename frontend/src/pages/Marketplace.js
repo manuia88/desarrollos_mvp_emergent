@@ -450,7 +450,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 280px) 1fr', gap: 24, alignItems: 'flex-start' }}>
-              <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 130 }}>
+              <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 92, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
                 <OportunidadPanel
                   developments={developments}
                   radar={radar}
@@ -485,6 +485,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         {/* W5.x F4.2 — botón "+ Comparar" outline · localStorage basket */}
                         <button
                           type="button"
+                          className="mkt-compare-btn"
                           data-testid={`btn-add-compare-${d.id}`}
                           onClick={(e) => {
                             e.preventDefault();
@@ -500,12 +501,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                             } catch { /* ignore */ }
                           }}
                           style={{
-                            position: 'absolute', top: 12, right: 12, zIndex: 5,
-                            padding: '6px 14px', borderRadius: 9999,
-                            background: 'var(--surface-card)', border: '1px solid rgba(99,102,241,0.5)',
-                            color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif',
-                            fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
-                            cursor: 'pointer', backdropFilter: 'blur(24px)',
+                            position: 'absolute', top: 48, left: 12, zIndex: 5,
+                            padding: '6px 12px', borderRadius: 9999,
+                            background: 'rgba(255,255,255,0.94)', border: '1px solid var(--border)',
+                            color: 'var(--theme)', fontFamily: 'DM Sans, sans-serif',
+                            fontSize: 11.5, fontWeight: 700,
+                            cursor: 'pointer', backdropFilter: 'blur(8px)',
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            boxShadow: '0 2px 8px rgba(16,18,28,0.12)',
                           }}
                         >
                           + Comparar

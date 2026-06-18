@@ -19,6 +19,10 @@ const STAGE_COLORS = {
   exclusiva: { bg: 'linear-gradient(90deg, rgba(139,92,246,0.85), rgba(var(--theme-rgb),0.85))', glow: 'rgba(139,92,246,0.45)' },
 };
 
+// Color sólido por etapa (para el tag sutil sobre la foto · texto de color, no pill saturado).
+const STAGE_SOLID = { preventa: '#0E9F6E', en_construccion: '#D97706', entrega_inmediata: '#2563EB', exclusiva: '#7C3AED' };
+const stageColorOf = (s) => STAGE_SOLID[s] || '#7C3AED';
+
 function Fallback({ hue = 231, seed = 0 }) {
   return (
     <svg viewBox="0 0 400 240" style={{ width: '100%', height: '100%' }} preserveAspectRatio="xMidYMid slice">
@@ -129,8 +133,15 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const specs = [
     { Icon: Bed, v: rng(dev.bedrooms_range), unit: 'rec' },
     { Icon: Bath, v: rng(dev.bathrooms_range), unit: 'baños' },
+    { Icon: Car, v: rng(dev.parking_range), unit: 'autos' },
     { Icon: Ruler, v: rng(dev.m2_range), unit: 'm²' },
   ].filter(s => s.v != null);
+  // Precio vs promedio de la zona, en lenguaje humano (antes "+38% vs zona" no se entendía).
+  const vz = typeof dev.precio_vs_zona_pct === 'number' ? dev.precio_vs_zona_pct : null;
+  const vzText = vz == null ? null
+    : vz <= -8 ? { t: `${Math.abs(vz)}% bajo la zona`, c: '#1FA06A' }
+    : vz < 12 ? { t: 'En precio de zona', c: 'var(--cream-3)' }
+    : { t: `${vz}% sobre la zona`, c: 'var(--cream-3)' };
 
   return (
     <Link
@@ -153,27 +164,17 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         )}
 
-        {/* Precio — pill oscuro arriba-izquierda (patrón xproperty) */}
+        {/* Etapa — tag sutil (sin saturar la imagen: blanco translúcido + texto de color) */}
         <div style={{
-          position: 'absolute', top: 14, left: 14, zIndex: Z.BASE,
-          background: 'rgba(16,18,28,0.80)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          color: '#fff', borderRadius: 13, padding: '9px 15px',
-          fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, letterSpacing: '-0.02em', lineHeight: 1,
-        }}>
-          {dev.price_from_display}
-          <span style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 500, opacity: 0.7, marginLeft: 4 }}>desde</span>
-        </div>
-
-        {/* Etapa — pill de color bajo el precio */}
-        <div style={{
-          position: 'absolute', top: 54, left: 14, zIndex: Z.BASE,
-          background: stageCfg.bg, color: '#fff', borderRadius: 9999, padding: '4px 11px',
-          fontFamily: 'Outfit', fontWeight: 700, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase',
+          position: 'absolute', top: 12, left: 12, zIndex: Z.BASE,
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+          color: stageColorOf(dev.stage), borderRadius: 8, padding: '4px 10px',
+          fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, letterSpacing: '0.07em', textTransform: 'uppercase',
         }}>
           {t(`marketplace_v2.stage.${dev.stage}`)}
         </div>
 
-        {/* Compliance (top-right) + rank (bottom-left) — overlays existentes */}
+        {/* Compliance + rank (overlays sutiles existentes) */}
         <ComplianceBadgeOverlay devId={dev.id} />
         {rank?.badge_tier && <IERankPill rank={rank} />}
 
@@ -194,6 +195,20 @@ export default function DevelopmentCard({ dev, index = 0 }) {
               ))}
             </div>
           </>
+        )}
+      </div>
+
+      {/* ── PRECIO (limpio, abajo de la foto · no sobre fondo negro) ── */}
+      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 23, color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+          {dev.price_from_display}
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 5 }}>desde</span>
+        </div>
+        {dev.price_m2_dev && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</span>
+            {vzText && <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: vzText.c === '#1FA06A' ? 700 : 500 }} title="Precio por m² vs el promedio de su colonia">{vzText.t}</span>}
+          </div>
         )}
       </div>
 
@@ -225,29 +240,17 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         </div>
       </div>
 
-      {/* ── SEÑALES DE VALOR ($/m² + vs zona + plusvalía) ── */}
-      {(dev.price_m2_dev || dev.plusvalia_zona) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px 0', flexWrap: 'wrap' }}>
-          {dev.price_m2_dev && (
-            <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-2)' }}>
-              ${Math.round(dev.price_m2_dev / 1000)}k/m²
-            </span>
-          )}
-          {typeof dev.precio_vs_zona_pct === 'number' && (
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }} title="Precio/m² vs el promedio de la colonia">
-              {dev.precio_vs_zona_pct > 0 ? '+' : ''}{dev.precio_vs_zona_pct}% vs zona
-            </span>
-          )}
-          {dev.plusvalia_zona && (
-            <span style={{
-              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-              color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.10)',
-              border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '3px 9px',
-            }} title="Plusvalía reciente de la colonia">
-              ↗ {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
-            </span>
-          )}
+      {/* ── PLUSVALÍA de la zona (señal de inversión · separada del precio) ── */}
+      {dev.plusvalia_zona && (
+        <div style={{ padding: '12px 18px 0' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+            color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.10)',
+            border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
+          }} title="Plusvalía reciente de la colonia (cuánto ha subido la zona)">
+            ↗ Plusvalía {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+          </span>
         </div>
       )}
 
