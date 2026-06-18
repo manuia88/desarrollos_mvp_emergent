@@ -132,15 +132,14 @@ export function ProbabilityBadge({ type, entity_id, params = {}, format = 'compa
   const pct = data.probability_pct;
   const color = _color(pct);
   const bgAlpha = _bgAlpha(pct);
-  const label = t(`probability.badge.${type}`, { pct });
-
-  // label fallback
+  // Etiqueta legible (antes mostraba la key i18n cruda "probability.badge.*": t() devuelve la key cuando
+  // falta la traducción → truthy → nunca caía al fallback). defaultValue lo resuelve de raíz.
   const typeLabels = {
-    sells_complete: `${pct}% vende`,
-    drpi_up: `${pct}% sube`,
-    closes_below_listed: `${pct}% cierre`,
+    sells_complete: `${pct}% se vende`,
+    drpi_up: `${pct}% plusvalía`,
+    closes_below_listed: `${pct}% bajo lista`,
   };
-  const displayLabel = label || typeLabels[type] || `${pct}%`;
+  const displayLabel = t(`probability.badge.${type}`, { pct, defaultValue: typeLabels[type] || `${pct}%` });
 
   return (
     <div
