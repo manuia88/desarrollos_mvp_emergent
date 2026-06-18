@@ -71,6 +71,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
   const { t, i18n } = useTranslation();
   const [aiText, setAiText] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
+  const [locQuery, setLocQuery] = useState('');   // Ubicación · buscador abierto (no lista fija)
 
   const set = (k, v) => setFilters({ ...filters, [k]: v });
   const toggle = (k, v) => {
@@ -78,9 +79,17 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
     set(k, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
   };
 
-  const TIPOS = ['dept', 'casa', 'ph', 'loft'];
-  const STAGES = ['preventa', 'en_construccion', 'entrega_inmediata', 'exclusiva'];
-  const AMENITIES = ['gym', 'roof', 'alberca', 'concierge', 'pet', 'seguridad', 'estacionamiento', 'spa', 'cowork', 'bicicletas', 'business_center', 'salon_eventos'];
+  // Tipo = Casa/Departamento · Etapa = Preventa/Entrega inmediata · si preventa → plazo de entrega.
+  const TIPOS = [['departamento', 'Departamento'], ['casa', 'Casa']];
+  const ETAPAS = [['preventa', 'Preventa'], ['entrega_inmediata', 'Entrega inmediata']];
+  const PLAZOS = [['menos_3', 'En menos de 3 meses'], ['3_6', '3 a 6 meses'], ['6_12', '6 a 12 meses'], ['mas_12', 'Más de 12 meses']];
+  const AMENITIES = ['balcon', 'terraza', 'roof_garden', 'gym', 'alberca', 'concierge', 'pet', 'seguridad', 'spa', 'cowork', 'bicicletas', 'salon_eventos'];
+  const AMEN_LABEL = { balcon: 'Balcón', terraza: 'Terraza', roof_garden: 'Roof garden', gym: 'Gym', alberca: 'Alberca', concierge: 'Concierge', pet: 'Pet friendly', seguridad: 'Seguridad', spa: 'Spa', cowork: 'Coworking', bicicletas: 'Bicicletas', salon_eventos: 'Salón de eventos' };
+  // Ubicación buscable sobre TODAS las colonias reales.
+  const locSug = locQuery.trim().length >= 2
+    ? (colonias || []).filter(c => (c.name || '').toLowerCase().includes(locQuery.toLowerCase()) && !(filters.colonia || []).includes(c.id)).slice(0, 6)
+    : [];
+  const locName = (id) => (colonias || []).find(c => c.id === id)?.name || id;
   const PRICES = [
     { k: 'u3', min: 0, max: 3000000, label: i18n.language === 'en' ? 'Under $3M' : 'Hasta $3M' },
     { k: 'u6', min: 3000000, max: 6000000, label: '$3M — $6M' },
@@ -169,88 +178,89 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
           label={t('marketplace_v2.filter_location')}
           testId="filter-location"
           badge={(filters.colonia || []).length}
-          onClear={() => set('colonia', [])}>
-          <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {colonias.map(c => {
-              const active = (filters.colonia || []).includes(c.id);
-              return (
-                <button key={c.id}
-                  data-testid={`loc-${c.id}`}
-                  onClick={() => toggle('colonia', c.id)}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '7px 10px', borderRadius: 9999,
-                    border: `1px solid ${active ? c.color + '60' : 'var(--border)'}`,
-                    background: active ? c.color + '18' : 'transparent',
-                    cursor: 'pointer',
-                    fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)',
-                    textAlign: 'left',
-                  }}>
-                  <span>{c.name}</span>
-                  <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>{c.alcaldia}</span>
-                </button>
-              );
-            })}
+          onClear={() => { set('colonia', []); setLocQuery(''); }}>
+          <div style={{ width: 250 }}>
+            {/* Buscador ABIERTO sobre las ~1,800 colonias reales (no lista fija que rompa la búsqueda). */}
+            {(filters.colonia || []).length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {(filters.colonia || []).map(id => (
+                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9999, background: 'var(--theme)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12 }}>
+                    {locName(id)}<span onClick={() => toggle('colonia', id)} style={{ cursor: 'pointer', fontWeight: 800 }}>×</span>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input data-testid="loc-search" value={locQuery} onChange={e => setLocQuery(e.target.value)}
+              placeholder="Escribe una colonia o zona…"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-3)', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', outline: 'none', boxSizing: 'border-box' }} />
+            {locSug.length > 0 && (
+              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 220, overflowY: 'auto' }}>
+                {locSug.map(c => (
+                  <button key={c.id} data-testid={`loc-${c.id}`} onClick={() => { toggle('colonia', c.id); setLocQuery(''); }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 9, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', textAlign: 'left' }}>
+                    <span>{c.name}</span><span style={{ fontSize: 10, color: 'var(--cream-3)' }}>{c.alcaldia}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {locQuery.trim().length >= 2 && locSug.length === 0 && <div style={{ marginTop: 8, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Sin resultados. Prueba otro nombre.</div>}
           </div>
         </Popover>
 
-        {/* Type */}
+        {/* Type · Casa/Departamento + Etapa + (si preventa) plazo de entrega */}
         <Popover
-          label={t('marketplace_v2.filter_type')}
+          label="Tipo"
           testId="filter-type"
-          badge={filters.tipo ? 1 : 0}
-          onClear={() => set('tipo', undefined)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {TIPOS.map(tp => {
-              const active = filters.tipo === tp;
-              return (
-                <button key={tp}
-                  data-testid={`type-${tp}`}
-                  onClick={() => set('tipo', active ? undefined : tp)}
-                  className={`filter-chip${active ? ' active' : ''}`}
-                  style={{ justifyContent: 'flex-start' }}>
-                  {t(`marketplace_v2.type.${tp}`)}
-                </button>
-              );
-            })}
-            <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
-              Etapa
+          badge={(filters.tipo ? 1 : 0) + (filters.stage ? 1 : 0)}
+          onClear={() => setFilters({ ...filters, tipo: undefined, stage: undefined, plazo: undefined })}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 230 }}>
+            <div className="eyebrow" style={{ marginBottom: 2 }}>Tipo de propiedad</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {TIPOS.map(([k, label]) => (
+                <button key={k} data-testid={`type-${k}`} onClick={() => set('tipo', filters.tipo === k ? undefined : k)}
+                  className={`filter-chip${filters.tipo === k ? ' active' : ''}`} style={{ flex: 1 }}>{label}</button>
+              ))}
             </div>
-            {STAGES.map(s => {
-              const active = filters.stage === s;
-              return (
-                <button key={s}
-                  data-testid={`stage-${s}`}
-                  onClick={() => set('stage', active ? undefined : s)}
-                  className={`filter-chip${active ? ' active' : ''}`}
-                  style={{ justifyContent: 'flex-start' }}>
-                  {t(`marketplace_v2.stage.${s}`)}
-                </button>
-              );
-            })}
+            <div className="eyebrow" style={{ margin: '10px 0 2px' }}>Etapa</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {ETAPAS.map(([k, label]) => (
+                <button key={k} data-testid={`stage-${k}`} onClick={() => set('stage', filters.stage === k ? undefined : k)}
+                  className={`filter-chip${filters.stage === k ? ' active' : ''}`} style={{ flex: 1, fontSize: 12 }}>{label}</button>
+              ))}
+            </div>
+            {filters.stage === 'preventa' && (
+              <>
+                <div className="eyebrow" style={{ margin: '10px 0 2px' }}>¿Cuándo la entregan?</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {PLAZOS.map(([k, label]) => (
+                    <button key={k} data-testid={`plazo-${k}`} onClick={() => set('plazo', filters.plazo === k ? undefined : k)}
+                      className={`filter-chip${filters.plazo === k ? ' active' : ''}`} style={{ justifyContent: 'flex-start' }}>{label}</button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </Popover>
 
-        {/* Price */}
+        {/* Price · rango libre desde/hasta */}
         <Popover
           label={t('marketplace_v2.filter_price')}
           testId="filter-price"
           badge={filters.min_price || filters.max_price ? 1 : 0}
           onClear={() => setFilters({ ...filters, min_price: undefined, max_price: undefined })}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {PRICES.map(p => {
-              const active = filters.min_price === p.min && filters.max_price === p.max;
-              return (
-                <button key={p.k}
-                  data-testid={`price-${p.k}`}
-                  onClick={() => setFilters({ ...filters, min_price: active ? undefined : p.min, max_price: active ? undefined : p.max })}
-                  className={`filter-chip${active ? ' active' : ''}`}
-                  style={{ justifyContent: 'flex-start' }}>
-                  {p.label}
-                </button>
-              );
-            })}
+          <div style={{ width: 240 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 8 }}>Elige tu rango (ej. $10M a $11M).</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input type="number" placeholder="Desde $" data-testid="price-min" value={filters.min_price || ''}
+                onChange={e => set('min_price', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
+              <input type="number" placeholder="Hasta $" data-testid="price-max" value={filters.max_price || ''}
+                onChange={e => set('max_price', e.target.value ? +e.target.value : undefined)} style={drawerInputStyle} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+              {[['Hasta $5M', undefined, 5e6], ['$5–10M', 5e6, 1e7], ['$10–20M', 1e7, 2e7], ['+$20M', 2e7, undefined]].map(([lab, mn, mx]) => (
+                <button key={lab} onClick={() => setFilters({ ...filters, min_price: mn, max_price: mx })} className="filter-chip" style={{ fontSize: 11.5 }}>{lab}</button>
+              ))}
+            </div>
           </div>
         </Popover>
 
@@ -389,7 +399,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
                     data-testid={`more-amenity-${a}`}
                     onClick={() => toggle('amenity', a)}
                     className={`filter-chip${active ? ' active' : ''}`}>
-                    {t(`marketplace_v2.amenity_aliases.${a}`)}
+                    {AMEN_LABEL[a] || a}
                   </button>
                 );
               })}
