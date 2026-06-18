@@ -77,6 +77,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     return () => document.body.classList.remove('public-light');
   }, []);
 
+  // Restaura el perfil aplicado al volver de una ficha (el componente se re-monta) → no se pierden las opciones.
+  useEffect(() => {
+    try { const s = sessionStorage.getItem('dmx_applied_profile'); if (s) setAppliedProfile(JSON.parse(s)); } catch { /* noop */ }
+  }, []);
+
   // W4.2D1 — Hydrate state from URL params on mount
   useEffect(() => {
     const { filters: urlFilters, coloniaFilter: urlColonia } = urlToFilters(window.location.search);
@@ -461,7 +466,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                       <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>✨ Hechas para ti</div>
                       <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,28px)', color: 'var(--cream)', letterSpacing: '-0.025em', margin: 0 }}>Tus mejores opciones</h2>
                     </div>
-                    <button onClick={() => setAppliedProfile(null)} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Quitar mi perfil ✕</button>
+                    <button onClick={() => { setAppliedProfile(null); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Quitar mi perfil ✕</button>
                   </div>
                   {appliedProfile.nota && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 18 }}>
@@ -648,7 +653,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <Perfilador
         open={perfiladorOpen}
         onClose={() => setPerfiladorOpen(false)}
-        onApply={(prof, data) => { setAppliedProfile({ ...prof, ...data }); if (data?.results?.[0]) setTimeout(() => window.scrollTo({ top: 360, behavior: 'smooth' }), 60); }}
+        onApply={(prof, data) => {
+          const ap = { ...prof, ...data };
+          setAppliedProfile(ap);
+          // Persiste para que al ir a una ficha y REGRESAR no se pierdan las opciones (el componente se re-monta).
+          try { sessionStorage.setItem('dmx_applied_profile', JSON.stringify(ap)); } catch { /* noop */ }
+          if (data?.results?.[0]) setTimeout(() => window.scrollTo({ top: 360, behavior: 'smooth' }), 60);
+        }}
         colonias={colonias}
       />
 
