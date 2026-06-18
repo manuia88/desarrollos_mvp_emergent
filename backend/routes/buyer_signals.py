@@ -24,7 +24,8 @@ from pydantic import BaseModel
 log = logging.getLogger("dmx.routes_buyer_signals")
 router = APIRouter(tags=["buyer-signals"])
 
-VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "share", "dwell", "photo_dwell"}
+VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "share", "dwell", "photo_dwell",
+         "unit_view", "unit_save", "unit_unsave"}   # D · embudo POR UNIDAD + unidad como átomo
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -45,6 +46,7 @@ class SignalIn(BaseModel):
     visitor_id: str
     type: str                       # view | ficha_view | like | unlike | save | compare | share | dwell | photo_dwell
     entity_id: Optional[str] = None  # dev/propiedad
+    unit_number: Optional[str] = None  # unidad específica (#02A) para el embudo por unidad + unidad como átomo
     colonia: Optional[str] = None    # nombre o slug (para el Grafo por colonia)
     value: Optional[str] = None      # libre (ej. sección leída, estilo)
     dwell_ms: Optional[int] = None
@@ -67,6 +69,7 @@ async def buyer_signal(s: SignalIn, request: Request):
             "visitor_id": s.visitor_id[:64],
             "type": s.type,
             "entity_id": (s.entity_id or None),
+            "unit_number": (s.unit_number or None),
             "colonia": (s.colonia or "").strip().lower() or None,
             "value": (s.value or "")[:120] or None,
             "dwell_ms": dwell,
@@ -80,6 +83,12 @@ async def buyer_signal(s: SignalIn, request: Request):
             await db.buyer_signals.update_one(
                 {"visitor_id": doc["visitor_id"], "type": base, "entity_id": doc["entity_id"]},
                 {"$set": {**doc, "type": base, "active": on}}, upsert=True)
+        elif s.type in ("unit_save", "unit_unsave"):
+            # Unidad como átomo: guardar/quitar la UNIDAD específica (upsert por visitor+dev+unidad).
+            on = s.type == "unit_save"
+            await db.buyer_signals.update_one(
+                {"visitor_id": doc["visitor_id"], "type": "unit_save", "entity_id": doc["entity_id"], "unit_number": doc["unit_number"]},
+                {"$set": {**doc, "type": "unit_save", "active": on}}, upsert=True)
         else:
             await db.buyer_signals.insert_one(doc)
         return {"ok": True}
@@ -109,6 +118,27 @@ async def registrar_elasticidad(b: ElasticidadIn, request: Request):
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] elasticidad fail: {e}")
         return {"ok": False}
+
+
+@router.get("/api/desarrollo/{dev_id}/embudo-unidades")
+async def embudo_unidades(dev_id: str, request: Request):
+    """D · Embudo POR UNIDAD para el dev: cuántos VIERON y GUARDARON cada unidad (#02A) — qué unidad mueve y cuál no."""
+    try:
+        db = request.app.state.db
+        from collections import defaultdict
+        fun = defaultdict(lambda: {"vistas": 0, "guardados": 0})
+        async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_view"}, {"_id": 0, "unit_number": 1}):
+            if s.get("unit_number"):
+                fun[s["unit_number"]]["vistas"] += 1
+        async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_save", "active": True}, {"_id": 0, "unit_number": 1}):
+            if s.get("unit_number"):
+                fun[s["unit_number"]]["guardados"] += 1
+        out = [{"unidad": k, **v} for k, v in fun.items()]
+        out.sort(key=lambda x: (-x["guardados"], -x["vistas"]))
+        return {"ok": True, "unidades": out}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] embudo-unidades: {e}")
+        return {"ok": True, "unidades": []}
 
 
 @router.get("/api/desarrollo/{dev_id}/interes")

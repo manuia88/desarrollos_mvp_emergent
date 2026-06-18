@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
 import { unitMatchesCriteria, criteriaSummary } from '../../lib/unitMatch';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 
 const PUBLIC_VISIBLE_COUNT = 3;
 
@@ -64,9 +65,18 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
 
   const visibleCount = isRegistered ? filtered.length : Math.min(PUBLIC_VISIBLE_COUNT, filtered.length);
 
+  const [savedUnits, setSavedUnits] = useState(() => new Set());
   const onRowClick = (u, locked) => {
     if (locked) { onGateOpen(t('dev.gate_context_unit')); return; }
+    // D · embudo por unidad: la unidad fue VISTA.
+    try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia_id || dev.colonia }); } catch { /* noop */ }
     onSelectUnit(u);
+  };
+  // Unidad como ÁTOMO: guardar/quitar la UNIDAD específica (no solo el desarrollo).
+  const toggleSaveUnit = (u) => {
+    const on = !savedUnits.has(u.unit_number);
+    setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u.unit_number); else n.delete(u.unit_number); return n; });
+    try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia_id || dev.colonia }); } catch { /* noop */ }
   };
 
   const onFloorUnitClick = (u) => {
@@ -254,6 +264,8 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
             t={t}
             verdicts={verdicts}
             matchIds={matchIds}
+            onSaveUnit={toggleSaveUnit}
+            savedUnits={savedUnits}
           />
           {!isRegistered && filtered.length > visibleCount && (
             <div
@@ -321,7 +333,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
   );
 }
 
-function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {}, matchIds = new Set() }) {
+function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUnit, t, verdicts = {}, matchIds = new Set(), onSaveUnit, savedUnits = new Set() }) {
   const cols = [
     { k: 'unit_number', label: 'ID', w: 60 },
     { k: 'prototype', label: 'Proto', w: 50 },
@@ -400,7 +412,14 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
                     {c.render ? c.render(u[c.k]) : u[c.k]}
                   </td>
                 ))}
-                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  {onSaveUnit && (
+                    <button data-testid={`row-save-${u.id}`} title="Guardar esta unidad"
+                      onClick={e => { e.stopPropagation(); onSaveUnit(u); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, marginRight: 6, color: savedUnits.has(u.unit_number) ? 'var(--theme)' : 'var(--cream-3)' }}>
+                      {savedUnits.has(u.unit_number) ? '♥' : '♡'}
+                    </button>
+                  )}
                   <button data-testid={`row-info-${u.id}`}
                     className="btn btn-ghost btn-sm"
                     style={{ fontSize: 11, padding: '4px 10px' }}
