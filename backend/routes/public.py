@@ -703,6 +703,7 @@ async def list_developments(
     _oset = {o.lower() for o in (orientacion or [])}
     _has_unit_crit = any(v is not None for v in (min_price, max_price, min_sqm, max_sqm, beds, baths, parking, piso_min)) or _ufset or _oset
     match_counts: Dict[str, int] = {}
+    match_samples: Dict[str, list] = {}
     if _has_unit_crit:
         def _unit_ok(u: dict) -> bool:
             if u.get("status") != "disponible":
@@ -731,32 +732,47 @@ async def list_developments(
                 return False
             return True
 
-        def _dev_match_count(d: dict) -> int:
-            units = d.get("units") or []
-            if units:
-                return sum(1 for u in units if _unit_ok(u))
+        def _range_ok(d: dict) -> bool:
             # Sin lista de precios → cae a los rangos del proyecto (no perder desarrollos sin inventario detallado).
             if beds is not None and d.get("bedrooms_range", [0, 0])[1] < beds:
-                return 0
+                return False
             if baths is not None and d.get("bathrooms_range", [0, 0])[1] < baths:
-                return 0
+                return False
             if parking is not None and d.get("parking_range", [0, 0])[1] < parking:
-                return 0
+                return False
             if min_sqm is not None and d.get("m2_range", [0, 0])[1] < min_sqm:
-                return 0
+                return False
             if max_sqm is not None and d.get("m2_range", [0, 0])[0] > max_sqm:
-                return 0
+                return False
             if max_price is not None and d.get("price_from", 0) > max_price:
-                return 0
+                return False
             if min_price is not None and d.get("price_to", 10**12) < min_price:
-                return 0
+                return False
             if _ufset and not set(_ufset).issubset({x.lower() for x in d.get("unit_features", [])}):
-                return 0
-            return 1
+                return False
+            return True
 
-        _scored = [(d, _dev_match_count(d)) for d in results]
-        results = [d for d, n in _scored if n > 0]
-        match_counts = {d["id"]: n for d, n in _scored if n > 0}
+        def _unit_card(u: dict) -> dict:
+            # Lo mínimo para NOMBRAR la unidad en el front (unidad real disponible que cumple).
+            return {
+                "unit_number": u.get("unit_number"), "prototype": u.get("prototype"), "level": u.get("level"),
+                "bedrooms": u.get("bedrooms"), "bathrooms": u.get("bathrooms"), "parking_spots": u.get("parking_spots"),
+                "m2_total": u.get("m2_total") or u.get("m2_privative"), "price": u.get("price"),
+                "price_display": u.get("price_display"), "orientation": u.get("orientation"), "vista": u.get("vista"),
+            }
+
+        _kept = []
+        for d in results:
+            units = d.get("units") or []
+            if units:
+                mu = [u for u in units if _unit_ok(u)]
+                if mu:
+                    _kept.append(d)
+                    match_counts[d["id"]] = len(mu)
+                    match_samples[d["id"]] = [_unit_card(u) for u in sorted(mu, key=lambda x: x.get("price") or 0)[:4]]
+            elif _range_ok(d):
+                _kept.append(d)  # cumple por rango, sin lista de unidades detallada (no count)
+        results = _kept
 
     # W5.2 Sub-C — Filter by zone sub-scores
     if subscore_min:
@@ -814,12 +830,14 @@ async def list_developments(
         results.sort(key=lambda d: -d["m2_range"][1])
     # Enriquecimiento en batch (precio fresco + amenidades + foto real del dev) · cierra ciclo.
     cards = await _enrich_listing(request.app.state.db, results[:limit])
-    # Adjunta cuántas unidades DISPONIBLES cumplen lo interno del depto (para mostrar "N unidades que cumplen").
-    if match_counts:
+    # Adjunta cuántas unidades DISPONIBLES cumplen + la MUESTRA (para nombrarlas: "#14B $11.2M, #21A $11.8M").
+    if match_counts or match_samples:
         for c in cards:
-            mc = match_counts.get(c.get("id"))
-            if mc is not None:
-                c["units_match"] = mc
+            cid = c.get("id")
+            if match_counts.get(cid) is not None:
+                c["units_match"] = match_counts[cid]
+            if match_samples.get(cid):
+                c["units_match_sample"] = match_samples[cid]
     return cards
 
 

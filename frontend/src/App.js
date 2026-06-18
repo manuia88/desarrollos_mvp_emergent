@@ -680,6 +680,8 @@ function AppRouter() {
       <Route path="/favoritos" element={<Suspense fallback={null}><Favoritos /></Suspense>} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
+      {/* Atajo: /desarrollo (sin id) → portal del desarrollador (evita el rebote a superadmin) */}
+      <Route path="/desarrollo" element={<Navigate to="/desarrollador" replace />} />
       {/* UNIFICADO 2026-06-17: /mapa y /mapa-valores apuntan al MISMO mapa bueno (Mapa de Valores · Mapa.js).
           Toda la app enlaza a /mapa → ahora llega al mapa con catastro/predios/scores/panel. MapaCDMX retirado. */}
       <Route path="/mapa" element={<MapaRoute />} />

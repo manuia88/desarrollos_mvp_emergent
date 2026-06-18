@@ -245,7 +245,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         </div>
       </div>
 
-      {/* ── UNIDADES que cumplen lo que pediste (match por unidad REAL disponible, no solo proyecto) ── */}
+      {/* ── UNIDADES que cumplen lo que pediste (match por unidad REAL disponible + nombradas) ── */}
       {dev.units_match > 0 && (
         <div style={{ padding: '12px 18px 0' }} data-testid={`units-match-${dev.id}`}>
           <span style={{
@@ -256,6 +256,17 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           }} title="Unidades disponibles en la lista de precios que cumplen tu búsqueda">
             ✓ {dev.units_match} {dev.units_match === 1 ? 'unidad disponible que cumple' : 'unidades disponibles que cumplen'}
           </span>
+          {(dev.units_match_sample || []).length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {dev.units_match_sample.slice(0, 3).map((u) => (
+                <div key={u.unit_number} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                  <span><b style={{ color: 'var(--cream)' }}>#{u.unit_number}</b> · {u.bedrooms} rec · {u.m2_total}m²{u.orientation ? ` · ${u.orientation}` : ''}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{u.price_display}</span>
+                </div>
+              ))}
+              {dev.units_match > 3 && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>+{dev.units_match - 3} más</div>}
+            </div>
+          )}
         </div>
       )}
 
