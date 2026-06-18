@@ -116,6 +116,18 @@ async def buyer_cycle_intel(db, dias: int = 30):
         {"$match": {"texto_crudo": {"$nin": [None, ""]}, **F}},
         {"$sort": {"created_at_dt": -1}}, {"$limit": 14}, {"$project": {"_id": 0, "t": "$texto_crudo"}},
     ])
+    # E · Disposición a pagar por zona: presupuesto que la gente BUSCA vs el precio que el dev OFRECE en esa zona.
+    wtp = await _agg(db.marketplace_searches, [
+        {"$match": {"precio_max": {"$gt": 0}, **F}}, {"$unwind": "$colonias"},
+        {"$group": {"_id": "$colonias", "n": {"$sum": 1}, "presup_prom": {"$avg": "$precio_max"}}},
+        {"$sort": {"n": -1}}, {"$limit": 8},
+    ])
+    _oferta_min: dict = {}
+    for _d in _DEVS:
+        _z = _d.get("colonia_id")
+        _pf = _d.get("price_from") or 0
+        if _z and _pf and (_z not in _oferta_min or _pf < _oferta_min[_z]):
+            _oferta_min[_z] = _pf
 
     return {
         "ventana_dias": dias,
@@ -146,7 +158,13 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "intencion": {"completas": completas, "exploratorias": exploratorias,
                           "lectura": "Completas = pidieron los 4 datos (zona+precio+recámaras+m²). Exploratorias = se quedaron a medias (también es demanda: querían algo pero no concretaron)."},
             "frases_recientes": [f["t"] for f in frases],
-            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. Las frases crudas revelan cómo habla la gente.",
+            "disposicion_pago": [{"zona": w["_id"], "busquedas": w["n"],
+                                  "presupuesto_buscado_prom": round(w["presup_prom"]) if w.get("presup_prom") else None,
+                                  "oferta_desde": _oferta_min.get(w["_id"]),
+                                  "lectura": ("la gente busca debajo de tu precio de entrada — estás arriba de la demanda"
+                                              if (_oferta_min.get(w["_id"]) and w.get("presup_prom") and _oferta_min[w["_id"]] > w["presup_prom"])
+                                              else "tu precio de entrada cae dentro de lo que buscan")} for w in wtp],
+            "lectura": "Lo que el mercado pide por dimensión fina. Amenidad muy pedida y poco ofertada = qué construir/aceptar. Zona fuera de cobertura = dónde expandir. disposicion_pago = presupuesto buscado vs precio de entrada del dev por zona.",
         },
         "es_estimado": busquedas < 30,
         "data_source": "espinazo Copiloto (marketplace_searches + buyer_signals + leads)",
