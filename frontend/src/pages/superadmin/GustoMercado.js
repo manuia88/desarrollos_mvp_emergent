@@ -127,6 +127,44 @@ export default function GustoMercado({ filters }) {
                   {(cube.demanda_granular.zonas_fuera_de_cobertura || []).length === 0 && <div style={{ fontSize: 11.5, ...mute }}>Todo lo pedido está en cobertura.</div>}
                 </div>
               </div>
+
+              {/* Disposición a pagar (busca vs oferta) + en qué ceden (elasticidad) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+                <div>
+                  <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>Disposición a pagar (busca vs tu entrada)</div>
+                  {(cube.demanda_granular.disposicion_pago || []).slice(0, 5).map((w, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '3px 0' }}>
+                      <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{w.zona}</b> · busca ~${w.presupuesto_buscado_prom ? (w.presupuesto_buscado_prom / 1e6).toFixed(1) : '—'}M{w.oferta_desde ? ` · ofreces desde $${(w.oferta_desde / 1e6).toFixed(1)}M` : ''}
+                    </div>
+                  ))}
+                  {(cube.demanda_granular.disposicion_pago || []).length === 0 && <div style={{ fontSize: 11.5, ...mute }}>Sin datos aún.</div>}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, ...mute, marginBottom: 4 }}>En qué cede la gente (elasticidad)</div>
+                  {(cube.demanda_granular.elasticidad_en_que_ceden || []).slice(0, 5).map((c, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '3px 0' }}>
+                      <b style={{ color: 'var(--sa-text)' }}>{String(c.cedio).replace('amenity:', '').replace('unit_feature:', '').replace(/_/g, ' ')}</b> · cedió {c.veces}×
+                    </div>
+                  ))}
+                  {(cube.demanda_granular.elasticidad_en_que_ceden || []).length === 0 && <div style={{ fontSize: 11.5, ...mute }}>Aún nadie ha relajado filtros.</div>}
+                </div>
+              </div>
+
+              {/* Intención + frases crudas (cómo habla la gente) */}
+              {cube.demanda_granular.intencion && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sa-text-dim)', marginBottom: 6 }}>
+                    🎯 Intención: <b style={{ color: GREEN }}>{cube.demanda_granular.intencion.completas}</b> completas · <b style={{ color: 'var(--sa-text)' }}>{cube.demanda_granular.intencion.exploratorias}</b> exploratorias (querían algo, no concretaron)
+                  </div>
+                  {(cube.demanda_granular.frases_recientes || []).length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                      {(cube.demanda_granular.frases_recientes || []).slice(0, 8).map((f, i) => (
+                        <span key={i} style={{ fontSize: 11, color: 'var(--sa-text-dim)', background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid var(--sa-border)', borderRadius: 9999, padding: '3px 9px' }}>"{f}"</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
