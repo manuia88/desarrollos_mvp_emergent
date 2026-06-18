@@ -201,6 +201,20 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
       )}
       {/* El espacio */}
       <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream-2)', margin: '22px 0 4px' }}>Y el espacio que necesitas</div>
+      {/* m² mínimo — OBLIGATORIO (uno de los 4). Sin default: el comprador elige. */}
+      <div style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>Metros cuadrados (mínimo) <span style={{ color: 'var(--theme)' }}>*</span></span>
+        </div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {[50, 70, 90, 120, 150, 200].map((m) => (
+            <button key={m} data-testid={`perfilador-m2-${m}`} onClick={() => set({ m2_min: p.m2_min === m ? null : m })}
+              style={{ padding: '8px 14px', borderRadius: 9999, border: '1px solid ' + (p.m2_min === m ? 'var(--theme)' : 'var(--border)'), background: p.m2_min === m ? 'var(--theme)' : '#fff', color: p.m2_min === m ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              {m}+ m²
+            </button>
+          ))}
+        </div>
+      </div>
       {[['recamaras_min', 'Recámaras (mínimo)', 1, 5], ['banos_min', 'Baños (mínimo)', 1, 5], ['estacionamientos_min', 'Estacionamientos', 0, 4]].map(([key, label, mn, mx]) => (
         <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)' }}>{label}</span>
@@ -293,11 +307,16 @@ export default function Perfilador({ open, onClose, onApply, colonias = [], init
         <div style={{ display: 'flex', gap: 10, marginTop: 26, alignItems: 'center' }}>
           {step > 0 && step < 4 && <button onClick={back} style={{ padding: '11px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Atrás</button>}
           {step < 3 && <button onClick={next} disabled={step === 0 && !p.uso} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: step === 0 && !p.uso ? 'var(--border)' : 'var(--theme)', color: '#fff', cursor: step === 0 && !p.uso ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Continuar</button>}
-          {step === 3 && (() => { const noZona = p.colonias.length === 0; return (
-            <button onClick={submit} disabled={loading || noZona} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: (loading || noZona) ? 'var(--border)' : 'var(--theme)', color: (loading || noZona) ? 'var(--cream-3)' : '#fff', cursor: (loading || noZona) ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>
-              {loading ? 'Buscando…' : noZona ? 'Elige al menos una zona ↑' : 'Ver mis mejores opciones'}
-            </button>
-          ); })()}
+          {step === 3 && (() => {
+            const noZona = p.colonias.length === 0;
+            const noM2 = !p.m2_min;
+            const falta = noZona ? 'Elige al menos una zona ↑' : noM2 ? 'Elige los metros (m²) ↑' : null;
+            return (
+              <button onClick={submit} disabled={loading || !!falta} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: (loading || falta) ? 'var(--border)' : 'var(--theme)', color: (loading || falta) ? 'var(--cream-3)' : '#fff', cursor: (loading || falta) ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>
+                {loading ? 'Buscando…' : falta || 'Ver mis mejores opciones'}
+              </button>
+            );
+          })()}
           {step === 4 && <button onClick={() => setStep(1)} style={{ padding: '12px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Ajustar</button>}
           {step === 4 && <button onClick={applyToMarketplace} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Ver en el marketplace →</button>}
         </div>

@@ -254,6 +254,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     { label: 'metros (m²)', ok: hasMetraje },
   ];
   const canSearch = requiredFields.every((f) => f.ok);
+  const [browseAll, setBrowseAll] = useState(false);   // "Ver todos los desarrollos" — explora sin los 4 obligatorios
+  // Muestra el grid si: busca con los 4 datos · explora todo · O ya aplicó un perfil (el perfilador recabó los datos).
+  const showResults = canSearch || browseAll || !!appliedProfile;
 
   // C · Elasticidad: el comprador relaja UN criterio (lo que está dispuesto a ceder) → se quita + se CAPTURA.
   const EXTRA_LABEL = { balcon: 'balcón', terraza: 'terraza', roof_garden: 'roof garden', bodega: 'bodega', estacionamiento_independiente: 'cajón independiente', pet_friendly: 'pet friendly', gym: 'gimnasio', alberca: 'alberca', spa: 'spa', cancha_padel: 'cancha de pádel', cancha_tenis: 'cancha de tenis', asadores: 'asadores', concierge: 'concierge', seguridad: 'seguridad', cowork: 'coworking', roof: 'roof garden (común)', sky_lounge: 'sky lounge', cine: 'cine', paneles_solares: 'paneles solares', elevador: 'elevador' };
@@ -431,35 +434,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               >
                 <BarChart size={14} /> Comparar
               </button>
-              {/* View mode toggle */}
-              <div style={{
-                display: 'flex', gap: 4, padding: 4,
-                background: 'var(--surface-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 9999,
-              }}>
-                {[
-                  { k: 'lista', label: 'Lista' },
-                  { k: 'mapa',  label: 'Mapa' },
-                ].map(({ k, label }) => (
-                  <button
-                    key={k}
-                    data-testid={`view-toggle-${k}`}
-                    onClick={() => setViewMode(k)}
-                    style={{
-                      padding: '7px 16px', borderRadius: 9999, border: 'none',
-                      background: viewMode === k
-                        ? 'linear-gradient(90deg,#6366F1,#EC4899)'
-                        : 'transparent',
-                      color: viewMode === k ? '#fff' : 'var(--cream-3)',
-                      fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {/* Toggle Lista/Mapa retirado: el mapa vive en "Ver en mapa" (/mapa). Tener ambos confundía y el mapa
+                  in-página salía en blanco sin token. El marketplace es la lista; el mapa es la página dedicada. */}
             </div>
           </div>
         </section>
@@ -583,7 +559,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => setPerfiladorOpen(true)} data-testid="ajustar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--theme)', background: 'rgba(var(--theme-rgb),0.06)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--theme)' }}>Ajustar mi búsqueda</button>
-                      <button onClick={() => { setAppliedProfile(null); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo ✕</button>
+                      <button onClick={() => { setAppliedProfile(null); setBrowseAll(true); try { sessionStorage.removeItem('dmx_applied_profile'); } catch { /* noop */ } }} data-testid="quitar-perfil" style={{ padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream-2)' }}>Ver todo ✕</button>
                     </div>
                   </div>
                   {appliedProfile.nota && (
@@ -644,7 +620,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 </div>
               );
             })()}
-            {canSearch && (
+            {showResults && (
               <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
                 {resultsText}
               </div>
@@ -660,7 +636,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 />
               </aside>
               <div>
-                {!canSearch ? (
+                {!showResults ? (
                   <div data-testid="mkp-needs-zona-precio" style={{
                     padding: '52px 32px', textAlign: 'center',
                     background: '#fff', border: '1px dashed var(--border)', borderRadius: 18,
@@ -684,7 +660,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         }}>{f.ok ? '✓' : '○'} {f.label}</span>
                       ))}
                     </div>
-                    <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary">✨ Empezar mi búsqueda</button>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button onClick={() => setPerfiladorOpen(true)} className="btn btn-primary">✨ Empezar mi búsqueda</button>
+                      <button data-testid="ver-todos" onClick={() => setBrowseAll(true)} className="btn btn-glass">Ver todos los {developments.length} desarrollos</button>
+                    </div>
                   </div>
                 ) : loading ? (
                   <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
@@ -727,7 +706,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); }} className="btn btn-glass">Limpiar búsqueda</button>
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
 
