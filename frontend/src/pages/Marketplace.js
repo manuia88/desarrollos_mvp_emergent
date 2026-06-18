@@ -34,6 +34,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [colonias, setColonias] = useState([]);
   const [filters, setFilters] = useState({});
   const [aiFilters, setAiFilters] = useState(null);
+  const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
   const [aiLoading, setAiLoading] = useState(false);
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
@@ -183,8 +184,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const onAIQuery = async (query) => {
     setAiLoading(true);
     try {
-      const { filters: parsed } = await aiSearchParse(query);
-      setAiFilters(parsed || {});
+      const resp = await aiSearchParse(query);
+      setAiFilters(resp?.filters || {});
+      // Honestidad de zona: si pidió un lugar que no cubrimos, avísale (no fingimos resultados de otra zona).
+      setAiNotice(resp?.zona_no_disponible || null);
     } finally {
       setAiLoading(false);
     }
@@ -441,8 +444,20 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => setAiFilters(null)}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); }}
               />
+              {/* Honestidad de zona: pediste un lugar que no cubrimos → te lo decimos (no fingimos otra zona). */}
+              {aiNotice && (
+                <div data-testid="ai-zona-notice" style={{
+                  marginTop: 10, padding: '11px 15px', borderRadius: 12,
+                  background: 'rgba(224,163,62,0.10)', border: '1px solid rgba(224,163,62,0.32)',
+                  fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{ fontSize: 15 }}>📍</span>
+                  <span>Aún no tenemos desarrollos en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{aiNotice}</b> (cubrimos CDMX). Te mostramos lo más cercano al resto de tu búsqueda.</span>
+                </div>
+              )}
               {/* Save Search button — visible cuando hay filtros */}
               {(Object.keys(filters).length > 0 || aiFilters) && (
                 <button

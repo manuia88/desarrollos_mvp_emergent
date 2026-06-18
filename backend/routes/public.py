@@ -1026,7 +1026,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible")}
     parsed = {}
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -1116,12 +1116,22 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         amh = [s for s, kws in _AM_KW.items() if any(k in ql for k in kws) and not (s == "roof" and ("unit_feature" in filters and "roof_garden" in filters.get("unit_feature", [])))]
         if amh:
             filters["amenity"] = amh
-    await db.ai_search_cache.update_one(
-        {"cache_key": cache_key},
-        {"$set": {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}},
-        upsert=True,
-    )
-    return {"filters": filters, "query": q, "cached": False}
+    # HONESTIDAD DE ZONA: si el usuario nombró un lugar que NO cubrimos (ej. Interlomas = Edomex, no CDMX) y no mapeó
+    # a ninguna colonia, NO finjas resultados de otra zona — devuelve el nombre para avisarle. Detecta "en <lugar>".
+    zona_no_disponible = None
+    if "colonia" not in filters:
+        mz = _re.search(r"\ben\s+([a-záéíóúñ]+(?:\s+(?!y\b|con\b|de\b|por\b|m[aá]x|menos|cerca)[a-záéíóúñ]+)?)", ql)
+        if mz:
+            cand = mz.group(1).strip()
+            _NONZONE = {"balcon", "balcón", "terraza", "bodega", "roof", "gimnasio", "gym", "alberca", "spa", "preventa",
+                        "obra", "construccion", "construcción", "venta", "renta", "piso", "credito", "crédito", "contado", "preci"}
+            if len(cand) >= 4 and cand.split()[0] not in _NONZONE:
+                zona_no_disponible = cand
+    out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}
+    if zona_no_disponible:
+        out["zona_no_disponible"] = zona_no_disponible
+    await db.ai_search_cache.update_one({"cache_key": cache_key}, {"$set": out}, upsert=True)
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible}
 
 
 class NLPSearchIn(BaseModel):
