@@ -2567,6 +2567,14 @@ async def startup():
         if sched:
             schedule_daily_snapshots(sched, db)
 
+        # Casamentera proactiva: cada hora busca por el comprador (búsquedas guardadas × inventario → alertas).
+        try:
+            from scheduler_casamentera import schedule_casamentera
+            if sched:
+                schedule_casamentera(sched, db)
+        except Exception as _ce:
+            logging.warning(f"[startup] casamentera cron: {_ce}")
+
         # Phase 4 Batch 25 — Saved Search alerts (8am) + Image Embeddings (3am)
         try:
             from scheduler_saved_search_alerts import register_saved_search_jobs
