@@ -213,31 +213,57 @@ class RegistrarLeadIn(BaseModel):
     source: str = "marketplace_save"   # de dónde (guardar búsqueda / contacto ficha / alerta)
 
 
-@router.post("/api/buyer/registrar")
-async def registrar_lead(b: RegistrarLeadIn, request: Request):
-    """E3 · El lead deja sus datos en un MOMENTO DE VALOR → se crea el lead, se ENGANCHA todo su histórico anónimo
-    (búsquedas, likes, vistas por visitor_id), se ASIGNA (sin referidor → la inmobiliaria de la CASA; la regla del
-    founder vía resolve_house_public_receiver) y se ESPEJA al CRM del asesor (mirror_lead_to_asesor_contacto).
-    Cierra el triángulo comprador↔asesor↔dev: el asesor ve QUÉ quiere (perfil) y QUÉ le gustó (likes)."""
+async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, dev_id=None, source="marketplace_save"):
+    """E3 · Crea (o ACTUALIZA si ya existe) el lead del comprador en un momento de ALTO INTENTO. Engancha su histórico
+    anónimo (búsquedas/likes/vistas), lo ASIGNA a la casa, lo ESPEJA al CRM del asesor y baja sus favoritos al tablero.
+    IDEMPOTENTE por visitor_id → un comprador = UN lead; varias acciones de alto intento solo lo enriquecen (sin
+    duplicar). Temperatura por CONDUCTA (mucha actividad = caliente). Devuelve (lead_id, house_inm)."""
     from datetime import datetime as _dt
     import uuid as _u
-    try:
-        db = request.app.state.db
-        # 1. Perfil: el último marketplace_search de este visitor (lo que busca de verdad).
-        perfil = await db.marketplace_searches.find_one(
-            {"visitor_id": b.visitor_id}, {"_id": 0}, sort=[("created_at_dt", -1)]) or {}
-        # 2. Histórico de conducta: qué likeó y qué vio (capa C/D).
-        liked, viewed = [], []
-        async for s in db.buyer_signals.find({"visitor_id": b.visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
-            if s.get("entity_id"):
-                liked.append(s["entity_id"])
-        async for s in db.buyer_signals.find({"visitor_id": b.visitor_id, "type": "ficha_view"}, {"_id": 0, "entity_id": 1}).limit(50):
-            if s.get("entity_id") and s["entity_id"] not in viewed:
-                viewed.append(s["entity_id"])
-        if b.dev_id and b.dev_id not in liked:
-            viewed.insert(0, b.dev_id)
-        # 3. Asignación: sin referidor → la CASA (regla founder). (La atribución por link de asesor/dev se cablea
-        #    con la cookie dmx_ref en una iteración; el grueso del marketplace público cae a la casa.)
+    # 1. Perfil: el último marketplace_search de este visitor (lo que busca de verdad).
+    perfil = await db.marketplace_searches.find_one(
+        {"visitor_id": visitor_id}, {"_id": 0}, sort=[("created_at_dt", -1)]) or {}
+    # 2. Histórico de conducta: qué likeó y qué vio (capa C/D).
+    liked, viewed = [], []
+    async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+        if s.get("entity_id"):
+            liked.append(s["entity_id"])
+    async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "ficha_view"}, {"_id": 0, "entity_id": 1}).limit(50):
+        if s.get("entity_id") and s["entity_id"] not in viewed:
+            viewed.append(s["entity_id"])
+    if dev_id and dev_id not in liked:
+        viewed.insert(0, dev_id)
+    # Temperatura por CONDUCTA (founder: "mucha actividad cuenta"): muchos likes/vistas = lead caliente.
+    n_liked, n_viewed = len(set(liked)), len(viewed)
+    temperatura = "caliente" if (n_liked >= 3 or n_viewed >= 8) else ("tibio" if (n_liked + n_viewed) >= 3 else "frio")
+    profile = {
+        "colonias": perfil.get("colonias"), "presupuesto_max": perfil.get("precio_max"),
+        "presupuesto_min": perfil.get("precio_min"),
+        "recamaras_min": perfil.get("recamaras_min"), "banos_min": perfil.get("banos_min"),
+        "m2_min": perfil.get("m2_min"), "m2_max": perfil.get("m2_max"),
+        "estacionamientos_min": perfil.get("estacionamientos_min"), "stages": perfil.get("stages"),
+        "stage_pedido": perfil.get("stage_pedido"), "tipo": perfil.get("tipo_pedido"),
+        "plazo": perfil.get("plazo"), "uso": perfil.get("uso"), "credito": perfil.get("credito"),
+        "enganche_max": perfil.get("enganche_max"), "mensualidad_max": perfil.get("mensualidad_max"),
+        "amenidades_pedidas": perfil.get("amenidades_pedidas") or [],
+        "features_pedidos": perfil.get("features_pedidos") or [],
+        "busqueda_textual": perfil.get("texto_crudo") or perfil.get("query"),
+    }
+    now = _dt.utcnow()
+    # 3. ¿Ya existe lead de este visitor? → ACTUALIZA (no dupliques). Si no, créalo asignado a la casa.
+    existing = await db.leads.find_one({"visitor_id": visitor_id}, {"_id": 0, "id": 1, "contact": 1})
+    if existing:
+        lead_id = existing["id"]
+        c = existing.get("contact") or {}
+        contact = {"name": (name[:120] if name else None) or c.get("name"),
+                   "email": email or c.get("email"), "phone": phone or c.get("phone")}
+        await db.leads.update_one({"id": lead_id}, {"$set": {
+            "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20],
+            "temperatura": temperatura, "contact": contact,
+            "last_activity_at": now.isoformat(), "updated_at": now.isoformat()}})
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        house_inm = lead.get("inmobiliaria_id")
+    else:
         assigned_to, house_inm = None, None
         try:
             from services.lead_bridge import resolve_house_public_receiver
@@ -245,52 +271,43 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
             assigned_to = rid
         except Exception:
             pass
-        now = _dt.utcnow()
         lead_id = f"lead_{_u.uuid4().hex[:12]}"
         lead = {
-            "id": lead_id, "dev_org_id": "default",
-            "source": f"copiloto_{b.source}",
-            "contact": {"name": b.name[:120], "email": (b.email or None), "phone": (b.phone or None)},
-            "status": "nuevo", "status_v2": "lead_nuevo", "activo": True,
+            "id": lead_id, "dev_org_id": "default", "source": f"copiloto_{source}",
+            "contact": {"name": (name or "Comprador")[:120], "email": (email or None), "phone": (phone or None)},
+            "status": "nuevo", "status_v2": "lead_nuevo", "activo": True, "temperatura": temperatura,
             "assigned_to": assigned_to, "inmobiliaria_id": house_inm,
-            # F · La búsqueda COMPLETA llega al asesor (no vuelve a preguntar): TODOS los criterios que el comprador
-            # expresó — zona, precio (min+max), recámaras, m² (rango), baños, cajones, etapa, plazo, crédito,
-            # enganche/mensualidad tope, AMENIDADES y FEATURES pedidos, y hasta la frase cruda que escribió.
-            "buyer_profile": {
-                "colonias": perfil.get("colonias"), "presupuesto_max": perfil.get("precio_max"),
-                "presupuesto_min": perfil.get("precio_min"),
-                "recamaras_min": perfil.get("recamaras_min"), "banos_min": perfil.get("banos_min"),
-                "m2_min": perfil.get("m2_min"), "m2_max": perfil.get("m2_max"),
-                "estacionamientos_min": perfil.get("estacionamientos_min"), "stages": perfil.get("stages"),
-                "stage_pedido": perfil.get("stage_pedido"), "tipo": perfil.get("tipo_pedido"),
-                "plazo": perfil.get("plazo"), "uso": perfil.get("uso"), "credito": perfil.get("credito"),
-                "enganche_max": perfil.get("enganche_max"), "mensualidad_max": perfil.get("mensualidad_max"),
-                "amenidades_pedidas": perfil.get("amenidades_pedidas") or [],
-                "features_pedidos": perfil.get("features_pedidos") or [],
-                "busqueda_textual": perfil.get("texto_crudo") or perfil.get("query"),
-            },
-            "liked_devs": liked, "viewed_devs": viewed[:20],
-            "visitor_id": b.visitor_id,
+            "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20], "visitor_id": visitor_id,
             "created_at": now.isoformat(), "updated_at": now.isoformat(), "last_activity_at": now.isoformat(),
             "created_by": "_copiloto",
         }
         await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
-        # 4. Espeja al CRM del asesor (idempotente, dedup, aislamiento). Auto-reparable.
-        try:
-            from services.lead_bridge import mirror_lead_to_asesor_contacto
-            await mirror_lead_to_asesor_contacto(db, lead)
-        except Exception:
+    # 4. Espeja al CRM del asesor (idempotente, aislamiento). Si no se puede aún → mirror_pending (auto-reparable).
+    try:
+        from services.lead_bridge import mirror_lead_to_asesor_contacto
+        if not await mirror_lead_to_asesor_contacto(db, lead):
             await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
-        # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
-        await db.buyer_signals.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
-        await db.marketplace_searches.update_many({"visitor_id": b.visitor_id}, {"$set": {"lead_id": lead_id}})
-        # 6. LAS DOS CARAS: los favoritos (+ citas/notas) del comprador caen al tablero del asesor (Ficha360), el
-        #    mismo que alimenta su link Tinder. Fail-open.
-        try:
-            from routes.favoritos import mirror_favoritos_to_board
-            await mirror_favoritos_to_board(db, b.visitor_id, lead_id)
-        except Exception:
-            pass
+    except Exception:
+        await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
+    # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
+    await db.buyer_signals.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})
+    await db.marketplace_searches.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})
+    # 6. LAS DOS CARAS: favoritos (+ citas/notas/unidades) del comprador al tablero del asesor (Ficha360). Fail-open.
+    try:
+        from routes.favoritos import mirror_favoritos_to_board
+        await mirror_favoritos_to_board(db, visitor_id, lead_id)
+    except Exception:
+        pass
+    return lead_id, house_inm
+
+
+@router.post("/api/buyer/registrar")
+async def registrar_lead(b: RegistrarLeadIn, request: Request):
+    """E3 · El comprador deja sus datos en un momento de ALTO INTENTO → crea/actualiza el lead (wrapper sobre
+    create_buyer_lead). Cierra el triángulo comprador↔asesor↔dev."""
+    try:
+        db = request.app.state.db
+        lead_id, house_inm = await create_buyer_lead(db, b.visitor_id, b.name, b.email, b.phone, b.dev_id, b.source)
         return {"ok": True, "lead_id": lead_id, "asignado": "tu inmobiliaria" if house_inm else "asesor"}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] registrar lead fail: {e}")

@@ -278,6 +278,15 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
     except Exception as _e:
         log.warning(f"[saved-search] casamentera link skip: {_e}")
 
+    # ALTO INTENTO (definición founder): guardar búsqueda + dejar email = levantar la mano → crea/actualiza el lead
+    # con su perfil completo (idempotente por visitor_id). El asesor recibe un lead listo, no un curioso anónimo.
+    if body.visitor_id:
+        try:
+            from routes.buyer_signals import create_buyer_lead
+            await create_buyer_lead(db, body.visitor_id, name=None, email=email, source="saved_search")
+        except Exception as _e:
+            log.warning(f"[saved-search] lead alto-intento skip: {_e}")
+
     return result
 
 
