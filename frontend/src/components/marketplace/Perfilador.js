@@ -135,8 +135,8 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
     </div>,
     // 3 · ¿DÓNDE? (la ubicación es lo más importante → primero y prominente) + el espacio
     <div key="3">
-      <div style={qTitle}>¿En qué zona?</div>
-      <div style={qSub}>La ubicación es lo más importante. Elige una o varias zonas — o deja que te sugiramos las mejores para tu perfil.</div>
+      <div style={qTitle}>¿En qué zona? <span style={{ color: 'var(--theme)', fontSize: 15 }}>*</span></div>
+      <div style={qSub}>La ubicación lo define todo: la misma propiedad vale distinto según dónde esté. Elige una o varias zonas (obligatorio).</div>
       {/* Zona — buscador ABIERTO sobre todas las colonias reales (escribe y elige; varias permitidas). */}
       {p.colonias.length > 0 && (
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -168,7 +168,7 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
       </div>
       {p.colonias.length === 0 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--border)', marginTop: 12 }}>
-          <span>🧭</span><span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>¿No tienes zona definida? Está bien — te sugerimos las <b>mejores de la ciudad para tu perfil</b>.</span>
+          <span>📍</span><span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>Elige al menos una zona para ver tus opciones. <b>Sin la zona no podemos recomendarte bien</b> — hay propiedades iguales en toda la ciudad con valor muy distinto.</span>
         </div>
       )}
       {/* El espacio */}
@@ -229,7 +229,11 @@ export default function Perfilador({ open, onClose, onApply, colonias = [] }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 26, alignItems: 'center' }}>
           {step > 0 && step < 4 && <button onClick={back} style={{ padding: '11px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Atrás</button>}
           {step < 3 && <button onClick={next} disabled={step === 0 && !p.uso} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: step === 0 && !p.uso ? 'var(--border)' : 'var(--theme)', color: '#fff', cursor: step === 0 && !p.uso ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Continuar</button>}
-          {step === 3 && <button onClick={submit} disabled={loading} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>{loading ? 'Buscando…' : 'Ver mis mejores opciones'}</button>}
+          {step === 3 && (() => { const noZona = p.colonias.length === 0; return (
+            <button onClick={submit} disabled={loading || noZona} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: (loading || noZona) ? 'var(--border)' : 'var(--theme)', color: (loading || noZona) ? 'var(--cream-3)' : '#fff', cursor: (loading || noZona) ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>
+              {loading ? 'Buscando…' : noZona ? 'Elige al menos una zona ↑' : 'Ver mis mejores opciones'}
+            </button>
+          ); })()}
           {step === 4 && <button onClick={() => setStep(1)} style={{ padding: '12px 18px', borderRadius: 11, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)' }}>Ajustar</button>}
           {step === 4 && <button onClick={applyToMarketplace} style={{ flex: 1, padding: '12px 18px', borderRadius: 11, border: 'none', background: 'var(--theme)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14.5 }}>Ver en el marketplace →</button>}
         </div>
