@@ -306,11 +306,11 @@ async def zona_inversion(colonia_id: str, request: Request):
                 "enganche_20": round(base.get("enganche") or rep * 0.20),
                 "tasa_credito": {"baja": round((rate - 0.015) * 100, 1), "promedio": round(rate * 100, 1), "alta": round((rate + 0.015) * 100, 1)},
             })
-            # Rango de RENTA mensual BRUTA (sigue al rango de precio) + métricas anuales · la renta es bruta, sin complicar
+            # Renta que se MUESTRA = bruta (sigue al rango de precio). Cap rate = NOI (renta NETA) / precio, por definición.
             renta_bruta_anual = renta_bruta_m * 12
-            ny = (renta_bruta_anual / rep) if rep else 0  # yield BRUTO (fracción)
+            ny = (renta_bruta_anual / rep) if rep else 0  # yield bruto · solo para el rango de renta a mostrar
             _renta_m = lambda p: (round(p * ny / 12) if (p and ny) else None)
-            cap_rate = round(ny * 100, 1)                  # cap rate BRUTO = renta bruta anual / precio (antes de gastos)
+            cap_rate = round((renta_neta_anual / rep) * 100, 1) if rep else 0   # cap rate = NOI (renta neta) / precio
             plus_pct = base.get("aprec_anual_pct") or 0
             out.update({
                 "renta_menor": _renta_m(out.get("precio_min")),
