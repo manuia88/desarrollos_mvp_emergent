@@ -14,7 +14,7 @@ import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
-import OportunidadPanel, { applyOportunidadFilters } from '../components/marketplace/OportunidadPanel';
+import OportunidadPanel from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
@@ -22,7 +22,6 @@ import { saveMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import { visitorId } from '../lib/buyerSignal';
-import { useNavigate } from 'react-router-dom';
 // W4.2D1 — URL state sync helpers
 import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
 import MarketplaceMetaTags from '../components/seo/MarketplaceMetaTags';
@@ -65,17 +64,11 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [parecidos, setParecidos] = useState([]);
   // E4 · casamentera: lo que el sistema encontró para ti (de tu búsqueda guardada con alerta)
   const [alertas, setAlertas] = useState([]);
-  const navigate = useNavigate();
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
   const [subscoreMin, setSubscoreMin] = useState({});
   // W5.3 Parte 2B Sub-E — Forecast 12m growth minimum filter
   const [forecastDeltaMin, setForecastDeltaMin] = useState(0);
-  // Oportunidades (rediseño 2026-06-18) — 3 filtros humanos que reemplazan los scores subjetivos.
-  // Client-side sobre la lista ya cargada (sin tocar el fetch del servidor).
-  const [budgetMax, setBudgetMax] = useState(0);
-  const [stages, setStages] = useState([]);
-  const [onlyTrusted, setOnlyTrusted] = useState(false);
 
   // Mapbox refs
   const mapContainer = useRef(null);
@@ -264,16 +257,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   const handleClearColoniaFilter = () => setColoniaFilter(null);
 
-  // Oportunidades: filtra la lista cargada (presupuesto/etapa/confianza). El Radar genérico se retiró.
-  const visibleDevs = useMemo(
-    () => applyOportunidadFilters(developments, { budgetMax, stages, onlyTrusted }),
-    [developments, budgetMax, stages, onlyTrusted]
-  );
+  // La lista visible = los desarrollos cargados. (El filtrado por presupuesto/etapa lo hace el fetch del servidor +
+  // los filtros de la barra; el panel de oportunidad ya no filtra client-side — es una terminal de inteligencia de zona.)
+  const visibleDevs = developments;
 
   // Campos OBLIGATORIOS para buscar (regla founder): ZONA + PRESUPUESTO + RECÁMARAS + METRAJE (m²). Cualquiera puede
   // ser multi/rango. Sin los 4 → no hay búsqueda; la alerta dice EXACTAMENTE cuáles faltan (filtros más asertivos).
   const hasZona = !!(coloniaFilter || (filters.colonia || []).length || (aiFilters && aiFilters.colonia));
-  const hasPrecio = !!(filters.min_price || filters.max_price || budgetMax || (aiFilters && (aiFilters.min_price || aiFilters.max_price)));
+  const hasPrecio = !!(filters.min_price || filters.max_price || (aiFilters && (aiFilters.min_price || aiFilters.max_price)));
   const hasRecamaras = !!(filters.beds || (aiFilters && aiFilters.beds));
   const hasMetraje = !!(filters.min_sqm || filters.max_sqm || (aiFilters && (aiFilters.min_sqm || aiFilters.max_sqm)));
   const requiredFields = [
@@ -313,14 +304,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       baths: filters.baths || (aiFilters && aiFilters.baths),
       parking: filters.parking || (aiFilters && aiFilters.parking),
       min_price: filters.min_price || (aiFilters && aiFilters.min_price),
-      max_price: filters.max_price || budgetMax || (aiFilters && aiFilters.max_price),
+      max_price: filters.max_price || (aiFilters && aiFilters.max_price),
       min_sqm: filters.min_sqm || (aiFilters && aiFilters.min_sqm),
       max_sqm: filters.max_sqm || (aiFilters && aiFilters.max_sqm),
       unit_feature: [...(filters.unit_feature || []), ...((aiFilters && aiFilters.unit_feature) || [])],
       orientacion: [...(filters.orientacion || []), ...((aiFilters && aiFilters.orientacion) || [])],
     };
     saveMatchCriteria(canSearch ? c : null);
-  }, [canSearch, filters, aiFilters, budgetMax]);
+  }, [canSearch, filters, aiFilters]);
 
   // "Los que más se asemejan": si 0 resultados exactos, trae los más cercanos + qué les falta. SOLO con ZONA
   // (no recomendamos en zonas que el cliente no pidió — la zona es sagrada).
@@ -609,7 +600,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   developments={developments}
                   colonias={colonias}
                   selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia))}
-                  budget={filters.max_price || (aiFilters && aiFilters.max_price) || budgetMax || 0}
                   onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 />
               </aside>

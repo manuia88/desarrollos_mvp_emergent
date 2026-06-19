@@ -12,13 +12,6 @@ import { Z } from '../../styles/zIndex';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // Stage → header band + text color
-const STAGE_COLORS = {
-  preventa: { bg: 'linear-gradient(90deg, rgba(16,185,129,0.85), rgba(34,197,94,0.85))', glow: 'rgba(16,185,129,0.45)' },
-  en_construccion: { bg: 'linear-gradient(90deg, rgba(245,158,11,0.85), rgba(249,115,22,0.85))', glow: 'rgba(245,158,11,0.45)' },
-  entrega_inmediata: { bg: 'linear-gradient(90deg, rgba(59,130,246,0.85), rgba(14,165,233,0.85))', glow: 'rgba(59,130,246,0.45)' },
-  exclusiva: { bg: 'linear-gradient(90deg, rgba(139,92,246,0.85), rgba(var(--theme-rgb),0.85))', glow: 'rgba(139,92,246,0.45)' },
-};
-
 // Color sólido por etapa (para el tag sutil sobre la foto · texto de color, no pill saturado).
 // Color por TIEMPO de entrega — cada plazo su color, visible (fondo sólido + texto blanco)
 const deliveryColorOf = (stage, bucket) => {
@@ -120,7 +113,6 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const seedPhotos = dev.photos || [];
   const photos = dev.hero_photo ? [`${API}${dev.hero_photo}`, ...seedPhotos] : seedPhotos;
   const hue = dev.developer?.logo_hue || 231;
-  const stageCfg = STAGE_COLORS[dev.stage] || STAGE_COLORS.preventa;
 
   useEffect(() => {
     let alive = true;

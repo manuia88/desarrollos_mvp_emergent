@@ -139,13 +139,6 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
     ? (colonias || []).filter(c => (c.name || '').toLowerCase().includes(locQuery.toLowerCase()) && !(filters.colonia || []).includes(c.id)).slice(0, 6)
     : [];
   const locName = (id) => (colonias || []).find(c => c.id === id)?.name || id;
-  const PRICES = [
-    { k: 'u3', min: 0, max: 3000000, label: i18n.language === 'en' ? 'Under $3M' : 'Hasta $3M' },
-    { k: 'u6', min: 3000000, max: 6000000, label: '$3M — $6M' },
-    { k: 'u12', min: 6000000, max: 12000000, label: '$6M — $12M' },
-    { k: 'u25', min: 12000000, max: 25000000, label: '$12M — $25M' },
-    { k: 'p25', min: 25000000, max: null, label: i18n.language === 'en' ? 'Over $25M' : 'Más de $25M' },
-  ];
 
   const onAISubmit = (e) => {
     e.preventDefault();

@@ -188,13 +188,14 @@ async def _enrich_listing(db, devs: list) -> list:
             card["plusvalia_zona"] = col.get("momentum")        # tendencia real de la colonia (MERCADO)
         if cid in fc_by_col:
             card["forecast_12m_pct"] = round(fc_by_col[cid], 1)  # forecast (cuando hay dato)
-        # Incremento en preventa = lo que el DEV ha subido desde su lista de lanzamiento (decisión del dev, NO mercado).
-        # DEMO estable por proyecto; en real lo carga el dev con su precio de lista inicial (precio_lanzamiento).
-        if card.get("stage") in ("preventa", "en_construccion") and d.get("price_from"):
-            import hashlib as _hl
-            _inc = 8 + (int(_hl.md5(str(d.get("id")).encode()).hexdigest()[:6], 16) % 18)  # 8–25%, no atado al mercado
-            card["incremento_preventa_pct"] = _inc
-            card["precio_lanzamiento"] = round(d["price_from"] / (1 + _inc / 100.0))
+        # Incremento en preventa = lo que el DEV ha subido desde su precio de lista de lanzamiento (decisión del dev, NO mercado).
+        # GATED a dato REAL: solo se emite si el dev cargó precio_lanzamiento real y hoy vende más caro. Cero inventado
+        # (antes era un hash md5 demo → violaba la regla de no mostrar data falsa como real). Hoy ningún dev lo tiene → no se ve.
+        _pl = d.get("precio_lanzamiento")
+        if (card.get("stage") in ("preventa", "en_construccion") and d.get("price_from")
+                and _pl and float(_pl) > 0 and d["price_from"] > float(_pl)):
+            card["precio_lanzamiento"] = round(float(_pl))
+            card["incremento_preventa_pct"] = round((d["price_from"] / float(_pl) - 1) * 100)
         am = amen_by.get(d["id"]) or {}
         rich = am.get("amenities") or card.get("amenities") or []
         card["amenities"] = rich
@@ -309,7 +310,6 @@ async def zona_inversion(colonia_id: str, request: Request):
                 "ganancia_5y_abs": round(_gain_at(5)),
                 "ganancia_5y_pct": round((_gain_at(5) / rep) * 100) if rep else None,
                 "exit_year": best_y,
-                "mensualidad_credito_80": round(base.get("pago_mensual_hipoteca") or 0),
                 "enganche_20": round(base.get("enganche") or rep * 0.20),
                 "tasa_credito": {"baja": round((rate - 0.015) * 100, 1), "promedio": round(rate * 100, 1), "alta": round((rate + 0.015) * 100, 1)},
             })
@@ -323,7 +323,7 @@ async def zona_inversion(colonia_id: str, request: Request):
                 "renta_menor": _renta_m(out.get("precio_min")),
                 "renta_prom": _renta_m(out.get("precio_prom")),
                 "renta_mayor": _renta_m(out.get("precio_max")),
-                "cap_rate_anual_pct": cap_rate,                          # renta bruta / precio (antes de gastos)
+                "cap_rate_anual_pct": cap_rate,                          # cap rate = NOI (renta NETA) / precio
                 "roi_anual_pct": round(plus_pct + (cap_rate or 0), 1),   # retorno total al año = plusvalía + cap rate
             })
             tir = base.get("tir_anual_pct")
