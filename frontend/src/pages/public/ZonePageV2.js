@@ -31,6 +31,13 @@ const PROFILES = [
   { k: 'primera', label: 'Mi primera casa', e: '🏠', promise: 'Deja de rentar' },
   { k: 'vivir', label: 'Vivir mejor', e: '✨', promise: 'La vida que mereces' },
 ];
+// Amenidades de la ZONA (alrededor · Google Places). key → emoji+label. Tope 20/categoría → se muestra "20+".
+const CATS_ZONA = [
+  ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['escuela', '🏫', 'escuelas'],
+  ['hospital', '🏥', 'hospitales'], ['parque', '🌳', 'parques'], ['supermercado', '🛒', 'supermercados'],
+  ['gimnasio', '🏋️', 'gimnasios'], ['transporte', '🚇', 'transporte'],
+];
+const fmtN = (n) => (n >= 20 ? '20+' : String(n));
 // Amenidades del DESARROLLO (del edificio) — NO confundir con amenidades de zona (Google). Slug → emoji+label.
 const AMEN_DEV = { alberca: ['🏊', 'Alberca'], gym: ['🏋️', 'Gimnasio'], roof: ['🌿', 'Roof garden'], cowork: ['💻', 'Coworking'], spa: ['💆', 'Spa'], concierge: ['🛎️', 'Concierge'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'], business_center: ['💼', 'Business center'], salon_eventos: ['🎉', 'Salón de eventos'], seguridad: ['🛡️', 'Seguridad 24/7'], pet: ['🐾', 'Pet friendly'], area_pets: ['🐾', 'Área para mascotas'], jardines: ['🌳', 'Jardines'], bicicletas: ['🚲', 'Biciestac.'], estacionamiento: ['🚗', 'Estacionamiento'] };
 
@@ -88,6 +95,7 @@ export default function ZonePageV2() {
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
   const [similar, setSimilar] = useState([]);
+  const [vida, setVida] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -99,9 +107,10 @@ export default function ZonePageV2() {
       get(`/api/public/landing/colonia/${slug}`),
       get(`/api/developments?colonia=${slug}&limit=12`),
       get(`/api/colonias-similar/${slug}`),
-    ]).then(([i, l, d, s]) => {
+      get(`/api/zona/${slug}/vida`),
+    ]).then(([i, l, d, s, v]) => {
       if (!alive) return;
-      setInv(i); setLanding(l);
+      setInv(i); setLanding(l); setVida(v);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
@@ -240,6 +249,37 @@ export default function ZonePageV2() {
             ))}
           </div>
         </section>
+
+        {/* ── LA VIDA ALREDEDOR (amenidades de ZONA · Google · gated source='google' · "20+" al topar) ── */}
+        {vida && vida.fuente === 'google' && vida.amenidades && (() => {
+          const am = vida.amenidades;
+          const shown = CATS_ZONA.filter(([key]) => (am[key] || 0) > 0);
+          if (!shown.length) return null;
+          const intro = profile === 'familia'
+            ? `Todo lo que tu familia necesita, a unos pasos: ${fmtN(am.escuela || 0)} escuelas, ${fmtN(am.hospital || 0)} hospitales y ${fmtN(am.parque || 0)} parques alrededor. El barrio donde crecen, no solo cuatro paredes.`
+            : profile === 'vivir'
+              ? `La buena vida, caminando: ${fmtN(am.restaurante || 0)} restaurantes y ${fmtN(am.cafe || 0)} cafés a tu alrededor. Aquí sales por la puerta y todo está cerca.`
+              : profile === 'primera'
+                ? `No compras un depto aislado — compras un barrio vivo: ${fmtN(am.restaurante || 0)} restaurantes, ${fmtN(am.cafe || 0)} cafés y todo lo que necesitas a unos pasos.`
+                : `Lo que hace que la gente quiera vivir aquí (y por eso renta y se revaloriza): ${fmtN(am.restaurante || 0)} restaurantes, ${fmtN(am.escuela || 0)} escuelas, ${fmtN(am.hospital || 0)} hospitales y más, todo cerca.`;
+          return (
+            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+              <div style={eyebrow}>{tc('La vida alrededor')}</div>
+              <h2 style={chapTitle}>{S.vidaTitle}</h2>
+              <p style={lead}>{intro}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginTop: 18 }}>
+                {shown.map(([key, e, label]) => (
+                  <div key={key} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 22 }}>{e}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: INK, marginTop: 4, letterSpacing: '-0.02em' }}>{fmtN(am[key])}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>lugares reales a ~1.2 km a la redonda (Google Places)</div>
+            </section>
+          );
+        })()}
 
         {/* ── BLOQUE PROPIO DEL PERFIL (gated por data · solo se ve si hay) ── */}
         {profile === 'invertir' && inv.escenarios_inv && inv.escenarios_inv.length >= 2 && (

@@ -106,8 +106,9 @@ async def ingest_batch(db, max_requests: int = MAX_PER_MONTH) -> Dict[str, Any]:
                     by_cat[our_key] = None
                 req_used += 1
             if ok_any:
+                # Upsert por zone_id SOLO (índice único por zona) → Google reemplaza el doc viejo de OSM.
                 await db.denue_zone_density.update_one(
-                    {"zone_id": t["id"], "source": "google"},
+                    {"zone_id": t["id"]},
                     {"$set": {
                         "zone_id": t["id"], "source": "google", "by_category": by_cat,
                         "businesses_count_total": sum(v for v in by_cat.values() if isinstance(v, int)),
