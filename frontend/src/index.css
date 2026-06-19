@@ -61,13 +61,16 @@
 .dmx-card {
   border: 1px solid var(--border);
   border-radius: 12px;
-  transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease;
+  transition: box-shadow .3s cubic-bezier(.2,.8,.2,1), transform .3s cubic-bezier(.2,.8,.2,1), border-color .2s ease;
 }
 .dmx-card:hover {
-  border-color: rgba(var(--theme-rgb), 0.45);
-  box-shadow: 0 6px 20px rgba(var(--theme-rgb), 0.12);
-  transform: translateY(-1px);
+  border-color: rgba(var(--theme-rgb), 0.55);
+  box-shadow: 0 20px 46px rgba(var(--theme-rgb), 0.20), 0 4px 14px rgba(16,18,28,0.07);
+  transform: translateY(-4px);
 }
+/* Foto de tarjeta de marketplace: zoom suave al hover (vida + profundidad) */
+.mkt-photo img { transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+.dmx-card:hover .mkt-photo img { transform: scale(1.06); }
 
 /* Scope de tema CLARO solo-variables (para portales/drawers que viven fuera de
  * `.portal-asesor` vía createPortal). NO toca position/isolation/::before/`> *`,

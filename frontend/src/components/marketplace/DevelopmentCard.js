@@ -168,12 +168,14 @@ export default function DevelopmentCard({ dev, index = 0 }) {
       data-testid={`dev-card-${dev.id}`}
       style={{
         display: 'flex', flexDirection: 'column', textDecoration: 'none', color: 'inherit',
-        background: '#fff', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden',
-        boxShadow: '0 1px 2px rgba(16,18,28,0.05)',
+        background: '#fff', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden',
+        boxShadow: '0 6px 22px rgba(16,18,28,0.07), 0 1px 3px rgba(16,18,28,0.05)',
       }}
     >
       {/* ── FOTO (xproperty: precio sobre la imagen) ── */}
-      <div style={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', background: '#EEF0F4' }}>
+      <div className="mkt-photo" style={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', background: '#EEF0F4' }}>
+        {/* Velo degradado inferior — da profundidad y asienta los badges sin recuadros negros */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(16,18,28,0.34) 0%, rgba(16,18,28,0.04) 28%, transparent 50%)' }} />
         {showFallback ? (
           <Fallback hue={hue} seed={index} />
         ) : (

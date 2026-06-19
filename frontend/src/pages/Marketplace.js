@@ -317,7 +317,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       {/* W4.2D1 — Dynamic meta tags */}
       <MarketplaceMetaTags filters={filters} coloniaFilter={coloniaFilter} resultCount={developments.length} />
       <PublicNav />
-      <main style={{ paddingTop: 8 }}>
+      {/* Atmósfera viva — malla de luz suave (índigo/violeta/rosa) sobre base clara. Da profundidad, mata el "plano blanco". */}
+      <div aria-hidden style={{
+        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: 'radial-gradient(900px 520px at 12% -8%, rgba(109,74,255,0.10), transparent 60%), radial-gradient(820px 520px at 100% 0%, rgba(192,38,211,0.07), transparent 55%), radial-gradient(700px 600px at 50% 115%, rgba(59,130,246,0.06), transparent 60%), linear-gradient(180deg, #FBFBFE 0%, #F6F5FC 100%)',
+      }} />
+      <main style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <section style={{ maxWidth: 1440, margin: '0 auto', padding: '32px 32px 12px' }}>
           <div className="eyebrow" style={{ marginBottom: 12 }}>{tc(t('marketplace_v2.hero_eyebrow'))}</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
