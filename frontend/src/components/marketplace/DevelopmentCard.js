@@ -222,7 +222,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
       </div>
 
       {/* ── CUERPO · ritmo UNIFORME (gap), agrupado, con aire — jerarquía: identidad → precio → specs → señales ── */}
-      <div style={{ padding: '18px 20px 0', display: 'flex', flexDirection: 'column', gap: 15, flex: 1 }}>
+      <div style={{ padding: '14px 18px 0', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
 
         {/* Identidad — nombre + ubicación (lidera la tarjeta) */}
         <div>
@@ -242,7 +242,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 6 }}>desde</span>
           </div>
           {dev.price_m2_dev && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</span>
               {vzText && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontSize: 11.5, color: vzText.c, fontWeight: 700, background: `${vzText.c}14`, borderRadius: 9999, padding: '2px 9px' }} title="Precio por m² vs el promedio de su colonia">
@@ -256,7 +256,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         {/* Specs — "desde" ARRIBA, los elementos (icono + mínimo) ABAJO */}
         {specs.length > 0 && (
           <div style={{ padding: '2px 0' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginBottom: 7 }}>desde</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginBottom: 4 }}>desde</div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               {specs.map((s, i) => (
                 <React.Fragment key={s.unit}>
@@ -330,7 +330,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
       </div>
 
       {/* ── PIE: desarrollador + probabilidad (separado con borde + aire) ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '15px 20px', marginTop: 16, borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 18px', marginTop: 11, borderTop: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <div style={{
             width: 24, height: 24, borderRadius: 7, flexShrink: 0,
