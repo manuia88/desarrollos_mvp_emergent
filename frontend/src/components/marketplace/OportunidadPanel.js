@@ -148,7 +148,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
           {inv && inv.precio_prom && (
             <div style={{ ...sep, paddingBottom: 0, borderTopStyle: 'dashed' }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.5 }}>
-                Aquí abajo, los números que respaldan ese veredicto: <b style={{ color: 'var(--cream-2)' }}>cuánto cuesta</b>, <b style={{ color: 'var(--cream-2)' }}>cuánto renta</b>, <b style={{ color: 'var(--cream-2)' }}>qué tan buena inversión es</b> y <b style={{ color: 'var(--cream-2)' }}>cómo financiarla</b>. Pasa el mouse sobre cada concepto (?) para entenderlo.
+Aquí abajo, los números que respaldan ese veredicto: <b style={{ color: 'var(--cream-2)' }}>cuánto cuesta</b>, <b style={{ color: 'var(--cream-2)' }}>cuánto renta</b>, <b style={{ color: 'var(--cream-2)' }}>qué tan buena inversión es</b> y <b style={{ color: 'var(--cream-2)' }}>cómo financiarla</b> — todo con <b style={{ color: 'var(--cream-2)' }}>valores promedio de la zona</b>. Pasa el mouse sobre cada (?) para entenderlo.
               </div>
             </div>
           )}

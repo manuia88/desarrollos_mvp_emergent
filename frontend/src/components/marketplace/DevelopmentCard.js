@@ -305,17 +305,18 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           </div>
         )}
 
-        {/* Señales en UNA fila — plusvalía + amenidades (no apiladas) */}
-        {(dev.plusvalia_zona || dev.amenidades_count > 0) && (
+        {/* Señales — incremento del PROYECTO desde el lanzamiento (la plusvalía de zona vive en el menú) + amenidades */}
+        {(dev.incremento_preventa_pct || dev.amenidades_count > 0) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {dev.plusvalia_zona && (
+            {dev.incremento_preventa_pct && (
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-                color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
-                border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
-              }} title="Plusvalía de la zona: cuánto ha subido el mercado de la colonia. La determina el mercado, no el precio que el desarrollador pone en su preventa.">
-                ↗ Plusvalía de la zona {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+                color: '#B45309', background: 'rgba(217,119,6,0.10)',
+                border: '1px solid rgba(217,119,6,0.26)', borderRadius: 999, padding: '4px 10px',
+              }} title="Cuánto ha subido el DESARROLLADOR su precio desde que abrió la preventa: de su precio de lista inicial (lanzamiento) al de hoy. Es decisión del dev, no plusvalía del mercado.">
+                ↑ Subió {dev.incremento_preventa_pct}% desde el lanzamiento
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'rgba(180,83,9,0.18)', fontSize: 9, fontWeight: 800 }}>?</span>
               </span>
             )}
             {dev.amenidades_count > 0 && (
