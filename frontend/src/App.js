@@ -357,7 +357,7 @@ const PrivacyDsrPage                 = lazy(() => import('./pages/public/Privacy
 const ConnectMcpPage                 = lazy(() => import('./pages/public/ConnectMcpPage'));
 const AsistentePage                  = lazy(() => import('./pages/public/AsistentePage'));
 // W4.2D2 — Programmatic SEO zone landing pages
-const ZonePage                       = lazy(() => import('./pages/public/ZonePage'));
+const ZonePageV2                     = lazy(() => import('./pages/public/ZonePageV2'));  // rebuild claro (formato marketplace · reemplaza ZonePage oscura)
 // W4.2D3 — Programmatic SEO Tier 1+2 (alcaldías + intents)
 const AlcaldiaPage                   = lazy(() => import('./pages/public/AlcaldiaPage'));
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
@@ -997,7 +997,7 @@ function AppRouter() {
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
       <Route path="/asistente" element={<AsistentePage />} />
       {/* W4.2D2 — Programmatic SEO zone landing */}
-      <Route path="/zona/:slug" element={<ZonePage />} />
+      <Route path="/zona/:slug" element={<ZonePageV2 />} />
       {/* W4.2D3 — Programmatic SEO alcaldía + intent landings */}
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
       <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
