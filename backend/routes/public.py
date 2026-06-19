@@ -273,18 +273,38 @@ async def zona_inversion(colonia_id: str, request: Request):
             out["precio_m2"] = round(sum(pm2s) / len(pm2s))
         rep = out.get("precio_prom") or (out.get("precio_m2", 50000) * 80)
         try:
-            from investment_simulator_engine import simulate
-            sim = await simulate(db, rep, 60, 80, colonia_id, financiamiento_pct=0.0)  # cash, depto típico, 5 años
+            from investment_simulator_engine import simulate, _mortgage_rate
+            sim = await simulate(db, rep, 60, 80, colonia_id, financiamiento_pct=0.80)  # depto típico 80m², 5 años, 80% crédito
             base = (sim or {}).get("base") or {}
-            renta_m = base.get("renta_mensual_neta")
+            renta_neta_m = base.get("renta_mensual_neta") or 0
+            renta_bruta_m = base.get("renta_mensual_bruta") or 0
+            aprec = (base.get("aprec_anual_pct") or 0) / 100.0
+            renta_neta_anual = renta_neta_m * 12
+            gastos_cierre = rep * 0.08   # ~8% adquisición
+            # Exit óptimo: maximiza el retorno ANUALIZADO de un comprador de contado (años 2-7), descontando costos.
+            def _gain_at(y):
+                precio_y = rep * ((1 + aprec) ** y)
+                return (precio_y - rep) + renta_neta_anual * y - gastos_cierre - precio_y * 0.05  # 5% venta
+            best_y, best_ann = 5, -1e9
+            for y in range(2, 8):
+                ann = (_gain_at(y) / rep) / y if rep else 0
+                if ann > best_ann:
+                    best_ann, best_y = ann, y
+            rate = _mortgage_rate() or 0.105
             out.update({
                 "precio_representativo": rep,
-                "renta_mensual": renta_m,
-                "renta_anual": (round(renta_m * 12) if renta_m else None),
-                "yield_pct": (round((renta_m * 12 / rep) * 100, 1) if (renta_m and rep) else None),
-                "roi_5y_pct": base.get("roi_contado_pct"),
+                "renta_mensual_neta": round(renta_neta_m), "renta_mensual_bruta": round(renta_bruta_m),
+                "renta_anual": round(renta_neta_anual) if renta_neta_anual else None,
+                "roi_rentas_anual_pct": (round((renta_neta_anual / rep) * 100, 1) if rep else None),  # yield neto
                 "tir_anual_pct": base.get("tir_anual_pct"),
                 "plusvalia_anual_pct": base.get("aprec_anual_pct"),
+                "plusvalia_anual_abs": round(rep * aprec) if aprec else None,
+                "ganancia_5y_abs": round(_gain_at(5)),
+                "ganancia_5y_pct": round((_gain_at(5) / rep) * 100) if rep else None,
+                "exit_year": best_y,
+                "mensualidad_credito_80": round(base.get("pago_mensual_hipoteca") or 0),
+                "enganche_20": round(base.get("enganche") or rep * 0.20),
+                "tasa_credito": {"baja": round((rate - 0.015) * 100, 1), "promedio": round(rate * 100, 1), "alta": round((rate + 0.015) * 100, 1)},
             })
             tir = base.get("tir_anual_pct")
             if tir is not None:

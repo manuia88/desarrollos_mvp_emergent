@@ -89,6 +89,12 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const Chip = ({ children, c = '99,102,241' }) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, color: `rgb(${c})`, background: `rgba(${c},0.08)`, border: `1px solid rgba(${c},0.2)`, borderRadius: 9999, padding: '3px 10px' }}>{children}</span>
   );
+  const Row = ({ l, v, g, strong, top }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginTop: top ? 8 : 5, fontFamily: 'DM Sans', fontSize: strong ? 12.5 : 12, color: 'var(--cream-2)' }}>
+      <span>{l}</span>
+      <span style={{ fontWeight: strong ? 800 : 700, color: g ? '#0E9F6E' : 'var(--cream)', whiteSpace: 'nowrap' }}>{v}</span>
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -173,61 +179,59 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             )}
           </div>
 
-          {/* 4 · PRECIOS DE LA ZONA */}
+          {/* 4 · PRECIOS (venta + renta) */}
           {inv && inv.precio_prom && (
             <div style={sep}>
               <div style={eyebrow}>{tc('Precios de venta')}</div>
-              <div style={{ display: 'flex', gap: 9, marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 {[['mínimo', inv.precio_min], ['promedio', inv.precio_prom], ['máximo', inv.precio_max]].map(([lbl, val]) => (
-                  <div key={lbl} style={{ flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.14)' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{m(val)}</div>
+                  <div key={lbl} style={{ flex: 1, textAlign: 'center', padding: '9px 5px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.14)' }}>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{m(val)}</div>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 2 }}>{lbl}</div>
                   </div>
                 ))}
               </div>
+              {inv.precio_m2 && <Row l="Precio por m²" v={`$${Math.round(inv.precio_m2 / 1000)}k/m²`} top />}
             </div>
           )}
 
-          {/* 5 · ¿BUENA INVERSIÓN? (motor real: ROI · TIR · renta anual · veredicto) */}
+          {/* 5 · ¿BUENA INVERSIÓN? — retornos + ganancias + exit + crédito (motor real) */}
           {inv && inv.veredicto_inversion && (
             <div style={sep}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={eyebrow}>{tc('¿Buena inversión?')}</div>
                 <Chip c={(VER_INV[inv.veredicto_inversion] || {}).c || '99,102,241'}>{(VER_INV[inv.veredicto_inversion] || {}).e} {inv.veredicto_inversion}</Chip>
               </div>
-              <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
-                {inv.roi_5y_pct != null && (
-                  <div style={{ flex: 1, padding: '10px 8px', borderRadius: 13, background: 'rgba(22,199,132,0.07)', border: '1px solid rgba(22,199,132,0.18)' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#0E9F6E', letterSpacing: '-0.02em' }}>+{Math.round(inv.roi_5y_pct)}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 3 }}>ROI a 5 años</div>
+              {/* Retornos anuales (3 métricas) */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
+                {[[inv.roi_rentas_anual_pct, 'ROI rentas/año', '22,199,132', '#0E9F6E'], [inv.tir_anual_pct, 'TIR anual', '124,92,255', '#7C5CFF'], [inv.plusvalia_anual_pct, 'plusvalía/año', '192,38,211', '#C026D3']].map(([val, lbl, bg, fg]) => val == null ? null : (
+                  <div key={lbl} style={{ flex: 1, padding: '9px 6px', borderRadius: 12, background: `rgba(${bg},0.07)`, border: `1px solid rgba(${bg},0.18)` }}>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: fg, letterSpacing: '-0.02em' }}>{val}%</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', marginTop: 3 }}>{lbl}</div>
                   </div>
-                )}
-                {inv.tir_anual_pct != null && (
-                  <div style={{ flex: 1, padding: '10px 8px', borderRadius: 13, background: 'rgba(124,92,255,0.07)', border: '1px solid rgba(124,92,255,0.18)' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#7C5CFF', letterSpacing: '-0.02em' }}>{inv.tir_anual_pct}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 3 }}>TIR anual</div>
-                  </div>
-                )}
-                {inv.plusvalia_anual_pct != null && (
-                  <div style={{ flex: 1, padding: '10px 8px', borderRadius: 13, background: 'rgba(192,38,211,0.06)', border: '1px solid rgba(192,38,211,0.16)' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: '#C026D3', letterSpacing: '-0.02em' }}>+{inv.plusvalia_anual_pct}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 3 }}>plusvalía/año</div>
-                  </div>
-                )}
+                ))}
               </div>
-              {inv.renta_anual && (
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-                    <span>💰 Ganas al año en renta</span><span><b style={{ color: '#0E9F6E' }}>~${inv.renta_anual.toLocaleString('es-MX')}</b>{inv.yield_pct ? ` · ${inv.yield_pct}%` : ''}</span>
-                  </div>
-                  {inv.renta_mensual && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
-                      <span>🏠 ${Math.round(inv.renta_mensual).toLocaleString('es-MX')}/mes · 🔑 Airbnb ~${(rentaAirbnb || 0).toLocaleString('es-MX')}/mes</span>
-                    </div>
-                  )}
+              {/* Ganancias en $ */}
+              <div style={{ marginTop: 10 }}>
+                {inv.plusvalia_anual_abs && <Row l="💸 Ganas/año en plusvalía" v={`~${m(inv.plusvalia_anual_abs)}`} g />}
+                {inv.renta_anual && <Row l="💰 Ganas/año en renta" v={`~${m(inv.renta_anual)}`} g />}
+                {inv.ganancia_5y_abs && <Row l={`📈 A 5 años si vendes`} v={`~${m(inv.ganancia_5y_abs)} (+${inv.ganancia_5y_pct}%)`} g strong />}
+                {inv.exit_year && <Row l="🎯 Exit recomendado" v={`año ${inv.exit_year}`} />}
+              </div>
+              {/* Renta mensual */}
+              <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px dashed rgba(16,18,28,0.08)' }}>
+                {inv.renta_mensual_neta && <Row l="🏠 Renta larga (neta/mes)" v={`$${inv.renta_mensual_neta.toLocaleString('es-MX')}`} />}
+                {rentaAirbnb && <Row l="🔑 Airbnb (corto/mes)" v={`~$${rentaAirbnb.toLocaleString('es-MX')}`} />}
+              </div>
+              {/* Crédito */}
+              {inv.tasa_credito && (
+                <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px dashed rgba(16,18,28,0.08)' }}>
+                  <Row l="🏦 Tasa de crédito" v={`${inv.tasa_credito.baja}–${inv.tasa_credito.alta}% (prom ${inv.tasa_credito.promedio}%)`} />
+                  {inv.mensualidad_credito_80 > 0 && <Row l="Mensualidad (80% crédito)" v={`$${inv.mensualidad_credito_80.toLocaleString('es-MX')}/mes`} />}
+                  {inv.enganche_20 > 0 && <Row l="Enganche (20%)" v={`${m(inv.enganche_20)}`} />}
                 </div>
               )}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 8 }}>estimado · depto típico, a 5 años, de contado · motor DesarrollosMX</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', marginTop: 9 }}>estimado · depto típico 80m² · motor DesarrollosMX</div>
             </div>
           )}
 
