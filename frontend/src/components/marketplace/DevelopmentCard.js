@@ -7,7 +7,6 @@ import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight,
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
-import ProbabilityBadge from '../shared/ProbabilityBadge';
 import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -155,11 +154,12 @@ export default function DevelopmentCard({ dev, index = 0 }) {
     { Icon: Ruler, v: rng(dev.m2_range), unit: 'm²' },
   ].filter(s => s.v != null);
   // Precio vs promedio de la zona, en lenguaje humano (antes "+38% vs zona" no se entendía).
+  // Semáforo de precio vs la zona: 🟢 bajo (buena compra) · 🟡 en precio · 🔴 sobre (caro).
   const vz = typeof dev.precio_vs_zona_pct === 'number' ? dev.precio_vs_zona_pct : null;
   const vzText = vz == null ? null
-    : vz <= -8 ? { t: `${Math.abs(vz)}% bajo la zona`, c: '#1FA06A' }
-    : vz < 12 ? { t: 'En precio de zona', c: 'var(--cream-3)' }
-    : { t: `${vz}% sobre la zona`, c: 'var(--cream-3)' };
+    : vz <= -5 ? { t: `${Math.abs(vz)}% bajo la zona`, c: '#0E9F6E', dot: '#16C784' }
+    : vz < 8 ? { t: 'En precio de zona', c: '#B8860B', dot: '#F5B301' }
+    : { t: `${vz}% sobre la zona`, c: '#DC2626', dot: '#EF4444' };
 
   return (
     <Link
@@ -242,22 +242,27 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 6 }}>desde</span>
           </div>
           {dev.price_m2_dev && (
-            <div style={{ textAlign: 'right', lineHeight: 1.35 }}>
+            <div style={{ textAlign: 'right', lineHeight: 1.4 }}>
               <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</div>
-              {vzText && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: vzText.c === '#1FA06A' ? 700 : 500 }} title="Precio por m² vs el promedio de su colonia">{vzText.t}</div>}
+              {vzText && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: 700 }} title="Precio por m² vs el promedio de su colonia (semáforo)">
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: vzText.dot, boxShadow: `0 0 6px ${vzText.dot}` }} />
+                  {vzText.t}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Specs — fila con divisores */}
+        {/* Specs — solo icono + número (sin palabras). Icono claro en color de tema. m² lleva su unidad. */}
         {specs.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', padding: '2px 0' }}>
             {specs.map((s, i) => (
               <React.Fragment key={s.unit}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                  <s.Icon size={15} color="var(--theme)" />
-                  <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream)' }}>
-                    {s.v} <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11.5 }}>{s.unit}</span>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }} title={s.unit}>
+                  <s.Icon size={17} color="var(--theme)" strokeWidth={2.2} />
+                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
+                    {s.v}{s.unit === 'm²' ? <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11 }}> m²</span> : ''}
                   </span>
                 </div>
                 {i < specs.length - 1 && <div style={{ width: 1, height: 22, background: 'var(--border)' }} />}
@@ -335,7 +340,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             {dev.developer?.name}
           </span>
         </div>
-        <ProbabilityBadge type="sells_complete" entity_id={dev.id} params={{ months: 12 }} format="compact" />
+        <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Ver detalles →</span>
       </div>
     </Link>
   );
