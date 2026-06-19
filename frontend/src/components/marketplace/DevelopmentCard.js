@@ -253,21 +253,23 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           )}
         </div>
 
-        {/* Specs — "desde" + el MÍNIMO de cada característica (solo icono + número) */}
+        {/* Specs — "desde" ARRIBA, los elementos (icono + mínimo) ABAJO */}
         {specs.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', flexShrink: 0 }}>desde</span>
-            {specs.map((s, i) => (
-              <React.Fragment key={s.unit}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} title={s.unit}>
-                  <s.Icon size={16} color="var(--theme)" />
-                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
-                    {s.v}{s.unit === 'm²' ? <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11 }}> m²</span> : ''}
-                  </span>
-                </div>
-                {i < specs.length - 1 && <div style={{ width: 1, height: 20, background: 'var(--border)' }} />}
-              </React.Fragment>
-            ))}
+          <div style={{ padding: '2px 0' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginBottom: 7 }}>desde</div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {specs.map((s, i) => (
+                <React.Fragment key={s.unit}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} title={s.unit}>
+                    <s.Icon size={16} color="var(--theme)" />
+                    <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
+                      {s.v}{s.unit === 'm²' ? <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11 }}> m²</span> : ''}
+                    </span>
+                  </div>
+                  {i < specs.length - 1 && <div style={{ width: 1, height: 20, background: 'var(--border)' }} />}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         )}
 
