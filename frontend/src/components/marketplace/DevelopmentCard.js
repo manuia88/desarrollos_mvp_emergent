@@ -221,103 +221,109 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         )}
       </div>
 
-      {/* ── PRECIO (limpio, abajo de la foto · no sobre fondo negro) ── */}
-      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 23, color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-          {dev.price_from_display}
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 5 }}>desde</span>
+      {/* ── CUERPO · ritmo UNIFORME (gap), agrupado, con aire — jerarquía: identidad → precio → specs → señales ── */}
+      <div style={{ padding: '18px 20px 0', display: 'flex', flexDirection: 'column', gap: 15, flex: 1 }}>
+
+        {/* Identidad — nombre + ubicación (lidera la tarjeta) */}
+        <div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: 'var(--cream)', lineHeight: 1.2, letterSpacing: '-0.025em' }}>
+            {dev.name}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
+            <MapPin size={12} color="var(--cream-3)" />
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>{dev.street} · {dev.colonia}</span>
+          </div>
         </div>
-        {dev.price_m2_dev && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</span>
-            {vzText && <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: vzText.c === '#1FA06A' ? 700 : 500 }} title="Precio por m² vs el promedio de su colonia">{vzText.t}</span>}
+
+        {/* Precio — el número que manda, con su propio aire */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+            {dev.price_from_display}
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 6 }}>desde</span>
+          </div>
+          {dev.price_m2_dev && (
+            <div style={{ textAlign: 'right', lineHeight: 1.35 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</div>
+              {vzText && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: vzText.c === '#1FA06A' ? 700 : 500 }} title="Precio por m² vs el promedio de su colonia">{vzText.t}</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Specs — fila con divisores */}
+        {specs.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', padding: '2px 0' }}>
+            {specs.map((s, i) => (
+              <React.Fragment key={s.unit}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                  <s.Icon size={15} color="var(--theme)" />
+                  <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream)' }}>
+                    {s.v} <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11.5 }}>{s.unit}</span>
+                  </span>
+                </div>
+                {i < specs.length - 1 && <div style={{ width: 1, height: 22, background: 'var(--border)' }} />}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
+        {/* Unidades que cumplen lo que pediste (solo al buscar) */}
+        {dev.units_match > 0 && (
+          <div data-testid={`units-match-${dev.id}`}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+              color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
+              border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
+            }} title="Unidades disponibles en la lista de precios que cumplen tu búsqueda">
+              ✓ {dev.units_match} {dev.units_match === 1 ? 'unidad disponible que cumple' : 'unidades disponibles que cumplen'}
+            </span>
+            {(dev.units_match_sample || []).length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {dev.units_match_sample.slice(0, 3).map((u) => (
+                  <div key={u.unit_number} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span><b style={{ color: 'var(--cream)' }}>#{u.unit_number}</b> · {u.bedrooms} rec · {u.m2_total}m²{u.orientation ? ` · ${u.orientation}` : ''}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{u.price_display}</span>
+                    </div>
+                    {u.enganche > 0 && (
+                      <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 1 }}>
+                        enganche ${Math.round(u.enganche).toLocaleString('es-MX')}{u.mensualidad > 0 ? ` · $${Math.round(u.mensualidad).toLocaleString('es-MX')}/mes` : ''}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {dev.units_match > 3 && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>+{dev.units_match - 3} más</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Señales en UNA fila — plusvalía + amenidades (no apiladas) */}
+        {(dev.plusvalia_zona || dev.amenidades_count > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {dev.plusvalia_zona && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
+                border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
+              }} title="Plusvalía reciente de la colonia (cuánto ha subido la zona)">
+                ↗ Plusvalía {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+              </span>
+            )}
+            {dev.amenidades_count > 0 && (
+              <span data-testid="card-amenidades" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, color: 'var(--cream-2)',
+                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 999, padding: '4px 10px',
+              }}>{dev.amenidades_count} amenidades</span>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── FILA DE SPECS (xproperty: iconos + divisores) ── */}
-      {specs.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px 0' }}>
-          {specs.map((s, i) => (
-            <React.Fragment key={s.unit}>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                <s.Icon size={15} color="var(--theme)" />
-                <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream)' }}>
-                  {s.v} <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11.5 }}>{s.unit}</span>
-                </span>
-              </div>
-              {i < specs.length - 1 && <div style={{ width: 1, height: 22, background: 'var(--border)' }} />}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-
-      {/* ── TÍTULO + UBICACIÓN ── */}
-      <div style={{ padding: '14px 18px 0' }}>
-        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: 'var(--cream)', lineHeight: 1.18, letterSpacing: '-0.025em' }}>
-          {dev.name}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
-          <MapPin size={12} color="var(--cream-3)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>{dev.street} · {dev.colonia}</span>
-        </div>
-      </div>
-
-      {/* ── UNIDADES que cumplen lo que pediste (match por unidad REAL disponible + nombradas) ── */}
-      {dev.units_match > 0 && (
-        <div style={{ padding: '12px 18px 0' }} data-testid={`units-match-${dev.id}`}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-            color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
-            border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
-          }} title="Unidades disponibles en la lista de precios que cumplen tu búsqueda">
-            ✓ {dev.units_match} {dev.units_match === 1 ? 'unidad disponible que cumple' : 'unidades disponibles que cumplen'}
-          </span>
-          {(dev.units_match_sample || []).length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {dev.units_match_sample.slice(0, 3).map((u) => (
-                <div key={u.unit_number} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span><b style={{ color: 'var(--cream)' }}>#{u.unit_number}</b> · {u.bedrooms} rec · {u.m2_total}m²{u.orientation ? ` · ${u.orientation}` : ''}</span>
-                    <span style={{ fontWeight: 700, color: 'var(--cream)' }}>{u.price_display}</span>
-                  </div>
-                  {u.enganche > 0 && (
-                    <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 1 }}>
-                      enganche ${Math.round(u.enganche).toLocaleString('es-MX')}{u.mensualidad > 0 ? ` · $${Math.round(u.mensualidad).toLocaleString('es-MX')}/mes` : ''}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {dev.units_match > 3 && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>+{dev.units_match - 3} más</div>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── PLUSVALÍA de la zona (señal de inversión · separada del precio) ── */}
-      {dev.plusvalia_zona && (
-        <div style={{ padding: '12px 18px 0' }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-            color: 'var(--ok, #1FA06A)', background: 'rgba(31,160,106,0.10)',
-            border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
-          }} title="Plusvalía reciente de la colonia (cuánto ha subido la zona)">
-            ↗ Plusvalía {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
-          </span>
-        </div>
-      )}
-
-      {dev.amenidades_count > 0 && (
-        <div data-testid="card-amenidades" style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', padding: '10px 18px 0' }}>
-          <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>{dev.amenidades_count} amenidades</span>
-          {(dev.servicios_top || []).length > 0 && <span>· {(dev.servicios_top || []).slice(0, 2).map(s => String(s).replace(/_/g, ' ')).join(' · ')}</span>}
-        </div>
-      )}
-
-      {/* ── PIE: desarrollador + ver detalles + probabilidad ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '14px 18px', marginTop: 14, borderTop: '1px solid var(--border)' }}>
+      {/* ── PIE: desarrollador + probabilidad (separado con borde + aire) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '15px 20px', marginTop: 16, borderTop: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <div style={{
             width: 24, height: 24, borderRadius: 7, flexShrink: 0,
