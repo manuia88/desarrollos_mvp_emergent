@@ -31,6 +31,50 @@ const PROFILES = [
   { k: 'primera', label: 'Mi primera casa', e: '🏠', promise: 'Deja de rentar' },
   { k: 'vivir', label: 'Vivir mejor', e: '✨', promise: 'La vida que mereces' },
 ];
+// MOCKUP "Lugares destacados" — infra lista; se reemplaza por zone_places reales (Google) cuando se active la zona.
+const SAMPLE_LUGARES = {
+  familia: { titulo: 'Las mejores escuelas cerca', items: [
+    { name: 'Colegio Williams', rating: 4.8, reviews: 1240, meta: 'Bilingüe · a 6 min', desc: '"Excelente nivel académico y trato cercano." De las mejor valoradas de la zona.' },
+    { name: 'Liceo Mexicano Japonés', rating: 4.6, reviews: 890, meta: 'a 8 min', desc: '"Disciplina, valores e instalaciones top."' },
+    { name: 'Instituto Montessori', rating: 4.7, reviews: 430, meta: 'Preescolar · a 5 min', desc: '"Ideal para los más chicos, mucho cuidado."' },
+  ] },
+  vivir: { titulo: 'Lo mejor para comer y vivir', items: [
+    { name: 'Pujol', rating: 4.7, reviews: 12400, meta: '$$$$ · a 7 min', desc: '"Cocina mexicana de autor, experiencia de otro nivel." Top mundial.' },
+    { name: 'Quintonil', rating: 4.7, reviews: 6800, meta: '$$$$ · a 9 min', desc: '"De los mejores de Latinoamérica."' },
+    { name: 'Café Nin', rating: 4.6, reviews: 5200, meta: 'Café · a 4 min', desc: '"Brunch perfecto, pan increíble."' },
+  ] },
+};
+function LugaresPreview({ data, isReal }) {
+  const [open, setOpen] = useState(-1);
+  if (!data) return null;
+  return (
+    <div style={{ marginTop: 18 }}>
+      {data.items.map((p, i) => (
+        <div key={p.name} className="zv2-win" style={{ background: '#fff', border: '1px solid rgba(16,18,28,0.07)', borderRadius: 16, boxShadow: '0 8px 22px rgba(99,102,241,0.06)', padding: '14px 18px', marginBottom: 10, cursor: 'pointer' }} onClick={() => setOpen(open === i ? -1 : i)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK }}>{p.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#0E9F6E' }}>★ {p.rating}</span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>({p.reviews.toLocaleString('es-MX')})</span>
+              <span style={{ color: '#6D4AFF', fontWeight: 800, fontFamily: 'Outfit' }}>{open === i ? '−' : '+'}</span>
+            </div>
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 2 }}>{p.meta}</div>
+          {open === i && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              {p.desc && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, lineHeight: 1.5 }}>{p.desc}</div>}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: p.desc ? 10 : 0 }}>
+                <button type="button" onClick={(e) => { e.stopPropagation(); askAtlax(`Cuéntame más de ${p.name} y opciones parecidas cerca.`); }} style={{ border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                {p.maps_uri && <a href={p.maps_uri} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ background: 'rgba(16,18,28,0.05)', color: INK, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', textDecoration: 'none' }}>Ver reseñas en Google →</a>}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 4, fontStyle: 'italic' }}>{isReal ? 'lugares y calificaciones reales de Google Places' : 'vista previa · se llena con reseñas reales de Google cuando se active la zona'}</div>
+    </div>
+  );
+}
 // Amenidades de la ZONA (alrededor · Google Places). key → emoji+label. Tope 20/categoría → se muestra "20+".
 const CATS_ZONA = [
   ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['escuela', '🏫', 'escuelas'],
@@ -96,6 +140,7 @@ export default function ZonePageV2() {
   const [devs, setDevs] = useState([]);
   const [similar, setSimilar] = useState([]);
   const [vida, setVida] = useState(null);
+  const [lugares, setLugares] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -108,9 +153,10 @@ export default function ZonePageV2() {
       get(`/api/developments?colonia=${slug}&limit=12`),
       get(`/api/colonias-similar/${slug}`),
       get(`/api/zona/${slug}/vida`),
-    ]).then(([i, l, d, s, v]) => {
+      get(`/api/zona/${slug}/lugares`),
+    ]).then(([i, l, d, s, v, lg]) => {
       if (!alive) return;
-      setInv(i); setLanding(l); setVida(v);
+      setInv(i); setLanding(l); setVida(v); setLugares(lg);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
@@ -148,6 +194,21 @@ export default function ZonePageV2() {
     const c = {}; devs.forEach((d) => (d.amenities || []).forEach((a) => { c[a] = (c[a] || 0) + 1; }));
     return Object.entries(c).filter(([s]) => AMEN_DEV[s]).sort((a, b) => b[1] - a[1]).slice(0, 8);
   })();
+  // Lugares destacados: data REAL de Google (zone_places) si existe → cae al SAMPLE (vista previa) si no.
+  const PRICE_TXT = { PRICE_LEVEL_INEXPENSIVE: '$', PRICE_LEVEL_MODERATE: '$$', PRICE_LEVEL_EXPENSIVE: '$$$', PRICE_LEVEL_VERY_EXPENSIVE: '$$$$' };
+  const realLugares = (() => {
+    if (!lugares || !lugares.lugares) return null;
+    const catFor = profile === 'familia' ? 'escuela' : 'restaurante';
+    const items = (lugares.lugares[catFor] || []).filter((p) => p.name && p.rating).slice(0, 5).map((p) => ({
+      name: p.name, rating: p.rating, reviews: p.reviews || 0,
+      meta: [PRICE_TXT[p.price_level], `${p.reviews || 0} reseñas`].filter(Boolean).join(' · '),
+      maps_uri: p.maps_uri,
+    }));
+    if (!items.length) return null;
+    return { titulo: profile === 'familia' ? 'Las mejores escuelas cerca' : 'Lo mejor para comer y vivir', items };
+  })();
+  const lugaresData = realLugares || (SAMPLE_LUGARES[profile] || null);
+  const lugaresEsReal = !!realLugares;
   // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
   const rentaMes = inv && inv.renta_prom;
   const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
@@ -333,6 +394,16 @@ export default function ZonePageV2() {
               ))}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>amenidades reales de los desarrollos en la zona</div>
+          </section>
+        )}
+
+        {/* ── LO MEJOR CERCA (mockup · clickable con reseñas · infra lista para datos reales de Google) ── */}
+        {(profile === 'familia' || profile === 'vivir') && lugaresData && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <div style={eyebrow}>{tc('Lo mejor cerca')}</div>
+            <h2 style={chapTitle}>{lugaresData.titulo}</h2>
+            <p style={lead}>{profile === 'familia' ? 'Toca cada lugar para ver reseñas, calificación y a cuántos minutos está de aquí.' : 'Los favoritos de la zona, con calificación real. Toca cualquiera para ver más.'}</p>
+            <LugaresPreview data={lugaresData} isReal={lugaresEsReal} />
           </section>
         )}
 

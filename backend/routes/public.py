@@ -381,6 +381,33 @@ async def zona_vida(colonia_id: str, request: Request):
         return {"ok": True}
 
 
+@router.get("/api/zona/{colonia_id}/lugares")
+async def zona_lugares(colonia_id: str, request: Request):
+    """LUGARES con NOMBRE + estrellas + #reseñas + ubicación (curado por categoría · Google Places, SKU Enterprise).
+    Se llena con ingest_places_batch cuando haya desarrollos reales. Fail-open: si no hay data, devuelve vacío y el
+    frontend usa la vista previa. NO inventa nada."""
+    try:
+        db = request.app.state.db
+        d = await db.zone_places.find_one(
+            {"zone_id": colonia_id}, {"_id": 0, "places": 1, "source": 1})
+        if d and d.get("places"):
+            return {"ok": True, "fuente": d.get("source"), "lugares": d.get("places")}
+        return {"ok": True, "lugares": {}}
+    except Exception:
+        return {"ok": True, "lugares": {}}
+
+
+@router.post("/api/superadmin/google-places/ingest-lugares")
+async def google_places_ingest_lugares_run(request: Request):
+    """Corre UN lote de LUGARES con nombre+estrellas (SKU Enterprise, free tier ~1,000/mes). Solo colonias con
+    desarrollos reales (only_with_devs). Token fail-closed. Correr cuando ya existan desarrollos."""
+    expected = os.environ.get("GOOGLE_INGEST_TOKEN")
+    if not expected or (request.headers.get("x-cron-token") or "") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
+    from google_places_ingest import ingest_places_batch
+    return await ingest_places_batch(request.app.state.db)
+
+
 @router.post("/api/superadmin/google-places/ingest")
 async def google_places_ingest_run(request: Request):
     """Corre UN lote de ingesta de amenidades reales de Google Places (free-tier-safe: nunca rebasa el límite del mes).

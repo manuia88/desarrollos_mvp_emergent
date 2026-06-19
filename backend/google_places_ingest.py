@@ -79,6 +79,94 @@ async def _priority_colonias(db, limit: int) -> List[Dict[str, Any]]:
     return out[:limit]
 
 
+# ── LUGARES con nombre + estrellas (curado por perfil) — INFRA lista, se corre cuando haya desarrollos reales ──
+# SKU Enterprise (incluye rating) → free tier más bajo (~1,000/mes). Por eso es función aparte + quota propia.
+PLACE_CATEGORIES: Dict[str, str] = {
+    "escuela": "school", "hospital": "hospital", "parque": "park",
+    "restaurante": "restaurant", "cafe": "cafe", "supermercado": "supermarket",
+}
+TOP_N = 5  # top lugares por categoría (curado, no todo)
+
+
+async def _nearby_places(client: httpx.AsyncClient, lat: float, lng: float, gtype: str, key: str) -> List[Dict[str, Any]]:
+    """1 consulta searchNearby con campos ricos (nombre+rating+#reseñas+ubicación+precio+link). SKU Enterprise."""
+    body = {
+        "includedTypes": [gtype], "maxResultCount": TOP_N, "rankPreference": "POPULARITY",
+        "locationRestriction": {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": RADIUS_M}},
+    }
+    fm = "places.displayName,places.rating,places.userRatingCount,places.location,places.priceLevel,places.googleMapsUri"
+    headers = {"Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": fm}
+    r = await client.post(_URL, json=body, headers=headers, timeout=20)
+    if r.status_code != 200:
+        raise RuntimeError(f"places {r.status_code}: {r.text[:120]}")
+    out: List[Dict[str, Any]] = []
+    for p in (r.json() or {}).get("places") or []:
+        nm = (p.get("displayName") or {}).get("text")
+        if not nm:
+            continue
+        out.append({"name": nm, "rating": p.get("rating"), "reviews": p.get("userRatingCount"),
+                    "price_level": p.get("priceLevel"), "loc": p.get("location"), "maps_uri": p.get("googleMapsUri")})
+    return out
+
+
+async def ingest_places_batch(db, max_requests: int = 900, only_with_devs: bool = True) -> Dict[str, Any]:
+    """INFRA — NO correr sin desarrollos reales (SKU Enterprise, free tier ~1,000/mes). Captura top lugares con
+    nombre+estrellas por colonia (curado) → db.zone_places {zone_id, places:{categoria:[...]}}. Fail-open + idempotente."""
+    key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not key:
+        return {"ok": False, "reason": "no_api_key"}
+    month = _month_tag()
+    q = await db.google_quota.find_one({"month": month}) or {}
+    used = int(q.get("places_used") or 0)
+    remaining = max(0, min(max_requests, 950) - used)   # nunca rebasa el free tier Enterprise (~1,000)
+    cost = len(PLACE_CATEGORIES)
+    if remaining < cost:
+        return {"ok": True, "ingested": 0, "places_used": used, "reason": "free_tier_enterprise_agotado"}
+    # Prioriza colonias CON desarrollos (donde el dato realmente vende). Si no hay devs y only_with_devs → no gasta.
+    try:
+        from data_developments import DEVELOPMENTS
+        dev_cols = [d.get("colonia_id") for d in DEVELOPMENTS if d.get("colonia_id")]
+    except Exception:
+        dev_cols = []
+    cupo = remaining // cost
+    targets: List[Dict[str, Any]] = []
+    seen = set()
+    query = {"id": {"$in": list(set(dev_cols))}} if (only_with_devs and dev_cols) else {"center": {"$exists": True}}
+    async for col in db.colonias.find(query, {"_id": 0, "id": 1, "center": 1}):
+        cid, center = col.get("id"), col.get("center")
+        if not cid or cid in seen or not isinstance(center, (list, tuple)) or len(center) < 2:
+            continue
+        seen.add(cid)
+        targets.append({"id": cid, "lat": float(center[1]), "lng": float(center[0])})
+        if len(targets) >= cupo:
+            break
+    if not targets:
+        return {"ok": True, "ingested": 0, "reason": "sin_colonias_con_desarrollos"}
+    ingested, req_used = 0, 0
+    async with httpx.AsyncClient() as client:
+        for t in targets:
+            places: Dict[str, List[Dict[str, Any]]] = {}
+            ok_any = False
+            for our_key, gtype in PLACE_CATEGORIES.items():
+                try:
+                    places[our_key] = await _nearby_places(client, t["lat"], t["lng"], gtype, key)
+                    ok_any = True
+                except Exception:
+                    places[our_key] = []
+                req_used += 1
+            if ok_any:
+                await db.zone_places.update_one(
+                    {"zone_id": t["id"]},
+                    {"$set": {"zone_id": t["id"], "source": "google", "places": places,
+                              "radius_m": RADIUS_M, "last_synced": datetime.now(timezone.utc)}}, upsert=True)
+                ingested += 1
+            if req_used >= remaining:
+                break
+    await db.google_quota.update_one({"month": month}, {"$set": {"places_used": used + req_used}}, upsert=True)
+    return {"ok": True, "ingested": ingested, "requests_used": req_used, "places_used": used + req_used,
+            "free_tier_enterprise_restante_aprox": max(0, 950 - (used + req_used))}
+
+
 async def ingest_batch(db, max_requests: int = MAX_PER_MONTH) -> Dict[str, Any]:
     """Corre un lote dentro del free-tier del mes. Idempotente + fail-open."""
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
