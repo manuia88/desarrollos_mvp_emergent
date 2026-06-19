@@ -252,6 +252,50 @@ async def zona_pulso(colonia_id: str, request: Request):
         return {"ok": True, "busquedas_7d": 0, "trend_pct": 0, "nivel": "baja"}
 
 
+@router.get("/api/zona/{colonia_id}/inversion")
+async def zona_inversion(colonia_id: str, request: Request):
+    """INTELIGENCIA DE INVERSIÓN de la zona (motor real investment_simulator_engine, no inventado): precios de venta
+    (promedio/min/max/$m²) + renta mensual/anual + yield + ROI + TIR + veredicto de inversión. Sobre un depto
+    REPRESENTATIVO de la zona. Estimado transparente. Fail-open."""
+    try:
+        db = request.app.state.db
+        from data_developments import DEVELOPMENTS
+        devs = [d for d in DEVELOPMENTS if d.get("colonia_id") == colonia_id]
+        precios = [d.get("price_from") for d in devs if d.get("price_from")]
+        out = {"ok": True, "n_desarrollos": len(devs)}
+        if precios:
+            out["precio_prom"] = round(sum(precios) / len(precios))
+            out["precio_min"] = min(precios)
+            out["precio_max"] = max(precios)
+        pm2s = [d["price_from"] / ((d.get("m2_range") or [0])[0]) for d in devs
+                if d.get("price_from") and (d.get("m2_range") or [0])[0]]
+        if pm2s:
+            out["precio_m2"] = round(sum(pm2s) / len(pm2s))
+        rep = out.get("precio_prom") or (out.get("precio_m2", 50000) * 80)
+        try:
+            from investment_simulator_engine import simulate
+            sim = await simulate(db, rep, 60, 80, colonia_id, financiamiento_pct=0.0)  # cash, depto típico, 5 años
+            base = (sim or {}).get("base") or {}
+            renta_m = base.get("renta_mensual_neta")
+            out.update({
+                "precio_representativo": rep,
+                "renta_mensual": renta_m,
+                "renta_anual": (round(renta_m * 12) if renta_m else None),
+                "yield_pct": (round((renta_m * 12 / rep) * 100, 1) if (renta_m and rep) else None),
+                "roi_5y_pct": base.get("roi_contado_pct"),
+                "tir_anual_pct": base.get("tir_anual_pct"),
+                "plusvalia_anual_pct": base.get("aprec_anual_pct"),
+            })
+            tir = base.get("tir_anual_pct")
+            if tir is not None:
+                out["veredicto_inversion"] = ("excelente" if tir >= 12 else "buena" if tir >= 8 else "moderada" if tir >= 5 else "baja")
+        except Exception:
+            pass
+        return out
+    except Exception:
+        return {"ok": True}
+
+
 @router.get("/api/colonias")
 async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
