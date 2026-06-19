@@ -314,8 +314,8 @@ export default function DevelopmentCard({ dev, index = 0 }) {
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
                 color: '#1FA06A', background: 'rgba(31,160,106,0.10)',
                 border: '1px solid rgba(31,160,106,0.26)', borderRadius: 999, padding: '4px 10px',
-              }} title="Plusvalía reciente de la colonia (cuánto ha subido la zona)">
-                ↗ Plusvalía {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
+              }} title="Plusvalía de la zona: cuánto ha subido el mercado de la colonia. La determina el mercado, no el precio que el desarrollador pone en su preventa.">
+                ↗ Plusvalía de la zona {dev.plusvalia_zona}{typeof dev.forecast_12m_pct === 'number' ? ` · 12m +${dev.forecast_12m_pct}%` : ''}
               </span>
             )}
             {dev.amenidades_count > 0 && (

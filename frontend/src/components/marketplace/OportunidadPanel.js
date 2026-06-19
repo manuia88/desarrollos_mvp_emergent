@@ -66,13 +66,13 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const ver = (inv && inv.veredicto_inversion) ? (VER_INV[inv.veredicto_inversion] || VER_INV.moderada) : null;
   const INVEST_ROWS = inv ? [
     { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, c: '#0E9F6E',
-      t: 'Cuánto sube el precio del inmueble cada año. Se estima con la tendencia histórica de la zona. No incluye las rentas.' },
+      t: `Cuánto sube de precio el inmueble cada año por el mercado (la demanda y el desarrollo de la zona), no porque alguien lo decida. Se estima con la tendencia de precios de la zona.${inv.plusvalia_anual_abs && inv.precio_prom ? ` Aquí: ~${inv.plusvalia_anual_pct}% = un depto de ${m1(inv.precio_prom)} sube ~$${Math.round(inv.plusvalia_anual_abs / 1000).toLocaleString('es-MX')}k al año.` : ''} No incluye las rentas.` },
     { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, c: 'var(--cream)',
       t: 'Lo que cobrarías al mes de renta (bruta, antes de gastos), según las rentas típicas de la zona para un depto de ese precio.' },
     { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, c: '#0E9F6E',
-      t: 'La cuenta rápida: en UN año, cuánto sube de precio + la renta, entre lo que pagaste. No toma en cuenta el tiempo ni el crédito. Da una idea general.' },
+      t: `Tu ganancia total en un año, sumando las dos formas de ganar: lo que sube de precio (plusvalía) + lo que rinde de renta (cap rate).${inv.plusvalia_anual_pct != null && inv.cap_rate_anual_pct != null ? ` Aquí: ${inv.plusvalia_anual_pct}% + ${inv.cap_rate_anual_pct}% = ${inv.roi_anual_pct}%.` : ''} Es una cuenta simple de un año; no considera el crédito ni el paso del tiempo.` },
     { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
-      t: 'Más fina que el ROI: anualiza tu ganancia a lo largo de TODOS los años y toma en cuenta cuándo entra cada peso (un peso hoy vale más que mañana). Por eso suele ser menor que el ROI. Es la que usan los inversionistas.' },
+      t: `La medida más completa: toma tu inversión, las rentas que entran cada año y lo que sacas al vender, y calcula a qué % anual equivale todo — tomando en cuenta que un peso hoy vale más que mañana. Por eso suele ser menor que el ROI.${inv.tir_anual_pct != null ? ` Aquí: ~${inv.tir_anual_pct}% al año (a 5 años).` : ''}` },
     { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, c: '#C026D3',
       t: `Lo que rinde al año si lo compras de contado (sin crédito). Se calcula: renta de un año − gastos de operarlo (mantenimiento, predial, seguro, administración) = NOI; y luego NOI ÷ precio.${inv.renta_anual && inv.precio_prom ? ` Aquí: ~$${Math.round(inv.renta_anual / 1000).toLocaleString('es-MX')}k ÷ ${m1(inv.precio_prom)} = ${inv.cap_rate_anual_pct}%.` : ''} No resta el crédito ni impuestos, ni incluye la plusvalía.` },
   ] : [];
@@ -140,6 +140,15 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 <span style={{ fontSize: 14 }}>{veredicto.e}</span> El veredicto: <span style={grad}>{veredicto.l}</span>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6, lineHeight: 1.5 }}>{veredicto.r}</div>
+            </div>
+          )}
+
+          {/* PUENTE — conecta el veredicto con los datos de abajo */}
+          {inv && inv.precio_prom && (
+            <div style={{ ...sep, paddingBottom: 0, borderTopStyle: 'dashed' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+                Aquí abajo, los números que respaldan ese veredicto: <b style={{ color: 'var(--cream-2)' }}>cuánto cuesta</b>, <b style={{ color: 'var(--cream-2)' }}>cuánto renta</b>, <b style={{ color: 'var(--cream-2)' }}>qué tan buena inversión es</b> y <b style={{ color: 'var(--cream-2)' }}>cómo financiarla</b>. Pasa el mouse sobre cada concepto (?) para entenderlo.
+              </div>
             </div>
           )}
 
