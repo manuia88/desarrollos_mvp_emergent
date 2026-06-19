@@ -41,10 +41,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const overall = scoreVals.length ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length) : null;
   const segmento = zoneM2 ? (zoneM2 >= 80000 ? 'Premium' : zoneM2 >= 45000 ? 'Alto' : 'Medio') : '—';
 
+  // Blanco SÓLIDO y nítido (no vidrio — el vidrio sobre fondo claro se ve lavado). Premium = sombra fina en capas.
   const glass = {
-    background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)',
-    border: '1px solid rgba(255,255,255,0.7)', borderRadius: 22,
-    boxShadow: '0 16px 40px rgba(99,102,241,0.10), 0 2px 8px rgba(16,18,28,0.05), inset 0 1px 0 rgba(255,255,255,0.6)',
+    background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22,
+    boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)',
   };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 
