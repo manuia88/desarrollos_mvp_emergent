@@ -31,13 +31,6 @@ const PROFILES = [
   { k: 'primera', label: 'Mi primera casa', e: '🏠', promise: 'Deja de rentar' },
   { k: 'vivir', label: 'Vivir mejor', e: '✨', promise: 'La vida que mereces' },
 ];
-const CATS = [
-  ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['bar', '🍷', 'bares'],
-  ['recreacion', '🌳', 'parques y recreación'], ['escuela', '🏫', 'escuelas'], ['hospital', '🏥', 'hospitales'],
-  ['farmacia', '💊', 'farmacias'], ['mercado', '🛒', 'mercados y tiendas'], ['banco', '🏦', 'bancos'],
-  ['transporte', '🚇', 'puntos de transporte'], ['gimnasio', '🏋️', 'gimnasios'],
-];
-
 // Contexto de zona: 1-2 líneas potentes, del arquetipo (dato), antes de preguntar el objetivo.
 function zoneContext(name, inv) {
   const pm2 = (inv && inv.precio_m2) || 0; const pl = (inv && inv.plusvalia_anual_pct) || 0;
@@ -92,7 +85,6 @@ export default function ZonePageV2() {
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
   const [similar, setSimilar] = useState([]);
-  const [vida, setVida] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -104,10 +96,9 @@ export default function ZonePageV2() {
       get(`/api/public/landing/colonia/${slug}`),
       get(`/api/developments?colonia=${slug}&limit=12`),
       get(`/api/colonias-similar/${slug}`),
-      get(`/api/zona/${slug}/vida`),
-    ]).then(([i, l, d, s, v]) => {
+    ]).then(([i, l, d, s]) => {
       if (!alive) return;
-      setInv(i); setLanding(l); setVida(v);
+      setInv(i); setLanding(l);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
@@ -171,7 +162,8 @@ export default function ZonePageV2() {
             {/* La pregunta + las 4 tabs (cada una con micro-promesa) */}
             {S && (
               <div style={{ marginTop: 26 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>¿Qué vienes a buscar en {name}?</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>{name} es muchas cosas para mucha gente. <span style={grad}>¿Qué es para ti?</span></div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6', marginTop: 5 }}>Elige y te contamos su historia con esos ojos.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, marginTop: 14 }}>
                   {PROFILES.map((p) => {
                     const on = p.k === profile;
@@ -193,8 +185,7 @@ export default function ZonePageV2() {
                 <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
                 <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-                  <a href="#empezar" className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, textDecoration: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>{S.cta}</a>
-                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
                   <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
                 </div>
               </div>
@@ -208,35 +199,8 @@ export default function ZonePageV2() {
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
         <div key={`body-${profile}`}>
-        {/* ── LA VIDA AQUÍ (amenidades reales, narrado por perfil) ── */}
-        {vida && vida.amenidades && Object.keys(vida.amenidades).length > 0 && (() => {
-          const am = vida.amenidades;
-          const shown = CATS.filter(([key]) => (am[key] || 0) > 0);
-          const intro = profile === 'familia'
-            ? `Para tu familia, todo a la mano: ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y ${am.recreacion || 0} espacios de recreación cerca. El barrio donde crecen, no solo cuatro paredes.`
-            : profile === 'vivir'
-              ? `La vida buena, caminando: ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y ${am.bar || 0} bares a tu alrededor. Aquí no manejas para vivir bien — sales por la puerta.`
-              : profile === 'primera'
-                ? `No compras un depto aislado: compras un barrio vivo, con ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y todo lo que necesitas a unos pasos.`
-                : `Lo que hace que la gente quiera vivir aquí — y por eso renta y se revaloriza: ${am.restaurante || 0} restaurantes, ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y mucho más.`;
-          return (
-            <section className="zv2-up" style={{ ...sec, marginTop: 52 }}>
-              <div style={eyebrow}>{tc('La vida aquí')}</div>
-              <h2 style={chapTitle}>{S.vidaTitle}</h2>
-              <p style={lead}>{intro}</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px,1fr))', gap: 12, marginTop: 18 }}>
-                {shown.map(([key, e, label]) => (
-                  <div key={key} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                    <div style={{ fontSize: 22 }}>{e}</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 27, color: INK, letterSpacing: '-0.02em', marginTop: 4 }}>{am[key]}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>negocios y lugares reales mapeados en la zona (OpenStreetMap)</div>
-            </section>
-          );
-        })()}
+        {/* ── LA VIDA AQUÍ — PAUSADO: los conteos OSM no son confiables (1 gym en Polanco = falso). Se reactiva con
+            datos verificados de Google Places (ingesta de pago, 1 vez). El endpoint /vida ya existe (build-for-endstate). ── */}
 
         {/* ── VALUE STACK ── */}
         <section id="dinero" className="zv2-up" style={{ ...sec, marginTop: 54 }}>
@@ -275,17 +239,17 @@ export default function ZonePageV2() {
             <div style={{ ...cardBase, padding: 22, marginTop: 18 }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#A2A6BC' }}>sobre ~{m1(inv.credito.valor_inmueble)} · a {inv.credito.plazo_anios} años · tasa prom {inv.credito.tasa_prom_pct}%</div>
               <div style={{ display: 'flex', fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 12, paddingBottom: 6, borderBottom: '1px solid rgba(16,18,28,0.1)' }}>
-                <span style={{ flex: '0 0 92px' }}>crédito</span><span style={{ flex: 1, textAlign: 'right' }}>te prestan</span><span style={{ flex: 1, textAlign: 'right' }}>al mes</span><span style={{ flex: 1, textAlign: 'right' }}>pagas en total</span>
+                <span style={{ flex: '0 0 92px' }}>crédito</span><span style={{ flex: 1, textAlign: 'right' }}>enganche</span><span style={{ flex: 1, textAlign: 'right' }}>te prestan</span><span style={{ flex: 1, textAlign: 'right' }}>al mes</span>
               </div>
               {inv.credito.escenarios.map((e) => (
                 <div key={e.aforo} style={{ display: 'flex', alignItems: 'baseline', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
                   <span style={{ flex: '0 0 92px', fontWeight: 800, color: INK }}>{e.aforo}% a crédito</span>
+                  <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.enganche)}</span>
                   <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.prestamo)}</span>
-                  <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{k(e.pago)}</span>
-                  <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#C026D3' }}>{m1(e.total)}</span>
+                  <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#0E9F6E' }}>{k(e.pago)}</span>
                 </div>
               ))}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic' }}>Solo informativo. Va con la tasa (el CAT real, con seguros y comisiones, es mayor). Tu pago final lo define el banco según tu perfil.</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic' }}>Informativo. Con más enganche, menos crédito y menos pagas al mes. Tu tasa y pago reales los define el banco según tu perfil.</div>
             </div>
           )}
         </section>
