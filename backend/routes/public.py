@@ -335,7 +335,8 @@ async def zona_inversion(colonia_id: str, request: Request):
                 "tasa_prom_pct": round(rate * 100, 1),
                 "tasa_max_pct": round((rate + 0.015) * 100, 1),
                 "escenarios": [
-                    {"aforo": af, "pago": round(_pmt_c(af / 100.0)), "total": round(_pmt_c(af / 100.0) * plazo_cred)}
+                    {"aforo": af, "prestamo": round(rep * af / 100.0), "enganche": round(rep * (100 - af) / 100.0),
+                     "pago": round(_pmt_c(af / 100.0)), "total": round(_pmt_c(af / 100.0) * plazo_cred)}
                     for af in (30, 50, 80)
                 ],
             }

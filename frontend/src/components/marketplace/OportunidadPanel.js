@@ -196,17 +196,27 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                     <span className="opp-help-box" style={{ width: 230 }}>El "% a crédito" (aforo) es cuánto te presta el banco. Mientras más te presta, menos enganche pones pero más pagas en total. Calculado con la tasa, a {cred.plazo_anios} años.</span>
                   </div>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.45 }}>
-                    sobre un inmueble de <b style={{ color: 'var(--cream-2)' }}>~{m1(cred.valor_inmueble)}</b> · a <b style={{ color: 'var(--cream-2)' }}>{cred.plazo_anios} años</b> · tasa {cred.tasa_min_pct}–{cred.tasa_max_pct}% (prom {cred.tasa_prom_pct}%)
+                    sobre un inmueble de <b style={{ color: 'var(--cream-2)' }}>~{m1(cred.valor_inmueble)}</b> · a <b style={{ color: 'var(--cream-2)' }}>{cred.plazo_anios} años</b> · tasa prom {cred.tasa_prom_pct}%
                   </div>
-                  <div style={{ marginTop: 8 }}>
-                    {cred.escenarios.map((e) => (
-                      <div key={e.aforo} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, padding: '7px 0', borderTop: '1px solid rgba(16,18,28,0.06)' }}>
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)', whiteSpace: 'nowrap' }}>{e.aforo}% a crédito</span>
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{kfmt(e.pago)}</b>/mes · total <b style={{ color: '#C026D3' }}>{m1(e.total)}</b></span>
-                      </div>
-                    ))}
+                  {/* mini-tabla con encabezados que dicen qué es cada número */}
+                  <div style={{ display: 'flex', fontFamily: 'DM Sans', fontSize: 8.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: 10, paddingBottom: 5, borderBottom: '1px solid rgba(16,18,28,0.1)' }}>
+                    <span style={{ flex: '0 0 40px' }}>crédito</span>
+                    <span style={{ flex: 1, textAlign: 'right' }}>te prestan</span>
+                    <span style={{ flex: 1, textAlign: 'right' }}>al mes</span>
+                    <span style={{ flex: 1, textAlign: 'right' }}>pagas en total</span>
                   </div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 10, lineHeight: 1.45, fontStyle: 'italic' }}>
+                  {cred.escenarios.map((e) => (
+                    <div key={e.aforo} style={{ display: 'flex', alignItems: 'baseline', fontFamily: 'DM Sans', fontSize: 11.5, padding: '7px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                      <span style={{ flex: '0 0 40px', fontWeight: 800, color: 'var(--cream)' }}>{e.aforo}%</span>
+                      <span style={{ flex: 1, textAlign: 'right', color: 'var(--cream-2)' }}>{m1(e.prestamo)}</span>
+                      <span style={{ flex: 1, textAlign: 'right', color: 'var(--cream-2)' }}>{kfmt(e.pago)}</span>
+                      <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#C026D3' }}>{m1(e.total)}</span>
+                    </div>
+                  ))}
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-2)', marginTop: 9, lineHeight: 1.5, background: 'rgba(99,102,241,0.05)', borderRadius: 10, padding: '9px 11px' }}>
+                    Ejemplo 80%: el banco te presta <b>{m1(cred.escenarios[2].prestamo)}</b> y tú pones <b>{m1(cred.escenarios[2].enganche)}</b> de enganche. Pagas <b>{kfmt(cred.escenarios[2].pago)}/mes</b> por 20 años → al final le das al banco <b style={{ color: '#C026D3' }}>{m1(cred.escenarios[2].total)}</b> (el préstamo + intereses). El enganche NO se suma a ese total.
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 9, lineHeight: 1.45, fontStyle: 'italic' }}>
                     Solo informativo. Va con la tasa (el CAT real, con seguros y comisiones, es mayor). Tu pago final lo define el banco según tu perfil.
                   </div>
                 </div>
