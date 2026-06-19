@@ -71,6 +71,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     fetch(`${API}/api/zona/${zone.id}/pulso`).then((r) => r.json()).then((d) => { if (alive) setPulso(d); }).catch(() => {});
     return () => { alive = false; };
   }, [zone?.id]);
+  // ── 4) RENTA Y RENTABILIDAD ── (yield del motor × precio/m² de la zona · estimado transparente)
+  const yld = pulso && pulso.yield_anual_pct;
+  const rentaLarga = (yld && zoneM2) ? Math.round(zoneM2 * (yld / 100) / 12) : null;
+  const rentaAirbnb = rentaLarga ? Math.round(rentaLarga * 1.6) : null;
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
@@ -162,6 +166,29 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
               </div>
             )}
           </div>
+
+          {/* 4 · RENTA Y RENTABILIDAD */}
+          {yld && (
+            <div style={sep}>
+              <div style={eyebrow}>{tc('Renta y rentabilidad')}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 6 }}>
+                <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, letterSpacing: '-0.03em',
+                  background: 'linear-gradient(120deg,#0E9F6E,#16C784)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{yld}%</span>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>rentabilidad anual (bruta)</span>
+              </div>
+              {rentaLarga && (
+                <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                    <span>🏠 Renta largo plazo</span><span><b style={{ color: 'var(--cream)' }}>~${rentaLarga.toLocaleString('es-MX')}</b>/m²/mes</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                    <span>🔑 Renta corto (Airbnb)</span><span><b style={{ color: 'var(--cream)' }}>~${rentaAirbnb.toLocaleString('es-MX')}</b>/m²/mes</span>
+                  </div>
+                </div>
+              )}
+              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 7 }}>estimado · benchmark de la zona, no medido</div>
+            </div>
+          )}
 
           {/* 3 · PULSO */}
           <div style={sep}>

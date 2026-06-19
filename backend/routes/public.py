@@ -233,10 +233,21 @@ async def zona_pulso(colonia_id: str, request: Request):
                 recs.append(s["recamaras_min"])
             if s.get("precio_max"):
                 precios.append(s["precio_max"])
+        # RENTABILIDAD: yield bruto de renta por tier de la zona (benchmark transparente del motor, NO medido).
+        # El panel computa la renta $/m² desde su precio/m² × yield. Cierra el ciclo inversión.
+        yield_pct = None
+        try:
+            from investment_simulator_engine import RENTAL_YIELDS
+            col = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "tier": 1})
+            yld = RENTAL_YIELDS.get(str((col or {}).get("tier") or "C"), 0.045)
+            yield_pct = round(yld * 100, 1)
+        except Exception:
+            pass
         return {"ok": True, "busquedas_7d": last7, "trend_pct": trend,
                 "nivel": "alta" if last7 >= 10 else "media" if last7 >= 3 else "baja",
                 "rec_moda": (_C(recs).most_common(1)[0][0] if recs else None),
-                "precio_buscado_prom": (round(sum(precios) / len(precios)) if precios else None)}
+                "precio_buscado_prom": (round(sum(precios) / len(precios)) if precios else None),
+                "yield_anual_pct": yield_pct}
     except Exception:
         return {"ok": True, "busquedas_7d": 0, "trend_pct": 0, "nivel": "baja"}
 
