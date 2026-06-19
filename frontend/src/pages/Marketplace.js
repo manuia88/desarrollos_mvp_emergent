@@ -42,6 +42,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Paginación (infinite scroll) — no cargar 20,000 de golpe
+  const PAGE_SIZE = 24;
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
 
   // Batch 24 — View mode
   const [viewMode, setViewMode] = useState('lista'); // 'lista' | 'mapa'
@@ -135,11 +141,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   useEffect(() => { fetchColonias().then(setColonias); }, []);
 
-  useEffect(() => {
-    let active = true;  // guard "última respuesta gana": evita que un fetch sin filtro (de mount)
-    setLoading(true);   // resuelva DESPUÉS del filtrado y sobrescriba el resultado (race fix).
+  // Filtros combinados (búsqueda obligatoria + IA + zona + subscores) — compartidos por el fetch inicial y "cargar más".
+  const mergedFilters = useMemo(() => {
     const hasActiveSubscores = Object.keys(subscoreMin).length > 0;
-    const merged = {
+    return {
       ...filters,
       ...(aiFilters || {}),
       ...(coloniaFilter ? { colonia: coloniaFilter } : {}),
@@ -147,13 +152,46 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       ...(forecastDeltaMin > 0 ? { forecast_delta_min: forecastDeltaMin } : {}),
       sort,
     };
-    fetchDevelopments(merged).then(list => {
-      if (!active) return;
-      setDevelopments(list);
-      setLoading(false);
-    }).catch(() => { if (active) { setDevelopments([]); setLoading(false); } });
-    return () => { active = false; };
   }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
+
+  // Fetch inicial (página 1) — se reinicia cuando cambian los filtros. Guard "última respuesta gana" (race fix).
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchDevelopments({ ...mergedFilters, limit: PAGE_SIZE, offset: 0 }).then(list => {
+      if (!active) return;
+      const arr = Array.isArray(list) ? list : [];
+      setDevelopments(arr);
+      setNextOffset(arr.length);
+      setHasMore(arr.length === PAGE_SIZE);
+      setLoading(false);
+    }).catch(() => { if (active) { setDevelopments([]); setHasMore(false); setLoading(false); } });
+    return () => { active = false; };
+  }, [mergedFilters]);
+
+  // Cargar más (infinite scroll) — agrega la siguiente página sin recargar la actual.
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    fetchDevelopments({ ...mergedFilters, limit: PAGE_SIZE, offset: nextOffset }).then(list => {
+      const arr = Array.isArray(list) ? list : [];
+      setDevelopments(prev => [...prev, ...arr]);
+      setNextOffset(o => o + arr.length);
+      setHasMore(arr.length === PAGE_SIZE);
+      setLoadingMore(false);
+    }).catch(() => setLoadingMore(false));
+  }, [loadingMore, hasMore, loading, nextOffset, mergedFilters]);
+
+  // Centinela al final de la lista → dispara "cargar más" al acercarse (700px antes).
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return undefined;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0] && entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '700px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loadMore]);
 
   // W5.2/W5.3 — Sync subscore_min + forecast_delta_min to URL
   useEffect(() => {
@@ -736,6 +774,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Infinite scroll: centinela (dispara cargar más) + indicador */}
+                {hasMore && <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />}
+                {loadingMore && (
+                  <div style={{ textAlign: 'center', padding: '22px 0 6px', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
+                    Cargando más desarrollos…
                   </div>
                 )}
               </div>

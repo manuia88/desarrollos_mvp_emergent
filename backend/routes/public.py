@@ -185,9 +185,16 @@ async def _enrich_listing(db, devs: list) -> list:
             if zona_pm2:
                 card["precio_vs_zona_pct"] = round((dev_pm2 / float(zona_pm2) - 1) * 100)
         if col.get("momentum"):
-            card["plusvalia_zona"] = col.get("momentum")        # tendencia real de la colonia
+            card["plusvalia_zona"] = col.get("momentum")        # tendencia real de la colonia (MERCADO)
         if cid in fc_by_col:
             card["forecast_12m_pct"] = round(fc_by_col[cid], 1)  # forecast (cuando hay dato)
+        # Incremento en preventa = lo que el DEV ha subido desde su lista de lanzamiento (decisión del dev, NO mercado).
+        # DEMO estable por proyecto; en real lo carga el dev con su precio de lista inicial (precio_lanzamiento).
+        if card.get("stage") in ("preventa", "en_construccion") and d.get("price_from"):
+            import hashlib as _hl
+            _inc = 8 + (int(_hl.md5(str(d.get("id")).encode()).hexdigest()[:6], 16) % 18)  # 8–25%, no atado al mercado
+            card["incremento_preventa_pct"] = _inc
+            card["precio_lanzamiento"] = round(d["price_from"] / (1 + _inc / 100.0))
         am = amen_by.get(d["id"]) or {}
         rich = am.get("amenities") or card.get("amenities") or []
         card["amenities"] = rich
@@ -851,6 +858,7 @@ async def list_developments(
     apartado_max: Optional[int] = None,
     sort: Optional[str] = "recent",
     limit: int = 100,
+    offset: int = 0,          # paginación: índice de inicio (infinite scroll)
     subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
     forecast_delta_min: Optional[int] = Query(None, description="W5.3 P2B — % mínimo crecimiento 12m"),
 ):
@@ -1054,7 +1062,8 @@ async def list_developments(
     elif sort == "sqm_desc":
         results.sort(key=lambda d: -d["m2_range"][1])
     # Enriquecimiento en batch (precio fresco + amenidades + foto real del dev) · cierra ciclo.
-    cards = await _enrich_listing(request.app.state.db, results[:limit])
+    # Paginación: corta la página [offset, offset+limit) DESPUÉS de filtrar y ordenar (infinite scroll).
+    cards = await _enrich_listing(request.app.state.db, results[offset:offset + limit])
     # Adjunta cuántas unidades DISPONIBLES cumplen + la MUESTRA (para nombrarlas: "#14B $11.2M, #21A $11.8M").
     if match_counts or match_samples:
         for c in cards:

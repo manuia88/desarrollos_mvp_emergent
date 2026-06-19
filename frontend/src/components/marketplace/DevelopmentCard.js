@@ -329,15 +329,16 @@ export default function DevelopmentCard({ dev, index = 0 }) {
                 <span className="tip-box">El desarrollador ha subido su precio {dev.incremento_preventa_pct}% desde que abrió la preventa: de su precio de lista inicial (lanzamiento) al de hoy. Es decisión del dev, no plusvalía del mercado.</span>
               </span>
             )}
-            {Array.isArray(dev.amenities) && dev.amenities.slice(0, 5).map((a) => (
-              <span key={a} data-testid="card-amenidades" style={{
-                display: 'inline-flex', alignItems: 'center',
-                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, color: 'var(--cream-2)',
-                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 999, padding: '3px 9px',
-              }}>{AMEN_LABEL[a] || a}</span>
-            ))}
-            {Array.isArray(dev.amenities) && dev.amenities.length > 5 && (
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)' }}>+{dev.amenities.length - 5}</span>
+            {Array.isArray(dev.amenities) && dev.amenities.length > 0 && (
+              <span className="tip" data-testid="card-amenidades" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, color: 'var(--cream-2)',
+                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 999, padding: '4px 10px',
+              }}>
+                {dev.amenities.length} amenidades
+                <span className="tip-q" style={{ color: '#6366F1' }}>?</span>
+                <span className="tip-box">{dev.amenities.map((a) => AMEN_LABEL[a] || a).join(' · ')}</span>
+              </span>
             )}
             )}
           </div>
