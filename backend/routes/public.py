@@ -306,21 +306,39 @@ async def zona_inversion(colonia_id: str, request: Request):
                 "enganche_20": round(base.get("enganche") or rep * 0.20),
                 "tasa_credito": {"baja": round((rate - 0.015) * 100, 1), "promedio": round(rate * 100, 1), "alta": round((rate + 0.015) * 100, 1)},
             })
-            # Rango de RENTA mensual (sigue al rango de precio, mismo yield neto) + métricas anuales
-            ny = (renta_neta_anual / rep) if rep else 0  # yield neto (fracción)
+            # Rango de RENTA mensual BRUTA (sigue al rango de precio) + métricas anuales · la renta es bruta, sin complicar
+            renta_bruta_anual = renta_bruta_m * 12
+            ny = (renta_bruta_anual / rep) if rep else 0  # yield BRUTO (fracción)
             _renta_m = lambda p: (round(p * ny / 12) if (p and ny) else None)
-            cap_rate = out.get("roi_rentas_anual_pct")
+            cap_rate = round(ny * 100, 1)                  # cap rate BRUTO = renta bruta anual / precio (antes de gastos)
             plus_pct = base.get("aprec_anual_pct") or 0
             out.update({
                 "renta_menor": _renta_m(out.get("precio_min")),
                 "renta_prom": _renta_m(out.get("precio_prom")),
                 "renta_mayor": _renta_m(out.get("precio_max")),
-                "cap_rate_anual_pct": cap_rate,                          # renta neta / precio
+                "cap_rate_anual_pct": cap_rate,                          # renta bruta / precio (antes de gastos)
                 "roi_anual_pct": round(plus_pct + (cap_rate or 0), 1),   # retorno total al año = plusvalía + cap rate
             })
             tir = base.get("tir_anual_pct")
             if tir is not None:
                 out["veredicto_inversion"] = ("excelente" if tir >= 12 else "buena" if tir >= 8 else "moderada" if tir >= 5 else "baja")
+            # CRÉDITO HIPOTECARIO · plazo REAL de 20 años (240 meses), tasa promedio. Pago mensual + total al final.
+            plazo_cred = 240
+            r_m = rate / 12.0
+            def _pmt_c(aforo_frac):
+                P = rep * aforo_frac
+                return (P / plazo_cred) if r_m <= 0 else P * r_m / (1 - (1 + r_m) ** (-plazo_cred))
+            out["credito"] = {
+                "valor_inmueble": rep,
+                "plazo_anios": 20,
+                "tasa_min_pct": round((rate - 0.015) * 100, 1),
+                "tasa_prom_pct": round(rate * 100, 1),
+                "tasa_max_pct": round((rate + 0.015) * 100, 1),
+                "escenarios": [
+                    {"aforo": af, "pago": round(_pmt_c(af / 100.0)), "total": round(_pmt_c(af / 100.0) * plazo_cred)}
+                    for af in (30, 50, 80)
+                ],
+            }
         except Exception:
             pass
         return out

@@ -65,17 +65,19 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const VER_INV = { excelente: { e: '🟢', c: '#0E9F6E' }, buena: { e: '🟢', c: '#16C784' }, moderada: { e: '🟡', c: '#E0A33E' }, baja: { e: '🔴', c: '#DC2626' } };
   const ver = (inv && inv.veredicto_inversion) ? (VER_INV[inv.veredicto_inversion] || VER_INV.moderada) : null;
   const INVEST_ROWS = inv ? [
-    { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, g: 'cuánto sube de precio cada año', c: '#0E9F6E',
-      t: 'Cuánto sube el precio del inmueble cada año. Se estima con la tendencia histórica de la zona. No incluye lo que ganas si lo rentas.' },
-    { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, g: 'lo que cobrarías de renta', c: 'var(--cream)',
-      t: 'Lo que cobrarías al mes si lo rentas, ya descontando gastos. Se calcula con las rentas típicas de la zona para un depto de ese precio.' },
-    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, g: 'tu rendimiento real, todo incluido', c: '#7C5CFF',
-      t: 'Tu rendimiento real al año juntando todo: la renta que cobras + lo que sube de precio, considerando el paso del tiempo. Es la medida más completa.' },
-    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, g: 'ganancia total al año: renta + plusvalía', c: '#0E9F6E',
-      t: 'Ganancia total en un año = lo que sube de precio (plusvalía) + lo que da de renta (cap rate). Es una suma simple, sin contar crédito.' },
-    { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, g: 'la renta que da vs lo que cuesta', c: '#C026D3',
-      t: 'La renta neta de un año dividida entre el precio del inmueble. Te dice cuánto rinde solo por rentarlo, sin contar la plusvalía.' },
+    { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, c: '#0E9F6E',
+      t: 'Cuánto sube el precio del inmueble cada año. Se estima con la tendencia histórica de la zona. No incluye las rentas.' },
+    { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, c: 'var(--cream)',
+      t: 'Lo que cobrarías al mes de renta (bruta, antes de gastos), según las rentas típicas de la zona para un depto de ese precio.' },
+    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, c: '#0E9F6E',
+      t: 'La cuenta rápida: en UN año, cuánto sube de precio + la renta, entre lo que pagaste. No toma en cuenta el tiempo ni el crédito. Da una idea general.' },
+    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
+      t: 'Más fina que el ROI: anualiza tu ganancia a lo largo de TODOS los años y toma en cuenta cuándo entra cada peso (un peso hoy vale más que mañana). Por eso suele ser menor que el ROI. Es la que usan los inversionistas.' },
+    { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, c: '#C026D3',
+      t: 'Solo la parte de renta: la renta BRUTA de un año (antes de gastos, sin restar mantenimiento ni predial) entre el precio. No incluye la plusvalía.' },
   ] : [];
+  const kfmt = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
+  const cred = (inv && inv.credito) || null;
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
@@ -176,11 +178,8 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 </div>
                 <div style={{ marginTop: 6 }}>
                   {INVEST_ROWS.filter((r) => r.v != null).map((r) => (
-                    <div key={r.l} className="opp-row" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderTop: '1px solid rgba(16,18,28,0.06)', cursor: 'help' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{r.l}<span className="opp-help">?</span></div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', marginTop: 1 }}>{r.g}</div>
-                      </div>
+                    <div key={r.l} className="opp-row" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: '1px solid rgba(16,18,28,0.06)', cursor: 'help' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>{r.l}<span className="opp-help">?</span></div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: r.c, whiteSpace: 'nowrap' }}>{r.v}</div>
                       <span className="opp-help-box">{r.t}</span>
                     </div>
@@ -188,6 +187,30 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', marginTop: 8 }}>estimado · depto típico de la zona · motor DesarrollosMX</div>
               </div>
+
+              {/* 5 · CRÉDITO HIPOTECARIO — valor, plazo, tasa, pago/mes + TOTAL al final + disclaimer (CAT) */}
+              {cred && cred.escenarios && (
+                <div style={sep}>
+                  <div className="opp-row" style={{ position: 'relative', cursor: 'help', display: 'inline-block' }}>
+                    <div style={secTitle}>🏦 {tc('Crédito hipotecario')}<span className="opp-help">?</span></div>
+                    <span className="opp-help-box" style={{ width: 230 }}>El "% a crédito" (aforo) es cuánto te presta el banco. Mientras más te presta, menos enganche pones pero más pagas en total. Calculado con la tasa, a {cred.plazo_anios} años.</span>
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.45 }}>
+                    sobre un inmueble de <b style={{ color: 'var(--cream-2)' }}>~{m1(cred.valor_inmueble)}</b> · a <b style={{ color: 'var(--cream-2)' }}>{cred.plazo_anios} años</b> · tasa {cred.tasa_min_pct}–{cred.tasa_max_pct}% (prom {cred.tasa_prom_pct}%)
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    {cred.escenarios.map((e) => (
+                      <div key={e.aforo} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, padding: '7px 0', borderTop: '1px solid rgba(16,18,28,0.06)' }}>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)', whiteSpace: 'nowrap' }}>{e.aforo}% a crédito</span>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}><b style={{ color: 'var(--cream)' }}>{kfmt(e.pago)}</b>/mes · total <b style={{ color: '#C026D3' }}>{m1(e.total)}</b></span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 10, lineHeight: 1.45, fontStyle: 'italic' }}>
+                    Solo informativo. Va con la tasa (el CAT real, con seguros y comisiones, es mayor). Tu pago final lo define el banco según tu perfil.
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div style={sep}><div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Calculando datos de la zona…</div></div>
