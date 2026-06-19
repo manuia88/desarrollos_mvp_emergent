@@ -145,21 +145,20 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const next = (e) => { e.preventDefault(); e.stopPropagation(); setSlide(s => (s + 1) % photos.length); };
 
   const showFallback = photos.length === 0 || imgError[slide];
-  // Specs (xproperty: fila horizontal con iconos + divisores) — rango a-b o valor único.
-  const rng = (r) => !r ? null : (r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+  // Specs: el MÍNIMO de cada característica (con prefijo "desde"). m² mantiene unidad.
+  const mn = (r) => (r && r[0] != null ? r[0] : null);
   const specs = [
-    { Icon: Bed, v: rng(dev.bedrooms_range), unit: 'rec' },
-    { Icon: Bath, v: rng(dev.bathrooms_range), unit: 'baños' },
-    { Icon: Car, v: rng(dev.parking_range), unit: 'autos' },
-    { Icon: Ruler, v: rng(dev.m2_range), unit: 'm²' },
+    { Icon: Bed, v: mn(dev.bedrooms_range), unit: 'rec' },
+    { Icon: Bath, v: mn(dev.bathrooms_range), unit: 'baños' },
+    { Icon: Car, v: mn(dev.parking_range), unit: 'autos' },
+    { Icon: Ruler, v: mn(dev.m2_range), unit: 'm²' },
   ].filter(s => s.v != null);
-  // Precio vs promedio de la zona, en lenguaje humano (antes "+38% vs zona" no se entendía).
-  // Semáforo de precio vs la zona: 🟢 bajo (buena compra) · 🟡 en precio · 🔴 sobre (caro).
+  // Semáforo de precio vs la zona, con FLECHA: ↓ verde (bajo · buena compra) · ≈ amarillo (promedio) · ↑ rojo (caro).
   const vz = typeof dev.precio_vs_zona_pct === 'number' ? dev.precio_vs_zona_pct : null;
   const vzText = vz == null ? null
-    : vz <= -5 ? { t: `${Math.abs(vz)}% bajo la zona`, c: '#0E9F6E', dot: '#16C784' }
-    : vz < 8 ? { t: 'En precio de zona', c: '#B8860B', dot: '#F5B301' }
-    : { t: `${vz}% sobre la zona`, c: '#DC2626', dot: '#EF4444' };
+    : vz <= -5 ? { t: `${Math.abs(vz)}% bajo la zona`, c: '#0E9F6E', arrow: '↓' }
+    : vz < 8 ? { t: 'precio promedio de la zona', c: '#B8860B', arrow: '≈' }
+    : { t: `${vz}% sobre la zona`, c: '#DC2626', arrow: '↑' };
 
   return (
     <Link
@@ -170,6 +169,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         display: 'flex', flexDirection: 'column', textDecoration: 'none', color: 'inherit',
         background: '#fff', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden',
         boxShadow: '0 6px 22px rgba(16,18,28,0.07), 0 1px 3px rgba(16,18,28,0.05)',
+        height: '100%',   // llena la celda del grid → tarjetas de la misma fila quedan del mismo alto (simétricas)
       }}
     >
       {/* ── FOTO (xproperty: precio sobre la imagen) ── */}
@@ -235,37 +235,37 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           </div>
         </div>
 
-        {/* Precio — el número que manda, con su propio aire */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        {/* Precio + $/m² ALINEADO debajo (izquierda) + semáforo con flecha */}
+        <div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1 }}>
             {dev.price_from_display}
             <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 500, color: 'var(--cream-3)', letterSpacing: 0, marginLeft: 6 }}>desde</span>
           </div>
           {dev.price_m2_dev && (
-            <div style={{ textAlign: 'right', lineHeight: 1.4 }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</span>
               {vzText && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11, color: vzText.c, fontWeight: 700 }} title="Precio por m² vs el promedio de su colonia (semáforo)">
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: vzText.dot, boxShadow: `0 0 6px ${vzText.dot}` }} />
-                  {vzText.t}
-                </div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontSize: 11.5, color: vzText.c, fontWeight: 700, background: `${vzText.c}14`, borderRadius: 9999, padding: '2px 9px' }} title="Precio por m² vs el promedio de su colonia">
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>{vzText.arrow}</span> {vzText.t}
+                </span>
               )}
             </div>
           )}
         </div>
 
-        {/* Specs — solo icono + número (sin palabras). Icono claro en color de tema. m² lleva su unidad. */}
+        {/* Specs — "desde" + el MÍNIMO de cada característica (solo icono + número) */}
         {specs.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', padding: '2px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', flexShrink: 0 }}>desde</span>
             {specs.map((s, i) => (
               <React.Fragment key={s.unit}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }} title={s.unit}>
-                  <s.Icon size={17} color="var(--theme)" strokeWidth={2.2} />
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} title={s.unit}>
+                  <s.Icon size={16} color="var(--theme)" />
                   <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
                     {s.v}{s.unit === 'm²' ? <span style={{ color: 'var(--cream-3)', fontWeight: 500, fontSize: 11 }}> m²</span> : ''}
                   </span>
                 </div>
-                {i < specs.length - 1 && <div style={{ width: 1, height: 22, background: 'var(--border)' }} />}
+                {i < specs.length - 1 && <div style={{ width: 1, height: 20, background: 'var(--border)' }} />}
               </React.Fragment>
             ))}
           </div>
