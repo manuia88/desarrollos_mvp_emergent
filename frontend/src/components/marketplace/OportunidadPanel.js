@@ -33,7 +33,6 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const cdmxM2 = m2Vals.length ? Math.round(m2Vals.reduce((a, b) => a + b, 0) / m2Vals.length) : null;
   const zoneM2 = zone && zone.price_m2_num;
   const vsCdmx = (zoneM2 && cdmxM2) ? Math.round(((zoneM2 - cdmxM2) / cdmxM2) * 100) : null;
-  const devsZona = zone ? developments.filter((d) => d.colonia_id === zone.id || d.colonia === zone.name).length : 0;
   const lockedToSearch = !!selectedColoniaId;
   const sc = (zone && zone.scores) || {};
   const mom = pNum(zone && zone.momentum);
@@ -63,15 +62,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     .filter((c) => c.m2 && c.m2 > (m2Here || 0))
     .sort((a, b) => b.m2 - a.m2).slice(0, 2);
 
-  // ── 3) EL PULSO ──
-  const [pulso, setPulso] = useState(null);
-  useEffect(() => {
-    if (!zone?.id) { setPulso(null); return; }
-    let alive = true;
-    fetch(`${API}/api/zona/${zone.id}/pulso`).then((r) => r.json()).then((d) => { if (alive) setPulso(d); }).catch(() => {});
-    return () => { alive = false; };
-  }, [zone?.id]);
-  // ── 4) INVERSIÓN (motor real) ── precios + renta anual + ROI + TIR + veredicto
+  // ── 4) INVERSIÓN (motor real) ── alimenta la línea resumen "para invertir"
   const [inv, setInv] = useState(null);
   useEffect(() => {
     if (!zone?.id) { setInv(null); return; }
@@ -79,8 +70,16 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     fetch(`${API}/api/zona/${zone.id}/inversion`).then((r) => r.json()).then((d) => { if (alive) setInv(d); }).catch(() => {});
     return () => { alive = false; };
   }, [zone?.id]);
-  const VER_INV = { excelente: { e: '🟢', c: '14,159,110' }, buena: { e: '🟢', c: '22,199,132' }, moderada: { e: '🟡', c: '224,163,62' }, baja: { e: '🔴', c: '220,38,38' } };
-  const rentaAirbnb = inv && inv.renta_mensual ? Math.round(inv.renta_mensual * 1.6) : null;
+  // Resúmenes de valor — el detalle completo vive en /zona/:slug
+  const _cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const vivirLine = overall == null ? 'Calidad de vida en evaluación.'
+    : overall >= 85 ? 'Top para vivir: entorno, servicios y seguridad de primer nivel.'
+      : overall >= 70 ? 'Muy buena para vivir: buena calidad de vida y servicios cerca.'
+        : overall >= 55 ? 'Correcta para vivir: equilibrio entre precio y calidad.'
+          : 'En desarrollo: precio de entrada accesible, entorno mejorando.';
+  const invertirLine = (inv && inv.veredicto_inversion)
+    ? `${_cap(inv.veredicto_inversion)} para invertir: rentabilidad ~${inv.roi_rentas_anual_pct}%/año + plusvalía ${inv.plusvalia_anual_pct}%/año${inv.tir_anual_pct ? ` · TIR ${inv.tir_anual_pct}%` : ''}.`
+    : (mom != null ? `Plusvalía ~${mom}%/año en la zona.` : 'Abre el análisis para ROI, TIR y renta estimada.');
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
@@ -89,12 +88,6 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const Chip = ({ children, c = '99,102,241' }) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, color: `rgb(${c})`, background: `rgba(${c},0.08)`, border: `1px solid rgba(${c},0.2)`, borderRadius: 9999, padding: '3px 10px' }}>{children}</span>
   );
-  const Row = ({ l, v, g, strong, top }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginTop: top ? 8 : 5, fontFamily: 'DM Sans', fontSize: strong ? 12.5 : 12, color: 'var(--cream-2)' }}>
-      <span>{l}</span>
-      <span style={{ fontWeight: strong ? 800 : 700, color: g ? '#0E9F6E' : 'var(--cream)', whiteSpace: 'nowrap' }}>{v}</span>
-    </div>
-  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -102,6 +95,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
         .opp-card{transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease}
         .opp-card:hover{transform:translateY(-3px);box-shadow:0 22px 50px rgba(99,102,241,.18),0 3px 10px rgba(16,18,28,.06)}
         .opp-cta:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(124,92,255,.5)}
+        .opp-zona-link:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,92,255,.45)}
       `}</style>
 
       {/* CTA */}
@@ -179,107 +173,29 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             )}
           </div>
 
-          {/* 4 · PRECIOS (venta + renta) */}
-          {inv && inv.precio_prom && (
-            <div style={sep}>
-              <div style={eyebrow}>{tc('Precios de venta')}</div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                {[['mínimo', inv.precio_min], ['promedio', inv.precio_prom], ['máximo', inv.precio_max]].map(([lbl, val]) => (
-                  <div key={lbl} style={{ flex: 1, textAlign: 'center', padding: '9px 5px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.14)' }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{m(val)}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 2 }}>{lbl}</div>
-                  </div>
-                ))}
-              </div>
-              {inv.precio_m2 && <Row l="Precio por m²" v={`$${Math.round(inv.precio_m2 / 1000)}k/m²`} top />}
-            </div>
-          )}
-
-          {/* 5 · ¿BUENA INVERSIÓN? — retornos + ganancias + exit + crédito (motor real) */}
-          {inv && inv.veredicto_inversion && (
-            <div style={sep}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={eyebrow}>{tc('¿Buena inversión?')}</div>
-                <Chip c={(VER_INV[inv.veredicto_inversion] || {}).c || '99,102,241'}>{(VER_INV[inv.veredicto_inversion] || {}).e} {inv.veredicto_inversion}</Chip>
-              </div>
-              {/* Retornos anuales (3 métricas) */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
-                {[[inv.roi_rentas_anual_pct, 'ROI rentas/año', '22,199,132', '#0E9F6E'], [inv.tir_anual_pct, 'TIR anual', '124,92,255', '#7C5CFF'], [inv.plusvalia_anual_pct, 'plusvalía/año', '192,38,211', '#C026D3']].map(([val, lbl, bg, fg]) => val == null ? null : (
-                  <div key={lbl} style={{ flex: 1, padding: '9px 6px', borderRadius: 12, background: `rgba(${bg},0.07)`, border: `1px solid rgba(${bg},0.18)` }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: fg, letterSpacing: '-0.02em' }}>{val}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', marginTop: 3 }}>{lbl}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Ganancias en $ */}
-              <div style={{ marginTop: 10 }}>
-                {inv.plusvalia_anual_abs && <Row l="💸 Ganas/año en plusvalía" v={`~${m(inv.plusvalia_anual_abs)}`} g />}
-                {inv.renta_anual && <Row l="💰 Ganas/año en renta" v={`~${m(inv.renta_anual)}`} g />}
-                {inv.ganancia_5y_abs && <Row l={`📈 A 5 años si vendes`} v={`~${m(inv.ganancia_5y_abs)} (+${inv.ganancia_5y_pct}%)`} g strong />}
-                {inv.exit_year && <Row l="🎯 Exit recomendado" v={`año ${inv.exit_year}`} />}
-              </div>
-              {/* Renta mensual */}
-              <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px dashed rgba(16,18,28,0.08)' }}>
-                {inv.renta_mensual_neta && <Row l="🏠 Renta larga (neta/mes)" v={`$${inv.renta_mensual_neta.toLocaleString('es-MX')}`} />}
-                {rentaAirbnb && <Row l="🔑 Airbnb (corto/mes)" v={`~$${rentaAirbnb.toLocaleString('es-MX')}`} />}
-              </div>
-              {/* Crédito */}
-              {inv.tasa_credito && (
-                <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px dashed rgba(16,18,28,0.08)' }}>
-                  <Row l="🏦 Tasa de crédito" v={`${inv.tasa_credito.baja}–${inv.tasa_credito.alta}% (prom ${inv.tasa_credito.promedio}%)`} />
-                  {inv.mensualidad_credito_80 > 0 && <Row l="Mensualidad (80% crédito)" v={`$${inv.mensualidad_credito_80.toLocaleString('es-MX')}/mes`} />}
-                  {inv.enganche_20 > 0 && <Row l="Enganche (20%)" v={`${m(inv.enganche_20)}`} />}
-                </div>
-              )}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'var(--cream-3)', marginTop: 9 }}>estimado · depto típico 80m² · motor DesarrollosMX</div>
-            </div>
-          )}
-
-          {/* 6 · DÓNDE RINDE MÁS TU DINERO — ranking de zonas (germen del motor de decisión) */}
-          {(() => {
-            const top = colonias
-              .filter((c) => c.price_m2_num && pNum(c.momentum) != null && (!zone || c.id !== zone.id))
-              .map((c) => ({ name: c.name, plus: pNum(c.momentum), pm2: c.price_m2_num }))
-              .sort((a, b) => b.plus - a.plus).slice(0, 3);
-            if (!top.length) return null;
-            return (
-              <div style={sep}>
-                <div style={eyebrow}>{tc('Dónde rinde más tu dinero')}</div>
-                <div style={{ marginTop: 4 }}>
-                  {top.map((z2, i) => (
-                    <Row key={z2.name} l={`${i + 1}. ${z2.name}`} v={`+${z2.plus}% plusvalía · $${Math.round(z2.pm2 / 1000)}k/m²`} g={i === 0} />
-                  ))}
-                </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 6 }}>las zonas que más suben hoy — explóralas con el selector ↑</div>
-              </div>
-            );
-          })()}
-
-          {/* 3 · PULSO */}
+          {/* 4 · PARA VIVIR / PARA INVERTIR (resumen — el detalle vive en /zona/:slug) */}
           <div style={sep}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={eyebrow}>{tc('Pulso de la zona')}</div>
-              {pulso && <Chip c={pulso.nivel === 'alta' ? '239,68,68' : pulso.nivel === 'media' ? '245,179,1' : '139,146,168'}>{pulso.nivel === 'alta' ? '🔥 alta' : pulso.nivel === 'media' ? 'media' : 'baja'} demanda</Chip>}
-            </div>
-            {pulso && (pulso.busquedas_7d > 0 ? (
-              <div style={{ marginTop: 7 }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-                  <b style={{ color: 'var(--cream)' }}>{pulso.busquedas_7d}</b> personas buscan aquí esta semana
-                  {pulso.trend_pct ? <span style={{ color: pulso.trend_pct >= 0 ? '#0E9F6E' : '#DC2626', fontWeight: 700 }}> · {pulso.trend_pct >= 0 ? '↑' : '↓'}{Math.abs(pulso.trend_pct)}%</span> : ''}
-                </div>
-                {(pulso.rec_moda || pulso.precio_buscado_prom) && (
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 4 }}>
-                    lo más pedido: {pulso.rec_moda ? `${pulso.rec_moda} rec` : ''}{pulso.rec_moda && pulso.precio_buscado_prom ? ' · ' : ''}{pulso.precio_buscado_prom ? `~${m(pulso.precio_buscado_prom)}` : ''}
-                  </div>
-                )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <div style={{ padding: '11px 12px', borderRadius: 13, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.13)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>🏡 {tc('Para vivir')}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 4, lineHeight: 1.45 }}>{vivirLine}</div>
               </div>
-            ) : (
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>Aún sin búsquedas recientes en esta zona.</div>
-            ))}
+              <div style={{ padding: '11px 12px', borderRadius: 13, background: 'rgba(22,199,132,0.05)', border: '1px solid rgba(22,199,132,0.14)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>📈 {tc('Para invertir')}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 4, lineHeight: 1.45 }}>{invertirLine}</div>
+              </div>
+            </div>
           </div>
 
-          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 16 }}>
-            Inteligencia DesarrollosMX · {devsZona || 0} desarrollos{cdmxM2 ? ` · CDMX ${k(cdmxM2)}/m²` : ''}
+          {/* 5 · CTA → ANÁLISIS COMPLETO DE LA ZONA */}
+          <a href={`/zona/${zone.id}`} className="opp-zona-link"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16, padding: '13px 15px', borderRadius: 14, textDecoration: 'none',
+              background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', boxShadow: '0 8px 22px rgba(124,92,255,0.32)', transition: 'transform .18s, box-shadow .18s' }}>
+            <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: '#fff', lineHeight: 1.3 }}>Ver análisis completo de {zone.name}</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#fff' }}>→</span>
+          </a>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 9, textAlign: 'center' }}>
+            precios, ROI, TIR, renta, crédito y forecast completos
           </div>
         </div>
       )}
