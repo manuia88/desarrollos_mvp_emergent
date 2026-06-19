@@ -1,10 +1,15 @@
 /**
- * OportunidadPanel — TERMINAL DE INTELIGENCIA DE ZONA (rebuild premium 2026-06-18, founder pidió: más impacto + más
- * data + mejor composición + acabado premium/glass). Mismo dato real, otra liga: dato gigante, gráfica grande, ranking
- * vs otras zonas, score general, glassmorphism + sombras finas. El dato se acopla a la zona buscada (lockedToSearch).
+ * OportunidadPanel — TERMINAL DE INTELIGENCIA DE ZONA (rebuild conceptual 2026-06-18, founder: "no pintes, repiensa
+ * la info"). 3 capas de inteligencia que ningún portal da:
+ *   1) EL VEREDICTO — conclusión sintetizada de la zona (no stats: una decisión).
+ *   2) TU PODER DE COMPRA — qué te alcanza aquí vs otras zonas (personal + accionable).
+ *   3) EL PULSO — demanda en vivo (marketplace_searches).
+ * Blanco sólido nítido (el vidrio sobre claro se ve lavado). El dato se acopla a la zona buscada.
  */
 import React, { useState, useEffect } from 'react';
 import { tc } from '../../lib/titleCase';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrusted }) {
   return devs.filter((d) => {
@@ -16,9 +21,10 @@ export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrus
 }
 
 const pNum = (s) => { const m = String(s ?? '').match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
-const ordinal = (n) => `${n}º`;
+const k = (n) => `$${Math.round(n / 1000)}k`;
+const m = (n) => `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
 
-export default function OportunidadPanel({ developments = [], colonias = [], selectedColoniaId, onPerfilar }) {
+export default function OportunidadPanel({ developments = [], colonias = [], selectedColoniaId, onPerfilar, budget = 0 }) {
   const [zoneId, setZoneId] = useState(selectedColoniaId || (colonias[0] && colonias[0].id));
   useEffect(() => { if (selectedColoniaId) setZoneId(selectedColoniaId); }, [selectedColoniaId]);
   const zone = colonias.find((c) => c.id === zoneId) || colonias[0] || null;
@@ -31,74 +37,59 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const lockedToSearch = !!selectedColoniaId;
   const sc = (zone && zone.scores) || {};
   const mom = pNum(zone && zone.momentum);
-
-  // Ranking de plusvalía vs TODAS las zonas (densidad de inteligencia · Monopolio).
-  const ranked = colonias.filter((c) => pNum(c.momentum) != null).sort((a, b) => pNum(b.momentum) - pNum(a.momentum));
-  const rank = zone ? (ranked.findIndex((c) => c.id === zone.id) + 1) : 0;
-  const rankTotal = ranked.length;
-  // Score GENERAL de la zona (promedio de los reales).
-  const scoreVals = ['seguridad', 'movilidad', 'comercio', 'educacion'].map((k) => sc[k]).filter((v) => v != null);
+  const scoreVals = ['seguridad', 'movilidad', 'comercio', 'educacion'].map((x) => sc[x]).filter((v) => v != null);
   const overall = scoreVals.length ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length) : null;
-  const segmento = zoneM2 ? (zoneM2 >= 80000 ? 'Premium' : zoneM2 >= 45000 ? 'Alto' : 'Medio') : '—';
 
-  // Blanco SÓLIDO y nítido (no vidrio — el vidrio sobre fondo claro se ve lavado). Premium = sombra fina en capas.
-  const glass = {
-    background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22,
-    boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)',
-  };
+  // ── 1) EL VEREDICTO ──
+  const veredicto = (() => {
+    if (!zone || zoneM2 == null) return null;
+    const alto = vsCdmx != null && vsCdmx > 12;
+    const barato = vsCdmx != null && vsCdmx < -10;
+    const sube = mom != null && mom >= 4;
+    const buen = overall != null && overall >= 78;
+    if (alto && buen) return { e: '🟢', l: 'Para vivir', r: 'Zona premium estable: precio alto, pero plusvalía sólida y alta calidad. Ideal para vivir, no para especular.' };
+    if (sube && !alto) return { e: '🟢', l: 'Para invertir', r: `En alza (+${mom}% plusvalía) con precio aún accesible — buen momento de entrada.` };
+    if (barato) return { e: '🟡', l: 'Oportunidad', r: 'Precio por debajo de su nivel: oportunidad si la zona te convence.' };
+    if (overall != null && !buen) return { e: '🟡', l: 'Económica', r: 'Precio accesible; revisa bien los scores de la zona antes de decidir.' };
+    return { e: '🟢', l: 'Equilibrada', r: 'Relación precio/calidad balanceada para la zona.' };
+  })();
+
+  // ── 2) PODER DE COMPRA ──
+  const budgetN = Number(budget) || 0;
+  const m2Here = (budgetN && zoneM2) ? Math.round(budgetN / zoneM2) : null;
+  const alts = colonias
+    .filter((c) => zone && c.id !== zone.id && c.price_m2_num && developments.some((d) => d.colonia_id === c.id))
+    .map((c) => ({ name: c.name, m2: budgetN ? Math.round(budgetN / c.price_m2_num) : null, pm2: c.price_m2_num }))
+    .filter((c) => c.m2 && c.m2 > (m2Here || 0))
+    .sort((a, b) => b.m2 - a.m2).slice(0, 2);
+
+  // ── 3) EL PULSO ──
+  const [pulso, setPulso] = useState(null);
+  useEffect(() => {
+    if (!zone?.id) { setPulso(null); return; }
+    let alive = true;
+    fetch(`${API}/api/zona/${zone.id}/pulso`).then((r) => r.json()).then((d) => { if (alive) setPulso(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [zone?.id]);
+
+  const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
-
-  // Gráfica de ÁREA grande (full-width).
-  const BigChart = ({ data, w = 296, hh = 64 }) => {
-    if (!Array.isArray(data) || data.length < 2) return null;
-    const min = Math.min(...data), max = Math.max(...data), rng = (max - min) || 1;
-    const xy = data.map((v, i) => [(i / (data.length - 1)) * w, hh - 6 - ((v - min) / rng) * (hh - 16)]);
-    const line = xy.map((p) => p.join(',')).join(' ');
-    const up = data[data.length - 1] >= data[0];
-    const col = up ? '#16C784' : '#7C5CFF';
-    return (
-      <svg viewBox={`0 0 ${w} ${hh}`} width="100%" height={hh} preserveAspectRatio="none" style={{ display: 'block' }}>
-        <defs><linearGradient id="bigc" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={col} stopOpacity="0.32" /><stop offset="100%" stopColor={col} stopOpacity="0" />
-        </linearGradient></defs>
-        <polygon points={`0,${hh} ${line} ${w},${hh}`} fill="url(#bigc)" />
-        <polyline points={line} fill="none" stroke={col} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r={3.5} fill={col} stroke="#fff" strokeWidth={1.5} />
-      </svg>
-    );
-  };
-
-  const Metric = ({ big, label, tint, sub }) => (
-    <div style={{ flex: 1, padding: '11px 9px', borderRadius: 14, background: `rgba(${tint},0.06)`, border: `1px solid rgba(${tint},0.16)` }}>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: `rgb(${tint})`, letterSpacing: '-0.02em', lineHeight: 1 }}>{big}</div>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 1 }}>{sub}</div>}
-    </div>
+  const eyebrow = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, ...grad };
+  const sep = { marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(16,18,28,0.08)' };
+  const Chip = ({ children, c = '99,102,241' }) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, color: `rgb(${c})`, background: `rgba(${c},0.08)`, border: `1px solid rgba(${c},0.2)`, borderRadius: 9999, padding: '3px 10px' }}>{children}</span>
   );
-
-  const ScoreBar = ({ label, v }) => (v == null ? null : (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9 }}>
-      <span style={{ width: 64, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{label}</span>
-      <div style={{ flex: 1, height: 7, borderRadius: 9999, background: 'rgba(16,18,28,0.06)', overflow: 'hidden' }}>
-        <div style={{ width: `${v}%`, height: '100%', borderRadius: 9999,
-          background: v >= 80 ? 'linear-gradient(90deg,#16C784,#0E9F6E)' : v >= 60 ? 'linear-gradient(90deg,#7C5CFF,#A855F7)' : 'linear-gradient(90deg,#F5B301,#E0A33E)',
-          boxShadow: `0 0 8px ${v >= 80 ? 'rgba(22,199,132,0.5)' : v >= 60 ? 'rgba(124,92,255,0.5)' : 'rgba(245,179,1,0.5)'}` }} />
-      </div>
-      <span style={{ width: 22, textAlign: 'right', fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: 'var(--cream)' }}>{v}</span>
-    </div>
-  ));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <style>{`
-        .opp-card { transition: transform .24s cubic-bezier(.2,.8,.2,1), box-shadow .24s ease; }
-        .opp-card:hover { transform: translateY(-3px); box-shadow: 0 22px 50px rgba(99,102,241,0.18), 0 3px 10px rgba(16,18,28,0.06); }
-        .opp-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(124,92,255,0.5); }
+        .opp-card{transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease}
+        .opp-card:hover{transform:translateY(-3px);box-shadow:0 22px 50px rgba(99,102,241,.18),0 3px 10px rgba(16,18,28,.06)}
+        .opp-cta:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(124,92,255,.5)}
       `}</style>
 
-      {/* ── CTA — gradiente premium + glow ── */}
-      <div className="opp-card" style={{ padding: 22, borderRadius: 22, position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(150deg,#6D4AFF 0%,#8B5CF6 45%,#C026D3 100%)', boxShadow: '0 14px 36px rgba(124,92,255,0.34)' }}>
+      {/* CTA */}
+      <div className="opp-card" style={{ padding: 22, borderRadius: 22, position: 'relative', overflow: 'hidden', background: 'linear-gradient(150deg,#6D4AFF,#8B5CF6 45%,#C026D3)', boxShadow: '0 14px 36px rgba(124,92,255,0.34)' }}>
         <div style={{ position: 'absolute', top: -50, right: -34, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.16)', filter: 'blur(10px)' }} />
         <div style={{ position: 'relative' }}>
           <div style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.025em' }}>{tc('Encuentra TU lugar')}</div>
@@ -106,83 +97,97 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             Dinos qué buscas y te decimos cuáles te convienen de verdad — con tu presupuesto, crédito, plazo y zona.
           </div>
           <button type="button" data-testid="panel-perfilar" onClick={() => onPerfilar?.()} className="opp-cta"
-            style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: '#fff', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', transition: 'transform .18s ease, box-shadow .18s ease' }}>
+            style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: '#fff', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', transition: 'transform .18s, box-shadow .18s' }}>
             ✨ Empezar mi búsqueda
           </button>
         </div>
       </div>
 
-      {/* ── TERMINAL DE ZONA (glass) ── */}
+      {/* TERMINAL DE ZONA */}
       {zone && (
-        <div className="opp-card" data-testid="zona-datos" style={{ ...glass, padding: 20 }}>
-          {/* Encabezado */}
+        <div className="opp-card" data-testid="zona-datos" style={{ ...card, padding: 20 }}>
+          {/* Encabezado + selector */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
             <div>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, ...grad }}>
-                {tc(lockedToSearch ? 'Datos de tu zona' : 'Explora una zona')}
-              </div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginTop: 3, letterSpacing: '-0.025em' }}>{zone.name}</div>
+              <div style={eyebrow}>{tc(lockedToSearch ? 'Inteligencia de tu zona' : 'Explora una zona')}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 21, color: 'var(--cream)', marginTop: 3, letterSpacing: '-0.025em' }}>{zone.name}</div>
             </div>
             {!lockedToSearch && colonias.length > 1 && (
               <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} data-testid="zona-select"
-                style={{ maxWidth: 140, padding: '6px 9px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.06)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--theme)', fontWeight: 600, cursor: 'pointer' }}>
+                style={{ maxWidth: 138, padding: '6px 9px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.06)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--theme)', fontWeight: 600, cursor: 'pointer' }}>
                 {colonias.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
           </div>
 
-          {/* Precio/m² GIGANTE + vs CDMX (semáforo) */}
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 38, letterSpacing: '-0.04em', lineHeight: 0.95,
-              background: 'linear-gradient(120deg,#1E2230 20%,#6D4AFF 140%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              ${zoneM2 ? Number(zoneM2).toLocaleString('es-MX') : '—'}<span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream-3)', WebkitTextFillColor: 'var(--cream-3)' }}>/m²</span>
+          {/* 1 · VEREDICTO */}
+          {veredicto && (
+            <div style={{ marginTop: 13 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>
+                <span style={{ fontSize: 14 }}>{veredicto.e}</span> El veredicto: <span style={grad}>{veredicto.l}</span>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6, lineHeight: 1.5 }}>{veredicto.r}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                {zoneM2 != null && <Chip c="99,102,241">{k(zoneM2)}/m²{vsCdmx != null ? ` · ${vsCdmx >= 0 ? '+' : ''}${vsCdmx}% vs CDMX` : ''}</Chip>}
+                {mom != null && <Chip c={mom > 0 ? '22,199,132' : '120,92,255'}>{mom >= 0 ? '+' : ''}{mom}% plusvalía</Chip>}
+                {overall != null && <Chip c="192,38,211">{overall}/100 calidad</Chip>}
+              </div>
             </div>
-            {vsCdmx != null && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
-                color: vsCdmx < 0 ? '#0E9F6E' : '#C026D3', background: vsCdmx < 0 ? 'rgba(22,199,132,0.10)' : 'rgba(192,38,211,0.08)',
-                border: `1px solid ${vsCdmx < 0 ? 'rgba(22,199,132,0.3)' : 'rgba(192,38,211,0.25)'}`, borderRadius: 9999, padding: '4px 10px' }}>
-                {vsCdmx >= 0 ? `+${vsCdmx}%` : `${vsCdmx}%`} vs CDMX
-              </span>
+          )}
+
+          {/* 2 · PODER DE COMPRA */}
+          <div style={sep}>
+            <div style={eyebrow}>{tc('Tu poder de compra')}</div>
+            {budgetN > 0 && zoneM2 ? (
+              <>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6 }}>
+                  con <b style={{ color: 'var(--cream)' }}>{m(budgetN)}</b> aquí alcanzas
+                </div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 2,
+                  background: 'linear-gradient(120deg,#1E2230 20%,#6D4AFF 140%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>~{m2Here} m²</div>
+                {alts.length > 0 && (
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>con lo mismo, en otras zonas alcanzas más:</div>
+                    {alts.map((a) => (
+                      <div key={a.name} style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+                        <span>{a.name}</span><span><b style={{ color: '#0E9F6E' }}>~{a.m2} m²</b> · {k(a.pm2)}/m²</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.5 }}>
+                Dinos tu presupuesto (con <b style={{ color: 'var(--theme)' }}>Empezar mi búsqueda</b>) y te decimos cuántos m² te alcanzan aquí vs otras zonas.
+              </div>
             )}
           </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>precio promedio · {segmento}</div>
 
-          {/* Gráfica grande */}
-          {Array.isArray(zone.trend) && zone.trend.length > 1 && (
-            <div style={{ marginTop: 14 }}>
-              <BigChart data={zone.trend} />
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 2 }}>tendencia · últimos 24 meses</div>
+          {/* 3 · PULSO */}
+          <div style={sep}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={eyebrow}>{tc('Pulso de la zona')}</div>
+              {pulso && <Chip c={pulso.nivel === 'alta' ? '239,68,68' : pulso.nivel === 'media' ? '245,179,1' : '139,146,168'}>{pulso.nivel === 'alta' ? '🔥 alta' : pulso.nivel === 'media' ? 'media' : 'baja'} demanda</Chip>}
             </div>
-          )}
-
-          {/* Grid de inteligencia: plusvalía · ranking · desarrollos */}
-          <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
-            <Metric big={mom != null ? `${mom >= 0 ? '+' : ''}${mom}%` : '—'} label="plusvalía 12m" tint={mom > 0 ? '22,199,132' : '99,102,241'} />
-            {rank > 0 && <Metric big={ordinal(rank)} label="en plusvalía" tint="124,92,255" sub={`de ${rankTotal} zonas`} />}
-            <Metric big={devsZona || zone.inventory || '—'} label="desarrollos" tint="192,38,211" />
+            {pulso && (pulso.busquedas_7d > 0 ? (
+              <div style={{ marginTop: 7 }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                  <b style={{ color: 'var(--cream)' }}>{pulso.busquedas_7d}</b> personas buscan aquí esta semana
+                  {pulso.trend_pct ? <span style={{ color: pulso.trend_pct >= 0 ? '#0E9F6E' : '#DC2626', fontWeight: 700 }}> · {pulso.trend_pct >= 0 ? '↑' : '↓'}{Math.abs(pulso.trend_pct)}%</span> : ''}
+                </div>
+                {(pulso.rec_moda || pulso.precio_buscado_prom) && (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 4 }}>
+                    lo más pedido: {pulso.rec_moda ? `${pulso.rec_moda} rec` : ''}{pulso.rec_moda && pulso.precio_buscado_prom ? ' · ' : ''}{pulso.precio_buscado_prom ? `~${m(pulso.precio_buscado_prom)}` : ''}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6 }}>Aún sin búsquedas recientes en esta zona.</div>
+            ))}
           </div>
 
-          {/* Calidad de la zona — score general + barras */}
-          {overall != null && (
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(16,18,28,0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, ...grad }}>{tc('Calidad de la zona')}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: overall >= 80 ? '#0E9F6E' : overall >= 60 ? 'var(--theme)' : '#E0A33E', letterSpacing: '-0.02em' }}>{overall}</span>
-                  <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>/100</span>
-                </div>
-              </div>
-              <div style={{ marginTop: 6 }}>
-                <ScoreBar label="Seguridad" v={sc.seguridad} />
-                <ScoreBar label="Movilidad" v={sc.movilidad} />
-                <ScoreBar label="Comercio" v={sc.comercio} />
-                <ScoreBar label="Educación" v={sc.educacion} />
-              </div>
-            </div>
-          )}
-
           <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 16 }}>
-            Inteligencia DesarrollosMX{cdmxM2 ? ` · CDMX $${Number(cdmxM2).toLocaleString('es-MX')}/m²` : ''}
+            Inteligencia DesarrollosMX · {devsZona || 0} desarrollos{cdmxM2 ? ` · CDMX ${k(cdmxM2)}/m²` : ''}
           </div>
         </div>
       )}

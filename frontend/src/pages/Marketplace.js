@@ -570,7 +570,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 <OportunidadPanel
                   developments={developments}
                   colonias={colonias}
-                  selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && aiFilters.colonia)}
+                  selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia))}
+                  budget={filters.max_price || (aiFilters && aiFilters.max_price) || budgetMax || 0}
                   onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 />
               </aside>

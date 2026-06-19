@@ -213,6 +213,34 @@ def _iso_week_tag() -> str:
 
 
 # ─── Colonias ──────────────────────────────────────────────────────────────────
+@router.get("/api/zona/{colonia_id}/pulso")
+async def zona_pulso(colonia_id: str, request: Request):
+    """PULSO de demanda de una zona: cuántos la buscan (7d vs 7d previos) + lo más pedido. Alimenta el panel de
+    inteligencia (data viva, no folleto). Lee marketplace_searches (colonias es lista plana). Fail-open."""
+    try:
+        db = request.app.state.db
+        from datetime import datetime as _dt, timedelta as _td
+        from collections import Counter as _C
+        now = _dt.utcnow()
+        q = {"colonias": colonia_id}
+        last7 = await db.marketplace_searches.count_documents({**q, "created_at_dt": {"$gte": now - _td(days=7)}})
+        prev7 = await db.marketplace_searches.count_documents({**q, "created_at_dt": {"$gte": now - _td(days=14), "$lt": now - _td(days=7)}})
+        trend = round(((last7 - prev7) / prev7) * 100) if prev7 else (100 if last7 else 0)
+        recs, precios = [], []
+        async for s in db.marketplace_searches.find({**q, "created_at_dt": {"$gte": now - _td(days=30)}},
+                                                    {"_id": 0, "recamaras_min": 1, "precio_max": 1}).limit(500):
+            if s.get("recamaras_min"):
+                recs.append(s["recamaras_min"])
+            if s.get("precio_max"):
+                precios.append(s["precio_max"])
+        return {"ok": True, "busquedas_7d": last7, "trend_pct": trend,
+                "nivel": "alta" if last7 >= 10 else "media" if last7 >= 3 else "baja",
+                "rec_moda": (_C(recs).most_common(1)[0][0] if recs else None),
+                "precio_buscado_prom": (round(sum(precios) / len(precios)) if precios else None)}
+    except Exception:
+        return {"ok": True, "busquedas_7d": 0, "trend_pct": 0, "nivel": "baja"}
+
+
 @router.get("/api/colonias")
 async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
