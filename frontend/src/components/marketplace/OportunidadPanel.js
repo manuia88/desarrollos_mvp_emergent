@@ -74,7 +74,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
       t: 'Más fina que el ROI: anualiza tu ganancia a lo largo de TODOS los años y toma en cuenta cuándo entra cada peso (un peso hoy vale más que mañana). Por eso suele ser menor que el ROI. Es la que usan los inversionistas.' },
     { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, c: '#C026D3',
-      t: 'NOI entre el precio. El NOI es la renta de un año YA descontando gastos de operación (mantenimiento, predial, administración), pero antes del crédito. No incluye la plusvalía.' },
+      t: `Lo que rinde al año si lo compras de contado (sin crédito). Se calcula: renta de un año − gastos de operarlo (mantenimiento, predial, seguro, administración) = NOI; y luego NOI ÷ precio.${inv.renta_anual && inv.precio_prom ? ` Aquí: ~$${Math.round(inv.renta_anual / 1000).toLocaleString('es-MX')}k ÷ ${m1(inv.precio_prom)} = ${inv.cap_rate_anual_pct}%.` : ''} No resta el crédito ni impuestos, ni incluye la plusvalía.` },
   ] : [];
   const kfmt = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
   const cred = (inv && inv.credito) || null;
