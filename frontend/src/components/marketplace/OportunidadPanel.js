@@ -64,17 +64,18 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   // Veredicto de inversión + filas con glosa simple (el "upgrade": cada métrica de jerga lleva su explicación)
   const VER_INV = { excelente: { e: '🟢', c: '#0E9F6E' }, buena: { e: '🟢', c: '#16C784' }, moderada: { e: '🟡', c: '#E0A33E' }, baja: { e: '🔴', c: '#DC2626' } };
   const ver = (inv && inv.veredicto_inversion) ? (VER_INV[inv.veredicto_inversion] || VER_INV.moderada) : null;
+  // Orden por flujo (de menos a más): renta → plusvalía → cap rate → ROI → TIR (la más completa)
   const INVEST_ROWS = inv ? [
+    { l: 'Renta mensual', v: inv.renta_prom ? `$${inv.renta_prom.toLocaleString('es-MX')}` : null, c: 'var(--cream)',
+      t: 'Lo que cobrarías al mes de renta (bruta, antes de gastos) para un depto al precio promedio de la zona.' },
     { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, c: '#0E9F6E',
       t: `Cuánto sube de precio el inmueble cada año por el mercado (la demanda y el desarrollo de la zona), no porque alguien lo decida. Se estima con la tendencia de precios de la zona.${inv.plusvalia_anual_abs && inv.precio_prom ? ` Aquí: ~${inv.plusvalia_anual_pct}% = un depto de ${m1(inv.precio_prom)} sube ~$${Math.round(inv.plusvalia_anual_abs / 1000).toLocaleString('es-MX')}k al año.` : ''} No incluye las rentas.` },
-    { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, c: 'var(--cream)',
-      t: 'Lo que cobrarías al mes de renta (bruta, antes de gastos), según las rentas típicas de la zona para un depto de ese precio.' },
-    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, c: '#0E9F6E',
-      t: `Junta las dos formas de ganar: la renta (el cap rate, ${inv.cap_rate_anual_pct}%) + lo que sube de precio (la plusvalía, ${inv.plusvalia_anual_pct}%) = ${inv.roi_anual_pct}%. Ojo: la plusvalía solo la cobras si VENDES ese año — no puedes capturar la ganancia de algo que no has vendido; si no vendes, es ganancia en papel. Si solo cuentas la renta, ese ${inv.cap_rate_anual_pct}% es justo el cap rate.` },
-    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
-      t: `El viaje de tu dinero: HOY pones el enganche → CADA AÑO entran las rentas → AL FINAL vendes y recuperas más. La TIR resume todo ese viaje en un solo número: el % que tu dinero ganó por año, dándole más valor a lo que recibes pronto (un peso hoy vale más que en 5 años). Por eso suele ser menor que el ROI. Aquí: ${inv.tir_anual_pct}% al año, a 5 años.` },
     { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, c: '#C026D3',
       t: `Lo que rinde al año si lo compras de contado (sin crédito). Se calcula: renta de un año − gastos de operarlo (mantenimiento, predial, seguro, administración) = NOI; y luego NOI ÷ precio.${inv.renta_anual && inv.precio_prom ? ` Aquí: ~$${Math.round(inv.renta_anual / 1000).toLocaleString('es-MX')}k ÷ ${m1(inv.precio_prom)} = ${inv.cap_rate_anual_pct}%.` : ''} No resta el crédito ni impuestos, ni incluye la plusvalía.` },
+    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, c: '#0E9F6E',
+      t: `Junta las dos formas de ganar: la renta (el cap rate, ${inv.cap_rate_anual_pct}%) + lo que sube de precio (la plusvalía, ${inv.plusvalia_anual_pct}%) = ${inv.roi_anual_pct}%. Ojo: la plusvalía solo la cobras si VENDES ese año; si no, es ganancia en papel. Si solo cuentas la renta, ese ${inv.cap_rate_anual_pct}% es justo el cap rate.` },
+    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
+      t: `Lleva los mismos ingredientes que el ROI (las rentas + la venta). La diferencia es el TIEMPO: el ROI es la foto de UN año (cuenta simple); la TIR toma los 5 años completos —cuándo entra cada renta y cuándo vendes— y saca el % real por año, restándole valor al dinero que llega tarde (un peso en 5 años vale menos que hoy). Por eso la TIR (${inv.tir_anual_pct}%) sale más baja y más realista que el ROI (${inv.roi_anual_pct}%).` },
   ] : [];
   const kfmt = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
   const cred = (inv && inv.credito) || null;
@@ -156,10 +157,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             <>
               {/* 2 · PARA VIVIR — precio de compra (menor/promedio/mayor) */}
               <div style={sep}>
-                <div style={secTitle}>🏡 {tc('Para vivir')} <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--cream-3)' }}>· comprar</span></div>
+                <div style={secTitle}>🏡 {tc('Para vivir')} <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--cream-3)' }}>· {tc('comprar')}</span></div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
                   {[['menor', inv.precio_min], ['promedio', inv.precio_prom], ['mayor', inv.precio_max]].map(([lbl, val]) => (
-                    <div key={lbl} style={cellStyle}><div style={cellNum}>{m1(val)}</div><div style={cellLbl}>{lbl}</div></div>
+                    <div key={lbl} style={cellStyle}><div style={cellNum}>{m1(val)}</div><div style={cellLbl}>{tc(lbl)}</div></div>
                   ))}
                 </div>
               </div>
@@ -167,10 +168,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
               {/* 3 · PARA RENTAR — renta mensual (menor/promedio/mayor) */}
               {inv.renta_prom > 0 && (
                 <div style={sep}>
-                  <div style={secTitle}>🔑 {tc('Para rentar')} <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--cream-3)' }}>· al mes</span></div>
+                  <div style={secTitle}>🔑 {tc('Para rentar')} <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--cream-3)' }}>· {tc('al mes')}</span></div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
                     {[['menor', inv.renta_menor], ['promedio', inv.renta_prom], ['mayor', inv.renta_mayor]].map(([lbl, val]) => (
-                      <div key={lbl} style={cellStyle}><div style={cellNum}>${(val || 0).toLocaleString('es-MX')}</div><div style={cellLbl}>{lbl}</div></div>
+                      <div key={lbl} style={cellStyle}><div style={cellNum}>${(val || 0).toLocaleString('es-MX')}</div><div style={cellLbl}>{tc(lbl)}</div></div>
                     ))}
                   </div>
                 </div>
@@ -178,9 +179,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
 
               {/* 4 · PARA INVERTIR — métricas con glosa simple (upgrade) */}
               <div style={sep}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="opp-row" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: ver ? 'help' : 'default' }}>
                   <div style={secTitle}>📈 {tc('Para invertir')}</div>
-                  {ver && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: ver.c, background: `${ver.c}14`, border: `1px solid ${ver.c}33`, borderRadius: 9999, padding: '3px 10px' }}>{ver.e} {inv.veredicto_inversion}</span>}
+                  {ver && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: ver.c, background: `${ver.c}14`, border: `1px solid ${ver.c}33`, borderRadius: 9999, padding: '3px 10px' }}>{ver.e} {tc(inv.veredicto_inversion)}<span className="opp-help" style={{ color: ver.c, background: `${ver.c}22` }}>?</span></span>}
+                  {ver && <span className="opp-help-box" style={{ width: 230 }}>Qué tan buena inversión es, según el rendimiento anual (la TIR): excelente arriba de 12% · buena 8–12% · moderada 5–8% · baja menos de 5%. Aquí sale "{inv.veredicto_inversion}" porque la TIR es {inv.tir_anual_pct}%.</span>}
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 4 }}>
                   calculado sobre un depto al <b style={{ color: 'var(--cream-2)' }}>precio promedio (~{m1(inv.precio_prom)})</b>
@@ -188,7 +190,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 <div style={{ marginTop: 6 }}>
                   {INVEST_ROWS.filter((r) => r.v != null).map((r) => (
                     <div key={r.l} className="opp-row" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: '1px solid rgba(16,18,28,0.06)', cursor: 'help' }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>{r.l}<span className="opp-help">?</span></div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>{tc(r.l)}<span className="opp-help">?</span></div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: r.c, whiteSpace: 'nowrap' }}>{r.v}</div>
                       <span className="opp-help-box">{r.t}</span>
                     </div>
