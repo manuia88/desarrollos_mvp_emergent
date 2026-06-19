@@ -354,6 +354,25 @@ async def zona_inversion(colonia_id: str, request: Request):
         return {"ok": True}
 
 
+@router.get("/api/zona/{colonia_id}/vida")
+async def zona_vida(colonia_id: str, request: Request):
+    """LA VIDA EN LA ZONA: conteos REALES de amenidades por categoría (OSM, denue_zone_density) — restaurantes,
+    cafés, escuelas, hospitales, parques, etc. Surfacea data que estaba huérfana (sin UI). Fail-open.
+    (Seguridad/safety_score NO se expone: sale inconsistente; cero dato dudoso al público.)"""
+    try:
+        db = request.app.state.db
+        out = {"ok": True}
+        d = await db.denue_zone_density.find_one(
+            {"zone_id": colonia_id}, {"_id": 0, "by_category": 1, "businesses_count_total": 1, "source": 1})
+        if d:
+            out["amenidades"] = d.get("by_category") or {}
+            out["amenidades_total"] = d.get("businesses_count_total")
+            out["fuente"] = d.get("source")
+        return out
+    except Exception:
+        return {"ok": True}
+
+
 @router.get("/api/colonias")
 async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]

@@ -27,6 +27,13 @@ const PROFILES = [
   { k: 'primera', label: 'Mi primera casa', e: '🏠' },
   { k: 'vivir', label: 'Vivir mejor', e: '✨' },
 ];
+// amenidades reales (denue_zone_density.by_category, OSM) → etiqueta humana
+const CATS = [
+  ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['bar', '🍷', 'bares'],
+  ['recreacion', '🌳', 'parques y recreación'], ['escuela', '🏫', 'escuelas'], ['hospital', '🏥', 'hospitales'],
+  ['farmacia', '💊', 'farmacias'], ['mercado', '🛒', 'mercados y tiendas'], ['banco', '🏦', 'bancos'],
+  ['transporte', '🚇', 'puntos de transporte'], ['gimnasio', '🏋️', 'gimnasios'],
+];
 
 // Copy por perfil — dolor + sueño, sobre la misma data real (specific, no genérico)
 function buildStories(name, inv) {
@@ -38,13 +45,15 @@ function buildStories(name, inv) {
     invertir: {
       hookA: 'Tu dinero, parado en el banco,', hookB: 'pierde contra la inflación.',
       sub: `En ${name} no: sube ~${plus}% al año, te paga renta mientras lo tienes, y en 5 años son +${g5}%. No es especular — es la dirección donde el mercado lleva años apostando. Patrimonio que crece mientras duermes.`,
+      vidaTitle: 'Por qué la gente quiere vivir aquí',
       stackTitle: 'Tres formas de ganar, al mismo tiempo', stackIntro: 'Compras una vez. A partir de ahí, tu propiedad trabaja para ti de tres maneras — todas juntas, todos los años.',
       cobrarTitle: 'Lo que cuesta entrar', cobrarCopy: `Entrar a ${name} arranca desde ${pmin}. Con crédito, así se ve el pago — y el rendimiento ya descontó que no lo pagas todo de golpe.`,
       cierreTitle: 'Aquí pones tu dinero a trabajar', cta: 'Ver dónde invertir →',
     },
     familia: {
-      hookA: `${name} es donde`, hookB: 'tus hijos van a recordar haber crecido.',
-      sub: `Echar raíces en una zona consolidada, sin volver a mudarte — y que el lugar donde crece tu familia también crezca de valor. Un hogar para la vida, que además cuida tu patrimonio.`,
+      hookA: `${name} es donde`, hookB: 'echan raíces de verdad.',
+      sub: `El hogar para la familia que están formando — los dos, y los que vengan — en una zona consolidada, sin volver a mudarte. Todo cerca, espacio para crecer, y un patrimonio que sube de valor mientras ustedes construyen su vida.`,
+      vidaTitle: 'Todo lo que tu familia necesita, cerca',
       stackTitle: 'Un hogar que además te cuida el patrimonio', stackIntro: 'No tienes que elegir entre un buen lugar para tu familia y una buena decisión de dinero. Aquí van juntas:',
       cobrarTitle: '¿Cuánto para el hogar de tu familia?', cobrarCopy: `Una casa en ${name} arranca desde ${pmin}. Con crédito${mensual30 ? `, desde ~${mensual30}/mes` : ''} — un patrimonio que les dejas, no una renta que se va.`,
       cierreTitle: 'Aquí empieza el hogar de tu familia', cta: 'Ver casas para mi familia →',
@@ -52,6 +61,7 @@ function buildStories(name, inv) {
     primera: {
       hookA: 'Cada mes de renta', hookB: 'es dinero que no vuelve.',
       sub: `Aquí tu primera casa arranca desde ${pmin}.${mensual30 ? ` Con crédito, ~${mensual30} al mes` : ''} — parecido a lo que ya pagas de renta, pero esta vez es TUYO. Y mientras lo habitas, sube de valor. Dejar de rentar es la puerta a todo lo demás.`,
+      vidaTitle: 'El barrio donde vas a vivir, no solo un depto',
       stackTitle: 'Comprar aquí te conviene más que rentar', stackIntro: 'La renta solo se va. Tu primer departamento, en cambio, trabaja para ti desde el día uno:',
       cobrarTitle: 'Más alcanzable de lo que crees', cobrarCopy: `Desde ${pmin}.${mensual30 ? ` La mensualidad (~${mensual30}) se parece a una renta` : ''} — pero cada pago construye TU patrimonio, no el del casero.`,
       cierreTitle: 'Aquí dejas de rentar', cta: 'Ver mi primera casa →',
@@ -59,6 +69,7 @@ function buildStories(name, inv) {
     vivir: {
       hookA: 'Trabajaste años para llegar aquí.', hookB: 'Que se note dónde vives.',
       sub: `${name} es de las zonas más codiciadas de la ciudad: todo a la mano, una comunidad a tu nivel, y un lugar que no solo se siente bien — también sube de valor contigo. No es una casa: es la prueba de hasta dónde llegaste.`,
+      vidaTitle: 'La vida, a la vuelta de la esquina',
       stackTitle: 'Vives mejor — y tu patrimonio sube contigo', stackIntro: 'La buena vida aquí no es un gasto: es una de las decisiones de dinero más sólidas que puedes tomar.',
       cobrarTitle: 'Lo que cuesta esta vida', cobrarCopy: `Vivir en ${name} arranca desde ${pmin}. Con crédito, así se ve el pago de la dirección que mereces.`,
       cierreTitle: 'Aquí empieza la vida que mereces', cta: 'Ver dónde vivir →',
@@ -72,6 +83,7 @@ export default function ZonePageV2() {
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
   const [similar, setSimilar] = useState([]);
+  const [vida, setVida] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
 
@@ -82,9 +94,10 @@ export default function ZonePageV2() {
       get(`/api/public/landing/colonia/${slug}`),
       get(`/api/developments?colonia=${slug}&limit=12`),
       get(`/api/colonias-similar/${slug}`),
-    ]).then(([i, l, d, s]) => {
+      get(`/api/zona/${slug}/vida`),
+    ]).then(([i, l, d, s, v]) => {
       if (!alive) return;
-      setInv(i); setLanding(l);
+      setInv(i); setLanding(l); setVida(v);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = arquetipo de la zona (del dato)
@@ -171,6 +184,36 @@ export default function ZonePageV2() {
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
         <>
+        {/* ───── LA VIDA AQUÍ (amenidades reales, narrado por perfil) ───── */}
+        {vida && vida.amenidades && Object.keys(vida.amenidades).length > 0 && (() => {
+          const am = vida.amenidades;
+          const shown = CATS.filter(([key]) => (am[key] || 0) > 0);
+          const intro = profile === 'familia'
+            ? `Para tu familia, todo a la mano: ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y ${am.recreacion || 0} espacios de recreación cerca. El barrio donde crecen, no solo cuatro paredes.`
+            : profile === 'vivir'
+              ? `La vida buena, caminando: ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y ${am.bar || 0} bares a tu alrededor. Aquí no manejas para vivir bien — sales por la puerta.`
+              : profile === 'primera'
+                ? `No compras un depto aislado: compras un barrio vivo, con ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y todo lo que necesitas a unos pasos.`
+                : `Lo que hace que la gente quiera vivir aquí — y por eso renta y se revaloriza: ${am.restaurante || 0} restaurantes, ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y mucho más, todo cerca.`;
+          return (
+            <section id="vida" key={`vida-${profile}`} className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+              <div style={eyebrow}>{tc('La vida aquí')}</div>
+              <h2 style={chapTitle}>{S.vidaTitle}</h2>
+              <p style={lead}>{intro}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px,1fr))', gap: 12, marginTop: 18 }}>
+                {shown.map(([key, e, label]) => (
+                  <div key={key} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 22 }}>{e}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 27, color: INK, letterSpacing: '-0.02em', marginTop: 4 }}>{am[key]}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>negocios y lugares reales mapeados en la zona (OpenStreetMap)</div>
+            </section>
+          );
+        })()}
+
         {/* ───── VALUE STACK (3 formas de ganar) ───── */}
         <section id="dinero" key={`stack-${profile}`} className="zv2-up" style={{ ...sec, marginTop: 54 }}>
           <div style={eyebrow}>{tc('Por qué tiene sentido')}</div>
