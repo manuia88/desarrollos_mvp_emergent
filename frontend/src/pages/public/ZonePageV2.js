@@ -213,6 +213,18 @@ export default function ZonePageV2() {
   const metroReal = lugares && lugares.metro ? lugares.metro : null;
   const metroData = metroReal || { nombre: 'Metro Insurgentes', min_caminando: 6 };
   const metroEsReal = !!metroReal;
+  // Carácter del barrio: chips CUALITATIVOS de los conteos REALES de Google (/vida · 253 colonias). Sin número subjetivo
+  // (no repetimos el error de los scores). Gated en source='google' → solo donde hay dato verificado.
+  const vibe = (() => {
+    if (!vida || vida.fuente !== 'google' || !vida.amenidades) return [];
+    const a = vida.amenidades, chips = [];
+    if ((a.restaurante || 0) + (a.cafe || 0) >= 25) chips.push(['🍴', 'Vida de barrio activa']);
+    if ((a.transporte || 0) >= 10) chips.push(['🚇', 'Bien conectado']);
+    if ((a.parque || 0) >= 8) chips.push(['🌳', 'Áreas verdes cerca']);
+    if ((a.supermercado || 0) >= 10) chips.push(['🛒', 'Todo a la mano']);
+    if ((a.escuela || 0) >= 12) chips.push(['🎓', 'Muchas escuelas']);
+    return chips.slice(0, 4);
+  })();
   // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
   const rentaMes = inv && inv.renta_prom;
   const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
@@ -243,6 +255,13 @@ export default function ZonePageV2() {
             <div style={{ ...eyebrow, fontSize: 12, marginTop: 16 }}>{alcaldia ? tc(alcaldia) : 'CDMX'}{tier ? ` · ${tc(tier)}` : ''}</div>
             <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(40px,6.5vw,68px)', letterSpacing: '-0.035em', color: INK, margin: '4px 0 0', lineHeight: 1.02 }}>{name}</h1>
             {S && <p style={{ ...lead, fontSize: 17, marginTop: 14, maxWidth: 700 }}>{zoneContext(name, inv)}</p>}
+            {vibe.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                {vibe.map(([e, l]) => (
+                  <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#4B4F66', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', borderRadius: 9999, padding: '6px 13px' }}>{e} {l}</span>
+                ))}
+              </div>
+            )}
 
             {/* La pregunta + las 4 tabs (cada una con micro-promesa) */}
             {S && (
