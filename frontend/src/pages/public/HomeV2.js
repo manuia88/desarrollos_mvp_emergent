@@ -68,7 +68,7 @@ const SERVICES = [
 ];
 const STEPS = [
   ['1', 'Busca Tu Colonia', 'Escribe dónde quieres vivir y mira cómo se vive ahí, en palabras claras.'],
-  ['2', 'Compara con Datos', 'Seguridad, plusvalía y servicios de cada zona, lado a lado.'],
+  ['2', 'Compara con Datos', 'Precio, plusvalía y servicios reales de cada zona, lado a lado.'],
   ['3', 'Visita y Decide', 'Un asesor experto te acompaña a las visitas y con tu crédito.'],
 ];
 const TESTIMONIALS = [
@@ -78,26 +78,15 @@ const TESTIMONIALS = [
 ];
 const FAQ = [
   ['¿El Reporte de la Colonia Tiene Costo?', 'No. Empiezas gratis y sin registro. Solo pagas si contratas servicios premium.'],
-  ['¿De Dónde Sale la Información?', 'De fuentes oficiales: seguridad, valor del suelo, plusvalía, riesgo de sismo e inundación, y servicios cercanos. Lo juntamos y te lo decimos en palabras claras.'],
+  ['¿De Dónde Sale la Información?', 'De fuentes oficiales y mapas reales: valor del suelo y plusvalía, riesgo de sismo e inundación (Atlas CDMX) y los servicios cercanos (Google). Lo juntamos y te lo decimos en palabras claras.'],
   ['¿Solo Venden Vivienda Nueva?', 'Sí — preventa y entrega inmediata de desarrolladores verificados en CDMX.'],
   ['¿Es Para Compradores Primerizos?', 'Sí. Te explicamos todo sin tecnicismos y te acompañamos hasta las llaves.'],
 ];
 const ALLIES = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Habimetro'];
 
-// ── Helpers de ficha de colonia (data real, lenguaje de beneficio) ──
-const AXIS = { vida: ['Mucha Vida', '🌿'], movilidad: ['Llegas Rápido', '🚇'], seguridad: ['Tranquila', '🛡️'], comercio: ['Todo a la Mano', '🛍️'], plusvalia: ['Tu Dinero Crece', '📈'], educacion: ['Buenas Escuelas', '🎓'] };
+// ── Helpers de ficha de colonia (SOLO dato real de mercado: tier, plusvalía/momentum, precio/m², inventario) ──
+// Nota: los scores 0-100 (seguridad/movilidad/etc) se RETIRARON del público — son poco confiables; no se muestran como cifra dura.
 const TIER_ES = { Premium: 'Premium', Luxury: 'Lujo', Trendy: 'De Moda', Emerging: 'En Ascenso', Revival: 'Renaciendo', Central: 'Céntrica', 'Up-and-coming': 'Promesa', Established: 'Consolidada', Family: 'Familiar', Bohemian: 'Bohemia' };
-function topAxes(scores, n = 3) {
-  return Object.entries(AXIS).map(([k, [label, ic]]) => [scores[k] || 0, label, ic]).sort((a, b) => b[0] - a[0]).slice(0, n);
-}
-function quality(scores) {
-  const keys = ['vida', 'movilidad', 'seguridad', 'comercio', 'plusvalia', 'educacion'];
-  const avg = keys.reduce((s, k) => s + (scores[k] || 0), 0) / keys.length;
-  if (avg >= 87) return ['A', 'Excelente', 'var(--ok,#1FA06A)'];
-  if (avg >= 80) return ['B', 'Muy Buena', 'var(--theme)'];
-  if (avg >= 72) return ['C', 'Buena', 'var(--warm,#E2982E)'];
-  return ['D', 'Media', 'var(--cream-3)'];
-}
 function Sparkline({ trend, up }) {
   const w = 128, h = 34, min = Math.min(...trend), max = Math.max(...trend), range = max - min || 1;
   const pts = trend.map((v, i) => `${(i / (trend.length - 1)) * w},${h - ((v - min) / range) * (h - 6) - 3}`);
@@ -111,8 +100,6 @@ function Sparkline({ trend, up }) {
 }
 
 function ColoniaCard({ c }) {
-  const [ql, qw, qc] = quality(c.scores);
-  const trio = topAxes(c.scores);
   const up = c.momentumPositive;
   return (
     <Link to={`/marketplace?colonia=${encodeURIComponent(c.key)}`} className="dmx-glow"
@@ -128,18 +115,7 @@ function ColoniaCard({ c }) {
             <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 21, color: 'var(--cream)', lineHeight: 1 }}>{c.name}</div>
             <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>{c.alcaldia}</div>
           </div>
-          <span title={`Calidad de Zona: ${qw}`} style={{ flexShrink: 0, width: 38, height: 38, borderRadius: '50%', border: `2px solid ${qc}`, color: qc, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HEAD, fontWeight: 800, fontSize: 16 }}>{ql}</span>
         </div>
-      </div>
-      {/* Trío de métricas con número en degradado */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--card-border)' }}>
-        {trio.map(([score, label, ic], i) => (
-          <div key={label} style={{ padding: '12px 8px', textAlign: 'center', borderRight: i < 2 ? '1px solid var(--card-border)' : 'none' }}>
-            <div style={{ fontSize: 15, marginBottom: 2 }}>{ic}</div>
-            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, ...GRAD }}>{score}</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--cream-3)', marginTop: 2 }}>{label}</div>
-          </div>
-        ))}
       </div>
       {/* Sparkline plusvalía + endpoints */}
       <div style={{ padding: '12px 16px 4px' }}>
@@ -282,7 +258,7 @@ export default function HomeV2() {
             <FadeUp delay={0.1}>
               <h2 style={{ ...h2 }}>Compra con la verdad de la colonia, <span style={SERIF}>no a ciegas</span>.</h2>
               <p style={{ ...lead, margin: '24px 0 0', maxWidth: 600 }}>
-                Cruzamos 117 variables de cada colonia de la CDMX —seguridad, plusvalía, servicios, riesgo y movilidad— y te lo decimos en palabras simples. Para que elijas tu vivienda nueva sabiendo dónde vas a vivir, no solo cuánto cuesta.
+                Cruzamos 117 variables de cada colonia de la CDMX —precio y plusvalía, servicios cercanos reales y riesgo de sismo e inundación— y te lo decimos en palabras simples. Para que elijas tu vivienda nueva sabiendo dónde vas a vivir, no solo cuánto cuesta.
               </p>
               <div style={{ marginTop: 28 }}>
                 <Link to="/colonias" style={{ textDecoration: 'none' }}><Button size="lg" style={PILL}>Conoce las Colonias →</Button></Link>

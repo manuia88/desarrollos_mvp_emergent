@@ -602,6 +602,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia))}
                   onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 />
+                <button type="button" data-testid="abrir-quiz-colonia" onClick={() => setQuizOpen(true)}
+                  style={{ width: '100%', marginTop: 14, padding: '13px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.06)', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5 }}>
+                  🧭 ¿No sabes qué zona elegir? Haz el test
+                </button>
               </aside>
               <div>
                 {!showResults ? (
