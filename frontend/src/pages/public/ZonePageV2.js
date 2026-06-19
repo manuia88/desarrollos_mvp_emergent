@@ -6,7 +6,11 @@ import { useParams, Link } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
+import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
 import { tc } from '../../lib/titleCase';
+
+// Abre Atlax con una pregunta sembrada (reusa el bus 'atlax:open' que ya escucha AtlaxBubble) → cierra a lead.
+const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })); } catch { /* noop */ } };
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${(n / 1e6).toFixed(1)}M`;
@@ -86,6 +90,7 @@ export default function ZonePageV2() {
   const [vida, setVida] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [saveOpen, setSaveOpen] = useState(false);  // modal "Vigila esta zona" (watch + casamentera → lead)
 
   useEffect(() => {
     let alive = true; setLoading(true);
@@ -169,7 +174,8 @@ export default function ZonePageV2() {
                 <p style={{ ...lead, fontSize: 17, marginTop: 16, maxWidth: 700 }}>{S.sub}</p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
                   <a href="#empezar" className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, textDecoration: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>{S.cta}</a>
-                  <button type="button" disabled title="Próximamente" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'not-allowed', opacity: 0.7 }}>🔔 Vigila esta zona</button>
+                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${(PROFILES.find((p) => p.k === profile) || {}).label || 'vivir o invertir'}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                  <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
                 </div>
               </div>
             ) : (
@@ -283,6 +289,23 @@ export default function ZonePageV2() {
           </section>
         )}
 
+        {/* ───── BANDA ATLAX (2º punto de conversión → lead) ───── */}
+        <section style={{ ...sec, marginTop: 60 }}>
+          <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.08), rgba(192,38,211,0.06))', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: MUT, marginTop: 8, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.55 }}>Pregúntale a <b>Atlax</b> — conoce los precios, la plusvalía, la vida y los desarrollos de {name}. Te responde al instante.</p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 18 }}>
+              {[
+                `¿${name} me conviene para ${(PROFILES.find((p) => p.k === profile) || {}).label || 'vivir'}?`,
+                `¿Cuánto necesito para comprar en ${name}?`,
+                comparables[0] ? `¿${name} o ${comparables[0].name}?` : `¿Cómo se vive en ${name}?`,
+              ].map((q, i) => (
+                <button key={i} type="button" onClick={() => askAtlax(q)} className="zv2-zlink" style={{ ...cardBase, padding: '11px 18px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', cursor: 'pointer', border: '1px solid rgba(99,102,241,0.18)' }}>{q}</button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ───── DA EL PRIMER PASO ───── */}
         <section id="empezar" key={`cierre-${profile}`} style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
@@ -293,7 +316,7 @@ export default function ZonePageV2() {
               {devs.map((d, i) => <DevelopmentCard key={d.id} dev={d} index={i} />)}
             </div>
           ) : (
-            <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6' }}>Aún no hay desarrollos publicados en {name}. Activa "Vigila esta zona" y te avisamos al primero.</div>
+            <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6D4AFF', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
           )}
         </section>
 
@@ -308,6 +331,8 @@ export default function ZonePageV2() {
         </>
         )}
       </div>
+      {/* Vigila esta zona → guarda búsqueda de la colonia (casamentera + lead). Reúsa SaveSearchModal. */}
+      <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
       <AtlaxBubble theme="light" />
       <Footer />
     </LightScope>
