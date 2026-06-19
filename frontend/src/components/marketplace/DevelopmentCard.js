@@ -318,14 +318,15 @@ export default function DevelopmentCard({ dev, index = 0 }) {
         {(dev.incremento_preventa_pct || dev.amenidades_count > 0) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {dev.incremento_preventa_pct && (
-              <span style={{
+              <span className="tip" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
                 color: '#B45309', background: 'rgba(217,119,6,0.10)',
                 border: '1px solid rgba(217,119,6,0.26)', borderRadius: 999, padding: '4px 10px',
-              }} title="Cuánto ha subido el DESARROLLADOR su precio desde que abrió la preventa: de su precio de lista inicial (lanzamiento) al de hoy. Es decisión del dev, no plusvalía del mercado.">
+              }}>
                 ↑ {dev.incremento_preventa_pct}% desde el lanzamiento
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'rgba(180,83,9,0.18)', fontSize: 9, fontWeight: 800 }}>?</span>
+                <span className="tip-q">?</span>
+                <span className="tip-box">El desarrollador ha subido su precio {dev.incremento_preventa_pct}% desde que abrió la preventa: de su precio de lista inicial (lanzamiento) al de hoy. Es decisión del dev, no plusvalía del mercado.</span>
               </span>
             )}
             {Array.isArray(dev.amenities) && dev.amenities.slice(0, 5).map((a) => (

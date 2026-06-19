@@ -73,9 +73,9 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, c: '#C026D3',
       t: `Mide cuánto rinde la PROPIEDAD por su renta, sin importar cómo la pagues (no mira el crédito; es una característica del inmueble). Es el NOI ÷ precio. El NOI es la renta de un año menos los gastos de operarla (mantenimiento, predial, seguro, administración).${inv.renta_anual && inv.precio_prom ? ` Aquí: ~$${Math.round(inv.renta_anual / 1000).toLocaleString('es-MX')}k ÷ ${m1(inv.precio_prom)} = ${inv.cap_rate_anual_pct}%.` : ''} No incluye la plusvalía.` },
     { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, c: '#7C5CFF',
-      t: `El rendimiento POR AÑO: a qué tasa anual equivale tu inversión, contando las rentas que entran cada año y la venta al final, y que un peso hoy vale más que en 5 años. Aquí: ${inv.tir_anual_pct}% al año. Es el ROI de 5 años repartido por año y ajustado al tiempo.` },
+      t: `Es el mismo +${inv.ganancia_5y_pct}% de 5 años, pero repartido POR AÑO y ajustado al tiempo (un peso hoy vale más que en 5 años). Ejemplo: equivale a ganar ${inv.tir_anual_pct}% cada año, como un pagaré que rinde ${inv.tir_anual_pct}% anual. Por eso es más baja que el ROI total.` },
     { l: 'ROI a 5 años', v: inv.ganancia_5y_pct != null ? `+${inv.ganancia_5y_pct}%` : null, c: '#0E9F6E',
-      t: `Tu ganancia TOTAL si lo tienes 5 años y lo vendes: la renta acumulada + lo que subió de precio, menos los costos de comprar y vender.${inv.ganancia_5y_pct != null ? ` Aquí: +${inv.ganancia_5y_pct}% sobre lo que invertiste, en 5 años.` : ''} Es el total del periodo, NO por año (por año, ajustado al tiempo, es la TIR).` },
+      t: `Tu ganancia TOTAL si lo tienes 5 años y lo vendes (renta acumulada + lo que subió de precio − costos de comprar y vender).${(inv.ganancia_5y_abs && inv.precio_prom) ? ` Ejemplo: pones ~${m1(inv.precio_prom)} y en 5 años ganas ~${m1(inv.ganancia_5y_abs)} → +${inv.ganancia_5y_pct}%.` : ''} Es el total del periodo, NO por año (por año y ajustado al tiempo, es la TIR).` },
   ] : [];
   const kfmt = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
   const cred = (inv && inv.credito) || null;
