@@ -21,10 +21,9 @@ export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrus
 }
 
 const pNum = (s) => { const m = String(s ?? '').match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
-const k = (n) => `$${Math.round(n / 1000)}k`;
 const m = (n) => `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
 
-export default function OportunidadPanel({ developments = [], colonias = [], selectedColoniaId, onPerfilar, budget = 0 }) {
+export default function OportunidadPanel({ developments = [], colonias = [], selectedColoniaId, onPerfilar }) {
   const [zoneId, setZoneId] = useState(selectedColoniaId || (colonias[0] && colonias[0].id));
   useEffect(() => { if (selectedColoniaId) setZoneId(selectedColoniaId); }, [selectedColoniaId]);
   const zone = colonias.find((c) => c.id === zoneId) || colonias[0] || null;
@@ -46,23 +45,14 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     const barato = vsCdmx != null && vsCdmx < -10;
     const sube = mom != null && mom >= 4;
     const buen = overall != null && overall >= 78;
-    if (alto && buen) return { e: '🟢', l: 'Para vivir', r: 'Zona premium estable: precio alto, pero plusvalía sólida y alta calidad. Ideal para vivir, no para especular.' };
-    if (sube && !alto) return { e: '🟢', l: 'Para invertir', r: `En alza (+${mom}% plusvalía) con precio aún accesible — buen momento de entrada.` };
-    if (barato) return { e: '🟡', l: 'Oportunidad', r: 'Precio por debajo de su nivel: oportunidad si la zona te convence.' };
-    if (overall != null && !buen) return { e: '🟡', l: 'Económica', r: 'Precio accesible; revisa bien los scores de la zona antes de decidir.' };
-    return { e: '🟢', l: 'Equilibrada', r: 'Relación precio/calidad balanceada para la zona.' };
+    if (alto && buen) return { e: '🟢', l: 'Para vivir', r: 'Zona cara pero estable: sube de valor parejo y con gran calidad de vida. Ideal para vivir.' };
+    if (sube && !alto) return { e: '🟢', l: 'Para invertir', r: `Sube de precio (~${mom}% al año) y todavía está accesible — buen momento para entrar.` };
+    if (barato) return { e: '🟡', l: 'Oportunidad', r: 'Precio por debajo de lo normal para la zona: oportunidad si te convence.' };
+    if (overall != null && !buen) return { e: '🟡', l: 'Económica', r: 'Precio accesible; revisa bien las calificaciones de la zona antes de decidir.' };
+    return { e: '🟢', l: 'Equilibrada', r: 'Buen balance entre precio y calidad para la zona.' };
   })();
 
-  // ── 2) PODER DE COMPRA ──
-  const budgetN = Number(budget) || 0;
-  const m2Here = (budgetN && zoneM2) ? Math.round(budgetN / zoneM2) : null;
-  const alts = colonias
-    .filter((c) => zone && c.id !== zone.id && c.price_m2_num && developments.some((d) => d.colonia_id === c.id))
-    .map((c) => ({ name: c.name, m2: budgetN ? Math.round(budgetN / c.price_m2_num) : null, pm2: c.price_m2_num }))
-    .filter((c) => c.m2 && c.m2 > (m2Here || 0))
-    .sort((a, b) => b.m2 - a.m2).slice(0, 2);
-
-  // ── 4) INVERSIÓN (motor real) ── alimenta la línea resumen "para invertir"
+  // ── 4) INVERSIÓN (motor real) ── alimenta los datos claros "para invertir"
   const [inv, setInv] = useState(null);
   useEffect(() => {
     if (!zone?.id) { setInv(null); return; }
@@ -70,24 +60,17 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     fetch(`${API}/api/zona/${zone.id}/inversion`).then((r) => r.json()).then((d) => { if (alive) setInv(d); }).catch(() => {});
     return () => { alive = false; };
   }, [zone?.id]);
-  // Resúmenes de valor — el detalle completo vive en /zona/:slug
-  const _cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-  const vivirLine = overall == null ? 'Calidad de vida en evaluación.'
-    : overall >= 85 ? 'Top para vivir: entorno, servicios y seguridad de primer nivel.'
-      : overall >= 70 ? 'Muy buena para vivir: buena calidad de vida y servicios cerca.'
-        : overall >= 55 ? 'Correcta para vivir: equilibrio entre precio y calidad.'
-          : 'En desarrollo: precio de entrada accesible, entorno mejorando.';
-  const invertirLine = (inv && inv.veredicto_inversion)
-    ? `${_cap(inv.veredicto_inversion)} para invertir: rentabilidad ~${inv.roi_rentas_anual_pct}%/año + plusvalía ${inv.plusvalia_anual_pct}%/año${inv.tir_anual_pct ? ` · TIR ${inv.tir_anual_pct}%` : ''}.`
-    : (mom != null ? `Plusvalía ~${mom}%/año en la zona.` : 'Abre el análisis para ROI, TIR y renta estimada.');
+  // Datos de valor en lenguaje simple — el detalle completo vive en /zona/:slug
+  const _vivirLabels = { seguridad: 'Seguridad', movilidad: 'Transporte', comercio: 'Comercios', educacion: 'Escuelas' };
+  const vivirData = Object.entries(_vivirLabels)
+    .filter(([key]) => sc[key] != null)
+    .map(([key, l]) => ({ l, v: Math.round(sc[key]) }));
+  const crecePct = (inv && inv.plusvalia_anual_pct != null) ? inv.plusvalia_anual_pct : (mom != null ? mom : null);
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
   const grad = { background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
   const eyebrow = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, ...grad };
   const sep = { marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(16,18,28,0.08)' };
-  const Chip = ({ children, c = '99,102,241' }) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, color: `rgb(${c})`, background: `rgba(${c},0.08)`, border: `1px solid rgba(${c},0.2)`, borderRadius: 9999, padding: '3px 10px' }}>{children}</span>
-  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -137,52 +120,58 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 <span style={{ fontSize: 14 }}>{veredicto.e}</span> El veredicto: <span style={grad}>{veredicto.l}</span>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6, lineHeight: 1.5 }}>{veredicto.r}</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                {zoneM2 != null && <Chip c="99,102,241">{k(zoneM2)}/m²{vsCdmx != null ? ` · ${vsCdmx >= 0 ? '+' : ''}${vsCdmx}% vs CDMX` : ''}</Chip>}
-                {mom != null && <Chip c={mom > 0 ? '22,199,132' : '120,92,255'}>{mom >= 0 ? '+' : ''}{mom}% plusvalía</Chip>}
-                {overall != null && <Chip c="192,38,211">{overall}/100 calidad</Chip>}
-              </div>
             </div>
           )}
 
-          {/* 2 · PODER DE COMPRA */}
+          {/* 2 · DATOS DE VALOR — claros, sin jerga (el detalle vive en /zona/:slug) */}
           <div style={sep}>
-            <div style={eyebrow}>{tc('Tu poder de compra')}</div>
-            {budgetN > 0 && zoneM2 ? (
-              <>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 6 }}>
-                  con <b style={{ color: 'var(--cream)' }}>{m(budgetN)}</b> aquí alcanzas
-                </div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 2,
-                  background: 'linear-gradient(120deg,#1E2230 20%,#6D4AFF 140%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>~{m2Here} m²</div>
-                {alts.length > 0 && (
-                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>con lo mismo, en otras zonas alcanzas más:</div>
-                    {alts.map((a) => (
-                      <div key={a.name} style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-                        <span>{a.name}</span><span><b style={{ color: '#0E9F6E' }}>~{a.m2} m²</b> · {k(a.pm2)}/m²</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              {/* PARA VIVIR */}
+              <div style={{ padding: '13px 14px', borderRadius: 14, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.13)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>🏡 {tc('Para vivir')}</div>
+                {overall != null ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 8 }}>
+                      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 27, color: '#6D4AFF', letterSpacing: '-0.03em' }}>{overall}<span style={{ fontSize: 14, color: 'var(--cream-3)', fontWeight: 700 }}>/100</span></span>
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>de calidad de vida</span>
+                    </div>
+                    {vivirData.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 14px', marginTop: 9 }}>
+                        {vivirData.map((d) => (
+                          <span key={d.l} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{d.l} <b style={{ color: 'var(--cream)' }}>{d.v}</b></span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>Calidad de vida en evaluación.</div>
                 )}
-              </>
-            ) : (
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.5 }}>
-                Dinos tu presupuesto (con <b style={{ color: 'var(--theme)' }}>Empezar mi búsqueda</b>) y te decimos cuántos m² te alcanzan aquí vs otras zonas.
               </div>
-            )}
-          </div>
-
-          {/* 4 · PARA VIVIR / PARA INVERTIR (resumen — el detalle vive en /zona/:slug) */}
-          <div style={sep}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <div style={{ padding: '11px 12px', borderRadius: 13, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.13)' }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>🏡 {tc('Para vivir')}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 4, lineHeight: 1.45 }}>{vivirLine}</div>
-              </div>
-              <div style={{ padding: '11px 12px', borderRadius: 13, background: 'rgba(22,199,132,0.05)', border: '1px solid rgba(22,199,132,0.14)' }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: 'var(--cream)' }}>📈 {tc('Para invertir')}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 4, lineHeight: 1.45 }}>{invertirLine}</div>
+              {/* PARA INVERTIR */}
+              <div style={{ padding: '13px 14px', borderRadius: 14, background: 'rgba(22,199,132,0.05)', border: '1px solid rgba(22,199,132,0.14)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>📈 {tc('Para invertir')}</div>
+                {(crecePct != null || (inv && (inv.renta_mensual_neta || inv.ganancia_5y_abs))) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 9 }}>
+                    {crecePct != null && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span>Sube de precio cada año</span><b style={{ color: '#0E9F6E', fontSize: 14, whiteSpace: 'nowrap' }}>~{crecePct}%</b>
+                      </div>
+                    )}
+                    {inv && inv.renta_mensual_neta > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span>Si lo rentas, ganas al mes</span><b style={{ color: 'var(--cream)', whiteSpace: 'nowrap' }}>~${inv.renta_mensual_neta.toLocaleString('es-MX')}</b>
+                      </div>
+                    )}
+                    {inv && inv.ganancia_5y_abs > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span>En 5 años podrías ganar</span><b style={{ color: '#0E9F6E', fontSize: 14, whiteSpace: 'nowrap' }}>~{m(inv.ganancia_5y_abs)}</b>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>Calculando rendimiento…</div>
+                )}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 9 }}>estimado de la zona</div>
               </div>
             </div>
           </div>
@@ -195,7 +184,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#fff' }}>→</span>
           </a>
           <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 9, textAlign: 'center' }}>
-            precios, ROI, TIR, renta, crédito y forecast completos
+todo el detalle: precios, rentas, crédito y cuánto va a subir
           </div>
         </div>
       )}

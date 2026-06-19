@@ -875,7 +875,8 @@ function ComparatorBasketFAB() {
       data-testid="comparator-basket-fab"
       onClick={goCompare}
       style={{
-        position: 'fixed', bottom: 24, left: 24, zIndex: 50,
+        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
+        boxShadow: '0 10px 30px rgba(124,92,255,0.4)',
         padding: '12px 22px', borderRadius: 9999, border: 'none',
         background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#FFFFFF',
         fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12,
