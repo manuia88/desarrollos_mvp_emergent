@@ -209,6 +209,10 @@ export default function ZonePageV2() {
   })();
   const lugaresData = realLugares || (SAMPLE_LUGARES[profile] || null);
   const lugaresEsReal = !!realLugares;
+  // Conectividad: minutos caminando al metro (real de /lugares · cae a vista previa si no hay)
+  const metroReal = lugares && lugares.metro ? lugares.metro : null;
+  const metroData = metroReal || { nombre: 'Metro Insurgentes', min_caminando: 6 };
+  const metroEsReal = !!metroReal;
   // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
   const rentaMes = inv && inv.renta_prom;
   const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
@@ -394,6 +398,25 @@ export default function ZonePageV2() {
               ))}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>amenidades reales de los desarrollos en la zona</div>
+          </section>
+        )}
+
+        {/* ── CONECTIVIDAD · minutos al metro (real de /lugares · vista previa si no hay · infra lista) ── */}
+        {metroData && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
+            <div className="zv2-win" style={{ ...cardBase, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 28 }}>🚇</div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK }}>{metroData.nombre} a ~{metroData.min_caminando} min caminando</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 2 }}>
+                  {profile === 'primera' ? 'Llegas al trabajo sin coche — sin gastar en gasolina ni estacionamiento.'
+                    : profile === 'invertir' ? 'Cerca del transporte = se renta más fácil y más caro.'
+                    : profile === 'familia' ? 'Todo a la mano y los traslados cortos para los tuyos.'
+                    : 'Todo a la mano, sin depender del coche.'}
+                </div>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', fontStyle: 'italic' }}>{metroEsReal ? 'distancia real · a pie (aprox)' : 'vista previa'}</div>
+            </div>
           </section>
         )}
 

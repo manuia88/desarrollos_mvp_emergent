@@ -390,9 +390,34 @@ async def zona_lugares(colonia_id: str, request: Request):
         db = request.app.state.db
         d = await db.zone_places.find_one(
             {"zone_id": colonia_id}, {"_id": 0, "places": 1, "source": 1})
-        if d and d.get("places"):
-            return {"ok": True, "fuente": d.get("source"), "lugares": d.get("places")}
-        return {"ok": True, "lugares": {}}
+        if not (d and d.get("places")):
+            return {"ok": True, "lugares": {}}
+        places = d.get("places")
+        out = {"ok": True, "fuente": d.get("source"), "lugares": places}
+        # CONECTIVIDAD: minutos caminando a la estación más cercana (haversine · ~75 m/min · aprox · cero API extra).
+        try:
+            col = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "center": 1})
+            center = (col or {}).get("center")
+            transit = places.get("transporte") or []
+            if isinstance(center, (list, tuple)) and len(center) >= 2 and transit:
+                import math
+                clng, clat = float(center[0]), float(center[1])
+                best = None
+                for p in transit:
+                    loc = p.get("loc") or {}
+                    plat, plng = loc.get("latitude"), loc.get("longitude")
+                    if plat is None or plng is None:
+                        continue
+                    dlat = math.radians(plat - clat); dlng = math.radians(plng - clng)
+                    a = (math.sin(dlat / 2) ** 2 + math.cos(math.radians(clat)) * math.cos(math.radians(plat)) * math.sin(dlng / 2) ** 2)
+                    dist_m = 6371000 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    if best is None or dist_m < best[0]:
+                        best = (dist_m, p.get("name"))
+                if best:
+                    out["metro"] = {"nombre": best[1], "min_caminando": max(1, round(best[0] / 75)), "metros": round(best[0])}
+        except Exception:
+            pass
+        return out
     except Exception:
         return {"ok": True, "lugares": {}}
 

@@ -84,6 +84,7 @@ async def _priority_colonias(db, limit: int) -> List[Dict[str, Any]]:
 PLACE_CATEGORIES: Dict[str, str] = {
     "escuela": "school", "hospital": "hospital", "parque": "park",
     "restaurante": "restaurant", "cafe": "cafe", "supermercado": "supermarket",
+    "transporte": "transit_station",  # captura estaciones con ubicación → minutos caminando al metro (haversine)
 }
 TOP_N = 5  # top lugares por categoría (curado, no todo)
 
