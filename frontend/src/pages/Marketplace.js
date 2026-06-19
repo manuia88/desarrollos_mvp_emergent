@@ -796,8 +796,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         )}
       </main>
 
-      {/* W5.x F4.2 — Comparator basket FAB badge */}
-      <ComparatorBasketFAB />
+      {/* Comparador ahora vive en la barra de filtros (TopFilters · ComparadorPill) */}
 
       {/* Image Search Modal */}
       <ImageSearchModal
@@ -838,53 +837,4 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 }
 
 
-// W5.x F4.2 — Comparator basket FAB · muestra count y abre /portal/comparador
-function ComparatorBasketFAB() {
-  const [count, setCount] = React.useState(0);
-  React.useEffect(() => {
-    const read = () => {
-      try {
-        const raw = localStorage.getItem('comparator_basket');
-        const arr = raw ? JSON.parse(raw) : [];
-        setCount(Array.isArray(arr) ? arr.length : 0);
-      } catch { setCount(0); }
-    };
-    read();
-    const onEvt = () => read();
-    window.addEventListener('comparator_basket_updated', onEvt);
-    window.addEventListener('storage', onEvt);
-    return () => {
-      window.removeEventListener('comparator_basket_updated', onEvt);
-      window.removeEventListener('storage', onEvt);
-    };
-  }, []);
-  if (!count) return null;
-  const goCompare = () => {
-    try {
-      const raw = localStorage.getItem('comparator_basket');
-      const arr = raw ? JSON.parse(raw) : [];
-      const ids = (arr || []).map((x) => x.entity_id).join(',');
-      window.location.href = `/portal/comparador?ids=${encodeURIComponent(ids)}`;
-    } catch {
-      window.location.href = '/portal/comparador';
-    }
-  };
-  return (
-    <button
-      type="button"
-      data-testid="comparator-basket-fab"
-      onClick={goCompare}
-      style={{
-        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
-        boxShadow: '0 10px 30px rgba(124,92,255,0.4)',
-        padding: '12px 22px', borderRadius: 9999, border: 'none',
-        background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#FFFFFF',
-        fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12,
-        letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer',
-        backdropFilter: 'blur(24px)',
-      }}
-    >
-      Comparador ({count})
-    </button>
-  );
-}
+// Comparador reubicado a la barra de filtros (TopFilters · ComparadorPill).

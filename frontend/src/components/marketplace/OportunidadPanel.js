@@ -60,11 +60,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
     fetch(`${API}/api/zona/${zone.id}/inversion`).then((r) => r.json()).then((d) => { if (alive) setInv(d); }).catch(() => {});
     return () => { alive = false; };
   }, [zone?.id]);
-  // Datos de valor en lenguaje simple — el detalle completo vive en /zona/:slug
-  const _vivirLabels = { seguridad: 'Seguridad', movilidad: 'Transporte', comercio: 'Comercios', educacion: 'Escuelas' };
-  const vivirData = Object.entries(_vivirLabels)
-    .filter(([key]) => sc[key] != null)
-    .map(([key, l]) => ({ l, v: Math.round(sc[key]) }));
+  // Dato de valor en lenguaje simple — el detalle completo vive en /zona/:slug
   const crecePct = (inv && inv.plusvalia_anual_pct != null) ? inv.plusvalia_anual_pct : (mom != null ? mom : null);
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
@@ -126,25 +122,24 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
           {/* 2 · DATOS DE VALOR — claros, sin jerga (el detalle vive en /zona/:slug) */}
           <div style={sep}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              {/* PARA VIVIR */}
+              {/* PARA VIVIR — lo que te CUESTA (concreto, no scores) */}
               <div style={{ padding: '13px 14px', borderRadius: 14, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.13)' }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>🏡 {tc('Para vivir')}</div>
-                {overall != null ? (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 8 }}>
-                      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 27, color: '#6D4AFF', letterSpacing: '-0.03em' }}>{overall}<span style={{ fontSize: 14, color: 'var(--cream-3)', fontWeight: 700 }}>/100</span></span>
-                      <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>de calidad de vida</span>
-                    </div>
-                    {vivirData.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 14px', marginTop: 9 }}>
-                        {vivirData.map((d) => (
-                          <span key={d.l} style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>{d.l} <b style={{ color: 'var(--cream)' }}>{d.v}</b></span>
-                        ))}
+                {(inv && (inv.precio_min > 0 || inv.renta_mensual_neta > 0)) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 9 }}>
+                    {inv.precio_min > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span>Comprar un depto</span><b style={{ color: 'var(--cream)', fontSize: 14, whiteSpace: 'nowrap' }}>desde ~{m(inv.precio_min)}</b>
                       </div>
                     )}
-                  </>
+                    {inv.renta_mensual_neta > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span>O rentar uno</span><b style={{ color: 'var(--cream)', whiteSpace: 'nowrap' }}>~${inv.renta_mensual_neta.toLocaleString('es-MX')}/mes</b>
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>Calidad de vida en evaluación.</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>Calculando precios…</div>
                 )}
               </div>
               {/* PARA INVERTIR */}

@@ -4,6 +4,38 @@ import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, Search, Sparkle } from '../icons';
 import { Z } from '../../styles/zIndex';
 
+// Botón Comparar — vive EN LA BARRA junto a los filtros (no flotante). Lee el basket de localStorage.
+function ComparadorPill() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const read = () => {
+      try { const raw = localStorage.getItem('comparator_basket'); const arr = raw ? JSON.parse(raw) : []; setCount(Array.isArray(arr) ? arr.length : 0); }
+      catch { setCount(0); }
+    };
+    read();
+    const onEvt = () => read();
+    window.addEventListener('comparator_basket_updated', onEvt);
+    window.addEventListener('storage', onEvt);
+    return () => { window.removeEventListener('comparator_basket_updated', onEvt); window.removeEventListener('storage', onEvt); };
+  }, []);
+  if (!count) return null;
+  const go = () => {
+    try {
+      const raw = localStorage.getItem('comparator_basket');
+      const ids = (raw ? JSON.parse(raw) : []).map((x) => x.entity_id).join(',');
+      window.location.href = `/portal/comparador?ids=${encodeURIComponent(ids)}`;
+    } catch { window.location.href = '/portal/comparador'; }
+  };
+  return (
+    <button type="button" data-testid="comparator-basket-fab" onClick={go}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+        background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
+        boxShadow: '0 4px 14px rgba(124,92,255,0.32)' }}>
+      ⚖ Comparar ({count})
+    </button>
+  );
+}
+
 function Popover({ label, testId, children, badge, onClear, align = 'left', width = 280, openToken = 0 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -352,6 +384,9 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
             ))}
           </div>
         </Popover>
+
+        {/* Comparar — junto al botón de filtros */}
+        <ComparadorPill />
 
         <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{t('marketplace_v2.sort_label')}</span>
