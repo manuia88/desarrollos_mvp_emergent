@@ -373,6 +373,18 @@ async def zona_vida(colonia_id: str, request: Request):
         return {"ok": True}
 
 
+@router.post("/api/superadmin/google-places/ingest")
+async def google_places_ingest_run(request: Request):
+    """Corre UN lote de ingesta de amenidades reales de Google Places (free-tier-safe: nunca rebasa el límite del mes).
+    Token fail-closed (x-cron-token == GOOGLE_INGEST_TOKEN). Lo dispara el founder (manual o cron mensual) tras poner
+    GOOGLE_MAPS_API_KEY. Idempotente · fail-open por colonia · guarda en denue_zone_density source='google'."""
+    expected = os.environ.get("GOOGLE_INGEST_TOKEN")
+    if not expected or (request.headers.get("x-cron-token") or "") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
+    from google_places_ingest import ingest_batch
+    return await ingest_batch(request.app.state.db)
+
+
 @router.get("/api/colonias")
 async def get_colonias():
     return [_colonia_public(c) for c in SEED_COLONIAS]
