@@ -20,8 +20,14 @@ const STAGE_COLORS = {
 };
 
 // Color sólido por etapa (para el tag sutil sobre la foto · texto de color, no pill saturado).
-const STAGE_SOLID = { preventa: '#0E9F6E', en_construccion: '#D97706', entrega_inmediata: '#2563EB', exclusiva: '#7C3AED' };
-const stageColorOf = (s) => STAGE_SOLID[s] || '#7C3AED';
+// Color por TIEMPO de entrega — cada plazo su color, visible (fondo sólido + texto blanco)
+const deliveryColorOf = (stage, bucket) => {
+  if (stage === 'entrega_inmediata') return '#2563EB';   // listo ya
+  if (stage === 'exclusiva') return '#7C3AED';
+  if (stage === 'en_construccion') return '#D97706';
+  return { '<3 meses': '#0E9F6E', '3-6 meses': '#0891B2', '6-12 meses': '#D97706', '+12 meses': '#E11D48' }[bucket] || '#0E9F6E';
+};
+const AMEN_LABEL = { gym: 'Gimnasio', seguridad: 'Seguridad 24/7', pet: 'Pet friendly', roof: 'Roof garden', cowork: 'Coworking', alberca: 'Alberca', salon_eventos: 'Salón de eventos', bicicletas: 'Biciestac.', spa: 'Spa', concierge: 'Concierge', business_center: 'Business center', jardines: 'Jardines', estacionamiento: 'Estac.', sky_lounge: 'Sky lounge', cava: 'Cava', area_pets: 'Área pets' };
 
 // Temporalidad de la preventa (mismos buckets que el filtro de plazo) desde delivery_estimate "YYYY-MM".
 function entregaBucket(est) {
@@ -184,18 +190,21 @@ export default function DevelopmentCard({ dev, index = 0 }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         )}
 
-        {/* Etapa — tag sutil (sin saturar la imagen: blanco translúcido + texto de color) */}
-        <div style={{
-          position: 'absolute', top: 12, left: 12, zIndex: Z.BASE,
-          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-          color: stageColorOf(dev.stage), borderRadius: 8, padding: '4px 10px',
-          fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, letterSpacing: '0.07em', textTransform: 'uppercase',
-        }}>
-          {t(`marketplace_v2.stage.${dev.stage}`)}
-          {dev.stage === 'preventa' && entregaBucket(dev.delivery_estimate) && (
-            <span style={{ opacity: 0.75, fontWeight: 600 }}> · {entregaBucket(dev.delivery_estimate)}</span>
-          )}
-        </div>
+        {/* Etapa — fondo de color sólido por tiempo de entrega + texto blanco (alto contraste, no se pierde) */}
+        {(() => {
+          const bucket = dev.stage === 'preventa' ? entregaBucket(dev.delivery_estimate) : null;
+          return (
+            <div style={{
+              position: 'absolute', top: 12, left: 12, zIndex: Z.BASE,
+              background: deliveryColorOf(dev.stage, bucket), borderRadius: 8, padding: '4px 10px',
+              color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
+              boxShadow: '0 2px 10px rgba(16,18,28,0.28)',
+            }}>
+              {t(`marketplace_v2.stage.${dev.stage}`)}
+              {bucket && <span style={{ opacity: 0.9, fontWeight: 700 }}> · {bucket}</span>}
+            </div>
+          );
+        })()}
 
         {/* Compliance + rank (overlays sutiles existentes) */}
         <ComplianceBadgeOverlay devId={dev.id} />
@@ -315,16 +324,20 @@ export default function DevelopmentCard({ dev, index = 0 }) {
                 color: '#B45309', background: 'rgba(217,119,6,0.10)',
                 border: '1px solid rgba(217,119,6,0.26)', borderRadius: 999, padding: '4px 10px',
               }} title="Cuánto ha subido el DESARROLLADOR su precio desde que abrió la preventa: de su precio de lista inicial (lanzamiento) al de hoy. Es decisión del dev, no plusvalía del mercado.">
-                ↑ Subió {dev.incremento_preventa_pct}% desde el lanzamiento
+                ↑ {dev.incremento_preventa_pct}% desde el lanzamiento
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'rgba(180,83,9,0.18)', fontSize: 9, fontWeight: 800 }}>?</span>
               </span>
             )}
-            {dev.amenidades_count > 0 && (
-              <span data-testid="card-amenidades" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, color: 'var(--cream-2)',
-                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 999, padding: '4px 10px',
-              }}>{dev.amenidades_count} amenidades</span>
+            {Array.isArray(dev.amenities) && dev.amenities.slice(0, 5).map((a) => (
+              <span key={a} data-testid="card-amenidades" style={{
+                display: 'inline-flex', alignItems: 'center',
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, color: 'var(--cream-2)',
+                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 999, padding: '3px 9px',
+              }}>{AMEN_LABEL[a] || a}</span>
+            ))}
+            {Array.isArray(dev.amenities) && dev.amenities.length > 5 && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)' }}>+{dev.amenities.length - 5}</span>
+            )}
             )}
           </div>
         )}
