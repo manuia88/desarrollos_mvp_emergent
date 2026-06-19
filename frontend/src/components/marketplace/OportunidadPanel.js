@@ -235,6 +235,26 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
             </div>
           )}
 
+          {/* 6 · DÓNDE RINDE MÁS TU DINERO — ranking de zonas (germen del motor de decisión) */}
+          {(() => {
+            const top = colonias
+              .filter((c) => c.price_m2_num && pNum(c.momentum) != null && (!zone || c.id !== zone.id))
+              .map((c) => ({ name: c.name, plus: pNum(c.momentum), pm2: c.price_m2_num }))
+              .sort((a, b) => b.plus - a.plus).slice(0, 3);
+            if (!top.length) return null;
+            return (
+              <div style={sep}>
+                <div style={eyebrow}>{tc('Dónde rinde más tu dinero')}</div>
+                <div style={{ marginTop: 4 }}>
+                  {top.map((z2, i) => (
+                    <Row key={z2.name} l={`${i + 1}. ${z2.name}`} v={`+${z2.plus}% plusvalía · $${Math.round(z2.pm2 / 1000)}k/m²`} g={i === 0} />
+                  ))}
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'var(--cream-3)', marginTop: 6 }}>las zonas que más suben hoy — explóralas con el selector ↑</div>
+              </div>
+            );
+          })()}
+
           {/* 3 · PULSO */}
           <div style={sep}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
