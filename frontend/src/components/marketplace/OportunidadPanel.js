@@ -21,7 +21,7 @@ export function applyOportunidadFilters(devs = [], { budgetMax, stages, onlyTrus
 }
 
 const pNum = (s) => { const m = String(s ?? '').match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
-const m = (n) => `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
+const m1 = (n) => `$${(n / 1e6).toFixed(1)}M`;  // money con 1 decimal
 
 export default function OportunidadPanel({ developments = [], colonias = [], selectedColoniaId, onPerfilar }) {
   const [zoneId, setZoneId] = useState(selectedColoniaId || (colonias[0] && colonias[0].id));
@@ -65,11 +65,16 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
   const VER_INV = { excelente: { e: '🟢', c: '#0E9F6E' }, buena: { e: '🟢', c: '#16C784' }, moderada: { e: '🟡', c: '#E0A33E' }, baja: { e: '🔴', c: '#DC2626' } };
   const ver = (inv && inv.veredicto_inversion) ? (VER_INV[inv.veredicto_inversion] || VER_INV.moderada) : null;
   const INVEST_ROWS = inv ? [
-    { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, g: 'cuánto sube de precio cada año', c: '#0E9F6E' },
-    { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, g: 'lo que cobrarías de renta', c: 'var(--cream)' },
-    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, g: 'tu rendimiento real, todo incluido', c: '#7C5CFF' },
-    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, g: 'ganancia total al año: renta + plusvalía', c: '#0E9F6E' },
-    { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, g: 'la renta que da vs lo que cuesta', c: '#C026D3' },
+    { l: 'Plusvalía anual', v: inv.plusvalia_anual_pct != null ? `${inv.plusvalia_anual_pct}%` : null, g: 'cuánto sube de precio cada año', c: '#0E9F6E',
+      t: 'Cuánto sube el precio del inmueble cada año. Se estima con la tendencia histórica de la zona. No incluye lo que ganas si lo rentas.' },
+    { l: 'Renta mensual desde', v: inv.renta_menor ? `$${inv.renta_menor.toLocaleString('es-MX')}` : null, g: 'lo que cobrarías de renta', c: 'var(--cream)',
+      t: 'Lo que cobrarías al mes si lo rentas, ya descontando gastos. Se calcula con las rentas típicas de la zona para un depto de ese precio.' },
+    { l: 'TIR anual', v: inv.tir_anual_pct != null ? `${inv.tir_anual_pct}%` : null, g: 'tu rendimiento real, todo incluido', c: '#7C5CFF',
+      t: 'Tu rendimiento real al año juntando todo: la renta que cobras + lo que sube de precio, considerando el paso del tiempo. Es la medida más completa.' },
+    { l: 'ROI anual', v: inv.roi_anual_pct != null ? `${inv.roi_anual_pct}%` : null, g: 'ganancia total al año: renta + plusvalía', c: '#0E9F6E',
+      t: 'Ganancia total en un año = lo que sube de precio (plusvalía) + lo que da de renta (cap rate). Es una suma simple, sin contar crédito.' },
+    { l: 'Cap rate anual', v: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : null, g: 'la renta que da vs lo que cuesta', c: '#C026D3',
+      t: 'La renta neta de un año dividida entre el precio del inmueble. Te dice cuánto rinde solo por rentarlo, sin contar la plusvalía.' },
   ] : [];
 
   const card = { background: '#fff', border: '1px solid rgba(16,18,28,0.06)', borderRadius: 22, boxShadow: '0 12px 36px rgba(99,102,241,0.12), 0 2px 8px rgba(16,18,28,0.05)' };
@@ -88,6 +93,10 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
         .opp-card:hover{transform:translateY(-3px);box-shadow:0 22px 50px rgba(99,102,241,.18),0 3px 10px rgba(16,18,28,.06)}
         .opp-cta:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(124,92,255,.5)}
         .opp-zona-link:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,92,255,.45)}
+        .opp-help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(99,102,241,.12);color:#6D4AFF;font-size:9px;font-weight:800;margin-left:5px;vertical-align:middle}
+        .opp-row:hover .opp-help{background:rgba(99,102,241,.22)}
+        .opp-help-box{position:absolute;bottom:100%;left:0;margin-bottom:5px;width:100%;box-sizing:border-box;background:#1E2230;color:#fff;font-weight:500;font-size:10.5px;line-height:1.45;padding:9px 11px;border-radius:10px;box-shadow:0 12px 30px rgba(16,18,28,.32);opacity:0;visibility:hidden;transition:opacity .14s;z-index:60;text-transform:none;letter-spacing:0;text-align:left;pointer-events:none}
+        .opp-row:hover .opp-help-box{opacity:1;visibility:visible}
       `}</style>
 
       {/* CTA */}
@@ -139,7 +148,7 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                 <div style={secTitle}>🏡 {tc('Para vivir')} <span style={{ fontWeight: 600, fontSize: 11, color: 'var(--cream-3)' }}>· comprar</span></div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
                   {[['menor', inv.precio_min], ['promedio', inv.precio_prom], ['mayor', inv.precio_max]].map(([lbl, val]) => (
-                    <div key={lbl} style={cellStyle}><div style={cellNum}>{m(val)}</div><div style={cellLbl}>{lbl}</div></div>
+                    <div key={lbl} style={cellStyle}><div style={cellNum}>{m1(val)}</div><div style={cellLbl}>{lbl}</div></div>
                   ))}
                 </div>
               </div>
@@ -162,14 +171,18 @@ export default function OportunidadPanel({ developments = [], colonias = [], sel
                   <div style={secTitle}>📈 {tc('Para invertir')}</div>
                   {ver && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: ver.c, background: `${ver.c}14`, border: `1px solid ${ver.c}33`, borderRadius: 9999, padding: '3px 10px' }}>{ver.e} {inv.veredicto_inversion}</span>}
                 </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 4 }}>
+                  calculado sobre un depto al <b style={{ color: 'var(--cream-2)' }}>precio promedio (~{m1(inv.precio_prom)})</b>
+                </div>
                 <div style={{ marginTop: 6 }}>
                   {INVEST_ROWS.filter((r) => r.v != null).map((r) => (
-                    <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderTop: '1px solid rgba(16,18,28,0.06)' }}>
-                      <div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{r.l}</div>
+                    <div key={r.l} className="opp-row" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderTop: '1px solid rgba(16,18,28,0.06)', cursor: 'help' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{r.l}<span className="opp-help">?</span></div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', marginTop: 1 }}>{r.g}</div>
                       </div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: r.c, whiteSpace: 'nowrap' }}>{r.v}</div>
+                      <span className="opp-help-box">{r.t}</span>
                     </div>
                   ))}
                 </div>
