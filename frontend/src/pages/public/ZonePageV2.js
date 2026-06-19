@@ -1,21 +1,21 @@
-// Página de Zona v2 — NARRATIVA POR PERFIL (Hormozi/Brunson). Selector de avatar (Invertir/Familia/Primera casa/Vivir
-// mejor): cada uno reescribe la historia con su dolor+sueño, sobre la MISMA data real. Default = arquetipo de la zona.
-// Sistema: memory/ZONA_PAGE_NARRATIVE_SYSTEM.md · Reúsa /inversion + landing + developments + similar.
+// Página de Zona v2 — TABS ENFOCADAS por motivación (Hormozi). Contexto poderoso → "¿qué vienes a buscar?" → 4 tabs
+// (con micro-promesa) → al elegir, la historia de ESE perfil (dolor+sueño) sobre la MISMA data real. La elección dispara
+// una SEÑAL DE INTENCIÓN (zone_intent → buyer_signals → lead/demanda/Atlax). Persiste el perfil entre zonas.
+// Sistema: memory/ZONA_PAGE_NARRATIVE_SYSTEM.md
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
-
-// Abre Atlax con una pregunta sembrada (reusa el bus 'atlax:open' que ya escucha AtlaxBubble) → cierra a lead.
-const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })); } catch { /* noop */ } };
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${(n / 1e6).toFixed(1)}M`;
 const k = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
 const get = async (u) => { try { const r = await fetch(API + u); return r.ok ? await r.json() : null; } catch { return null; } };
+const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })); } catch { /* noop */ } };
 
 const INK = '#16182A';
 const MUT = '#5B5F76';
@@ -26,12 +26,11 @@ const lead = { fontFamily: 'DM Sans', fontSize: 16, color: MUT, lineHeight: 1.6,
 const grad = { background: 'linear-gradient(120deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 
 const PROFILES = [
-  { k: 'invertir', label: 'Invertir', e: '📈' },
-  { k: 'familia', label: 'Para mi familia', e: '👨‍👩‍👧' },
-  { k: 'primera', label: 'Mi primera casa', e: '🏠' },
-  { k: 'vivir', label: 'Vivir mejor', e: '✨' },
+  { k: 'invertir', label: 'Invertir', e: '📈', promise: 'Tu dinero, trabajando' },
+  { k: 'familia', label: 'Para mi familia', e: '👨‍👩‍👧', promise: 'Raíces, sin mudarte otra vez' },
+  { k: 'primera', label: 'Mi primera casa', e: '🏠', promise: 'Deja de rentar' },
+  { k: 'vivir', label: 'Vivir mejor', e: '✨', promise: 'La vida que mereces' },
 ];
-// amenidades reales (denue_zone_density.by_category, OSM) → etiqueta humana
 const CATS = [
   ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['bar', '🍷', 'bares'],
   ['recreacion', '🌳', 'parques y recreación'], ['escuela', '🏫', 'escuelas'], ['hospital', '🏥', 'hospitales'],
@@ -39,11 +38,17 @@ const CATS = [
   ['transporte', '🚇', 'puntos de transporte'], ['gimnasio', '🏋️', 'gimnasios'],
 ];
 
-// Copy por perfil — dolor + sueño, sobre la misma data real (specific, no genérico)
+// Contexto de zona: 1-2 líneas potentes, del arquetipo (dato), antes de preguntar el objetivo.
+function zoneContext(name, inv) {
+  const pm2 = (inv && inv.precio_m2) || 0; const pl = (inv && inv.plusvalia_anual_pct) || 0;
+  if (pm2 >= 85000) return `${name} es de las direcciones más codiciadas de la ciudad. Aquí el precio alto no es un defecto — es la prueba de una zona que la gente nunca deja de querer.`;
+  if (pm2 > 0 && pm2 < 42000) return `${name} es la zona en alza donde todavía puedes entrar a buen precio — antes de que el resto se dé cuenta.`;
+  if (pl >= 7) return `${name} no para de crecer: precios al alza, demanda fuerte y vida de sobra. Una de las apuestas más interesantes de la ciudad ahora mismo.`;
+  return `${name} es de esas zonas donde la ciudad se siente hogar: todo cerca, valor estable y una comunidad que se queda.`;
+}
+
 function buildStories(name, inv) {
-  const plus = inv.plusvalia_anual_pct;
-  const g5 = inv.ganancia_5y_pct;
-  const pmin = m1(inv.precio_min);
+  const plus = inv.plusvalia_anual_pct; const g5 = inv.ganancia_5y_pct; const pmin = m1(inv.precio_min);
   const mensual30 = inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? k(inv.credito.escenarios[2].pago) : null;
   return {
     invertir: {
@@ -90,7 +95,7 @@ export default function ZonePageV2() {
   const [vida, setVida] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
-  const [saveOpen, setSaveOpen] = useState(false);  // modal "Vigila esta zona" (watch + casamentera → lead)
+  const [saveOpen, setSaveOpen] = useState(false);
 
   useEffect(() => {
     let alive = true; setLoading(true);
@@ -105,14 +110,22 @@ export default function ZonePageV2() {
       setInv(i); setLanding(l); setVida(v);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
-      // default = arquetipo de la zona (del dato)
+      // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
       const pm2 = (i && i.precio_m2) || 0; const pl = (i && i.plusvalia_anual_pct) || 0;
-      const def = pm2 >= 85000 ? 'vivir' : pm2 > 0 && pm2 < 42000 ? 'primera' : pl >= 7 ? 'invertir' : 'familia';
-      setProfile(def);
+      const arch = pm2 >= 85000 ? 'vivir' : pm2 > 0 && pm2 < 42000 ? 'primera' : pl >= 7 ? 'invertir' : 'familia';
+      let persisted = null; try { persisted = localStorage.getItem('dmx_zone_profile'); } catch { /* noop */ }
+      setProfile(PROFILES.some((p) => p.k === persisted) ? persisted : arch);
       setLoading(false);
     });
     return () => { alive = false; };
   }, [slug]);
+
+  // Elegir perfil = persistir + DISPARAR señal de intención (zone_intent → buyer_signals → lead/demanda/Atlax). Cierra ciclo.
+  const pickProfile = (kk) => {
+    setProfile(kk);
+    try { localStorage.setItem('dmx_zone_profile', kk); } catch { /* noop */ }
+    sendBuyerSignal('zone_intent', { colonia: slug, value: kk });
+  };
 
   const name = (landing && landing.name) || tc((slug || '').replace(/-/g, ' '));
   const alcaldia = landing && landing.alcaldia;
@@ -124,62 +137,67 @@ export default function ZonePageV2() {
 
   const stories = (inv && inv.precio_prom) ? buildStories(name, inv) : null;
   const S = stories ? stories[profile || 'invertir'] : null;
+  const profLabel = (PROFILES.find((p) => p.k === profile) || {}).label || 'vivir';
+  // oferta adaptada al perfil: primera casa → más accesibles primero
+  const sortedDevs = profile === 'primera' ? [...devs].sort((a, b) => (a.price_from || 0) - (b.price_from || 0)) : devs;
 
   return (
     <LightScope>
       <style>{`
         @keyframes zv2up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
-        .zv2-up { animation: zv2up .55s cubic-bezier(.2,.8,.2,1) both }
+        .zv2-up { animation: zv2up .5s cubic-bezier(.2,.8,.2,1) both }
         .zv2-cta { transition: transform .18s, box-shadow .18s }
         .zv2-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(124,92,255,.42) }
         .zv2-win { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s }
         .zv2-win:hover { transform: translateY(-3px); box-shadow: 0 22px 48px rgba(99,102,241,.14) }
         .zv2-zlink { transition: transform .18s, box-shadow .18s, border-color .18s }
         .zv2-zlink:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99,102,241,.16); border-color: rgba(99,102,241,.45) !important }
-        .zv2-pf { transition: all .16s ease; cursor:pointer }
-        .zv2-pf:hover { border-color: rgba(99,102,241,.5) !important }
+        .zv2-tab { transition: all .16s ease; cursor:pointer; text-align:left }
+        .zv2-tab:hover { border-color: rgba(99,102,241,.5) !important; transform: translateY(-2px) }
       `}</style>
       <PublicNav />
       <div data-testid="zona-v2" style={{ minHeight: '100vh', paddingBottom: 80, color: INK }}>
 
-        {/* ───── HOOK + selector de perfil ───── */}
-        <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(180deg,#FAF9FF 0%,#FFFFFF 94%)' }}>
+        {/* ───── CONTEXTO + ¿QUÉ BUSCAS? + TABS ───── */}
+        <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(180deg,#FAF9FF 0%,#FFFFFF 96%)' }}>
           <div style={{ position: 'absolute', top: -130, right: -70, width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,255,0.20), rgba(124,92,255,0) 70%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: 30, left: -110, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(192,38,211,0.13), rgba(192,38,211,0) 70%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
-          <div style={{ ...sec, position: 'relative', paddingTop: 24, paddingBottom: 36 }}>
+          <div style={{ ...sec, position: 'relative', paddingTop: 24, paddingBottom: 34 }}>
             <Link to="/marketplace" style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#6B6F86', textDecoration: 'none', fontWeight: 600 }}>← Volver al marketplace</Link>
-            <div style={{ ...eyebrow, fontSize: 12, marginTop: 16 }}>{alcaldia ? tc(alcaldia) : 'CDMX'}{tier ? ` · ${tc(tier)}` : ''} · {name}</div>
+            <div style={{ ...eyebrow, fontSize: 12, marginTop: 16 }}>{alcaldia ? tc(alcaldia) : 'CDMX'}{tier ? ` · ${tc(tier)}` : ''}</div>
+            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(40px,6.5vw,68px)', letterSpacing: '-0.035em', color: INK, margin: '4px 0 0', lineHeight: 1.02 }}>{name}</h1>
+            {S && <p style={{ ...lead, fontSize: 17, marginTop: 14, maxWidth: 700 }}>{zoneContext(name, inv)}</p>}
 
-            {/* Selector de perfil */}
+            {/* La pregunta + las 4 tabs (cada una con micro-promesa) */}
             {S && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#8A8FA6', alignSelf: 'center', fontWeight: 600 }}>¿Para qué ves {name}?</span>
-                {PROFILES.map((p) => {
-                  const on = p.k === profile;
-                  return (
-                    <button key={p.k} type="button" onClick={() => setProfile(p.k)} className="zv2-pf"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9999, border: `1px solid ${on ? 'transparent' : 'rgba(16,18,28,0.14)'}`, background: on ? 'linear-gradient(135deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5 }}>
-                      {p.e} {p.label}
-                    </button>
-                  );
-                })}
+              <div style={{ marginTop: 26 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>¿Qué vienes a buscar en {name}?</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, marginTop: 14 }}>
+                  {PROFILES.map((p) => {
+                    const on = p.k === profile;
+                    return (
+                      <button key={p.k} type="button" onClick={() => pickProfile(p.k)} className="zv2-tab"
+                        style={{ padding: '15px 18px', borderRadius: 16, border: `1.5px solid ${on ? 'transparent' : 'rgba(16,18,28,0.12)'}`, background: on ? 'linear-gradient(135deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : INK, boxShadow: on ? '0 12px 28px rgba(124,92,255,0.3)' : '0 6px 18px rgba(16,18,28,0.05)' }}>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15 }}>{p.e} {p.label}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 12, marginTop: 3, color: on ? 'rgba(255,255,255,0.9)' : '#8A8FA6' }}>{p.promise}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {S ? (
-              <div key={profile} className="zv2-up" style={{ marginTop: 18, maxWidth: 780 }}>
-                <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(34px,5.4vw,58px)', letterSpacing: '-0.035em', color: INK, margin: 0, lineHeight: 1.04 }}>
-                  {S.hookA} <span style={grad}>{S.hookB}</span>
-                </h1>
-                <p style={{ ...lead, fontSize: 17, marginTop: 16, maxWidth: 700 }}>{S.sub}</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
+            {/* La historia del perfil elegido (se despliega) */}
+            {S && (
+              <div key={profile} className="zv2-up" style={{ marginTop: 28, maxWidth: 760 }}>
+                <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
+                <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
                   <a href="#empezar" className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, textDecoration: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>{S.cta}</a>
-                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${(PROFILES.find((p) => p.k === profile) || {}).label || 'vivir o invertir'}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
                   <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
                 </div>
               </div>
-            ) : (
-              <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(34px,5.4vw,58px)', color: INK, marginTop: 14 }}>{name}</h1>
             )}
           </div>
         </section>
@@ -189,8 +207,8 @@ export default function ZonePageV2() {
         ) : !S ? (
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
-        <>
-        {/* ───── LA VIDA AQUÍ (amenidades reales, narrado por perfil) ───── */}
+        <div key={`body-${profile}`}>
+        {/* ── LA VIDA AQUÍ (amenidades reales, narrado por perfil) ── */}
         {vida && vida.amenidades && Object.keys(vida.amenidades).length > 0 && (() => {
           const am = vida.amenidades;
           const shown = CATS.filter(([key]) => (am[key] || 0) > 0);
@@ -200,9 +218,9 @@ export default function ZonePageV2() {
               ? `La vida buena, caminando: ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y ${am.bar || 0} bares a tu alrededor. Aquí no manejas para vivir bien — sales por la puerta.`
               : profile === 'primera'
                 ? `No compras un depto aislado: compras un barrio vivo, con ${am.restaurante || 0} restaurantes, ${am.cafe || 0} cafés y todo lo que necesitas a unos pasos.`
-                : `Lo que hace que la gente quiera vivir aquí — y por eso renta y se revaloriza: ${am.restaurante || 0} restaurantes, ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y mucho más, todo cerca.`;
+                : `Lo que hace que la gente quiera vivir aquí — y por eso renta y se revaloriza: ${am.restaurante || 0} restaurantes, ${am.escuela || 0} escuelas, ${am.hospital || 0} hospitales y mucho más.`;
           return (
-            <section id="vida" key={`vida-${profile}`} className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <section className="zv2-up" style={{ ...sec, marginTop: 52 }}>
               <div style={eyebrow}>{tc('La vida aquí')}</div>
               <h2 style={chapTitle}>{S.vidaTitle}</h2>
               <p style={lead}>{intro}</p>
@@ -220,8 +238,8 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ───── VALUE STACK (3 formas de ganar) ───── */}
-        <section id="dinero" key={`stack-${profile}`} className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+        {/* ── VALUE STACK ── */}
+        <section id="dinero" className="zv2-up" style={{ ...sec, marginTop: 54 }}>
           <div style={eyebrow}>{tc('Por qué tiene sentido')}</div>
           <h2 style={chapTitle}>{S.stackTitle}</h2>
           <p style={lead}>{S.stackIntro}</p>
@@ -248,8 +266,8 @@ export default function ZonePageV2() {
           </div>
         </section>
 
-        {/* ───── CÓMO EMPEZAR (precio + crédito) ───── */}
-        <section key={`cobrar-${profile}`} style={{ ...sec, marginTop: 58 }}>
+        {/* ── CÓMO EMPEZAR ── */}
+        <section style={{ ...sec, marginTop: 58 }}>
           <div style={eyebrow}>{tc('Cómo empezar')}</div>
           <h2 style={chapTitle}>{S.cobrarTitle}</h2>
           <p style={lead}>{S.cobrarCopy}</p>
@@ -272,7 +290,20 @@ export default function ZonePageV2() {
           )}
         </section>
 
-        {/* ───── NO ERES EL ÚNICO ───── */}
+        {/* ── BANDA ATLAX ── */}
+        <section style={{ ...sec, marginTop: 58 }}>
+          <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.08), rgba(192,38,211,0.06))', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: MUT, marginTop: 8, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.55 }}>Pregúntale a <b>Atlax</b> — conoce los precios, la plusvalía, la vida y los desarrollos de {name}. Te responde al instante.</p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 18 }}>
+              {[`¿${name} me conviene para ${profLabel}?`, `¿Cuánto necesito para comprar en ${name}?`, comparables[0] ? `¿${name} o ${comparables[0].name}?` : `¿Cómo se vive en ${name}?`].map((q, i) => (
+                <button key={i} type="button" onClick={() => askAtlax(q)} className="zv2-zlink" style={{ ...cardBase, padding: '11px 18px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', cursor: 'pointer', border: '1px solid rgba(99,102,241,0.18)' }}>{q}</button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── NO ERES EL ÚNICO ── */}
         {(comparables.length > 0 || similar.length > 0) && (
           <section style={{ ...sec, marginTop: 58 }}>
             <div style={eyebrow}>{tc('No eres el único')}</div>
@@ -289,49 +320,30 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ───── BANDA ATLAX (2º punto de conversión → lead) ───── */}
-        <section style={{ ...sec, marginTop: 60 }}>
-          <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.08), rgba(192,38,211,0.06))', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: MUT, marginTop: 8, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.55 }}>Pregúntale a <b>Atlax</b> — conoce los precios, la plusvalía, la vida y los desarrollos de {name}. Te responde al instante.</p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 18 }}>
-              {[
-                `¿${name} me conviene para ${(PROFILES.find((p) => p.k === profile) || {}).label || 'vivir'}?`,
-                `¿Cuánto necesito para comprar en ${name}?`,
-                comparables[0] ? `¿${name} o ${comparables[0].name}?` : `¿Cómo se vive en ${name}?`,
-              ].map((q, i) => (
-                <button key={i} type="button" onClick={() => askAtlax(q)} className="zv2-zlink" style={{ ...cardBase, padding: '11px 18px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', cursor: 'pointer', border: '1px solid rgba(99,102,241,0.18)' }}>{q}</button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ───── DA EL PRIMER PASO ───── */}
-        <section id="empezar" key={`cierre-${profile}`} style={{ ...sec, marginTop: 64 }}>
+        {/* ── DA EL PRIMER PASO ── */}
+        <section id="empezar" style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
-          <p style={{ ...lead, marginBottom: 18 }}>Estos son los desarrollos en {name} donde puedes empezar hoy.</p>
-          {devs.length > 0 ? (
+          <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
+          {sortedDevs.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
-              {devs.map((d, i) => <DevelopmentCard key={d.id} dev={d} index={i} />)}
+              {sortedDevs.map((d, i) => <DevelopmentCard key={d.id} dev={d} index={i} />)}
             </div>
           ) : (
             <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6D4AFF', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
           )}
         </section>
 
-        {/* ───── FUENTES ───── */}
+        {/* ── FUENTES ── */}
         <section style={{ ...sec, marginTop: 46 }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', lineHeight: 1.6, borderTop: '1px solid rgba(16,18,28,0.06)', paddingTop: 18 }}>
             Valor y rentabilidad estimados por el motor de inversión de DesarrollosMX (AVM + tasas Banxico) sobre los
-            desarrollos reales de la zona. Cifras informativas, no asesoría financiera. Próximamente: cómo se vive
-            (amenidades, transporte, escuelas, seguridad) y "pregúntale a Atlax sobre {name}".
+            desarrollos reales de la zona. Amenidades reales (OpenStreetMap). Cifras informativas, no asesoría financiera.
           </div>
         </section>
-        </>
+        </div>
         )}
       </div>
-      {/* Vigila esta zona → guarda búsqueda de la colonia (casamentera + lead). Reúsa SaveSearchModal. */}
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
       <AtlaxBubble theme="light" />
       <Footer />

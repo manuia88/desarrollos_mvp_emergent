@@ -25,7 +25,8 @@ log = logging.getLogger("dmx.routes_buyer_signals")
 router = APIRouter(tags=["buyer-signals"])
 
 VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "share", "dwell", "photo_dwell",
-         "unit_view", "unit_save", "unit_unsave"}   # D · embudo POR UNIDAD + unidad como átomo
+         "unit_view", "unit_save", "unit_unsave",
+         "zone_intent"}   # D · embudo POR UNIDAD + unidad como átomo · zone_intent = perfil declarado en una zona (value=perfil)
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
