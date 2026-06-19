@@ -329,6 +329,14 @@ async def zona_inversion(colonia_id: str, request: Request):
             tir = base.get("tir_anual_pct")
             if tir is not None:
                 out["veredicto_inversion"] = ("excelente" if tir >= 12 else "buena" if tir >= 8 else "moderada" if tir >= 5 else "baja")
+            # 3 ESCENARIOS (el motor los calcula) — para el tab de INVERTIR: plusvalía + TIR por escenario.
+            esc = []
+            for nom, kk in (("Conservador", "conservador"), ("Base", "base"), ("Optimista", "optimista")):
+                sc = (sim or {}).get(kk) or {}
+                if sc.get("aprec_anual_pct") is not None:
+                    esc.append({"nombre": nom, "plusvalia_pct": sc.get("aprec_anual_pct"), "tir_pct": sc.get("tir_anual_pct")})
+            if len(esc) >= 2:
+                out["escenarios_inv"] = esc
             # CRÉDITO HIPOTECARIO · plazo REAL de 20 años (240 meses), tasa promedio. Pago mensual + total al final.
             plazo_cred = 240
             r_m = rate / 12.0

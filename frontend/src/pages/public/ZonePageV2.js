@@ -31,6 +31,9 @@ const PROFILES = [
   { k: 'primera', label: 'Mi primera casa', e: '🏠', promise: 'Deja de rentar' },
   { k: 'vivir', label: 'Vivir mejor', e: '✨', promise: 'La vida que mereces' },
 ];
+// Amenidades del DESARROLLO (del edificio) — NO confundir con amenidades de zona (Google). Slug → emoji+label.
+const AMEN_DEV = { alberca: ['🏊', 'Alberca'], gym: ['🏋️', 'Gimnasio'], roof: ['🌿', 'Roof garden'], cowork: ['💻', 'Coworking'], spa: ['💆', 'Spa'], concierge: ['🛎️', 'Concierge'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'], business_center: ['💼', 'Business center'], salon_eventos: ['🎉', 'Salón de eventos'], seguridad: ['🛡️', 'Seguridad 24/7'], pet: ['🐾', 'Pet friendly'], area_pets: ['🐾', 'Área para mascotas'], jardines: ['🌳', 'Jardines'], bicicletas: ['🚲', 'Biciestac.'], estacionamiento: ['🚗', 'Estacionamiento'] };
+
 // Contexto de zona: 1-2 líneas potentes, del arquetipo (dato), antes de preguntar el objetivo.
 function zoneContext(name, inv) {
   const pm2 = (inv && inv.precio_m2) || 0; const pl = (inv && inv.plusvalia_anual_pct) || 0;
@@ -131,6 +134,14 @@ export default function ZonePageV2() {
   const profLabel = (PROFILES.find((p) => p.k === profile) || {}).label || 'vivir';
   // oferta adaptada al perfil: primera casa → más accesibles primero
   const sortedDevs = profile === 'primera' ? [...devs].sort((a, b) => (a.price_from || 0) - (b.price_from || 0)) : devs;
+  // Amenidades del DESARROLLO agregadas por zona (real, dev.amenities) — prueba para familia/vivir
+  const devAmen = (() => {
+    const c = {}; devs.forEach((d) => (d.amenities || []).forEach((a) => { c[a] = (c[a] || 0) + 1; }));
+    return Object.entries(c).filter(([s]) => AMEN_DEV[s]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  })();
+  // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
+  const rentaMes = inv && inv.renta_prom;
+  const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
 
   return (
     <LightScope>
@@ -229,6 +240,61 @@ export default function ZonePageV2() {
             ))}
           </div>
         </section>
+
+        {/* ── BLOQUE PROPIO DEL PERFIL (gated por data · solo se ve si hay) ── */}
+        {profile === 'invertir' && inv.escenarios_inv && inv.escenarios_inv.length >= 2 && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <div style={eyebrow}>{tc('Escenarios')}</div>
+            <h2 style={chapTitle}>¿Y si el mercado cambia?</h2>
+            <p style={lead}>No te vendo solo el mejor caso. Esto rinde tu inversión del escenario conservador al optimista — tú decides con los ojos abiertos:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginTop: 18 }}>
+              {inv.escenarios_inv.map((e, i) => (
+                <div key={e.nombre} className="zv2-win" style={{ ...cardBase, padding: '18px 20px', border: e.nombre === 'Base' ? '2px solid rgba(124,92,255,0.4)' : cardBase.border }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>{e.nombre}{e.nombre === 'Base' ? ' · más probable' : ''}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: i === 0 ? '#E0A33E' : i === 2 ? '#0E9F6E' : '#7C5CFF', letterSpacing: '-0.03em', marginTop: 5 }}>+{e.plusvalia_pct}%</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC', marginTop: 2 }}>plusvalía/año{e.tir_pct != null ? ` · TIR ${e.tir_pct}%` : ''}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>estimado por el motor de inversión (escenarios conservador / base / optimista)</div>
+          </section>
+        )}
+        {profile === 'primera' && rentaMes && mensual80 && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <div style={eyebrow}>{tc('Rentar vs comprar')}</div>
+            <h2 style={chapTitle}>La renta se va. Tu mensualidad se queda.</h2>
+            <p style={lead}>Mira la diferencia real entre seguir rentando y empezar a construir lo tuyo en {name}:</p>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18 }}>
+              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #DC2626' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🏚️ Si rentas aquí</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#DC2626', letterSpacing: '-0.03em', marginTop: 5 }}>${rentaMes.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>En 5 años: ~{m1(rentaMes * 60)} que se van y nunca vuelven.</div>
+              </div>
+              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #0E9F6E' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🔑 Si compras (80% crédito)</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#0E9F6E', letterSpacing: '-0.03em', marginTop: 5 }}>${mensual80.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>Cada pago es TUYO — y el depto sube de valor mientras lo habitas.</div>
+              </div>
+            </div>
+          </section>
+        )}
+        {(profile === 'familia' || profile === 'vivir') && devAmen.length > 0 && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <div style={eyebrow}>{profile === 'familia' ? tc('Para los tuyos') : tc('A tu nivel')}</div>
+            <h2 style={chapTitle}>{profile === 'familia' ? 'Lo que ofrecen los desarrollos aquí' : 'Desarrollos a tu altura'}</h2>
+            <p style={lead}>{profile === 'familia' ? `No solo cuatro paredes: los proyectos en ${name} vienen con amenidades pensadas para la familia.` : `Vivir bien empieza en casa. Esto es lo que ofrecen los desarrollos de ${name}.`}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginTop: 18 }}>
+              {devAmen.map(([s, count]) => (
+                <div key={s} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                  <div style={{ fontSize: 22 }}>{AMEN_DEV[s][0]}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, marginTop: 4 }}>{AMEN_DEV[s][1]}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC', marginTop: 1 }}>en {count} {count === 1 ? 'desarrollo' : 'desarrollos'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>amenidades reales de los desarrollos en la zona</div>
+          </section>
+        )}
 
         {/* ── CÓMO EMPEZAR ── */}
         <section style={{ ...sec, marginTop: 58 }}>
