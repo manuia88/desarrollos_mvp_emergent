@@ -306,6 +306,30 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     }
 
 
+def sensibilidad(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str, Any]:
+    """Matriz de sensibilidad (§4.5: 0.25% en exit cap mueve la TIR 200-400pb → obligatoria). Varía exit cap rate y
+    apreciación, devuelve la TIR de cada escenario. Si no hay exit cap, deriva una base del cap rate going-in."""
+    base = analyze(inp, isr_fn)
+    cap_going = (base.get("cap_rate_pct") or 6.0) / 100.0
+    exit_base = _g(inp, "exit_cap_rate", 0.0) or max(0.04, cap_going)
+    # 1D exit cap rate: base ± 1% en pasos de 0.25%
+    exit_row = []
+    for d in (-0.01, -0.005, -0.0025, 0.0, 0.0025, 0.005, 0.01):
+        ec = round(exit_base + d, 4)
+        if ec <= 0:
+            continue
+        r = analyze({**inp, "exit_cap_rate": ec}, isr_fn)
+        exit_row.append({"exit_cap_pct": round(ec * 100, 2), "tir_pct": r.get("tir_pct"), "es_base": d == 0.0})
+    # 1D apreciación: base ± 2% en pasos de 1%
+    apr_base = _g(inp, "apreciacion_anual", 0.075)
+    apr_row = []
+    for d in (-0.03, -0.02, -0.01, 0.0, 0.01, 0.02, 0.03):
+        ap = round(apr_base + d, 4)
+        r = analyze({**inp, "apreciacion_anual": ap, "exit_cap_rate": 0.0}, isr_fn)
+        apr_row.append({"apreciacion_pct": round(ap * 100, 1), "tir_pct": r.get("tir_pct"), "es_base": d == 0.0})
+    return {"por_exit_cap": exit_row, "por_apreciacion": apr_row}
+
+
 def _mejor_anio_venta(inp, noi, capex, servicio, isr_renta, crec, aprec, exit_cap, com_venta, con_credito,
                       cap_propio, costo_total, monto_credito, valor, isr_venta, tasa_anual, convencion, plazo) -> tuple:
     """Curva de TIR por año de salida (2..10) → el año que maximiza la TIR. Sin recalcular ISR de venta por año (aprox)."""

@@ -516,6 +516,12 @@ async def inversion_v4_analyze(request: Request):
         res = analyze(inp, isr_fn=make_isr_fn())
         res["veredicto"] = veredicto(res)
         res["mercado"] = mkt
+        if body.get("incluir_sensibilidad"):
+            try:
+                from inversion_v4_finance import sensibilidad
+                res["sensibilidad"] = sensibilidad(inp, isr_fn=make_isr_fn())
+            except Exception:
+                res["sensibilidad"] = None
         # comparativa de instrumentos para la barra "tu inmueble vs CETES vs S&P" (de market_rates)
         try:
             rates = await get_rates(db)

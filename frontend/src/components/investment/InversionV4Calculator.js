@@ -46,6 +46,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   });
   const [r, setR] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pro, setPro] = useState(false);     // modo avanzado / institucional (F5)
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
@@ -63,13 +64,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   useEffect(() => {            // reactivo: recalcula en vivo (debounce 250ms)
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
-    const payload = { ...f,
+    const payload = { ...f, incluir_sensibilidad: pro,
       valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual),
       num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: num(f.tasa_anual),
       apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
-  }, [f, run]);
+  }, [f, pro, run]);
+
+  const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
 
   const multifamily = Number(f.num_unidades) >= 5;
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '8px 11px', width: '100%', outline: 'none' };
@@ -181,6 +184,51 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {r && r.flujos_anuales && r.flujos_anuales.length > 1 && (
         <div style={{ marginBottom: 12 }}>
           <CashFlowChart light base={r.flujos_anuales.map((v) => ({ valor_propiedad: v }))} metric="valor_propiedad" />
+        </div>
+      )}
+
+      {/* ── MODO AVANZADO / INSTITUCIONAL (F5) + ¿qué pasa si? (F6) ── */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <button type="button" onClick={() => setPro((p) => !p)} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: pro ? 'rgba(124,92,255,0.08)' : '#fff', color: '#6D28D9' }}>{pro ? '− Ocultar modo avanzado' : '🔬 Modo avanzado (institucional)'}</button>
+        <button type="button" onClick={() => askAtlax(`¿Qué pasa si…? Analizo una inversión de ${m(f.valor_propiedad)} con renta ${m(f.renta_mensual)}/mes, ${f.con_credito ? 'con crédito' : 'al contado'}, horizonte ${f.horizonte_anios} años. Ayúdame a explorar escenarios.`)} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF' }}>💬 ¿Qué pasa si…? · pregúntale a Atlax</button>
+      </div>
+      {pro && r && (
+        <div className="iv4-card" style={{ marginBottom: 14 }}>
+          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 10 }}>Métricas institucionales</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(115px,1fr))', gap: 10 }}>
+            {[['Cap rate', pct(r.cap_rate_pct)], ['TIR desapalancada', pct(r.tir_desapalancada_pct)], ['MIRR', pct(r.mirr_pct)], ['VPN', m(r.vpn)], ['ROI real', pct(r.roi_real_pct)], ['Apalancamiento', r.apalancamiento || '—'],
+            ...(r.credito && r.credito.dscr != null ? [['DSCR', r.credito.dscr], ['Debt yield', pct(r.credito.debt_yield_pct)]] : [])].map(([l, v]) => (
+              <div key={l}><div style={{ fontSize: 10.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#16182A' }}>{v}</div></div>
+            ))}
+          </div>
+          {r.atribucion && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>De dónde viene tu ganancia (cascada)</div>
+              {[['Renta neta acumulada', r.atribucion.renta_neta_acum, '#0E9F6E'], ['Patrimonio (equity buildup)', r.atribucion.equity_buildup, '#7C5CFF'], ['Plusvalía', r.atribucion.plusvalia, '#C026D3']].map(([l, v, c]) => (
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '4px 0' }}><span style={{ color: '#5B5F76' }}>{l}</span><span style={{ fontWeight: 800, color: c }}>{m(v)}</span></div>
+              ))}
+            </div>
+          )}
+          {r.multifamily_info && r.multifamily_info.num_unidades && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>Multifamily · valuación por ingreso</div>
+              <div style={{ fontSize: 12.5, color: '#5B5F76' }}>Cap implícito {pct(r.multifamily_info.cap_implicito_pct)} · valor de mercado {m(r.multifamily_info.valor_mercado)} · <b style={{ color: (r.multifamily_info.brecha_precio_pct || 0) > 0 ? '#DC2626' : '#0E9F6E' }}>brecha {pct(r.multifamily_info.brecha_precio_pct)}</b></div>
+            </div>
+          )}
+          {r.sensibilidad && r.sensibilidad.por_exit_cap && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>Sensibilidad: TIR según el rendimiento de salida (exit cap)</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {r.sensibilidad.por_exit_cap.map((s) => (
+                  <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '7px 10px', borderRadius: 8, background: s.es_base ? 'rgba(124,92,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #7C5CFF' : '1px solid transparent' }}>
+                    <div style={{ fontSize: 10, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: s.es_base ? '#6D28D9' : '#16182A' }}>{pct(s.tir_pct)}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', marginTop: 6 }}>0.25% en el exit cap mueve fuerte la TIR — el precio de salida define 60-80% del retorno.</div>
+            </div>
+          )}
         </div>
       )}
 
