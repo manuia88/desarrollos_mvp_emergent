@@ -13,9 +13,7 @@ const COLORS = {
 
 function fmt(n) {
   if (n == null) return '—';
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
-  return `$${Math.round(n)}`;
+  return `$${Math.round(n).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
 }
 
 const CustomTooltip = ({ active, payload, label }) => {

@@ -6,7 +6,6 @@ que cuando cambian las tasas, la app se actualiza sola. Fail-open: sin token, ma
 
 Series Banxico SIE: SF43936=CETES 28d · SF43945=CETES 364d (rendimiento anual %).
 """
-import os
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
@@ -21,9 +20,9 @@ VEHICULOS_SEED: List[Dict[str, Any]] = [
     {"k": "cetes_364", "nombre": "CETES 364 días", "cat": "Deuda gubernamental", "pct": 7.0, "riesgo": "Muy bajo",
      "liquidez": "Media", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Parcial",
      "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico · cetesdirecto"},
-    {"k": "pagare", "nombre": "Pagaré bancario", "cat": "Banco", "pct": 5.5, "riesgo": "Bajo", "liquidez": "Media",
+    {"k": "pagare", "nombre": "Pagaré / TIIE 28d", "cat": "Banco", "pct": 6.75, "riesgo": "Bajo", "liquidez": "Media",
      "ticket": "$1,000", "apalancable": False, "tangible": False, "inflacion": "Parcial", "mensual": False,
-     "esfuerzo": "Nulo", "fuente": "GBM · investing.com"},
+     "esfuerzo": "Nulo", "fuente": "TIIE · Banxico"},
     {"k": "fibra", "nombre": "FIBRAs", "cat": "Inmobiliario bursátil", "pct": 8.0, "riesgo": "Medio", "liquidez": "Alta",
      "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí", "mensual": True,
      "esfuerzo": "Bajo", "fuente": "BMV"},
@@ -37,9 +36,6 @@ VEHICULOS_SEED: List[Dict[str, Any]] = [
      "liquidez": "Media", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí (UDI)",
      "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico"},
 ]
-
-_BANXICO_SERIES = {"SF43936": "cetes_28", "SF43945": "cetes_364"}
-
 
 async def seed_rates(db) -> None:
     await db.market_rates.update_one(
@@ -74,26 +70,11 @@ async def update_rates(db) -> Dict[str, Any]:
     doc = await get_rates(db)
     vehiculos = doc.get("vehiculos") or [dict(v) for v in VEHICULOS_SEED]
     actualizados: List[str] = []
-    token = os.environ.get("IE_BANXICO_TOKEN")
-    if token:
-        try:
-            import httpx
-            url = ("https://www.banxico.org.mx/SieAPIRest/service/v1/series/"
-                   + ",".join(_BANXICO_SERIES.keys()) + "/datos/oportuno")
-            async with httpx.AsyncClient() as c:
-                r = await c.get(url, headers={"Bmx-Token": token}, timeout=20)
-            if r.status_code == 200:
-                for s in ((r.json() or {}).get("bmx", {}) or {}).get("series", []) or []:
-                    k = _BANXICO_SERIES.get(s.get("idSerie"))
-                    datos = s.get("datos") or []
-                    if k and datos:
-                        val = float(str(datos[-1].get("dato")).replace(",", ""))
-                        for v in vehiculos:
-                            if v.get("k") == k:
-                                v["pct"] = round(val, 2)
-                                actualizados.append(k)
-        except Exception:
-            pass
+    try:
+        from rates_scraper import scrape_official   # fuentes oficiales (Banxico SIE verificado · fail-open)
+        actualizados = await scrape_official(vehiculos)
+    except Exception:
+        pass
     await db.market_rates.update_one(
         {"_id": "vehiculos"},
         {"$set": {"vehiculos": vehiculos, "updated_at": datetime.now(timezone.utc),

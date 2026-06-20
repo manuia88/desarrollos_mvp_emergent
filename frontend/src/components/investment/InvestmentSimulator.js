@@ -16,11 +16,8 @@ const COLONIAS = [
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  const neg = n < 0; const a = Math.abs(n);
-  let s;
-  if (a >= 1_000_000) s = `$${(a / 1_000_000).toFixed(2)}M`;
-  else if (a >= 1_000) s = `$${(a / 1_000).toFixed(0)}k`;
-  else s = `$${Math.round(a)}`;
+  const neg = n < 0;
+  const s = `$${Math.round(Math.abs(n)).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
   return neg ? `−${s}` : s;
 }
 function pct(n) { return (n === null || n === undefined || isNaN(n)) ? '—' : `${n.toFixed(1)}%`; }
@@ -179,7 +176,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
 
   return (
     <div style={{ width: '100%' }}>
-      <form onSubmit={handleSubmit} data-testid="simulador-form">
+      <form onSubmit={handleSubmit} data-testid="simulador-form" noValidate>
         {/* Básico */}
         <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr 1fr' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
           <div>
@@ -219,8 +216,8 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
           </div>
           <div>
             <label style={labelStyle}>Renta mensual (MXN) <Badge field="renta_mensual" /></label>
-            <input type="number" value={form.renta_mensual} placeholder="auto" min="0" step="500" style={inputStyle}
-              onChange={e => setForm(f => ({ ...f, renta_mensual: e.target.value }))} />
+            <input type="text" inputMode="numeric" value={form.renta_mensual ? `$${Number(String(form.renta_mensual).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} placeholder="auto" style={inputStyle}
+              onChange={e => setForm(f => ({ ...f, renta_mensual: String(e.target.value).replace(/\D/g, '') }))} />
           </div>
         </div>
 
