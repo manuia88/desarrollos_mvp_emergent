@@ -8,7 +8,7 @@ import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
-import InvestmentSimulator from '../../components/investment/InvestmentSimulator';
+import InversionV4Calculator from '../../components/investment/InversionV4Calculator';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
 
@@ -844,7 +844,7 @@ export default function ZonePageV2() {
             )}
             {calcUnit && (
               <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InvestmentSimulator compact light prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80, lockPrice: true }} />
+                <InversionV4Calculator prefilled={{ precio: calcUnit.price }} lockPrice />
               </div>
             )}
           </section>
