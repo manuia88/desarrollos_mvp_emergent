@@ -535,6 +535,31 @@ export default function ZonePageV2() {
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>estimado por el motor de inversión (escenarios conservador / base / optimista)</div>
           </section>
         )}
+        {/* ── VS LA CIUDAD (Bloque 7 · ¿cara o barata? · dato real agregado) ── */}
+        {profile === 'invertir' && inv.vs_ciudad && (() => {
+          const p = inv.vs_ciudad.precio_vs_ciudad_pct;
+          const caro = p >= 0;
+          return (
+            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+              <div style={eyebrow}>{tc('Vs la ciudad')}</div>
+              <h2 style={chapTitle}>¿Cara o barata para lo que es?</h2>
+              <p style={lead}>{caro
+                ? `El m² aquí cuesta ${Math.abs(p)}% más que el promedio de la CDMX. Es zona consolidada: pagas más, pero el valor es estable y la demanda no falta.`
+                : `El m² aquí cuesta ${Math.abs(p)}% menos que el promedio de la CDMX. Punto de entrada accesible, con recorrido de plusvalía por delante.`}</p>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18 }}>
+                <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 200px', borderTop: `3px solid ${caro ? '#7C5CFF' : '#0E9F6E'}` }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>{name} · por m²</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: INK, marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_zona / 1000)}k</div>
+                </div>
+                <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 200px' }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>Promedio CDMX · por m²</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#6B6F86', marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_ciudad / 1000)}k</div>
+                </div>
+              </div>
+            </section>
+          );
+        })()}
+
         {/* ── RIESGOS DE FRENTE (Bloque 8 · nombrarlos = confianza = conversión · Hormozi) ── */}
         {profile === 'invertir' && inv && inv.precio_prom && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
@@ -727,7 +752,7 @@ export default function ZonePageV2() {
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
-          <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
+          <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : profile === 'invertir' ? `Hasta aquí, los números de la zona. Elige un desarrollo para cotizarlo con los números REALES de esa unidad — tu enganche, tu crédito, tu rendimiento — y compararlo contra el promedio de ${name}.` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
           {sortedDevs.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
               {sortedDevs.map((d, i) => <DevelopmentCard key={d.id} dev={d} index={i} />)}

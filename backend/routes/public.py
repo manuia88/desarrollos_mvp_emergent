@@ -395,6 +395,21 @@ async def zona_inversion(colonia_id: str, request: Request):
                     }
             except Exception:
                 pass
+            # POSICIÓN vs PROMEDIO DE LA CIUDAD (¿cara o barata para lo que es? · dato real agregado).
+            try:
+                if out.get("precio_m2"):
+                    agg = await db.colonias.aggregate([
+                        {"$match": {"precio_pm2": {"$gt": 0}}},
+                        {"$group": {"_id": None, "avg_m2": {"$avg": "$precio_pm2"}}},
+                    ]).to_list(1)
+                    avg_m2 = (agg[0].get("avg_m2") if agg else None)
+                    if avg_m2:
+                        out["vs_ciudad"] = {
+                            "precio_m2_zona": out["precio_m2"], "precio_m2_ciudad": round(avg_m2),
+                            "precio_vs_ciudad_pct": round((out["precio_m2"] / avg_m2 - 1) * 100),
+                        }
+            except Exception:
+                pass
         except Exception:
             pass
         return out
