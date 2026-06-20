@@ -375,6 +375,26 @@ async def zona_inversion(colonia_id: str, request: Request):
                     }
             except Exception:
                 pass
+            # DEMANDA EN VIVO de la zona (señal REAL de intención · marketplace_searches). Mata el miedo "¿se rentará/venderá?".
+            try:
+                dem = await db.marketplace_searches.count_documents({"colonias": colonia_id})
+                if dem:
+                    dem_alerta = await db.marketplace_searches.count_documents({"colonias": colonia_id, "alert": True})
+                    out["demanda_zona"] = {"busquedas": int(dem), "con_alerta": int(dem_alerta)}
+            except Exception:
+                pass
+            # RETORNO NETO DE IMPUESTOS (régimen de arrendamiento · deducción ciega 35% × tasa marginal ~30% ≈ 19.5%
+            # efectivo sobre renta bruta · estimado). El ISR de la VENTA (LISR Art 126) lo calcula tax_projector al cotizar.
+            try:
+                if out.get("renta_prom") and out.get("cap_rate_anual_pct") is not None:
+                    isr_ef = 0.195
+                    out["impuestos"] = {
+                        "isr_renta_efectivo_pct": round(isr_ef * 100),
+                        "renta_neta_isr_mes": round(out["renta_prom"] * (1 - isr_ef)),
+                        "cap_rate_neto_isr_pct": round(out["cap_rate_anual_pct"] * (1 - isr_ef), 1),
+                    }
+            except Exception:
+                pass
         except Exception:
             pass
         return out
