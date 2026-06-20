@@ -306,6 +306,42 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     }
 
 
+def montecarlo(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, n: int = 400) -> Optional[Dict[str, Any]]:
+    """Simulación Monte Carlo (§9 Nivel 2): varía apreciación/vacancia/tasa (normal) → distribución de TIR, VaR
+    (p5/p50/p95) y probabilidad de que la TIR quede por debajo de CETES. Determinístico (seed) para reproducibilidad."""
+    import random
+    aprec = _g(inp, "apreciacion_anual", 0.075)
+    vac = _g(inp, "tasa_vacancia", 0.05)
+    tasa = _g(inp, "tasa_anual", 0.1145)
+    cetes = _g(inp, "cetes_1a", 0.07)
+    rnd = random.Random(42)
+    tirs: List[float] = []
+    for _ in range(n):
+        ap = max(-0.05, rnd.gauss(aprec, 0.025))
+        va = min(0.4, max(0.0, rnd.gauss(vac, 0.04)))
+        ta = max(0.05, rnd.gauss(tasa, 0.012)) if inp.get("con_credito", True) else tasa
+        r = analyze({**inp, "apreciacion_anual": ap, "tasa_vacancia": va, "tasa_anual": ta, "exit_cap_rate": 0.0}, isr_fn)
+        t = r.get("tir_pct")
+        if t is not None:
+            tirs.append(t)
+    if not tirs:
+        return None
+    tirs.sort()
+
+    def pctl(p):
+        return tirs[min(len(tirs) - 1, int(p * len(tirs)))]
+    prob = sum(1 for t in tirs if t < cetes * 100) / len(tirs)
+    # histograma (8 cubetas)
+    lo, hi = tirs[0], tirs[-1]
+    span = (hi - lo) or 1.0
+    buckets = [0] * 8
+    for t in tirs:
+        buckets[min(7, int((t - lo) / span * 8))] += 1
+    return {"n": len(tirs), "p5": round(pctl(0.05), 1), "p50": round(pctl(0.50), 1), "p95": round(pctl(0.95), 1),
+            "media": round(sum(tirs) / len(tirs), 1), "prob_bajo_cetes_pct": round(prob * 100),
+            "hist": [{"desde": round(lo + i * span / 8, 1), "n": b} for i, b in enumerate(buckets)]}
+
+
 def sensibilidad(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str, Any]:
     """Matriz de sensibilidad (§4.5: 0.25% en exit cap mueve la TIR 200-400pb → obligatoria). Varía exit cap rate y
     apreciación, devuelve la TIR de cada escenario. Si no hay exit cap, deriva una base del cap rate going-in."""

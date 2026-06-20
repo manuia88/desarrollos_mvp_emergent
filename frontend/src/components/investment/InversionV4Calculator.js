@@ -47,6 +47,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [r, setR] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pro, setPro] = useState(false);     // modo avanzado / institucional (F5)
+  const [comparar, setComparar] = useState([]); // A/B: escenarios guardados (F6)
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
@@ -191,7 +192,28 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         <button type="button" onClick={() => setPro((p) => !p)} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: pro ? 'rgba(124,92,255,0.08)' : '#fff', color: '#6D28D9' }}>{pro ? '− Ocultar modo avanzado' : '🔬 Modo avanzado (institucional)'}</button>
         <button type="button" onClick={() => askAtlax(`¿Qué pasa si…? Analizo una inversión de ${m(f.valor_propiedad)} con renta ${m(f.renta_mensual)}/mes, ${f.con_credito ? 'con crédito' : 'al contado'}, horizonte ${f.horizonte_anios} años. Ayúdame a explorar escenarios.`)} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF' }}>💬 ¿Qué pasa si…? · pregúntale a Atlax</button>
+        {r && <button type="button" onClick={() => setComparar((c) => [...c.slice(-2), { precio: f.valor_propiedad, credito: f.con_credito, tir: r.tir_pct, coc: r.cash_on_cash_pct, em: r.equity_multiple, neto: r.neto_al_vender }])} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>➕ Comparar (A/B)</button>}
+        <button type="button" onClick={() => window.print()} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>📄 Descargar PDF</button>
       </div>
+      {comparar.length > 0 && (
+        <div className="iv4-card" style={{ marginBottom: 14, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontWeight: 800, fontSize: 13 }}>Comparar escenarios (A/B)</span>
+            <button type="button" onClick={() => setComparar([])} style={{ border: 'none', background: 'none', color: '#8A8FA6', fontSize: 11, cursor: 'pointer', fontFamily: 'DM Sans' }}>limpiar</button>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12 }}>
+            <thead><tr style={{ color: '#6B6F86', textAlign: 'left' }}>{['Escenario', 'Precio', 'Modo', 'TIR', 'Rend. tu dinero', 'Multiplica', 'Neto al vender'].map((h) => <th key={h} style={{ padding: '6px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+            <tbody>{comparar.map((c, i) => (
+              <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.06)' }}>
+                <td style={{ padding: '6px 8px', fontWeight: 800 }}>{String.fromCharCode(65 + i)}</td>
+                <td style={{ padding: '6px 8px' }}>{m(c.precio)}</td><td style={{ padding: '6px 8px' }}>{c.credito ? 'Crédito' : 'Contado'}</td>
+                <td style={{ padding: '6px 8px', fontWeight: 800, color: '#7C5CFF' }}>{pct(c.tir)}</td><td style={{ padding: '6px 8px' }}>{pct(c.coc)}</td>
+                <td style={{ padding: '6px 8px' }}>{c.em ? `${c.em}x` : '—'}</td><td style={{ padding: '6px 8px' }}>{m(c.neto)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
       {pro && r && (
         <div className="iv4-card" style={{ marginBottom: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 10 }}>Métricas institucionales</div>
@@ -227,6 +249,26 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ))}
               </div>
               <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', marginTop: 6 }}>0.25% en el exit cap mueve fuerte la TIR — el precio de salida define 60-80% del retorno.</div>
+            </div>
+          )}
+          {r.montecarlo && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 8 }}>Monte Carlo · {r.montecarlo.n} escenarios (apreciación/vacancia/tasa al azar)</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                {[['Peor caso (5%)', r.montecarlo.p5, '#DC2626'], ['Esperado (50%)', r.montecarlo.p50, '#16182A'], ['Mejor caso (95%)', r.montecarlo.p95, '#0E9F6E']].map(([l, v, c]) => (
+                  <div key={l} style={{ flex: '1 1 90px', textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(16,18,28,0.03)' }}>
+                    <div style={{ fontSize: 10, color: '#8A8FA6' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c }}>{pct(v)}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: r.montecarlo.prob_bajo_cetes_pct >= 50 ? '#DC2626' : '#5B5F76' }}>
+                Probabilidad de rendir <b>menos que CETES</b>: <b>{r.montecarlo.prob_bajo_cetes_pct}%</b>{r.montecarlo.prob_bajo_cetes_pct >= 50 ? ' — riesgo alto de no superar la tasa libre de riesgo.' : '.'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, marginTop: 8 }}>
+                {r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return (
+                  <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#C026D3)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />
+                ); })}
+              </div>
             </div>
           )}
         </div>
