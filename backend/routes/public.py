@@ -490,6 +490,44 @@ async def market_vehiculos(request: Request):
         return {"ok": True, "vehiculos": []}
 
 
+@router.post("/api/inversion-v4/analyze")
+async def inversion_v4_analyze(request: Request):
+    """Calculadora de inversión v4 (grado institucional). Inyecta mercado vivo (CETES/UDIS/inflación), corre el motor
+    financiero + fiscal MX y devuelve métricas + veredicto en lenguaje natural + comparativa de instrumentos. Reactivo:
+    el front llama esto en cada cambio de input. Fuentes: inversion_v4_finance/tax/veredicto + market_rates_engine."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    try:
+        from inversion_v4_finance import analyze
+        from inversion_v4_tax import make_isr_fn
+        from inversion_v4_veredicto import veredicto
+        from market_rates_engine import market_context, get_rates
+        db = request.app.state.db
+        mkt = await market_context(db)
+        # inyecta mercado solo si el usuario no lo sobreescribió (todo editable)
+        inp = dict(body or {})
+        for k_inp, k_mkt in (("cetes_1a", "cetes_1a"), ("udis_actual", "udis"), ("inflacion_anual", "inflacion_anual")):
+            if inp.get(k_inp) in (None, ""):
+                inp[k_inp] = mkt.get(k_mkt)
+        if inp.get("tasa_anual") in (None, "") and inp.get("con_credito", True):
+            inp["tasa_anual"] = mkt.get("tasa_hipotecaria")
+        res = analyze(inp, isr_fn=make_isr_fn())
+        res["veredicto"] = veredicto(res)
+        res["mercado"] = mkt
+        # comparativa de instrumentos para la barra "tu inmueble vs CETES vs S&P" (de market_rates)
+        try:
+            rates = await get_rates(db)
+            res["instrumentos"] = [{"k": v.get("k"), "nombre": v.get("nombre"), "pct": v.get("pct"), "live": v.get("live", False)}
+                                   for v in (rates.get("vehiculos") or []) if v.get("k") in ("cetes_364", "bolsa", "fibra", "pagare")]
+        except Exception:
+            res["instrumentos"] = []
+        return res
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
 @router.post("/api/superadmin/google-places/ingest-lugares")
 async def google_places_ingest_lugares_run(request: Request):
     """Corre UN lote de LUGARES con nombre+estrellas (SKU Enterprise, free tier ~1,000/mes). Solo colonias con
