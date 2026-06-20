@@ -13,8 +13,8 @@ import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const m1 = (n) => `$${(n / 1e6).toFixed(1)}M`;
-const k = (n) => `$${Math.round(n / 1000).toLocaleString('es-MX')}k`;
+const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
+const k = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;
 const get = async (u) => { try { const r = await fetch(API + u); return r.ok ? await r.json() : null; } catch { return null; } };
 const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })); } catch { /* noop */ } };
 
@@ -377,7 +377,7 @@ export default function ZonePageV2() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 22 }}>
             {[
               { n: 1, h: 'Sube de valor — solo.', big: `+${plus}%`, c: '#0E9F6E',
-                copy: <>Cada año tu propiedad vale más. Un depto de {m1(inv.precio_prom)} se aprecia <b>~${Math.round((inv.plusvalia_anual_abs || 0) / 1000).toLocaleString('es-MX')}k al año</b> <Q t="Plusvalía estimada por el motor según el tier y la tendencia de la zona — no es una medición de transacciones históricas." /> — sin que muevas un dedo.</> },
+                copy: <>Cada año tu propiedad vale más. Un depto de {m1(inv.precio_prom)} se aprecia <b>~{k(inv.plusvalia_anual_abs || 0)} al año</b> <Q t="Plusvalía estimada por el motor según el tier y la tendencia de la zona — no es una medición de transacciones históricas." /> — sin que muevas un dedo.</> },
               { n: 2, h: 'Y te paga mientras la tienes.', big: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : '—', c: '#C026D3',
                 copy: <>Si la rentas, podría dejarte <b>~${(inv.renta_prom || 0).toLocaleString('es-MX')}/mes</b>. Un cap rate de {inv.cap_rate_anual_pct}% <Q t="Cap rate: lo que rinde la propiedad por su renta (NOI ÷ precio), sin importar cómo la pagues. Estimado por el yield de la zona; no incluye la plusvalía." /> — lo que rinde cada año solo por rentarla.</> },
               { n: 3, h: 'En 5 años, esto es tuyo.', big: `+${inv.ganancia_5y_pct}%`, c: '#0E9F6E',
@@ -614,11 +614,11 @@ export default function ZonePageV2() {
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18 }}>
                 <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 200px', borderTop: `3px solid ${caro ? '#7C5CFF' : '#0E9F6E'}` }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>{name} · por m²</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: INK, marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_zona / 1000)}k</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: INK, marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_zona).toLocaleString('es-MX')}</div>
                 </div>
                 <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 200px' }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>Promedio CDMX · por m²</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#6B6F86', marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_ciudad / 1000)}k</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#6B6F86', marginTop: 4 }}>${Math.round(inv.vs_ciudad.precio_m2_ciudad).toLocaleString('es-MX')}</div>
                 </div>
               </div>
             </section>
@@ -835,7 +835,7 @@ export default function ZonePageV2() {
                     {calcUnits.slice(0, 12).map((u) => (
                       <button key={u.id} type="button" onClick={() => setCalcUnit(u)} style={{ padding: '9px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: calcUnit && calcUnit.id === u.id ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: calcUnit && calcUnit.id === u.id ? 'rgba(124,92,255,0.1)' : '#fff' }}>
                         <div style={{ fontWeight: 800, fontSize: 13, color: INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
-                        <div style={{ fontSize: 11, color: '#8A8FA6' }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec · {u.price_display || `$${(u.price / 1e6).toFixed(1)}M`}</div>
+                        <div style={{ fontSize: 11, color: '#8A8FA6' }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec · {u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`}</div>
                       </button>
                     ))}
                   </div>

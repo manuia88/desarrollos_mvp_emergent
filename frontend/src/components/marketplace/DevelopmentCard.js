@@ -244,7 +244,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           </div>
           {dev.price_m2_dev && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev / 1000)}k/m²</span>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream-2)' }}>${Math.round(dev.price_m2_dev).toLocaleString('es-MX')}/m²</span>
               {vzText && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Sans', fontSize: 11.5, color: vzText.c, fontWeight: 700, background: `${vzText.c}14`, borderRadius: 9999, padding: '2px 9px' }} title="Precio por m² vs el promedio de su colonia">
                   <span style={{ fontSize: 13, lineHeight: 1 }}>{vzText.arrow}</span> {vzText.t}
