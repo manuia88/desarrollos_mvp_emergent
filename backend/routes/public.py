@@ -355,6 +355,26 @@ async def zona_inversion(colonia_id: str, request: Request):
                     for af in (30, 50, 80)
                 ],
             }
+            # COMPARATIVA vs instrumentos (el "villano" · costo de oportunidad): MISMO capital a 5 años.
+            # Inmueble = ganancia real del motor (renta+plusvalía−costos). CETES vivo (Banxico). Bolsa = referencia histórica.
+            try:
+                anios = 5
+                cetes_r = 0.095   # CETES ~ Banxico (libre de riesgo). TODO: leer serie SF43936 viva cuando haya token.
+                bolsa_r = 0.10    # S&P histórico de REFERENCIA (no feed vivo · etiquetado en UI)
+                g_inm = out.get("ganancia_5y_abs")
+                if rep and g_inm is not None:
+                    cetes_gana = rep * ((1 + cetes_r) ** anios - 1)
+                    bolsa_gana = rep * ((1 + bolsa_r) ** anios - 1)
+                    out["comparativa_instrumentos"] = {
+                        "capital": rep, "anios": anios,
+                        "inmueble_gana": round(g_inm), "inmueble_pct": out.get("ganancia_5y_pct"),
+                        "cetes_gana": round(cetes_gana), "cetes_pct": round(((1 + cetes_r) ** anios - 1) * 100),
+                        "bolsa_gana": round(bolsa_gana), "bolsa_pct": round(((1 + bolsa_r) ** anios - 1) * 100),
+                        "cetes_tasa_pct": round(cetes_r * 100, 1), "bolsa_tasa_pct": round(bolsa_r * 100, 1),
+                        "inmueble_gana_vs_cetes": round(g_inm - cetes_gana),
+                    }
+            except Exception:
+                pass
         except Exception:
             pass
         return out

@@ -365,6 +365,46 @@ export default function ZonePageV2() {
           );
         })()}
 
+        {/* ── ¿DÓNDE PONGO MI DINERO? · vs instrumentos (data NEUTRA honesta + narrativa persuasiva · gated) ── */}
+        {profile === 'invertir' && inv.comparativa_instrumentos && (() => {
+          const c = inv.comparativa_instrumentos;
+          const cols = [
+            { k: 'cetes', label: 'CETES', emoji: '🏦', pct: c.cetes_pct, gana: c.cetes_gana, nota: `tasa ${c.cetes_tasa_pct}% · Banxico` },
+            { k: 'bolsa', label: 'Bolsa', emoji: '📊', pct: c.bolsa_pct, gana: c.bolsa_gana, nota: `~${c.bolsa_tasa_pct}% · referencia histórica` },
+            { k: 'inmueble', label: 'Inmueble aquí', emoji: '🏠', pct: c.inmueble_pct, gana: c.inmueble_gana, nota: 'renta + plusvalía − costos', hero: true },
+          ];
+          const VENTAJAS = ['Te paga renta cada mes (no al final)', 'Lo tocas, lo rentas, lo heredas', 'Refugio real contra la inflación', 'Apalancamiento: pones poco, controlas mucho', 'Sin los sustos de la bolsa'];
+          return (
+            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+              <div style={eyebrow}>{tc('¿Dónde pongo mi dinero?')}</div>
+              <h2 style={chapTitle}>Tu dinero a 5 años, sin maquillaje</h2>
+              <p style={lead}>Te mostramos los números reales — incluso cuando no nos favorecen. Mismo capital ({m1(c.capital)}), a 5 años:</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 18 }}>
+                {cols.map((x) => (
+                  <div key={x.k} className="zv2-win" style={{ ...cardBase, padding: '18px 20px', border: x.hero ? '2px solid rgba(124,92,255,0.4)' : cardBase.border }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>{x.emoji} {x.label}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: x.hero ? '#7C5CFF' : INK, letterSpacing: '-0.03em', marginTop: 5 }}>+{x.pct}%</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>+{m1(x.gana)}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 4 }}>{x.nota}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', marginTop: 16, background: 'linear-gradient(135deg, rgba(124,92,255,0.05), rgba(192,38,211,0.04))' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK }}>Pero CETES y la bolsa son solo un número en una app.</div>
+                <p style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: MUT, marginTop: 6, lineHeight: 1.55 }}>El inmueble es lo único que, además de rendir, <b>es TUYO de verdad</b>:</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
+                  {VENTAJAS.map((v) => (
+                    <div key={v} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontFamily: 'DM Sans', fontSize: 13, color: '#3A3E55' }}>
+                      <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓</span> {v}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, marginTop: 16 }}>No es dónde rinde más en papel — es dónde construyes <span style={grad}>patrimonio real</span>.</div>
+              </div>
+            </section>
+          );
+        })()}
+
         {/* ── BLOQUE PROPIO DEL PERFIL (gated por data · solo se ve si hay) ── */}
         {profile === 'invertir' && inv.escenarios_inv && inv.escenarios_inv.length >= 2 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
