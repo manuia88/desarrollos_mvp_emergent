@@ -30,6 +30,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
   const navigate = useNavigate();
   const [form, setForm] = useState({
     precio: prefilled.precio || 5_000_000,
+    _priceTouched: !!prefilled.lockPrice,   // precio del depto elegido → bloqueado · el autofill NO lo sobrescribe
     m2: prefilled.m2 || 80,
     colonia_slug: prefilled.colonia || 'del-valle',
     anios_tenencia: 10,
@@ -182,9 +183,13 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
         {/* Básico */}
         <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr 1fr' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
           <div>
-            <label style={labelStyle}>Precio (MXN)</label>
-            <input type="number" data-testid="simulador-input-precio" value={form.precio} min="100000" step="50000" required style={inputStyle}
-              onChange={e => setForm(f => ({ ...f, precio: e.target.value, _priceTouched: true }))} />
+            <label style={labelStyle}>Precio (MXN){prefilled.lockPrice ? ' · del depto' : ''}</label>
+            {prefilled.lockPrice ? (
+              <input type="text" data-testid="simulador-input-precio" value={`$${Number(form.precio || 0).toLocaleString('es-MX')}`} readOnly title="Precio del depto seleccionado (fijo)" style={{ ...inputStyle, opacity: 0.9, cursor: 'not-allowed' }} />
+            ) : (
+              <input type="number" data-testid="simulador-input-precio" value={form.precio} min="100000" step="50000" required style={inputStyle}
+                onChange={e => setForm(f => ({ ...f, precio: e.target.value, _priceTouched: true }))} />
+            )}
           </div>
           <div>
             <label style={labelStyle}>Colonia</label>

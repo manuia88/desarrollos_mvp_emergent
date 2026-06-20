@@ -427,10 +427,10 @@ def start_scheduler(db):
         args=[db], id="market_index_snapshot", replace_existing=True,
         misfire_grace_time=3600,
     )
-    # Tasas de inversión — CETES vivo de Banxico, semanal (lunes 01:07 MX) + al arranque si está vacío.
+    # Tasas de inversión — CETES vivo de Banxico, DIARIO (01:07 MX). Fuentes oficiales: Banxico/cetesdirecto/BMV/GBM/investing.
     _scheduler.add_job(
         wrap_apscheduler_job(run_rates_update, "rates_update"),
-        CronTrigger(day_of_week="mon", hour=1, minute=7, timezone=TZ),
+        CronTrigger(hour=1, minute=7, timezone=TZ),
         args=[db], id="rates_update", replace_existing=True,
         misfire_grace_time=3600,
     )

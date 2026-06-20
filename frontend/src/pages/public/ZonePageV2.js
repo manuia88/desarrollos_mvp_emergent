@@ -508,7 +508,7 @@ export default function ZonePageV2() {
               </table>
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>
-              Tasas junio 2026 · CETES en vivo de Banxico (se actualiza solo cada semana). Bolsa / FIBRA / Afore = referencia histórica. *Inmueble: rendimiento anual estimado de esta zona (renta + plusvalía); y además, es lo único que controlas, usas y heredas.
+              Tasas junio 2026 · CETES en vivo de Banxico (se actualiza solo cada día). Fuentes oficiales: Banxico · cetesdirecto · BMV · GBM · investing.com. Bolsa / FIBRA / Afore = referencia. *Inmueble: rendimiento anual estimado de esta zona (renta + plusvalía); y además, es lo único que controlas, usas y heredas.
             </div>
           </section>
         )}
@@ -844,7 +844,7 @@ export default function ZonePageV2() {
             )}
             {calcUnit && (
               <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InvestmentSimulator compact prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80 }} />
+                <InvestmentSimulator compact prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80, lockPrice: true }} />
               </div>
             )}
           </section>
