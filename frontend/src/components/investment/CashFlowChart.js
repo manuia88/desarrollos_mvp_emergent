@@ -20,11 +20,11 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(13,16,23,0.98)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: '#fff',
+      border: '1px solid rgba(16,18,28,0.1)', boxShadow: '0 8px 24px rgba(16,18,28,0.14)',
       borderRadius: 8, padding: '10px 14px', fontSize: 12,
     }}>
-      <div style={{ color: 'var(--cream-3)', marginBottom: 6, fontFamily: 'DM Sans' }}>Mes {label}</div>
+      <div style={{ color: '#6B6F86', marginBottom: 6, fontFamily: 'DM Sans' }}>Mes {label}</div>
       {payload.map(p => (
         <div key={p.name} style={{ color: p.color, fontFamily: 'DM Sans', fontWeight: 600, marginBottom: 3 }}>
           {p.name}: {fmt(p.value)}
@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function CashFlowChart({ conservador, base, optimista, metric = 'valor_propiedad' }) {
+export default function CashFlowChart({ conservador, base, optimista, metric = 'valor_propiedad', light = false }) {
   const data = useMemo(() => {
     const len = Math.max(
       (conservador || []).length,
@@ -55,18 +55,18 @@ export default function CashFlowChart({ conservador, base, optimista, metric = '
     <div
       data-testid="cashflow-chart"
       style={{
-        background: 'rgba(13,16,23,0.85)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: light ? 'rgba(99,102,241,0.03)' : 'rgba(13,16,23,0.85)',
+        border: light ? '1px solid rgba(16,18,28,0.08)' : '1px solid rgba(255,255,255,0.06)',
         borderRadius: 12, padding: '16px 4px 8px',
       }}
     >
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 4, right: 20, left: 8, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={light ? 'rgba(16,18,28,0.08)' : 'rgba(255,255,255,0.04)'} />
           <XAxis
             dataKey="mes"
             tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'DM Sans' }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+            axisLine={{ stroke: light ? 'rgba(16,18,28,0.12)' : 'rgba(255,255,255,0.06)' }}
             tickLine={false}
             label={{ value: 'Meses', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 10 }}
           />

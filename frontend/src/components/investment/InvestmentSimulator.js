@@ -23,7 +23,7 @@ function fmt(n) {
 function pct(n) { return (n === null || n === undefined || isNaN(n)) ? '—' : `${n.toFixed(1)}%`; }
 function title(s) { return (s || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); }
 
-export default function InvestmentSimulator({ prefilled = {}, compact = false }) {
+export default function InvestmentSimulator({ prefilled = {}, compact = false, light = false }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     precio: prefilled.precio || 5_000_000,
@@ -159,10 +159,15 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
     } catch {}
   };
 
-  // ── estilos ──
-  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, padding: '8px 12px', width: '100%', outline: 'none' };
-  const labelStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' };
-  const cardStyle = { border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, background: 'rgba(13,16,23,0.85)', padding: '16px 18px' };
+  // ── estilos (modo claro para la página pública de zona · oscuro en superadmin) ──
+  const optBg = light ? '#fff' : '#06080F';
+  const inputStyle = light
+    ? { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 8, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '8px 12px', width: '100%', outline: 'none' }
+    : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, padding: '8px 12px', width: '100%', outline: 'none' };
+  const labelStyle = { fontFamily: 'DM Sans', fontSize: 11, color: light ? '#6B6F86' : 'var(--cream-3)', marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const cardStyle = light
+    ? { border: '1px solid rgba(16,18,28,0.1)', borderRadius: 14, background: '#fff', padding: '16px 18px', boxShadow: '0 6px 18px rgba(99,102,241,0.07)' }
+    : { border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, background: 'rgba(13,16,23,0.85)', padding: '16px 18px' };
 
   const Badge = ({ field }) => {
     const o = origen[field];
@@ -175,7 +180,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
   const verColor = ver?.nivel === 'buena' ? '#4ADE80' : ver?.nivel === 'regular' ? '#FCD34D' : '#FCA5A5';
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', ...(light ? { '--cream': '#16182A', '--cream-2': '#3A3E55', '--cream-3': '#6B6F86' } : {}) }}>
       <form onSubmit={handleSubmit} data-testid="simulador-form" noValidate>
         {/* Básico */}
         <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr 1fr' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
@@ -192,20 +197,20 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
             <label style={labelStyle}>Colonia</label>
             <select data-testid="simulador-input-colonia" value={form.colonia_slug} style={inputStyle}
               onChange={e => setForm(f => ({ ...f, colonia_slug: e.target.value, _priceTouched: false }))}>
-              {COLONIAS.map(c => <option key={c} value={c} style={{ background: '#06080F' }}>{title(c)}</option>)}
+              {COLONIAS.map(c => <option key={c} value={c} style={{ background: optBg }}>{title(c)}</option>)}
             </select>
           </div>
           <div>
             <label style={labelStyle}>Años que lo conservas</label>
             <select value={form.anios_tenencia} style={inputStyle} onChange={e => setForm(f => ({ ...f, anios_tenencia: e.target.value }))}>
-              {[3, 5, 7, 10, 15, 20].map(y => <option key={y} value={y} style={{ background: '#06080F' }}>{y} años</option>)}
+              {[3, 5, 7, 10, 15, 20].map(y => <option key={y} value={y} style={{ background: optBg }}>{y} años</option>)}
             </select>
           </div>
           <div>
             <label style={labelStyle}>Enganche</label>
             <select value={form.financiamiento_pct} style={inputStyle} onChange={e => setForm(f => ({ ...f, financiamiento_pct: e.target.value }))}>
               {[[1, 'Al contado (100%)'], [0.9, '10% enganche'], [0.8, '20% enganche'], [0.7, '30% enganche'], [0.5, '50% enganche']].map(([v, l]) => (
-                <option key={v} value={v} style={{ background: '#06080F' }}>{l}</option>
+                <option key={v} value={v} style={{ background: optBg }}>{l}</option>
               ))}
             </select>
           </div>
@@ -229,7 +234,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 14, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
             <div><label style={labelStyle}>Plazo del crédito (años)</label>
               <select value={form.plazo_credito_anios} style={inputStyle} onChange={e => setForm(f => ({ ...f, plazo_credito_anios: e.target.value }))}>
-                {[10, 15, 20, 25].map(y => <option key={y} value={y} style={{ background: '#06080F' }}>{y} años</option>)}
+                {[10, 15, 20, 25].map(y => <option key={y} value={y} style={{ background: optBg }}>{y} años</option>)}
               </select></div>
             <div><label style={labelStyle}>Tasa hipotecaria (%) <Badge field="tasa_credito_pct" /></label>
               <input type="number" value={form.tasa_credito_pct} placeholder="oficial DMX" step="0.1" style={inputStyle}
@@ -342,7 +347,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
           {ap?.cash_flow_monthly?.length > 0 && (
             <div style={{ marginBottom: 18 }}>
               <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream-3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Valor de la propiedad · proyección</div>
-              <CashFlowChart base={ap.cash_flow_monthly} metric="valor_propiedad" />
+              <CashFlowChart base={ap.cash_flow_monthly} metric="valor_propiedad" light={light} />
             </div>
           )}
 

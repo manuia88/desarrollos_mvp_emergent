@@ -844,7 +844,7 @@ export default function ZonePageV2() {
             )}
             {calcUnit && (
               <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InvestmentSimulator compact prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80, lockPrice: true }} />
+                <InvestmentSimulator compact light prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80, lockPrice: true }} />
               </div>
             )}
           </section>
