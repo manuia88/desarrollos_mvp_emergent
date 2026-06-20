@@ -1,0 +1,102 @@
+"""Tasas de vehículos de inversión — seed junio 2026 (verificado · subasta Banxico) + actualización VIVA de CETES.
+
+Un cron (scheduler_ie.run_rates_update, semanal) jala CETES vivo de Banxico SIE y actualiza market_rates. El resto de
+vehículos son benchmark de referencia (se ajustan periódicamente). La página de zona y la calculadora leen de aquí, así
+que cuando cambian las tasas, la app se actualiza sola. Fail-open: sin token, mantiene el seed.
+
+Series Banxico SIE: SF43936=CETES 28d · SF43945=CETES 364d (rendimiento anual %).
+"""
+import os
+from datetime import datetime, timezone
+from typing import Dict, Any, List
+
+# Seed JUNIO 2026 (2a semana · Banxico). pct = rendimiento anual %. Criterios para la tabla comparativa.
+VEHICULOS_SEED: List[Dict[str, Any]] = [
+    {"k": "inmueble", "nombre": "Departamento (esta zona)", "cat": "Bien raíz", "pct": None, "riesgo": "Medio-bajo",
+     "liquidez": "Baja", "ticket": "Enganche", "apalancable": True, "tangible": True, "inflacion": "Sí (real)",
+     "mensual": True, "esfuerzo": "Medio", "fuente": "Motor DMX", "hero": True},
+    {"k": "cetes_28", "nombre": "CETES 28 días", "cat": "Deuda gubernamental", "pct": 6.25, "riesgo": "Muy bajo",
+     "liquidez": "Alta", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Parcial",
+     "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico"},
+    {"k": "cetes_364", "nombre": "CETES 364 días", "cat": "Deuda gubernamental", "pct": 7.0, "riesgo": "Muy bajo",
+     "liquidez": "Media", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Parcial",
+     "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico"},
+    {"k": "pagare", "nombre": "Pagaré bancario", "cat": "Banco", "pct": 5.5, "riesgo": "Bajo", "liquidez": "Media",
+     "ticket": "$1,000", "apalancable": False, "tangible": False, "inflacion": "Parcial", "mensual": False,
+     "esfuerzo": "Nulo", "fuente": "Banca · ref."},
+    {"k": "fibra", "nombre": "FIBRAs", "cat": "Inmobiliario bursátil", "pct": 8.0, "riesgo": "Medio", "liquidez": "Alta",
+     "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí", "mensual": True,
+     "esfuerzo": "Bajo", "fuente": "BMV · ref."},
+    {"k": "bolsa", "nombre": "Bolsa / S&P 500", "cat": "Renta variable", "pct": 10.0, "riesgo": "Alto",
+     "liquidez": "Alta", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí",
+     "mensual": False, "esfuerzo": "Medio", "fuente": "Histórico ref."},
+    {"k": "afore", "nombre": "Afore (Siefore)", "cat": "Retiro", "pct": 5.5, "riesgo": "Bajo", "liquidez": "Nula (retiro)",
+     "ticket": "Aportación", "apalancable": False, "tangible": False, "inflacion": "Parcial", "mensual": False,
+     "esfuerzo": "Nulo", "fuente": "Consar · ref."},
+    {"k": "udibonos", "nombre": "Udibonos", "cat": "Deuda indexada", "pct": 4.8, "riesgo": "Muy bajo",
+     "liquidez": "Media", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí (UDI)",
+     "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico · ref."},
+]
+
+_BANXICO_SERIES = {"SF43936": "cetes_28", "SF43945": "cetes_364"}
+
+
+async def seed_rates(db) -> None:
+    await db.market_rates.update_one(
+        {"_id": "vehiculos"},
+        {"$set": {"vehiculos": VEHICULOS_SEED, "updated_at": datetime.now(timezone.utc), "source": "seed_jun2026"},
+         "$setOnInsert": {"_id": "vehiculos"}}, upsert=True)
+
+
+async def get_rates(db) -> Dict[str, Any]:
+    """Lee market_rates; si no existe, lo siembra. Devuelve {vehiculos, updated_at, source}."""
+    doc = await db.market_rates.find_one({"_id": "vehiculos"}, {"_id": 0})
+    if not doc:
+        await seed_rates(db)
+        doc = await db.market_rates.find_one({"_id": "vehiculos"}, {"_id": 0})
+    return doc or {"vehiculos": VEHICULOS_SEED}
+
+
+async def cetes_rate(db, plazo: str = "cetes_364") -> float:
+    """Tasa CETES (anual, fracción) desde market_rates. Default 364d. Fallback 0.07."""
+    try:
+        doc = await get_rates(db)
+        for v in (doc.get("vehiculos") or []):
+            if v.get("k") == plazo and v.get("pct"):
+                return float(v["pct"]) / 100.0
+    except Exception:
+        pass
+    return 0.07
+
+
+async def update_rates(db) -> Dict[str, Any]:
+    """CRON: jala CETES vivo de Banxico (SIE) y actualiza pct de cetes_28/cetes_364. Fail-open (mantiene seed)."""
+    doc = await get_rates(db)
+    vehiculos = doc.get("vehiculos") or [dict(v) for v in VEHICULOS_SEED]
+    actualizados: List[str] = []
+    token = os.environ.get("IE_BANXICO_TOKEN")
+    if token:
+        try:
+            import httpx
+            url = ("https://www.banxico.org.mx/SieAPIRest/service/v1/series/"
+                   + ",".join(_BANXICO_SERIES.keys()) + "/datos/oportuno")
+            async with httpx.AsyncClient() as c:
+                r = await c.get(url, headers={"Bmx-Token": token}, timeout=20)
+            if r.status_code == 200:
+                for s in ((r.json() or {}).get("bmx", {}) or {}).get("series", []) or []:
+                    k = _BANXICO_SERIES.get(s.get("idSerie"))
+                    datos = s.get("datos") or []
+                    if k and datos:
+                        val = float(str(datos[-1].get("dato")).replace(",", ""))
+                        for v in vehiculos:
+                            if v.get("k") == k:
+                                v["pct"] = round(val, 2)
+                                actualizados.append(k)
+        except Exception:
+            pass
+    await db.market_rates.update_one(
+        {"_id": "vehiculos"},
+        {"$set": {"vehiculos": vehiculos, "updated_at": datetime.now(timezone.utc),
+                  "source": "banxico_live" if actualizados else "seed_jun2026", "last_live": actualizados}},
+        upsert=True)
+    return {"ok": True, "actualizados": actualizados, "fuente": "banxico_live" if actualizados else "seed_jun2026"}

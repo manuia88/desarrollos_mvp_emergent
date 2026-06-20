@@ -147,6 +147,7 @@ export default function ZonePageV2() {
   const [similar, setSimilar] = useState([]);
   const [vida, setVida] = useState(null);
   const [lugares, setLugares] = useState(null);
+  const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [lens, setLens] = useState(null);     // lente del inversionista: renta / plusvalia / refugio (reencuadra el tab)
@@ -162,9 +163,10 @@ export default function ZonePageV2() {
       get(`/api/colonias-similar/${slug}`),
       get(`/api/zona/${slug}/vida`),
       get(`/api/zona/${slug}/lugares`),
-    ]).then(([i, l, d, s, v, lg]) => {
+      get(`/api/market/vehiculos`),
+    ]).then(([i, l, d, s, v, lg, vh]) => {
       if (!alive) return;
-      setInv(i); setLanding(l); setVida(v); setLugares(lg);
+      setInv(i); setLanding(l); setVida(v); setLugares(lg); setVehiculos((vh && vh.vehiculos) || []);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
@@ -450,16 +452,63 @@ export default function ZonePageV2() {
           );
         })()}
 
+        {/* ── TABLA COMPARATIVA DE VEHÍCULOS (criterios · tasas junio 2026 · CETES vivo Banxico vía cron) ── */}
+        {profile === 'invertir' && vehiculos.length > 0 && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+            <div style={eyebrow}>{tc('Comparativa real')}<ParaTi tag="vs" /></div>
+            <h2 style={chapTitle}>Bienes raíces vs todo lo demás</h2>
+            <p style={lead}>Los mismos criterios para cada vehículo, con tasas de hoy (junio 2026 · CETES en vivo de Banxico). Mira dónde gana cada uno:</p>
+            <div style={{ overflowX: 'auto', marginTop: 18, borderRadius: 16, border: '1px solid rgba(16,18,28,0.08)' }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720, fontFamily: 'DM Sans', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ background: 'rgba(99,102,241,0.06)' }}>
+                    {['Vehículo', 'Rendimiento/año', 'Riesgo', 'Liquidez', 'Te paga c/mes', 'Apalancable', 'Tangible', 'Protege inflación'].map((h, i) => (
+                      <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '12px 14px', fontWeight: 800, color: '#4B4F66', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(16,18,28,0.1)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {vehiculos.map((v) => {
+                    const hero = v.hero;
+                    const rend = hero ? (inv && inv.roi_anual_pct != null ? `~${inv.roi_anual_pct}%*` : '—') : (v.pct != null ? `${v.pct}%` : '—');
+                    const yes = (b) => b ? <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓</span> : <span style={{ color: '#C7CAD6' }}>—</span>;
+                    return (
+                      <tr key={v.k} style={{ background: hero ? 'linear-gradient(90deg, rgba(124,92,255,0.08), rgba(192,38,211,0.05))' : '#fff', borderBottom: '1px solid rgba(16,18,28,0.05)' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'left' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: hero ? '#6D28D9' : INK }}>{v.nombre}</div>
+                          <div style={{ fontSize: 10.5, color: '#A2A6BC' }}>{v.cat}</div>
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: hero ? '#7C5CFF' : INK }}>{rend}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: MUT }}>{v.riesgo}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: MUT }}>{v.liquidez}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.mensual)}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.apalancable)}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.tangible)}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', fontSize: 11.5, color: MUT }}>{v.inflacion}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>
+              Tasas junio 2026 · CETES en vivo de Banxico (se actualiza solo cada semana). Bolsa / FIBRA / Afore = referencia histórica. *Inmueble: rendimiento anual estimado de esta zona (renta + plusvalía); y además, es lo único que controlas, usas y heredas.
+            </div>
+          </section>
+        )}
+
         {/* ── ¿CON CUÁNTO INVIERTES? (Bloque 3 · recalcula a su capital · escala lineal honesta) ── */}
         {profile === 'invertir' && ci && (
           <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
             <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px' }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK }}>¿Con cuánto quieres invertir?</div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 4 }}>Ponlo y te decimos qué te dejaría aquí en 5 años, lado a lado con el banco y la bolsa.</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                 {[1000000, 2500000, 5000000, 10000000].map((v) => (
                   <button key={v} type="button" onClick={() => setCapital(v)} style={{ padding: '9px 15px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, border: capital === v ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: capital === v ? 'rgba(124,92,255,0.1)' : '#fff', color: capital === v ? '#6D28D9' : '#4B4F66' }}>{m1(v)}</button>
                 ))}
+                <span style={{ color: '#A2A6BC', fontSize: 12, fontFamily: 'DM Sans' }}>o</span>
+                <input type="text" inputMode="numeric" placeholder="otro monto $" value={capital ? `$${capital.toLocaleString('es-MX')}` : ''} onChange={(e) => { const n = parseInt(String(e.target.value || '').replace(/\D/g, ''), 10); setCapital(Number.isFinite(n) && n > 0 ? n : null); }} style={{ width: 160, padding: '9px 14px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.25)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: INK, outline: 'none', background: '#fff' }} />
               </div>
               {capCalc ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginTop: 16 }}>

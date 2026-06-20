@@ -359,7 +359,8 @@ async def zona_inversion(colonia_id: str, request: Request):
             # Inmueble = ganancia real del motor (renta+plusvalía−costos). CETES vivo (Banxico). Bolsa = referencia histórica.
             try:
                 anios = 5
-                cetes_r = 0.095   # CETES ~ Banxico (libre de riesgo). TODO: leer serie SF43936 viva cuando haya token.
+                from market_rates_engine import cetes_rate
+                cetes_r = await cetes_rate(db, "cetes_364")   # CETES 364d VIVO (market_rates · Banxico vía cron · jun2026 = 7%)
                 bolsa_r = 0.10    # S&P histórico de REFERENCIA (no feed vivo · etiquetado en UI)
                 g_inm = out.get("ganancia_5y_abs")
                 if rep and g_inm is not None:
@@ -475,6 +476,18 @@ async def zona_lugares(colonia_id: str, request: Request):
         return out
     except Exception:
         return {"ok": True, "lugares": {}}
+
+
+@router.get("/api/market/vehiculos")
+async def market_vehiculos(request: Request):
+    """Tabla comparativa de vehículos de inversión + criterios (tasas junio 2026 · CETES vivo de Banxico vía cron semanal).
+    La página de zona y la calculadora leen de aquí → cuando el cron actualiza, la app se actualiza sola."""
+    try:
+        from market_rates_engine import get_rates
+        d = await get_rates(request.app.state.db)
+        return {"ok": True, "vehiculos": d.get("vehiculos") or [], "actualizado": d.get("updated_at"), "fuente": d.get("source")}
+    except Exception:
+        return {"ok": True, "vehiculos": []}
 
 
 @router.post("/api/superadmin/google-places/ingest-lugares")

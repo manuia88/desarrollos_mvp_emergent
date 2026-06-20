@@ -369,6 +369,14 @@ async def run_comparable_anomaly_detection(db):
     return {"total_alerts": total_alerts}
 
 
+async def run_rates_update(db):
+    """Tasas de inversión: jala CETES vivo de Banxico y actualiza market_rates (la página y la calculadora leen de ahí)."""
+    from market_rates_engine import update_rates
+    res = await update_rates(db)
+    _emit("rates_update_done", actualizados=res.get("actualizados"), fuente=res.get("fuente"))
+    return res
+
+
 def start_scheduler(db):
     global _scheduler
     if _scheduler is not None:
@@ -417,6 +425,13 @@ def start_scheduler(db):
         wrap_apscheduler_job(market_index_daily_snapshot, "market_index_snapshot"),
         CronTrigger(hour=3, minute=0, timezone=TZ),
         args=[db], id="market_index_snapshot", replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    # Tasas de inversión — CETES vivo de Banxico, semanal (lunes 01:07 MX) + al arranque si está vacío.
+    _scheduler.add_job(
+        wrap_apscheduler_job(run_rates_update, "rates_update"),
+        CronTrigger(day_of_week="mon", hour=1, minute=7, timezone=TZ),
+        args=[db], id="rates_update", replace_existing=True,
         misfire_grace_time=3600,
     )
     # Phase 7.11 — Drive watcher every 6h (FALLBACK; webhooks are realtime)
