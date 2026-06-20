@@ -8,6 +8,7 @@ import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
+import InvestmentSimulator from '../../components/investment/InvestmentSimulator';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
 
@@ -148,6 +149,9 @@ export default function ZonePageV2() {
   const [vida, setVida] = useState(null);
   const [lugares, setLugares] = useState(null);
   const [vehiculos, setVehiculos] = useState([]);
+  const [calcDev, setCalcDev] = useState(null);   // calculadora: desarrollo elegido
+  const [calcUnits, setCalcUnits] = useState([]); // unidades del desarrollo elegido
+  const [calcUnit, setCalcUnit] = useState(null); // unidad específica elegida
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [lens, setLens] = useState(null);     // lente del inversionista: renta / plusvalia / refugio (reencuadra el tab)
@@ -259,6 +263,18 @@ export default function ZonePageV2() {
     if (inv && inv.demanda_zona && inv.demanda_zona.busquedas >= 10) out.push(['🔥', 'Zona muy buscada', `${inv.demanda_zona.busquedas} personas la buscaron aquí mismo.`]);
     return out;
   })();
+
+  useEffect(() => {
+    if (!calcDev) { setCalcUnits([]); setCalcUnit(null); return undefined; }
+    let alive = true;
+    setCalcUnit(null);
+    get(`/api/developments/${calcDev}/units`).then((r) => {
+      if (!alive) return;
+      const u = Array.isArray(r) ? r : ((r && (r.units || r.results)) || []);
+      setCalcUnits(u.filter((x) => x && x.price));
+    });
+    return () => { alive = false; };
+  }, [calcDev]);
 
   return (
     <LightScope>
@@ -796,6 +812,43 @@ export default function ZonePageV2() {
             </section>
           );
         })()}
+
+        {/* ── CALCULADORA INTERACTIVA (Bloque 12 · proyecto → unidad → desglose completo · reusa InvestmentSimulator) ── */}
+        {profile === 'invertir' && sortedDevs.length > 0 && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
+            <div style={eyebrow}>{tc('Calculadora')}</div>
+            <h2 style={chapTitle}>Llévalo a números reales</h2>
+            <p style={lead}>Elige un desarrollo y una unidad específica de {name}. Te armamos el cálculo completo — enganche, crédito, renta, plusvalía, rendimiento y vs el banco.</p>
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#6B6F86', textTransform: 'uppercase', letterSpacing: '0.05em' }}>1 · Elige el desarrollo</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {sortedDevs.map((d) => (
+                  <button key={d.id} type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '10px 16px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, border: calcDev === d.id ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: calcDev === d.id ? 'rgba(124,92,255,0.1)' : '#fff', color: calcDev === d.id ? '#6D28D9' : '#4B4F66' }}>{d.name}</button>
+                ))}
+              </div>
+            </div>
+            {calcDev && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#6B6F86', textTransform: 'uppercase', letterSpacing: '0.05em' }}>2 · Elige la unidad</div>
+                {calcUnits.length > 0 ? (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {calcUnits.slice(0, 12).map((u) => (
+                      <button key={u.id} type="button" onClick={() => setCalcUnit(u)} style={{ padding: '9px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: calcUnit && calcUnit.id === u.id ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: calcUnit && calcUnit.id === u.id ? 'rgba(124,92,255,0.1)' : '#fff' }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
+                        <div style={{ fontSize: 11, color: '#8A8FA6' }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec · {u.price_display || `$${(u.price / 1e6).toFixed(1)}M`}</div>
+                      </button>
+                    ))}
+                  </div>
+                ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 10 }}>Cargando unidades…</div>}
+              </div>
+            )}
+            {calcUnit && (
+              <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
+                <InvestmentSimulator compact prefilled={{ colonia: slug, precio: calcUnit.price, m2: calcUnit.m2_total || calcUnit.m2_privative || 80 }} />
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ── DA EL PRIMER PASO ── */}
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
