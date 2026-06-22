@@ -206,14 +206,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div className="iv4-card" style={{ borderTop: `5px solid ${sem}`, background: `linear-gradient(180deg, ${sem}0D, #fff 60%)` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: 11.5, color: '#6B6F86', fontWeight: 700 }}>Rendimiento anual (TIR)<Tip g="tir" /></div>
+                  <div style={{ fontSize: 11.5, color: '#6B6F86', fontWeight: 700 }}>Rendimiento anual (TIR) <span style={{ fontWeight: 600, color: '#8A8FA6' }}>· si vendes al año {f.horizonte_anios}</span><Info><><b>¿Qué es la TIR?</b> El rendimiento anual de tu dinero juntando DOS cosas: la renta que recibes cada año <b>y</b> lo que te llevas si <b>vendes al año {f.horizonte_anios}</b> (ahí "realizas" la plusvalía). <b>No</b> es solo el ingreso de renta — por eso necesita un año de salida. <b>Cómo se calcula:</b> pones tu enganche + gastos (sale dinero), recibes renta cada año, y al vender recibes (precio − comisión − ISR − saldo del crédito); la TIR es la tasa que hace que todo eso cuadre (estándar Geltner & Miller / CFA). <b>Cambia el año de salida</b> en "Cuando lo vendas" o mira la columna "TIR si vendes" año por año.</></Info></div>
                   <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 44, color: sem, letterSpacing: '-0.03em', lineHeight: 1 }}>{pct(r.tir_pct)}</div>
                 </div>
                 {r.veredicto && <div style={{ textAlign: 'right' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: sem, background: `${sem}18`, borderRadius: 9999, padding: '6px 14px' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: sem }} />{r.veredicto.nivel}</span>
                 </div>}
               </div>
-              {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginTop: 8 }}>La TIR es tu ganancia real por año juntando renta + plusvalía. Si supera a CETES ({(r.cetes_1a_pct) || 7}%), tu dinero rinde mejor que sin riesgo.</div>}
+              {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginTop: 8 }}>Tu ganancia real por año juntando la renta + lo que te llevas si <b>vendes al año {f.horizonte_anios}</b>. Si supera a CETES ({(r.cetes_1a_pct) || 7}%), tu dinero rinde mejor que sin riesgo. Cambia el año de salida abajo para ver cómo cambia.</div>}
               <p style={{ fontSize: 13, color: '#5B5F76', lineHeight: 1.55, marginTop: 10, marginBottom: 0 }}>{r.veredicto && r.veredicto.parrafo}</p>
             </div>
           )}
@@ -273,7 +273,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* DESGLOSE DEL COSTO (cómo se arma la inversión · reading flow) */}
           {r && r.desglose && (
             <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🧾 Cómo Se Arma La Inversión</div>
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🧾 Cómo Se Arma La Inversión <Info><><b>Todo lo que necesitas para comprar.</b> No es solo el precio: también los <b>gastos de escrituración</b> (ISAI + notario + registro, ~8% en CDMX) y el equipamiento. <b>Costo total = precio + escrituración.</b> Si vas con crédito, "de tu bolsa hoy" = enganche + gastos; el resto lo presta el banco.</></Info></div>
               {[['Precio del inmueble', r.desglose.valor_propiedad], ['Gastos de escrituración', r.desglose.gastos_escrituracion], ...(r.desglose.equipamiento ? [['Equipamiento', r.desglose.equipamiento]] : []), ['Costo total', r.desglose.costo_total, true]].map(([l, v, tot]) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: tot ? '2px solid rgba(16,18,28,0.1)' : '1px solid rgba(16,18,28,0.05)', fontSize: 12.5 }}>
                   <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}</span><span style={{ fontWeight: 800, color: '#16182A' }}>{m(v)}</span>
@@ -331,7 +331,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const Sub = ({ children }) => <div style={{ fontSize: 10, fontWeight: 800, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 10px' }}>{children}</div>;
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span></div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span> <Info><><b>Tu hipoteca, explicada.</b> El banco pone una parte (te presta) y tú el enganche. Cada mes pagas una mensualidad fija que se divide en <b>capital</b> (baja tu deuda) e <b>interés</b> (el cobro del banco). Al principio casi todo es interés. <b>Cómo se calcula:</b> amortización francesa con la tasa de Banxico. Tasa/mensualidad finales las define tu banco.</></Info></div>
 
                 <Sub>Cómo se reparte el precio</Sub>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
@@ -429,7 +429,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb?</div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb? <Info><><b>Dos formas de rentar el MISMO depa.</b> <b>Largo plazo</b> = un inquilino todo el año (estable, menos trabajo). <b>Airbnb</b> = por noches (suele dejar más, pero da más trabajo: limpieza, huéspedes, temporada baja). Comparamos ingreso − gastos = lo que te queda, y su TIR. <b>Fuente:</b> renta larga = promedio de la zona; Airbnb = AirROI (datos reales por colonia).</></Info></div>
                 <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Mira de dónde sale cada número:</div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <Opcion icon="🏠" titulo="Largo plazo" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)}/mes × 12 meses`} fuente="promedio de renta de la zona" />
@@ -459,26 +459,23 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
           })()}
 
-          {/* TABLA COMPARATIVA RICA · tu inmueble vs otras inversiones (no solo %) */}
+          {/* TABLA COMPARATIVA OBJETIVA · Pentágono de las Inversiones (rendimiento/riesgo/liquidez/plazo/dedicación) */}
           {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
-            const SiNo = (b) => b ? <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓ Sí</span> : <span style={{ color: '#C0C3D2', fontWeight: 700 }}>✗ No</span>;
-            const inmueble = { nombre: 'Este inmueble', emoji: '🏠', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', ticket: 'Enganche', apalancable: true, tangible: true, inflacion: 'Sí (real)', mensual: true, esfuerzo: 'Medio', fuente: 'Motor DMX', hero: true };
+            const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', hero: true };
             const filas = [inmueble, ...r.instrumentos];
             const cols = [
-              ['Rinde al año', (x) => x.pct == null ? '—' : pct(x.pct), <><b>Qué es:</b> cuánto te da al año. En tu depa es la <b>TIR</b> (renta + plusvalía); en los demás, su tasa típica. <b>Tu depa:</b> {pct(r.tir_pct)}. <b>Fuente:</b> Banxico/BMV.</>],
-              ['Riesgo', (x) => x.riesgo || '—', <><b>Qué tan fácil es perder.</b> CETES = muy bajo (lo respalda el gobierno); Bolsa = alto (sube y baja mucho). Tu depa = medio-bajo: es físico y la zona lo respalda.</>],
-              ['Sacar tu dinero', (x) => x.liquidez || '—', <><b>Liquidez:</b> qué tan rápido lo vuelves efectivo. CETES en días; un depa tarda <b>meses</b> en venderse (por eso "baja").</>],
-              ['Para empezar', (x) => x.ticket || '—', <><b>Mínimo de entrada.</b> En CETES desde $100; un depa necesita el <b>enganche</b> (cientos de miles). Por eso el inmueble es para montos grandes.</>],
-              ['Con crédito', (x) => SiNo(x.apalancable), <><b>¿Puedes usar dinero del banco</b> para comprar más de lo que tienes? Solo el inmueble (hipoteca). Eso <b>multiplica</b> tu ganancia (o pérdida).</>],
-              ['Es físico', (x) => SiNo(x.tangible), <><b>¿Es algo que tocas y controlas?</b> El depa sí (ladrillos); CETES y acciones son papeles/digital. Lo físico da tranquilidad a muchos.</>],
-              ['Gana a inflación', (x) => x.inflacion || '—', <><b>¿Tu dinero NO pierde valor con el tiempo?</b> Bien raíz y bolsa suelen ganarle; CETES solo en parte; los UDIBONOS están atados a la inflación.</>],
-              ['Te paga al mes', (x) => SiNo(x.mensual), <><b>¿Te da flujo cada mes?</b> Tu depa (renta) y las FIBRAs sí; CETES te paga hasta el final. Útil si quieres ingreso constante.</>],
-              ['Esfuerzo', (x) => x.esfuerzo || '—', <><b>Cuánto trabajo te da.</b> CETES = nulo (lo dejas y ya); un depa en renta = medio (inquilinos, mantenimiento, o un administrador).</>],
+              ['Rendimiento', (x) => x.pct == null ? '—' : pct(x.pct), <><b>Cuánto te da al año.</b> En tu depa es la <b>TIR si vendes al año {f.horizonte_anios}</b> (junta renta + la plusvalía que realizas al vender); en los demás, su tasa típica anual. <b>Tu depa:</b> {pct(r.tir_pct)}. <b>Fuente:</b> Banxico/BMV; TIR = motor DMX.</>],
+              ['Riesgo', (x) => x.riesgo || '—', <><b>Qué tan probable es perder.</b> CETES = muy bajo (lo respalda el gobierno); Bolsa = alto (sube y baja mucho). Bien raíz = medio-bajo. Escala objetiva: Muy bajo → Alto.</>],
+              ['Liquidez', (x) => x.liquidez || '—', <><b>Qué tan rápido lo conviertes en efectivo</b> sin perder valor. CETES en días (alta); un depa tarda <b>meses</b> en venderse (baja). Eje del Pentágono.</>],
+              ['Plazo', (x) => x.plazo || '—', <><b>Horizonte recomendado</b> para que rinda bien. CETES = corto; bolsa y bien raíz = largo. Si necesitas el dinero pronto, el plazo importa. Eje del Pentágono.</>],
+              ['Dedicación', (x) => x.esfuerzo || '—', <><b>Cuánto tiempo/trabajo te exige.</b> CETES = nula (lo dejas y ya); un depa en renta = media (inquilinos, mantenimiento) salvo que pongas administrador. Eje del Pentágono.</>],
+              ['Mínimo para entrar', (x) => x.ticket || '—', <><b>Cuánto necesitas para empezar.</b> CETES desde $100; un depa necesita el enganche (cientos de miles). Dato objetivo de entrada.</>],
+              ['Gana a inflación', (x) => x.inflacion || '—', <><b>Si protege tu dinero del alza de precios.</b> Bien raíz y bolsa suelen ganarle; CETES solo en parte; UDIBONOS van atados a la inflación.</>],
             ];
             return (
               <div className="iv4-card">
-                <div style={{ fontWeight: 800, fontSize: 13 }}>📊 Tu inmueble vs otras inversiones <Info><>Comparamos tu depa contra las inversiones más comunes en México — <b>no solo por el rendimiento</b>, también por riesgo, liquidez, esfuerzo y más. Así ves dónde gana cada una. <b>Fuentes:</b> Banxico, BMV, SHF.</></Info></div>
-                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Tu depa casi nunca da el <b>% más alto</b>, pero gana en lo que el "dinero fácil" no tiene: es <b>físico</b>, lo puedes comprar <b>a crédito</b>, te paga <b>renta cada mes</b> y <b>sube de valor</b>. Aquí lo ves lado a lado:</div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>📊 Tu inmueble vs otras inversiones <Info><>Comparación con criterios <b>objetivos</b>, los del <b>Pentágono de las Inversiones</b>: rendimiento, riesgo, liquidez, plazo y dedicación (+ mínimo de entrada e inflación). Aplican igual a cualquier instrumento. <b>Fuentes:</b> Banxico, BMV, SHF.</></Info></div>
+                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Ninguna inversión gana en todo: las de más rendimiento suelen traer más riesgo o menos liquidez. Compáralas por los 5 ejes del <b>Pentágono</b> y elige según lo que tú necesitas (¿ingreso ya? ¿largo plazo? ¿poco riesgo?).</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
                     <thead><tr style={{ color: '#6B6F86' }}>
@@ -493,7 +490,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     ))}</tbody>
                   </table>
                 </div>
-                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 10, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados — el mercado cambia.</div>
+                <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso mucha gente lo usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
+                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados.</div>
               </div>
             );
           })()}

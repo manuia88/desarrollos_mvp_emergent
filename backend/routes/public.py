@@ -553,9 +553,11 @@ async def inversion_v4_analyze(request: Request):
         # comparativa de instrumentos para la barra "tu inmueble vs CETES vs S&P" (de market_rates)
         try:
             rates = await get_rates(db)
-            # tabla comparativa rica (no solo %): riesgo/liquidez/ticket/apalancable/tangible/inflación/mensual/esfuerzo/fuente
-            _campos = ("k", "nombre", "cat", "pct", "riesgo", "liquidez", "ticket", "apalancable", "tangible", "inflacion", "mensual", "esfuerzo", "fuente", "live")
-            res["instrumentos"] = [{c: v.get(c) for c in _campos}
+            # tabla comparativa con criterios OBJETIVOS (pentágono de inversiones): rendimiento/riesgo/liquidez/plazo/dedicación + ticket/inflación
+            _campos = ("k", "nombre", "cat", "pct", "riesgo", "liquidez", "ticket", "inflacion", "esfuerzo", "fuente", "live")
+            _plazo = {"cetes_364": "Corto (1 año)", "pagare": "Corto (28-90 días)", "fibra": "Medio-largo (3-5 años)",
+                      "bolsa": "Largo (5+ años)", "afore": "Muy largo (al retiro)", "udibonos": "Largo (3-10 años)"}
+            res["instrumentos"] = [{**{c: v.get(c) for c in _campos}, "plazo": _plazo.get(v.get("k"))}
                                    for v in (rates.get("vehiculos") or []) if v.get("k") in ("cetes_364", "pagare", "fibra", "bolsa", "afore", "udibonos")]
         except Exception:
             res["instrumentos"] = []

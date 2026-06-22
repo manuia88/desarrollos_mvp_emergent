@@ -398,13 +398,14 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     }
 
 
-def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1, 2, 3, 5, 7, 10)) -> Dict[str, Any]:
+def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1, 3, 5, 10, 15, 20)) -> Dict[str, Any]:
     """Proyección año a año (cap rate, plusvalía, valor, renta, mensualidad, neto al vender, TIR-si-vendes) + el MEJOR
     año para salir (vender vs quedarse). Corre el motor saliendo en cada año → la curva de TIR por año de salida."""
     base = analyze(inp, isr_fn)
     noi = base.get("noi", 0.0)
     ingreso_bruto = (base.get("desglose") or {}).get("ingreso_bruto_anual", 0.0)
-    valor_compra = (base.get("desglose") or {}).get("costo_total") or base.get("costo_total", 0)
+    # año 0 = PRECIO del inmueble (sin escrituración), para que la curva de valor sea coherente: año0 < año1 < ...
+    valor_compra = (base.get("desglose") or {}).get("valor_propiedad") or base.get("costo_total", 0)
     crec = _g(inp, "crecimiento_renta_anual", 0.05)
     rows: List[Dict[str, Any]] = []
     best_y, best_tir = None, None
