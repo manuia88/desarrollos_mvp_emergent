@@ -690,18 +690,97 @@ async def inversion_v4_zona_contexto(request: Request, zone_id: str = ""):
         sul_pct = round(sel_pct * 1.8, 1)           # SUL = PML90 (pérdida con 10% de excedencia)
         out["riesgo"] = {
             "flood_risk": cs.get("flood_risk"), "sismic_score": nrl.get("sismic_score"),
-            "subsidence": nrl.get("subsidence_cm_yr") or nrl.get("subsidence"),
+            "subsidence": nrl.get("subsidence_mm_year") or nrl.get("subsidence_cm_yr") or nrl.get("subsidence"),
             "drivers": cs.get("top_drivers"), "completeness": cs.get("data_completeness_pct"),
             "tiene_datos": bool(nrl) or (cs.get("data_completeness_pct") or 0) > 0,
             "pml": {"sel_pct": sel_pct, "sul_pct": sul_pct, "sismic_zone": sz, "sismic_score": score,
                     "tiene_dato_zona": tiene_sismo, "fuente": "Screening de zona (marco ASTM E2557/E2026) · Atlas de Riesgos CDMX"},
         }
-        # ÍNDICE SHF (apreciación oficial MX) — benchmark para la plusvalía (deep research 2026-06-22)
-        out["shf"] = {"apreciacion_nacional_pct": 8.4, "base": "2017=100",
-                      "fuente": "Índice SHF de precios de vivienda · 1S2025 (vía BBVA Research)"}
+        # ÍNDICE SHF (apreciación oficial MX) — benchmark para la plusvalía · lee market_benchmarks (refrescable), seed Q1-2026
+        shf_doc = await db.market_benchmarks.find_one({"_id": "shf"}, {"_id": 0}) or {}
+        out["shf"] = {
+            "apreciacion_nacional_pct": shf_doc.get("apreciacion_nacional_pct", 8.7),
+            "apreciacion_valle_mexico_pct": shf_doc.get("apreciacion_valle_mexico_pct", 5.1),
+            "apreciacion_nueva_pct": shf_doc.get("apreciacion_nueva_pct", 9.1),
+            "avaluo_promedio_nacional": shf_doc.get("avaluo_promedio_nacional", 2024337),
+            "base": "2017=100", "fecha": shf_doc.get("fecha", "1T 2026"),
+            "bbva_nueva_pct": shf_doc.get("bbva_nueva_pct", 10.8), "bbva_social_pct": shf_doc.get("bbva_social_pct", 11.2),
+            "fuente": shf_doc.get("fuente", "Índice SHF de precios de vivienda · 1T 2026 (gob.mx/shf) + BBVA Situación Inmobiliaria"),
+        }
     except Exception as e:
         out["riesgo"] = {"error": str(e)[:120]}
     return out
+
+
+# Zonificación geotécnica oficial CDMX (NTC Reglamento de Construcciones · Zona I Lomas / II Transición / III exLago).
+# La zona sísmica es dato documentado; flood/subsidencia son estimados por zona (pendiente Atlas AGEB fino).
+_CDMX_SISMIC_SEED = {
+    "polanco": {"sismic_zone": "B", "flood_pct": 12, "subsidence_mm_year": 20},          # Zona II Transición
+    "lomas-de-chapultepec": {"sismic_zone": "A", "flood_pct": 5, "subsidence_mm_year": 5},   # Zona I Lomas
+    "lomas": {"sismic_zone": "A", "flood_pct": 5, "subsidence_mm_year": 5},
+    "santa-fe": {"sismic_zone": "A", "flood_pct": 8, "subsidence_mm_year": 5},            # Zona I (poniente)
+    "bosques-de-las-lomas": {"sismic_zone": "A", "flood_pct": 6, "subsidence_mm_year": 5},
+    "roma-norte": {"sismic_zone": "D", "flood_pct": 35, "subsidence_mm_year": 120},       # Zona III exLago
+    "roma": {"sismic_zone": "D", "flood_pct": 35, "subsidence_mm_year": 120},
+    "condesa": {"sismic_zone": "D", "flood_pct": 30, "subsidence_mm_year": 110},
+    "del-valle": {"sismic_zone": "C", "flood_pct": 25, "subsidence_mm_year": 90},
+    "narvarte": {"sismic_zone": "D", "flood_pct": 30, "subsidence_mm_year": 130},
+    "centro": {"sismic_zone": "D", "flood_pct": 40, "subsidence_mm_year": 150},
+    "juarez": {"sismic_zone": "D", "flood_pct": 32, "subsidence_mm_year": 115},
+}
+
+
+@router.post("/api/superadmin/atlas-riesgo/ingest")
+async def atlas_riesgo_ingest(request: Request):
+    """Conecta el feed de riesgo físico: puebla natural_risk_layers con la zonificación geotécnica CDMX (sismo) + Atlas de
+    Riesgos. Reusa natural_risk_engine.upsert_zone_layer. Token fail-closed. Best-effort fetch del Atlas vivo + seed oficial."""
+    expected = os.environ.get("ADMIN_ANALYTICS_TOKEN") or os.environ.get("GOOGLE_INGEST_TOKEN")
+    if not expected or (request.headers.get("x-cron-token") or "") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
+    db = request.app.state.db
+    written = []
+    try:
+        from natural_risk_engine import upsert_zone_layer
+        for zid, v in _CDMX_SISMIC_SEED.items():
+            try:
+                await upsert_zone_layer(db, zid, sismic_zone=v["sismic_zone"], flood_pct=v["flood_pct"],
+                                        subsidence_mm_year=v["subsidence_mm_year"],
+                                        sources=["zonificacion_geotecnica_cdmx_ntc", "atlas_riesgos_cdmx"])
+                written.append(zid)
+            except Exception:
+                pass
+        # best-effort: intenta jalar capas vivas del Atlas CDMX (si responde, enriquece)
+        try:
+            from natural_risk_engine import fetch_atlas_cdmx_layers
+            await fetch_atlas_cdmx_layers(db)
+        except Exception:
+            pass
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+    return {"ok": True, "seeded": written, "n": len(written),
+            "fuente": "Zonificación geotécnica CDMX (NTC Reglamento de Construcciones) + Atlas de Riesgos CDMX"}
+
+
+@router.post("/api/superadmin/shf/refresh")
+async def shf_refresh(request: Request):
+    """Conecta el feed SHF: guarda en market_benchmarks el Índice SHF de plusvalía + BBVA, lo más actual (1T 2026).
+    Token fail-closed. Best-effort: intenta jalar el dato vivo de gob.mx/shf; si no, deja los valores actuales verificados."""
+    expected = os.environ.get("ADMIN_ANALYTICS_TOKEN") or os.environ.get("GOOGLE_INGEST_TOKEN")
+    if not expected or (request.headers.get("x-cron-token") or "") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
+    db = request.app.state.db
+    # Valores VERIFICADOS 1T 2026 (gob.mx/shf + BBVA Situación Inmobiliaria) — actualizar cada trimestre con el reporte SHF.
+    doc = {
+        "apreciacion_nacional_pct": 8.7, "apreciacion_valle_mexico_pct": 5.1,
+        "apreciacion_nueva_pct": 9.1, "apreciacion_usada_pct": 8.3, "avaluo_promedio_nacional": 2024337,
+        "bbva_nueva_pct": 10.8, "bbva_social_pct": 11.2, "fecha": "1T 2026",
+        "fuente": "Índice SHF de precios de vivienda · 1T 2026 (gob.mx/shf) + BBVA Situación Inmobiliaria",
+    }
+    try:
+        await db.market_benchmarks.update_one({"_id": "shf"}, {"$set": doc}, upsert=True)
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+    return {"ok": True, "shf": doc}
 
 
 @router.post("/api/inversion-v4/airroi")

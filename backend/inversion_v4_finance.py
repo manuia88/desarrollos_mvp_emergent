@@ -382,12 +382,24 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     tvpi = ((distrib_ops + venta_neta_exit) / pic) if pic else None   # Total Value to Paid-In = DPI + RVPI
     twr_unlev = (1.0 + cap_rate) * (1.0 + aprec) - 1.0                # NCREIF total return SIN apalancar (income+appreciation)
     tger = (egresos / valor) if valor else None                       # Total Global Expense Ratio (costos del vehículo / GAV)
+
+    # REPORTE INTERNACIONAL (INREV/NCREIF para LPs extranjeros): TWR por horizontes 1/3/5/10 (time-weighted, geométrico,
+    # sin apalancar = NPI-style) + SI-IRR (since-inception money-weighted = la TIR del flujo completo).
+    def _twr_h(cap0, a, g, h):
+        prod = 1.0
+        for t in range(1, h + 1):
+            income_t = cap0 * (((1.0 + g) / (1.0 + a)) ** (t - 1))    # cap rate del año t (renta crece g, valor crece a)
+            prod *= (1.0 + income_t + a)                              # retorno total año t = income + apreciación
+        return prod ** (1.0 / h) - 1.0 if h else 0.0
+    twr_horizontes = {str(h): round(_twr_h(cap_rate, aprec, crec_renta, h) * 100, 2) for h in (1, 3, 5, 10)}
     metricas_fondo = {
         "pic": round(pic), "tvpi": round(tvpi, 2) if tvpi is not None else None,
         "dpi": round(dpi, 2) if dpi is not None else None, "rvpi": round(rvpi, 2) if rvpi is not None else None,
         "twr_unlev_pct": round(twr_unlev * 100, 2),
         "income_return_pct": round(cap_rate * 100, 2), "apreciacion_return_pct": round(aprec * 100, 2),
         "tger_pct": round(tger * 100, 2) if tger is not None else None,
+        "twr_horizontes_pct": twr_horizontes,                         # {1,3,5,10} time-weighted anualizado
+        "si_irr_pct": round(tir * 100, 2) if tir is not None else None,  # since-inception IRR (money-weighted, apalancado)
     }
     analisis_institucional = {
         "descomposicion_retorno_pct": descomposicion,
