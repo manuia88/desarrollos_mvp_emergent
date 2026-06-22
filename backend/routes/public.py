@@ -524,19 +524,19 @@ async def inversion_v4_analyze(request: Request):
         except Exception:
             fecha_banxico = None
         res["fuentes_fecha"] = {"banxico": fecha_banxico, "shf": "Q1-2026", "lisr": "2026", "airroi": "en vivo por zona"}
-        # AirROI: si hay dato cacheado de renta corta para la zona, úsalo como fuente real (fail-open)
+        # AirROI: expone el dato CACHEADO de la zona (NO llama a la API aquí — AirROI cuesta por llamada; el refresh es aparte)
         try:
-            from airroi_connector import get_zone
             zid = body.get("zone_id")
             if zid:
-                air = await get_zone(db, zid)
+                air = await db.airroi_cache.find_one({"zone_id": zid}, {"_id": 0})
                 if air:
                     res["airroi"] = air
         except Exception:
             pass
-        # honestidad de fuente: solo decir "AirROI" si HAY dato real de AirROI; si no, marcar estimado (sin engañar)
-        if (body.get("modo_renta") == "corto") and not res.get("airroi"):
-            res.setdefault("fuentes", {})["renta"] = "estimado con la tarifa × ocupación que pusiste (AirROI listo — falta conectar la cuenta para datos reales por colonia)"
+        # honestidad de fuente: solo decir "AirROI" si el front usó datos reales de AirROI (manda usa_airroi)
+        if body.get("modo_renta") == "corto":
+            res.setdefault("fuentes", {})["renta"] = ("AirROI · renta corta real de la zona" if body.get("usa_airroi")
+                else "estimado con la tarifa × ocupación que pusiste (toca “Usar AirROI” para datos reales por zona)")
         try:
             from inversion_v4_finance import proyeccion, comparar_renta
             res["proyeccion"] = proyeccion(inp, isr_fn=make_isr_fn())
@@ -558,6 +558,57 @@ async def inversion_v4_analyze(request: Request):
         except Exception:
             res["instrumentos"] = []
         return res
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
+@router.post("/api/inversion-v4/airroi")
+async def inversion_v4_airroi(request: Request):
+    """Trae renta corta REAL de AirROI para una zona (ADR, ocupación, revenue). AirROI COBRA por llamada, así que
+    cacheamos por zona (TTL 30 días) y solo pegamos a la API en refresh explícito (este endpoint, por botón). Devuelve
+    la tarifa/noche ya convertida a MXN con el FIX vivo. Reusa el conector real connectors_ie.AirRoiConnector."""
+    from datetime import datetime, timezone, timedelta
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    zid = str(body.get("zone_id") or "").strip()
+    if not zid:
+        return {"ok": False, "error": "falta zone_id"}
+    db = request.app.state.db
+    force = bool(body.get("force"))
+    try:
+        cached = await db.airroi_cache.find_one({"zone_id": zid}, {"_id": 0})
+    except Exception:
+        cached = None
+    fresh = False
+    if cached and cached.get("fetched_at"):
+        try:
+            fa = cached["fetched_at"]
+            fa = datetime.fromisoformat(fa) if isinstance(fa, str) else fa
+            fresh = (datetime.now(timezone.utc) - fa) < timedelta(days=30)
+        except Exception:
+            fresh = False
+    if cached and fresh and not force:
+        return {"ok": True, "cached": True, **cached}
+    try:
+        from connectors_ie import AirRoiConnector
+        from market_rates_engine import market_context
+        obs = await AirRoiConnector({"id": "airroi"}, {}).fetch(zone_id=zid)
+        if not obs or obs[0].get("is_stub"):
+            return {"ok": False, "error": "AirROI no devolvió datos reales para esta zona (revisa la key IE_AIRROI_API_KEY o el nombre de la colonia)."}
+        payload = obs[0].get("payload") or {}
+        adr_usd = payload.get("average_daily_rate")
+        mkt = await market_context(db)
+        fix = mkt.get("fix_usd") or 18.0
+        doc = {
+            "zone_id": zid, "adr_usd": adr_usd, "adr_mxn": round(adr_usd * fix) if adr_usd else None,
+            "ocupacion": payload.get("occupancy"), "revenue_usd": payload.get("revenue"),
+            "rev_par_usd": payload.get("rev_par"), "listings": payload.get("active_listings_count"),
+            "fuente": "AirROI", "fix_usado": fix, "fetched_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.airroi_cache.update_one({"zone_id": zid}, {"$set": doc}, upsert=True)
+        return {"ok": True, "cached": False, **doc}
     except Exception as e:
         return {"ok": False, "error": str(e)[:200]}
 

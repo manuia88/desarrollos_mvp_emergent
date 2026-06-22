@@ -23,7 +23,7 @@ function Tip({ g }) {
 }
 const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.12)', borderRadius: 5, padding: '1px 5px', verticalAlign: 'middle' }}>AUTO · EDITABLE</span>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '' }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -40,6 +40,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [openAdv, setOpenAdv] = useState(false);
   const [comparar, setComparar] = useState([]);
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
+  const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
+  const [airroiLoading, setAirroiLoading] = useState(false);
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -53,13 +55,28 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     } catch { /* noop */ } finally { setLoading(false); }
   }, []);
 
+  // AirROI: trae tarifa/ocupación REALES de Airbnb por zona (cuesta por llamada → solo al tocar el botón, con caché)
+  const traerAirroi = useCallback(async () => {
+    if (!zoneId) return;
+    setAirroiLoading(true);
+    try {
+      const resp = await fetch(`${API}/api/inversion-v4/airroi`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ zone_id: zoneId }) });
+      const d = await resp.json();
+      if (d && d.ok && d.adr_mxn) {
+        setAirroi(d);
+        setF((s) => ({ ...s, modo_renta: 'corto', tarifa_noche: d.adr_mxn, ocupacion_pct: d.ocupacion || s.ocupacion_pct }));
+      } else { setAirroi({ error: (d && d.error) || 'AirROI no devolvió datos para esta zona.' }); }
+    } catch { setAirroi({ error: 'No se pudo conectar con AirROI.' }); } finally { setAirroiLoading(false); }
+  }, [zoneId]);
+
   useEffect(() => {
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
-    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: num(f.tasa_anual), plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual) };
+    const tasaFrac = (f.tasa_anual === '' || f.tasa_anual === null || f.tasa_anual === undefined) ? undefined : Number(f.tasa_anual) / 100;
+    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
-  }, [f, vista, run]);
+  }, [f, vista, run, zoneId, airroi]);
 
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
@@ -122,10 +139,28 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
           <div><span style={lab}>Cómo lo pagas</span><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
           {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
-          {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
-          {f.con_credito && <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="number" step="0.01" placeholder="11.45" value={f.tasa_anual === '' ? '' : (f.tasa_anual * 100).toFixed(2)} onChange={(e) => set('tasa_anual', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>}
+          {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+          {f.con_credito && <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="text" inputMode="decimal" placeholder="11.45 (Banxico)" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={inp} /></div>}
           {f.con_credito && <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opc.</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>}
         </div>
+        {/* TIRA DE CRÉDITO EN VIVO · ves el efecto de plazo/enganche/tasa sin bajar (quita fricción) */}
+        {f.con_credito && r && r.credito && r.credito.pmt_mensual && (
+          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', padding: '11px 14px', background: 'rgba(124,92,255,0.06)', borderRadius: 10 }}>
+            {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes'], ['Te prestan', m(r.credito.monto_credito)], ['Tu enganche', m(r.credito.capital_propio)], ['Interés total', m(r.credito.interes_total)], ['La renta cubre', pct(r.credito.cobertura_renta_pct)]].map(([l, v]) => (
+              <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{v}</div></div>
+            ))}
+            <div style={{ fontSize: 9.5, color: '#A2A6BC', marginLeft: 'auto' }}>↻ cambia plazo, enganche o tasa y mira aquí</div>
+          </div>
+        )}
+        {/* AIRROI · datos reales de renta corta por zona (cuesta por llamada → botón explícito + caché) */}
+        {f.modo_renta === 'corto' && zoneId && (
+          <div style={{ marginTop: 12, padding: '11px 14px', background: 'rgba(14,165,233,0.08)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 11.5, color: '#0B6E99', lineHeight: 1.45 }}>
+              {airroi && airroi.adr_mxn ? <>📡 <b>AirROI</b> (real de esta zona): <b>{m(airroi.adr_mxn)}/noche</b> · {Math.round((airroi.ocupacion || 0) * 100)}% ocupación · {Math.round(airroi.listings || 0)} deptos activos.</> : (airroi && airroi.error ? <>⚠️ {airroi.error}</> : <>¿Quieres la tarifa y ocupación <b>reales</b> de Airbnb en esta zona? Las trae AirROI.</>)}
+            </div>
+            <button type="button" onClick={traerAirroi} disabled={airroiLoading} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', cursor: airroiLoading ? 'wait' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, background: '#0EA5E9', color: '#fff', whiteSpace: 'nowrap' }}>{airroiLoading ? 'Trayendo…' : (airroi && airroi.adr_mxn ? '↻ Actualizar' : '📡 Usar AirROI')}</button>
+          </div>
+        )}
         <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 12, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados (renta de la zona, predial/mantenim. típicos) — edítalos aquí o en <b>Configuración</b>.{f.con_credito ? ' El abono extra a capital baja el saldo: liquidas antes y pagas menos intereses.' : ''} Solo el precio está fijo.</div>
         {/* CONFIGURACIÓN (supuestos) · dentro de Tus datos */}
         <div style={{ borderTop: '1px solid rgba(16,18,28,0.07)', marginTop: 14, paddingTop: 12 }}>
@@ -207,8 +242,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
                   ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual']] : []),
                   ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Tu propiedad vale más cada año (fuente SHF). En total ~${m((r.atribucion || {}).plusvalia)} al vender. Ganas aunque nunca la rentes.`, 'anual'],
-                  ['🏛️', 'Patrimonio que construyes', m((r.atribucion || {}).equity_buildup), '#6D4AFF', 'La parte del crédito que ya pagaste y ahora es tuya.', 'total'],
-                  ['🧾', 'De tu bolsa hoy', m(deTuBolsa), '#16182A', r.con_credito ? 'Lo que necesitas hoy para entrar (enganche + gastos).' : 'Lo que cuesta entrar (precio + escrituración + equipamiento).', 'total'],
+                  ['🏛️', 'Patrimonio que construyes', m((r.atribucion || {}).equity_buildup), '#6D4AFF', 'De cada mensualidad, una parte baja la deuda (no es interés): ese pedazo se vuelve TUYO y se acumula. Esto es lo que ya “compraste” del depa con tus pagos.', 'total'],
+                  ['🧾', 'De tu bolsa hoy', m(deTuBolsa), '#16182A', r.con_credito ? 'El dinero que necesitas HOY para comprar: enganche + gastos de escrituración. El resto lo presta el banco — NO es el precio completo.' : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total'],
                 ]} />
               </div>
             );
