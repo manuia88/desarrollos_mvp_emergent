@@ -68,7 +68,7 @@ async def cetes_rate(db, plazo: str = "cetes_364") -> float:
 async def market_context(db) -> Dict[str, Any]:
     """Contexto de mercado para la calculadora v4: cetes_1a, cetes_28, udis, inflación, tasa hipotecaria.
     cetes/tasa de market_rates (vivo Banxico); udis live SP68257 (fail-open 8.40); inflación constante (≈Banxico)."""
-    ctx = {"cetes_1a": 0.07, "cetes_28": 0.0625, "udis": 8.40, "inflacion_anual": 0.045, "tasa_hipotecaria": 0.1145}
+    ctx = {"cetes_1a": 0.07, "cetes_28": 0.0625, "udis": 8.40, "inflacion_anual": 0.045, "tasa_hipotecaria": 0.1145, "fix_usd": 18.10}
     try:
         doc = await get_rates(db)
         for v in (doc.get("vehiculos") or []):
@@ -84,13 +84,19 @@ async def market_context(db) -> Dict[str, Any]:
         token = _os.environ.get("IE_BANXICO_TOKEN")
         if token:
             import httpx
-            url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP68257/datos/oportuno"
+            url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP68257,SF43718/datos/oportuno"
             async with httpx.AsyncClient() as c:
                 r = await c.get(url, headers={"Bmx-Token": token}, timeout=15)
             if r.status_code == 200:
-                d = (((r.json() or {}).get("bmx", {}) or {}).get("series", []) or [{}])[0].get("datos") or []
-                if d:
-                    ctx["udis"] = round(float(str(d[-1]["dato"]).replace(",", "")), 4)
+                for s in (((r.json() or {}).get("bmx", {}) or {}).get("series", []) or []):
+                    d = s.get("datos") or []
+                    if not d:
+                        continue
+                    val = float(str(d[-1]["dato"]).replace(",", ""))
+                    if s.get("idSerie") == "SP68257":
+                        ctx["udis"] = round(val, 4)
+                    elif s.get("idSerie") == "SF43718":
+                        ctx["fix_usd"] = round(val, 4)
     except Exception:
         pass
     return ctx

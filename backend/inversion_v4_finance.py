@@ -152,9 +152,14 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         am = amortization(monto_credito, tasa_mensual, plazo, horizonte * 12)
         servicio_deuda_anual = am["pmt"] * 12.0
         saldo_pendiente = am["saldo_pendiente"]
+        interes_total = am["pmt"] * plazo - monto_credito         # interés TOTAL a todo el plazo
         cred = {
-            "ltv": ltv, "tasa_anual_pct": round(tasa_anual * 100, 2), "monto_credito": round(monto_credito),
-            "capital_propio": round(capital_propio), "pmt_mensual": round(am["pmt"]),
+            "ltv": ltv, "tasa_anual_pct": round(tasa_anual * 100, 2), "tasa_mensual_pct": round(tasa_mensual * 100, 4),
+            "plazo_meses": plazo, "plazo_anios": round(plazo / 12),
+            "monto_credito": round(monto_credito), "capital_propio": round(capital_propio),
+            "pmt_mensual": round(am["pmt"]), "pago_anual": round(am["pmt"] * 12.0),
+            "pago_total_plazo": round(am["pmt"] * plazo), "interes_total": round(interes_total),
+            "interes_en_horizonte": round(am["interes_acum"]), "capital_en_horizonte": round(am["capital_acum"]),
             "saldo_pendiente": round(saldo_pendiente), "equity_buildup": round(am["equity_buildup"]),
             "dscr": round(noi / servicio_deuda_anual, 2) if servicio_deuda_anual else None,
             "debt_yield_pct": round(noi / monto_credito * 100, 2) if monto_credito else None,
@@ -273,6 +278,21 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
 
     return {
         "ok": True, "perfil": perfil, "multifamily": multifamily, "con_credito": con_credito,
+        # desglose del costo (estilo pro-forma) + fuentes de cada dato (de dónde sale)
+        "desglose": {
+            "valor_propiedad": round(valor), "enganche": round(capital_propio) if con_credito else round(costo_total),
+            "monto_credito": round(monto_credito), "gastos_escrituracion": round(valor * escrit_pct),
+            "equipamiento": round(equipamiento), "costo_total": round(costo_total),
+            "ingreso_bruto_anual": round(ingreso_bruto_anual), "ingreso_efectivo_anual": round(ingreso_efectivo_anual),
+            "egresos_operativos": round(egresos), "capex_reserve": round(capex_reserve),
+        },
+        "fuentes": {
+            "plusvalia": "SHF (Sociedad Hipotecaria Federal), Q1-2026", "tasa_hipotecaria": "Banxico, prom. Q1-2026",
+            "cetes": "Banxico SIE (CETES 28/364d, en vivo)", "udis": "Banxico SIE (SP68257)", "fix_usd": "Banxico SIE (SF43718)",
+            "cap_rate": "calculado (NOI ÷ precio)", "renta": "estimada del promedio de la zona (motor DMX)",
+            "isr": "LISR 2026 · estimación (detalle fino en el Proyector de Impuestos)",
+            "amortizacion": "amortización francesa estándar", "metricas": "TIR/MIRR/VPN (Geltner & Miller · CFA)",
+        },
         # capa pro (valores crudos)
         "noi": round(noi), "cap_rate_pct": round(cap_rate * 100, 2),
         "cash_on_cash_pct": round(cash_on_cash * 100, 2),
@@ -317,10 +337,11 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
     for y in anios:
         ry = analyze({**inp, "horizonte_anios": y}, isr_fn)
         cred = ry.get("credito") or {}
-        renta_y = round(noi * ((1.0 + crec) ** (y - 1)))
+        noi_y = round(noi * ((1.0 + crec) ** (y - 1)))
+        renta_y = noi_y
         rows.append({
             "anio": y, "valor": ry.get("valor_venta"), "plusvalia_acum": ry.get("plusvalia_neta"),
-            "cap_rate_pct": ry.get("cap_rate_pct"), "renta_anual": renta_y, "renta_mensual": round(renta_y / 12.0),
+            "noi_anual": noi_y, "cap_rate_pct": ry.get("cap_rate_pct"), "renta_anual": renta_y, "renta_mensual": round(renta_y / 12.0),
             "mensualidad_credito": cred.get("pmt_mensual", 0), "saldo_credito": cred.get("saldo_pendiente", 0),
             "neto_al_vender": ry.get("neto_al_vender"), "tir_si_vendes": ry.get("tir_pct"),
         })

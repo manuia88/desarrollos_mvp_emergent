@@ -189,18 +189,23 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
-          {/* CRÉDITO · mensualidad e impacto en la renta y el rendimiento */}
+          {/* CRÉDITO · detalle completo (tasa, préstamo, capital, intereses, interés total) */}
           {r && r.con_credito && r.credito && r.credito.pmt_mensual && (
             <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>💳 Tu Crédito Hipotecario</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(108px,1fr))', gap: 10 }}>
-                {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (fija a 20 años).'],
-                ['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El monto del crédito.'],
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {r.credito.plazo_anios} años · tasa {pct(r.credito.tasa_anual_pct)}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))', gap: 11 }}>
+                {[['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El monto del crédito que pone el banco.'],
                 ['Tu Enganche', m(r.credito.capital_propio), '#7C5CFF', 'Lo que pones de tu bolsa al inicio.'],
-                ['La Renta Cubre', pct(r.credito.cobertura_renta_pct), (r.credito.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626', 'Cuánto de la mensualidad paga la renta. Si es menos de 100%, pones la diferencia de tu bolsa.']].map(([l, v, c, exp]) => (
-                  <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 3 }}>{v}</div><div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div></div>
+                ['Tasa Anual / Mensual', `${pct(r.credito.tasa_anual_pct)} · ${pct(r.credito.tasa_mensual_pct)}`, '#16182A', 'Tasa de interés del banco (anual y su equivalente mensual).'],
+                ['Mensualidad', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Pago fijo al banco cada mes (capital + intereses).'],
+                ['Pago Anual', m(r.credito.pago_anual), '#16182A', 'Lo que pagas al banco en un año.'],
+                ['La Renta Cubre', pct(r.credito.cobertura_renta_pct), (r.credito.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626', 'Cuánto de la mensualidad paga la renta. Si <100%, pones la diferencia.'],
+                ['Capital (Lo Que Devuelves)', m(r.credito.monto_credito), '#7C5CFF', 'El préstamo que regresas al banco.'],
+                ['Interés Total Del Plazo', m(r.credito.interes_total), '#DC2626', `Lo que pagas SOLO de intereses en los ${r.credito.plazo_anios} años. Por eso conviene liquidar o vender antes.`]].map(([l, v, c, exp]) => (
+                  <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, color: c, marginTop: 3 }}>{v}</div><div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div></div>
                 ))}
               </div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 10 }}>Pagas en total <b>{m(r.credito.pago_total_plazo)}</b> ({m(r.credito.monto_credito)} de préstamo + {m(r.credito.interes_total)} de intereses). Amortización francesa.</div>
             </div>
           )}
         </div>
@@ -342,8 +347,20 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
       )}
 
+      {/* FUENTES (de dónde sale cada dato · visible) */}
+      {r && r.fuentes && (
+        <details className="iv4-card" style={{ marginTop: 14, padding: '14px 18px' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>📚 Fuentes de los datos</summary>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
+            {[['Plusvalía', r.fuentes.plusvalia], ['Tasa hipotecaria', r.fuentes.tasa_hipotecaria], ['CETES', r.fuentes.cetes], ['UDIS', r.fuentes.udis], ['Tipo de cambio (FIX)', r.fuentes.fix_usd], ['Cap rate', r.fuentes.cap_rate], ['Renta', r.fuentes.renta], ['ISR / fiscal', r.fuentes.isr], ['Amortización', r.fuentes.amortizacion], ['Métricas (TIR/VPN)', r.fuentes.metricas]].map(([l, v]) => v && (
+              <div key={l} style={{ fontSize: 11, color: '#5B5F76' }}><b style={{ color: '#16182A' }}>{l}:</b> {v}</div>
+            ))}
+          </div>
+        </details>
+      )}
+
       <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', lineHeight: 1.5, marginTop: 14 }}>
-        {loading ? 'Calculando…' : `Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} (Banxico). `}
+        {loading ? 'Calculando…' : `Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} · USD ${(r && r.mercado && r.mercado.fix_usd) || '—'} (Banxico). `}
         Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
         para el detalle de <b>ISAI e ISR</b> (compra y venta) usa el <b>Proyector de Impuestos</b>. El cálculo definitivo lo hace tu contador/notario.
       </div>
