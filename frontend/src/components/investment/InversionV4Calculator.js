@@ -136,6 +136,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           </div>
         </div>
+        {moneda === 'USD' && r && r.mercado && r.mercado.fix_usd && (
+          <div style={{ fontSize: 10.5, color: '#0B6E99', background: 'rgba(14,165,233,0.08)', borderRadius: 8, padding: '7px 11px', marginBottom: 12, display: 'inline-block' }}>
+            💱 Tipo de cambio: <b>1 USD = ${r.mercado.fix_usd} MXN</b> · Banxico (FIX){(r.fuentes_fecha || {}).banxico ? `, consultado ${r.fuentes_fecha.banxico}` : ''}. Se actualiza solo cada día.
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 13, alignItems: 'end' }}>
           <div><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
             {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
@@ -398,8 +403,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>
 
 
-      {/* ───── SECCIONES VISUALES · Rentar fijo/Airbnb full-width arriba, cascada + vs-instrumentos en par abajo ───── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' }}>
+      {/* ───── SECCIONES VISUALES · ancho completo apiladas (sin columnas angostas = sin huecos) ───── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           {/* LARGO PLAZO vs AIRBNB */}
           {r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
@@ -443,7 +448,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#7C5CFF'], ['Plusvalía', a.plusvalia, '#C026D3']].filter(([, v]) => (v || 0) > 0);
             return (
               <div className="iv4-card">
-                <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>De dónde viene tu ganancia <span style={{ fontWeight: 700, color: '#16182A' }}>· {m(tot)}</span></div>
+                <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>De dónde viene tu ganancia <span style={{ fontWeight: 700, color: '#16182A' }}>· {m(tot)}</span><Info><>Tu ganancia total sale de 3 cosas: <b>Renta</b> (lo que junta de rentas, ya sin gastos), <b>Patrimonio</b> (lo que pagaste del crédito y ya es tuyo) y <b>Plusvalía</b> (lo que subió de valor el depa). La barra muestra cuánto pone cada una. <b>Tu caso:</b> total {m(tot)}.</></Info></div>
                 <div style={{ display: 'flex', height: 26, borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
                   {segs.map(([l, v, c]) => <div key={l} title={`${l}: ${m(v)}`} style={{ width: `${tot ? (v / tot) * 100 : 0}%`, background: c }} />)}
                 </div>
@@ -454,28 +459,50 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
           })()}
 
-          {/* Barra vs instrumentos */}
-          {r && r.instrumentos && r.instrumentos.length > 0 && (
-            <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>Tu inmueble vs otras opciones</div>
-              {[{ nombre: '🏠 Este inmueble', pct: r.tir_pct, hero: true }, ...r.instrumentos.map((i) => ({ nombre: i.nombre, pct: i.pct }))].map((b, i) => {
-                const max = Math.max(r.tir_pct || 0, ...r.instrumentos.map((x) => x.pct || 0), 1);
-                return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-                    <div style={{ width: 120, fontSize: 11.5, color: b.hero ? '#16182A' : '#6B6F86', fontWeight: b.hero ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.nombre}</div>
-                    <div style={{ flex: 1, background: 'rgba(16,18,28,0.05)', borderRadius: 6, height: 14, overflow: 'hidden' }}><div style={{ width: `${Math.max(2, ((b.pct || 0) / max) * 100)}%`, height: '100%', background: b.hero ? 'linear-gradient(90deg,#6D4AFF,#C026D3)' : '#A9ADC4' }} /></div>
-                    <div style={{ width: 44, textAlign: 'right', fontWeight: 800, fontSize: 12, color: b.hero ? '#6D28D9' : '#6B6F86' }}>{pct(b.pct)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* TABLA COMPARATIVA RICA · tu inmueble vs otras inversiones (no solo %) */}
+          {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+            const SiNo = (b) => b ? <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓ Sí</span> : <span style={{ color: '#C0C3D2', fontWeight: 700 }}>✗ No</span>;
+            const inmueble = { nombre: 'Este inmueble', emoji: '🏠', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', ticket: 'Enganche', apalancable: true, tangible: true, inflacion: 'Sí (real)', mensual: true, esfuerzo: 'Medio', fuente: 'Motor DMX', hero: true };
+            const filas = [inmueble, ...r.instrumentos];
+            const cols = [
+              ['Rinde al año', (x) => x.pct == null ? '—' : pct(x.pct), <><b>Qué es:</b> cuánto te da al año. En tu depa es la <b>TIR</b> (renta + plusvalía); en los demás, su tasa típica. <b>Tu depa:</b> {pct(r.tir_pct)}. <b>Fuente:</b> Banxico/BMV.</>],
+              ['Riesgo', (x) => x.riesgo || '—', <><b>Qué tan fácil es perder.</b> CETES = muy bajo (lo respalda el gobierno); Bolsa = alto (sube y baja mucho). Tu depa = medio-bajo: es físico y la zona lo respalda.</>],
+              ['Sacar tu dinero', (x) => x.liquidez || '—', <><b>Liquidez:</b> qué tan rápido lo vuelves efectivo. CETES en días; un depa tarda <b>meses</b> en venderse (por eso "baja").</>],
+              ['Para empezar', (x) => x.ticket || '—', <><b>Mínimo de entrada.</b> En CETES desde $100; un depa necesita el <b>enganche</b> (cientos de miles). Por eso el inmueble es para montos grandes.</>],
+              ['Con crédito', (x) => SiNo(x.apalancable), <><b>¿Puedes usar dinero del banco</b> para comprar más de lo que tienes? Solo el inmueble (hipoteca). Eso <b>multiplica</b> tu ganancia (o pérdida).</>],
+              ['Es físico', (x) => SiNo(x.tangible), <><b>¿Es algo que tocas y controlas?</b> El depa sí (ladrillos); CETES y acciones son papeles/digital. Lo físico da tranquilidad a muchos.</>],
+              ['Gana a inflación', (x) => x.inflacion || '—', <><b>¿Tu dinero NO pierde valor con el tiempo?</b> Bien raíz y bolsa suelen ganarle; CETES solo en parte; los UDIBONOS están atados a la inflación.</>],
+              ['Te paga al mes', (x) => SiNo(x.mensual), <><b>¿Te da flujo cada mes?</b> Tu depa (renta) y las FIBRAs sí; CETES te paga hasta el final. Útil si quieres ingreso constante.</>],
+              ['Esfuerzo', (x) => x.esfuerzo || '—', <><b>Cuánto trabajo te da.</b> CETES = nulo (lo dejas y ya); un depa en renta = medio (inquilinos, mantenimiento, o un administrador).</>],
+            ];
+            return (
+              <div className="iv4-card">
+                <div style={{ fontWeight: 800, fontSize: 13 }}>📊 Tu inmueble vs otras inversiones <Info><>Comparamos tu depa contra las inversiones más comunes en México — <b>no solo por el rendimiento</b>, también por riesgo, liquidez, esfuerzo y más. Así ves dónde gana cada una. <b>Fuentes:</b> Banxico, BMV, SHF.</></Info></div>
+                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Tu depa casi nunca da el <b>% más alto</b>, pero gana en lo que el "dinero fácil" no tiene: es <b>físico</b>, lo puedes comprar <b>a crédito</b>, te paga <b>renta cada mes</b> y <b>sube de valor</b>. Aquí lo ves lado a lado:</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                    <thead><tr style={{ color: '#6B6F86' }}>
+                      <th style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', position: 'sticky', left: 0, background: '#fff', whiteSpace: 'nowrap' }}>Opción</th>
+                      {cols.map(([l, , info]) => <th key={l} style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>{l}<Info>{info}</Info></th>)}
+                    </tr></thead>
+                    <tbody>{filas.map((x, fi) => (
+                      <tr key={fi} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: x.hero ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
+                        <td style={{ padding: '8px', fontWeight: 800, color: x.hero ? '#6D28D9' : '#16182A', position: 'sticky', left: 0, background: x.hero ? '#F3EFFF' : '#fff', whiteSpace: 'nowrap' }}>{x.hero ? '🏠 ' : ''}{x.nombre}</td>
+                        {cols.map(([l, get], ci) => <td key={l} style={{ padding: '8px', whiteSpace: 'nowrap', color: ci === 0 ? (x.hero ? '#6D28D9' : '#16182A') : '#5B5F76', fontWeight: ci === 0 ? 800 : 600 }}>{get(x)}</td>)}
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 10, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados — el mercado cambia.</div>
+              </div>
+            );
+          })()}
       </div>{/* fin grid visual */}
 
           {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica · ancho completo) */}
           {r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
             <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año</div>
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año <Info><><b>Cómo leerla:</b> cada renglón es un año. <b>Valor</b> = cuánto valdrá el depa. <b>Renta/mes</b> = lo que paga el inquilino. <b>Ganancia/año</b> = renta menos gastos. <b>Mensualidad</b> = lo que pagas al banco. <b>Diferencial</b> = lo que te queda o pones de tu bolsa al mes. <b>TIR si vendes</b> = cuánto te rindió si vendes ese año.</></Info></div>
               <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 12, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}</div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56, marginBottom: 12 }}>
                 {r.proyeccion.rows.map((row) => { const mx = Math.max(...r.proyeccion.rows.map((x) => x.valor || 0)) || 1; const best = row.anio === r.proyeccion.mejor_anio; return (
@@ -487,21 +514,27 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
-                  <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Valor', 'Plusvalía', 'NOI/Año', 'Renta/Mes', 'Mensual.', 'TIR Si Vendes'].map((h, i) => <th key={h} style={{ padding: '6px 5px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-                  <tbody>{r.proyeccion.rows.map((row) => { const best = row.anio === r.proyeccion.mejor_anio; return (
+                  <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Valor', 'Plusvalía', 'Renta/Mes', 'Ganancia/Año', 'Mensualidad', 'Diferencial', 'TIR Si Vendes'].map((h, i) => <th key={h} style={{ padding: '6px 5px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <tbody>{r.proyeccion.valor_compra ? <tr style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: 'rgba(16,18,28,0.02)' }}>
+                    <td style={{ padding: '7px 5px', fontWeight: 800, color: '#16182A' }}>0 · compra</td>
+                    <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 700 }}>{m(r.proyeccion.valor_compra)}</td>
+                    <td colSpan={6} style={{ padding: '7px 5px', textAlign: 'right', color: '#A2A6BC', fontSize: 10.5 }}>lo que inviertes al entrar (precio + escrituración)</td>
+                  </tr> : null}
+                  {r.proyeccion.rows.map((row) => { const best = row.anio === r.proyeccion.mejor_anio; const dif = row.diferencial_mensual || 0; return (
                     <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: best ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
                       <td style={{ padding: '7px 5px', fontWeight: 800, color: best ? '#6D28D9' : '#16182A' }}>{row.anio}{best ? ' ⭐' : ''}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.valor)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#0E9F6E' }}>+{m(row.plusvalia_acum)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.renta_bruta_mensual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.noi_anual)}</td>
-                      <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.renta_mensual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#8A8FA6' }}>{row.mensualidad_credito ? m(row.mensualidad_credito) : '—'}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 700, color: dif >= 0 ? '#0E9F6E' : '#DC2626' }}>{m(dif)}/mes</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 800, color: (row.tir_si_vendes || 0) >= 0 ? '#7C5CFF' : '#DC2626' }}>{pct(row.tir_si_vendes)}</td>
                     </tr>
                   ); })}</tbody>
                 </table>
               </div>
-              <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', marginTop: 8 }}>⭐ = el mejor año para salir (TIR máxima). La mensualidad es fija; la renta sube cada año, así que con el tiempo te alcanza mejor.</div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', marginTop: 8 }}>⭐ = el mejor año para salir (TIR máxima). <b style={{ color: '#DC2626' }}>Diferencial en rojo</b> = pones de tu bolsa al mes (la renta aún no cubre el crédito); <b style={{ color: '#0E9F6E' }}>en verde</b> = te sobra. La mensualidad es fija y la renta sube cada año, así que con el tiempo mejora.</div>
             </div>
           )}
 
@@ -514,13 +547,27 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
+      {/* ───── CALL TO ACTION (convierte el interés en lead) ───── */}
+      {r && (
+        <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #C026D3)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 280px' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5 }}>¿Te late? Llévalo al siguiente paso.</div>
+            <div style={{ fontSize: 12, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>Un asesor te arma el plan a tu medida —crédito, mejor año para vender, apartado— sin costo y sin compromiso.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => { try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_inversion', zona: zoneId, precio: f.valor_propiedad, tir: r.tir_pct } })); } catch { /* noop */ } askAtlax(`Me interesa invertir en este depa de ${m(f.valor_propiedad)} (TIR ${pct(r.tir_pct)}). Ayúdame con el siguiente paso y conéctame con un asesor.`); }} style={{ padding: '12px 18px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: '#fff', color: '#6D28D9' }}>📩 Quiero que me asesoren</button>
+            <a href="#empezar" style={{ padding: '12px 16px', borderRadius: 11, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>📅 Agendar visita</a>
+          </div>
+        </div>
+      )}
+
       {/* ───── ACCIONES + MODO AVANZADO (ancho completo) ───── */}
       <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
         <button type="button" onClick={() => askAtlax(`¿Qué pasa si…? Analizo una inversión de ${m(f.valor_propiedad)} con renta ${m(f.renta_mensual)}/mes, ${f.con_credito ? 'con crédito' : 'al contado'}, horizonte ${f.horizonte_anios} años. Ayúdame a explorar escenarios.`)} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF' }}>💬 ¿Qué pasa si…?</button>
         {r && <button type="button" onClick={() => setComparar((c) => [...c.slice(-2), { zona: zoneId, precio: f.valor_propiedad, credito: f.con_credito, plazo: Number(f.plazo_meses), modo: f.modo_renta, tir: r.tir_pct, em: r.equity_multiple, neto: r.neto_al_vender }])} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: comparar.length ? 'rgba(124,92,255,0.1)' : '#fff', color: '#6D4AFF' }}>📌 Guardar para comparar{comparar.length ? ` (${comparar.length} guardado${comparar.length > 1 ? 's' : ''})` : ''}</button>}
         <button type="button" onClick={() => window.print()} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>📄 PDF</button>
       </div>
-      {r && <div className="iv4-noprint" style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 6, lineHeight: 1.5 }}>💡 Para comparar A/B: toca <b>Guardar para comparar</b>, luego {lockPrice ? 'elige otra unidad arriba (o cambia crédito/plazo)' : 'cambia el precio, el crédito o el plazo'} y guarda otro — aparecen lado a lado abajo.</div>}
+      {r && <div className="iv4-noprint" style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 6, lineHeight: 1.5 }}>💡 Para comparar proyectos de <b>esta colonia</b>: toca <b>Guardar para comparar</b>, luego {lockPrice ? 'elige otra unidad arriba (o cambia crédito/plazo)' : 'cambia el precio, el crédito o el plazo'} y guarda otro — aparecen lado a lado abajo.{lockPrice && <> ¿Comparar <b>zonas distintas</b>? Ve al <a href="/simulador" target="_blank" rel="noreferrer" style={{ color: '#6D28D9', fontWeight: 700, textDecoration: 'underline' }}>Simulador de inversión</a>.</>}</div>}
 
       {comparar.length > 0 && (
         <div className="iv4-card" style={{ marginTop: 12, overflowX: 'auto' }}>

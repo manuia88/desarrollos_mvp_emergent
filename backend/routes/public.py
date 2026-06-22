@@ -553,8 +553,10 @@ async def inversion_v4_analyze(request: Request):
         # comparativa de instrumentos para la barra "tu inmueble vs CETES vs S&P" (de market_rates)
         try:
             rates = await get_rates(db)
-            res["instrumentos"] = [{"k": v.get("k"), "nombre": v.get("nombre"), "pct": v.get("pct"), "live": v.get("live", False)}
-                                   for v in (rates.get("vehiculos") or []) if v.get("k") in ("cetes_364", "bolsa", "fibra", "pagare")]
+            # tabla comparativa rica (no solo %): riesgo/liquidez/ticket/apalancable/tangible/inflación/mensual/esfuerzo/fuente
+            _campos = ("k", "nombre", "cat", "pct", "riesgo", "liquidez", "ticket", "apalancable", "tangible", "inflacion", "mensual", "esfuerzo", "fuente", "live")
+            res["instrumentos"] = [{c: v.get(c) for c in _campos}
+                                   for v in (rates.get("vehiculos") or []) if v.get("k") in ("cetes_364", "pagare", "fibra", "bolsa", "afore", "udibonos")]
         except Exception:
             res["instrumentos"] = []
         return res

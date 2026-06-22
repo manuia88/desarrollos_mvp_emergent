@@ -403,6 +403,8 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
     año para salir (vender vs quedarse). Corre el motor saliendo en cada año → la curva de TIR por año de salida."""
     base = analyze(inp, isr_fn)
     noi = base.get("noi", 0.0)
+    ingreso_bruto = (base.get("desglose") or {}).get("ingreso_bruto_anual", 0.0)
+    valor_compra = (base.get("desglose") or {}).get("costo_total") or base.get("costo_total", 0)
     crec = _g(inp, "crecimiento_renta_anual", 0.05)
     rows: List[Dict[str, Any]] = []
     best_y, best_tir = None, None
@@ -410,11 +412,14 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
         ry = analyze({**inp, "horizonte_anios": y}, isr_fn)
         cred = ry.get("credito") or {}
         noi_y = round(noi * ((1.0 + crec) ** (y - 1)))
-        renta_y = noi_y
+        renta_bruta_y = round(ingreso_bruto * ((1.0 + crec) ** (y - 1)))
+        pmt = cred.get("pmt_mensual", 0) or 0
+        diferencial_mensual = round(noi_y / 12.0 - pmt)   # lo que te queda (o pones) al mes tras gastos y crédito
         rows.append({
             "anio": y, "valor": ry.get("valor_venta"), "plusvalia_acum": ry.get("plusvalia_neta"),
-            "noi_anual": noi_y, "cap_rate_pct": ry.get("cap_rate_pct"), "renta_anual": renta_y, "renta_mensual": round(renta_y / 12.0),
-            "mensualidad_credito": cred.get("pmt_mensual", 0), "saldo_credito": cred.get("saldo_pendiente", 0),
+            "noi_anual": noi_y, "cap_rate_pct": ry.get("cap_rate_pct"),
+            "renta_bruta_mensual": round(renta_bruta_y / 12.0), "renta_mensual": round(noi_y / 12.0),
+            "mensualidad_credito": pmt, "diferencial_mensual": diferencial_mensual, "saldo_credito": cred.get("saldo_pendiente", 0),
             "neto_al_vender": ry.get("neto_al_vender"), "tir_si_vendes": ry.get("tir_pct"),
         })
         t = ry.get("tir_pct")
@@ -422,7 +427,7 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
             best_tir, best_y = t, y
     rec = (f"El mejor año para vender es el {best_y} — ahí tu rendimiento anual es máximo ({best_tir}%). "
            f"Antes de ese año, quédatelo; después, el rendimiento empieza a diluirse.") if best_y else "Sin datos suficientes."
-    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir, "recomendacion": rec,
+    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir, "recomendacion": rec, "valor_compra": round(valor_compra),
             "veredicto_salida": ("VENDER" if best_y and best_y <= _g(inp, "horizonte_anios", 5) else "QUEDÁRSELO")}
 
 
