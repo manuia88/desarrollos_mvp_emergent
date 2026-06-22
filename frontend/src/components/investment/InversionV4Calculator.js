@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const m = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;
 const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`);
 
 const GLOSS = {
@@ -40,6 +39,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [vista, setVista] = useState('simple');     // 'simple' (te lleva de la mano) | 'institucional' (experto)
   const [openAdv, setOpenAdv] = useState(false);
   const [comparar, setComparar] = useState([]);
+  const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -77,6 +77,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
   const multifamily = Number(f.num_unidades) >= 5;
   const sem = (r && r.veredicto && SEM[r.veredicto.semaforo]) || '#8A8FA6';
+  // formateador de dinero local (convierte a USD con el FIX vivo) — sombrea el módulo para toda la vista
+  const fix = (r && r.mercado && r.mercado.fix_usd) || 18.0;
+  const m = (n) => (moneda === 'USD'
+    ? `US$${Math.round((Number(n) || 0) / fix).toLocaleString('en-US')}`
+    : `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`);
 
   return (
     <div style={{ fontFamily: 'DM Sans', color: '#16182A' }}>
@@ -139,11 +144,18 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
         {/* ───── COLUMNA DERECHA · RESULTADO VISUAL ───── */}
         <div style={{ flex: '1 1 340px', minWidth: 300, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* SWITCH de vista (clara división simple ↔ institucional) */}
-          <div className="iv4-noprint" style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3, alignSelf: 'flex-start' }}>
-            {[['simple', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
-              <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
-            ))}
+          {/* SWITCH de vista (clara división simple ↔ institucional) + moneda MXN/USD */}
+          <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
+              {[['simple', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
+              ))}
+            </div>
+            <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
+              {['MXN', 'USD'].map((mo) => (
+                <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D28D9' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
+              ))}
+            </div>
           </div>
           {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginTop: -6 }}>Te explicamos cada número en palabras simples. ¿Eres experto? Cambia a Institucional ↑</div>}
 
@@ -186,6 +198,19 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* DESGLOSE DEL COSTO (cómo se arma la inversión · reading flow) */}
+          {r && r.desglose && (
+            <div className="iv4-card">
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🧾 Cómo Se Arma La Inversión</div>
+              {[['Precio del inmueble', r.desglose.valor_propiedad], ['Gastos de escrituración', r.desglose.gastos_escrituracion], ...(r.desglose.equipamiento ? [['Equipamiento', r.desglose.equipamiento]] : []), ['Costo total', r.desglose.costo_total, true]].map(([l, v, tot]) => (
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: tot ? '2px solid rgba(16,18,28,0.1)' : '1px solid rgba(16,18,28,0.05)', fontSize: 12.5 }}>
+                  <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}</span><span style={{ fontWeight: 800, color: '#16182A' }}>{m(v)}</span>
+                </div>
+              ))}
+              {r.con_credito && r.credito && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0 0', fontSize: 12 }}><span style={{ color: '#6B6F86' }}>De tu bolsa hoy (enganche + gastos)</span><span style={{ fontWeight: 800, color: '#7C5CFF' }}>{m(r.credito.capital_propio)}</span></div>}
             </div>
           )}
 
@@ -280,12 +305,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
-                  <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Valor', 'Plusvalía', 'Renta/Mes', 'Mensual.', 'TIR Si Vendes'].map((h, i) => <th key={h} style={{ padding: '6px 5px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Valor', 'Plusvalía', 'NOI/Año', 'Renta/Mes', 'Mensual.', 'TIR Si Vendes'].map((h, i) => <th key={h} style={{ padding: '6px 5px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                   <tbody>{r.proyeccion.rows.map((row) => { const best = row.anio === r.proyeccion.mejor_anio; return (
                     <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: best ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
                       <td style={{ padding: '7px 5px', fontWeight: 800, color: best ? '#6D28D9' : '#16182A' }}>{row.anio}{best ? ' ⭐' : ''}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.valor)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#0E9F6E' }}>+{m(row.plusvalia_acum)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.noi_anual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.renta_mensual)}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', color: '#8A8FA6' }}>{row.mensualidad_credito ? m(row.mensualidad_credito) : '—'}</td>
                       <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 800, color: (row.tir_si_vendes || 0) >= 0 ? '#7C5CFF' : '#DC2626' }}>{pct(row.tir_si_vendes)}</td>
