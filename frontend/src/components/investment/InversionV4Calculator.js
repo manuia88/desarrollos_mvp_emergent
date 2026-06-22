@@ -663,6 +663,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           ['Multiplicas', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final (renta + venta). <b>Tu caso:</b> {r.equity_multiple}x.</>],
           ...(cr.dscr != null ? [['DSCR', cr.dscr, (cr.dscr >= 1.2 ? '#0E9F6E' : cr.dscr >= 1 ? '#E0A33E' : '#DC2626'), <><b>Cobertura del crédito</b> (Debt Service Coverage Ratio): NOI ÷ pago anual al banco. Mayor a 1 = la renta cubre el crédito; los bancos suelen pedir <b>≥1.2</b>. <b>Tu caso:</b> {cr.dscr}.</>]] : []),
           ...(cr.debt_yield_pct != null ? [['Debt yield', pct(cr.debt_yield_pct), '#16182A', <>NOI ÷ monto del préstamo. Métrica de riesgo que mira el banco: arriba de <b>~10%</b> se considera sano. <b>Tu caso:</b> {pct(cr.debt_yield_pct)}.</>]] : []),
+          ...((r.proyeccion || {}).payback_anio ? [['Recuperas tu inversión', `año ${r.proyeccion.payback_anio}`, '#0E9F6E', <>El año en que lo que te llevas al vender ya <b>recupera lo que pusiste</b> de tu bolsa. Antes de eso, todavía no "sales tablas". <b>Tu caso:</b> ~año {r.proyeccion.payback_anio}.</>]] : []),
         ];
         return (
           <div className="iv4-card" style={{ marginTop: 12, borderTop: '4px solid #6D4AFF' }}>
@@ -681,6 +682,23 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 6 }}>Sensibilidad: TIR según el precio de salida <Info><>Muestra cómo cambia tu TIR si al vender el mercado paga más caro o más barato (el "exit cap": menor % = precio de venta más alto). Sirve para ver qué tan frágil es tu rendimiento ante el mercado de salida. El recuadro morado es tu supuesto base.</></Info></div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{r.sensibilidad.por_exit_cap.map((s) => <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '6px 9px', borderRadius: 8, background: s.es_base ? 'rgba(124,92,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #7C5CFF' : '1px solid transparent' }}><div style={{ fontSize: 9.5, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: s.es_base ? '#6D28D9' : '#16182A' }}>{pct(s.tir_pct)}</div></div>)}</div>
+              </div>
+            )}
+            {r.sensibilidad && r.sensibilidad.por_tasa_aprec && (r.sensibilidad.por_tasa_aprec.filas || []).length > 0 && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 6 }}>Mapa de calor: TIR según tasa del crédito × plusvalía <Info><>Tu TIR depende de dos cosas inciertas: la <b>tasa</b> a la que te presta el banco y la <b>plusvalía</b> de la zona. Esta matriz te muestra la TIR en cada combinación — <b>verde</b> = sana, <b>ámbar</b> = floja, <b>rojo</b> = pierdes. El recuadro morado es tu supuesto actual. Así ves de qué tan frágil es tu rendimiento.</></Info></div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ borderCollapse: 'collapse', fontSize: 10.5 }}>
+                    <thead><tr style={{ color: '#8A8FA6' }}><th style={{ padding: '5px 8px', textAlign: 'left', fontWeight: 700, whiteSpace: 'nowrap' }}>Tasa ╲ Plusvalía</th>{r.sensibilidad.por_tasa_aprec.aprec_cols.map((a) => <th key={a} style={{ padding: '5px 8px', fontWeight: 700 }}>{a}%</th>)}</tr></thead>
+                    <tbody>{r.sensibilidad.por_tasa_aprec.filas.map((f) => (
+                      <tr key={f.tasa_pct}>
+                        <td style={{ padding: '5px 8px', fontWeight: 800, color: '#6B6F86', whiteSpace: 'nowrap' }}>{f.tasa_pct}%</td>
+                        {f.celdas.map((c, ci) => { const t = c.tir_pct || 0; const bg = t < 0 ? '#FCE4E4' : t < 7 ? '#FCF1DD' : '#E3F5EC'; const col = t < 0 ? '#DC2626' : t < 7 ? '#8A6A1E' : '#0E7A53'; return <td key={ci} style={{ padding: '6px 9px', textAlign: 'center', fontWeight: 800, color: col, background: bg, border: c.es_base ? '2px solid #7C5CFF' : '1px solid #fff' }}>{pct(c.tir_pct)}</td>; })}
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>🟩 sana · 🟨 floja · 🟥 pierde · borde morado = tu supuesto. Mueve tasa o plusvalía arriba y la matriz cambia.</div>
               </div>
             )}
             {r.montecarlo && (

@@ -239,6 +239,12 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     _egresos_fijos = egresos - egresos_extra_corto                 # los que NO escalan con la renta (predial, mantenim, seguro)
     _denom = 1.0 - _vac - _g(inp, "capex_reserve_pct", 0.04) - _corto_f
     renta_equilibrio_mensual = round(((_egresos_fijos + servicio_deuda_anual) / _denom) / 12.0) if _denom > 0 else None
+    # ocupación de equilibrio (solo Airbnb): % de ocupación al que el flujo = 0
+    ocupacion_equilibrio_pct = None
+    if renta_corto:
+        _tarifa = _g(inp, "tarifa_noche", 0.0)
+        if _tarifa > 0 and renta_equilibrio_mensual:
+            ocupacion_equilibrio_pct = round((renta_equilibrio_mensual * 12.0) / (_tarifa * 365.0) * 100, 1)
 
     # ── horizonte / mercado ──
     horizonte = int(_g(inp, "horizonte_anios", 5))
@@ -382,7 +388,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         "noi": round(noi), "cap_rate_pct": round(cap_rate * 100, 2),
         "cash_on_cash_pct": round(cash_on_cash * 100, 2),
         "flujo_caja_anual_1": round(flujo_caja_anual_1), "flujo_mensual_1": round(flujo_caja_anual_1 / 12.0),
-        "renta_equilibrio_mensual": renta_equilibrio_mensual,
+        "renta_equilibrio_mensual": renta_equilibrio_mensual, "ocupacion_equilibrio_pct": ocupacion_equilibrio_pct,
         "costo_total": round(costo_total), "capital_invertido": round(capital_base),
         "valor_venta": round(valor_venta), "costos_venta": round(costos_venta),
         "neto_al_vender": round(valor_venta - costos_venta - isr_venta - (saldo_pendiente if con_credito else 0.0)),
@@ -450,6 +456,9 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
             best_tir, best_y = t, y
         if retorno_marginal >= hurdle:                 # mientras retenerlo beneficie más que tu alternativa, conviene quedárselo
             mejor_marginal_y = y
+    # payback: primer año en que lo que te llevas al vender (neto) ya recupera lo que pusiste
+    cap_inv = base.get("capital_invertido", 0)
+    payback_anio = next((row["anio"] for row in rows if (row.get("neto_al_vender") or 0) >= cap_inv), None)
     # recomendación honesta: la regla de disposición (retorno marginal vs hurdle), no solo "máxima TIR"
     hpct = round(hurdle * 100, 1)
     if mejor_marginal_y is None:
@@ -466,7 +475,7 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
         rec = (f"Punto de salida sugerido: ~año {mejor_marginal_y}. Hasta ahí, retenerlo te rinde más que tu tasa de oportunidad "
                f"(~{hpct}%); después, el rendimiento de seguir reteniéndolo cae por debajo y conviene vender y reinvertir. "
                f"Regla de 'retorno marginal de retención' (Geltner & Miller).")
-    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir,
+    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir, "payback_anio": payback_anio,
             "salida_marginal_anio": mejor_marginal_y, "hurdle_pct": hpct, "recomendacion": rec, "valor_compra": round(valor_compra),
             "bibliografia": "Geltner, Miller, Clayton & Eichholtz — Commercial Real Estate Analysis & Investments (decisión de disposición / retorno marginal de retención).",
             "veredicto_salida": ("VENDER" if mejor_marginal_y and mejor_marginal_y < max(anios) else "QUEDÁRSELO")}
@@ -554,7 +563,19 @@ def sensibilidad(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict
         ap = round(apr_base + d, 4)
         r = analyze({**inp, "apreciacion_anual": ap, "exit_cap_rate": 0.0}, isr_fn)
         apr_row.append({"apreciacion_pct": round(ap * 100, 1), "tir_pct": r.get("tir_pct"), "es_base": d == 0.0})
-    return {"por_exit_cap": exit_row, "por_apreciacion": apr_row}
+    # 2D · mapa de calor: TIR según tasa del crédito (filas) × plusvalía (columnas)
+    tasa_base = _g(inp, "tasa_anual", 0.1145)
+    tasas = [round(tasa_base + d, 4) for d in (-0.02, -0.01, 0.0, 0.01, 0.02) if tasa_base + d > 0]
+    aprs = [round(apr_base + d, 4) for d in (-0.02, -0.01, 0.0, 0.01, 0.02)]
+    matriz = []
+    for ta in tasas:
+        celdas = []
+        for ap in aprs:
+            rr = analyze({**inp, "tasa_anual": ta, "apreciacion_anual": ap, "exit_cap_rate": 0.0}, isr_fn)
+            celdas.append({"tir_pct": rr.get("tir_pct"), "es_base": abs(ta - tasa_base) < 1e-9 and abs(ap - apr_base) < 1e-9})
+        matriz.append({"tasa_pct": round(ta * 100, 2), "celdas": celdas})
+    return {"por_exit_cap": exit_row, "por_apreciacion": apr_row,
+            "por_tasa_aprec": {"aprec_cols": [round(a * 100, 1) for a in aprs], "filas": matriz}}
 
 
 def _mejor_anio_venta(inp, noi, capex, servicio, isr_renta, crec, aprec, exit_cap, com_venta, con_credito,
