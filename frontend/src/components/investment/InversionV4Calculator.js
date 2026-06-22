@@ -229,6 +229,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               </div>
             );
             const apre = (Number(f.apreciacion_anual) * 100).toFixed(1);
+            const horizonte = Number(f.horizonte_anios) || 5;
+            const mesesHz = horizonte * 12;
+            const gananciaPlusv1 = Math.round((Number(f.valor_propiedad) || 0) * (Number(f.apreciacion_anual) || 0));
             const deTuBolsa = r.con_credito && r.credito ? r.credito.capital_propio : (r.desglose || {}).costo_total;
             return (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
@@ -241,9 +244,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ]} />
                 <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
                   ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual']] : []),
-                  ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Tu propiedad vale más cada año (fuente SHF). En total ~${m((r.atribucion || {}).plusvalia)} al vender. Ganas aunque nunca la rentes.`, 'anual'],
-                  ['🏛️', 'Patrimonio que construyes', m((r.atribucion || {}).equity_buildup), '#6D4AFF', 'De cada mensualidad, una parte baja la deuda (no es interés): ese pedazo se vuelve TUYO y se acumula. Esto es lo que ya “compraste” del depa con tus pagos.', 'total'],
-                  ['🧾', 'De tu bolsa hoy', m(deTuBolsa), '#16182A', r.con_credito ? 'El dinero que necesitas HOY para comprar: enganche + gastos de escrituración. El resto lo presta el banco — NO es el precio completo.' : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total'],
+                  ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Si vendieras en 1 año, tu ganancia por plusvalía sería ~${m(gananciaPlusv1)} (el ${apre}% del valor al año, fuente SHF). En ${horizonte} años acumula ~${m((r.atribucion || {}).plusvalia)}. Ganas aunque nunca la rentes.`, 'anual'],
+                  ['🏛️', 'Patrimonio que construyes', m((r.atribucion || {}).equity_buildup), '#6D4AFF', `NO es anual: es el ACUMULADO de ${horizonte} años (${mesesHz} mensualidades). De cada pago al banco, una parte abona al capital (baja tu deuda, no es interés). Sumando esa parte de las ${mesesHz} mensualidades, ya es tuyo esto del depa.`, 'total'],
+                  ['🧾', r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado', m(deTuBolsa), '#16182A', r.con_credito ? `Lo que pones HOY de tu bolsa: enganche + gastos de escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total'],
                 ]} />
               </div>
             );
@@ -269,8 +272,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div className="iv4-card">
               <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {r.credito.plazo_anios} años · tasa {pct(r.credito.tasa_anual_pct)}</span></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))', gap: 11 }}>
-                {[['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El monto del crédito que pone el banco.'],
-                ['Tu Enganche', m(r.credito.capital_propio), '#7C5CFF', 'Lo que pones de tu bolsa al inicio.'],
+                {[['Precio Del Depa', m((r.desglose || {}).valor_propiedad || f.valor_propiedad), '#16182A', 'El precio del departamento (lo que cuesta).'],
+                ['Tu Enganche', m(((r.desglose || {}).valor_propiedad || 0) - r.credito.monto_credito), '#7C5CFF', 'La parte del precio que pones tú al inicio.'],
+                ['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El resto del precio que pone el banco como crédito.'],
                 ['Tasa Anual / Mensual', `${pct(r.credito.tasa_anual_pct)} · ${pct(r.credito.tasa_mensual_pct)}`, '#16182A', 'Tasa de interés del banco (anual y su equivalente mensual).'],
                 ['Mensualidad', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Pago fijo al banco cada mes (capital + intereses).'],
                 ['Pago Anual', m(r.credito.pago_anual), '#16182A', 'Lo que pagas al banco en un año.'],
@@ -435,7 +439,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         <details className="iv4-card" style={{ marginTop: 14, padding: '14px 18px' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>📚 Fuentes de los datos <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· con fecha de consulta</span></summary>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
-            {[['Plusvalía', r.fuentes.plusvalia, (r.fuentes_fecha || {}).shf], ['Tasa hipotecaria', r.fuentes.tasa_hipotecaria, (r.fuentes_fecha || {}).banxico], ['CETES', r.fuentes.cetes, (r.fuentes_fecha || {}).banxico], ['UDIS', r.fuentes.udis, (r.fuentes_fecha || {}).banxico], ['Tipo de cambio (FIX)', r.fuentes.fix_usd, (r.fuentes_fecha || {}).banxico], ['Cap rate', r.fuentes.cap_rate, null], ['Renta', r.fuentes.renta, (r.fuentes_fecha || {}).airroi], ['ISR / fiscal', r.fuentes.isr, (r.fuentes_fecha || {}).lisr], ['Amortización', r.fuentes.amortizacion, null], ['Métricas (TIR/VPN)', r.fuentes.metricas, null]].map(([l, v, fecha]) => v && (
+            {[['Plusvalía', r.fuentes.plusvalia, (r.fuentes_fecha || {}).shf], ['Tasa hipotecaria', r.fuentes.tasa_hipotecaria, (r.fuentes_fecha || {}).banxico], ['CETES', r.fuentes.cetes, (r.fuentes_fecha || {}).banxico], ['UDIS', r.fuentes.udis, (r.fuentes_fecha || {}).banxico], ['Tipo de cambio (FIX)', r.fuentes.fix_usd, (r.fuentes_fecha || {}).banxico], ['Cap rate', r.fuentes.cap_rate, null], ['Renta (largo plazo)', r.fuentes.renta, (r.fuentes_fecha || {}).airroi], ['Renta corta / Airbnb', 'AirROI · api.airroi.com (tarifa y ocupación reales por zona)' + (airroi && airroi.adr_mxn ? ` — ${m(airroi.adr_mxn)}/noche · ${Math.round((airroi.ocupacion || 0) * 100)}% ocup.` : ''), (airroi && airroi.fetched_at) ? new Date(airroi.fetched_at).toLocaleDateString('es-MX') : 'al tocar “Usar AirROI”'], ['ISR / fiscal', r.fuentes.isr, (r.fuentes_fecha || {}).lisr], ['Amortización', r.fuentes.amortizacion, null], ['Métricas (TIR/VPN)', r.fuentes.metricas, null]].map(([l, v, fecha]) => v && (
               <div key={l} style={{ fontSize: 11, color: '#5B5F76' }}><b style={{ color: '#16182A' }}>{l}:</b> {v}{fecha && <span style={{ color: '#A2A6BC' }}> · consultado {fecha}</span>}</div>
             ))}
           </div>
