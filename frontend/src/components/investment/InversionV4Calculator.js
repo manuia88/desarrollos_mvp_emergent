@@ -46,6 +46,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
+  const [radarK, setRadarK] = useState('bolsa');    // instrumento a comparar en el radar del Pentágono
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -553,6 +554,45 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 </div>
                 <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso se usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
                 <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados.</div>
+              </div>
+            );
+          })()}
+
+          {/* RADAR · Pentágono de las inversiones (perfil visual en 5 ejes) */}
+          {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+            const RI = { 'Muy bajo': 1, 'Bajo': 2, 'Medio-bajo': 2.5, 'Medio': 3, 'Medio-alto': 4, 'Alto': 4.5, 'Muy alto': 5 };
+            const LI = { 'Nula': 0.4, 'Nula (retiro)': 0.4, 'Baja': 1.5, 'Media': 3, 'Alta': 5 };
+            const DE = { 'Nulo': 0.4, 'Bajo': 1.5, 'Medio': 3, 'Media': 3, 'Alto': 5 };
+            const plazoScore = (p) => /muy largo/i.test(p) ? 5 : /largo/i.test(p) ? 4.3 : /medio/i.test(p) ? 3 : /corto/i.test(p) ? 1.6 : 3;
+            const score = (v) => ({ Rendimiento: Math.max(0.2, Math.min(5, (v.pct || 0) / 5)), Riesgo: RI[v.riesgo] || 3, Liquidez: LI[v.liquidez] || 3, Plazo: plazoScore(v.plazo || ''), Dedicación: DE[v.esfuerzo] || 3 });
+            const inm = { pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: 'medio-largo', esfuerzo: 'Media' };
+            const comp = r.instrumentos.find((i) => i.k === radarK) || r.instrumentos.find((i) => i.k === 'bolsa') || r.instrumentos[0];
+            const sI = score(inm), sC = score(comp);
+            const axes = ['Rendimiento', 'Riesgo', 'Liquidez', 'Plazo', 'Dedicación'];
+            const cx = 150, cy = 140, R = 95;
+            const pt = (i, val) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; const rr = R * (val / 5); return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)]; };
+            const polyOf = (s) => axes.map((ax, i) => pt(i, s[ax]).join(',')).join(' ');
+            const grid = (lvl) => axes.map((_, i) => pt(i, lvl).join(',')).join(' ');
+            return (
+              <div className="iv4-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight: 800, fontSize: 13 }}>🕸️ Pentágono de las inversiones <Info><>Toda inversión se mide por 5 ejes: <b>rendimiento, riesgo, liquidez, plazo y dedicación</b>. El radar muestra el <b>perfil</b> (la forma) de tu inmueble contra otra inversión. Ninguna llena los 5 — cada una tiene su forma. Marco del Pentágono de las inversiones.</></Info></div>
+                  <select value={radarK} onChange={(e) => setRadarK(e.target.value)} style={{ ...inp, width: 'auto', padding: '6px 10px', fontSize: 12 }}>{r.instrumentos.map((i) => <option key={i.k} value={i.k}>vs {i.nombre}</option>)}</select>
+                </div>
+                <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+                  <svg viewBox="-34 0 368 290" style={{ width: 310, maxWidth: '100%' }}>
+                    {[1, 2, 3, 4, 5].map((l) => <polygon key={l} points={grid(l)} fill="none" stroke="#E7E9F1" strokeWidth="1" />)}
+                    {axes.map((_, i) => { const [x, y] = pt(i, 5); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#E7E9F1" strokeWidth="1" />; })}
+                    <polygon points={polyOf(sC)} fill="rgba(148,153,174,0.22)" stroke="#9499AE" strokeWidth="2" />
+                    <polygon points={polyOf(sI)} fill="rgba(124,92,255,0.20)" stroke="#7C5CFF" strokeWidth="2.5" />
+                    {axes.map((ax, i) => { const [x, y] = pt(i, 5.82); const anc = x < cx - 10 ? 'end' : x > cx + 10 ? 'start' : 'middle'; return <text key={ax} x={x} y={y} fontSize="10.5" fontWeight="700" fill="#5B5F76" textAnchor={anc} dominantBaseline="middle">{ax}</text>; })}
+                  </svg>
+                  <div style={{ fontSize: 11.5, lineHeight: 1.6, flex: '1 1 180px' }}>
+                    <div><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: '#7C5CFF', marginRight: 6 }} /><b>Tu inmueble</b> (TIR {pct(r.tir_pct)})</div>
+                    <div style={{ marginTop: 4 }}><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: '#9499AE', marginRight: 6 }} />{comp.nombre} ({pct(comp.pct)})</div>
+                    <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 10, lineHeight: 1.55 }}>Más hacia afuera = más de ese atributo. En <b>Rendimiento</b> y <b>Liquidez</b>, más es mejor. En <b>Riesgo</b>, <b>Plazo</b> y <b>Dedicación</b>, más = más riesgo / más tiempo comprometido / más trabajo (tú decides qué te conviene).</div>
+                  </div>
+                </div>
               </div>
             );
           })()}

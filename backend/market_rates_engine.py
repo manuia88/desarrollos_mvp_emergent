@@ -54,12 +54,23 @@ async def seed_rates(db) -> None:
 
 
 async def get_rates(db) -> Dict[str, Any]:
-    """Lee market_rates; si no existe, lo siembra. Devuelve {vehiculos, updated_at, source}."""
+    """Lee market_rates; si no existe, lo siembra. SELF-HEAL: si el seed tiene vehículos nuevos que no están en el doc
+    cacheado (p.ej. crypto/crowdfunding/sofipo), los agrega solo — sin perder valores vivos. Así prod se actualiza sin
+    re-seed manual. Devuelve {vehiculos, updated_at, source}."""
     doc = await db.market_rates.find_one({"_id": "vehiculos"}, {"_id": 0})
     if not doc:
         await seed_rates(db)
         doc = await db.market_rates.find_one({"_id": "vehiculos"}, {"_id": 0})
-    return doc or {"vehiculos": VEHICULOS_SEED}
+    doc = doc or {"vehiculos": [dict(v) for v in VEHICULOS_SEED]}
+    have = {v.get("k") for v in (doc.get("vehiculos") or [])}
+    faltan = [dict(v) for v in VEHICULOS_SEED if v.get("k") not in have]
+    if faltan:
+        doc["vehiculos"] = (doc.get("vehiculos") or []) + faltan
+        try:
+            await db.market_rates.update_one({"_id": "vehiculos"}, {"$set": {"vehiculos": doc["vehiculos"]}}, upsert=True)
+        except Exception:
+            pass
+    return doc
 
 
 async def cetes_rate(db, plazo: str = "cetes_364") -> float:
