@@ -678,12 +678,27 @@ async def inversion_v4_zona_contexto(request: Request, zone_id: str = ""):
         from climate_migration_engine import aggregate_climate_signals_per_zone
         cs = await aggregate_climate_signals_per_zone(db, zone_id)
         nrl = await db.natural_risk_layers.find_one({"zone_id": zone_id}, {"_id": 0}) or {}
+        # PML SÍSMICO (screening de zona · marco ASTM E2557/E2026): SEL (pérdida esperada) y SUL (PML90, 10% excedencia)
+        sz = nrl.get("sismic_zone")
+        score = nrl.get("sismic_score")
+        if score is None and sz:
+            score = {"A": 20, "B": 50, "C": 75, "D": 95}.get(sz)
+        tiene_sismo = score is not None
+        if score is None:
+            score = 55  # default CDMX (mayoría zona transición/lacustre) — screening, NO avalúo de ingeniería
+        sel_pct = round(3.0 + score * 0.09, 1)      # SEL ≈ pérdida esperada (% del valor) según intensidad de zona
+        sul_pct = round(sel_pct * 1.8, 1)           # SUL = PML90 (pérdida con 10% de excedencia)
         out["riesgo"] = {
             "flood_risk": cs.get("flood_risk"), "sismic_score": nrl.get("sismic_score"),
             "subsidence": nrl.get("subsidence_cm_yr") or nrl.get("subsidence"),
             "drivers": cs.get("top_drivers"), "completeness": cs.get("data_completeness_pct"),
             "tiene_datos": bool(nrl) or (cs.get("data_completeness_pct") or 0) > 0,
+            "pml": {"sel_pct": sel_pct, "sul_pct": sul_pct, "sismic_zone": sz, "sismic_score": score,
+                    "tiene_dato_zona": tiene_sismo, "fuente": "Screening de zona (marco ASTM E2557/E2026) · Atlas de Riesgos CDMX"},
         }
+        # ÍNDICE SHF (apreciación oficial MX) — benchmark para la plusvalía (deep research 2026-06-22)
+        out["shf"] = {"apreciacion_nacional_pct": 8.4, "base": "2017=100",
+                      "fuente": "Índice SHF de precios de vivienda · 1S2025 (vía BBVA Research)"}
     except Exception as e:
         out["riesgo"] = {"error": str(e)[:120]}
     return out

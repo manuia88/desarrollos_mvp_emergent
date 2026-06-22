@@ -372,6 +372,23 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         noi_leaseup = ingreso_bruto_anual * (1.0 - vacancia - vac_ini) - egresos
         estabilizacion = {"noi_estabilizado": round(noi), "noi_ano1_leaseup": round(noi_leaseup),
                           "vacancia_inicial_pct": round(vac_ini * 100, 1)}
+    # MÉTRICAS DE REPORTE A NIVEL FONDO (INREV/NCREIF · deep research 2026-06-22) — modo institucional
+    venta_neta_exit = max(0.0, valor_venta - costos_venta - isr_venta - (saldo_pendiente if con_credito else 0.0))
+    pic = aportes  # paid-in capital (capital aportado: enganche + aportaciones cuando el flujo es negativo)
+    _op_flows = list(flujos_anuales[:-1]) + ([flujos_anuales[-1] - venta_neta_exit] if flujos_anuales else [])
+    distrib_ops = sum(cf for cf in _op_flows if cf > 0)                # distribuciones operativas POSITIVAS realizadas
+    dpi = (distrib_ops / pic) if pic else None                        # Distributions to Paid-In (realizado, sin la venta)
+    rvpi = (venta_neta_exit / pic) if pic else None                   # Residual Value to Paid-In (valor al vender / PIC)
+    tvpi = ((distrib_ops + venta_neta_exit) / pic) if pic else None   # Total Value to Paid-In = DPI + RVPI
+    twr_unlev = (1.0 + cap_rate) * (1.0 + aprec) - 1.0                # NCREIF total return SIN apalancar (income+appreciation)
+    tger = (egresos / valor) if valor else None                       # Total Global Expense Ratio (costos del vehículo / GAV)
+    metricas_fondo = {
+        "pic": round(pic), "tvpi": round(tvpi, 2) if tvpi is not None else None,
+        "dpi": round(dpi, 2) if dpi is not None else None, "rvpi": round(rvpi, 2) if rvpi is not None else None,
+        "twr_unlev_pct": round(twr_unlev * 100, 2),
+        "income_return_pct": round(cap_rate * 100, 2), "apreciacion_return_pct": round(aprec * 100, 2),
+        "tger_pct": round(tger * 100, 2) if tger is not None else None,
+    }
     analisis_institucional = {
         "descomposicion_retorno_pct": descomposicion,
         "spread_vs_cetes_pts": round((cap_rate - cetes_1a) * 100, 2),
@@ -379,6 +396,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         "prestamo_max_dscr12": prestamo_max_dscr,
         "dscr_objetivo": 1.2,
         "estabilizacion": estabilizacion,
+        "metricas_fondo": metricas_fondo,
     }
 
     return {

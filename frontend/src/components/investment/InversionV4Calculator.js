@@ -809,7 +809,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               const sobreApal = r.con_credito && ai.prestamo_max_dscr12 && r.credito && r.credito.monto_credito > ai.prestamo_max_dscr12;
               return (
                 <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>🔬 Due diligence de fondo <Info><>El bloque que revisa un comité de inversión: de dónde viene el retorno, si el precio compensa el riesgo (spread), cuánto te presta el banco a un DSCR sano, y el riesgo de la zona. Marco: CFA Institute · NCREIF · Geltner &amp; Miller · ULI.</></Info></div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>🔬 Due diligence de fondo <Info><>El bloque que revisa un comité de inversión: de dónde viene el retorno, si el precio compensa el riesgo (spread), cuánto te presta el banco a un DSCR sano, el reporte a nivel fondo y el riesgo de la zona. Marcos: CFA Institute · NCREIF/PREA · INREV · ULI · Geltner &amp; Miller. La valuación DCF sigue la estructura del RICS Red Book / IVS (tasa de descuento + proyección de ingreso + horizonte + valor de salida).</></Info></div>
                   {d && <div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 4 }}>¿De dónde viene tu retorno? <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(NCREIF: income vs capital)</span></div>
                     <div style={{ display: 'flex', height: 14, borderRadius: 6, overflow: 'hidden', marginBottom: 5 }}>
@@ -826,6 +826,17 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   </div>
                   {sobreApal && <div style={{ fontSize: 10.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.1)', borderRadius: 9, padding: '8px 11px', marginTop: 10, lineHeight: 1.5 }}>⚠️ <b>Sobre-apalancado:</b> el banco prestaría máx ~{m(ai.prestamo_max_dscr12)} a DSCR 1.2, pero tu crédito es {m(r.credito.monto_credito)} → la renta no cubre el crédito al estándar. Sube enganche o baja el préstamo.</div>}
                   {ai.estabilizacion && <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 8 }}>📈 <b>Estabilización (lease-up):</b> con {ai.estabilizacion.vacancia_inicial_pct}% de vacancia inicial, el NOI del año 1 es {m(ai.estabilizacion.noi_ano1_leaseup)} vs {m(ai.estabilizacion.noi_estabilizado)} estabilizado.</div>}
+                  {ai.metricas_fondo && (() => { const mfo = ai.metricas_fondo; return (
+                    <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed rgba(16,18,28,0.1)' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>📊 Reporte a nivel fondo <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(estándar INREV / NCREIF)</span> <Info><>Las métricas con las que un fondo institucional reporta a sus inversionistas. <b>TWR</b> = rendimiento total sin apalancar (renta + plusvalía, método NCREIF). <b>TVPI</b> = valor total ÷ capital aportado (= múltiplo). <b>DPI</b> = lo ya repartido en efectivo ÷ aportado. <b>RVPI</b> = valor por realizar (la venta) ÷ aportado. <b>PIC</b> = capital aportado. <b>TGER</b> = costos del vehículo ÷ valor.</></Info></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(96px,1fr))', gap: 10 }}>
+                        {[['TWR (s/ apal.)', pct(mfo.twr_unlev_pct), '#0E7A53'], ['TVPI', `${mfo.tvpi}×`, '#7C5CFF'], ['DPI', `${mfo.dpi}×`, '#16182A'], ['RVPI', `${mfo.rvpi}×`, '#C026D3'], ['PIC', m(mfo.pic), '#16182A'], ...(mfo.tger_pct != null ? [['TGER', pct(mfo.tger_pct), '#6B6F86']] : [])].map(([l, v, c]) => (
+                          <div key={l} style={{ padding: '8px 10px', borderRadius: 9, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: c, marginTop: 1 }}>{v}</div></div>
+                        ))}
+                      </div>
+                      {mfo.dpi === 0 && mfo.rvpi > 0 && <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>DPI = 0: la renta no reparte efectivo (flujo operativo ≤ 0); el retorno se realiza al vender (RVPI).</div>}
+                    </div>
+                  ); })()}
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10, fontSize: 10.5, color: '#5B5F76' }}>
                     {(() => { const ab = zonaCtx && zonaCtx.absorcion; return (ab && ab.velocidad_mensual != null) ? (
                       <div>🏗️ <b>Absorción de la zona:</b> ~{ab.velocidad_mensual} unidades/mes · {ab.meses_para_agotar != null ? `${ab.meses_para_agotar} meses para agotar el inventario` : 'inventario amplio'} ({ab.disponibles} disponibles{ab.n_proyectos ? ` · ${ab.n_proyectos} proyectos` : ''}){ab.es_estimado ? ' · preliminar' : ''} <Info><>Qué tan rápido se vende la oferta de la zona (ULI). Velocidad = unidades vendidas/mes; meses para agotar = inventario ÷ velocidad. Más meses = más presión a precios. Fuente: motor de absorción DMX ({ab.data_basis === 'real' ? 'oferta real' : 'demo'}).</></Info></div>
@@ -836,6 +847,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                       <div>⚠️ <b>Riesgo físico / ESG:</b> sísmico (CDMX) · inundación <Info><>Se alimenta de las capas de riesgo natural DMX (CENAPRED/SACMEX); aún sin datos suficientes para esta colonia.</></Info></div>
                     ); })()}
                   </div>
+                  {(() => { const pml = zonaCtx && zonaCtx.riesgo && zonaCtx.riesgo.pml; if (!pml) return null; const valorBase = (r.desglose && r.desglose.valor_propiedad) || 0; return (
+                    <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', fontSize: 10.5, color: '#5B5F76' }}>
+                      <div>🌐 <b>Riesgo sísmico (PML):</b> pérdida esperada <b>{pml.sel_pct}%</b> ({m(Math.round(valorBase * pml.sel_pct / 100))}) · severa SUL/PML90 <b style={{ color: '#DC2626' }}>{pml.sul_pct}%</b> ({m(Math.round(valorBase * pml.sul_pct / 100))}) <Info><>Probable Maximum Loss sísmico (marco ASTM E2557/E2026). <b>SEL</b> = pérdida esperada del escenario; <b>SUL</b> (PML90) = la que tiene 10% de probabilidad de superarse. {pml.tiene_dato_zona ? `Zona sísmica ${pml.sismic_zone || pml.sismic_score}.` : 'Screening de zona (default CDMX) — se afina con la microzonificación del Atlas de Riesgos CDMX por colonia.'}</></Info></div>
+                    </div>
+                  ); })()}
+                  {(() => { const shf = zonaCtx && zonaCtx.shf; if (!shf) return null; const miPlus = (f.apreciacion_anual || 0) * 100; return (
+                    <div style={{ marginTop: 8, fontSize: 10.5, color: '#5B5F76' }}>📈 <b>Plusvalía vs SHF:</b> tu supuesto <b>{miPlus.toFixed(1)}%</b> vs índice <b>SHF nacional {shf.apreciacion_nacional_pct}%</b> <Info><>El Índice SHF de precios de vivienda (Base {shf.base}) es el benchmark oficial de apreciación en México. {shf.fuente}. Si tu supuesto se aleja mucho del SHF, ajústalo.</></Info></div>
+                  ); })()}
                 </div>
               );
             })()}
