@@ -276,7 +276,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ['Pago Anual', m(r.credito.pago_anual), '#16182A', 'Lo que pagas al banco en un año.'],
                 ['La Renta Cubre', pct(r.credito.cobertura_renta_pct), (r.credito.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626', 'Cuánto de la mensualidad paga la renta. Si <100%, pones la diferencia.'],
                 ['Capital (Lo Que Devuelves)', m(r.credito.monto_credito), '#7C5CFF', 'El préstamo que regresas al banco.'],
-                ['Interés Total Del Plazo', m(r.credito.interes_total), '#DC2626', `Lo que pagas SOLO de intereses en los ${r.credito.plazo_anios} años. Por eso conviene liquidar o vender antes.`]].map(([l, v, c, exp]) => (
+                ['Interés Total Del Plazo', m(r.credito.interes_total), '#DC2626', `Lo que pagas SOLO de intereses en los ${r.credito.plazo_anios} años. Por eso conviene liquidar o vender antes.`],
+                ['Monto Total (Lo Que Terminas Pagando)', m(r.credito.pago_total_plazo), '#16182A', `TODO lo que le das al banco en los ${r.credito.plazo_anios} años: tu préstamo (${m(r.credito.monto_credito)}) + todos los intereses (${m(r.credito.interes_total)}).`]].map(([l, v, c, exp]) => (
                   <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, color: c, marginTop: 3 }}>{v}</div><div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div></div>
                 ))}
               </div>
