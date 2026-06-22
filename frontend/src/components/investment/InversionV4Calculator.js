@@ -279,7 +279,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const engPuro = precio - cr.monto_credito;
             const capPct = cr.pago_anual ? Math.max(0, Math.min(100, Math.round((cr.capital_anio1 / cr.pago_anual) * 100))) : 0;
             const Tile = ({ l, v, c, exp }) => (
-              <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c || '#16182A', marginTop: 2 }}>{v}</div>{exp && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div>}</div>
+              <div style={{ padding: '11px 13px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.09)', boxShadow: '0 2px 8px rgba(99,102,241,0.04)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c || '#16182A', marginTop: 3 }}>{v}</div>{exp && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 3 }}>{exp}</div>}</div>
             );
             const Sub = ({ children }) => <div style={{ fontSize: 10, fontWeight: 800, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 10px' }}>{children}</div>;
             return (
@@ -320,6 +320,29 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <Tile l="Monto total" v={m(cr.pago_total_plazo)} exp="Préstamo + todos los intereses = todo lo que le das al banco." />
                 </div>
 
+                {cr.tabla_anual && cr.tabla_anual.length > 0 && (
+                  <details style={{ marginTop: 14 }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 11.5, fontWeight: 800, color: '#6D4AFF' }}>📅 Ver año por año (capital vs interés, hasta liquidar)</summary>
+                    <div style={{ overflowX: 'auto', marginTop: 10 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                        <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'A capital', 'A interés', 'Te falta (saldo)'].map((h, i) => <th key={h} style={{ padding: '5px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                        <tbody>{cr.tabla_anual.map((row) => { const tot = row.capital + row.interes; const capPc = tot ? Math.round(row.capital / tot * 100) : 0; return (
+                          <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                            <td style={{ padding: '5px 8px', fontWeight: 700 }}>{row.anio}</td>
+                            <td style={{ padding: '5px 8px', textAlign: 'right', color: '#7C5CFF', fontWeight: 700 }}>{m(row.capital)} <span style={{ color: '#A2A6BC', fontWeight: 500 }}>({capPc}%)</span></td>
+                            <td style={{ padding: '5px 8px', textAlign: 'right', color: '#DC2626' }}>{m(row.interes)}</td>
+                            <td style={{ padding: '5px 8px', textAlign: 'right' }}>{m(row.saldo_fin)}</td>
+                          </tr>); })}</tbody>
+                      </table>
+                    </div>
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Año con año el interés baja y el capital sube, hasta que el saldo llega a $0 (queda libre).</div>
+                  </details>
+                )}
+
+                <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(224,163,62,0.09)', borderRadius: 10, fontSize: 10.5, color: '#8A6A1E', lineHeight: 1.5 }}>
+                  ⚠️ <b>Números ilustrativos, no una cotización bancaria.</b> Tu tasa y tu mensualidad reales dependen de tu perfil — el banco hace un análisis de crédito y de tu capacidad de pago. Úsalo para decidir con cabeza; para el número final y exacto, acércate al banco. Fines informativos.
+                </div>
+
                 {cr.abono && (
                   <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(14,159,110,0.08)', borderRadius: 10, fontSize: 11.5, color: '#0E7A53', lineHeight: 1.5 }}>
                     💸 Con tu abono extra de <b>{m(cr.abono.abono_mensual)}/mes</b>: liquidas en <b>{cr.abono.anios_payoff} años</b> (−{cr.abono.anios_ahorrados} años) y ahorras <b>{m(cr.abono.interes_ahorrado)}</b> de intereses.
@@ -335,21 +358,41 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {/* ───── SECCIONES VISUALES (ancho completo · se acomodan sin huecos) ───── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' }}>
           {/* LARGO PLAZO vs AIRBNB */}
-          {r && r.comparar_renta && r.comparar_renta.largo && (
-            <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>🏨 Largo Plazo vs Airbnb</div>
-              <div style={{ fontSize: 11, color: '#8A8FA6', marginBottom: 10 }}>Con los mismos datos del inmueble — gana <b style={{ color: '#6D28D9' }}>{r.comparar_renta.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b>:</div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {[['🏠 Largo plazo', r.comparar_renta.largo], ['🏨 Airbnb / corto', r.comparar_renta.corto]].map(([l, x]) => (
-                  <div key={l} style={{ flex: '1 1 130px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,18,28,0.03)', border: ((x.tir_pct || -99) === Math.max(r.comparar_renta.largo.tir_pct || -99, r.comparar_renta.corto.tir_pct || -99)) ? '1.5px solid #7C5CFF' : '1px solid transparent' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#16182A' }}>{l}</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#7C5CFF', marginTop: 4 }}>{pct(x.tir_pct)}<span style={{ fontSize: 10, color: '#8A8FA6', fontWeight: 600 }}> TIR</span></div>
-                    <div style={{ fontSize: 11, color: '#5B5F76', marginTop: 2 }}>flujo {m(x.flujo_mensual)}/mes · cap {pct(x.cap_rate_pct)}</div>
-                  </div>
-                ))}
+          {r && r.comparar_renta && r.comparar_renta.largo && (() => {
+            const cmp = r.comparar_renta;
+            const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win }) => (
+              <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(124,92,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#16182A' }}>{icon} {titulo}</div>
+                  {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.14)', borderRadius: 6, padding: '2px 8px' }}>GANA</span>}
+                </div>
+                <div style={{ marginTop: 11, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.5 }}>
+                  <div>Ingreso: <b>{m(x.ingreso_anual)}/año</b></div>
+                  <div style={{ fontSize: 10.5, color: '#A2A6BC' }}>{comoIngreso}</div>
+                  <div style={{ marginTop: 5 }}>− Gastos del año: <b style={{ color: '#DC2626' }}>{m(x.egresos_anual)}</b></div>
+                  <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b></div>
+                </div>
+                <div style={{ marginTop: 11, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Rinde al año (TIR)</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
+                </div>
+                <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Ingreso según: {fuente}</div>
               </div>
-            </div>
-          )}
+            );
+            return (
+              <div className="iv4-card">
+                <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb?</div>
+                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Mira de dónde sale cada número:</div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <Opcion icon="🏠" titulo="Largo plazo" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)}/mes × 12 meses`} fuente="promedio de renta de la zona" />
+                  <Opcion icon="🏨" titulo="Airbnb / corto" x={cmp.corto} win={cmp.gana === 'corto'} comoIngreso={`${m(cmp.corto.tarifa_noche)}/noche × ~${cmp.corto.noches_mes} noches al mes (${cmp.corto.ocupacion_pct}% ocupación) × 12`} fuente="AirROI (datos reales de la zona)" />
+                </div>
+                <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(124,92,255,0.06)', borderRadius: 10, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.55 }}>
+                  👉 Con tus datos <b style={{ color: '#6D28D9' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año). En general <b>Airbnb</b> rinde más pero da más trabajo (limpieza, huéspedes, temporada baja); <b>largo plazo</b> rinde menos pero es estable y sin broncas. <b>TIR</b> = cuánto te rinde tu dinero al año; <b>te queda al mes</b> = lo que te sobra (o pones de tu bolsa) cada mes.
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Cascada visual · de dónde viene tu ganancia */}
           {r && r.atribucion && (() => {

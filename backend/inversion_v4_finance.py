@@ -108,6 +108,28 @@ def payoff_con_abono(principal: float, monthly_rate: float, n_months: int, abono
     return {"meses_payoff": mes, "interes_total": interes_total, "pmt_base": p}
 
 
+def tabla_amortizacion_anual(principal: float, monthly_rate: float, n_months: int) -> list:
+    """Amortización por AÑO (todo el plazo): cuánto se va a capital y a interés cada año + saldo al cierre del año.
+    Para mostrar cómo, año con año, cada vez se va menos a interés y más a capital hasta liquidar."""
+    p = pmt(principal, monthly_rate, n_months)
+    saldo = principal
+    filas, anio = [], 0
+    cap_anio = int_anio = 0.0
+    for mes in range(1, n_months + 1):
+        interes = saldo * monthly_rate
+        capital = min(p - interes, saldo)
+        saldo -= capital
+        cap_anio += capital
+        int_anio += interes
+        if mes % 12 == 0 or mes == n_months or saldo <= 0.005:
+            anio += 1
+            filas.append({"anio": anio, "capital": round(cap_anio), "interes": round(int_anio), "saldo_fin": round(max(0.0, saldo))})
+            cap_anio = int_anio = 0.0
+        if saldo <= 0.005:
+            break
+    return filas
+
+
 def _g(d: Dict[str, Any], k: str, default: float) -> float:
     v = d.get(k)
     try:
@@ -181,6 +203,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "monto_credito": round(monto_credito), "capital_propio": round(capital_propio),
             "pmt_mensual": round(am["pmt"]), "pago_anual": round(am["pmt"] * 12.0),
             "interes_anio1": round(am1["interes_acum"]), "capital_anio1": round(am1["capital_acum"]),
+            "tabla_anual": tabla_amortizacion_anual(monto_credito, tasa_mensual, plazo),
             "pago_total_plazo": round(am["pmt"] * plazo), "interes_total": round(interes_total),
             "interes_en_horizonte": round(am["interes_acum"]), "capital_en_horizonte": round(am["capital_acum"]),
             "saldo_pendiente": round(saldo_pendiente), "equity_buildup": round(am["equity_buildup"]),
@@ -392,11 +415,23 @@ def comparar_renta(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Di
     """Compara largo plazo vs Airbnb (corto plazo) con los mismos datos de propiedad → ingresos/egresos/TIR de cada uno."""
     largo = analyze({**inp, "modo_renta": "largo"}, isr_fn)
     corto = analyze({**inp, "modo_renta": "corto"}, isr_fn)
+
+    def _resumen(res, modo):
+        dg = res.get("desglose", {}) or {}
+        ingreso_anual = dg.get("ingreso_bruto_anual") or 0
+        out = {"tir_pct": res.get("tir_pct"), "cap_rate_pct": res.get("cap_rate_pct"),
+               "flujo_mensual": res.get("flujo_mensual_1"), "noi": res.get("noi"),
+               "ingreso_anual": round(ingreso_anual), "ingreso_mensual": round(ingreso_anual / 12.0),
+               "egresos_anual": round(dg.get("egresos_operativos") or 0)}
+        if modo == "corto":
+            occ = _g(inp, "ocupacion_pct", 0.6)
+            out["tarifa_noche"] = round(_g(inp, "tarifa_noche", 0))
+            out["ocupacion_pct"] = round(occ * 100)
+            out["noches_mes"] = round(occ * 30)
+        return out
+
     return {
-        "largo": {"tir_pct": largo.get("tir_pct"), "cap_rate_pct": largo.get("cap_rate_pct"),
-                  "flujo_mensual": largo.get("flujo_mensual_1"), "noi": largo.get("noi")},
-        "corto": {"tir_pct": corto.get("tir_pct"), "cap_rate_pct": corto.get("cap_rate_pct"),
-                  "flujo_mensual": corto.get("flujo_mensual_1"), "noi": corto.get("noi")},
+        "largo": _resumen(largo, "largo"), "corto": _resumen(corto, "corto"),
         "gana": "corto" if (corto.get("tir_pct") or -99) > (largo.get("tir_pct") or -99) else "largo",
     }
 
