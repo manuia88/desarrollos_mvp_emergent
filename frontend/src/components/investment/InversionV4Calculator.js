@@ -27,7 +27,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
-    con_credito: true, ltv: 0.80, tasa_anual: '', plazo_meses: 240,
+    con_credito: true, ltv: 0.80, tasa_anual: '', plazo_meses: 240, abono_capital_mensual: 0,
     modo_renta: 'largo', renta_mensual: prefilled.renta || Math.round(precio0 * 0.0045), tasa_vacancia: 0.05,
     tarifa_noche: Math.round((prefilled.renta || precio0 * 0.0045) / 30 * 2.2), ocupacion_pct: 0.6,
     predial: Math.round(precio0 * 0.0016), mantenimiento: Math.round(precio0 * 0.0024), seguro: Math.round(precio0 * 0.0012),
@@ -56,7 +56,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   useEffect(() => {
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
-    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: num(f.tasa_anual), apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual) };
+    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: num(f.tasa_anual), plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
   }, [f, vista, run]);
@@ -117,29 +117,19 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div style={sectTitle}>💳 Cómo lo pagas</div>
             <div style={{ display: 'grid', gap: 12 }}>
               <Toggle k="con_credito" opts={[[false, 'Al contado'], [true, 'Con crédito']]} />
-              {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10% enganche'], [0.8, '20% enganche'], [0.7, '30% enganche'], [0.5, '50% enganche']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
-              {f.con_credito && <div><span style={lab}>Tasa del crédito (%) <Auto /></span><input type="number" step="0.01" placeholder="11.45 (Banxico)" value={f.tasa_anual === '' ? '' : f.tasa_anual * 100} onChange={(e) => set('tasa_anual', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>}
+              {f.con_credito && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l} enganche</option>)}</select></div>
+                  <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                  <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="number" step="0.01" placeholder="11.45" value={f.tasa_anual === '' ? '' : (f.tasa_anual * 100).toFixed(2)} onChange={(e) => set('tasa_anual', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>
+                  <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opcional</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>
+                </div>
+              )}
+              {f.con_credito && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4 }}>El <b>abono extra a capital</b> es un pago adicional cada mes que baja el saldo: liquidas antes y pagas menos intereses. Pon 0 si no quieres simularlo.</div>}
             </div>
           </div>
 
-          {/* Ajustar supuestos (colapsable) */}
-          <div className="iv4-card">
-            <button type="button" onClick={() => setOpenAdv((o) => !o)} style={{ ...sectTitle, marginBottom: openAdv ? 14 : 0, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, justifyContent: 'space-between' }}>
-              <span>⚙️ Ajustar supuestos</span><span style={{ color: '#6D4AFF' }}>{openAdv ? '−' : '+'}</span>
-            </button>
-            {openAdv && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Field label="Predial / año" k="predial" money auto />
-                <Field label="Mantenim. / año" k="mantenimiento" money auto />
-                <Field label="Seguro / año" k="seguro" money auto />
-                <div><span style={lab}>Horizonte (años)</span><input type="number" value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={inp} /></div>
-                <div><span style={lab}>Apreciación (%)</span><input type="number" step="0.1" value={f.apreciacion_anual * 100} onChange={(e) => set('apreciacion_anual', Number(e.target.value) / 100)} style={inp} /></div>
-                <div><span style={lab}>Perfil</span><select value={f.perfil} onChange={(e) => set('perfil', e.target.value)} style={inp}><option value="fisica">Persona física</option><option value="moral">Persona moral</option></select></div>
-                {f.perfil === 'fisica' && <div style={{ gridColumn: '1 / -1' }}><span style={lab}>Régimen fiscal</span><select value={f.regimen_fiscal} onChange={(e) => set('regimen_fiscal', e.target.value)} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
-              </div>
-            )}
-            <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: openAdv ? 12 : 8, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados (renta de la zona, predial/mantenim. típicos) — <b>edítalos</b> a tu caso. Solo el precio está fijo (es el depa real).</div>
-          </div>
+          <div style={{ fontSize: 10, color: '#A2A6BC', lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados (renta de la zona, predial/mantenim. típicos) — <b>edítalos</b> en “Ajustar supuestos” abajo. Solo el precio está fijo (es el depa real).</div>
         </div>
 
         {/* ───── COLUMNA DERECHA · RESULTADO VISUAL ───── */}
@@ -181,6 +171,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div className="iv4-card" style={{ padding: '4px 0' }}>
               {[
                 ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#C026D3', 'Cuánto te deja la renta sobre el precio cada año, sin contar el crédito.'],
+                ['📈', 'Plusvalía (cuánto sube de valor)', m((r.atribucion || {}).plusvalia), '#0EA5E9', `Cuánto vale MÁS tu propiedad al vender, por la apreciación de la zona (~${(Number(f.apreciacion_anual) * 100).toFixed(1)}% al año, fuente SHF). Es ganancia aunque nunca la rentes.`],
                 ['💰', 'Rendimiento promedio por año (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio al año contando TODO (renta + venta), repartida en los años que lo tienes.'],
                 ['🏦', 'Flujo mensual', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes, después de gastos y crédito.'],
                 ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', 'Por cada peso que pones de tu bolsa, cuántos recuperas al final.'],
@@ -231,9 +222,33 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ))}
               </div>
               <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 10 }}>Pagas en total <b>{m(r.credito.pago_total_plazo)}</b> ({m(r.credito.monto_credito)} de préstamo + {m(r.credito.interes_total)} de intereses). Amortización francesa.</div>
+              {r.credito.abono && (
+                <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(14,159,110,0.08)', borderRadius: 10, fontSize: 11.5, color: '#0E7A53', lineHeight: 1.5 }}>
+                  💸 Con tu abono extra de <b>{m(r.credito.abono.abono_mensual)}/mes</b>: liquidas en <b>{r.credito.abono.anios_payoff} años</b> (−{r.credito.abono.anios_ahorrados} años) y ahorras <b>{m(r.credito.abono.interes_ahorrado)}</b> de intereses.
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
+
+      {/* AJUSTAR SUPUESTOS · barra de ancho completo (no rompe las columnas · se abre en grid) */}
+      <div className="iv4-card iv4-noprint" style={{ marginTop: 14, padding: '14px 18px' }}>
+        <button type="button" onClick={() => setOpenAdv((o) => !o)} style={{ ...sectTitle, marginBottom: openAdv ? 14 : 0, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, justifyContent: 'space-between' }}>
+          <span>⚙️ Ajustar supuestos <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· predial, mantenimiento, horizonte, plusvalía, régimen fiscal</span></span><span style={{ color: '#6D4AFF' }}>{openAdv ? '−' : '+'}</span>
+        </button>
+        {openAdv && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+            <Field label="Predial / año" k="predial" money auto />
+            <Field label="Mantenim. / año" k="mantenimiento" money auto />
+            <Field label="Seguro / año" k="seguro" money auto />
+            <div><span style={lab}>Horizonte (años)</span><input type="number" value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={inp} /></div>
+            <div><span style={lab}>Plusvalía / año (%)</span><input type="number" step="0.1" value={f.apreciacion_anual * 100} onChange={(e) => set('apreciacion_anual', Number(e.target.value) / 100)} style={inp} /></div>
+            <div><span style={lab}>Crecim. renta / año (%)</span><input type="number" step="0.1" value={f.crecimiento_renta_anual * 100} onChange={(e) => set('crecimiento_renta_anual', Number(e.target.value) / 100)} style={inp} /></div>
+            <div><span style={lab}>Perfil</span><select value={f.perfil} onChange={(e) => set('perfil', e.target.value)} style={inp}><option value="fisica">Persona física</option><option value="moral">Persona moral</option></select></div>
+            {f.perfil === 'fisica' && <div><span style={lab}>Régimen fiscal</span><select value={f.regimen_fiscal} onChange={(e) => set('regimen_fiscal', e.target.value)} style={inp}>{REGIMENES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+          </div>
+        )}
       </div>
 
       {/* ───── SECCIONES VISUALES (ancho completo · se acomodan sin huecos) ───── */}
@@ -376,12 +391,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {/* FUENTES (de dónde sale cada dato · visible) */}
       {r && r.fuentes && (
         <details className="iv4-card" style={{ marginTop: 14, padding: '14px 18px' }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>📚 Fuentes de los datos</summary>
+          <summary style={{ cursor: 'pointer', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>📚 Fuentes de los datos <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· con fecha de consulta</span></summary>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
-            {[['Plusvalía', r.fuentes.plusvalia], ['Tasa hipotecaria', r.fuentes.tasa_hipotecaria], ['CETES', r.fuentes.cetes], ['UDIS', r.fuentes.udis], ['Tipo de cambio (FIX)', r.fuentes.fix_usd], ['Cap rate', r.fuentes.cap_rate], ['Renta', r.fuentes.renta], ['ISR / fiscal', r.fuentes.isr], ['Amortización', r.fuentes.amortizacion], ['Métricas (TIR/VPN)', r.fuentes.metricas]].map(([l, v]) => v && (
-              <div key={l} style={{ fontSize: 11, color: '#5B5F76' }}><b style={{ color: '#16182A' }}>{l}:</b> {v}</div>
+            {[['Plusvalía', r.fuentes.plusvalia, (r.fuentes_fecha || {}).shf], ['Tasa hipotecaria', r.fuentes.tasa_hipotecaria, (r.fuentes_fecha || {}).banxico], ['CETES', r.fuentes.cetes, (r.fuentes_fecha || {}).banxico], ['UDIS', r.fuentes.udis, (r.fuentes_fecha || {}).banxico], ['Tipo de cambio (FIX)', r.fuentes.fix_usd, (r.fuentes_fecha || {}).banxico], ['Cap rate', r.fuentes.cap_rate, null], ['Renta', r.fuentes.renta, (r.fuentes_fecha || {}).airroi], ['ISR / fiscal', r.fuentes.isr, (r.fuentes_fecha || {}).lisr], ['Amortización', r.fuentes.amortizacion, null], ['Métricas (TIR/VPN)', r.fuentes.metricas, null]].map(([l, v, fecha]) => v && (
+              <div key={l} style={{ fontSize: 11, color: '#5B5F76' }}><b style={{ color: '#16182A' }}>{l}:</b> {v}{fecha && <span style={{ color: '#A2A6BC' }}> · consultado {fecha}</span>}</div>
             ))}
           </div>
+          <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 10, lineHeight: 1.5 }}>Los datos de Banxico (CETES, UDIS, tipo de cambio) se actualizan <b>solos cada día</b> con un proceso automático. Plusvalía (SHF) e ISR (ley) se revisan por trimestre/año.</div>
         </details>
       )}
 

@@ -516,6 +516,24 @@ async def inversion_v4_analyze(request: Request):
         res = analyze(inp, isr_fn=make_isr_fn())
         res["veredicto"] = veredicto(res)
         res["mercado"] = mkt
+        # fecha de consulta de cada fuente (cuándo se verificó · el cron lo refresca)
+        try:
+            rdoc = await get_rates(db)
+            ua = rdoc.get("updated_at")
+            fecha_banxico = ua.strftime("%d/%m/%Y") if hasattr(ua, "strftime") else (str(ua)[:10] if ua else None)
+        except Exception:
+            fecha_banxico = None
+        res["fuentes_fecha"] = {"banxico": fecha_banxico, "shf": "Q1-2026", "lisr": "2026", "airroi": "en vivo por zona"}
+        # AirROI: si hay dato cacheado de renta corta para la zona, úsalo como fuente real (fail-open)
+        try:
+            from airroi_connector import get_zone
+            zid = body.get("zone_id")
+            if zid:
+                air = await get_zone(db, zid)
+                if air:
+                    res["airroi"] = air
+        except Exception:
+            pass
         try:
             from inversion_v4_finance import proyeccion, comparar_renta
             res["proyeccion"] = proyeccion(inp, isr_fn=make_isr_fn())

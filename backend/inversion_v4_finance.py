@@ -87,6 +87,27 @@ def amortization(principal: float, monthly_rate: float, n_months: int, through_m
             "interes_acum": interes_acum, "capital_acum": capital_acum}
 
 
+def payoff_con_abono(principal: float, monthly_rate: float, n_months: int, abono_mensual: float) -> Dict[str, float]:
+    """Amortización con ABONO mensual a capital (pago extra) → liquidas antes y pagas menos intereses. Devuelve
+    meses para liquidar + interés total con abono. (Ejercicios de 'pago a capital'.)"""
+    p = pmt(principal, monthly_rate, n_months)
+    saldo = principal
+    interes_total = 0.0
+    mes = 0
+    while saldo > 0.005 and mes < n_months:
+        interes = saldo * monthly_rate
+        capital = (p - interes) + abono_mensual
+        if capital >= saldo:
+            interes_total += interes
+            saldo = 0.0
+            mes += 1
+            break
+        saldo -= capital
+        interes_total += interes
+        mes += 1
+    return {"meses_payoff": mes, "interes_total": interes_total, "pmt_base": p}
+
+
 def _g(d: Dict[str, Any], k: str, default: float) -> float:
     v = d.get(k)
     try:
@@ -165,6 +186,16 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "debt_yield_pct": round(noi / monto_credito * 100, 2) if monto_credito else None,
             "cobertura_renta_pct": round((ingreso_bruto_anual / 12.0) / am["pmt"] * 100) if am["pmt"] else None,
         }
+        # ABONO A CAPITAL (pago extra mensual · ejercicios de pago a capital) → liquidas antes y ahorras intereses
+        abono = _g(inp, "abono_capital_mensual", 0.0)
+        if abono > 0:
+            pa = payoff_con_abono(monto_credito, tasa_mensual, plazo, abono)
+            cred["abono"] = {
+                "abono_mensual": round(abono), "meses_payoff": pa["meses_payoff"], "anios_payoff": round(pa["meses_payoff"] / 12.0, 1),
+                "interes_total_con_abono": round(pa["interes_total"]),
+                "interes_ahorrado": round(interes_total - pa["interes_total"]),
+                "anios_ahorrados": round((plazo - pa["meses_payoff"]) / 12.0, 1),
+            }
 
     # ── cash-on-cash (§4.3) ──
     capital_base = capital_propio if con_credito else costo_total
@@ -289,7 +320,8 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         "fuentes": {
             "plusvalia": "SHF (Sociedad Hipotecaria Federal), Q1-2026", "tasa_hipotecaria": "Banxico, prom. Q1-2026",
             "cetes": "Banxico SIE (CETES 28/364d, en vivo)", "udis": "Banxico SIE (SP68257)", "fix_usd": "Banxico SIE (SF43718)",
-            "cap_rate": "calculado (NOI ÷ precio)", "renta": "estimada del promedio de la zona (motor DMX)",
+            "cap_rate": "calculado (NOI ÷ precio)",
+            "renta": ("AirROI (renta corta / Airbnb por zona)" if renta_corto else "promedio de renta de la zona (motor DMX)"),
             "isr": "LISR 2026 · estimación (detalle fino en el Proyector de Impuestos)",
             "amortizacion": "amortización francesa estándar", "metricas": "TIR/MIRR/VPN (Geltner & Miller · CFA)",
         },
