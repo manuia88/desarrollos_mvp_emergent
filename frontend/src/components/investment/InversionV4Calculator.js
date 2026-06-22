@@ -111,10 +111,21 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual === null || f.tasa_anual === undefined) ? undefined : Number(f.tasa_anual) / 100;
-    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), exit_cap_rate: num(f.exit_cap_rate) || 0, capex_reserve_pct: num(f.capex_reserve_pct), prima_riesgo_inmobiliario: num(f.prima_riesgo_inmobiliario), tasa_vacancia: num(f.tasa_vacancia), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
+    // MODO PORTAFOLIO (institucional + 2+ unidades): TODO el análisis corre sobre la SUMA de las unidades elegidas
+    const portfolioActive = vista === 'institucional' && selUnits.length >= 2 && devUnits.length > 0;
+    let vp = num(f.valor_propiedad), rm = num(f.renta_mensual), pred = num(f.predial), mant = num(f.mantenimiento), seg = num(f.seguro), tarifa = num(f.tarifa_noche);
+    if (portfolioActive) {
+      const sel = selUnits.map((i) => devUnits[i]).filter(Boolean);
+      const dfac = 1 - (Number(descVol) || 0) / 100;
+      vp = Math.round(sel.reduce((s, x) => s + (x.precio || 0) * dfac, 0));
+      rm = Math.round(sel.reduce((s, x) => s + (x.renta || 0), 0));
+      tarifa = Math.round(sel.reduce((s, x) => s + Math.round((x.renta || 0) / 30 * 2.2), 0));
+      pred = Math.round(vp * 0.0016); mant = Math.round(vp * 0.0024); seg = Math.round(vp * 0.0012);
+    }
+    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: vp, renta_mensual: rm, tarifa_noche: tarifa, predial: pred, mantenimiento: mant, seguro: seg, num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), exit_cap_rate: num(f.exit_cap_rate) || 0, capex_reserve_pct: num(f.capex_reserve_pct), prima_riesgo_inmobiliario: num(f.prima_riesgo_inmobiliario), tasa_vacancia: num(f.tasa_vacancia), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
-  }, [f, vista, run, zoneId, airroi]);
+  }, [f, vista, run, zoneId, airroi, selUnits, descVol, devUnits]);
 
   // al elegir otra unidad/proyecto (cambia el precio que llega), sincroniza el precio bloqueado → permite comparar proyectos
   useEffect(() => {
@@ -270,25 +281,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>
 
       {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Institucional</b> ↑</div>}
-      {/* RESUMEN EJECUTIVO · cuando es 'Como fondo', el fondo ve lo clave ARRIBA (no scrollear hasta abajo) */}
-      {vista === 'institucional' && r && (
-        <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
-          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· lo clave de un vistazo</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
-            {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
-            ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
-            ...(capRateMercado != null ? [['vs mercado zona', `${(r.cap_rate_pct - capRateMercado) >= 0 ? '+' : ''}${(r.cap_rate_pct - capRateMercado).toFixed(1)} pts`, (r.cap_rate_pct - capRateMercado) >= 0 ? '#0E7A53' : '#DC2626']] : []),
-            ...((r.credito || {}).dscr != null ? [['DSCR', r.credito.dscr, (r.credito.dscr >= 1.2 ? '#0E9F6E' : r.credito.dscr >= 1 ? '#E0A33E' : '#DC2626')]] : []),
-            ...(r.escenarios && r.escenarios.pesimista ? [['TIR pesimista', pct(r.escenarios.pesimista.tir_pct), '#DC2626']] : []),
-            ...((r.proyeccion || {}).payback_anio ? [['Recuperas en', `año ${r.proyeccion.payback_anio}`, '#16182A']] : []),
-            ['VPN', m(r.vpn), (r.vpn || 0) >= 0 ? '#0E9F6E' : '#DC2626']].map(([l, v, c]) => (
-              <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{v}</div></div>
-            ))}
-          </div>
-          <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8 }}>Detalle completo (escenarios, sensibilidad, Monte Carlo, pro-forma, supuestos editables) más abajo ↓</div>
-        </div>
-      )}
-
       {/* FASE 3 · MODO PORTAFOLIO · elegir 2+ unidades del desarrollo y combinarlas (solo modo fondo) */}
       {vista === 'institucional' && devUnits && devUnits.length > 1 && (
         <div className="iv4-card" style={{ marginBottom: 12, borderTop: '4px solid #C026D3' }}>
@@ -311,6 +303,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <div style={{ fontSize: 11, color: '#A2A6BC', marginTop: 12 }}>Elige al menos <b>2 unidades</b> para ver el portafolio combinado.</div>
           ) : port && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '10px 13px', marginBottom: 12, fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio activo: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> A partir de aquí, <b>TODO el análisis</b> (resumen, crédito, impuestos, renta vs Airbnb, pentágono, año con año y métricas institucionales) ya es del <b>portafolio combinado</b>, no de una sola unidad.</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
                 {[['Unidades', port.n_unidades, '#16182A'], ['Precio total', m(port.precio_total), '#16182A'], ['De tu bolsa (total)', m(port.inversion_total), '#7C5CFF'], ['Cap rate combinado', pct(port.cap_rate_combinado_pct), '#C026D3'], ['TIR del portafolio', pct(port.tir_portafolio_pct), (port.tir_portafolio_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'], ...(port.dscr_combinado != null ? [['DSCR combinado', port.dscr_combinado, (port.dscr_combinado >= 1.2 ? '#0E9F6E' : port.dscr_combinado >= 1 ? '#E0A33E' : '#DC2626')]] : []), ['Flujo total/mes', m(port.flujo_mensual_total), (port.flujo_mensual_total || 0) >= 0 ? '#16182A' : '#DC2626'], ['Neto al vender (total)', m(port.neto_al_vender_total), '#0E9F6E']].map(([l, v, c]) => (
                   <div key={l} style={{ padding: '10px 12px', borderRadius: 10, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, marginTop: 2 }}>{v}</div></div>
@@ -333,6 +326,25 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>{port.descuento_pct > 0 ? `Precios con ${port.descuento_pct}% de descuento por volumen. ` : ''}Cap rate combinado = NOI total ÷ precio total. TIR del portafolio = del flujo combinado de todas las unidades.</div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* RESUMEN EJECUTIVO · institucional: tras elegir las unidades, lo clave del PORTAFOLIO de un vistazo */}
+      {vista === 'institucional' && r && (
+        <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
+          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {selUnits.length >= 2 ? `${selUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
+            {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
+            ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
+            ...(capRateMercado != null ? [['vs mercado zona', `${(r.cap_rate_pct - capRateMercado) >= 0 ? '+' : ''}${(r.cap_rate_pct - capRateMercado).toFixed(1)} pts`, (r.cap_rate_pct - capRateMercado) >= 0 ? '#0E7A53' : '#DC2626']] : []),
+            ...((r.credito || {}).dscr != null ? [['DSCR', r.credito.dscr, (r.credito.dscr >= 1.2 ? '#0E9F6E' : r.credito.dscr >= 1 ? '#E0A33E' : '#DC2626')]] : []),
+            ...(r.escenarios && r.escenarios.pesimista ? [['TIR pesimista', pct(r.escenarios.pesimista.tir_pct), '#DC2626']] : []),
+            ...((r.proyeccion || {}).payback_anio ? [['Recuperas en', `año ${r.proyeccion.payback_anio}`, '#16182A']] : []),
+            ['VPN', m(r.vpn), (r.vpn || 0) >= 0 ? '#0E9F6E' : '#DC2626']].map(([l, v, c]) => (
+              <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8 }}>Detalle completo (escenarios, sensibilidad, Monte Carlo, pro-forma, supuestos editables) más abajo ↓</div>
         </div>
       )}
 
