@@ -573,9 +573,49 @@ async def inversion_v4_analyze(request: Request):
                                    if v.get("k") in _orden]
         except Exception:
             res["instrumentos"] = []
+        # LOG ANÓNIMO (demanda revelada · LFPDPPP: sin PII, solo zona/precio/resultado) → analíticas superadmin. Fire-and-forget.
+        try:
+            import hashlib as _hl
+            from datetime import datetime as _dt, timezone as _tz
+            _ip = (request.client.host if request.client else "") or ""
+            await db.inversion_v4_simulations.insert_one({
+                "zone_id": body.get("zone_id"), "precio": inp.get("valor_propiedad"),
+                "modo_renta": inp.get("modo_renta", "largo"), "con_credito": bool(inp.get("con_credito", True)),
+                "vista": "institucional" if body.get("incluir_sensibilidad") else "simple",
+                "tir_pct": res.get("tir_pct"), "cap_rate_pct": res.get("cap_rate_pct"),
+                "ip_hash": _hl.sha256((_ip + "dmx_calc").encode()).hexdigest()[:16],
+                "ts": _dt.now(_tz.utc),
+            })
+        except Exception:
+            pass
         return res
     except Exception as e:
         return {"ok": False, "error": str(e)[:200]}
+
+
+@router.get("/api/inversion-v4/analytics")
+async def inversion_v4_analytics(request: Request):
+    """Demanda revelada de la calculadora de inversión (superadmin): qué zonas/precios/modos calcula la gente y cómo
+    convierte. Token fail-closed (x-cron-token == GOOGLE_INGEST_TOKEN o ADMIN_ANALYTICS_TOKEN). Datos anónimos."""
+    expected = os.environ.get("ADMIN_ANALYTICS_TOKEN") or os.environ.get("GOOGLE_INGEST_TOKEN")
+    if not expected or (request.headers.get("x-cron-token") or "") != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
+    db = request.app.state.db
+    out = {"ok": True}
+    try:
+        out["total_simulaciones"] = await db.inversion_v4_simulations.count_documents({})
+        out["por_zona"] = await db.inversion_v4_simulations.aggregate([
+            {"$group": {"_id": "$zone_id", "n": {"$sum": 1}, "precio_prom": {"$avg": "$precio"},
+                        "tir_prom": {"$avg": "$tir_pct"}, "institucional": {"$sum": {"$cond": [{"$eq": ["$vista", "institucional"]}, 1, 0]}}}},
+            {"$sort": {"n": -1}}, {"$limit": 50},
+        ]).to_list(50)
+        out["por_modo"] = await db.inversion_v4_simulations.aggregate([
+            {"$group": {"_id": {"modo": "$modo_renta", "credito": "$con_credito"}, "n": {"$sum": 1}}},
+        ]).to_list(20)
+        out["leads_calc"] = await db.lead_capture_leads.count_documents({"source_page": "calculadora_inversion"}) if "lead_capture_leads" in await db.list_collection_names() else None
+    except Exception as e:
+        out["error"] = str(e)[:200]
+    return out
 
 
 @router.post("/api/inversion-v4/portafolio")

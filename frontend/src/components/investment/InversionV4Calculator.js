@@ -28,7 +28,7 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [], devId = '' }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [], devId = '', numDesarrollos = null }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -801,6 +801,35 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ⚖️ <b>Efecto del crédito (apalancamiento):</b> con crédito tu TIR es <b>{pct(r.tir_pct)}</b> vs <b>{pct(r.tir_desapalancada_pct)}</b> al contado → el crédito <b style={{ color: dif >= 0 ? '#0E9F6E' : '#DC2626' }}>{dif >= 0 ? 'suma' : 'resta'} {Math.abs(dif).toFixed(1)} puntos</b>. {r.apalancamiento === 'positivo' ? 'El inmueble rinde más que la tasa del banco, así que el crédito amplifica tu ganancia.' : 'El inmueble rinde menos que la tasa del banco; el crédito resta — evalúa más enganche, mejor tasa o comprar al contado.'}
               </div>
             )}
+            {r.analisis_institucional && (() => {
+              const ai = r.analisis_institucional; const d = ai.descomposicion_retorno_pct;
+              const sobreApal = r.con_credito && ai.prestamo_max_dscr12 && r.credito && r.credito.monto_credito > ai.prestamo_max_dscr12;
+              return (
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>🔬 Due diligence de fondo <Info><>El bloque que revisa un comité de inversión: de dónde viene el retorno, si el precio compensa el riesgo (spread), cuánto te presta el banco a un DSCR sano, y el riesgo de la zona. Marco: CFA Institute · NCREIF · Geltner &amp; Miller · ULI.</></Info></div>
+                  {d && <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 4 }}>¿De dónde viene tu retorno? <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(NCREIF: income vs capital)</span></div>
+                    <div style={{ display: 'flex', height: 14, borderRadius: 6, overflow: 'hidden', marginBottom: 5 }}>
+                      {[['#0E9F6E', Math.max(0, d.renta)], ['#7C5CFF', Math.max(0, d.patrimonio)], ['#C026D3', Math.max(0, d.plusvalia)]].map(([c, v], i) => <div key={i} style={{ width: `${Math.min(100, v)}%`, background: c }} />)}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#5B5F76' }}>🟢 Renta {d.renta}% · 🟣 Patrimonio {d.patrimonio}% · 🟪 Plusvalía {d.plusvalia}% {d.renta < 0 ? <b style={{ color: '#DC2626' }}>· la renta resta (flujo negativo): el retorno es casi todo plusvalía/refugio</b> : null}</div>
+                  </div>}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 12 }}>
+                    {[['Spread vs CETES', `${ai.spread_vs_cetes_pts >= 0 ? '+' : ''}${ai.spread_vs_cetes_pts} pts`, ai.spread_vs_cetes_pts >= 0 ? '#0E9F6E' : '#DC2626', <>Cap rate − CETES = la <b>prima de riesgo</b> que te paga el inmueble sobre lo seguro. Positivo = el precio compensa el riesgo; negativo = pagas caro vs CETES.</>],
+                    ['Yield on cost', pct(ai.yield_on_cost_pct), '#16182A', <>NOI ÷ costo TOTAL (precio + escrituración). El rendimiento real sobre todo lo que pones, no solo el precio. Compáralo con el cap rate de mercado.</>],
+                    ['Préstamo máx (DSCR 1.2)', m(ai.prestamo_max_dscr12), sobreApal ? '#DC2626' : '#0E9F6E', <>Lo máximo que un banco te prestaría para que la renta cubra el crédito a <b>1.2x</b> (estándar). Si tu crédito lo supera, estás sobre-apalancado.</>]].map(([l, v, c, info]) => (
+                      <div key={l} style={{ padding: '10px 12px', borderRadius: 10, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}<Info>{info}</Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{v}</div></div>
+                    ))}
+                  </div>
+                  {sobreApal && <div style={{ fontSize: 10.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.1)', borderRadius: 9, padding: '8px 11px', marginTop: 10, lineHeight: 1.5 }}>⚠️ <b>Sobre-apalancado:</b> el banco prestaría máx ~{m(ai.prestamo_max_dscr12)} a DSCR 1.2, pero tu crédito es {m(r.credito.monto_credito)} → la renta no cubre el crédito al estándar. Sube enganche o baja el préstamo.</div>}
+                  {ai.estabilizacion && <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 8 }}>📈 <b>Estabilización (lease-up):</b> con {ai.estabilizacion.vacancia_inicial_pct}% de vacancia inicial, el NOI del año 1 es {m(ai.estabilizacion.noi_ano1_leaseup)} vs {m(ai.estabilizacion.noi_estabilizado)} estabilizado.</div>}
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10, fontSize: 10.5, color: '#5B5F76' }}>
+                    {numDesarrollos != null && <div>🏗️ <b>Oferta en la zona:</b> ~{numDesarrollos} desarrollos compitiendo <Info><>Cuántos proyectos compiten por el mismo comprador/inquilino. Más oferta = más presión a precios y renta (ULI, análisis de absorción y pipeline).</></Info></div>}
+                    <div>⚠️ <b>Riesgo físico / ESG:</b> sísmico (CDMX) · inundación · eficiencia <Info><>Cada vez más obligatorio en un comité institucional. Se alimenta de la data de zona (CENAPRED, SACMEX) — se surfacea por colonia cuando esté conectada.</></Info></div>
+                  </div>
+                </div>
+              );
+            })()}
             {capRateMercado != null && r.cap_rate_pct != null && (() => {
               const dif = +(r.cap_rate_pct - capRateMercado).toFixed(2);
               return (

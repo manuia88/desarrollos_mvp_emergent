@@ -351,6 +351,36 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     cap_teorico = tasa_descuento - crec_renta
     incoherencia = abs(cap_rate - cap_teorico) > 0.04 if cap_rate else False
 
+    # ── ANÁLISIS INSTITUCIONAL (due diligence de fondo) ──
+    # #2 descomposición del retorno (NCREIF: income vs capital return) — % del total de la ganancia
+    _atr = {"renta": sum(noi * ((1.0 + crec_renta) ** (y - 1)) - capex_reserve - servicio_deuda_anual - isr_renta_anual for y in range(1, horizonte + 1)),
+            "patrimonio": (cred.get("equity_buildup", 0.0) if con_credito else 0.0),
+            "plusvalia": (valor_venta - valor - costos_venta - isr_venta)}
+    _tot_atr = sum(_atr.values())
+    descomposicion = {k: round(v / _tot_atr * 100, 1) for k, v in _atr.items()} if _tot_atr else None
+    # #3 spread sobre tasa libre de riesgo + yield on cost (Geltner & Miller)
+    yield_on_cost = (noi / costo_total) if costo_total else 0.0
+    # #4 préstamo máximo a un DSCR objetivo (1.2x): PV de la mensualidad que da ese DSCR
+    prestamo_max_dscr = None
+    if con_credito and tasa_mensual > 0 and noi > 0:
+        pmt_obj = (noi / 1.2) / 12.0
+        prestamo_max_dscr = round(pmt_obj * (1.0 - (1.0 + tasa_mensual) ** (-plazo)) / tasa_mensual)
+    # #6 estabilización (lease-up): NOI año-1 con vacancia inicial mayor vs NOI estabilizado (steady state)
+    vac_ini = _g(inp, "vacancia_inicial_pct", 0.0)
+    estabilizacion = None
+    if vac_ini > 0:
+        noi_leaseup = ingreso_bruto_anual * (1.0 - vacancia - vac_ini) - egresos
+        estabilizacion = {"noi_estabilizado": round(noi), "noi_ano1_leaseup": round(noi_leaseup),
+                          "vacancia_inicial_pct": round(vac_ini * 100, 1)}
+    analisis_institucional = {
+        "descomposicion_retorno_pct": descomposicion,
+        "spread_vs_cetes_pts": round((cap_rate - cetes_1a) * 100, 2),
+        "yield_on_cost_pct": round(yield_on_cost * 100, 2),
+        "prestamo_max_dscr12": prestamo_max_dscr,
+        "dscr_objetivo": 1.2,
+        "estabilizacion": estabilizacion,
+    }
+
     return {
         "ok": True, "perfil": perfil, "multifamily": multifamily, "con_credito": con_credito,
         # desglose del costo (estilo pro-forma) + fuentes de cada dato (de dónde sale)
@@ -411,6 +441,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "equity_buildup": round(cred.get("equity_buildup", 0.0)) if con_credito else 0,
             "plusvalia": round(valor_venta - valor - costos_venta - isr_venta),
         },
+        "analisis_institucional": analisis_institucional,
         # reglas / alertas
         "apalancamiento": apalancamiento,
         "alertas": {"coc_negativo": coc_negativo, "dscr_bajo_1": (cred.get("dscr") is not None and cred["dscr"] < 1),

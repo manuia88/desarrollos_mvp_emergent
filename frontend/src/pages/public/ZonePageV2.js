@@ -853,7 +853,7 @@ export default function ZonePageV2() {
             )}
             {calcUnit && (
               <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InversionV4Calculator prefilled={{ precio: calcUnit.price, renta: inv && inv.renta_prom }} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev || (calcUnit && (calcUnit.development_id || calcUnit.dev_id))} devUnits={calcUnits.slice(0, 18).map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) }))} />
+                <InversionV4Calculator prefilled={{ precio: calcUnit.price, renta: inv && inv.renta_prom }} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev || (calcUnit && (calcUnit.development_id || calcUnit.dev_id))} numDesarrollos={Array.isArray(devs) ? devs.length : null} devUnits={calcUnits.slice(0, 18).map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) }))} />
               </div>
             )}
           </section>
