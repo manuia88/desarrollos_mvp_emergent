@@ -203,7 +203,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               </div>
             </div>
           )}
+        </div>
+      </div>
 
+      {/* ───── SECCIONES VISUALES (ancho completo · se acomodan sin huecos) ───── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' }}>
           {/* LARGO PLAZO vs AIRBNB */}
           {r && r.comparar_renta && r.comparar_renta.largo && (
             <div className="iv4-card">
@@ -254,8 +258,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               })}
             </div>
           )}
+      </div>{/* fin grid visual */}
 
-          {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica) */}
+          {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica · ancho completo) */}
           {r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
             <div className="iv4-card">
               <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año</div>
@@ -295,8 +300,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               {r.alertas.cap_bajo_cetes && <span style={{ fontSize: 11, fontWeight: 700, color: '#E0A33E', background: 'rgba(224,163,62,0.1)', borderRadius: 8, padding: '5px 10px' }}>⚠️ Renta rinde menos que CETES</span>}
             </div>
           )}
-        </div>
-      </div>
 
       {/* ───── ACCIONES + MODO AVANZADO (ancho completo) ───── */}
       <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
