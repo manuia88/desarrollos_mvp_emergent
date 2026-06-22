@@ -78,6 +78,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     return () => clearTimeout(timer.current);
   }, [f, vista, run, zoneId, airroi]);
 
+  // al elegir otra unidad/proyecto (cambia el precio que llega), sincroniza el precio bloqueado → permite comparar proyectos
+  useEffect(() => {
+    if (prefilled.precio) setF((s) => ({ ...s, valor_propiedad: prefilled.precio, renta_mensual: prefilled.renta || s.renta_mensual }));
+  }, [prefilled.precio, prefilled.renta]);
+
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
@@ -267,32 +272,62 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
-          {/* CRÉDITO · detalle completo (tasa, préstamo, capital, intereses, interés total) */}
-          {r && r.con_credito && r.credito && r.credito.pmt_mensual && (
-            <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {r.credito.plazo_anios} años · tasa {pct(r.credito.tasa_anual_pct)}</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))', gap: 11 }}>
-                {[['Precio Del Depa', m((r.desglose || {}).valor_propiedad || f.valor_propiedad), '#16182A', 'El precio del departamento (lo que cuesta).'],
-                ['Tu Enganche', m(((r.desglose || {}).valor_propiedad || 0) - r.credito.monto_credito), '#7C5CFF', 'La parte del precio que pones tú al inicio.'],
-                ['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El resto del precio que pone el banco como crédito.'],
-                ['Tasa Anual / Mensual', `${pct(r.credito.tasa_anual_pct)} · ${pct(r.credito.tasa_mensual_pct)}`, '#16182A', 'Tasa de interés del banco (anual y su equivalente mensual).'],
-                ['Mensualidad', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Pago fijo al banco cada mes (capital + intereses).'],
-                ['Pago Anual', m(r.credito.pago_anual), '#16182A', 'Lo que pagas al banco en un año.'],
-                ['La Renta Cubre', pct(r.credito.cobertura_renta_pct), (r.credito.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626', 'Cuánto de la mensualidad paga la renta. Si <100%, pones la diferencia.'],
-                ['Capital (Lo Que Devuelves)', m(r.credito.monto_credito), '#7C5CFF', 'El préstamo que regresas al banco.'],
-                ['Interés Total Del Plazo', m(r.credito.interes_total), '#DC2626', `Lo que pagas SOLO de intereses en los ${r.credito.plazo_anios} años. Por eso conviene liquidar o vender antes.`],
-                ['Monto Total (Lo Que Terminas Pagando)', m(r.credito.pago_total_plazo), '#16182A', `TODO lo que le das al banco en los ${r.credito.plazo_anios} años: tu préstamo (${m(r.credito.monto_credito)}) + todos los intereses (${m(r.credito.interes_total)}).`]].map(([l, v, c, exp]) => (
-                  <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14.5, color: c, marginTop: 3 }}>{v}</div><div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div></div>
-                ))}
-              </div>
-              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 10 }}>Pagas en total <b>{m(r.credito.pago_total_plazo)}</b> ({m(r.credito.monto_credito)} de préstamo + {m(r.credito.interes_total)} de intereses). Amortización francesa.</div>
-              {r.credito.abono && (
-                <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(14,159,110,0.08)', borderRadius: 10, fontSize: 11.5, color: '#0E7A53', lineHeight: 1.5 }}>
-                  💸 Con tu abono extra de <b>{m(r.credito.abono.abono_mensual)}/mes</b>: liquidas en <b>{r.credito.abono.anios_payoff} años</b> (−{r.credito.abono.anios_ahorrados} años) y ahorras <b>{m(r.credito.abono.interes_ahorrado)}</b> de intereses.
+          {/* CRÉDITO · UI en 3 secciones (reparto del precio · tu pago + split capital/interés · todo el plazo) */}
+          {r && r.con_credito && r.credito && r.credito.pmt_mensual && (() => {
+            const cr = r.credito;
+            const precio = (r.desglose || {}).valor_propiedad || Number(f.valor_propiedad) || 0;
+            const engPuro = precio - cr.monto_credito;
+            const capPct = cr.pago_anual ? Math.max(0, Math.min(100, Math.round((cr.capital_anio1 / cr.pago_anual) * 100))) : 0;
+            const Tile = ({ l, v, c, exp }) => (
+              <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c || '#16182A', marginTop: 2 }}>{v}</div>{exp && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div>}</div>
+            );
+            const Sub = ({ children }) => <div style={{ fontSize: 10, fontWeight: 800, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 10px' }}>{children}</div>;
+            return (
+              <div className="iv4-card">
+                <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span></div>
+
+                <Sub>Cómo se reparte el precio</Sub>
+                <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
+                  {[['Precio del depa', precio, '#16182A'], ['=', null], ['Tu enganche', engPuro, '#7C5CFF'], ['+', null], ['Te prestan', cr.monto_credito, '#0E9F6E']].map(([l, v, c], i) => (
+                    v === null ? <div key={i} style={{ alignSelf: 'center', fontSize: 20, fontWeight: 800, color: '#C9CCDB' }}>{l}</div>
+                      : <div key={i} style={{ flex: '1 1 110px', padding: '10px 12px', borderRadius: 10, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{m(v)}</div></div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+
+                <Sub>Tu pago</Sub>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+                  <Tile l="Mensualidad" v={m(cr.pmt_mensual) + '/mes'} exp="Pago fijo al banco (capital + intereses)." />
+                  <Tile l="Pago anual" v={m(cr.pago_anual)} exp="Lo que pagas al banco en un año." />
+                  <Tile l="Tasa anual / mensual" v={`${pct(cr.tasa_anual_pct)} · ${pct(cr.tasa_mensual_pct)}`} />
+                  <Tile l="La renta cubre" v={pct(cr.cobertura_renta_pct)} c={(cr.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626'} exp="Cuánto de la mensualidad paga la renta." />
+                </div>
+                <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(16,18,28,0.03)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, color: '#5B5F76', marginBottom: 7 }}>De tu pago anual (<b>{m(cr.pago_anual)}</b>), en el <b>primer año</b>:</div>
+                  <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginBottom: 7 }}>
+                    <div style={{ width: `${capPct}%`, background: '#7C5CFF' }} /><div style={{ width: `${100 - capPct}%`, background: '#DC2626' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, fontWeight: 700, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#7C5CFF' }}>🟪 {m(cr.capital_anio1)} a capital ({capPct}%)</span>
+                    <span style={{ color: '#DC2626' }}>🟥 {m(cr.interes_anio1)} a interés ({100 - capPct}%)</span>
+                  </div>
+                  <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Al principio casi todo es interés; con los años, cada vez más se va a capital (baja tu deuda).</div>
+                </div>
+
+                <Sub>En todo el plazo ({cr.plazo_anios} años)</Sub>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+                  <Tile l="Capital (préstamo)" v={m(cr.monto_credito)} c="#7C5CFF" exp="El préstamo que le regresas al banco." />
+                  <Tile l="Interés total" v={m(cr.interes_total)} c="#DC2626" exp={`Solo intereses en ${cr.plazo_anios} años. Por eso conviene liquidar o vender antes.`} />
+                  <Tile l="Monto total" v={m(cr.pago_total_plazo)} exp="Préstamo + todos los intereses = todo lo que le das al banco." />
+                </div>
+
+                {cr.abono && (
+                  <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(14,159,110,0.08)', borderRadius: 10, fontSize: 11.5, color: '#0E7A53', lineHeight: 1.5 }}>
+                    💸 Con tu abono extra de <b>{m(cr.abono.abono_mensual)}/mes</b>: liquidas en <b>{cr.abono.anios_payoff} años</b> (−{cr.abono.anios_ahorrados} años) y ahorras <b>{m(cr.abono.interes_ahorrado)}</b> de intereses.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -396,16 +431,17 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {/* ───── ACCIONES + MODO AVANZADO (ancho completo) ───── */}
       <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
         <button type="button" onClick={() => askAtlax(`¿Qué pasa si…? Analizo una inversión de ${m(f.valor_propiedad)} con renta ${m(f.renta_mensual)}/mes, ${f.con_credito ? 'con crédito' : 'al contado'}, horizonte ${f.horizonte_anios} años. Ayúdame a explorar escenarios.`)} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF' }}>💬 ¿Qué pasa si…?</button>
-        {r && <button type="button" onClick={() => setComparar((c) => [...c.slice(-2), { precio: f.valor_propiedad, credito: f.con_credito, tir: r.tir_pct, coc: r.cash_on_cash_pct, em: r.equity_multiple, neto: r.neto_al_vender }])} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>➕ Comparar (A/B)</button>}
+        {r && <button type="button" onClick={() => setComparar((c) => [...c.slice(-2), { zona: zoneId, precio: f.valor_propiedad, credito: f.con_credito, plazo: Number(f.plazo_meses), modo: f.modo_renta, tir: r.tir_pct, em: r.equity_multiple, neto: r.neto_al_vender }])} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: comparar.length ? 'rgba(124,92,255,0.1)' : '#fff', color: '#6D4AFF' }}>📌 Guardar para comparar{comparar.length ? ` (${comparar.length} guardado${comparar.length > 1 ? 's' : ''})` : ''}</button>}
         <button type="button" onClick={() => window.print()} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>📄 PDF</button>
       </div>
+      {r && <div className="iv4-noprint" style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 6, lineHeight: 1.5 }}>💡 Para comparar A/B: toca <b>Guardar para comparar</b>, luego {lockPrice ? 'elige otra unidad arriba (o cambia crédito/plazo)' : 'cambia el precio, el crédito o el plazo'} y guarda otro — aparecen lado a lado abajo.</div>}
 
       {comparar.length > 0 && (
         <div className="iv4-card" style={{ marginTop: 12, overflowX: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><span style={{ fontWeight: 800, fontSize: 13 }}>Comparar escenarios (A/B)</span><button type="button" onClick={() => setComparar([])} style={{ border: 'none', background: 'none', color: '#8A8FA6', fontSize: 11, cursor: 'pointer' }}>limpiar</button></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead><tr style={{ color: '#6B6F86', textAlign: 'left' }}>{['', 'Precio', 'Modo', 'TIR', 'Multiplica', 'Neto'].map((h) => <th key={h} style={{ padding: '6px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
-            <tbody>{comparar.map((c, i) => <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.06)' }}><td style={{ padding: '6px 8px', fontWeight: 800 }}>{String.fromCharCode(65 + i)}</td><td style={{ padding: '6px 8px' }}>{m(c.precio)}</td><td style={{ padding: '6px 8px' }}>{c.credito ? 'Crédito' : 'Contado'}</td><td style={{ padding: '6px 8px', fontWeight: 800, color: '#7C5CFF' }}>{pct(c.tir)}</td><td style={{ padding: '6px 8px' }}>{c.em ? `${c.em}x` : '—'}</td><td style={{ padding: '6px 8px' }}>{m(c.neto)}</td></tr>)}</tbody>
+            <thead><tr style={{ color: '#6B6F86', textAlign: 'left' }}>{['', 'Zona', 'Precio', 'Pago', 'Plazo', 'TIR', 'Multiplica', 'Neto'].map((h) => <th key={h} style={{ padding: '6px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+            <tbody>{comparar.map((c, i) => <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.06)' }}><td style={{ padding: '6px 8px', fontWeight: 800 }}>{String.fromCharCode(65 + i)}</td><td style={{ padding: '6px 8px', textTransform: 'capitalize' }}>{(c.zona || '—').replace(/-/g, ' ')}</td><td style={{ padding: '6px 8px' }}>{m(c.precio)}</td><td style={{ padding: '6px 8px' }}>{c.credito ? 'Crédito' : 'Contado'}</td><td style={{ padding: '6px 8px' }}>{c.plazo ? `${Math.round(c.plazo / 12)} años` : '—'}</td><td style={{ padding: '6px 8px', fontWeight: 800, color: '#7C5CFF' }}>{pct(c.tir)}</td><td style={{ padding: '6px 8px' }}>{c.em ? `${c.em}x` : '—'}</td><td style={{ padding: '6px 8px' }}>{m(c.neto)}</td></tr>)}</tbody>
           </table>
         </div>
       )}

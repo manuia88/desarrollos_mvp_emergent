@@ -171,6 +171,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         capital_propio = costo_total - monto_credito
         horizonte = int(_g(inp, "horizonte_anios", 5))
         am = amortization(monto_credito, tasa_mensual, plazo, horizonte * 12)
+        am1 = amortization(monto_credito, tasa_mensual, plazo, 12)  # primer año: cuánto del pago anual va a capital vs interés
         servicio_deuda_anual = am["pmt"] * 12.0
         saldo_pendiente = am["saldo_pendiente"]
         interes_total = am["pmt"] * plazo - monto_credito         # interés TOTAL a todo el plazo
@@ -179,6 +180,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "plazo_meses": plazo, "plazo_anios": round(plazo / 12),
             "monto_credito": round(monto_credito), "capital_propio": round(capital_propio),
             "pmt_mensual": round(am["pmt"]), "pago_anual": round(am["pmt"] * 12.0),
+            "interes_anio1": round(am1["interes_acum"]), "capital_anio1": round(am1["capital_acum"]),
             "pago_total_plazo": round(am["pmt"] * plazo), "interes_total": round(interes_total),
             "interes_en_horizonte": round(am["interes_acum"]), "capital_en_horizonte": round(am["capital_acum"]),
             "saldo_pendiente": round(saldo_pendiente), "equity_buildup": round(am["equity_buildup"]),
