@@ -35,6 +35,15 @@ VEHICULOS_SEED: List[Dict[str, Any]] = [
     {"k": "udibonos", "nombre": "Udibonos", "cat": "Deuda indexada", "pct": 4.8, "riesgo": "Muy bajo",
      "liquidez": "Media", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí (UDI)",
      "mensual": False, "esfuerzo": "Nulo", "fuente": "Banxico"},
+    {"k": "crowdfunding", "nombre": "Crowdfunding inmobiliario", "cat": "Bien raíz fraccionado", "pct": 14.0, "riesgo": "Medio-alto",
+     "liquidez": "Baja", "ticket": "$1,000", "apalancable": False, "tangible": False, "inflacion": "Sí",
+     "mensual": True, "esfuerzo": "Bajo", "fuente": "Briq · M2Crowd · 100 Ladrillos (CNBV)"},
+    {"k": "sofipo", "nombre": "SOFIPO (pagaré digital)", "cat": "Banco/fintech", "pct": 12.0, "riesgo": "Medio",
+     "liquidez": "Alta", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Parcial",
+     "mensual": False, "esfuerzo": "Nulo", "fuente": "Nu · Klar · Finsus (CNBV · seguro IPAB-PROSOFIPO)"},
+    {"k": "crypto", "nombre": "Cripto (Bitcoin)", "cat": "Activo digital", "pct": 25.0, "riesgo": "Muy alto",
+     "liquidez": "Alta", "ticket": "$100", "apalancable": False, "tangible": False, "inflacion": "Sí (escaso)",
+     "mensual": False, "esfuerzo": "Medio", "fuente": "histórico BTC (muy volátil · no garantizado)"},
 ]
 
 async def seed_rates(db) -> None:

@@ -413,8 +413,12 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
     # año 0 = PRECIO del inmueble (sin escrituración), para que la curva de valor sea coherente: año0 < año1 < ...
     valor_compra = (base.get("desglose") or {}).get("valor_propiedad") or base.get("costo_total", 0)
     crec = _g(inp, "crecimiento_renta_anual", 0.05)
+    aprec = _g(inp, "apreciacion_anual", 0.075)
+    # tasa de oportunidad (hurdle): lo que ganarías sin riesgo + prima por el riesgo inmobiliario. Marco de disposición
+    # óptima = "retorno marginal de retener" (Geltner, Miller, Clayton & Eichholtz, Commercial Real Estate Analysis & Investments).
+    hurdle = _g(inp, "cetes_1a", 0.07) + _g(inp, "prima_riesgo_inmobiliario", 0.05)
     rows: List[Dict[str, Any]] = []
-    best_y, best_tir = None, None
+    best_y, best_tir, mejor_marginal_y = None, None, None
     for y in anios:
         ry = analyze({**inp, "horizonte_anios": y}, isr_fn)
         cred = ry.get("credito") or {}
@@ -422,20 +426,42 @@ def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1,
         renta_bruta_y = round(ingreso_bruto * ((1.0 + crec) ** (y - 1)))
         pmt = cred.get("pmt_mensual", 0) or 0
         diferencial_mensual = round(noi_y / 12.0 - pmt)   # lo que te queda (o pones) al mes tras gastos y crédito
+        valor_y = ry.get("valor_venta") or 0
+        # retorno marginal de retener un año más ≈ renta sobre el valor actual (cap rate "vivo") + plusvalía esperada
+        retorno_marginal = (noi_y / valor_y + aprec) if valor_y else 0.0
         rows.append({
-            "anio": y, "valor": ry.get("valor_venta"), "plusvalia_acum": ry.get("plusvalia_neta"),
+            "anio": y, "valor": valor_y, "plusvalia_acum": ry.get("plusvalia_neta"),
             "noi_anual": noi_y, "cap_rate_pct": ry.get("cap_rate_pct"),
             "renta_bruta_mensual": round(renta_bruta_y / 12.0), "renta_mensual": round(noi_y / 12.0),
             "mensualidad_credito": pmt, "diferencial_mensual": diferencial_mensual, "saldo_credito": cred.get("saldo_pendiente", 0),
             "neto_al_vender": ry.get("neto_al_vender"), "tir_si_vendes": ry.get("tir_pct"),
+            "retorno_marginal_pct": round(retorno_marginal * 100, 2),
         })
         t = ry.get("tir_pct")
         if t is not None and (best_tir is None or t > best_tir):
             best_tir, best_y = t, y
-    rec = (f"El mejor año para vender es el {best_y} — ahí tu rendimiento anual es máximo ({best_tir}%). "
-           f"Antes de ese año, quédatelo; después, el rendimiento empieza a diluirse.") if best_y else "Sin datos suficientes."
-    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir, "recomendacion": rec, "valor_compra": round(valor_compra),
-            "veredicto_salida": ("VENDER" if best_y and best_y <= _g(inp, "horizonte_anios", 5) else "QUEDÁRSELO")}
+        if retorno_marginal >= hurdle:                 # mientras retenerlo beneficie más que tu alternativa, conviene quedárselo
+            mejor_marginal_y = y
+    # recomendación honesta: la regla de disposición (retorno marginal vs hurdle), no solo "máxima TIR"
+    hpct = round(hurdle * 100, 1)
+    if mejor_marginal_y is None:
+        rec = (f"Bajo estos supuestos, el rendimiento de SEGUIR reteniéndolo (renta sobre su valor + plusvalía ~{aprec*100:.1f}%) "
+               f"ya está por debajo de tu tasa de oportunidad (~{hpct}%): este inmueble es más una jugada de plusvalía/refugio "
+               f"que de rendimiento puro. Tiene sentido si valoras el activo físico y la protección. La columna 'TIR si vendes' "
+               f"muestra tu rendimiento realizado en cada año de salida.")
+    elif mejor_marginal_y >= max(anios):
+        rec = (f"Conviene quedártelo: retenerlo un año más te rinde (~renta/valor + plusvalía) por encima de tu tasa de "
+               f"oportunidad (~{hpct}%) en todo el horizonte. Como los costos de comprar/vender se reparten en más años, "
+               f"la 'TIR si vendes' mejora cuanto más lo tengas. Vende cuando el rendimiento de retenerlo caiga de tu alternativa, "
+               f"necesites el dinero, o la plusvalía se desacelere.")
+    else:
+        rec = (f"Punto de salida sugerido: ~año {mejor_marginal_y}. Hasta ahí, retenerlo te rinde más que tu tasa de oportunidad "
+               f"(~{hpct}%); después, el rendimiento de seguir reteniéndolo cae por debajo y conviene vender y reinvertir. "
+               f"Regla de 'retorno marginal de retención' (Geltner & Miller).")
+    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir,
+            "salida_marginal_anio": mejor_marginal_y, "hurdle_pct": hpct, "recomendacion": rec, "valor_compra": round(valor_compra),
+            "bibliografia": "Geltner, Miller, Clayton & Eichholtz — Commercial Real Estate Analysis & Investments (decisión de disposición / retorno marginal de retención).",
+            "veredicto_salida": ("VENDER" if mejor_marginal_y and mejor_marginal_y < max(anios) else "QUEDÁRSELO")}
 
 
 def comparar_renta(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str, Any]:

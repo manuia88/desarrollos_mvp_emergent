@@ -146,11 +146,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
               : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
           <div><span style={lab}>Tipo de renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo'], ['corto', 'Airbnb']]} /></div>
-          {f.modo_renta === 'corto' ? (<>
-            <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
-            <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
-          </>) : <Field label="Renta Mensual" k="renta_mensual" money auto />}
-          <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
           <div><span style={lab}>Cómo lo pagas</span><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
           {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
           {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
@@ -183,6 +178,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           </button>
           {openAdv && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 14 }}>
+              {f.modo_renta === 'corto' ? (<>
+                <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
+                <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
+              </>) : <Field label="Renta mensual" k="renta_mensual" money auto />}
+              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
               <Field label="Predial / año" k="predial" money auto />
               <Field label="Mantenim. / año" k="mantenimiento" money auto />
               <Field label="Seguro / año" k="seguro" money auto />
@@ -204,17 +204,34 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* Resultado grande + veredicto */}
           {r && (
             <div className="iv4-card" style={{ borderTop: `5px solid ${sem}`, background: `linear-gradient(180deg, ${sem}0D, #fff 60%)` }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: 11.5, color: '#6B6F86', fontWeight: 700 }}>Rendimiento anual (TIR) <span style={{ fontWeight: 600, color: '#8A8FA6' }}>· si vendes al año {f.horizonte_anios}</span><Info><><b>¿Qué es la TIR?</b> El rendimiento anual de tu dinero juntando DOS cosas: la renta que recibes cada año <b>y</b> lo que te llevas si <b>vendes al año {f.horizonte_anios}</b> (ahí "realizas" la plusvalía). <b>No</b> es solo el ingreso de renta — por eso necesita un año de salida. <b>Cómo se calcula:</b> pones tu enganche + gastos (sale dinero), recibes renta cada año, y al vender recibes (precio − comisión − ISR − saldo del crédito); la TIR es la tasa que hace que todo eso cuadre (estándar Geltner & Miller / CFA). <b>Cambia el año de salida</b> en "Cuando lo vendas" o mira la columna "TIR si vendes" año por año.</></Info></div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 44, color: sem, letterSpacing: '-0.03em', lineHeight: 1 }}>{pct(r.tir_pct)}</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>Rinde al año · solo renta<Info><><b>Cap rate.</b> Lo que te deja la renta sobre el precio <b>cada año</b>, sin contar el crédito ni la venta. Es el rendimiento <b>anual y estable</b> — no depende de cuándo vendas. <b>Tu caso:</b> {pct(r.cap_rate_pct)} (= renta neta {m(r.noi)} ÷ precio {m(f.valor_propiedad)}).</></Info></div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: '#C026D3', letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div>
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 3 }}>cap rate · cada año, sin importar cuándo vendas</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>Si vendes al año {f.horizonte_anios}<Info><><b>TIR (con venta).</b> Junta la renta de cada año <b>+</b> la plusvalía que realizas al vender al año {f.horizonte_anios}. Por eso necesita un año de salida. Estándar Geltner & Miller / CFA. <b>Tu caso:</b> {pct(r.tir_pct)}. Toca un año en la tira de abajo para cambiarlo.</></Info></div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: sem, letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.tir_pct)}</div>
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 3 }}>TIR · renta + venta</div>
+                  </div>
                 </div>
                 {r.veredicto && <div style={{ textAlign: 'right' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: sem, background: `${sem}18`, borderRadius: 9999, padding: '6px 14px' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: sem }} />{r.veredicto.nivel}</span>
                 </div>}
               </div>
-              {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginTop: 8 }}>Tu ganancia real por año juntando la renta + lo que te llevas si <b>vendes al año {f.horizonte_anios}</b>. Si supera a CETES ({(r.cetes_1a_pct) || 7}%), tu dinero rinde mejor que sin riesgo. Cambia el año de salida abajo para ver cómo cambia.</div>}
-              <p style={{ fontSize: 13, color: '#5B5F76', lineHeight: 1.55, marginTop: 10, marginBottom: 0 }}>{r.veredicto && r.veredicto.parrafo}</p>
+              {/* TIR por año de salida · clicable (responde "¿al año 1, 3, 5, 10...?") */}
+              {r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10.5, color: '#6B6F86', fontWeight: 700 }}>TIR si vendes en:</span>
+                  {r.proyeccion.rows.map((row) => { const on = row.anio === Number(f.horizonte_anios); return (
+                    <button key={row.anio} type="button" onClick={() => set('horizonte_anios', row.anio)} style={{ cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 8, border: 'none', background: on ? 'rgba(124,92,255,0.16)' : 'rgba(16,18,28,0.04)', color: (row.tir_si_vendes || 0) >= 0 ? (on ? '#6D28D9' : '#5B5F76') : '#DC2626' }}>{row.anio}a · {pct(row.tir_si_vendes)}</button>
+                  ); })}
+                </div>
+              )}
+              <p style={{ fontSize: 13, color: '#5B5F76', lineHeight: 1.55, marginTop: 12, marginBottom: 0 }}>{r.veredicto && r.veredicto.parrafo}</p>
+              {vista === 'simple' && <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>📌 <b>Cap rate</b> = lo que deja la renta al año (estable). <b>TIR</b> = renta + plusvalía si vendes (depende del año). <b>ROI</b> = ganancia total ÷ años (parecido a la TIR pero sin contar el "valor del tiempo"); lo ves abajo en las métricas.</div>}
             </div>
           )}
 
@@ -521,7 +538,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
             <div className="iv4-card">
               <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año <Info><><b>Cómo leerla:</b> cada renglón es un año. <b>Valor</b> = cuánto valdrá el depa. <b>Renta/mes</b> = lo que paga el inquilino. <b>Ganancia/año</b> = renta menos gastos. <b>Mensualidad</b> = lo que pagas al banco. <b>Diferencial</b> = lo que te queda o pones de tu bolsa al mes. <b>TIR si vendes</b> = cuánto te rindió si vendes ese año.</></Info></div>
-              <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 12, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}</div>
+              <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 6, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}<Info><><b>¿Cómo decidimos el mejor año para salir?</b> NO es "la TIR más alta" (eso siempre premia esperar, porque los costos de comprar/vender se reparten en más años). Usamos la regla de <b>retorno marginal de retención</b>: te conviene quedártelo mientras retenerlo un año más te rinda (renta sobre su valor actual + plusvalía) <b>más que tu tasa de oportunidad</b> (CETES + prima de riesgo ≈ {r.proyeccion.hurdle_pct}%). Cuando cae por debajo, conviene vender y reinvertir. <b>Depende de:</b> plusvalía esperada, qué tan rápido sube la renta, tasas, y si necesitas el dinero. <b>Fuente:</b> {r.proyeccion.bibliografia}</></Info></div>
+              {r.proyeccion.bibliografia && <div style={{ fontSize: 9.5, color: '#A2A6BC', marginBottom: 12, fontStyle: 'italic' }}>Método: retorno marginal de retención vs tu tasa de oportunidad (~{r.proyeccion.hurdle_pct}%). Fuente: {r.proyeccion.bibliografia}</div>}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56, marginBottom: 12 }}>
                 {r.proyeccion.rows.map((row) => { const mx = Math.max(...r.proyeccion.rows.map((x) => x.valor || 0)) || 1; const best = row.anio === r.proyeccion.mejor_anio; return (
                   <div key={row.anio} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>

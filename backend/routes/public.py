@@ -556,9 +556,12 @@ async def inversion_v4_analyze(request: Request):
             # tabla comparativa con criterios OBJETIVOS (pentágono de inversiones): rendimiento/riesgo/liquidez/plazo/dedicación + ticket/inflación
             _campos = ("k", "nombre", "cat", "pct", "riesgo", "liquidez", "ticket", "inflacion", "esfuerzo", "fuente", "live")
             _plazo = {"cetes_364": "Corto (1 año)", "pagare": "Corto (28-90 días)", "fibra": "Medio-largo (3-5 años)",
-                      "bolsa": "Largo (5+ años)", "afore": "Muy largo (al retiro)", "udibonos": "Largo (3-10 años)"}
+                      "bolsa": "Largo (5+ años)", "afore": "Muy largo (al retiro)", "udibonos": "Largo (3-10 años)",
+                      "crowdfunding": "Medio (2-4 años)", "sofipo": "Corto (flexible)", "crypto": "Largo (5+ años)"}
+            _orden = ("cetes_364", "sofipo", "pagare", "udibonos", "fibra", "crowdfunding", "bolsa", "crypto", "afore")
             res["instrumentos"] = [{**{c: v.get(c) for c in _campos}, "plazo": _plazo.get(v.get("k"))}
-                                   for v in (rates.get("vehiculos") or []) if v.get("k") in ("cetes_364", "pagare", "fibra", "bolsa", "afore", "udibonos")]
+                                   for v in sorted((rates.get("vehiculos") or []), key=lambda v: _orden.index(v.get("k")) if v.get("k") in _orden else 99)
+                                   if v.get("k") in _orden]
         except Exception:
             res["instrumentos"] = []
         return res
