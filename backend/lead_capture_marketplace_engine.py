@@ -183,19 +183,23 @@ async def assign_advisor(db, property_id: str) -> Dict[str, Any]:
             except Exception:
                 pass
 
-        # 3) Fallback: primer user con role=advisor
+        # 3) Fallback POLÍTICA (LEAD_REGISTRATION_RULES §2·§5·§8.5): lead sin asesor del dev → POOL DMX (la casa),
+        #    NUNCA a un asesor de otro tenant. pick_house_asesor filtra a empleados DMX (role advisor/asesor_admin,
+        #    tenant None/dmx_root) y reparte por zona + menos cargado. Si no hay asesor de la casa → DMX_FALLBACK.
         try:
-            u = await db.users.find_one(
-                {"role": {"$in": ["advisor", "developer_advisor", "inmobiliaria_advisor"]}},
-                {"_id": 0, "user_id": 1, "id": 1, "full_name": 1, "name": 1,
-                 "whatsapp_phone": 1, "phone": 1},
-            )
-            if u and (u.get("whatsapp_phone") or u.get("phone")):
-                return {
-                    "advisor_id": u.get("user_id") or u.get("id"),
-                    "advisor_name": u.get("full_name") or u.get("name") or DMX_FALLBACK_NAME,
-                    "advisor_phone": u.get("whatsapp_phone") or u.get("phone") or DMX_FALLBACK_PHONE,
-                }
+            from house_pool_engine import pick_house_asesor
+            house_id = await pick_house_asesor(db, property_id)
+            if house_id:
+                u = await db.users.find_one(
+                    {"$or": [{"user_id": house_id}, {"id": house_id}, {"_id": house_id}]},
+                    {"_id": 0, "user_id": 1, "id": 1, "full_name": 1, "name": 1, "whatsapp_phone": 1, "phone": 1},
+                )
+                if u:
+                    return {
+                        "advisor_id": u.get("user_id") or u.get("id") or house_id,
+                        "advisor_name": u.get("full_name") or u.get("name") or DMX_FALLBACK_NAME,
+                        "advisor_phone": u.get("whatsapp_phone") or u.get("phone") or DMX_FALLBACK_PHONE,
+                    }
         except Exception:
             pass
     except Exception as e:  # noqa: BLE001
