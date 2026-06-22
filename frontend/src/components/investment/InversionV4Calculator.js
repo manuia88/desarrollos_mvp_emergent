@@ -246,6 +246,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 </div>
               )}
               <p style={{ fontSize: 13, color: '#5B5F76', lineHeight: 1.55, marginTop: 12, marginBottom: 0 }}>{r.veredicto && r.veredicto.parrafo}</p>
+              {r.renta_equilibrio_mensual && (r.flujo_mensual_1 || 0) < 0 && r.desglose && (
+                <div style={{ marginTop: 10, fontSize: 11.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.1)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>🎯 <b>Punto de equilibrio:</b> hoy pones ~{m(Math.abs(r.flujo_mensual_1))}/mes de tu bolsa. Para que la renta cubra TODO (no poner nada), tendría que ser ~<b>{m(r.renta_equilibrio_mensual)}/mes</b> (hoy ~{m(Math.round(r.desglose.ingreso_bruto_anual / 12))}). Alternativas: sube el enganche, alarga el plazo o negocia un mejor precio de entrada.<Info><>El <b>punto de equilibrio</b> es la renta a la que tu flujo mensual = $0 (dejas de poner de tu bolsa). Se calcula despejando: renta × (1 − vacancia − reserva − gastos%) = gastos fijos + pago del crédito. Útil para saber qué tan lejos estás de que "se pague solo".</></Info></div>
+              )}
               {vista === 'simple' && <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>📌 <b>Cap rate</b> = lo que deja la renta al año (estable). <b>TIR</b> = renta + plusvalía si vendes (depende del año). <b>ROI</b> = ganancia total ÷ años (parecido a la TIR pero sin contar el "valor del tiempo"); lo ves abajo en las métricas.</div>}
             </div>
           )}

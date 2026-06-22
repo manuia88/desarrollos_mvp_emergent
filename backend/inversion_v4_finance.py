@@ -233,6 +233,13 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     flujo_caja_anual_1 = noi - capex_reserve - servicio_deuda_anual
     cash_on_cash = (flujo_caja_anual_1 / capital_base) if capital_base else 0.0
 
+    # ── PUNTO DE EQUILIBRIO · renta bruta mensual para que el flujo sea 0 (dejar de poner de tu bolsa) ──
+    _vac = _g(inp, "tasa_vacancia", 0.05)
+    _corto_f = (egresos_extra_corto / ingreso_bruto_anual) if (renta_corto and ingreso_bruto_anual) else 0.0
+    _egresos_fijos = egresos - egresos_extra_corto                 # los que NO escalan con la renta (predial, mantenim, seguro)
+    _denom = 1.0 - _vac - _g(inp, "capex_reserve_pct", 0.04) - _corto_f
+    renta_equilibrio_mensual = round(((_egresos_fijos + servicio_deuda_anual) / _denom) / 12.0) if _denom > 0 else None
+
     # ── horizonte / mercado ──
     horizonte = int(_g(inp, "horizonte_anios", 5))
     crec_renta = _g(inp, "crecimiento_renta_anual", 0.05)
@@ -375,6 +382,7 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
         "noi": round(noi), "cap_rate_pct": round(cap_rate * 100, 2),
         "cash_on_cash_pct": round(cash_on_cash * 100, 2),
         "flujo_caja_anual_1": round(flujo_caja_anual_1), "flujo_mensual_1": round(flujo_caja_anual_1 / 12.0),
+        "renta_equilibrio_mensual": renta_equilibrio_mensual,
         "costo_total": round(costo_total), "capital_invertido": round(capital_base),
         "valor_venta": round(valor_venta), "costos_venta": round(costos_venta),
         "neto_al_vender": round(valor_venta - costos_venta - isr_venta - (saldo_pendiente if con_credito else 0.0)),
