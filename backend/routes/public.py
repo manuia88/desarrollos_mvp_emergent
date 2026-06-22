@@ -516,6 +516,12 @@ async def inversion_v4_analyze(request: Request):
         res = analyze(inp, isr_fn=make_isr_fn())
         res["veredicto"] = veredicto(res)
         res["mercado"] = mkt
+        try:
+            from inversion_v4_finance import proyeccion, comparar_renta
+            res["proyeccion"] = proyeccion(inp, isr_fn=make_isr_fn())
+            res["comparar_renta"] = comparar_renta(inp, isr_fn=make_isr_fn())
+        except Exception:
+            pass
         if body.get("incluir_sensibilidad"):
             try:
                 from inversion_v4_finance import sensibilidad, montecarlo

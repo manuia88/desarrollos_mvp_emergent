@@ -30,6 +30,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     valor_propiedad: precio0, num_unidades: 1,
     con_credito: true, ltv: 0.80, tasa_anual: '', plazo_meses: 240,
     modo_renta: 'largo', renta_mensual: prefilled.renta || Math.round(precio0 * 0.0045), tasa_vacancia: 0.05,
+    tarifa_noche: Math.round((prefilled.renta || precio0 * 0.0045) / 30 * 2.2), ocupacion_pct: 0.6,
     predial: Math.round(precio0 * 0.0016), mantenimiento: Math.round(precio0 * 0.0024), seguro: Math.round(precio0 * 0.0012),
     horizonte_anios: 5, apreciacion_anual: 0.075, crecimiento_renta_anual: 0.05,
     perfil: 'fisica', tipo_inmueble: 'residencial', es_casa_habitacion: true, regimen_fiscal: 'auto',
@@ -97,8 +98,12 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 del depa (fijo)</span>}</span>
                 {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
                   : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
-              <Field label="Renta mensual" k="renta_mensual" money auto />
-              <div><span style={lab}>N° unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>· multifamily</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
+              <div><span style={lab}>Tipo De Renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo plazo'], ['corto', 'Airbnb / corto']]} /></div>
+              {f.modo_renta === 'corto' ? (<>
+                <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
+                <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
+              </>) : <Field label="Renta Mensual" k="renta_mensual" money auto />}
+              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>· multifamily</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
             </div>
           </div>
 
@@ -184,6 +189,38 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
+          {/* CRÉDITO · mensualidad e impacto en la renta y el rendimiento */}
+          {r && r.con_credito && r.credito && r.credito.pmt_mensual && (
+            <div className="iv4-card">
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>💳 Tu Crédito Hipotecario</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(108px,1fr))', gap: 10 }}>
+                {[['Mensualidad', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (fija a 20 años).'],
+                ['Te Prestan', m(r.credito.monto_credito), '#0E9F6E', 'El monto del crédito.'],
+                ['Tu Enganche', m(r.credito.capital_propio), '#7C5CFF', 'Lo que pones de tu bolsa al inicio.'],
+                ['La Renta Cubre', pct(r.credito.cobertura_renta_pct), (r.credito.cobertura_renta_pct || 0) >= 100 ? '#0E9F6E' : '#DC2626', 'Cuánto de la mensualidad paga la renta. Si es menos de 100%, pones la diferencia de tu bolsa.']].map(([l, v, c, exp]) => (
+                  <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 3 }}>{v}</div><div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4, marginTop: 2 }}>{exp}</div></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* LARGO PLAZO vs AIRBNB */}
+          {r && r.comparar_renta && r.comparar_renta.largo && (
+            <div className="iv4-card">
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>🏨 Largo Plazo vs Airbnb</div>
+              <div style={{ fontSize: 11, color: '#8A8FA6', marginBottom: 10 }}>Con los mismos datos del inmueble — gana <b style={{ color: '#6D28D9' }}>{r.comparar_renta.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b>:</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[['🏠 Largo plazo', r.comparar_renta.largo], ['🏨 Airbnb / corto', r.comparar_renta.corto]].map(([l, x]) => (
+                  <div key={l} style={{ flex: '1 1 130px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,18,28,0.03)', border: ((x.tir_pct || -99) === Math.max(r.comparar_renta.largo.tir_pct || -99, r.comparar_renta.corto.tir_pct || -99)) ? '1.5px solid #7C5CFF' : '1px solid transparent' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#16182A' }}>{l}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#7C5CFF', marginTop: 4 }}>{pct(x.tir_pct)}<span style={{ fontSize: 10, color: '#8A8FA6', fontWeight: 600 }}> TIR</span></div>
+                    <div style={{ fontSize: 11, color: '#5B5F76', marginTop: 2 }}>flujo {m(x.flujo_mensual)}/mes · cap {pct(x.cap_rate_pct)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cascada visual · de dónde viene tu ganancia */}
           {r && r.atribucion && (() => {
             const a = r.atribucion; const tot = (a.renta_neta_acum || 0) + (a.equity_buildup || 0) + (a.plusvalia || 0);
@@ -215,6 +252,38 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica) */}
+          {r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
+            <div className="iv4-card">
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año</div>
+              <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 12, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56, marginBottom: 12 }}>
+                {r.proyeccion.rows.map((row) => { const mx = Math.max(...r.proyeccion.rows.map((x) => x.valor || 0)) || 1; const best = row.anio === r.proyeccion.mejor_anio; return (
+                  <div key={row.anio} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <div style={{ width: '70%', height: `${Math.max(6, (row.valor / mx) * 44)}px`, background: best ? 'linear-gradient(180deg,#6D4AFF,#C026D3)' : '#C7CAD6', borderRadius: '4px 4px 0 0' }} title={m(row.valor)} />
+                    <div style={{ fontSize: 9, color: best ? '#6D28D9' : '#8A8FA6', fontWeight: best ? 800 : 600, marginTop: 4 }}>{row.anio}a</div>
+                  </div>
+                ); })}
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                  <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Valor', 'Plusvalía', 'Renta/Mes', 'Mensual.', 'TIR Si Vendes'].map((h, i) => <th key={h} style={{ padding: '6px 5px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <tbody>{r.proyeccion.rows.map((row) => { const best = row.anio === r.proyeccion.mejor_anio; return (
+                    <tr key={row.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: best ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
+                      <td style={{ padding: '7px 5px', fontWeight: 800, color: best ? '#6D28D9' : '#16182A' }}>{row.anio}{best ? ' ⭐' : ''}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.valor)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right', color: '#0E9F6E' }}>+{m(row.plusvalia_acum)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right' }}>{m(row.renta_mensual)}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right', color: '#8A8FA6' }}>{row.mensualidad_credito ? m(row.mensualidad_credito) : '—'}</td>
+                      <td style={{ padding: '7px 5px', textAlign: 'right', fontWeight: 800, color: (row.tir_si_vendes || 0) >= 0 ? '#7C5CFF' : '#DC2626' }}>{pct(row.tir_si_vendes)}</td>
+                    </tr>
+                  ); })}</tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', marginTop: 8 }}>⭐ = el mejor año para salir (TIR máxima). La mensualidad es fija; la renta sube cada año, así que con el tiempo te alcanza mejor.</div>
             </div>
           )}
 
@@ -272,7 +341,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
       <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', lineHeight: 1.5, marginTop: 14 }}>
         {loading ? 'Calculando…' : `Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} (Banxico). `}
-        Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026; el ISR definitivo lo calcula tu contador/notario.
+        Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
+        para el detalle de <b>ISAI e ISR</b> (compra y venta) usa el <b>Proyector de Impuestos</b>. El cálculo definitivo lo hace tu contador/notario.
       </div>
     </div>
   );

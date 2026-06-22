@@ -306,6 +306,46 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     }
 
 
+def proyeccion(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, anios=(1, 2, 3, 5, 7, 10)) -> Dict[str, Any]:
+    """Proyección año a año (cap rate, plusvalía, valor, renta, mensualidad, neto al vender, TIR-si-vendes) + el MEJOR
+    año para salir (vender vs quedarse). Corre el motor saliendo en cada año → la curva de TIR por año de salida."""
+    base = analyze(inp, isr_fn)
+    noi = base.get("noi", 0.0)
+    crec = _g(inp, "crecimiento_renta_anual", 0.05)
+    rows: List[Dict[str, Any]] = []
+    best_y, best_tir = None, None
+    for y in anios:
+        ry = analyze({**inp, "horizonte_anios": y}, isr_fn)
+        cred = ry.get("credito") or {}
+        renta_y = round(noi * ((1.0 + crec) ** (y - 1)))
+        rows.append({
+            "anio": y, "valor": ry.get("valor_venta"), "plusvalia_acum": ry.get("plusvalia_neta"),
+            "cap_rate_pct": ry.get("cap_rate_pct"), "renta_anual": renta_y, "renta_mensual": round(renta_y / 12.0),
+            "mensualidad_credito": cred.get("pmt_mensual", 0), "saldo_credito": cred.get("saldo_pendiente", 0),
+            "neto_al_vender": ry.get("neto_al_vender"), "tir_si_vendes": ry.get("tir_pct"),
+        })
+        t = ry.get("tir_pct")
+        if t is not None and (best_tir is None or t > best_tir):
+            best_tir, best_y = t, y
+    rec = (f"El mejor año para vender es el {best_y} — ahí tu rendimiento anual es máximo ({best_tir}%). "
+           f"Antes de ese año, quédatelo; después, el rendimiento empieza a diluirse.") if best_y else "Sin datos suficientes."
+    return {"rows": rows, "mejor_anio": best_y, "mejor_tir_pct": best_tir, "recomendacion": rec,
+            "veredicto_salida": ("VENDER" if best_y and best_y <= _g(inp, "horizonte_anios", 5) else "QUEDÁRSELO")}
+
+
+def comparar_renta(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str, Any]:
+    """Compara largo plazo vs Airbnb (corto plazo) con los mismos datos de propiedad → ingresos/egresos/TIR de cada uno."""
+    largo = analyze({**inp, "modo_renta": "largo"}, isr_fn)
+    corto = analyze({**inp, "modo_renta": "corto"}, isr_fn)
+    return {
+        "largo": {"tir_pct": largo.get("tir_pct"), "cap_rate_pct": largo.get("cap_rate_pct"),
+                  "flujo_mensual": largo.get("flujo_mensual_1"), "noi": largo.get("noi")},
+        "corto": {"tir_pct": corto.get("tir_pct"), "cap_rate_pct": corto.get("cap_rate_pct"),
+                  "flujo_mensual": corto.get("flujo_mensual_1"), "noi": corto.get("noi")},
+        "gana": "corto" if (corto.get("tir_pct") or -99) > (largo.get("tir_pct") or -99) else "largo",
+    }
+
+
 def montecarlo(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, n: int = 400) -> Optional[Dict[str, Any]]:
     """Simulación Monte Carlo (§9 Nivel 2): varía apreciación/vacancia/tasa (normal) → distribución de TIR, VaR
     (p5/p50/p95) y probabilidad de que la TIR quede por debajo de CETES. Determinístico (seed) para reproducibilidad."""
