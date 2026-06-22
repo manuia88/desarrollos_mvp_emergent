@@ -111,8 +111,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual === null || f.tasa_anual === undefined) ? undefined : Number(f.tasa_anual) / 100;
-    // MODO PORTAFOLIO (institucional + 2+ unidades elegidas ARRIBA): TODO el análisis corre sobre la SUMA de las unidades
-    const portfolioActive = vista === 'institucional' && portfolioUnits.length >= 2;
+    // MODO INSTITUCIONAL (1+ unidades elegidas ARRIBA): el análisis corre sobre la SUMA de las unidades (1 = esa unidad)
+    const portfolioActive = vista === 'institucional' && portfolioUnits.length >= 1;
     let vp = num(f.valor_propiedad), rm = num(f.renta_mensual), pred = num(f.predial), mant = num(f.mantenimiento), seg = num(f.seguro), tarifa = num(f.tarifa_noche);
     if (portfolioActive) {
       const dfac = 1 - (Number(descVol) || 0) / 100;
@@ -151,7 +151,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
   // portafolio: con 2+ unidades (elegidas arriba en ZonePageV2), corre la agregación para la tabla por-unidad (debounced)
   useEffect(() => {
-    if (vista !== 'institucional' || portfolioUnits.length < 2) { setPort(null); return undefined; }
+    if (vista !== 'institucional' || portfolioUnits.length < 1) { setPort(null); return undefined; }
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual == null) ? undefined : Number(f.tasa_anual) / 100;
     const units = portfolioUnits.map((u) => ({ label: u.label, precio: u.precio, renta: u.renta }));
     const payload = { units, con_credito: f.con_credito, ltv: Number(f.ltv), tasa_anual: tasaFrac, plazo_meses: Number(f.plazo_meses), horizonte_anios: Number(f.horizonte_anios), modo_renta: f.modo_renta, apreciacion_anual: Number(f.apreciacion_anual), crecimiento_renta_anual: Number(f.crecimiento_renta_anual), descuento_volumen_pct: descVol };
@@ -250,8 +250,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div>
             <div style={grpLabel}>🏠 El inmueble</div>
             <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              {(vista === 'institucional' && portfolioUnits.length >= 2 && port) ? (
-                <div style={{ minWidth: 150 }}><span style={lab}>Precio total <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} unidades</span></span>
+              {(vista === 'institucional' && portfolioUnits.length >= 1 && port) ? (
+                <div style={{ minWidth: 150 }}><span style={lab}>{port.n_unidades > 1 ? 'Precio total' : 'Precio'} <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} {port.n_unidades > 1 ? 'unidades' : 'unidad'}</span></span>
                   <input type="text" readOnly value={m(port.precio_total)} style={{ ...inp, background: 'rgba(192,38,211,0.06)', color: '#86198F', fontWeight: 700, cursor: 'not-allowed' }} /></div>
               ) : (
                 <div style={{ minWidth: 150 }}><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>

@@ -851,7 +851,7 @@ export default function ZonePageV2() {
             {/* PASO 3 · unidad (individual=1) o unidades (institucional=2+) — UN SOLO selector */}
             {calcDev && (
               <div style={{ marginTop: 22 }}>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{calcMode === 'institucional' ? '3 · Elige las unidades · mín. 2' : '3 · Elige la unidad'}</div>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{calcMode === 'institucional' ? '3 · Elige las unidades · 1 o más' : '3 · Elige la unidad'}</div>
                 {calcUnits.length > 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: 9, marginTop: 12 }}>
                     {calcUnits.slice(0, 18).map((u) => { const on = calcMode === 'institucional' ? calcSelUnits.some((x) => x.id === u.id) : (calcUnit && calcUnit.id === u.id); const toggle = () => (calcMode === 'institucional' ? setCalcSelUnits((s) => s.some((x) => x.id === u.id) ? s.filter((x) => x.id !== u.id) : [...s, u]) : setCalcUnit(u)); const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; const m2 = u.m2_total || u.m2_privative; const banos = u.bathrooms || u.banos || u.banos_completos; const estac = u.parking_spots ?? u.parking ?? u.estacionamientos; const pm2 = m2 && u.price ? Math.round(u.price / m2) : null; return (
@@ -865,11 +865,11 @@ export default function ZonePageV2() {
                     ); })}
                   </div>
                 ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 10 }}>Cargando unidades…</div>}
-                {calcMode === 'institucional' && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: calcSelUnits.length >= 2 ? '#6D28D9' : '#A2A6BC', marginTop: 10, fontWeight: 700 }}>{calcSelUnits.length >= 2 ? `✓ ${calcSelUnits.length} unidades elegidas` : `Elige al menos 2 unidades${calcSelUnits.length === 1 ? ' (llevas 1)' : ''} para armar el portafolio.`}</div>}
+                {calcMode === 'institucional' && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: calcSelUnits.length >= 1 ? '#6D28D9' : '#A2A6BC', marginTop: 10, fontWeight: 700 }}>{calcSelUnits.length >= 1 ? `✓ ${calcSelUnits.length} ${calcSelUnits.length === 1 ? 'unidad elegida' : 'unidades elegidas'}` : 'Elige 1 o más unidades (un fondo también puede comprar una).'}</div>}
               </div>
             )}
-            {/* MOUNT · individual con 1 unidad, o institucional con 2+ */}
-            {((calcMode === 'individual' && calcUnit) || (calcMode === 'institucional' && calcSelUnits.length >= 2)) && (
+            {/* MOUNT · individual con 1 unidad, o institucional con 1+ */}
+            {((calcMode === 'individual' && calcUnit) || (calcMode === 'institucional' && calcSelUnits.length >= 1)) && (
               <div className="zv2-up" key={`${calcMode}-${calcUnit ? calcUnit.id : ''}-${calcSelUnits.length}`} style={{ marginTop: 22 }}>
                 <InversionV4Calculator mode={calcMode} prefilled={calcMode === 'individual' && calcUnit ? { precio: calcUnit.price, renta: inv && inv.renta_prom } : {}} portfolioUnits={calcMode === 'institucional' ? calcSelUnits.map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) })) : []} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev} numDesarrollos={Array.isArray(devs) ? devs.length : null} />
               </div>
