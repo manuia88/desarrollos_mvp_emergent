@@ -819,25 +819,33 @@ export default function ZonePageV2() {
             <div style={eyebrow}>{tc('Calculadora')}</div>
             <h2 style={chapTitle}>Llévalo a números reales</h2>
             <p style={lead}>Elige un desarrollo y una unidad específica de {name}. Te armamos el cálculo completo — enganche, crédito, renta, plusvalía, rendimiento y vs el banco.</p>
+            <style>{`
+              .zv2-dev{transition:transform .15s,box-shadow .15s,border-color .15s}
+              .zv2-dev:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(99,102,241,.14)}
+              .zv2-unit{transition:transform .15s,box-shadow .15s,border-color .15s}
+              .zv2-unit:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(99,102,241,.16);border-color:rgba(124,92,255,.45)!important}
+            `}</style>
             <div style={{ marginTop: 18 }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#6B6F86', textTransform: 'uppercase', letterSpacing: '0.05em' }}>1 · Elige el desarrollo</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                {sortedDevs.map((d) => (
-                  <button key={d.id} type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '10px 16px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, border: calcDev === d.id ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: calcDev === d.id ? 'rgba(124,92,255,0.1)' : '#fff', color: calcDev === d.id ? '#6D28D9' : '#4B4F66' }}>{d.name}</button>
-                ))}
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1 · Elige el desarrollo</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                {sortedDevs.map((d) => { const on = calcDev === d.id; return (
+                  <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
+                ); })}
               </div>
             </div>
             {calcDev && (
-              <div style={{ marginTop: 18 }}>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#6B6F86', textTransform: 'uppercase', letterSpacing: '0.05em' }}>2 · Elige la unidad</div>
+              <div style={{ marginTop: 22 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige la unidad</div>
                 {calcUnits.length > 0 ? (
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    {calcUnits.slice(0, 12).map((u) => (
-                      <button key={u.id} type="button" onClick={() => setCalcUnit(u)} style={{ padding: '9px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: calcUnit && calcUnit.id === u.id ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: calcUnit && calcUnit.id === u.id ? 'rgba(124,92,255,0.1)' : '#fff' }}>
-                        <div style={{ fontWeight: 800, fontSize: 13, color: INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
-                        <div style={{ fontSize: 11, color: '#8A8FA6' }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec · {u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: 12, marginTop: 12 }}>
+                    {calcUnits.slice(0, 12).map((u) => { const on = calcUnit && calcUnit.id === u.id; const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; return (
+                      <button key={u.id} className="zv2-unit" type="button" onClick={() => setCalcUnit(u)} style={{ position: 'relative', padding: '15px 16px', borderRadius: 14, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 10px 24px rgba(124,92,255,.18)' : '0 3px 10px rgba(16,18,28,.05)' }}>
+                        {on && <span style={{ position: 'absolute', top: 10, right: 10, width: 18, height: 18, borderRadius: '50%', background: '#7C5CFF', color: '#fff', fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: on ? '#6D28D9' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
+                        <div style={{ fontSize: 11, color: '#8A8FA6', marginTop: 3 }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#0E9F6E', marginTop: 8 }}>{precio}</div>
                       </button>
-                    ))}
+                    ); })}
                   </div>
                 ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 10 }}>Cargando unidades…</div>}
               </div>
