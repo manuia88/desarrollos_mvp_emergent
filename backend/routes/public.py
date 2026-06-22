@@ -534,6 +534,9 @@ async def inversion_v4_analyze(request: Request):
                     res["airroi"] = air
         except Exception:
             pass
+        # honestidad de fuente: solo decir "AirROI" si HAY dato real de AirROI; si no, marcar estimado (sin engañar)
+        if (body.get("modo_renta") == "corto") and not res.get("airroi"):
+            res.setdefault("fuentes", {})["renta"] = "estimado con la tarifa × ocupación que pusiste (AirROI listo — falta conectar la cuenta para datos reales por colonia)"
         try:
             from inversion_v4_finance import proyeccion, comparar_renta
             res["proyeccion"] = proyeccion(inp, isr_fn=make_isr_fn())
