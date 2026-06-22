@@ -51,6 +51,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [leadData, setLeadData] = useState({ nombre: '', telefono: '', correo: '', presupuesto: '', tiempo: '', privacidad: false });
   const [leadState, setLeadState] = useState('');   // '' | 'enviando' | 'ok' | 'error'
   const setLead = (k, v) => setLeadData((s) => ({ ...s, [k]: v }));
+  const tusDatosRef = useRef(null);                  // barra sticky: aparece cuando "Tus datos" sale de vista
+  const [showSticky, setShowSticky] = useState(false);
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -115,6 +117,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     if (prefilled.precio) setF((s) => ({ ...s, valor_propiedad: prefilled.precio, renta_mensual: prefilled.renta || s.renta_mensual }));
   }, [prefilled.precio, prefilled.renta]);
 
+  // barra sticky: cuando "Tus datos" sale de vista, mostrar la barra fija con controles + TIR en vivo
+  useEffect(() => {
+    const el = tusDatosRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const obs = new IntersectionObserver(([e]) => setShowSticky(!e.isIntersecting), { rootMargin: '-40px 0px 0px 0px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
@@ -149,7 +160,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       `}</style>
 
       {/* ───── BARRA DE CONTROL · tus datos (ancho completo, horizontal — sin columna angosta = sin huecos) ───── */}
-      <div className="iv4-card iv4-noprint" style={{ marginBottom: 16 }}>
+      <div ref={tusDatosRef} className="iv4-card iv4-noprint" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -861,6 +872,25 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
         para el detalle de <b>ISAI</b> (al comprar) e <b>ISR</b> (al vender) usa el <ProyectorLink />. El cálculo definitivo lo hace tu contador/notario.
       </div>
+
+      {/* ───── BARRA STICKY · aparece al scrollear · controles + TIR/flujo EN VIVO (sin subir) ───── */}
+      {showSticky && r && (
+        <div className="iv4-noprint" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 80, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(6px)', borderTop: '1px solid rgba(16,18,28,0.1)', boxShadow: '0 -6px 22px rgba(16,18,28,0.1)', padding: '9px 16px' }}>
+          <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Renta/año</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#C026D3', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div></div>
+            <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>TIR (vende {f.horizonte_anios}a)</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem, lineHeight: 1 }}>{pct(r.tir_pct)}</div></div>
+            <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Flujo/mes</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: (r.flujo_mensual_1 || 0) >= 0 ? '#16182A' : '#DC2626', lineHeight: 1 }}>{m(r.flujo_mensual_1)}</div></div>
+            <div style={{ width: 1, height: 30, background: 'rgba(16,18,28,0.1)' }} />
+            <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 2 }}>
+              {[[false, 'Contado'], [true, 'Crédito']].map(([v, l]) => { const on = f.con_credito === v; return <button key={l} type="button" onClick={() => set('con_credito', v)} style={{ padding: '5px 11px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, background: on ? '#fff' : 'transparent', color: on ? '#6D28D9' : '#6B6F86', boxShadow: on ? '0 1px 5px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>; })}
+            </div>
+            {f.con_credito && <select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: 11.5 }}>{[10, 20, 30, 40, 50, 60, 70, 80, 90].map((e) => <option key={e} value={(100 - e) / 100}>{e}% eng.</option>)}</select>}
+            {f.con_credito && <select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: 11.5 }}>{[[36, '3a'], [60, '5a'], [84, '7a'], [120, '10a'], [180, '15a'], [240, '20a'], [300, '25a']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}
+            {f.con_credito && <input type="text" inputMode="decimal" placeholder="tasa%" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, width: 64, padding: '5px 8px', fontSize: 11.5 }} />}
+            <button type="button" onClick={() => tusDatosRef.current && tusDatosRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(99,102,241,0.25)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, background: '#fff', color: '#6D4AFF' }}>↑ Editar todo</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
