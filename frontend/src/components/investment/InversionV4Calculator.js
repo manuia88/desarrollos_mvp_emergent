@@ -46,6 +46,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
   const [radarK, setRadarK] = useState('bolsa');    // instrumento a comparar en el radar del Pentágono
+  const [leadOpen, setLeadOpen] = useState(false);  // modal de captura para descargar el PDF (reusa /api/lead-capture)
+  const [leadData, setLeadData] = useState({ nombre: '', telefono: '', correo: '', presupuesto: '', tiempo: '', privacidad: false });
+  const [leadState, setLeadState] = useState('');   // '' | 'enviando' | 'ok' | 'error'
+  const setLead = (k, v) => setLeadData((s) => ({ ...s, [k]: v }));
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -72,6 +76,29 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       } else { setAirroi({ error: (d && d.error) || 'AirROI no devolvió datos para esta zona.' }); }
     } catch { setAirroi({ error: 'No se pudo conectar con AirROI.' }); } finally { setAirroiLoading(false); }
   }, [zoneId]);
+
+  // Descargar PDF → captura el lead en el motor real (/api/lead-capture) y abre el PDF personalizado
+  const enviarLead = async () => {
+    if (!leadData.nombre || leadData.nombre.length < 2) return setLeadState('error');
+    if (!String(leadData.telefono).replace(/\D/g, '').match(/^\d{10,15}$/)) return setLeadState('error');
+    if (!leadData.privacidad) return setLeadState('error');
+    setLeadState('enviando');
+    try {
+      const resp = await fetch(`${API}/api/lead-capture`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: leadData.nombre.trim(), whatsapp: String(leadData.telefono).replace(/\D/g, ''),
+          property_id: zoneId || 'calculadora-inversion', property_scope: 'project', source_page: 'calculadora_inversion',
+          interes: { email: leadData.correo, presupuesto: leadData.presupuesto, forma_pago: f.con_credito ? 'crédito' : 'contado', tiempo_compra: leadData.tiempo, calculadora: { precio: f.valor_propiedad, tir_pct: r && r.tir_pct, modo_renta: f.modo_renta, horizonte: f.horizonte_anios } },
+          consents: { privacy_policy: true },
+        }),
+      });
+      const d = await resp.json();
+      try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_pdf', zona: zoneId, precio: f.valor_propiedad } })); } catch { /* noop */ }
+      setLeadState('ok');
+      setTimeout(() => { if (d && d.pdf_url) window.open(d.pdf_url, '_blank'); else window.print(); setLeadOpen(false); setLeadState(''); }, 600);
+    } catch { setLeadState('error'); }
+  };
 
   useEffect(() => {
     clearTimeout(timer.current);
@@ -723,6 +750,34 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" onClick={() => { try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_inversion', zona: zoneId, precio: f.valor_propiedad, tir: r.tir_pct } })); } catch { /* noop */ } askAtlax(`Me interesa invertir en este depa de ${m(f.valor_propiedad)} (TIR ${pct(r.tir_pct)}). Ayúdame con el siguiente paso y conéctame con un asesor.`); }} style={{ padding: '12px 18px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: '#fff', color: '#6D28D9' }}>📩 Quiero que me asesoren</button>
             <a href="#empezar" style={{ padding: '12px 16px', borderRadius: 11, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>📅 Agendar visita</a>
+            <button type="button" onClick={() => { setLeadState(''); setLeadOpen(true); }} style={{ padding: '12px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff' }}>📄 Descargar análisis</button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL · descargar PDF deja datos (perfilamiento) → motor /api/lead-capture */}
+      {leadOpen && (
+        <div className="iv4-noprint" onClick={() => setLeadOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(16,18,28,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, padding: 24, width: 420, maxWidth: '100%', boxShadow: '0 20px 60px rgba(16,18,28,0.3)' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#16182A' }}>📄 Descarga tu análisis</div>
+            <div style={{ fontSize: 12, color: '#8A8FA6', marginTop: 4, marginBottom: 14, lineHeight: 1.5 }}>Déjanos tus datos y te enviamos el PDF personalizado de esta inversión. Un asesor puede afinarlo contigo.</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div><span style={lab}>Nombre*</span><input type="text" value={leadData.nombre} onChange={(e) => setLead('nombre', e.target.value)} style={inp} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div><span style={lab}>WhatsApp*</span><input type="tel" inputMode="tel" placeholder="55..." value={leadData.telefono} onChange={(e) => setLead('telefono', e.target.value)} style={inp} /></div>
+                <div><span style={lab}>Correo</span><input type="email" value={leadData.correo} onChange={(e) => setLead('correo', e.target.value)} style={inp} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div><span style={lab}>Presupuesto</span><select value={leadData.presupuesto} onChange={(e) => setLead('presupuesto', e.target.value)} style={inp}><option value="">Elige…</option>{['< $5M', '$5–10M', '$10–15M', '$15–25M', '> $25M'].map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
+                <div><span style={lab}>¿Cuándo comprarías?</span><select value={leadData.tiempo} onChange={(e) => setLead('tiempo', e.target.value)} style={inp}><option value="">Elige…</option>{['Ya / 1 mes', '1–3 meses', '3–6 meses', '6–12 meses', 'Solo explorando'].map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#5B5F76', cursor: 'pointer', lineHeight: 1.5 }}><input type="checkbox" checked={leadData.privacidad} onChange={(e) => setLead('privacidad', e.target.checked)} style={{ marginTop: 2 }} /><span>Acepto el <a href="/aviso-privacidad" target="_blank" rel="noreferrer" style={{ color: '#6D28D9' }}>aviso de privacidad</a> y que un asesor me contacte.</span></label>
+              {leadState === 'error' && <div style={{ fontSize: 11, color: '#DC2626' }}>Revisa nombre, WhatsApp (10 dígitos) y el aviso de privacidad.</div>}
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button type="button" onClick={enviarLead} disabled={leadState === 'enviando'} style={{ flex: 1, padding: '12px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'linear-gradient(120deg,#6D4AFF,#C026D3)', color: '#fff' }}>{leadState === 'enviando' ? 'Enviando…' : leadState === 'ok' ? '✓ ¡Listo! Abriendo PDF…' : 'Descargar PDF'}</button>
+                <button type="button" onClick={() => setLeadOpen(false)} style={{ padding: '12px 16px', borderRadius: 11, border: '1px solid rgba(16,18,28,0.15)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, background: '#fff', color: '#6B6F86' }}>Cancelar</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
