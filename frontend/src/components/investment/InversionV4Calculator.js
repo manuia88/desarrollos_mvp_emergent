@@ -4,6 +4,7 @@
  * Pro por dentro, simple por fuera. Reactiva. Motor en POST /api/inversion-v4/analyze (motor + fiscal + mercado vivo).
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`);
@@ -27,7 +28,7 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [] }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [], devId = '' }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -94,7 +95,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: leadData.nombre.trim(), whatsapp: String(leadData.telefono).replace(/\D/g, ''),
-          property_id: zoneId || 'calculadora-inversion', property_scope: 'project', source_page: 'calculadora_inversion',
+          property_id: devId || zoneId || 'calculadora-inversion', property_scope: devId ? 'project' : 'zone', source_page: 'calculadora_inversion',
           interes: { email: leadData.correo, presupuesto: leadData.presupuesto, forma_pago: f.con_credito ? 'crédito' : 'contado', tiempo_compra: leadData.tiempo, calculadora: { precio: f.valor_propiedad, tir_pct: r && r.tir_pct, modo_renta: f.modo_renta, horizonte: f.horizonte_anios } },
           consents: { privacy_policy: true },
         }),
@@ -184,7 +185,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
-              {[['simple', '👤 Para mí'], ['institucional', '🏛️ Como fondo']].map(([v, l]) => (
+              {[['simple', '👤 Para mí'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
                 <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
               ))}
             </div>
@@ -268,11 +269,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
       </div>
 
-      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Como fondo</b> ↑</div>}
+      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Institucional</b> ↑</div>}
       {/* RESUMEN EJECUTIVO · cuando es 'Como fondo', el fondo ve lo clave ARRIBA (no scrollear hasta abajo) */}
       {vista === 'institucional' && r && (
         <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
-          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen para fondo <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· lo clave de un vistazo</span></div>
+          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· lo clave de un vistazo</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
             {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
             ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
@@ -957,9 +958,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         para el detalle de <b>ISAI</b> (al comprar) e <b>ISR</b> (al vender) usa el <ProyectorLink />. El cálculo definitivo lo hace tu contador/notario.
       </div>
 
-      {/* ───── BARRA STICKY · aparece al scrollear · controles + TIR/flujo EN VIVO (sin subir) ───── */}
-      {showSticky && r && (
-        <div className="iv4-noprint" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 80, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(6px)', borderTop: '1px solid rgba(16,18,28,0.1)', boxShadow: '0 -6px 22px rgba(16,18,28,0.1)', padding: '9px 16px' }}>
+      {/* ───── BARRA STICKY · portal a body (un ancestro .zv2-up tiene transform y rompe position:fixed) ───── */}
+      {showSticky && r && createPortal(
+        <div className="iv4-noprint" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1200, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(6px)', borderTop: '1px solid rgba(16,18,28,0.1)', boxShadow: '0 -6px 22px rgba(16,18,28,0.1)', padding: '9px 16px' }}>
           <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Renta/año</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#C026D3', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div></div>
             <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>TIR (vende {f.horizonte_anios}a)</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem, lineHeight: 1 }}>{pct(r.tir_pct)}</div></div>
@@ -973,8 +974,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             {f.con_credito && <input type="text" inputMode="decimal" placeholder="tasa%" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, width: 64, padding: '5px 8px', fontSize: 11.5 }} />}
             <button type="button" onClick={() => tusDatosRef.current && tusDatosRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(99,102,241,0.25)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, background: '#fff', color: '#6D4AFF' }}>↑ Editar todo</button>
           </div>
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }
