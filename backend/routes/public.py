@@ -578,6 +578,37 @@ async def inversion_v4_analyze(request: Request):
         return {"ok": False, "error": str(e)[:200]}
 
 
+@router.post("/api/inversion-v4/portafolio")
+async def inversion_v4_portafolio(request: Request):
+    """Modo fondo: agrega N unidades (mismos supuestos de crédito/horizonte) en un portafolio. Recibe units[]
+    {precio, renta, label} + supuestos compartidos + descuento_volumen_pct. Devuelve métricas combinadas."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    units = body.get("units") or []
+    if not units:
+        return {"ok": False, "error": "sin unidades"}
+    try:
+        from inversion_v4_finance import portafolio
+        from inversion_v4_tax import make_isr_fn
+        from market_rates_engine import market_context
+        db = request.app.state.db
+        mkt = await market_context(db)
+        inp = dict(body or {})
+        inp.pop("units", None)
+        for k_inp, k_mkt in (("cetes_1a", "cetes_1a"), ("udis_actual", "udis"), ("inflacion_anual", "inflacion_anual")):
+            if inp.get(k_inp) in (None, ""):
+                inp[k_inp] = mkt.get(k_mkt)
+        if inp.get("tasa_anual") in (None, "") and inp.get("con_credito", True):
+            inp["tasa_anual"] = mkt.get("tasa_hipotecaria")
+        desc = float(body.get("descuento_volumen_pct") or 0) / 100.0
+        port = portafolio(units, inp, isr_fn=make_isr_fn(), descuento_pct=desc)
+        return {"ok": True, "portafolio": port, "mercado": mkt}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
 @router.post("/api/inversion-v4/airroi")
 async def inversion_v4_airroi(request: Request):
     """Trae renta corta REAL de AirROI para una zona (ADR, ocupación, revenue). AirROI COBRA por llamada, así que

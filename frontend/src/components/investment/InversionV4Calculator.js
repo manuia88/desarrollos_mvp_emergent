@@ -27,7 +27,7 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [] }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -53,6 +53,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const setLead = (k, v) => setLeadData((s) => ({ ...s, [k]: v }));
   const tusDatosRef = useRef(null);                  // barra sticky: aparece cuando "Tus datos" sale de vista
   const [showSticky, setShowSticky] = useState(false);
+  const [selUnits, setSelUnits] = useState([]);      // fase 3: índices de unidades elegidas para el portafolio
+  const [port, setPort] = useState(null);            // resultado agregado del portafolio
+  const [descVol, setDescVol] = useState(0);         // descuento por volumen (%)
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -125,6 +128,22 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  // fase 3 · portafolio: al elegir 2+ unidades (modo fondo), corre la agregación (debounced)
+  useEffect(() => {
+    if (vista !== 'institucional' || selUnits.length < 2) { setPort(null); return undefined; }
+    const tasaFrac = (f.tasa_anual === '' || f.tasa_anual == null) ? undefined : Number(f.tasa_anual) / 100;
+    const units = selUnits.map((i) => ({ label: devUnits[i].label, precio: devUnits[i].precio, renta: devUnits[i].renta }));
+    const payload = { units, con_credito: f.con_credito, ltv: Number(f.ltv), tasa_anual: tasaFrac, plazo_meses: Number(f.plazo_meses), horizonte_anios: Number(f.horizonte_anios), modo_renta: f.modo_renta, apreciacion_anual: Number(f.apreciacion_anual), crecimiento_renta_anual: Number(f.crecimiento_renta_anual), descuento_volumen_pct: descVol };
+    const t = setTimeout(async () => {
+      try {
+        const resp = await fetch(`${API}/api/inversion-v4/portafolio`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const d = await resp.json();
+        if (d && d.ok) setPort(d.portafolio);
+      } catch { /* noop */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [vista, selUnits, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual, devUnits]);
 
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
@@ -266,6 +285,53 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             ))}
           </div>
           <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8 }}>Detalle completo (escenarios, sensibilidad, Monte Carlo, pro-forma, supuestos editables) más abajo ↓</div>
+        </div>
+      )}
+
+      {/* FASE 3 · MODO PORTAFOLIO · elegir 2+ unidades del desarrollo y combinarlas (solo modo fondo) */}
+      {vista === 'institucional' && devUnits && devUnits.length > 1 && (
+        <div className="iv4-card" style={{ marginBottom: 12, borderTop: '4px solid #C026D3' }}>
+          <div style={{ fontWeight: 800, fontSize: 13 }}>🏢 Arma tu portafolio <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· compra varias unidades</span> <Info><>Un fondo casi nunca compra 1 depa — compra <b>varias</b>. Elige 2 o más de este desarrollo y las <b>combinamos</b>: inversión total, cap rate ponderado, TIR del portafolio (flujo combinado), DSCR combinado. Más el <b>descuento por volumen</b> que sueles negociar al comprar en bloque.</></Info></div>
+          <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Elige las unidades (2+) y mira las métricas del portafolio combinado:</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {devUnits.map((u, i) => { const on = selUnits.includes(i); return (
+              <button key={i} type="button" onClick={() => setSelUnits((s) => on ? s.filter((x) => x !== i) : [...s, i])} style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(124,92,255,0.08)' : '#fff', fontFamily: 'DM Sans' }}>
+                <span style={{ fontWeight: 800, fontSize: 12, color: on ? '#6D28D9' : '#16182A' }}>{on ? '✓ ' : ''}{u.label}</span>
+                <span style={{ display: 'block', fontSize: 10, color: '#8A8FA6' }}>{m(u.precio)}</span>
+              </button>
+            ); })}
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen</span>
+            <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 70 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
+            <span style={{ fontSize: 10, color: '#A2A6BC' }}>lo que sueles negociar al comprar en bloque</span>
+          </div>
+          {selUnits.length < 2 ? (
+            <div style={{ fontSize: 11, color: '#A2A6BC', marginTop: 12 }}>Elige al menos <b>2 unidades</b> para ver el portafolio combinado.</div>
+          ) : port && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+                {[['Unidades', port.n_unidades, '#16182A'], ['Precio total', m(port.precio_total), '#16182A'], ['De tu bolsa (total)', m(port.inversion_total), '#7C5CFF'], ['Cap rate combinado', pct(port.cap_rate_combinado_pct), '#C026D3'], ['TIR del portafolio', pct(port.tir_portafolio_pct), (port.tir_portafolio_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'], ...(port.dscr_combinado != null ? [['DSCR combinado', port.dscr_combinado, (port.dscr_combinado >= 1.2 ? '#0E9F6E' : port.dscr_combinado >= 1 ? '#E0A33E' : '#DC2626')]] : []), ['Flujo total/mes', m(port.flujo_mensual_total), (port.flujo_mensual_total || 0) >= 0 ? '#16182A' : '#DC2626'], ['Neto al vender (total)', m(port.neto_al_vender_total), '#0E9F6E']].map(([l, v, c]) => (
+                  <div key={l} style={{ padding: '10px 12px', borderRadius: 10, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, marginTop: 2 }}>{v}</div></div>
+                ))}
+              </div>
+              <div style={{ overflowX: 'auto', marginTop: 12 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '5px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <tbody>{port.unidades.map((u, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                      <td style={{ padding: '5px 8px', fontWeight: 700 }}>{u.label}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'right' }}>{m(u.precio)}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'right' }}>{pct(u.cap_rate_pct)}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: (u.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(u.tir_pct)}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'right', color: (u.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626' }}>{m(u.flujo_mensual)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>{port.descuento_pct > 0 ? `Precios con ${port.descuento_pct}% de descuento por volumen. ` : ''}Cap rate combinado = NOI total ÷ precio total. TIR del portafolio = del flujo combinado de todas las unidades.</div>
+            </div>
+          )}
         </div>
       )}
 

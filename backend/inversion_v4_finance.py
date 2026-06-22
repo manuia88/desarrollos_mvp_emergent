@@ -549,6 +549,49 @@ def proforma(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> List[Dic
     return rows
 
 
+def portafolio(units: List[Dict[str, Any]], inp: Dict[str, Any], isr_fn: Optional[Callable] = None, descuento_pct: float = 0.0) -> Dict[str, Any]:
+    """Modo fondo: corre N unidades (mismos supuestos de crédito/horizonte) y las AGREGA en un portafolio.
+    Cap rate combinado (ponderado por NOI), TIR del portafolio (suma de flujos elemento a elemento), DSCR combinado,
+    inversión/precio/NOI/flujo/neto totales. descuento_pct aplica un descuento por volumen al precio de cada unidad."""
+    if not units:
+        return {"n_unidades": 0}
+    res = []
+    for u in units:
+        precio = (u.get("precio") or 0) * (1.0 - descuento_pct)
+        sub = {**inp, "valor_propiedad": precio,
+               "predial": round(precio * 0.0016), "mantenimiento": round(precio * 0.0024), "seguro": round(precio * 0.0012)}
+        if u.get("renta"):
+            sub["renta_mensual"] = u["renta"]
+        res.append(analyze(sub, isr_fn))
+    # TIR del portafolio: flujo completo por unidad = [-inversión] + flujos_anuales, sumados elemento a elemento
+    streams = [[-(r.get("capital_invertido") or 0)] + (r.get("flujos_anuales") or []) for r in res]
+    maxlen = max((len(s) for s in streams), default=0)
+    combined = [0.0] * maxlen
+    for s in streams:
+        for i, cf in enumerate(s):
+            combined[i] += cf
+    tir_port = irr(combined)
+    precio_total = sum((r.get("desglose") or {}).get("valor_propiedad", 0) for r in res)
+    inversion_total = sum(r.get("capital_invertido", 0) for r in res)
+    noi_total = sum(r.get("noi", 0) for r in res)
+    servicio_total = sum(((r.get("credito") or {}).get("pmt_mensual", 0) or 0) * 12 for r in res)
+    flujo_total = sum(r.get("flujo_mensual_1", 0) for r in res)
+    neto_total = sum(r.get("neto_al_vender", 0) for r in res)
+    cap_comb = (noi_total / precio_total) if precio_total else 0.0
+    dscr_comb = (noi_total / servicio_total) if servicio_total else None
+    return {
+        "n_unidades": len(res), "precio_total": round(precio_total), "inversion_total": round(inversion_total),
+        "noi_total": round(noi_total), "cap_rate_combinado_pct": round(cap_comb * 100, 2),
+        "servicio_deuda_total": round(servicio_total), "dscr_combinado": round(dscr_comb, 2) if dscr_comb is not None else None,
+        "flujo_mensual_total": round(flujo_total), "neto_al_vender_total": round(neto_total),
+        "tir_portafolio_pct": round(tir_port * 100, 2) if tir_port is not None else None,
+        "descuento_pct": round(descuento_pct * 100, 1),
+        "unidades": [{"label": u.get("label") or f"Unidad {i + 1}", "precio": round((u.get("precio") or 0) * (1.0 - descuento_pct)),
+                      "tir_pct": res[i].get("tir_pct"), "cap_rate_pct": res[i].get("cap_rate_pct"),
+                      "flujo_mensual": res[i].get("flujo_mensual_1")} for i, u in enumerate(units)],
+    }
+
+
 def montecarlo(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, n: int = 400) -> Optional[Dict[str, Any]]:
     """Simulación Monte Carlo (§9 Nivel 2): varía apreciación/vacancia/tasa (normal) → distribución de TIR, VaR
     (p5/p50/p95) y probabilidad de que la TIR quede por debajo de CETES. Determinístico (seed) para reproducibilidad."""
