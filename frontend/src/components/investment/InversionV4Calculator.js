@@ -358,6 +358,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span> <Info><><b>Tu hipoteca, explicada.</b> El banco pone una parte (te presta) y tú el enganche. Cada mes pagas una mensualidad fija que se divide en <b>capital</b> (baja tu deuda) e <b>interés</b> (el cobro del banco). Al principio casi todo es interés. <b>Cómo se calcula:</b> amortización francesa con la tasa de Banxico. Tasa/mensualidad finales las define tu banco.</></Info></div>
+                {/* controles aquí mismo · cambia sin subir (quita fricción) */}
+                <div className="iv4-noprint" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 10, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10 }}>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Enganche</div><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={{ ...inp, padding: '6px 9px', width: 'auto', fontSize: 12 }}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Plazo</div><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={{ ...inp, padding: '6px 9px', width: 'auto', fontSize: 12 }}>{[[36, '3 años'], [60, '5 años'], [84, '7 años'], [120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Tasa anual %</div><input type="text" inputMode="decimal" placeholder="11.45" value={f.tasa_anual} onChange={(e) => set('tasa_anual', e.target.value.replace(/[^\d.]/g, ''))} style={{ ...inp, padding: '6px 9px', width: 80, fontSize: 12 }} /></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700, marginBottom: 3 }}>Abono extra/mes</div><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={{ ...inp, padding: '6px 9px', width: 110, fontSize: 12 }} /></div>
+                  <div style={{ fontSize: 9.5, color: '#A2A6BC', alignSelf: 'center' }}>↻ edítalo aquí, sin subir</div>
+                </div>
 
                 <Sub>Cómo se reparte el precio</Sub>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' }}>
@@ -447,7 +455,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b><Info><>El <b>NOI</b>: ingreso − gastos. Lo que deja la propiedad antes del crédito y de impuestos. <b>Tu caso:</b> {m(x.ingreso_anual)} − {m(x.egresos_anual)} = {m(x.noi)}/año.</></Info></div>
                 </div>
                 <div style={{ marginTop: 11, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Rinde al año (TIR)<Info><>El rendimiento anual de tu dinero con esta forma de rentar, asumiendo que vendes al año {f.horizonte_anios} (renta + plusvalía). <b>Tu caso:</b> {pct(x.tir_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Renta al año (cap rate)<Info><>Lo que deja la renta sobre el precio cada año, sin contar venta ni crédito. Estable. <b>Tu caso:</b> {pct(x.cap_rate_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#C026D3' }}>{pct(x.cap_rate_pct)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Si vendes (TIR)<Info><>Rendimiento anual juntando renta + plusvalía si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(x.tir_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes<Info><>Lo que te sobra (o pones de tu bolsa) cada mes: ingreso − gastos − mensualidad del crédito, dividido entre 12. <b>Tu caso:</b> {m(x.flujo_mensual)}/mes.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
                 </div>
                 <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Ingreso según: {fuente}</div>
@@ -491,7 +500,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
           {/* TABLA COMPARATIVA OBJETIVA · Pentágono de las Inversiones (rendimiento/riesgo/liquidez/plazo/dedicación) */}
           {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
-            const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', hero: true };
+            const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', respaldo: 'Escritura + RPP', ejemplos: 'tu depa', hero: true };
             const filas = [inmueble, ...r.instrumentos];
             const cols = [
               ['Rendimiento', (x) => x.pct == null ? '—' : pct(x.pct), <>Cuánto te da al año. En tu depa es la <b>TIR si vendes al año {f.horizonte_anios}</b> (renta + plusvalía al vender, {pct(r.tir_pct)}); en los demás, su tasa anual típica. Fuente: Banxico/BMV.</>],
@@ -500,6 +509,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               ['Plazo', (x) => x.plazo || '—', <>Horizonte recomendado para que rinda bien. CETES = corto; bolsa y bien raíz = largo. Si necesitas el dinero pronto, importa.</>],
               ['Dedicación', (x) => x.esfuerzo || '—', <>Cuánto tiempo/trabajo te exige. CETES = nula (lo dejas y ya); un depa en renta = media (inquilinos, mantenimiento), salvo que pongas administrador.</>],
               ['Mínimo', (x) => x.ticket || '—', <>Cuánto necesitas para empezar. CETES desde $100; un depa necesita el enganche (cientos de miles).</>],
+              ['Respaldo', (x) => x.respaldo || '—', <>Quién protege tu dinero si algo sale mal. Banco/SOFIPO = seguro IPAB; gobierno = CETES/Udibonos; acciones/FIBRAs = regulación CNBV; <b>cripto = nadie</b> (sin garantía). El inmueble lo respalda tu escritura inscrita en el Registro Público.</>],
               ['Inflación', (x) => x.inflacion || '—', <>Si protege tu dinero del alza de precios. Bien raíz y bolsa suelen ganarle; CETES solo en parte; UDIBONOS van atados a la inflación.</>],
             ];
             return (
@@ -514,7 +524,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     </tr></thead>
                     <tbody>{filas.map((x, fi) => (
                       <tr key={fi} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: x.hero ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
-                        <td style={{ padding: '8px', fontWeight: 800, color: x.hero ? '#6D28D9' : '#16182A', position: 'sticky', left: 0, background: x.hero ? '#F3EFFF' : '#fff', whiteSpace: 'nowrap' }}>{x.hero ? '🏠 ' : ''}{x.nombre}</td>
+                        <td style={{ padding: '8px', fontWeight: 800, color: x.hero ? '#6D28D9' : '#16182A', position: 'sticky', left: 0, background: x.hero ? '#F3EFFF' : '#fff', whiteSpace: 'nowrap' }}>{x.hero ? '🏠 ' : ''}{x.nombre}{x.ejemplos && !x.hero ? <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#A2A6BC' }}>ej. {x.ejemplos}</span> : null}</td>
                         {cols.map(([l, get], ci) => <td key={l} style={{ padding: '8px', whiteSpace: 'nowrap', color: ci === 0 ? (x.hero ? '#6D28D9' : '#16182A') : '#5B5F76', fontWeight: ci === 0 ? 800 : 600 }}>{get(x)}</td>)}
                       </tr>
                     ))}</tbody>

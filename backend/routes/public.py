@@ -559,7 +559,14 @@ async def inversion_v4_analyze(request: Request):
                       "bolsa": "Largo (5+ años)", "afore": "Muy largo (al retiro)", "udibonos": "Largo (3-10 años)",
                       "crowdfunding": "Medio (2-4 años)", "sofipo": "Corto (flexible)", "crypto": "Largo (5+ años)"}
             _orden = ("cetes_364", "sofipo", "pagare", "udibonos", "fibra", "crowdfunding", "bolsa", "crypto", "afore")
-            res["instrumentos"] = [{**{c: v.get(c) for c in _campos}, "plazo": _plazo.get(v.get("k"))}
+            _respaldo = {"cetes_364": "Gobierno federal", "pagare": "IPAB (banco)", "fibra": "BMV regulada", "bolsa": "CNBV / SEC",
+                         "afore": "CONSAR", "udibonos": "Gobierno federal", "crowdfunding": "CNBV (Ley Fintech)",
+                         "sofipo": "IPAB-PROSOFIPO (~25k UDIS)", "crypto": "Ninguno"}
+            _ejemplos = {"cetes_364": "cetesdirecto", "pagare": "BBVA, Banorte", "fibra": "Funo, Fibra Mty", "bolsa": "GBM, Kuspit",
+                         "afore": "tu Afore", "udibonos": "cetesdirecto", "crowdfunding": "Briq, M2Crowd, 100 Ladrillos",
+                         "sofipo": "Nu, Klar, Finsus", "crypto": "Bitso, Binance"}
+            res["instrumentos"] = [{**{c: v.get(c) for c in _campos}, "plazo": _plazo.get(v.get("k")),
+                                    "respaldo": _respaldo.get(v.get("k")), "ejemplos": _ejemplos.get(v.get("k"))}
                                    for v in sorted((rates.get("vehiculos") or []), key=lambda v: _orden.index(v.get("k")) if v.get("k") in _orden else 99)
                                    if v.get("k") in _orden]
         except Exception:

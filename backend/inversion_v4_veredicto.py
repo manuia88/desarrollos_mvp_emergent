@@ -30,12 +30,12 @@ def veredicto(r: Dict[str, Any]) -> Dict[str, Any]:
         nivel, semaforo = "FLOJA", "rojo"
 
     p: List[str] = []
-    # 1) vs CETES
+    # 1) vs CETES (CETES = la opción más segura: le prestas al gobierno, casi garantizado)
     if tir is not None:
         if tir >= cetes:
-            p.append(f"Esta inversión rinde ~{tir}% al año, por encima de CETES ({cetes}%) — tu dinero trabaja mejor que sin riesgo.")
+            p.append(f"Esta inversión rinde ~{tir}% al año, más que CETES ({cetes}%). CETES es lo más seguro que hay (le prestas al gobierno), así que ganarle significa que el riesgo extra de este depa SÍ se está pagando — vale la pena.")
         else:
-            p.append(f"Esta inversión rinde ~{tir}% al año, por debajo de CETES ({cetes}%): la renta sola no le gana al dinero sin riesgo; se justifica por la plusvalía y por ser un activo real que controlas.")
+            p.append(f"Esta inversión rinde ~{tir}% al año, MENOS que CETES ({cetes}%). CETES es lo más seguro (le prestas al gobierno) y rinde más sin broncas; aquí la renta sola no le gana, así que solo se justifica por la plusvalía y por tener un activo real que controlas.")
     # 2) contado vs crédito
     if con_credito and r.get("apalancamiento"):
         if r["apalancamiento"] == "positivo":
