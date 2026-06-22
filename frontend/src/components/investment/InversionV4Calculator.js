@@ -165,7 +165,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
-              {[['simple', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
+              {[['simple', '👤 Para mí'], ['institucional', '🏛️ Como fondo']].map(([v, l]) => (
                 <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
               ))}
             </div>
@@ -249,7 +249,25 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
       </div>
 
-      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Eres experto? Cambia a Institucional ↑</div>}
+      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Como fondo</b> ↑</div>}
+      {/* RESUMEN EJECUTIVO · cuando es 'Como fondo', el fondo ve lo clave ARRIBA (no scrollear hasta abajo) */}
+      {vista === 'institucional' && r && (
+        <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
+          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen para fondo <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· lo clave de un vistazo</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
+            {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
+            ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
+            ...(capRateMercado != null ? [['vs mercado zona', `${(r.cap_rate_pct - capRateMercado) >= 0 ? '+' : ''}${(r.cap_rate_pct - capRateMercado).toFixed(1)} pts`, (r.cap_rate_pct - capRateMercado) >= 0 ? '#0E7A53' : '#DC2626']] : []),
+            ...((r.credito || {}).dscr != null ? [['DSCR', r.credito.dscr, (r.credito.dscr >= 1.2 ? '#0E9F6E' : r.credito.dscr >= 1 ? '#E0A33E' : '#DC2626')]] : []),
+            ...(r.escenarios && r.escenarios.pesimista ? [['TIR pesimista', pct(r.escenarios.pesimista.tir_pct), '#DC2626']] : []),
+            ...((r.proyeccion || {}).payback_anio ? [['Recuperas en', `año ${r.proyeccion.payback_anio}`, '#16182A']] : []),
+            ['VPN', m(r.vpn), (r.vpn || 0) >= 0 ? '#0E9F6E' : '#DC2626']].map(([l, v, c]) => (
+              <div key={l}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c, marginTop: 2 }}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 8 }}>Detalle completo (escenarios, sensibilidad, Monte Carlo, pro-forma, supuestos editables) más abajo ↓</div>
+        </div>
+      )}
 
       {/* ───── RESULTADOS (ancho completo · sin columna angosta = sin huecos) ───── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
