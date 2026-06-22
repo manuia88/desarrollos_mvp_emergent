@@ -22,6 +22,10 @@ function Tip({ g }) {
   return <span className="iv4-tip" tabIndex={0}>ⓘ<span className="iv4-tipbox"><b>{el}</b><br />{fr}</span></span>;
 }
 const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.12)', borderRadius: 5, padding: '1px 5px', verticalAlign: 'middle' }}>AUTO · EDITABLE</span>;
+// link directo al Proyector de Impuestos (abre en pestaña nueva para no perder la calculadora)
+const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="noreferrer" style={{ color: '#6D28D9', fontWeight: 700, textDecoration: 'underline' }}>Proyector de Impuestos</a>;
+// globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
+const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
 export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '' }) {
   const precio0 = prefilled.precio || 5_000_000;
@@ -219,12 +223,12 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#16182A' }}>{titulo}</div>
                   <div style={{ fontSize: 11, color: '#8A8FA6', marginTop: 2 }}>{sub}</div>
                 </div>
-                {items.map(([ic, l, v, c, exp, p], i) => (
+                {items.map(([ic, l, v, c, exp, p, info], i) => (
                   <div key={l} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 20px', borderTop: '1px solid rgba(16,18,28,0.06)' }}>
                     <span style={{ fontSize: 16, lineHeight: 1.2 }}>{ic}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>{l}<Badge p={p} /></span>
+                        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#16182A' }}>{l}{info && <Info>{info}</Info>}<Badge p={p} /></span>
                         <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, whiteSpace: 'nowrap' }}>{v}</span>
                       </div>
                       <div style={{ fontSize: 11, color: '#8A8FA6', lineHeight: 1.45, marginTop: 2 }}>{exp}</div>
@@ -243,17 +247,17 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             return (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
                 <Grupo titulo="📈 Si es para invertir (rentarla)" sub="Lo que importa si la vas a rentar." items={[
-                  ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#C026D3', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual'],
-                  ['💰', 'Rendimiento promedio (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio contando TODO (renta + venta), repartida en los años.', 'anual'],
-                  ['🏦', 'Flujo de la renta', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito.', 'mensual'],
-                  ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total'],
-                  ['🏁', 'Neto al vender', m(r.neto_al_vender), '#16182A', 'Lo que te llevas al vender, descontando crédito, comisión e impuestos.', 'venta'],
+                  ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#C026D3', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual', <><b>Imagina</b> que prestas tu juguete y te dan monedas. El cap rate dice cuántas monedas te dan al año por cada 100 que vale el juguete. <b>Cómo:</b> lo que deja la renta en un año ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>. <b>Fuente:</b> renta = promedio de la zona.</>],
+                  ['💰', 'Rendimiento promedio (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio contando TODO (renta + venta), repartida en los años.', 'anual', <>Junta TODO lo que ganas (la renta + lo que sube de valor al vender) y lo reparte entre los años que lo tienes. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año. Es como sacar el promedio de tus calificaciones de todo el año.</>],
+                  ['🏦', 'Flujo de la renta', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito.', 'mensual', <>Es tu domingo cada mes: lo que entra de renta menos lo que sale (gastos + mensualidad del banco). <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es negativo (rojo), tú pones esa diferencia.</>],
+                  ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final. <b>Tu caso: {r.equity_multiple}x</b> → metes $1 y al final te llevas ${r.equity_multiple}. Más de 1 = ganas; menos de 1 = pierdes.</>],
+                  ['🏁', 'Neto al vender', m(r.neto_al_vender), '#16182A', 'Lo que te llevas al vender, descontando crédito, comisión e impuestos.', 'venta', <>El dinero que de verdad te llevas a la bolsa cuando vendes, ya quitando lo que debes al banco, la comisión y el impuesto (ISR). <b>Tu caso:</b> <b>{m(r.neto_al_vender)}</b> a los {horizonte} años.</>],
                 ]} />
                 <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
-                  ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual']] : []),
-                  ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Si vendieras en 1 año, tu ganancia por plusvalía sería ~${m(gananciaPlusv1)} (el ${apre}% del valor al año, fuente SHF). En ${horizonte} años acumula ~${m((r.atribucion || {}).plusvalia)}. Ganas aunque nunca la rentes.`, 'anual'],
-                  ['🏠', 'Te cuesta vivir aquí (al mes)', m(costoVivirMes), '#16182A', `Lo que de verdad te cuesta el depa cada mes: ${r.con_credito ? 'mensualidad del crédito + ' : ''}predial + mantenimiento + seguro. Así sabes si te conviene vs lo que pagas hoy de renta.`, 'mensual'],
-                  ['🧾', r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado', m(deTuBolsa), '#16182A', r.con_credito ? `Lo que pones HOY de tu bolsa: enganche + gastos de escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total'],
+                  ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual', <>Lo que le pagas al banco cada mes, fijo. <b>Tu caso:</b> <b>{m(r.credito.pmt_mensual)}/mes</b> por {r.credito.plazo_anios} años. Incluye una parte que baja tu deuda (capital) y otra que es el cobro del banco (interés).</>]] : []),
+                  ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Si vendieras en 1 año, tu ganancia por plusvalía sería ~${m(gananciaPlusv1)} (el ${apre}% del valor al año, fuente SHF). En ${horizonte} años acumula ~${m((r.atribucion || {}).plusvalia)}.`, 'anual', <>Tu depa vale más cada año, como un juguete que se vuelve de colección. <b>Cuánto:</b> ~<b>{apre}%</b> al año (fuente: SHF, Sociedad Hipotecaria Federal). <b>Tu caso:</b> en 1 año ganarías ~{m(gananciaPlusv1)}; en {horizonte} años ~{m((r.atribucion || {}).plusvalia)}. Ganas aunque nunca lo rentes.</>],
+                  ['🏠', 'Te cuesta vivir aquí (al mes)', m(costoVivirMes), '#16182A', `Lo que de verdad te cuesta el depa cada mes: ${r.con_credito ? 'mensualidad del crédito + ' : ''}predial + mantenimiento + seguro.`, 'mensual', <>Todo lo que pagas al mes por tener y usar el depa: {r.con_credito ? <>mensualidad ({m(r.credito.pmt_mensual)}) + </> : ''}predial + mantenimiento + seguro. <b>Tu caso:</b> <b>{m(costoVivirMes)}/mes</b>. Compáralo con lo que pagas hoy de renta para ver si te conviene.</>],
+                  ['🧾', r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado', m(deTuBolsa), '#16182A', r.con_credito ? `Lo que pones HOY de tu bolsa: enganche + gastos de escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total', r.con_credito ? <>El dinero que necesitas <b>ahorita</b> para comprar: el enganche + los gastos de la escritura. <b>Tu caso:</b> <b>{m(deTuBolsa)}</b>. El resto ({m((r.credito || {}).monto_credito)}) lo presta el banco y lo pagas en mensualidades.</> : <>Como pagas todo de contado, necesitas el precio completo + escrituración + equipamiento = <b>{m(deTuBolsa)}</b>.</>],
                 ]} />
               </div>
             );
@@ -280,7 +284,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                         <span style={{ fontSize: 11.5, fontWeight: 800, color: '#16182A', whiteSpace: 'nowrap' }}>{m(e.monto)}</span>
                       </div>
                     ))}
-                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Aproximado (~8% del precio en CDMX). El ISAI exacto lo calcula el Proyector de Impuestos.</div>
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Aproximado (~8% del precio en CDMX). El <b>ISAI</b> exacto lo calcula el <ProyectorLink />.</div>
                   </div>
                 </details>
               )}
@@ -291,18 +295,21 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* CUANDO LO VENDAS (impuestos · reusa el ISR del Proyector de Impuestos) — par con el desglose: entrada vs salida */}
           {r && r.venta && (
             <div className="iv4-card">
-              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏁 Cuando Lo Vendas <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· a los {r.venta.horizonte_anios} años</span></div>
-              {[['Precio de venta estimado', r.venta.valor_venta, '#16182A', false],
-              ['− Comisión de venta (~5%)', -r.venta.comision, '#DC2626', false],
-              ['− ISR por la ganancia', -r.venta.isr, '#DC2626', false],
-              ...(r.con_credito ? [['− Saldo que aún debes al banco', -r.venta.saldo_credito, '#DC2626', false]] : []),
-              ['= Te llevas (neto)', r.venta.neto, '#0E9F6E', true]].map(([l, v, c, tot]) => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 12.5 }}>🏁 Cuando Lo Vendas</div>
+                <select value={f.horizonte_anios} onChange={(e) => set('horizonte_anios', Number(e.target.value))} style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11, color: '#6D28D9', background: 'rgba(124,92,255,0.1)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer' }}>{[3, 5, 7, 10, 15, 20].map((y) => <option key={y} value={y}>si vendes a los {y} años</option>)}</select>
+              </div>
+              {[['Precio de venta estimado', r.venta.valor_venta, '#16182A', false, <>Lo que valdría tu depa al vender: el precio de hoy crecido por la plusvalía cada año (fuente SHF). <b>Tu caso:</b> {m(r.venta.valor_venta)} a los {r.venta.horizonte_anios} años.</>],
+              ['− Comisión de venta (~5%)', -r.venta.comision, '#DC2626', false, <>Lo que cobra el asesor o la inmobiliaria por venderlo: ~5% del precio de venta. <b>Tu caso:</b> {m(r.venta.comision)}.</>],
+              ['− ISR (impuesto por la ganancia)', -r.venta.isr, '#DC2626', false, <><b>ISR</b> = impuesto sobre la renta por lo que ganaste. <b>Cómo:</b> (precio de venta − lo que te costó, actualizado por inflación) × tasa de ley. Tu casa habitación puede quedar exenta. <b>Tu caso:</b> {m(r.venta.isr)}. El número fino lo da el <ProyectorLink/>.</>],
+              ...(r.con_credito ? [['− Saldo que aún debes al banco', -r.venta.saldo_credito, '#DC2626', false, <>Lo que te falta por pagar del crédito a esa fecha; al vender, sale de lo que recibes. <b>Tu caso:</b> {m(r.venta.saldo_credito)}.</>]] : []),
+              ['= Te llevas (neto)', r.venta.neto, '#0E9F6E', true, <>Lo que de verdad te queda en la bolsa: precio de venta − comisión − ISR{r.con_credito ? ' − lo que debes al banco' : ''}. <b>Tu caso:</b> {m(r.venta.neto)}.</>]].map(([l, v, c, tot, info]) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderTop: tot ? '2px solid rgba(16,18,28,0.1)' : '1px solid rgba(16,18,28,0.05)', fontSize: 12.5 }}>
-                  <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}</span>
+                  <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}{info && <Info>{info}</Info>}</span>
                   <span style={{ fontWeight: 800, color: c, whiteSpace: 'nowrap' }}>{m(v)}</span>
                 </div>
               ))}
-              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>El <b>ISR</b> lo estima el mismo motor del <b>Proyector de Impuestos</b> (LISR 2026: ganancia = precio de venta − costo de compra actualizado por inflación; tu casa habitación puede tener exención). Para el cálculo fino, usa el Proyector.</div>
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>El <b>ISR</b> lo estima el mismo motor del <ProyectorLink /> (LISR 2026). Para el cálculo definitivo, úsalo.</div>
             </div>
           )}
 
@@ -348,16 +355,10 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Al principio casi todo es interés; con los años, cada vez más se va a capital (baja tu deuda).</div>
                 </div>
 
-                <Sub>En todo el plazo ({cr.plazo_anios} años)</Sub>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
-                  <Tile l="Capital (préstamo)" v={m(cr.monto_credito)} c="#7C5CFF" exp="El préstamo que le regresas al banco." />
-                  <Tile l="Interés total" v={m(cr.interes_total)} c="#DC2626" exp={`Solo intereses en ${cr.plazo_anios} años. Por eso conviene liquidar o vender antes.`} />
-                  <Tile l="Monto total" v={m(cr.pago_total_plazo)} exp="Préstamo + todos los intereses = todo lo que le das al banco." />
-                </div>
-
+                {/* AÑO POR AÑO · justo debajo del primer año, visible (no escondido) */}
                 {cr.tabla_anual && cr.tabla_anual.length > 0 && (
-                  <details style={{ marginTop: 14 }}>
-                    <summary style={{ cursor: 'pointer', fontSize: 11.5, fontWeight: 800, color: '#6D4AFF' }}>📅 Ver año por año (capital vs interés, hasta liquidar)</summary>
+                  <details style={{ marginTop: 12, border: '1px solid rgba(124,92,255,0.25)', borderRadius: 10, background: 'rgba(124,92,255,0.04)', padding: '10px 13px' }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 800, color: '#6D28D9' }}>📅 ¿Y el 2°, 3°… año? Velo año por año hasta liquidar</summary>
                     <div style={{ overflowX: 'auto', marginTop: 10 }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                         <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'A capital', 'A interés', 'Te falta (saldo)'].map((h, i) => <th key={h} style={{ padding: '5px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
@@ -373,6 +374,13 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Año con año el interés baja y el capital sube, hasta que el saldo llega a $0 (queda libre).</div>
                   </details>
                 )}
+
+                <Sub>En todo el plazo ({cr.plazo_anios} años)</Sub>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+                  <Tile l="Capital (préstamo)" v={m(cr.monto_credito)} c="#7C5CFF" exp="El préstamo que le regresas al banco." />
+                  <Tile l="Interés total" v={m(cr.interes_total)} c="#DC2626" exp={`Solo intereses en ${cr.plazo_anios} años. Por eso conviene liquidar o vender antes.`} />
+                  <Tile l="Monto total" v={m(cr.pago_total_plazo)} exp="Préstamo + todos los intereses = todo lo que le das al banco." />
+                </div>
 
                 <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)', fontSize: 10.5, color: '#9499AE', lineHeight: 1.55 }}>
                   Estimación para decidir con claridad. Tu tasa y mensualidad finales las define el banco según tu perfil (análisis de crédito y capacidad de pago).
@@ -390,8 +398,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>
 
 
-      {/* ───── SECCIONES VISUALES (ancho completo · se acomodan sin huecos) ───── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' }}>
+      {/* ───── SECCIONES VISUALES · Rentar fijo/Airbnb full-width arriba, cascada + vs-instrumentos en par abajo ───── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 14, marginTop: 14, alignItems: 'start' }}>
           {/* LARGO PLAZO vs AIRBNB */}
           {r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
@@ -415,7 +423,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               </div>
             );
             return (
-              <div className="iv4-card">
+              <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb?</div>
                 <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Mira de dónde sale cada número:</div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -564,7 +572,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       <div style={{ fontSize: 9.5, color: '#A2A6BC', fontStyle: 'italic', lineHeight: 1.5, marginTop: 14 }}>
         {loading ? 'Calculando…' : `Mercado vivo: CETES ${(r && r.mercado && (r.mercado.cetes_1a * 100).toFixed(1)) || '7.0'}% · UDIS ${(r && r.mercado && r.mercado.udis) || '—'} · USD ${(r && r.mercado && r.mercado.fix_usd) || '—'} (Banxico). `}
         Informativo · no sustituye asesoría fiscal/financiera. Cifras estimadas jun-2026. El ISR aquí es una estimación;
-        para el detalle de <b>ISAI e ISR</b> (compra y venta) usa el <b>Proyector de Impuestos</b>. El cálculo definitivo lo hace tu contador/notario.
+        para el detalle de <b>ISAI</b> (al comprar) e <b>ISR</b> (al vender) usa el <ProyectorLink />. El cálculo definitivo lo hace tu contador/notario.
       </div>
     </div>
   );
