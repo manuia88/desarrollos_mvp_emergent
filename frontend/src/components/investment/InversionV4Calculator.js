@@ -238,6 +238,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const mesesHz = horizonte * 12;
             const gananciaPlusv1 = Math.round((Number(f.valor_propiedad) || 0) * (Number(f.apreciacion_anual) || 0));
             const deTuBolsa = r.con_credito && r.credito ? r.credito.capital_propio : (r.desglose || {}).costo_total;
+            const gastosMes = (Number(f.predial || 0) + Number(f.mantenimiento || 0) + Number(f.seguro || 0)) / 12;
+            const costoVivirMes = Math.round((r.con_credito && r.credito ? r.credito.pmt_mensual : 0) + gastosMes);
             return (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
                 <Grupo titulo="📈 Si es para invertir (rentarla)" sub="Lo que importa si la vas a rentar." items={[
@@ -250,15 +252,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <Grupo titulo="🏡 Si es para vivir (habitarla)" sub="Lo que importa si la vas a usar tú." items={[
                   ...(r.con_credito && r.credito ? [['💳', 'Mensualidad del crédito', m(r.credito.pmt_mensual) + '/mes', '#16182A', 'Lo que pagas al banco cada mes (capital + intereses).', 'mensual']] : []),
                   ['📈', 'Plusvalía (sube de valor)', `${apre}%/año`, '#0EA5E9', `Si vendieras en 1 año, tu ganancia por plusvalía sería ~${m(gananciaPlusv1)} (el ${apre}% del valor al año, fuente SHF). En ${horizonte} años acumula ~${m((r.atribucion || {}).plusvalia)}. Ganas aunque nunca la rentes.`, 'anual'],
-                  ['🏛️', 'Patrimonio que construyes', m((r.atribucion || {}).equity_buildup), '#6D4AFF', `NO es anual: es el ACUMULADO de ${horizonte} años (${mesesHz} mensualidades). De cada pago al banco, una parte abona al capital (baja tu deuda, no es interés). Sumando esa parte de las ${mesesHz} mensualidades, ya es tuyo esto del depa.`, 'total'],
+                  ['🏠', 'Te cuesta vivir aquí (al mes)', m(costoVivirMes), '#16182A', `Lo que de verdad te cuesta el depa cada mes: ${r.con_credito ? 'mensualidad del crédito + ' : ''}predial + mantenimiento + seguro. Así sabes si te conviene vs lo que pagas hoy de renta.`, 'mensual'],
                   ['🧾', r.con_credito ? 'Enganche (de tu bolsa hoy)' : 'Pago de contado', m(deTuBolsa), '#16182A', r.con_credito ? `Lo que pones HOY de tu bolsa: enganche + gastos de escrituración. El resto (${m((r.credito || {}).monto_credito)}) lo presta el banco.` : 'Como es al contado, es todo: precio + escrituración + equipamiento.', 'total'],
                 ]} />
               </div>
             );
           })()}
 
-          {/* DESGLOSE + CRÉDITO · se empacan en grid de ancho completo (sin huecos) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
+          {/* DETALLE DEL DINERO · entrada (desglose) + salida (venta) en par · crédito a ancho completo */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 14, alignItems: 'start' }}>
           {/* DESGLOSE DEL COSTO (cómo se arma la inversión · reading flow) */}
           {r && r.desglose && (
             <div className="iv4-card">
@@ -268,10 +270,43 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}</span><span style={{ fontWeight: 800, color: '#16182A' }}>{m(v)}</span>
                 </div>
               ))}
-              {r.con_credito && r.credito && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0 0', fontSize: 12 }}><span style={{ color: '#6B6F86' }}>De tu bolsa hoy (enganche + gastos)</span><span style={{ fontWeight: 800, color: '#7C5CFF' }}>{m(r.credito.capital_propio)}</span></div>}
+              {r.desglose.escrituracion_detalle && (
+                <details style={{ marginTop: 8 }}>
+                  <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 800, color: '#6D4AFF' }}>¿De qué se compone la escrituración?</summary>
+                  <div style={{ marginTop: 8 }}>
+                    {r.desglose.escrituracion_detalle.map((e) => (
+                      <div key={e.concepto} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                        <span style={{ fontSize: 11, color: '#5B5F76' }}>{e.concepto}{e.nota && <span style={{ display: 'block', fontSize: 9.5, color: '#A2A6BC' }}>{e.nota}</span>}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#16182A', whiteSpace: 'nowrap' }}>{m(e.monto)}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Aproximado (~8% del precio en CDMX). El ISAI exacto lo calcula el Proyector de Impuestos.</div>
+                  </div>
+                </details>
+              )}
+              {r.con_credito && r.credito && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0 0', marginTop: 6, borderTop: '1px solid rgba(16,18,28,0.05)', fontSize: 12 }}><span style={{ color: '#6B6F86' }}>De tu bolsa hoy (enganche + gastos)</span><span style={{ fontWeight: 800, color: '#7C5CFF' }}>{m(r.credito.capital_propio)}</span></div>}
             </div>
           )}
 
+          {/* CUANDO LO VENDAS (impuestos · reusa el ISR del Proyector de Impuestos) — par con el desglose: entrada vs salida */}
+          {r && r.venta && (
+            <div className="iv4-card">
+              <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏁 Cuando Lo Vendas <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· a los {r.venta.horizonte_anios} años</span></div>
+              {[['Precio de venta estimado', r.venta.valor_venta, '#16182A', false],
+              ['− Comisión de venta (~5%)', -r.venta.comision, '#DC2626', false],
+              ['− ISR por la ganancia', -r.venta.isr, '#DC2626', false],
+              ...(r.con_credito ? [['− Saldo que aún debes al banco', -r.venta.saldo_credito, '#DC2626', false]] : []),
+              ['= Te llevas (neto)', r.venta.neto, '#0E9F6E', true]].map(([l, v, c, tot]) => (
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderTop: tot ? '2px solid rgba(16,18,28,0.1)' : '1px solid rgba(16,18,28,0.05)', fontSize: 12.5 }}>
+                  <span style={{ color: tot ? '#16182A' : '#5B5F76', fontWeight: tot ? 800 : 600 }}>{l}</span>
+                  <span style={{ fontWeight: 800, color: c, whiteSpace: 'nowrap' }}>{m(v)}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>El <b>ISR</b> lo estima el mismo motor del <b>Proyector de Impuestos</b> (LISR 2026: ganancia = precio de venta − costo de compra actualizado por inflación; tu casa habitación puede tener exención). Para el cálculo fino, usa el Proyector.</div>
+            </div>
+          )}
+
+          {/* CRÉDITO · ancho completo (3 secciones · es la tarjeta más detallada) */}
           {/* CRÉDITO · UI en 3 secciones (reparto del precio · tu pago + split capital/interés · todo el plazo) */}
           {r && r.con_credito && r.credito && r.credito.pmt_mensual && (() => {
             const cr = r.credito;
@@ -283,7 +318,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
             const Sub = ({ children }) => <div style={{ fontSize: 10, fontWeight: 800, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '.05em', margin: '16px 0 10px' }}>{children}</div>;
             return (
-              <div className="iv4-card">
+              <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontWeight: 800, fontSize: 13 }}>💳 Tu Crédito Hipotecario <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {cr.plazo_anios} años · tasa {pct(cr.tasa_anual_pct)}</span></div>
 
                 <Sub>Cómo se reparte el precio</Sub>
@@ -339,8 +374,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   </details>
                 )}
 
-                <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(224,163,62,0.09)', borderRadius: 10, fontSize: 10.5, color: '#8A6A1E', lineHeight: 1.5 }}>
-                  ⚠️ <b>Números ilustrativos, no una cotización bancaria.</b> Tu tasa y tu mensualidad reales dependen de tu perfil — el banco hace un análisis de crédito y de tu capacidad de pago. Úsalo para decidir con cabeza; para el número final y exacto, acércate al banco. Fines informativos.
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)', fontSize: 10.5, color: '#9499AE', lineHeight: 1.55 }}>
+                  Estimación para decidir con claridad. Tu tasa y mensualidad finales las define el banco según tu perfil (análisis de crédito y capacidad de pago).
                 </div>
 
                 {cr.abono && (

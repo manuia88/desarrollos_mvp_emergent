@@ -341,6 +341,21 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
             "equipamiento": round(equipamiento), "costo_total": round(costo_total),
             "ingreso_bruto_anual": round(ingreso_bruto_anual), "ingreso_efectivo_anual": round(ingreso_efectivo_anual),
             "egresos_operativos": round(egresos), "capex_reserve": round(capex_reserve),
+            # de qué se componen los gastos de escrituración (proporcional al total; ISAI lo afina el Proyector de Impuestos)
+            "escrituracion_detalle": [
+                {"concepto": "ISAI (impuesto por comprar)", "monto": round(valor * escrit_pct * 0.625), "nota": "el monto exacto lo calcula el Proyector de Impuestos"},
+                {"concepto": "Honorarios del notario", "monto": round(valor * escrit_pct * 0.1875), "nota": "redacta y da fe de la escritura"},
+                {"concepto": "Registro Público de la Propiedad", "monto": round(valor * escrit_pct * 0.125), "nota": "inscribe el depa a tu nombre"},
+                {"concepto": "Avalúo, certificados y gestoría", "monto": round(valor * escrit_pct * 0.0625), "nota": "trámites previos"},
+            ],
+        },
+        # CUANDO LO VENDAS (impuestos) — reusa el ISR de venta del Proyector de Impuestos
+        "venta": {
+            "valor_venta": round(valor_venta), "ganancia_bruta": round(valor_venta - valor),
+            "comision": round(costos_venta), "isr": round(isr_venta),
+            "saldo_credito": round(saldo_pendiente) if con_credito else 0,
+            "neto": round(valor_venta - costos_venta - isr_venta - (saldo_pendiente if con_credito else 0.0)),
+            "horizonte_anios": horizonte,
         },
         "fuentes": {
             "plusvalia": "SHF (Sociedad Hipotecaria Federal), Q1-2026", "tasa_hipotecaria": "Banxico, prom. Q1-2026",
