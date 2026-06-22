@@ -649,6 +649,46 @@ async def inversion_v4_portafolio(request: Request):
         return {"ok": False, "error": str(e)[:200]}
 
 
+@router.get("/api/inversion-v4/zona-contexto")
+async def inversion_v4_zona_contexto(request: Request, zone_id: str = ""):
+    """#1 absorción + #5 riesgo físico de la zona, para el due diligence de la calc. Reusa absorcion_engine (NO duplica)
+    y climate_migration_engine + natural_risk_layers. Fail-open por feed."""
+    db = request.app.state.db
+    out = {"ok": True, "zone_id": zone_id}
+    # #1 ABSORCIÓN — velocidad de venta + meses para agotar inventario (ULI)
+    try:
+        from absorcion_engine import curva_absorcion
+        ab = await curva_absorcion(db, colonia_id=zone_id or None)
+        curva = ab.get("curva") or []
+        disp = sum(c.get("disponibles", 0) for c in curva)
+        vendidas = sum(c.get("vendidas", 0) for c in curva)
+        total = sum(c.get("unidades_total", 0) for c in curva)
+        vel = round(sum(c.get("velocidad_mensual", 0) for c in curva), 1)
+        out["absorcion"] = {
+            "disponibles": disp, "vendidas": vendidas, "unidades_total": total,
+            "velocidad_mensual": vel, "meses_para_agotar": (round(disp / vel) if vel > 0 else None),
+            "absorcion_pct": (round(100 * vendidas / total) if total else None),
+            "n_proyectos": ab.get("n_proyectos"), "es_estimado": ab.get("es_estimado"),
+            "data_basis": ab.get("data_basis"), "lectura": ab.get("lectura"),
+        }
+    except Exception as e:
+        out["absorcion"] = {"error": str(e)[:120]}
+    # #5 RIESGO FÍSICO — inundación + sísmico + subsidencia (CDMX)
+    try:
+        from climate_migration_engine import aggregate_climate_signals_per_zone
+        cs = await aggregate_climate_signals_per_zone(db, zone_id)
+        nrl = await db.natural_risk_layers.find_one({"zone_id": zone_id}, {"_id": 0}) or {}
+        out["riesgo"] = {
+            "flood_risk": cs.get("flood_risk"), "sismic_score": nrl.get("sismic_score"),
+            "subsidence": nrl.get("subsidence_cm_yr") or nrl.get("subsidence"),
+            "drivers": cs.get("top_drivers"), "completeness": cs.get("data_completeness_pct"),
+            "tiene_datos": bool(nrl) or (cs.get("data_completeness_pct") or 0) > 0,
+        }
+    except Exception as e:
+        out["riesgo"] = {"error": str(e)[:120]}
+    return out
+
+
 @router.post("/api/inversion-v4/airroi")
 async def inversion_v4_airroi(request: Request):
     """Trae renta corta REAL de AirROI para una zona (ADR, ocupación, revenue). AirROI COBRA por llamada, así que

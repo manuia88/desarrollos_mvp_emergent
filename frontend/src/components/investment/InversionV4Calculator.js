@@ -57,6 +57,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [selUnits, setSelUnits] = useState([]);      // fase 3: índices de unidades elegidas para el portafolio
   const [port, setPort] = useState(null);            // resultado agregado del portafolio
   const [descVol, setDescVol] = useState(0);         // descuento por volumen (%)
+  const [zonaCtx, setZonaCtx] = useState(null);      // #1 absorción + #5 riesgo físico de la zona (motores reusados)
   const timer = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const askAtlax = (q) => { try { window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: q } })); } catch { /* noop */ } };
@@ -131,6 +132,15 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   useEffect(() => {
     if (prefilled.precio) setF((s) => ({ ...s, valor_propiedad: prefilled.precio, renta_mensual: prefilled.renta || s.renta_mensual }));
   }, [prefilled.precio, prefilled.renta]);
+
+  // #1 absorción + #5 riesgo físico de la zona (una sola vez por zona · reusa absorcion_engine + climate/natural_risk)
+  useEffect(() => {
+    if (!zoneId) return;
+    let vivo = true;
+    fetch(`${API}/api/inversion-v4/zona-contexto?zone_id=${encodeURIComponent(zoneId)}`)
+      .then((r) => r.json()).then((d) => { if (vivo && d && d.ok) setZonaCtx(d); }).catch(() => { /* noop */ });
+    return () => { vivo = false; };
+  }, [zoneId]);
 
   // barra sticky: cuando "Tus datos" sale de vista, mostrar la barra fija con controles + TIR en vivo
   useEffect(() => {
@@ -836,8 +846,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   {sobreApal && <div style={{ fontSize: 10.5, color: '#8A6A1E', background: 'rgba(224,163,62,0.1)', borderRadius: 9, padding: '8px 11px', marginTop: 10, lineHeight: 1.5 }}>⚠️ <b>Sobre-apalancado:</b> el banco prestaría máx ~{m(ai.prestamo_max_dscr12)} a DSCR 1.2, pero tu crédito es {m(r.credito.monto_credito)} → la renta no cubre el crédito al estándar. Sube enganche o baja el préstamo.</div>}
                   {ai.estabilizacion && <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 8 }}>📈 <b>Estabilización (lease-up):</b> con {ai.estabilizacion.vacancia_inicial_pct}% de vacancia inicial, el NOI del año 1 es {m(ai.estabilizacion.noi_ano1_leaseup)} vs {m(ai.estabilizacion.noi_estabilizado)} estabilizado.</div>}
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10, fontSize: 10.5, color: '#5B5F76' }}>
-                    {numDesarrollos != null && <div>🏗️ <b>Oferta en la zona:</b> ~{numDesarrollos} desarrollos compitiendo <Info><>Cuántos proyectos compiten por el mismo comprador/inquilino. Más oferta = más presión a precios y renta (ULI, análisis de absorción y pipeline).</></Info></div>}
-                    <div>⚠️ <b>Riesgo físico / ESG:</b> sísmico (CDMX) · inundación · eficiencia <Info><>Cada vez más obligatorio en un comité institucional. Se alimenta de la data de zona (CENAPRED, SACMEX) — se surfacea por colonia cuando esté conectada.</></Info></div>
+                    {(() => { const ab = zonaCtx && zonaCtx.absorcion; return (ab && ab.velocidad_mensual != null) ? (
+                      <div>🏗️ <b>Absorción de la zona:</b> ~{ab.velocidad_mensual} unidades/mes · {ab.meses_para_agotar != null ? `${ab.meses_para_agotar} meses para agotar el inventario` : 'inventario amplio'} ({ab.disponibles} disponibles{ab.n_proyectos ? ` · ${ab.n_proyectos} proyectos` : ''}){ab.es_estimado ? ' · preliminar' : ''} <Info><>Qué tan rápido se vende la oferta de la zona (ULI). Velocidad = unidades vendidas/mes; meses para agotar = inventario ÷ velocidad. Más meses = más presión a precios. Fuente: motor de absorción DMX ({ab.data_basis === 'real' ? 'oferta real' : 'demo'}).</></Info></div>
+                    ) : (numDesarrollos != null && <div>🏗️ <b>Oferta en la zona:</b> ~{numDesarrollos} desarrollos compitiendo <Info><>Cuántos proyectos compiten por el mismo comprador/inquilino (ULI: absorción y pipeline).</></Info></div>); })()}
+                    {(() => { const rg = zonaCtx && zonaCtx.riesgo; const tiene = rg && (rg.flood_risk != null || rg.sismic_score != null || rg.subsidence != null) && rg.tiene_datos; return tiene ? (
+                      <div>⚠️ <b>Riesgo físico:</b> inundación {rg.flood_risk != null ? `${Math.round(rg.flood_risk)}/100` : 's/d'}{rg.sismic_score != null ? ` · sísmico ${Math.round(rg.sismic_score)}/100` : ''}{rg.subsidence != null ? ` · hundimiento ${rg.subsidence} cm/año` : ''}{rg.drivers && rg.drivers.length ? ` · ${rg.drivers.join(', ')}` : ''} <Info><>Riesgo físico de la zona (cada vez más exigido en comité institucional). Fuente: capas de riesgo natural DMX + CENAPRED/SACMEX. Datos al {rg.completeness || 0}%; lo sísmico/subsidencia se completa por colonia.</></Info></div>
+                    ) : (
+                      <div>⚠️ <b>Riesgo físico / ESG:</b> sísmico (CDMX) · inundación <Info><>Se alimenta de las capas de riesgo natural DMX (CENAPRED/SACMEX); aún sin datos suficientes para esta colonia.</></Info></div>
+                    ); })()}
                   </div>
                 </div>
               );
