@@ -93,49 +93,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         @media print{.iv4-noprint{display:none}}
       `}</style>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
-        {/* ───── COLUMNA IZQUIERDA · AJUSTES ───── */}
-        <div style={{ flex: '1 1 300px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* El inmueble */}
-          <div className="iv4-card">
-            <div style={sectTitle}>🏠 El inmueble</div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 del depa (fijo)</span>}</span>
-                {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
-                  : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
-              <div><span style={lab}>Tipo De Renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo plazo'], ['corto', 'Airbnb / corto']]} /></div>
-              {f.modo_renta === 'corto' ? (<>
-                <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
-                <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
-              </>) : <Field label="Renta Mensual" k="renta_mensual" money auto />}
-              <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>· multifamily</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
-            </div>
-          </div>
-
-          {/* Cómo lo pagas */}
-          <div className="iv4-card">
-            <div style={sectTitle}>💳 Cómo lo pagas</div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <Toggle k="con_credito" opts={[[false, 'Al contado'], [true, 'Con crédito']]} />
-              {f.con_credito && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l} enganche</option>)}</select></div>
-                  <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-                  <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="number" step="0.01" placeholder="11.45" value={f.tasa_anual === '' ? '' : (f.tasa_anual * 100).toFixed(2)} onChange={(e) => set('tasa_anual', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>
-                  <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opcional</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>
-                </div>
-              )}
-              {f.con_credito && <div style={{ fontSize: 9.5, color: '#A2A6BC', lineHeight: 1.4 }}>El <b>abono extra a capital</b> es un pago adicional cada mes que baja el saldo: liquidas antes y pagas menos intereses. Pon 0 si no quieres simularlo.</div>}
-            </div>
-          </div>
-
-          <div style={{ fontSize: 10, color: '#A2A6BC', lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados (renta de la zona, predial/mantenim. típicos) — <b>edítalos</b> en “Ajustar supuestos” abajo. Solo el precio está fijo (es el depa real).</div>
-        </div>
-
-        {/* ───── COLUMNA DERECHA · RESULTADO VISUAL ───── */}
-        <div style={{ flex: '1 1 340px', minWidth: 300, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* SWITCH de vista (clara división simple ↔ institucional) + moneda MXN/USD */}
-          <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ───── BARRA DE CONTROL · tus datos (ancho completo, horizontal — sin columna angosta = sin huecos) ───── */}
+      <div className="iv4-card iv4-noprint" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
               {[['simple', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
                 <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
@@ -147,7 +109,30 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               ))}
             </div>
           </div>
-          {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginTop: -6 }}>Te explicamos cada número en palabras simples. ¿Eres experto? Cambia a Institucional ↑</div>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 13, alignItems: 'end' }}>
+          <div><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
+            {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
+              : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
+          <div><span style={lab}>Tipo de renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo'], ['corto', 'Airbnb']]} /></div>
+          {f.modo_renta === 'corto' ? (<>
+            <Field label="Tarifa Por Noche" k="tarifa_noche" money auto />
+            <div><span style={lab}>Ocupación (%) <Auto /></span><input type="number" value={Math.round((f.ocupacion_pct || 0.6) * 100)} onChange={(e) => set('ocupacion_pct', Number(e.target.value) / 100)} style={inp} /></div>
+          </>) : <Field label="Renta Mensual" k="renta_mensual" money auto />}
+          <div><span style={lab}>N° Unidades {multifamily && <span style={{ color: '#6D28D9', fontWeight: 700 }}>·multi</span>}</span><input type="number" value={f.num_unidades} onChange={(e) => set('num_unidades', e.target.value)} style={inp} /></div>
+          <div><span style={lab}>Cómo lo pagas</span><Toggle k="con_credito" opts={[[false, 'Contado'], [true, 'Crédito']]} /></div>
+          {f.con_credito && <div><span style={lab}>Enganche</span><select value={f.ltv} onChange={(e) => set('ltv', Number(e.target.value))} style={inp}>{[[0.9, '10%'], [0.8, '20%'], [0.7, '30%'], [0.5, '50%']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+          {f.con_credito && <div><span style={lab}>Plazo</span><select value={f.plazo_meses} onChange={(e) => set('plazo_meses', Number(e.target.value))} style={inp}>{[[120, '10 años'], [180, '15 años'], [240, '20 años'], [300, '25 años']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}
+          {f.con_credito && <div><span style={lab}>Tasa anual (%) <Auto /></span><input type="number" step="0.01" placeholder="11.45" value={f.tasa_anual === '' ? '' : (f.tasa_anual * 100).toFixed(2)} onChange={(e) => set('tasa_anual', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>}
+          {f.con_credito && <div><span style={lab}>Abono extra/mes <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opc.</span></span><input type="text" inputMode="numeric" value={m(f.abono_capital_mensual)} onChange={(e) => set('abono_capital_mensual', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} /></div>}
+        </div>
+        <div style={{ fontSize: 10, color: '#A2A6BC', marginTop: 12, lineHeight: 1.5 }}>Los campos <b style={{ color: '#6D28D9' }}>AUTO</b> son estimados (renta de la zona, predial/mantenim. típicos) — edítalos aquí o en <b>“Ajustar supuestos”</b>.{f.con_credito ? ' El abono extra a capital baja el saldo: liquidas antes y pagas menos intereses.' : ''} Solo el precio está fijo.</div>
+      </div>
+
+      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Eres experto? Cambia a Institucional ↑</div>}
+
+      {/* ───── RESULTADOS (ancho completo · sin columna angosta = sin huecos) ───── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Resultado grande + veredicto */}
           {r && (
@@ -192,6 +177,8 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
+          {/* DESGLOSE + CRÉDITO · se empacan en grid de ancho completo (sin huecos) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
           {/* DESGLOSE DEL COSTO (cómo se arma la inversión · reading flow) */}
           {r && r.desglose && (
             <div className="iv4-card">
