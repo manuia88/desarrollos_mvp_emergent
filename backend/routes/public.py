@@ -545,9 +545,11 @@ async def inversion_v4_analyze(request: Request):
             pass
         if body.get("incluir_sensibilidad"):
             try:
-                from inversion_v4_finance import sensibilidad, montecarlo
+                from inversion_v4_finance import sensibilidad, montecarlo, escenarios, proforma
                 res["sensibilidad"] = sensibilidad(inp, isr_fn=make_isr_fn())
                 res["montecarlo"] = montecarlo(inp, isr_fn=make_isr_fn(), n=400)
+                res["escenarios"] = escenarios(inp, isr_fn=make_isr_fn())
+                res["proforma"] = proforma(inp, isr_fn=make_isr_fn())
             except Exception:
                 res["sensibilidad"] = None
         # comparativa de instrumentos para la barra "tu inmueble vs CETES vs S&P" (de market_rates)

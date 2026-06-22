@@ -506,6 +506,49 @@ def comparar_renta(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Di
     }
 
 
+def escenarios(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str, Any]:
+    """3 escenarios (base / optimista / pesimista) con sets de supuestos distintos — como modela un comité de inversión
+    el downside. Mueve plusvalía, tasa del crédito y vacancia."""
+    apr = _g(inp, "apreciacion_anual", 0.075)
+    ta = _g(inp, "tasa_anual", 0.1145)
+    vac = _g(inp, "tasa_vacancia", 0.05)
+    defs = {
+        "optimista": {"apreciacion_anual": round(apr + 0.015, 4), "tasa_anual": round(max(0.02, ta - 0.01), 4), "tasa_vacancia": round(max(0.0, vac - 0.02), 4)},
+        "pesimista": {"apreciacion_anual": round(max(0.0, apr - 0.015), 4), "tasa_anual": round(ta + 0.02, 4), "tasa_vacancia": round(vac + 0.05, 4)},
+    }
+
+    def pack(res):
+        return {"tir_pct": res.get("tir_pct"), "neto_al_vender": res.get("neto_al_vender"),
+                "flujo_mensual": res.get("flujo_mensual_1"), "roi_pct": res.get("roi_anualizado_pct")}
+    out = {"base": pack(analyze(inp, isr_fn))}
+    for k, delta in defs.items():
+        out[k] = pack(analyze({**inp, **delta}, isr_fn))
+    out["supuestos"] = {
+        "optimista": f"plusvalía {round((apr+0.015)*100,1)}% · tasa {round((ta-0.01)*100,1)}% · vacancia {round(max(0,vac-0.02)*100)}%",
+        "pesimista": f"plusvalía {round(max(0,apr-0.015)*100,1)}% · tasa {round((ta+0.02)*100,1)}% · vacancia {round((vac+0.05)*100)}%",
+    }
+    return out
+
+
+def proforma(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> List[Dict[str, Any]]:
+    """Estado de flujos año por año (pro-forma de comité): ingreso bruto → NOI → −servicio de deuda → flujo libre.
+    Determinista (la renta crece a crecimiento_renta_anual, el servicio de deuda es fijo) — barato, sin analyze por año."""
+    base = analyze(inp, isr_fn)
+    noi0 = base.get("noi", 0.0)
+    ingreso0 = (base.get("desglose") or {}).get("ingreso_bruto_anual", 0.0)
+    crec = _g(inp, "crecimiento_renta_anual", 0.05)
+    cred = base.get("credito") or {}
+    servicio = (cred.get("pmt_mensual", 0) or 0) * 12.0
+    hz = int(_g(inp, "horizonte_anios", 5))
+    rows = []
+    for y in range(1, hz + 1):
+        f = (1.0 + crec) ** (y - 1)
+        noi_y = noi0 * f
+        rows.append({"anio": y, "ingreso_bruto": round(ingreso0 * f), "noi": round(noi_y),
+                     "servicio_deuda": round(servicio), "flujo_libre": round(noi_y - servicio)})
+    return rows
+
+
 def montecarlo(inp: Dict[str, Any], isr_fn: Optional[Callable] = None, n: int = 400) -> Optional[Dict[str, Any]]:
     """Simulación Monte Carlo (§9 Nivel 2): varía apreciación/vacancia/tasa (normal) → distribución de TIR, VaR
     (p5/p50/p95) y probabilidad de que la TIR quede por debajo de CETES. Determinístico (seed) para reproducibilidad."""

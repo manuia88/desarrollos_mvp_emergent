@@ -27,7 +27,7 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '' }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -36,6 +36,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     tarifa_noche: Math.round((prefilled.renta || precio0 * 0.0045) / 30 * 2.2), ocupacion_pct: 0.6,
     predial: Math.round(precio0 * 0.0016), mantenimiento: Math.round(precio0 * 0.0024), seguro: Math.round(precio0 * 0.0012),
     horizonte_anios: 5, apreciacion_anual: 0.075, crecimiento_renta_anual: 0.05,
+    exit_cap_rate: '', capex_reserve_pct: 0.04, prima_riesgo_inmobiliario: 0.05,   // supuestos institucionales editables
     perfil: 'fisica', tipo_inmueble: 'residencial', es_casa_habitacion: true, regimen_fiscal: 'auto',
   });
   const [r, setR] = useState(null);
@@ -104,7 +105,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual === null || f.tasa_anual === undefined) ? undefined : Number(f.tasa_anual) / 100;
-    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
+    const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: num(f.valor_propiedad), renta_mensual: num(f.renta_mensual), num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), exit_cap_rate: num(f.exit_cap_rate) || 0, capex_reserve_pct: num(f.capex_reserve_pct), prima_riesgo_inmobiliario: num(f.prima_riesgo_inmobiliario), tasa_vacancia: num(f.tasa_vacancia), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
   }, [f, vista, run, zoneId, airroi]);
@@ -704,6 +705,35 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 ⚖️ <b>Efecto del crédito (apalancamiento):</b> con crédito tu TIR es <b>{pct(r.tir_pct)}</b> vs <b>{pct(r.tir_desapalancada_pct)}</b> al contado → el crédito <b style={{ color: dif >= 0 ? '#0E9F6E' : '#DC2626' }}>{dif >= 0 ? 'suma' : 'resta'} {Math.abs(dif).toFixed(1)} puntos</b>. {r.apalancamiento === 'positivo' ? 'El inmueble rinde más que la tasa del banco, así que el crédito amplifica tu ganancia.' : 'El inmueble rinde menos que la tasa del banco; el crédito resta — evalúa más enganche, mejor tasa o comprar al contado.'}
               </div>
             )}
+            {capRateMercado != null && r.cap_rate_pct != null && (() => {
+              const dif = +(r.cap_rate_pct - capRateMercado).toFixed(2);
+              return (
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Calidad de entrada · tu cap rate vs el de la zona <Info><>La primera pregunta de un fondo: <b>¿compras bien?</b> Si tu cap rate de entrada es <b>mayor</b> que el promedio de la zona, pagas relativamente <b>barato</b> (mejor yield); si es menor, pagas caro. Fuente del mercado: promedio de la colonia (motor DMX).</></Info></div>
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>Tu cap rate</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#C026D3' }}>{pct(r.cap_rate_pct)}</div></div>
+                    <div style={{ fontSize: 16, color: '#C9CCDB', fontWeight: 800 }}>vs</div>
+                    <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>Mercado de la zona</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#16182A' }}>{pct(capRateMercado)}</div></div>
+                    <div style={{ padding: '8px 12px', borderRadius: 10, background: dif >= 0 ? 'rgba(14,159,110,0.1)' : 'rgba(220,38,38,0.08)', color: dif >= 0 ? '#0E7A53' : '#DC2626', fontWeight: 800, fontSize: 11.5 }}>{dif >= 0 ? `✓ Entras mejor: +${dif} pts de yield` : `⚠️ Entras caro: ${dif} pts vs el mercado`}</div>
+                  </div>
+                </div>
+              );
+            })()}
+            {r.escenarios && r.escenarios.base && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Escenarios · base / optimista / pesimista <Info><>Lo que hace un comité de inversión: no confiar en un solo número, sino ver cómo te va si las cosas salen <b>mejor</b> o <b>peor</b> de lo esperado (cambia plusvalía, tasa y vacancia). Si aguanta el pesimista, es robusta.</></Info></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+                  {[['🟢 Optimista', 'optimista'], ['⚪ Base (tus datos)', 'base'], ['🔴 Pesimista', 'pesimista']].map(([titulo, k]) => { const s = r.escenarios[k] || {}; return (
+                    <div key={k} style={{ padding: '11px 13px', borderRadius: 10, background: k === 'base' ? 'rgba(124,92,255,0.07)' : 'rgba(16,18,28,0.03)', border: k === 'base' ? '1.5px solid #7C5CFF' : '1px solid transparent' }}>
+                      <div style={{ fontWeight: 800, fontSize: 12, color: '#16182A' }}>{titulo}</div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (s.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626', marginTop: 4 }}>{pct(s.tir_pct)} <span style={{ fontSize: 10, color: '#8A8FA6', fontWeight: 600 }}>TIR</span></div>
+                      <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 3 }}>flujo {m(s.flujo_mensual)}/mes</div>
+                      {k !== 'base' && r.escenarios.supuestos && <div style={{ fontSize: 9, color: '#A2A6BC', marginTop: 5, lineHeight: 1.45 }}>{r.escenarios.supuestos[k]}</div>}
+                    </div>
+                  ); })}
+                </div>
+              </div>
+            )}
             {r.multifamily_info && r.multifamily_info.num_unidades && <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)', fontSize: 12.5, color: '#5B5F76' }}>Multifamily: cap implícito {pct(r.multifamily_info.cap_implicito_pct)} · valor de mercado {m(r.multifamily_info.valor_mercado)} · <b style={{ color: (r.multifamily_info.brecha_precio_pct || 0) > 0 ? '#DC2626' : '#0E9F6E' }}>brecha {pct(r.multifamily_info.brecha_precio_pct)}</b></div>}
             {r.sensibilidad && r.sensibilidad.por_exit_cap && (
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
@@ -736,6 +766,37 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#C026D3)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
               </div>
             )}
+            {r.proforma && r.proforma.length > 0 && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A' }}>Pro-forma de flujos · año a año <Info><>El estado de flujos que revisa un comité: <b>ingreso bruto → NOI</b> (renta menos gastos) <b>→ menos el servicio de deuda</b> (pago al banco) <b>= flujo libre</b>. Año a año, hasta tu horizonte. Descárgalo en CSV para tu modelo.</></Info></div>
+                  <button type="button" onClick={() => { const data = [['Año', 'Ingreso bruto', 'NOI', 'Servicio deuda', 'Flujo libre'], ...r.proforma.map((p) => [p.anio, p.ingreso_bruto, p.noi, p.servicio_deuda, p.flujo_libre])]; const csv = data.map((row) => row.join(',')).join('\n'); const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'proforma-inversion.csv'; a.click(); }} style={{ padding: '6px 11px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.25)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, background: '#fff', color: '#6D4AFF' }}>⬇️ CSV</button>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                    <thead><tr style={{ color: '#6B6F86' }}>{['Año', 'Ingreso bruto', 'NOI', '− Servicio deuda', '= Flujo libre'].map((h, i) => <th key={h} style={{ padding: '5px 7px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                    <tbody>{r.proforma.map((p) => (
+                      <tr key={p.anio} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                        <td style={{ padding: '5px 7px', fontWeight: 700 }}>{p.anio}</td>
+                        <td style={{ padding: '5px 7px', textAlign: 'right' }}>{m(p.ingreso_bruto)}</td>
+                        <td style={{ padding: '5px 7px', textAlign: 'right' }}>{m(p.noi)}</td>
+                        <td style={{ padding: '5px 7px', textAlign: 'right', color: '#DC2626' }}>{m(p.servicio_deuda)}</td>
+                        <td style={{ padding: '5px 7px', textAlign: 'right', fontWeight: 800, color: (p.flujo_libre || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{m(p.flujo_libre)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>⚙️ Supuestos · edítalos como analista <Info><>Un fondo no acepta los defaults: fija sus propios supuestos. <b>Exit cap</b> = a qué cap rate asumes que vendes (vacío = usar plusvalía); <b>vacancia</b> = % del año sin rentar; <b>reserva capex</b> = % que apartas para mantenimiento mayor; <b>prima de riesgo</b> = lo que exiges arriba de CETES (sube tu tasa de descuento del VPN).</></Info></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10 }}>
+                <div><span style={lab}>Exit cap rate (%) <span style={{ color: '#8A8FA6', fontWeight: 600 }}>opc.</span></span><input type="number" step="0.25" placeholder="auto" value={f.exit_cap_rate === '' ? '' : (f.exit_cap_rate * 100).toFixed(2)} onChange={(e) => set('exit_cap_rate', e.target.value === '' ? '' : Number(e.target.value) / 100)} style={inp} /></div>
+                <div><span style={lab}>Vacancia (%)</span><input type="number" step="1" value={Math.round((f.tasa_vacancia || 0) * 100)} onChange={(e) => set('tasa_vacancia', Number(e.target.value) / 100)} style={inp} /></div>
+                <div><span style={lab}>Reserva capex (%)</span><input type="number" step="0.5" value={(f.capex_reserve_pct * 100).toFixed(1)} onChange={(e) => set('capex_reserve_pct', Number(e.target.value) / 100)} style={inp} /></div>
+                <div><span style={lab}>Prima de riesgo (%)</span><input type="number" step="0.5" value={(f.prima_riesgo_inmobiliario * 100).toFixed(1)} onChange={(e) => set('prima_riesgo_inmobiliario', Number(e.target.value) / 100)} style={inp} /></div>
+              </div>
+            </div>
           </div>
         );
       })()}

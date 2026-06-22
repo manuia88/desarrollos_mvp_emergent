@@ -853,7 +853,7 @@ export default function ZonePageV2() {
             )}
             {calcUnit && (
               <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InversionV4Calculator prefilled={{ precio: calcUnit.price, renta: inv && inv.renta_prom }} lockPrice zoneId={slug} />
+                <InversionV4Calculator prefilled={{ precio: calcUnit.price, renta: inv && inv.renta_prom }} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} />
               </div>
             )}
           </section>
