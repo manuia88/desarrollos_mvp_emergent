@@ -170,9 +170,15 @@ def analyze(inp: Dict[str, Any], isr_fn: Optional[Callable] = None) -> Dict[str,
     # ── egresos operativos (NO crédito/depreciación/CapEx/ISR) ──
     egresos = sum(_g(inp, k, 0.0) for k in (
         "predial", "cuota_condominio", "seguro", "mantenimiento", "comision_administracion", "comision_colocacion"))
+    egresos_extra_corto = 0.0
     if renta_corto:
-        egresos += sum(_g(inp, k, 0.0) for k in (
+        # costos REALES de Airbnb que NO tiene la renta larga: plataforma, limpieza, servicios (luz/internet/agua),
+        # gestión profesional, reposición de amenidades. Si no los mandan, se estiman como % del ingreso bruto (default 22%).
+        egresos_extra_corto = sum(_g(inp, k, 0.0) for k in (
             "servicios", "limpieza", "comision_plataforma", "admin_profesional", "reposicion_amenidades"))
+        if egresos_extra_corto <= 0:
+            egresos_extra_corto = ingreso_bruto_anual * _g(inp, "costo_airbnb_pct", 0.22)
+        egresos += egresos_extra_corto
 
     # ── NOI (§4.1) ──
     noi = ingreso_efectivo_anual - egresos

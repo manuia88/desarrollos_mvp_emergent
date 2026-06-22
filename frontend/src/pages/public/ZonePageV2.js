@@ -837,13 +837,14 @@ export default function ZonePageV2() {
               <div style={{ marginTop: 22 }}>
                 <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige la unidad</div>
                 {calcUnits.length > 0 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: 12, marginTop: 12 }}>
-                    {calcUnits.slice(0, 12).map((u) => { const on = calcUnit && calcUnit.id === u.id; const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; return (
-                      <button key={u.id} className="zv2-unit" type="button" onClick={() => setCalcUnit(u)} style={{ position: 'relative', padding: '15px 16px', borderRadius: 14, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 10px 24px rgba(124,92,255,.18)' : '0 3px 10px rgba(16,18,28,.05)' }}>
-                        {on && <span style={{ position: 'absolute', top: 10, right: 10, width: 18, height: 18, borderRadius: '50%', background: '#7C5CFF', color: '#fff', fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: on ? '#6D28D9' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
-                        <div style={{ fontSize: 11, color: '#8A8FA6', marginTop: 3 }}>{u.m2_total || u.m2_privative}m² · {u.bedrooms || '—'} rec</div>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#0E9F6E', marginTop: 8 }}>{precio}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: 9, marginTop: 12 }}>
+                    {calcUnits.slice(0, 18).map((u) => { const on = calcUnit && calcUnit.id === u.id; const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; const m2 = u.m2_total || u.m2_privative; const banos = u.bathrooms || u.banos || u.banos_completos; const estac = u.parking_spots ?? u.parking ?? u.estacionamientos; const pm2 = m2 && u.price ? Math.round(u.price / m2) : null; return (
+                      <button key={u.id} className="zv2-unit" type="button" onClick={() => setCalcUnit(u)} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 8px 20px rgba(124,92,255,.18)' : '0 2px 8px rgba(16,18,28,.05)' }}>
+                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7C5CFF', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: on ? '#6D28D9' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
+                        <div style={{ fontSize: 10, color: '#8A8FA6', marginTop: 2, lineHeight: 1.5 }}>{m2}m² · {u.bedrooms || '—'} rec{banos ? ` · ${banos} baño` : ''}{estac != null && estac !== '' ? ` · ${estac} est` : ''}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#0E9F6E', marginTop: 6 }}>{precio}</div>
+                        {pm2 ? <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 1 }}>${pm2.toLocaleString('es-MX')}/m²</div> : null}
                       </button>
                     ); })}
                   </div>

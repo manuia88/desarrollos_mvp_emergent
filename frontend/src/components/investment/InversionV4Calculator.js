@@ -283,12 +283,21 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <details style={{ marginTop: 8 }}>
                   <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 800, color: '#6D4AFF' }}>¿De qué se compone la escrituración?</summary>
                   <div style={{ marginTop: 8 }}>
-                    {r.desglose.escrituracion_detalle.map((e) => (
-                      <div key={e.concepto} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
-                        <span style={{ fontSize: 11, color: '#5B5F76' }}>{e.concepto}{e.nota && <span style={{ display: 'block', fontSize: 9.5, color: '#A2A6BC' }}>{e.nota}</span>}</span>
-                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#16182A', whiteSpace: 'nowrap' }}>{m(e.monto)}</span>
-                      </div>
-                    ))}
+                    {r.desglose.escrituracion_detalle.map((e) => {
+                      const inf = /ISAI/.test(e.concepto)
+                        ? <><b>ISAI</b> = Impuesto Sobre Adquisición de Inmuebles. Lo cobra la <b>CDMX</b> por comprar. Es progresivo (~4-6% según el valor); aquí ~5% del precio. <b>Tu caso:</b> {m(e.monto)}. El monto exacto lo calcula el <ProyectorLink />. Fuente: Código Fiscal CDMX.</>
+                        : /notario/i.test(e.concepto)
+                          ? <>Honorarios del <b>notario</b> que redacta la escritura y le da validez legal. ~1.5% del valor. <b>Tu caso:</b> {m(e.monto)}. Fuente: arancel notarial CDMX.</>
+                          : /Registro/i.test(e.concepto)
+                            ? <>Derechos del <b>Registro Público de la Propiedad</b>: inscribe el depa a tu nombre para que sea oficialmente tuyo. ~1%. <b>Tu caso:</b> {m(e.monto)}.</>
+                            : <><b>Avalúo</b> (un perito valúa el inmueble), certificados de libertad de gravamen y gestoría de trámites. ~0.5%. <b>Tu caso:</b> {m(e.monto)}.</>;
+                      return (
+                        <div key={e.concepto} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                          <span style={{ fontSize: 11, color: '#5B5F76' }}>{e.concepto}<Info>{inf}</Info>{e.nota && <span style={{ display: 'block', fontSize: 9.5, color: '#A2A6BC' }}>{e.nota}</span>}</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 800, color: '#16182A', whiteSpace: 'nowrap' }}>{m(e.monto)}</span>
+                        </div>
+                      );
+                    })}
                     <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 6 }}>Aproximado (~8% del precio en CDMX). El <b>ISAI</b> exacto lo calcula el <ProyectorLink />.</div>
                   </div>
                 </details>
@@ -408,35 +417,39 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* LARGO PLAZO vs AIRBNB */}
           {r && r.comparar_renta && r.comparar_renta.largo && (() => {
             const cmp = r.comparar_renta;
-            const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win }) => (
+            const Opcion = ({ icon, titulo, x, comoIngreso, fuente, win, headInfo, gastosInfo }) => (
               <div style={{ flex: '1 1 240px', padding: '15px 16px', borderRadius: 14, background: win ? 'rgba(124,92,255,0.06)' : 'rgba(16,18,28,0.03)', border: win ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#16182A' }}>{icon} {titulo}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#16182A' }}>{icon} {titulo}<Info>{headInfo}</Info></div>
                   {win && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6D28D9', background: 'rgba(124,92,255,0.14)', borderRadius: 6, padding: '2px 8px' }}>GANA</span>}
                 </div>
                 <div style={{ marginTop: 11, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.5 }}>
-                  <div>Ingreso: <b>{m(x.ingreso_anual)}/año</b></div>
+                  <div>Ingreso: <b>{m(x.ingreso_anual)}/año</b><Info><>Todo lo que entra de renta en un año, <b>antes</b> de gastos. {comoIngreso}. <b>Tu caso:</b> {m(x.ingreso_anual)}/año.</></Info></div>
                   <div style={{ fontSize: 10.5, color: '#A2A6BC' }}>{comoIngreso}</div>
-                  <div style={{ marginTop: 5 }}>− Gastos del año: <b style={{ color: '#DC2626' }}>{m(x.egresos_anual)}</b></div>
-                  <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b></div>
+                  <div style={{ marginTop: 5 }}>− Gastos del año: <b style={{ color: '#DC2626' }}>{m(x.egresos_anual)}</b><Info>{gastosInfo}</Info></div>
+                  <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b><Info><>El <b>NOI</b>: ingreso − gastos. Lo que deja la propiedad antes del crédito y de impuestos. <b>Tu caso:</b> {m(x.ingreso_anual)} − {m(x.egresos_anual)} = {m(x.noi)}/año.</></Info></div>
                 </div>
                 <div style={{ marginTop: 11, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Rinde al año (TIR)</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Rinde al año (TIR)<Info><>El rendimiento anual de tu dinero con esta forma de rentar, asumiendo que vendes al año {f.horizonte_anios} (renta + plusvalía). <b>Tu caso:</b> {pct(x.tir_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes<Info><>Lo que te sobra (o pones de tu bolsa) cada mes: ingreso − gastos − mensualidad del crédito, dividido entre 12. <b>Tu caso:</b> {m(x.flujo_mensual)}/mes.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
                 </div>
                 <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>Ingreso según: {fuente}</div>
               </div>
             );
             return (
               <div className="iv4-card" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb? <Info><><b>Dos formas de rentar el MISMO depa.</b> <b>Largo plazo</b> = un inquilino todo el año (estable, menos trabajo). <b>Airbnb</b> = por noches (suele dejar más, pero da más trabajo: limpieza, huéspedes, temporada baja). Comparamos ingreso − gastos = lo que te queda, y su TIR. <b>Fuente:</b> renta larga = promedio de la zona; Airbnb = AirROI (datos reales por colonia).</></Info></div>
-                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Mira de dónde sale cada número:</div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>🏨 ¿Rentar fijo o por Airbnb?</div>
+                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Con el MISMO depa comparamos dos formas de rentarlo: a un inquilino todo el año (<b>largo plazo</b>) o por noches en <b>Airbnb</b> (corto). Cada número trae su <b>?</b> con el detalle. Ojo: <b>Airbnb gasta más</b> (limpieza, plataforma, gestión) — ya está considerado.</div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <Opcion icon="🏠" titulo="Largo plazo" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)}/mes × 12 meses`} fuente="promedio de renta de la zona" />
-                  <Opcion icon="🏨" titulo="Airbnb / corto" x={cmp.corto} win={cmp.gana === 'corto'} comoIngreso={`${m(cmp.corto.tarifa_noche)}/noche × ~${cmp.corto.noches_mes} noches al mes (${cmp.corto.ocupacion_pct}% ocupación) × 12`} fuente="AirROI (datos reales de la zona)" />
+                  <Opcion icon="🏠" titulo="Largo plazo" x={cmp.largo} win={cmp.gana === 'largo'} comoIngreso={`${m(cmp.largo.ingreso_mensual)}/mes × 12 meses`} fuente="promedio de renta de la zona"
+                    headInfo={<><b>Rentas a UN inquilino todo el año</b> (contrato ~12 meses). Más <b>estable</b> y con <b>menos trabajo</b>: no limpias entre huéspedes ni dependes de la temporada. Suele dejar menos que Airbnb, pero sin broncas.</>}
+                    gastosInfo={<><b>Gastos de renta larga:</b> predial + mantenimiento + seguro + administración. <b>Tu caso:</b> {m(cmp.largo.egresos_anual)}/año. NO trae los costos extra de Airbnb.</>} />
+                  <Opcion icon="🏨" titulo="Airbnb / corto" x={cmp.corto} win={cmp.gana === 'corto'} comoIngreso={`${m(cmp.corto.tarifa_noche)}/noche × ~${cmp.corto.noches_mes} noches al mes (${cmp.corto.ocupacion_pct}% ocupación) × 12`} fuente="AirROI (datos reales de la zona)"
+                    headInfo={<><b>Rentas por NOCHES en Airbnb.</b> Suele <b>dejar más</b>, pero da <b>más trabajo</b> (limpieza entre huéspedes, atención, temporada baja) y <b>más gastos</b>. Ingreso = tarifa por noche × noches ocupadas × 12. Tarifa y ocupación reales de <b>AirROI</b>.</>}
+                    gastosInfo={<><b>Gastos de Airbnb:</b> los de renta larga (predial, mantenimiento…) <b>MÁS</b> los propios del corto plazo: <b>comisión de plataforma, limpieza, servicios</b> (luz/internet/agua), <b>gestión</b> y reposición — estimados en <b>~22% del ingreso</b>. Por eso Airbnb gasta más que renta larga. <b>Tu caso:</b> {m(cmp.corto.egresos_anual)}/año.</>} />
                 </div>
                 <div style={{ marginTop: 12, padding: '11px 13px', background: 'rgba(124,92,255,0.06)', borderRadius: 10, fontSize: 11.5, color: '#5B5F76', lineHeight: 1.55 }}>
-                  👉 Con tus datos <b style={{ color: '#6D28D9' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año). En general <b>Airbnb</b> rinde más pero da más trabajo (limpieza, huéspedes, temporada baja); <b>largo plazo</b> rinde menos pero es estable y sin broncas. <b>TIR</b> = cuánto te rinde tu dinero al año; <b>te queda al mes</b> = lo que te sobra (o pones de tu bolsa) cada mes.
+                  👉 Con tus datos <b style={{ color: '#6D28D9' }}>gana {cmp.gana === 'corto' ? 'Airbnb' : 'largo plazo'}</b> (deja más al año, <b>ya descontados</b> sus mayores gastos). <b>Airbnb</b> rinde más pero da más trabajo; <b>largo plazo</b> rinde menos pero es estable y sin broncas. Toca cada <b>?</b> para ver de dónde sale el número.
                 </div>
               </div>
             );
@@ -464,23 +477,23 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', hero: true };
             const filas = [inmueble, ...r.instrumentos];
             const cols = [
-              ['Rendimiento', (x) => x.pct == null ? '—' : pct(x.pct), <><b>Cuánto te da al año.</b> En tu depa es la <b>TIR si vendes al año {f.horizonte_anios}</b> (junta renta + la plusvalía que realizas al vender); en los demás, su tasa típica anual. <b>Tu depa:</b> {pct(r.tir_pct)}. <b>Fuente:</b> Banxico/BMV; TIR = motor DMX.</>],
-              ['Riesgo', (x) => x.riesgo || '—', <><b>Qué tan probable es perder.</b> CETES = muy bajo (lo respalda el gobierno); Bolsa = alto (sube y baja mucho). Bien raíz = medio-bajo. Escala objetiva: Muy bajo → Alto.</>],
-              ['Liquidez', (x) => x.liquidez || '—', <><b>Qué tan rápido lo conviertes en efectivo</b> sin perder valor. CETES en días (alta); un depa tarda <b>meses</b> en venderse (baja). Eje del Pentágono.</>],
-              ['Plazo', (x) => x.plazo || '—', <><b>Horizonte recomendado</b> para que rinda bien. CETES = corto; bolsa y bien raíz = largo. Si necesitas el dinero pronto, el plazo importa. Eje del Pentágono.</>],
-              ['Dedicación', (x) => x.esfuerzo || '—', <><b>Cuánto tiempo/trabajo te exige.</b> CETES = nula (lo dejas y ya); un depa en renta = media (inquilinos, mantenimiento) salvo que pongas administrador. Eje del Pentágono.</>],
-              ['Mínimo para entrar', (x) => x.ticket || '—', <><b>Cuánto necesitas para empezar.</b> CETES desde $100; un depa necesita el enganche (cientos de miles). Dato objetivo de entrada.</>],
-              ['Gana a inflación', (x) => x.inflacion || '—', <><b>Si protege tu dinero del alza de precios.</b> Bien raíz y bolsa suelen ganarle; CETES solo en parte; UDIBONOS van atados a la inflación.</>],
+              ['Rendimiento', (x) => x.pct == null ? '—' : pct(x.pct), <>Cuánto te da al año. En tu depa es la <b>TIR si vendes al año {f.horizonte_anios}</b> (renta + plusvalía al vender, {pct(r.tir_pct)}); en los demás, su tasa anual típica. Fuente: Banxico/BMV.</>],
+              ['Riesgo', (x) => x.riesgo || '—', <>Qué tan probable es perder. CETES = muy bajo (lo respalda el gobierno); Bolsa = alto (sube y baja). Bien raíz = medio-bajo.</>],
+              ['Liquidez', (x) => x.liquidez || '—', <>Qué tan rápido lo conviertes en efectivo. CETES en días (alta); un depa tarda <b>meses</b> en venderse (baja).</>],
+              ['Plazo', (x) => x.plazo || '—', <>Horizonte recomendado para que rinda bien. CETES = corto; bolsa y bien raíz = largo. Si necesitas el dinero pronto, importa.</>],
+              ['Dedicación', (x) => x.esfuerzo || '—', <>Cuánto tiempo/trabajo te exige. CETES = nula (lo dejas y ya); un depa en renta = media (inquilinos, mantenimiento), salvo que pongas administrador.</>],
+              ['Mínimo', (x) => x.ticket || '—', <>Cuánto necesitas para empezar. CETES desde $100; un depa necesita el enganche (cientos de miles).</>],
+              ['Inflación', (x) => x.inflacion || '—', <>Si protege tu dinero del alza de precios. Bien raíz y bolsa suelen ganarle; CETES solo en parte; UDIBONOS van atados a la inflación.</>],
             ];
             return (
               <div className="iv4-card">
-                <div style={{ fontWeight: 800, fontSize: 13 }}>📊 Tu inmueble vs otras inversiones <Info><>Comparación con criterios <b>objetivos</b>, los del <b>Pentágono de las Inversiones</b>: rendimiento, riesgo, liquidez, plazo y dedicación (+ mínimo de entrada e inflación). Aplican igual a cualquier instrumento. <b>Fuentes:</b> Banxico, BMV, SHF.</></Info></div>
-                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Ninguna inversión gana en todo: las de más rendimiento suelen traer más riesgo o menos liquidez. Compáralas por los 5 ejes del <b>Pentágono</b> y elige según lo que tú necesitas (¿ingreso ya? ¿largo plazo? ¿poco riesgo?).</div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>📊 Tu inmueble vs otras inversiones</div>
+                <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Comparación con criterios <b>objetivos</b> (el <b>Pentágono de las Inversiones</b>: rendimiento · riesgo · liquidez · plazo · dedicación). Ninguna gana en todo — elige según lo que necesitas. Abajo se explica cada columna.</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
                     <thead><tr style={{ color: '#6B6F86' }}>
                       <th style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', position: 'sticky', left: 0, background: '#fff', whiteSpace: 'nowrap' }}>Opción</th>
-                      {cols.map(([l, , info]) => <th key={l} style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>{l}<Info>{info}</Info></th>)}
+                      {cols.map(([l]) => <th key={l} style={{ padding: '7px 8px', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>{l}</th>)}
                     </tr></thead>
                     <tbody>{filas.map((x, fi) => (
                       <tr key={fi} style={{ borderTop: '1px solid rgba(16,18,28,0.06)', background: x.hero ? 'rgba(124,92,255,0.07)' : 'transparent' }}>
@@ -490,7 +503,14 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     ))}</tbody>
                   </table>
                 </div>
-                <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso mucha gente lo usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
+                {/* LEYENDA visible (los globitos se cortaban dentro del scroll) — qué significa cada columna */}
+                <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(16,18,28,0.025)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#16182A', marginBottom: 8 }}>📖 Qué significa cada columna</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
+                    {cols.map(([l, , leg]) => <div key={l} style={{ fontSize: 10.5, color: '#5B5F76', lineHeight: 1.5 }}><b style={{ color: '#6D28D9' }}>{l}:</b> {leg}</div>)}
+                  </div>
+                </div>
+                <div style={{ fontSize: 10.5, color: '#5B5F76', marginTop: 12, padding: '10px 12px', background: 'rgba(124,92,255,0.05)', borderRadius: 10, lineHeight: 1.55 }}>💡 <b>Lo que solo el bien raíz te da</b> (fuera de estos ejes): se compra <b>a crédito</b> (apalancas con dinero del banco), es un <b>activo físico</b> que controlas, y te da <b>renta mensual</b> mientras sube de valor. Por eso se usa para diversificar, no para reemplazar a CETES o la bolsa.</div>
                 <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8, lineHeight: 1.5 }}>Fuentes: <b>Banxico</b> (CETES, tasas), <b>BMV</b> (FIBRAs, bolsa), <b>SHF</b> (plusvalía). Rendimientos de referencia jun-2026, no garantizados.</div>
               </div>
             );
