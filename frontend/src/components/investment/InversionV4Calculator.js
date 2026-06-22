@@ -42,7 +42,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [loading, setLoading] = useState(false);
   const [vista, setVista] = useState('simple');     // 'simple' (te lleva de la mano) | 'institucional' (experto)
   const [openAdv, setOpenAdv] = useState(false);
-  const [comparar, setComparar] = useState([]);
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
@@ -650,7 +649,53 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             </div>
           )}
 
-      {/* ───── CALL TO ACTION (convierte el interés en lead) ───── */}
+      {vista === 'institucional' && r && (() => {
+        const cr = r.credito || {};
+        const dif = (r.tir_pct || 0) - (r.tir_desapalancada_pct || 0);
+        const mets = [
+          ['Cap rate', pct(r.cap_rate_pct), '#C026D3', <>Renta neta ÷ precio. El rendimiento <b>anual</b> de la renta, sin contar el crédito. <b>Tu caso:</b> {pct(r.cap_rate_pct)}.</>],
+          ['TIR (con crédito)', pct(r.tir_pct), '#6D28D9', <>Rendimiento anual total <b>apalancado</b> (renta + plusvalía) si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(r.tir_pct)}.</>],
+          ['TIR al contado', pct(r.tir_desapalancada_pct), '#16182A', <>La TIR si compraras <b>sin crédito</b>. Compárala con la de arriba: la diferencia es el efecto del apalancamiento.</>],
+          ['MIRR', pct(r.mirr_pct), '#16182A', <><b>TIR modificada</b>, más realista: asume que reinviertes los flujos a una tasa normal, no a la propia TIR (que suele inflar el número). Por eso suele ser menor que la TIR.</>],
+          ['VPN', m(r.vpn), (r.vpn || 0) >= 0 ? '#0E9F6E' : '#DC2626', <><b>Valor Presente Neto:</b> cuánto ganas (o pierdes) <b>hoy</b>, en pesos de hoy, por encima de tu tasa de oportunidad ({pct(r.tasa_descuento_pct)}). Positivo = crea valor. <b>Tu caso:</b> {m(r.vpn)}.</>],
+          ['ROI real', pct(r.roi_real_pct), '#16182A', <>Rendimiento <b>ya quitando la inflación</b> — tu poder de compra real. El nominal se ve más alto pero compra menos.</>],
+          ['Cash-on-cash', pct(r.cash_on_cash_pct), '#16182A', <>Flujo del <b>primer año</b> ÷ lo que pusiste de tu bolsa. El "efectivo sobre efectivo" — cuánto te regresa en cash el año 1.</>],
+          ['Multiplicas', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final (renta + venta). <b>Tu caso:</b> {r.equity_multiple}x.</>],
+          ...(cr.dscr != null ? [['DSCR', cr.dscr, (cr.dscr >= 1.2 ? '#0E9F6E' : cr.dscr >= 1 ? '#E0A33E' : '#DC2626'), <><b>Cobertura del crédito</b> (Debt Service Coverage Ratio): NOI ÷ pago anual al banco. Mayor a 1 = la renta cubre el crédito; los bancos suelen pedir <b>≥1.2</b>. <b>Tu caso:</b> {cr.dscr}.</>]] : []),
+          ...(cr.debt_yield_pct != null ? [['Debt yield', pct(cr.debt_yield_pct), '#16182A', <>NOI ÷ monto del préstamo. Métrica de riesgo que mira el banco: arriba de <b>~10%</b> se considera sano. <b>Tu caso:</b> {pct(cr.debt_yield_pct)}.</>]] : []),
+        ];
+        return (
+          <div className="iv4-card" style={{ marginTop: 12, borderTop: '4px solid #6D4AFF' }}>
+            <div style={{ fontWeight: 800, fontSize: 13 }}>🏛️ Métricas institucionales <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· las mismas cifras, en versión experto</span></div>
+            <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Lo que mira un analista para evaluar a fondo. Cada número trae su <b>?</b> en simple.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+              {mets.map(([l, v, c, info]) => <div key={l} style={{ padding: '10px 12px', borderRadius: 10, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}<Info>{info}</Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, marginTop: 3 }}>{v}</div></div>)}
+            </div>
+            {r.con_credito && r.tir_desapalancada_pct != null && (
+              <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, background: r.apalancamiento === 'positivo' ? 'rgba(14,159,110,0.08)' : 'rgba(220,38,38,0.07)', fontSize: 11.5, lineHeight: 1.55, color: '#5B5F76' }}>
+                ⚖️ <b>Efecto del crédito (apalancamiento):</b> con crédito tu TIR es <b>{pct(r.tir_pct)}</b> vs <b>{pct(r.tir_desapalancada_pct)}</b> al contado → el crédito <b style={{ color: dif >= 0 ? '#0E9F6E' : '#DC2626' }}>{dif >= 0 ? 'suma' : 'resta'} {Math.abs(dif).toFixed(1)} puntos</b>. {r.apalancamiento === 'positivo' ? 'El inmueble rinde más que la tasa del banco, así que el crédito amplifica tu ganancia.' : 'El inmueble rinde menos que la tasa del banco; el crédito resta — evalúa más enganche, mejor tasa o comprar al contado.'}
+              </div>
+            )}
+            {r.multifamily_info && r.multifamily_info.num_unidades && <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)', fontSize: 12.5, color: '#5B5F76' }}>Multifamily: cap implícito {pct(r.multifamily_info.cap_implicito_pct)} · valor de mercado {m(r.multifamily_info.valor_mercado)} · <b style={{ color: (r.multifamily_info.brecha_precio_pct || 0) > 0 ? '#DC2626' : '#0E9F6E' }}>brecha {pct(r.multifamily_info.brecha_precio_pct)}</b></div>}
+            {r.sensibilidad && r.sensibilidad.por_exit_cap && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 6 }}>Sensibilidad: TIR según el precio de salida <Info><>Muestra cómo cambia tu TIR si al vender el mercado paga más caro o más barato (el "exit cap": menor % = precio de venta más alto). Sirve para ver qué tan frágil es tu rendimiento ante el mercado de salida. El recuadro morado es tu supuesto base.</></Info></div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{r.sensibilidad.por_exit_cap.map((s) => <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '6px 9px', borderRadius: 8, background: s.es_base ? 'rgba(124,92,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #7C5CFF' : '1px solid transparent' }}><div style={{ fontSize: 9.5, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: s.es_base ? '#6D28D9' : '#16182A' }}>{pct(s.tir_pct)}</div></div>)}</div>
+              </div>
+            )}
+            {r.montecarlo && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Monte Carlo · {r.montecarlo.n} escenarios al azar <Info><>Simula {r.montecarlo.n} futuros distintos variando al azar la plusvalía, la renta y las tasas. En vez de un solo número, te da un <b>rango</b>: el peor caso (5%), el esperado y el mejor (95%). Así ves el riesgo real, no solo el "todo sale perfecto".</></Info></div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>{[['Peor (5%)', r.montecarlo.p5, '#DC2626'], ['Esperado', r.montecarlo.p50, '#16182A'], ['Mejor (95%)', r.montecarlo.p95, '#0E9F6E']].map(([l, v, c]) => <div key={l} style={{ flex: '1 1 80px', textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#8A8FA6' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c }}>{pct(v)}</div></div>)}</div>
+                <div style={{ fontSize: 12, color: r.montecarlo.prob_bajo_cetes_pct >= 50 ? '#DC2626' : '#5B5F76' }}>Probabilidad de rendir <b>menos que CETES</b>: <b>{r.montecarlo.prob_bajo_cetes_pct}%</b> <Info><>De los {r.montecarlo.n} escenarios, en cuántos tu inversión rinde por debajo de lo que da CETES sin riesgo. Más bajo = más seguro que valga la pena el riesgo.</></Info></div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#C026D3)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ───── CALL TO ACTION (al final · convierte el interés en lead) ───── */}
       {r && (
         <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #C026D3)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 280px' }}>
@@ -661,48 +706,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             <button type="button" onClick={() => { try { window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calculadora_inversion', zona: zoneId, precio: f.valor_propiedad, tir: r.tir_pct } })); } catch { /* noop */ } askAtlax(`Me interesa invertir en este depa de ${m(f.valor_propiedad)} (TIR ${pct(r.tir_pct)}). Ayúdame con el siguiente paso y conéctame con un asesor.`); }} style={{ padding: '12px 18px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: '#fff', color: '#6D28D9' }}>📩 Quiero que me asesoren</button>
             <a href="#empezar" style={{ padding: '12px 16px', borderRadius: 11, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>📅 Agendar visita</a>
           </div>
-        </div>
-      )}
-
-      {/* ───── ACCIONES + MODO AVANZADO (ancho completo) ───── */}
-      <div className="iv4-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-        <button type="button" onClick={() => askAtlax(`¿Qué pasa si…? Analizo una inversión de ${m(f.valor_propiedad)} con renta ${m(f.renta_mensual)}/mes, ${f.con_credito ? 'con crédito' : 'al contado'}, horizonte ${f.horizonte_anios} años. Ayúdame a explorar escenarios.`)} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF' }}>💬 ¿Qué pasa si…?</button>
-        {r && <button type="button" onClick={() => setComparar((c) => [...c.slice(-2), { zona: zoneId, precio: f.valor_propiedad, credito: f.con_credito, plazo: Number(f.plazo_meses), modo: f.modo_renta, tir: r.tir_pct, em: r.equity_multiple, neto: r.neto_al_vender }])} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: comparar.length ? 'rgba(124,92,255,0.1)' : '#fff', color: '#6D4AFF' }}>📌 Guardar para comparar{comparar.length ? ` (${comparar.length} guardado${comparar.length > 1 ? 's' : ''})` : ''}</button>}
-        <button type="button" onClick={() => window.print()} style={{ padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#4B4F66' }}>📄 PDF</button>
-      </div>
-      {r && <div className="iv4-noprint" style={{ fontSize: 10.5, color: '#A2A6BC', marginTop: 6, lineHeight: 1.5 }}>💡 Para comparar proyectos de <b>esta colonia</b>: toca <b>Guardar para comparar</b>, luego {lockPrice ? 'elige otra unidad arriba (o cambia crédito/plazo)' : 'cambia el precio, el crédito o el plazo'} y guarda otro — aparecen lado a lado abajo.{lockPrice && <> ¿Comparar <b>zonas distintas</b>? Ve al <a href="/simulador" target="_blank" rel="noreferrer" style={{ color: '#6D28D9', fontWeight: 700, textDecoration: 'underline' }}>Simulador de inversión</a>.</>}</div>}
-
-      {comparar.length > 0 && (
-        <div className="iv4-card" style={{ marginTop: 12, overflowX: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><span style={{ fontWeight: 800, fontSize: 13 }}>Comparar escenarios (A/B)</span><button type="button" onClick={() => setComparar([])} style={{ border: 'none', background: 'none', color: '#8A8FA6', fontSize: 11, cursor: 'pointer' }}>limpiar</button></div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead><tr style={{ color: '#6B6F86', textAlign: 'left' }}>{['', 'Zona', 'Precio', 'Pago', 'Plazo', 'TIR', 'Multiplica', 'Neto'].map((h) => <th key={h} style={{ padding: '6px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-            <tbody>{comparar.map((c, i) => <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.06)' }}><td style={{ padding: '6px 8px', fontWeight: 800 }}>{String.fromCharCode(65 + i)}</td><td style={{ padding: '6px 8px', textTransform: 'capitalize' }}>{(c.zona || '—').replace(/-/g, ' ')}</td><td style={{ padding: '6px 8px' }}>{m(c.precio)}</td><td style={{ padding: '6px 8px' }}>{c.credito ? 'Crédito' : 'Contado'}</td><td style={{ padding: '6px 8px' }}>{c.plazo ? `${Math.round(c.plazo / 12)} años` : '—'}</td><td style={{ padding: '6px 8px', fontWeight: 800, color: '#7C5CFF' }}>{pct(c.tir)}</td><td style={{ padding: '6px 8px' }}>{c.em ? `${c.em}x` : '—'}</td><td style={{ padding: '6px 8px' }}>{m(c.neto)}</td></tr>)}</tbody>
-          </table>
-        </div>
-      )}
-
-      {vista === 'institucional' && r && (
-        <div className="iv4-card" style={{ marginTop: 12 }}>
-          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 10 }}>Métricas institucionales <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· para experto (TIR/MIRR/VPN/cap rate/DSCR + sensibilidad + Monte Carlo)</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 10 }}>
-            {[['Cap rate', pct(r.cap_rate_pct)], ['TIR desapal.', pct(r.tir_desapalancada_pct)], ['MIRR', pct(r.mirr_pct)], ['VPN', m(r.vpn)], ['ROI real', pct(r.roi_real_pct)], ['Apalancam.', r.apalancamiento || '—'], ...(r.credito && r.credito.dscr != null ? [['DSCR', r.credito.dscr], ['Debt yield', pct(r.credito.debt_yield_pct)]] : [])].map(([l, v]) => <div key={l}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#16182A' }}>{v}</div></div>)}
-          </div>
-          {r.multifamily_info && r.multifamily_info.num_unidades && <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)', fontSize: 12.5, color: '#5B5F76' }}>Multifamily: cap implícito {pct(r.multifamily_info.cap_implicito_pct)} · valor de mercado {m(r.multifamily_info.valor_mercado)} · <b style={{ color: (r.multifamily_info.brecha_precio_pct || 0) > 0 ? '#DC2626' : '#0E9F6E' }}>brecha {pct(r.multifamily_info.brecha_precio_pct)}</b></div>}
-          {r.sensibilidad && r.sensibilidad.por_exit_cap && (
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>Sensibilidad: TIR según el precio de salida (exit cap)</div>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{r.sensibilidad.por_exit_cap.map((s) => <div key={s.exit_cap_pct} style={{ textAlign: 'center', padding: '6px 9px', borderRadius: 8, background: s.es_base ? 'rgba(124,92,255,0.1)' : 'rgba(16,18,28,0.04)', border: s.es_base ? '1.5px solid #7C5CFF' : '1px solid transparent' }}><div style={{ fontSize: 9.5, color: '#8A8FA6' }}>{s.exit_cap_pct}%</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: s.es_base ? '#6D28D9' : '#16182A' }}>{pct(s.tir_pct)}</div></div>)}</div>
-            </div>
-          )}
-          {r.montecarlo && (
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 8 }}>Monte Carlo · {r.montecarlo.n} escenarios al azar</div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>{[['Peor (5%)', r.montecarlo.p5, '#DC2626'], ['Esperado', r.montecarlo.p50, '#16182A'], ['Mejor (95%)', r.montecarlo.p95, '#0E9F6E']].map(([l, v, c]) => <div key={l} style={{ flex: '1 1 80px', textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#8A8FA6' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c }}>{pct(v)}</div></div>)}</div>
-              <div style={{ fontSize: 12, color: r.montecarlo.prob_bajo_cetes_pct >= 50 ? '#DC2626' : '#5B5F76' }}>Probabilidad de rendir <b>menos que CETES</b>: <b>{r.montecarlo.prob_bajo_cetes_pct}%</b></div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#C026D3)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
-            </div>
-          )}
         </div>
       )}
 
