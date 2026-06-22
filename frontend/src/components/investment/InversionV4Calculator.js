@@ -222,14 +222,59 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             💱 Tipo de cambio: <b>1 USD = ${r.mercado.fix_usd} MXN</b> · Banxico (FIX){(r.fuentes_fecha || {}).banxico ? `, consultado ${r.fuentes_fecha.banxico}` : ''}. Se actualiza solo cada día.
           </div>
         )}
+        {/* PASO 1 (institucional) · elige las unidades ANTES de cómo lo pagas — banco y resultados de abajo ya son del portafolio */}
+        {vista === 'institucional' && devUnits && devUnits.length > 1 && (
+          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(16,18,28,0.08)' }}>
+            <div style={grpLabel}>🏢 Elige tus unidades <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· un fondo compra varias</span> <Info><>Elige 2 o más unidades de este desarrollo. De ahí en adelante, <b>todo</b> (cómo lo pagas, impuestos, crédito, pentágono, métricas) se calcula sobre el <b>portafolio combinado</b>. El <b>descuento por volumen</b> es lo que sueles negociar al comprar en bloque.</></Info></div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+              {devUnits.map((u, i) => { const on = selUnits.includes(i); return (
+                <button key={i} type="button" onClick={() => setSelUnits((s) => on ? s.filter((x) => x !== i) : [...s, i])} style={{ padding: '7px 11px', borderRadius: 10, cursor: 'pointer', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(124,92,255,0.08)' : '#fff', fontFamily: 'DM Sans' }}>
+                  <span style={{ fontWeight: 800, fontSize: 12, color: on ? '#6D28D9' : '#16182A' }}>{on ? '✓ ' : ''}{u.label}</span>
+                  <span style={{ display: 'block', fontSize: 10, color: '#8A8FA6' }}>{m(u.precio)}</span>
+                </button>
+              ); })}
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen</span>
+              <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 66 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
+              <span style={{ fontSize: 10, color: '#A2A6BC' }}>al comprar en bloque</span>
+            </div>
+            {selUnits.length < 2 ? (
+              <div style={{ fontSize: 11, color: '#A2A6BC', marginTop: 10 }}>Elige al menos <b>2 unidades</b> para armar el portafolio.</div>
+            ) : port && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '9px 13px', fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> Todo lo de abajo (cómo lo pagas, impuestos, crédito, pentágono, métricas) ya es del portafolio combinado.</div>
+                <div style={{ overflowX: 'auto', marginTop: 10 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                    <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                    <tbody>{port.unidades.map((u, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
+                        <td style={{ padding: '4px 8px', fontWeight: 700 }}>{u.label}</td>
+                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{m(u.precio)}</td>
+                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{pct(u.cap_rate_pct)}</td>
+                        <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, color: (u.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(u.tir_pct)}</td>
+                        <td style={{ padding: '4px 8px', textAlign: 'right', color: (u.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626' }}>{m(u.flujo_mensual)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {/* Grupo 1 · El inmueble */}
           <div>
             <div style={grpLabel}>🏠 El inmueble</div>
             <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ minWidth: 150 }}><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
-                {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
-                  : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
+              {(vista === 'institucional' && selUnits.length >= 2 && port) ? (
+                <div style={{ minWidth: 150 }}><span style={lab}>Precio total <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} unidades</span></span>
+                  <input type="text" readOnly value={m(port.precio_total)} style={{ ...inp, background: 'rgba(192,38,211,0.06)', color: '#86198F', fontWeight: 700, cursor: 'not-allowed' }} /></div>
+              ) : (
+                <div style={{ minWidth: 150 }}><span style={lab}>Precio {lockPrice && <span style={{ color: '#8A8FA6', fontWeight: 600 }}>🔒 fijo</span>}</span>
+                  {lockPrice ? <input type="text" readOnly value={m(f.valor_propiedad)} style={{ ...inp, background: '#F4F5F8', color: '#5B5F76', cursor: 'not-allowed' }} />
+                    : <input type="text" inputMode="numeric" value={m(f.valor_propiedad)} onChange={(e) => set('valor_propiedad', String(e.target.value).replace(/[^\d]/g, ''))} style={inp} />}</div>
+              )}
               <div><span style={lab}>Tipo de renta</span><Toggle k="modo_renta" opts={[['largo', 'Largo'], ['corto', 'Airbnb']]} /></div>
             </div>
           </div>
@@ -291,53 +336,6 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>
 
       {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Institucional</b> ↑</div>}
-      {/* FASE 3 · MODO PORTAFOLIO · elegir 2+ unidades del desarrollo y combinarlas (solo modo fondo) */}
-      {vista === 'institucional' && devUnits && devUnits.length > 1 && (
-        <div className="iv4-card" style={{ marginBottom: 12, borderTop: '4px solid #C026D3' }}>
-          <div style={{ fontWeight: 800, fontSize: 13 }}>🏢 Arma tu portafolio <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· compra varias unidades</span> <Info><>Un fondo casi nunca compra 1 depa — compra <b>varias</b>. Elige 2 o más de este desarrollo y las <b>combinamos</b>: inversión total, cap rate ponderado, TIR del portafolio (flujo combinado), DSCR combinado. Más el <b>descuento por volumen</b> que sueles negociar al comprar en bloque.</></Info></div>
-          <div style={{ fontSize: 11.5, color: '#5B5F76', marginTop: 4, marginBottom: 12, lineHeight: 1.5 }}>Elige las unidades (2+) y mira las métricas del portafolio combinado:</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {devUnits.map((u, i) => { const on = selUnits.includes(i); return (
-              <button key={i} type="button" onClick={() => setSelUnits((s) => on ? s.filter((x) => x !== i) : [...s, i])} style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(124,92,255,0.08)' : '#fff', fontFamily: 'DM Sans' }}>
-                <span style={{ fontWeight: 800, fontSize: 12, color: on ? '#6D28D9' : '#16182A' }}>{on ? '✓ ' : ''}{u.label}</span>
-                <span style={{ display: 'block', fontSize: 10, color: '#8A8FA6' }}>{m(u.precio)}</span>
-              </button>
-            ); })}
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen</span>
-            <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 70 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
-            <span style={{ fontSize: 10, color: '#A2A6BC' }}>lo que sueles negociar al comprar en bloque</span>
-          </div>
-          {selUnits.length < 2 ? (
-            <div style={{ fontSize: 11, color: '#A2A6BC', marginTop: 12 }}>Elige al menos <b>2 unidades</b> para ver el portafolio combinado.</div>
-          ) : port && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
-              <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '10px 13px', marginBottom: 12, fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio activo: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> A partir de aquí, <b>TODO el análisis</b> (resumen, crédito, impuestos, renta vs Airbnb, pentágono, año con año y métricas institucionales) ya es del <b>portafolio combinado</b>, no de una sola unidad.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
-                {[['Unidades', port.n_unidades, '#16182A'], ['Precio total', m(port.precio_total), '#16182A'], ['De tu bolsa (total)', m(port.inversion_total), '#7C5CFF'], ['Cap rate combinado', pct(port.cap_rate_combinado_pct), '#C026D3'], ['TIR del portafolio', pct(port.tir_portafolio_pct), (port.tir_portafolio_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'], ...(port.dscr_combinado != null ? [['DSCR combinado', port.dscr_combinado, (port.dscr_combinado >= 1.2 ? '#0E9F6E' : port.dscr_combinado >= 1 ? '#E0A33E' : '#DC2626')]] : []), ['Flujo total/mes', m(port.flujo_mensual_total), (port.flujo_mensual_total || 0) >= 0 ? '#16182A' : '#DC2626'], ['Neto al vender (total)', m(port.neto_al_vender_total), '#0E9F6E']].map(([l, v, c]) => (
-                  <div key={l} style={{ padding: '10px 12px', borderRadius: 10, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c, marginTop: 2 }}>{v}</div></div>
-                ))}
-              </div>
-              <div style={{ overflowX: 'auto', marginTop: 12 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                  <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '5px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-                  <tbody>{port.unidades.map((u, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid rgba(16,18,28,0.05)' }}>
-                      <td style={{ padding: '5px 8px', fontWeight: 700 }}>{u.label}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right' }}>{m(u.precio)}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right' }}>{pct(u.cap_rate_pct)}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: (u.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(u.tir_pct)}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right', color: (u.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626' }}>{m(u.flujo_mensual)}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-              <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 8 }}>{port.descuento_pct > 0 ? `Precios con ${port.descuento_pct}% de descuento por volumen. ` : ''}Cap rate combinado = NOI total ÷ precio total. TIR del portafolio = del flujo combinado de todas las unidades.</div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* RESUMEN EJECUTIVO · institucional: tras elegir las unidades, lo clave del PORTAFOLIO de un vistazo */}
       {vista === 'institucional' && r && (
