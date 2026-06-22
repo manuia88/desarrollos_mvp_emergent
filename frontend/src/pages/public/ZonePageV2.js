@@ -149,9 +149,11 @@ export default function ZonePageV2() {
   const [vida, setVida] = useState(null);
   const [lugares, setLugares] = useState(null);
   const [vehiculos, setVehiculos] = useState([]);
+  const [calcMode, setCalcMode] = useState('individual'); // calculadora: 'individual' (1 depa) | 'institucional' (2+ depas)
   const [calcDev, setCalcDev] = useState(null);   // calculadora: desarrollo elegido
   const [calcUnits, setCalcUnits] = useState([]); // unidades del desarrollo elegido
-  const [calcUnit, setCalcUnit] = useState(null); // unidad específica elegida
+  const [calcUnit, setCalcUnit] = useState(null); // unidad específica elegida (modo individual)
+  const [calcSelUnits, setCalcSelUnits] = useState([]); // unidades elegidas (modo institucional · multi-select)
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [lens, setLens] = useState(null);     // lente del inversionista: renta / plusvalia / refugio (reencuadra el tab)
@@ -265,9 +267,9 @@ export default function ZonePageV2() {
   })();
 
   useEffect(() => {
-    if (!calcDev) { setCalcUnits([]); setCalcUnit(null); return undefined; }
+    if (!calcDev) { setCalcUnits([]); setCalcUnit(null); setCalcSelUnits([]); return undefined; }
     let alive = true;
-    setCalcUnit(null);
+    setCalcUnit(null); setCalcSelUnits([]);
     get(`/api/developments/${calcDev}/units`).then((r) => {
       if (!alive) return;
       const u = Array.isArray(r) ? r : ((r && (r.units || r.results)) || []);
@@ -825,21 +827,35 @@ export default function ZonePageV2() {
               .zv2-unit{transition:transform .15s,box-shadow .15s,border-color .15s}
               .zv2-unit:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(99,102,241,.16);border-color:rgba(124,92,255,.45)!important}
             `}</style>
+            {/* PASO 1 · tipo de inversión (decide todo el flow: 1 depa vs varios) */}
             <div style={{ marginTop: 18 }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1 · Elige el desarrollo</div>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1 · ¿Para ti o institucional?</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => { const on = calcMode === v; return (
+                  <button key={v} className="zv2-dev" type="button" onClick={() => { setCalcMode(v); setCalcUnit(null); setCalcSelUnits([]); }} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l}</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, opacity: on ? 0.85 : 0.65, marginTop: 1 }}>{d}</div>
+                  </button>
+                ); })}
+              </div>
+            </div>
+            {/* PASO 2 · desarrollo */}
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige el desarrollo</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
                 {sortedDevs.map((d) => { const on = calcDev === d.id; return (
                   <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
                 ); })}
               </div>
             </div>
+            {/* PASO 3 · unidad (individual=1) o unidades (institucional=2+) — UN SOLO selector */}
             {calcDev && (
               <div style={{ marginTop: 22 }}>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige la unidad</div>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{calcMode === 'institucional' ? '3 · Elige las unidades · mín. 2' : '3 · Elige la unidad'}</div>
                 {calcUnits.length > 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: 9, marginTop: 12 }}>
-                    {calcUnits.slice(0, 18).map((u) => { const on = calcUnit && calcUnit.id === u.id; const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; const m2 = u.m2_total || u.m2_privative; const banos = u.bathrooms || u.banos || u.banos_completos; const estac = u.parking_spots ?? u.parking ?? u.estacionamientos; const pm2 = m2 && u.price ? Math.round(u.price / m2) : null; return (
-                      <button key={u.id} className="zv2-unit" type="button" onClick={() => setCalcUnit(u)} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 8px 20px rgba(124,92,255,.18)' : '0 2px 8px rgba(16,18,28,.05)' }}>
+                    {calcUnits.slice(0, 18).map((u) => { const on = calcMode === 'institucional' ? calcSelUnits.some((x) => x.id === u.id) : (calcUnit && calcUnit.id === u.id); const toggle = () => (calcMode === 'institucional' ? setCalcSelUnits((s) => s.some((x) => x.id === u.id) ? s.filter((x) => x.id !== u.id) : [...s, u]) : setCalcUnit(u)); const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; const m2 = u.m2_total || u.m2_privative; const banos = u.bathrooms || u.banos || u.banos_completos; const estac = u.parking_spots ?? u.parking ?? u.estacionamientos; const pm2 = m2 && u.price ? Math.round(u.price / m2) : null; return (
+                      <button key={u.id} className="zv2-unit" type="button" onClick={toggle} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 8px 20px rgba(124,92,255,.18)' : '0 2px 8px rgba(16,18,28,.05)' }}>
                         {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7C5CFF', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
                         <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: on ? '#6D28D9' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
                         <div style={{ fontSize: 10, color: '#8A8FA6', marginTop: 2, lineHeight: 1.5 }}>{m2}m² · {u.bedrooms || '—'} rec{banos ? ` · ${banos} baño` : ''}{estac != null && estac !== '' ? ` · ${estac} est` : ''}</div>
@@ -849,11 +865,13 @@ export default function ZonePageV2() {
                     ); })}
                   </div>
                 ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 10 }}>Cargando unidades…</div>}
+                {calcMode === 'institucional' && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: calcSelUnits.length >= 2 ? '#6D28D9' : '#A2A6BC', marginTop: 10, fontWeight: 700 }}>{calcSelUnits.length >= 2 ? `✓ ${calcSelUnits.length} unidades elegidas` : `Elige al menos 2 unidades${calcSelUnits.length === 1 ? ' (llevas 1)' : ''} para armar el portafolio.`}</div>}
               </div>
             )}
-            {calcUnit && (
-              <div className="zv2-up" key={calcUnit.id} style={{ marginTop: 22 }}>
-                <InversionV4Calculator prefilled={{ precio: calcUnit.price, renta: inv && inv.renta_prom }} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev || (calcUnit && (calcUnit.development_id || calcUnit.dev_id))} numDesarrollos={Array.isArray(devs) ? devs.length : null} devUnits={calcUnits.slice(0, 18).map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) }))} />
+            {/* MOUNT · individual con 1 unidad, o institucional con 2+ */}
+            {((calcMode === 'individual' && calcUnit) || (calcMode === 'institucional' && calcSelUnits.length >= 2)) && (
+              <div className="zv2-up" key={`${calcMode}-${calcUnit ? calcUnit.id : ''}-${calcSelUnits.length}`} style={{ marginTop: 22 }}>
+                <InversionV4Calculator mode={calcMode} prefilled={calcMode === 'individual' && calcUnit ? { precio: calcUnit.price, renta: inv && inv.renta_prom } : {}} portfolioUnits={calcMode === 'institucional' ? calcSelUnits.map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) })) : []} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev} numDesarrollos={Array.isArray(devs) ? devs.length : null} />
               </div>
             )}
           </section>

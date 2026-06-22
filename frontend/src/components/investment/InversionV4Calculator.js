@@ -28,7 +28,7 @@ const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
 const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
-export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devUnits = [], devId = '', numDesarrollos = null }) {
+export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devId = '', numDesarrollos = null, mode = 'individual', portfolioUnits = [] }) {
   const precio0 = prefilled.precio || 5_000_000;
   const [f, setF] = useState({
     valor_propiedad: precio0, num_unidades: 1,
@@ -42,7 +42,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   });
   const [r, setR] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [vista, setVista] = useState('simple');     // 'simple' (te lleva de la mano) | 'institucional' (experto)
+  const vista = mode === 'institucional' ? 'institucional' : 'simple';  // lo decide ZonePageV2 (paso 1 del flow), no un toggle aquí
   const [openAdv, setOpenAdv] = useState(false);
   const [moneda, setMoneda] = useState('MXN');     // MXN | USD (convierte con el FIX vivo de Banxico)
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
@@ -54,8 +54,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const setLead = (k, v) => setLeadData((s) => ({ ...s, [k]: v }));
   const tusDatosRef = useRef(null);                  // barra sticky: aparece cuando "Tus datos" sale de vista
   const [showSticky, setShowSticky] = useState(false);
-  const [selUnits, setSelUnits] = useState([]);      // fase 3: índices de unidades elegidas para el portafolio
-  const [port, setPort] = useState(null);            // resultado agregado del portafolio
+  const [port, setPort] = useState(null);            // resultado agregado del portafolio (lo arma ZonePageV2 multi-select)
   const [descVol, setDescVol] = useState(0);         // descuento por volumen (%)
   const [zonaCtx, setZonaCtx] = useState(null);      // #1 absorción + #5 riesgo físico de la zona (motores reusados)
   const timer = useRef(null);
@@ -112,21 +111,20 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual === null || f.tasa_anual === undefined) ? undefined : Number(f.tasa_anual) / 100;
-    // MODO PORTAFOLIO (institucional + 2+ unidades): TODO el análisis corre sobre la SUMA de las unidades elegidas
-    const portfolioActive = vista === 'institucional' && selUnits.length >= 2 && devUnits.length > 0;
+    // MODO PORTAFOLIO (institucional + 2+ unidades elegidas ARRIBA): TODO el análisis corre sobre la SUMA de las unidades
+    const portfolioActive = vista === 'institucional' && portfolioUnits.length >= 2;
     let vp = num(f.valor_propiedad), rm = num(f.renta_mensual), pred = num(f.predial), mant = num(f.mantenimiento), seg = num(f.seguro), tarifa = num(f.tarifa_noche);
     if (portfolioActive) {
-      const sel = selUnits.map((i) => devUnits[i]).filter(Boolean);
       const dfac = 1 - (Number(descVol) || 0) / 100;
-      vp = Math.round(sel.reduce((s, x) => s + (x.precio || 0) * dfac, 0));
-      rm = Math.round(sel.reduce((s, x) => s + (x.renta || 0), 0));
-      tarifa = Math.round(sel.reduce((s, x) => s + Math.round((x.renta || 0) / 30 * 2.2), 0));
+      vp = Math.round(portfolioUnits.reduce((s, x) => s + (x.precio || 0) * dfac, 0));
+      rm = Math.round(portfolioUnits.reduce((s, x) => s + (x.renta || 0), 0));
+      tarifa = Math.round(portfolioUnits.reduce((s, x) => s + Math.round((x.renta || 0) / 30 * 2.2), 0));
       pred = Math.round(vp * 0.0016); mant = Math.round(vp * 0.0024); seg = Math.round(vp * 0.0012);
     }
     const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: vp, renta_mensual: rm, tarifa_noche: tarifa, predial: pred, mantenimiento: mant, seguro: seg, num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), exit_cap_rate: num(f.exit_cap_rate) || 0, capex_reserve_pct: num(f.capex_reserve_pct), prima_riesgo_inmobiliario: num(f.prima_riesgo_inmobiliario), tasa_vacancia: num(f.tasa_vacancia), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
-  }, [f, vista, run, zoneId, airroi, selUnits, descVol, devUnits]);
+  }, [f, vista, run, zoneId, airroi, portfolioUnits, descVol]);
 
   // al elegir otra unidad/proyecto (cambia el precio que llega), sincroniza el precio bloqueado → permite comparar proyectos
   useEffect(() => {
@@ -151,11 +149,11 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     return () => obs.disconnect();
   }, []);
 
-  // fase 3 · portafolio: al elegir 2+ unidades (modo fondo), corre la agregación (debounced)
+  // portafolio: con 2+ unidades (elegidas arriba en ZonePageV2), corre la agregación para la tabla por-unidad (debounced)
   useEffect(() => {
-    if (vista !== 'institucional' || selUnits.length < 2) { setPort(null); return undefined; }
+    if (vista !== 'institucional' || portfolioUnits.length < 2) { setPort(null); return undefined; }
     const tasaFrac = (f.tasa_anual === '' || f.tasa_anual == null) ? undefined : Number(f.tasa_anual) / 100;
-    const units = selUnits.map((i) => ({ label: devUnits[i].label, precio: devUnits[i].precio, renta: devUnits[i].renta }));
+    const units = portfolioUnits.map((u) => ({ label: u.label, precio: u.precio, renta: u.renta }));
     const payload = { units, con_credito: f.con_credito, ltv: Number(f.ltv), tasa_anual: tasaFrac, plazo_meses: Number(f.plazo_meses), horizonte_anios: Number(f.horizonte_anios), modo_renta: f.modo_renta, apreciacion_anual: Number(f.apreciacion_anual), crecimiento_renta_anual: Number(f.crecimiento_renta_anual), descuento_volumen_pct: descVol };
     const t = setTimeout(async () => {
       try {
@@ -165,7 +163,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       } catch { /* noop */ }
     }, 300);
     return () => clearTimeout(t);
-  }, [vista, selUnits, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual, devUnits]);
+  }, [vista, portfolioUnits, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual]);
 
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
@@ -205,11 +203,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ ...sectTitle, marginBottom: 0 }}>🏠 Tus datos</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
-              {[['simple', '👤 Para mí'], ['institucional', '🏛️ Institucional']].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => setVista(v)} style={{ padding: '7px 16px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: 'none', background: vista === v ? '#fff' : 'transparent', color: vista === v ? '#6D28D9' : '#6B6F86', boxShadow: vista === v ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{l}</button>
-              ))}
-            </div>
+            {vista === 'institucional' && <span style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#6D28D9', background: 'rgba(124,92,255,0.1)', padding: '6px 12px', borderRadius: 9999 }}>🏛️ Institucional</span>}
             <div style={{ display: 'inline-flex', background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 3 }}>
               {['MXN', 'USD'].map((mo) => (
                 <button key={mo} type="button" onClick={() => setMoneda(mo)} style={{ padding: '7px 13px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, border: 'none', background: moneda === mo ? '#fff' : 'transparent', color: moneda === mo ? '#6D28D9' : '#6B6F86', boxShadow: moneda === mo ? '0 2px 8px rgba(16,18,28,0.08)' : 'none' }}>{mo}</button>
@@ -222,28 +216,17 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             💱 Tipo de cambio: <b>1 USD = ${r.mercado.fix_usd} MXN</b> · Banxico (FIX){(r.fuentes_fecha || {}).banxico ? `, consultado ${r.fuentes_fecha.banxico}` : ''}. Se actualiza solo cada día.
           </div>
         )}
-        {/* PASO 1 (institucional) · elige las unidades ANTES de cómo lo pagas — banco y resultados de abajo ya son del portafolio */}
-        {vista === 'institucional' && devUnits && devUnits.length > 1 && (
+        {/* INSTITUCIONAL · las unidades ya se eligieron ARRIBA (ZonePageV2). Aquí solo descuento por volumen + desglose por unidad. */}
+        {vista === 'institucional' && portfolioUnits.length >= 2 && (
           <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(16,18,28,0.08)' }}>
-            <div style={grpLabel}>🏢 Elige tus unidades <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· un fondo compra varias</span> <Info><>Elige 2 o más unidades de este desarrollo. De ahí en adelante, <b>todo</b> (cómo lo pagas, impuestos, crédito, pentágono, métricas) se calcula sobre el <b>portafolio combinado</b>. El <b>descuento por volumen</b> es lo que sueles negociar al comprar en bloque.</></Info></div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-              {devUnits.map((u, i) => { const on = selUnits.includes(i); return (
-                <button key={i} type="button" onClick={() => setSelUnits((s) => on ? s.filter((x) => x !== i) : [...s, i])} style={{ padding: '7px 11px', borderRadius: 10, cursor: 'pointer', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(124,92,255,0.08)' : '#fff', fontFamily: 'DM Sans' }}>
-                  <span style={{ fontWeight: 800, fontSize: 12, color: on ? '#6D28D9' : '#16182A' }}>{on ? '✓ ' : ''}{u.label}</span>
-                  <span style={{ display: 'block', fontSize: 10, color: '#8A8FA6' }}>{m(u.precio)}</span>
-                </button>
-              ); })}
-            </div>
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ ...lab, marginBottom: 0 }}>Descuento por volumen <Info><>Lo que sueles negociar al comprar en bloque. Se aplica al precio de cada unidad del portafolio.</></Info></span>
               <input type="number" step="1" min="0" max="30" value={descVol} onChange={(e) => setDescVol(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} style={{ ...inp, width: 66 }} /><span style={{ fontSize: 12, color: '#6B6F86' }}>%</span>
               <span style={{ fontSize: 10, color: '#A2A6BC' }}>al comprar en bloque</span>
             </div>
-            {selUnits.length < 2 ? (
-              <div style={{ fontSize: 11, color: '#A2A6BC', marginTop: 10 }}>Elige al menos <b>2 unidades</b> para armar el portafolio.</div>
-            ) : port && (
+            {port && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '9px 13px', fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> Todo lo de abajo (cómo lo pagas, impuestos, crédito, pentágono, métricas) ya es del portafolio combinado.</div>
+                <div style={{ background: 'rgba(192,38,211,0.08)', borderRadius: 10, padding: '9px 13px', fontSize: 11.5, color: '#86198F', lineHeight: 1.5 }}>✓ <b>Portafolio: {port.n_unidades} unidades · {m(port.precio_total)} total.</b> Todo (cómo lo pagas, impuestos, crédito, pentágono, métricas) ya es del portafolio combinado.</div>
                 <div style={{ overflowX: 'auto', marginTop: 10 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                     <thead><tr style={{ color: '#6B6F86' }}>{['Unidad', 'Precio', 'Cap rate', 'TIR', 'Flujo/mes'].map((h, i) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700, textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
@@ -267,7 +250,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div>
             <div style={grpLabel}>🏠 El inmueble</div>
             <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              {(vista === 'institucional' && selUnits.length >= 2 && port) ? (
+              {(vista === 'institucional' && portfolioUnits.length >= 2 && port) ? (
                 <div style={{ minWidth: 150 }}><span style={lab}>Precio total <span style={{ color: '#86198F', fontWeight: 700 }}>· {port.n_unidades} unidades</span></span>
                   <input type="text" readOnly value={m(port.precio_total)} style={{ ...inp, background: 'rgba(192,38,211,0.06)', color: '#86198F', fontWeight: 700, cursor: 'not-allowed' }} /></div>
               ) : (
@@ -335,12 +318,12 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         </div>
       </div>
 
-      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Cambia a <b>Institucional</b> ↑</div>}
+      {vista === 'simple' && <div style={{ fontSize: 11.5, color: '#8A8FA6', marginBottom: 12 }}>Te explicamos cada número en palabras simples. ¿Inviertes como fondo (varias unidades, métricas duras)? Elige <b>🏛️ Institucional</b> arriba ↑</div>}
 
       {/* RESUMEN EJECUTIVO · institucional: tras elegir las unidades, lo clave del PORTAFOLIO de un vistazo */}
       {vista === 'institucional' && r && (
         <div className="iv4-card" style={{ marginBottom: 12, borderLeft: '4px solid #6D4AFF' }}>
-          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {selUnits.length >= 2 ? `${selUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
+          <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {portfolioUnits.length >= 2 ? `${portfolioUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
             {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
             ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
