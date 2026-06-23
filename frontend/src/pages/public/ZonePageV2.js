@@ -618,7 +618,11 @@ export default function ZonePageV2() {
             momentum: { t: <>Una zona que<br />mejora con ustedes.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> va para arriba: cada año con más servicios y mejor para los tuyos. Crecen juntos.</> },
           };
           const fa = FAM[zoneArchetype(inv)] || FAM.clasica;
-          const escuelas = (lugaresData && Array.isArray(lugaresData.items)) ? lugaresData.items.filter((x) => x.name).slice(0, 3) : [];
+          // Lifestyle REAL (Google Places · nombre + ★ + reseñas + link a Maps). Solo si hay datos reales de la zona.
+          const LG = (lugares && lugares.lugares) || {};
+          const lgReal = !!(lugares && lugares.fuente === 'google');
+          const lifeCats = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud cerca'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir a comer'], ['🚇', 'transporte', 'Transporte']]
+            .map(([ic, key, label]) => [ic, label, (LG[key] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , arr]) => arr.length);
           return (
             <>
               {/* CAP 1 · EL HÉROE Y SU ERROR (oscuro + foto · conectar → mudarse otra vez → echar raíces) */}
@@ -643,24 +647,42 @@ export default function ZonePageV2() {
                     <div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{fa.t}</h2>
                       <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 540, marginTop: 16, lineHeight: 1.6 }}>{fa.c(name)}</p>
-                      {escuelas.length > 0 && (
-                        <div style={{ marginTop: 18 }}>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🏫 Escuelas a la vuelta</div>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                            {escuelas.map((e) => (
-                              <span key={e.name} style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', borderRadius: 9999, padding: '7px 14px' }}>{e.name}{e.rating ? ` · ★${e.rating}` : ''}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     <div className="zv2-imgz" style={{ borderRadius: 18, boxShadow: '0 18px 40px rgba(16,18,28,0.14)' }}>
                       <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
                     </div>
                   </div>
-                  {bridge('Y eso es apenas el principio de lo que gana tu familia')}
+                  {bridge(lgReal && lifeCats.length ? 'Y mira todo lo que tienes a la vuelta de tu casa' : 'Y eso es apenas el principio de lo que gana tu familia')}
                 </div>
               </section>
+
+              {/* CAP 2.5 · ASÍ SE VIVE AQUÍ (claro · lifestyle REAL de Google Places · nombre + ★ + reseñas + link a Maps) */}
+              {lgReal && lifeCats.length > 0 && (
+                <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                  <div data-rev style={cont}>
+                    <div style={eyb('#C026D3')}>Así se vive aquí</div>
+                    <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>A la vuelta de tu casa.</h2>
+                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Esto es lo que de verdad tienes cerca en {name} — con nombre y calificación real. Toca cualquiera para verlo en el mapa:</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16, marginTop: 28 }}>
+                      {lifeCats.map(([ic, label, arr]) => (
+                        <div key={label} style={{ ...cardBase, padding: '18px 20px' }}>
+                          <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 18 }}>{ic}</span> {label}</div>
+                          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                            {arr.map((p) => (
+                              <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '8px 11px', borderRadius: 10, border: '1px solid rgba(16,18,28,0.06)' }}>
+                                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                                {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ fontSize: 13, color: '#C7CAD6' }}>›</span>}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places, a ~1 km del centro de {name}.</div>
+                    {bridge('Y eso es apenas el principio de lo que gana tu familia')}
+                  </div>
+                </section>
+              )}
 
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
