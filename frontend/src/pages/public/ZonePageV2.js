@@ -406,23 +406,26 @@ export default function ZonePageV2() {
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 0.9 };
           return (
             <>
-              {/* ─── CAPÍTULO 1 · HERO (oscuro, full-bleed, gancho emocional + número enorme) ─── */}
-              <section style={{ width: '100%', background: 'radial-gradient(120% 120% at 80% 0%, #2A1B5E 0%, #14132B 55%, #0B0A1C 100%)', color: '#fff', padding: '96px 0 104px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -120, right: -80, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,255,0.45), rgba(124,92,255,0) 68%)', filter: 'blur(20px)', pointerEvents: 'none' }} />
+              {/* ─── CAPÍTULO 1 · HERO (oscuro, full-bleed · micro-historia: tienes ahorro → el banco se lo come → aquí trabaja → el pago) ─── */}
+              <section style={{ width: '100%', background: 'linear-gradient(158deg, #1A1840 0%, #100F26 58%, #0A0918 100%)', color: '#fff', padding: 'clamp(54px,7vw,82px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -170, right: -130, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,255,0.24), rgba(124,92,255,0) 70%)', pointerEvents: 'none' }} />
                 <div style={{ ...cont, position: 'relative' }}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B9A8FF' }}>Invertir · {name}</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(44px,8vw,86px)', margin: '18px 0 0' }}>Tu dinero, parado,<br /><span style={{ background: 'linear-gradient(90deg,#A78BFA,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>pierde.</span></h2>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(16px,2vw,20px)', color: 'rgba(255,255,255,0.78)', maxWidth: 600, marginTop: 22, lineHeight: 1.5 }}>La inflación se lo come en el banco. En <b style={{ color: '#fff' }}>{name}</b> deja de perder — y empieza a trabajar para ti.</p>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Invertir · {name}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,46px)', lineHeight: 1.16, margin: '20px 0 0', color: '#fff', letterSpacing: '-0.025em' }}>
+                    Tienes un dinero ahorrado.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Parado en el banco, la inflación se lo come.</span><br />
+                    En {name}, ese mismo dinero <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>trabaja para ti</span>.
+                  </h2>
                   {gan5 != null && (
-                    <div style={{ marginTop: 48, display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Si inviertes aquí, en 5 años ganas</div>
-                        <div style={{ ...giant, fontSize: 'clamp(52px,10vw,104px)', background: 'linear-gradient(90deg,#6EE7B7,#34D399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginTop: 4 }}>+{m1(gan5)}</div>
+                    <div style={{ marginTop: 38 }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(255,255,255,0.58)', fontWeight: 700 }}>Lo mismo invertido aquí, en 5 años te da</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, flexWrap: 'wrap', marginTop: 8 }}>
+                        <div style={{ ...giant, fontSize: 'clamp(38px,6vw,70px)', color: '#34D399', letterSpacing: '-0.04em' }}>+{m1(gan5)}</div>
+                        {tir != null && <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: 600, lineHeight: 1.45 }}>de ganancia · <b style={{ color: '#fff' }}>{tir}% al año</b><br /><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)' }}>y, a diferencia del banco, el depto es tuyo</span></div>}
                       </div>
-                      {tir != null && <div style={{ paddingBottom: 14 }}><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#fff' }}>{tir}%</div><div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>al año (TIR real)</div></div>}
                     </div>
                   )}
-                  <div style={{ marginTop: 46, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>Baja y te muestro por qué <span style={{ fontSize: 18 }}>↓</span></div>
+                  <div style={{ marginTop: 38, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.42)', display: 'flex', alignItems: 'center', gap: 8 }}>Te muestro por qué <span style={{ fontSize: 16 }}>↓</span></div>
                 </div>
               </section>
 
@@ -432,7 +435,7 @@ export default function ZonePageV2() {
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7C5CFF' }}>La prueba, no la promesa</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(34px,5vw,56px)', color: INK, margin: '14px 0 0' }}>Aquí el precio sube.<br />Y no es opinión.</h2>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginTop: 30 }}>
-                    <div style={{ ...giant, fontSize: 'clamp(72px,14vw,150px)', color: '#0E9F6E' }}>+{plus}%</div>
+                    <div style={{ ...giant, fontSize: 'clamp(50px,8vw,96px)', color: '#0E9F6E' }}>+{plus}%</div>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 18, color: MUT, fontWeight: 700, paddingBottom: 18 }}>al año<br /><span style={{ fontSize: 13, fontWeight: 600, color: '#A2A6BC' }}>plusvalía estimada de {name}</span></div>
                   </div>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 17, color: MUT, maxWidth: 620, marginTop: 8, lineHeight: 1.55 }}>Un depto de {m1(inv.precio_prom)} se aprecia <b style={{ color: INK }}>~{k(inv.plusvalia_anual_abs || 0)} al año</b> — sin que muevas un dedo. Eso es lo que el banco no te da.</p>
