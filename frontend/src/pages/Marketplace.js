@@ -30,6 +30,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [filters, setFilters] = useState({});
   const [aiFilters, setAiFilters] = useState(null);
   const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
+  const [aiNoticeSlug, setAiNoticeSlug] = useState(null); // slug de la zona para enlazar a /zona
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
@@ -203,6 +204,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       setAiFilters(resp?.filters || {});
       // Honestidad de zona: si pidió un lugar que no cubrimos, avísale (no fingimos resultados de otra zona).
       setAiNotice(resp?.zona_no_disponible || null);
+      setAiNoticeSlug(resp?.zona_no_disponible_slug || null);
     } finally {
       setAiLoading(false);
     }
@@ -447,7 +449,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => { setAiFilters(null); setAiNotice(null); }}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); }}
                 openKey={openKey}
                 openNonce={openNonce}
               />
@@ -460,7 +462,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                   <span style={{ fontSize: 15 }}>📍</span>
-                  <span>Aún no tenemos desarrollos en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{aiNotice}</b> (cubrimos CDMX). Te mostramos lo más cercano al resto de tu búsqueda.</span>
+                  <span>Aún no tenemos desarrollos en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{aiNotice}</b> (cubrimos CDMX). Te mostramos lo más cercano.{(() => { const slug = aiNoticeSlug || ((colonias || []).find((x) => (x.name || '').toLowerCase() === String(aiNotice).toLowerCase()) || {}).id; return slug ? <> <Link to={`/zona/${slug}`} style={{ color: 'var(--theme)', fontWeight: 800, textDecoration: 'none' }}>Conoce {aiNotice} a fondo →</Link></> : null; })()}</span>
                 </div>
               )}
               {/* Save Search button — visible cuando hay filtros */}
@@ -637,6 +639,17 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                             ? 'Pediste varias amenidades y características a la vez. Quita alguna para ver más opciones — en esa zona quizá no existan todas juntas.'
                             : 'Prueba con otra zona o ajusta los filtros.'}
                         </div>
+                        {/* Honesto: colonia buscada SIN inventario → su inteligencia de zona sí existe (página de zona) */}
+                        {coloniaActiva && (
+                          <div data-testid="empty-zona-cta" style={{ marginBottom: 16, padding: '16px 20px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(124,92,255,0.06), rgba(192,38,211,0.04))', border: '1px solid rgba(99,102,241,0.2)', maxWidth: 560, margin: '0 auto 16px' }}>
+                            <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)', marginBottom: 11, lineHeight: 1.5 }}>
+                              Aún no hay desarrollos cargados en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{coloniaNombre}</b> — pero su <b>inteligencia de zona</b> (precios, plusvalía, riesgo, cómo se vive) sí está lista.
+                            </div>
+                            <Link to={`/zona/${coloniaActiva}`} style={{ display: 'inline-block', padding: '11px 20px', borderRadius: 12, background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5 }}>
+                              📖 Conoce {coloniaNombre} a fondo →
+                            </Link>
+                          </div>
+                        )}
                         {extras.length > 0 && (
                           <div style={{ marginBottom: 16 }}>
                             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 8 }}>Para ver más, quita lo que estés dispuesto a ceder:</div>

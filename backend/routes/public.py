@@ -2022,6 +2022,20 @@ def _parse_misses(q, filters):
     return miss
 
 
+# Caché lazy de los nombres del catálogo COMPLETO de colonias (para reconocer colonias sin inventario en el buscador IA).
+_COLONIA_NAMES_CACHE = {"data": None}
+
+
+async def _load_colonia_names(db):
+    if _COLONIA_NAMES_CACHE["data"] is None:
+        try:
+            cols = await db.colonias.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)
+            _COLONIA_NAMES_CACHE["data"] = [(c.get("name"), c.get("id")) for c in cols if c.get("name") and c.get("id")]
+        except Exception:
+            _COLONIA_NAMES_CACHE["data"] = []
+    return _COLONIA_NAMES_CACHE["data"]
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
@@ -2036,7 +2050,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible")}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug")}
     parsed = {}
     # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
     # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
@@ -2302,17 +2316,35 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     # HONESTIDAD DE ZONA: si el usuario nombró un lugar que NO cubrimos (ej. Interlomas = Edomex, no CDMX) y no mapeó
     # a ninguna colonia, NO finjas resultados de otra zona — devuelve el nombre para avisarle. Detecta "en <lugar>".
     zona_no_disponible = None
+    zona_no_disponible_slug = None
     if "colonia" not in filters:
-        mz = _re.search(r"\ben\s+([a-záéíóúñ]+(?:\s+(?!y\b|con\b|de\b|por\b|m[aá]x|menos|cerca)[a-záéíóúñ]+)?)", ql)
-        if mz:
-            cand = mz.group(1).strip()
-            _NONZONE = {"balcon", "balcón", "terraza", "bodega", "roof", "gimnasio", "gym", "alberca", "spa", "preventa",
-                        "obra", "construccion", "construcción", "venta", "renta", "piso", "credito", "crédito", "contado", "preci"}
-            if len(cand) >= 4 and cand.split()[0] not in _NONZONE:
-                zona_no_disponible = cand
+        # 1) ¿el texto nombra una colonia REAL del catálogo completo (aunque sin inventario)? → avisa honesto + link a /zona
+        try:
+            allcols = await _load_colonia_names(db)
+            best = None
+            for nm, cid in allcols:
+                nmf = _fold((nm or "").lower())
+                if len(nmf) >= 6 and _re.search(r"\b" + _re.escape(nmf) + r"\b", qfold):
+                    if best is None or len(nmf) > len(best[0]):
+                        best = (nmf, nm, cid)
+            if best:
+                zona_no_disponible, zona_no_disponible_slug = best[1], best[2]
+        except Exception:
+            pass
+        # 2) fallback: "en <lugar>" no mapeado (ej. Interlomas = Edomex)
+        if not zona_no_disponible:
+            mz = _re.search(r"\ben\s+([a-záéíóúñ]+(?:\s+(?!y\b|con\b|de\b|por\b|m[aá]x|menos|cerca)[a-záéíóúñ]+)?)", ql)
+            if mz:
+                cand = mz.group(1).strip()
+                _NONZONE = {"balcon", "balcón", "terraza", "bodega", "roof", "gimnasio", "gym", "alberca", "spa", "preventa",
+                            "obra", "construccion", "construcción", "venta", "renta", "piso", "credito", "crédito", "contado", "preci"}
+                if len(cand) >= 4 and cand.split()[0] not in _NONZONE:
+                    zona_no_disponible = cand
     out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
+    if zona_no_disponible_slug:
+        out["zona_no_disponible_slug"] = zona_no_disponible_slug
     await db.ai_search_cache.update_one({"cache_key": cache_key}, {"$set": out}, upsert=True)
 
     # ── B · CAPTURA DE DEMANDA GRANULAR ──────────────────────────────────────────
@@ -2360,7 +2392,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             })
     except Exception:
         pass
-    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible}
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug}
 
 
 class NLPSearchIn(BaseModel):
