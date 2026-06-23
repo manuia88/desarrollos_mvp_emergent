@@ -288,6 +288,25 @@ function WalkScore({ lugares, name }) {
   );
 }
 
+// Banda de "interés real" (prueba social · arco Hormozi). Datos CONCRETOS y verificados: búsquedas reales de la zona
+// (buyer_signals/demanda_zona de superadmin) + desarrollos en venta + precio desde. NO scores subjetivos. Solo si hay señal.
+function PulsoZona({ name, busquedas, nDevs, precioDesde }) {
+  const items = [];
+  if (busquedas >= 5) items.push(['👀', <>{busquedas} personas exploraron <b style={{ color: '#fff' }}>{name}</b> estos días</>]);
+  if (nDevs > 0) items.push(['🏗️', <>{nDevs} desarrollo{nDevs > 1 ? 's' : ''} en venta</>]);
+  if (precioDesde) items.push(['🏷️', <>desde <b style={{ color: '#fff' }}>{m1(precioDesde)}</b></>]);
+  if (items.length < 2) return null;
+  return (
+    <div style={{ width: '100%', background: '#0A0918', padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 28px', display: 'flex', gap: '10px 30px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+        {items.map((it, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'rgba(255,255,255,0.78)' }}><span style={{ fontSize: 15 }}>{it[0]}</span>{it[1]}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Mapa interactivo de lugares (maplibre-gl cargado LAZY). Muestra los pines de la categoría activa, popup con nombre+★+link.
 // Re-centra (fitBounds) al cambiar de categoría. Estilo CARTO Positron (gratis, sin token).
 function LugaresMap({ places, icon, center }) {
@@ -873,6 +892,8 @@ export default function ZonePageV2() {
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
         <div key={`body-${profile}`}>
+        {/* PULSO · interés real de la zona (prueba social · datos concretos) arriba del arco */}
+        {tieneMercado && inv && <PulsoZona name={name} busquedas={(inv.demanda_zona && inv.demanda_zona.busquedas) || 0} nDevs={devs.length} precioDesde={inv.precio_min || (sortedDevs[0] && sortedDevs[0].price_from)} />}
         {/* ════════ MUESTRA REDISEÑO (estilo Dividenz/GBM) · arco full-bleed, fondos alternados, números enormes ════════ */}
         {profile === 'invertir' && S && (() => {
           const plus = inv.plusvalia_anual_pct;
