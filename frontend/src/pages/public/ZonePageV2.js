@@ -41,12 +41,7 @@ const LENSES = [
 // MOCKUP "Lugares destacados" — infra lista; se reemplaza por zone_places reales (Google) cuando se active la zona.
 // (rebuild) SAMPLE_LUGARES + LugaresPreview retirados: el lifestyle real (Google Places) vive en el Cap 3 de cada arco.
 // Amenidades de la ZONA (alrededor · Google Places). key → emoji+label. Tope 20/categoría → se muestra "20+".
-const CATS_ZONA = [
-  ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['escuela', '🏫', 'escuelas'],
-  ['hospital', '🏥', 'hospitales'], ['parque', '🌳', 'parques'], ['supermercado', '🛒', 'supermercados'],
-  ['gimnasio', '🏋️', 'gimnasios'], ['transporte', '🚇', 'transporte'],
-];
-const fmtN = (n) => (n >= 20 ? '20+' : String(n));
+// (auditoría · limpieza) CATS_ZONA + fmtN retirados con el bloque "La vida alrededor".
 // Amenidades del DESARROLLO (del edificio) — NO confundir con amenidades de zona (Google). Slug → emoji+label.
 const AMEN_DEV = { alberca: ['🏊', 'Alberca'], gym: ['🏋️', 'Gimnasio'], roof: ['🌿', 'Roof garden'], cowork: ['💻', 'Coworking'], spa: ['💆', 'Spa'], concierge: ['🛎️', 'Concierge'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'], business_center: ['💼', 'Business center'], salon_eventos: ['🎉', 'Salón de eventos'], seguridad: ['🛡️', 'Seguridad 24/7'], pet: ['🐾', 'Pet friendly'], area_pets: ['🐾', 'Área para mascotas'], jardines: ['🌳', 'Jardines'], bicicletas: ['🚲', 'Biciestac.'], estacionamiento: ['🚗', 'Estacionamiento'] };
 
@@ -234,7 +229,6 @@ export default function ZonePageV2() {
   const arcRebuilt = profile === 'invertir' || profile === 'familia' || profile === 'primera' || profile === 'vivir';  // los 4 perfiles con arco nuevo → ocultan los bloques viejos
   const alcaldia = landing && landing.alcaldia;
   const tier = landing && landing.tier;
-  const comparables = (landing && landing.comparable_zones) || [];
   const plus = inv && inv.plusvalia_anual_pct;
   const sec = { maxWidth: 1080, margin: '0 auto', padding: '0 24px' };
   const Q = ({ t }) => (<span className="tip" style={{ position: 'relative' }}><span className="tip-q" style={{ color: '#6366F1' }}>?</span><span className="tip-box">{t}</span></span>);
@@ -253,9 +247,7 @@ export default function ZonePageV2() {
   // (rebuild) La maquinaria vieja de "lugares preview" (realLugares/lugaresData/LugaresPreview/SAMPLE_LUGARES) se retiró:
   // el lifestyle real (lugares.lugares de Google Places) ahora vive dentro del Cap 3 de cada arco de perfil.
   // Conectividad: minutos caminando al metro (real de /lugares · cae a vista previa si no hay)
-  const metroReal = lugares && lugares.metro ? lugares.metro : null;
-  const metroData = metroReal || { nombre: 'Metro Insurgentes', min_caminando: 6 };
-  const metroEsReal = !!metroReal;
+  // (auditoría · limpieza) metroReal/metroData/metroEsReal retirados con el bloque "Conectividad" (el transporte ya sale en el lifestyle real).
   // Carácter del barrio: chips CUALITATIVOS de los conteos REALES de Google (/vida · 253 colonias). Sin número subjetivo
   // (no repetimos el error de los scores). Gated en source='google' → solo donde hay dato verificado.
   const vibe = (() => {
@@ -428,19 +420,7 @@ export default function ZonePageV2() {
 
         {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques · montado-oculto) ───── */}
         {visited.zona && (<div style={{ display: ver === 'zona' ? 'block' : 'none' }}>
-        {/* Intro-gancho del header: solo perfiles sin arco rediseñado (en invertir y familia, el Cap 1 del arco ES el hero) */}
-        {S && !arcRebuilt && (
-          <section style={{ ...sec, marginTop: 24 }}>
-            <div key={profile} className="zv2-up" style={{ maxWidth: 760 }}>
-              <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
-              <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(99,102,241,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
-                <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
-              </div>
-            </div>
-          </section>
-        )}
+        {/* (auditoría · código muerto retirado) Intro-gancho del header: era para perfiles sin arco; los 4 ya tienen su Cap 1 hero → !arcRebuilt siempre false. */}
 
         {loading ? (
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, textAlign: 'center', color: '#8A8FA6', fontFamily: 'DM Sans' }}>Cargando la historia de {name}…</div></section>
@@ -814,66 +794,8 @@ export default function ZonePageV2() {
         {/* ── LA VIDA AQUÍ — PAUSADO: los conteos OSM no son confiables (1 gym en Polanco = falso). Se reactiva con
             datos verificados de Google Places (ingesta de pago, 1 vez). El endpoint /vida ya existe (build-for-endstate). ── */}
 
-        {/* ── VALUE STACK (solo vivir/primera · invertir y familia ya tienen su Cap 3 de beneficios en el arco) ── */}
-        {!arcRebuilt && (
-        <section id="dinero" className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-          <div style={eyebrow}>{tc('Por qué tiene sentido')}</div>
-          <h2 style={chapTitle}>{S.stackTitle}</h2>
-          <p style={lead}>{S.stackIntro}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 22 }}>
-            {[
-              { n: 1, h: 'Sube de valor — solo.', big: `+${plus}%`, c: '#10B981',
-                copy: <>Cada año tu propiedad vale más. Un depto de {m1(inv.precio_prom)} se aprecia <b>~{k(inv.plusvalia_anual_abs || 0)} al año</b> <Q t="Plusvalía estimada por el motor según el tier y la tendencia de la zona — no es una medición de transacciones históricas." /> — sin que muevas un dedo.</> },
-              { n: 2, h: 'Y te paga mientras la tienes.', big: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : '—', c: '#4F46E5',
-                copy: <>Si la rentas, podría dejarte <b>~${(inv.renta_prom || 0).toLocaleString('es-MX')}/mes</b>. Un cap rate de {inv.cap_rate_anual_pct}% <Q t="Cap rate: lo que rinde la propiedad por su renta (NOI ÷ precio), sin importar cómo la pagues. Estimado por el yield de la zona; no incluye la plusvalía." /> — lo que rinde cada año solo por rentarla.</> },
-              { n: 3, h: 'En 5 años, esto es tuyo.', big: `+${inv.ganancia_5y_pct}%`, c: '#10B981',
-                copy: <>Si vendes a los 5 años, recuperas tu dinero <b>+ ~{m1(inv.ganancia_5y_abs)}</b> de ganancia. Tu rendimiento real al año: <b>{inv.tir_anual_pct}%</b> <Q t="TIR: tu rendimiento real por año, contando rentas + venta y ajustado al tiempo." />.</> },
-            ].map((w) => (
-              <div key={w.n} className="zv2-win" style={{ ...cardBase, padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 320px', minWidth: 260 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13 }}>{w.n}</span>
-                    <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: INK }}>{w.h}</span>
-                  </div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, marginTop: 8, lineHeight: 1.55 }}>{w.copy}</div>
-                </div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(36px,5vw,52px)', color: w.c, letterSpacing: '-0.04em', lineHeight: 1 }}>{w.big}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-        )}
-
-        {/* ── LA VIDA ALREDEDOR (amenidades de ZONA · Google · no-invertir) ── */}
-        {!arcRebuilt && vida && vida.fuente === 'google' && vida.amenidades && (() => {
-          const am = vida.amenidades;
-          const shown = CATS_ZONA.filter(([key]) => (am[key] || 0) > 0);
-          if (!shown.length) return null;
-          const intro = profile === 'familia'
-            ? `Todo lo que tu familia necesita, a unos pasos: ${fmtN(am.escuela || 0)} escuelas, ${fmtN(am.hospital || 0)} hospitales y ${fmtN(am.parque || 0)} parques alrededor. El barrio donde crecen, no solo cuatro paredes.`
-            : profile === 'vivir'
-              ? `La buena vida, caminando: ${fmtN(am.restaurante || 0)} restaurantes y ${fmtN(am.cafe || 0)} cafés a tu alrededor. Aquí sales por la puerta y todo está cerca.`
-              : profile === 'primera'
-                ? `No compras un depto aislado — compras un barrio vivo: ${fmtN(am.restaurante || 0)} restaurantes, ${fmtN(am.cafe || 0)} cafés y todo lo que necesitas a unos pasos.`
-                : `Lo que hace que la gente quiera vivir aquí (y por eso renta y se revaloriza): ${fmtN(am.restaurante || 0)} restaurantes, ${fmtN(am.escuela || 0)} escuelas, ${fmtN(am.hospital || 0)} hospitales y más, todo cerca.`;
-          return (
-            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-              <div style={eyebrow}>{tc('La vida alrededor')}</div>
-              <h2 style={chapTitle}>{S.vidaTitle}</h2>
-              <p style={lead}>{intro}</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginTop: 18 }}>
-                {shown.map(([key, e, label]) => (
-                  <div key={key} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                    <div style={{ fontSize: 22 }}>{e}</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: INK, marginTop: 4, letterSpacing: '-0.02em' }}>{fmtN(am[key])}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>lugares reales a ~1.2 km a la redonda (Google Places)</div>
-            </section>
-          );
-        })()}
+        {/* (auditoría · código muerto retirado) VALUE STACK + LA VIDA ALREDEDOR: eran para perfiles sin arco; los 4 ya
+            tienen su Cap 3 de beneficios + su Cap de lifestyle real → !arcRebuilt siempre false, nunca renderizaban. */}
 
         {/* (dedup) "¿dónde pongo mi dinero" · "tabla vehículos" · "¿con cuánto inviertes" se movieron a la calculadora
             (Pentágono de inversiones + vs CETES/Bolsa + dimensionar por capital) — la página no los repite. */}
@@ -1178,84 +1100,9 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── CONECTIVIDAD · minutos al metro (no-invertir) ── */}
-        {!arcRebuilt && metroData && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
-            <div className="zv2-win" style={{ ...cardBase, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 28 }}>🚇</div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK }}>{metroData.nombre} a ~{metroData.min_caminando} min caminando</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 2 }}>
-                  {profile === 'primera' ? 'Llegas al trabajo sin coche — sin gastar en gasolina ni estacionamiento.'
-                    : profile === 'invertir' ? 'Cerca del transporte = se renta más fácil y más caro.'
-                    : profile === 'familia' ? 'Todo a la mano y los traslados cortos para los tuyos.'
-                    : 'Todo a la mano, sin depender del coche.'}
-                </div>
-              </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', fontStyle: 'italic' }}>{metroEsReal ? 'distancia real · a pie (aprox)' : 'vista previa'}</div>
-            </div>
-          </section>
-        )}
-
-        {/* (rebuild) "Lo mejor cerca" se fundió en el Cap 3 (lifestyle real de Google Places) de los arcos de cada perfil. */}
-
-        {/* ── CÓMO EMPEZAR (crédito · solo vivir/primera · invertir y familia tienen su propia herramienta) ── */}
-        {!arcRebuilt && (
-        <section style={{ ...sec, marginTop: 58 }}>
-          <div style={eyebrow}>{tc('Cómo empezar')}</div>
-          <h2 style={chapTitle}>{S.cobrarTitle}</h2>
-          <p style={lead}>{S.cobrarCopy}</p>
-          {inv.credito && inv.credito.escenarios && (
-            <div style={{ ...cardBase, padding: 22, marginTop: 18 }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#A2A6BC' }}>sobre ~{m1(inv.credito.valor_inmueble)} · a {inv.credito.plazo_anios} años · tasa prom {inv.credito.tasa_prom_pct}%</div>
-              <div style={{ display: 'flex', fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 12, paddingBottom: 6, borderBottom: '1px solid rgba(16,18,28,0.1)' }}>
-                <span style={{ flex: '0 0 92px' }}>crédito</span><span style={{ flex: 1, textAlign: 'right' }}>enganche</span><span style={{ flex: 1, textAlign: 'right' }}>te prestan</span><span style={{ flex: 1, textAlign: 'right' }}>al mes</span>
-              </div>
-              {inv.credito.escenarios.map((e) => (
-                <div key={e.aforo} style={{ display: 'flex', alignItems: 'baseline', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 0', borderTop: '1px solid rgba(16,18,28,0.05)' }}>
-                  <span style={{ flex: '0 0 92px', fontWeight: 800, color: INK }}>{e.aforo}% a crédito</span>
-                  <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.enganche)}</span>
-                  <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.prestamo)}</span>
-                  <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#10B981' }}>{k(e.pago)}</span>
-                </div>
-              ))}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic' }}>Informativo. Con más enganche, menos crédito y menos pagas al mes. Tu tasa y pago reales los define el banco según tu perfil.</div>
-            </div>
-          )}
-        </section>
-        )}
-
-        {/* ── BANDA ATLAX (solo vivir/primera · invertir y familia ya cierran con su CTA) ── */}
-        {!arcRebuilt && (
-        <section style={{ ...sec, marginTop: 58 }}>
-          <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.06))', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: MUT, marginTop: 8, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.55 }}>Pregúntale a <b>Atlax</b> — conoce los precios, la plusvalía, la vida y los desarrollos de {name}. Te responde al instante.</p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 18 }}>
-              {[`¿${name} me conviene para ${profLabel}?`, `¿Cuánto necesito para comprar en ${name}?`, comparables[0] ? `¿${name} o ${comparables[0].name}?` : `¿Cómo se vive en ${name}?`].map((q, i) => (
-                <button key={i} type="button" onClick={() => askAtlax(q)} className="zv2-zlink" style={{ ...cardBase, padding: '11px 18px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', cursor: 'pointer', border: '1px solid rgba(99,102,241,0.18)' }}>{q}</button>
-              ))}
-            </div>
-          </div>
-        </section>
-        )}
-
-        {/* ── NO ERES EL ÚNICO (no-invertir) ── */}
-        {!arcRebuilt && (comparables.length > 0 || similar.length > 0) && (
-          <section style={{ ...sec, marginTop: 58 }}>
-            <div style={eyebrow}>{tc('No eres el único')}</div>
-            <h2 style={chapTitle}>La gente que sabe, está mirando aquí</h2>
-            <p style={lead}>{name} compite con las zonas más buscadas de la ciudad. Si estás comparando, vale la pena verlas al lado:</p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
-              {(comparables.length ? comparables : similar).slice(0, 5).map((z) => (
-                <Link key={z.slug || z.id} to={`/zona/${z.slug || z.id}`} className="zv2-zlink" style={{ textDecoration: 'none', ...cardBase, padding: '14px 20px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: INK }}>{z.name || tc((z.slug || z.id || '').replace(/-/g, ' '))}</span>
-                  <span style={{ color: '#6366F1', fontWeight: 800 }}>→</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* (auditoría · código muerto retirado) Conectividad · Lo-mejor-cerca · Cómo-empezar/crédito · Banda Atlax ·
+            No-eres-el-único: eran bloques para perfiles SIN arco. Con los 4 perfiles ya rebuilt, !arcRebuilt es siempre
+            false → nunca renderizaban. Su contenido vive ahora dentro del arco de cada perfil (lifestyle/herramienta/cierre). */}
 
         {/* (reorden espina) El VEREDICTO se movió DESPUÉS de la calculadora + riesgos (el cierre va al final del arco) */}
 
