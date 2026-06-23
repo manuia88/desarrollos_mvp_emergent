@@ -399,85 +399,85 @@ export default function ZonePageV2() {
         {/* ════════ MUESTRA REDISEÑO (estilo Dividenz/GBM) · arco full-bleed, fondos alternados, números enormes ════════ */}
         {profile === 'invertir' && S && (() => {
           const plus = inv.plusvalia_anual_pct;
-          const gan5 = inv.ganancia_5y_abs;
-          const renta = inv.renta_prom;
           const precio = inv.precio_prom || 0;
           const f = 1 + (plus || 0) / 100;
           const serie = [0, 1, 2, 3, 4, 5].map((y) => ({ y, v: Math.round(precio * Math.pow(f, y)) }));
           const vmax = serie[serie.length - 1].v || 1;
           const m1c = (n) => { n = Math.round(Number(n) || 0); return n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`; };
+          // imágenes: preferimos fotos REALES de los desarrollos; si solo hay placeholders, usamos un fallback curado y relevante (skyline/edificio/interior)
+          const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
+          const STOCK = ['1067', '1076', '164'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
+          const img = (i) => (realFotos.length > i ? realFotos[i] : STOCK[i % STOCK.length]);
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
-          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 0.9 };
-          const bridge = (txt, dark) => (<div style={{ marginTop: 30, fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, color: dark ? '#C4B5FD' : '#7C5CFF', display: 'flex', alignItems: 'center', gap: 8 }}>{txt} <span style={{ fontSize: 17 }}>↓</span></div>);
+          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
+          const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.8)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#C4B5FD' : '#7C5CFF' }}>↓</span></div>);
           return (
             <>
-              {/* ─── CAPÍTULO 1 · HERO (oscuro, full-bleed · micro-historia: tienes ahorro → el banco se lo come → aquí trabaja → el pago) ─── */}
-              <section style={{ width: '100%', background: 'linear-gradient(158deg, #1A1840 0%, #100F26 58%, #0A0918 100%)', color: '#fff', padding: 'clamp(54px,7vw,82px) 0', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -170, right: -130, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,255,0.24), rgba(124,92,255,0) 70%)', pointerEvents: 'none' }} />
+              {/* ─── CAP 1 · EL HÉROE Y SU ERROR (oscuro + imagen · conectar → nombrar el error → el giro) ─── */}
+              <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ ...cont, position: 'relative' }}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Invertir · {name}</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,46px)', lineHeight: 1.16, margin: '20px 0 0', color: '#fff', letterSpacing: '-0.025em' }}>
-                    Tienes un dinero guardado.<br />
-                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>En el banco, poco a poco vale menos.</span><br />
-                    Aquí, ese mismo dinero <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>crece</span>.
+                  <div style={eyb('#9D8BFF')}>Invertir · {name}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
+                    Trabajaste años por ese dinero.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.42)' }}>Guardado en el banco, rinde para ellos.</span><br />
+                    Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
                   </h2>
-                  {gan5 != null && (
-                    <div style={{ marginTop: 38 }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(255,255,255,0.58)', fontWeight: 700 }}>Si lo pones aquí, en 5 años tendrías</div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, flexWrap: 'wrap', marginTop: 8 }}>
-                        <div style={{ ...giant, fontSize: 'clamp(38px,6vw,70px)', color: '#34D399', letterSpacing: '-0.04em' }}>+{m1(gan5)}</div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: 600, lineHeight: 1.45 }}>más de lo que pusiste.<br /><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)' }}>Y la casa es tuya.</span></div>
-                      </div>
-                    </div>
-                  )}
-                  <div style={{ marginTop: 38, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.42)', display: 'flex', alignItems: 'center', gap: 8 }}>Te enseño cómo <span style={{ fontSize: 16 }}>↓</span></div>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 560, marginTop: 22, lineHeight: 1.55 }}>Una propiedad en {name} toma lo que tanto te costó juntar y lo vuelve algo que <b style={{ color: '#fff' }}>crece solo</b>, te da <b style={{ color: '#fff' }}>ingresos cada mes</b> y <b style={{ color: '#fff' }}>siempre será tuyo</b>.</p>
+                  {bridge('Déjame mostrarte por qué aquí', true)}
                 </div>
               </section>
 
-              {/* ─── CAPÍTULO 2 · CÓMO SUBE (claro · gráfica de barras + lenguaje simple) ─── */}
+              {/* ─── CAP 2 · LA OPORTUNIDAD (claro · por qué este lugar protege y crece · gráfica + imagen · pocos números) ─── */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div style={cont}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7C5CFF' }}>Por qué crece</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', lineHeight: 1.1, color: INK, margin: '14px 0 0', letterSpacing: '-0.025em' }}>Aquí, las casas valen más<br />cada año que pasa.</h2>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 16.5, color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.55 }}>Una casa que hoy cuesta <b style={{ color: INK }}>{m1c(precio)}</b> no se queda igual. Mira cómo sube, año con año:</p>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(6px,1.6vw,18px)', height: 'clamp(170px,26vw,240px)', marginTop: 32 }}>
-                    {serie.map((p, i) => {
-                      const last = i === serie.length - 1;
-                      const h = 34 + (p.v / vmax) * 66;
-                      return (
-                        <div key={p.y} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(10px,1.5vw,14px)', color: last ? '#0B8C5E' : '#9296AE', marginBottom: 7 }}>{m1c(p.v)}</div>
-                          <div style={{ width: '100%', maxWidth: 80, height: `${h}%`, borderRadius: '11px 11px 0 0', background: last ? 'linear-gradient(180deg,#10B981,#0B8C5E)' : 'linear-gradient(180deg,#CBEFDD,#A7E3C6)' }} />
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 'clamp(10px,1.4vw,12px)', color: '#A2A6BC', marginTop: 9, fontWeight: 600, textAlign: 'center' }}>{p.y === 0 ? 'Hoy' : `+${p.y} año${p.y > 1 ? 's' : ''}`}</div>
-                        </div>
-                      );
-                    })}
+                  <div style={eyb('#7C5CFF')}>Por qué aquí</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Hay lugares que la gente<br />nunca deja de querer.</h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>{name} es uno de ellos. Y cuando un lugar siempre tiene quién lo busque, lo que tienes ahí <b style={{ color: INK }}>no se devalúa</b> — al contrario: vale un poco más cada año, tranquilo y constante. No es suerte. Es lo que pasa aquí.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,0.85fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 34 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(5px,1.4vw,14px)', height: 'clamp(150px,22vw,210px)' }}>
+                        {serie.map((p, i) => {
+                          const last = i === serie.length - 1;
+                          const show = i === 0 || last;
+                          const h = 36 + (p.v / vmax) * 64;
+                          return (
+                            <div key={p.y} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(10px,1.4vw,13px)', color: last ? '#0B8C5E' : '#B7BAC8', marginBottom: 6, visibility: show ? 'visible' : 'hidden' }}>{m1c(p.v)}</div>
+                              <div style={{ width: '100%', maxWidth: 64, height: `${h}%`, borderRadius: '9px 9px 0 0', background: last ? 'linear-gradient(180deg,#10B981,#0B8C5E)' : 'linear-gradient(180deg,#D7F2E5,#B3E6CD)' }} />
+                              <div style={{ fontFamily: 'DM Sans', fontSize: 'clamp(9px,1.3vw,11px)', color: '#A2A6BC', marginTop: 8, fontWeight: 600 }}>{p.y === 0 ? 'Hoy' : p.y === 5 ? '+5 años' : ''}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, marginTop: 18, lineHeight: 1.55 }}>Entrar mañana siempre cuesta más que entrar hoy. <b style={{ color: INK }}>El mejor momento para empezar es ahora.</b></p>
+                    </div>
+                    <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', borderRadius: 18, boxShadow: '0 18px 40px rgba(16,18,28,0.14)' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   </div>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 16.5, color: MUT, maxWidth: 640, marginTop: 28, lineHeight: 1.6 }}>En 5 años, esa misma casa pasa de {m1c(serie[0].v)} a <b style={{ color: '#0B8C5E' }}>{m1c(serie[5].v)}</b>. Son <b style={{ color: INK }}>{m1(serie[5].v - serie[0].v)} más</b> — sin que muevas un dedo.</p>
-                  {bridge('Y mientras sube, hace algo más por ti')}
+                  {bridge('Y ganar valor es apenas el principio de lo que hace por ti')}
                 </div>
               </section>
 
-              {/* ─── CAPÍTULO 3 · QUÉ HACE POR TI (oscuro · 3 cosas simples + fotos reales de la zona) ─── */}
-              <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+              {/* ─── CAP 3 · LOS BENEFICIOS (oscuro · lo que GANAS, sin números · imagen) ─── */}
+              <section style={{ width: '100%', background: `linear-gradient(180deg,#15132E,#0C0B1E)`, color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
                 <div style={cont}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Qué hace por ti</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', lineHeight: 1.1, color: '#fff', margin: '14px 0 0', letterSpacing: '-0.025em' }}>Tu dinero, aquí,<br />hace tres cosas.</h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginTop: 30 }}>
+                  <div style={eyb('#9D8BFF')}>Lo que ganas</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Tres cosas que el banco<br />nunca podrá darte.</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, marginTop: 32 }}>
                     {[
-                      ['📈', 'Vale más cada año', `Hoy cuesta ${m1c(precio)}. En un año, ~${m1c(Math.round(precio * f))}. Sube sola.`],
-                      ['💵', 'Te paga cada mes', `Alguien vive ahí y te da ~${m1(renta || 0)} cada mes.`],
-                      ['🔑', 'Es tuyo de verdad', 'Lo tocas, lo usas, se lo dejas a tus hijos. No es un papel.'],
+                      ['🌱', 'Crece mientras vives', 'Tu propiedad se vuelve más valiosa con el tiempo, sin que hagas nada. Tu dinero trabaja incluso cuando tú descansas.'],
+                      ['💸', 'Te paga cada mes', 'Alguien la habita y te deja un ingreso. Dinero que entra sin que tengas que cambiar tus horas por pesos.'],
+                      ['🔑', 'Es tuyo, y de los tuyos', 'No es un papel ni una promesa. Es algo real que disfrutas hoy y le heredas a quien más quieres mañana.'],
                     ].map(([ic, t, d]) => (
                       <div key={t} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '22px 22px' }}>
-                        <div style={{ fontSize: 28 }}>{ic}</div>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#fff', marginTop: 10 }}>{t}</div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.66)', marginTop: 6, lineHeight: 1.55 }}>{d}</div>
+                        <div style={{ fontSize: 30 }}>{ic}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18.5, color: '#fff', marginTop: 12 }}>{t}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.66)', marginTop: 7, lineHeight: 1.58 }}>{d}</div>
                       </div>
                     ))}
                   </div>
-                  {/* (fotos reales de los desarrollos entran aquí cuando existan; hoy solo hay placeholders aleatorios → no se muestran) */}
-                  {bridge('Sigue — ahora vienen TUS números', true)}
+                  <img src={img(2)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(140px,20vw,200px)', objectFit: 'cover', borderRadius: 18, marginTop: 22, border: '1px solid rgba(255,255,255,0.1)' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  {bridge('Ya sabes lo que hace. Ahora veamos qué tan tuyo puede ser', true)}
                 </div>
               </section>
             </>
