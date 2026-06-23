@@ -649,6 +649,27 @@ async def inversion_v4_portafolio(request: Request):
         return {"ok": False, "error": str(e)[:200]}
 
 
+# Zona geotécnica/sísmica DOMINANTE por alcaldía CDMX (NTC Reglamento de Construcciones · I=Lomas firme A · II=Transición
+# B/C · III=exLago lacustre D). Estimación de screening que aplica a TODAS las colonias (no solo a las del Atlas). Dentro
+# de una alcaldía la zona varía → se afina con el dato por colonia del Atlas de Riesgos cuando se ingesta.
+_ALCALDIA_SISMO = {
+    "cuajimalpa": "A", "cuajimalpa de morelos": "A", "magdalena contreras": "A", "la magdalena contreras": "A", "milpa alta": "A",
+    "alvaro obregon": "B", "tlalpan": "B", "miguel hidalgo": "B",
+    "benito juarez": "C", "coyoacan": "C", "azcapotzalco": "C",
+    "cuauhtemoc": "D", "venustiano carranza": "D", "iztacalco": "D", "iztapalapa": "D",
+    "gustavo a madero": "D", "gustavo a. madero": "D", "tlahuac": "D", "xochimilco": "D",
+}
+
+
+def _estimar_zona_sismica(alcaldia):
+    """Zona sísmica (A/B/C/D) estimada por la alcaldía de la colonia. None si no se reconoce."""
+    if not alcaldia:
+        return None
+    import unicodedata as _ud
+    key = _ud.normalize("NFKD", str(alcaldia)).encode("ascii", "ignore").decode().lower().strip()
+    return _ALCALDIA_SISMO.get(key)
+
+
 @router.get("/api/inversion-v4/zona-contexto")
 async def inversion_v4_zona_contexto(request: Request, zone_id: str = ""):
     """#1 absorción + #5 riesgo físico de la zona, para el due diligence de la calc. Reusa absorcion_engine (NO duplica)
@@ -678,23 +699,34 @@ async def inversion_v4_zona_contexto(request: Request, zone_id: str = ""):
         from climate_migration_engine import aggregate_climate_signals_per_zone
         cs = await aggregate_climate_signals_per_zone(db, zone_id)
         nrl = await db.natural_risk_layers.find_one({"zone_id": zone_id}, {"_id": 0}) or {}
-        # PML SÍSMICO (screening de zona · marco ASTM E2557/E2026): SEL (pérdida esperada) y SUL (PML90, 10% excedencia)
+        # PML SÍSMICO (screening · marco ASTM E2557/E2026): zona PRECISA (Atlas) > ESTIMADA por alcaldía (zona geotécnica
+        # CDMX · aplica a TODAS las colonias) > default. SEL (pérdida esperada) + SUL (PML90, 10% excedencia).
+        _ZMAP = {"A": 20, "B": 50, "C": 75, "D": 95}
         sz = nrl.get("sismic_zone")
         score = nrl.get("sismic_score")
+        basis = "atlas" if sz else None
         if score is None and sz:
-            score = {"A": 20, "B": 50, "C": 75, "D": 95}.get(sz)
-        tiene_sismo = score is not None
+            score = _ZMAP.get(sz)
+        if score is None:  # sin dato preciso → estima por la alcaldía de la colonia (zona geotécnica documentada)
+            col = await db.colonias.find_one({"id": zone_id}, {"_id": 0, "alcaldia": 1})
+            sz_est = _estimar_zona_sismica((col or {}).get("alcaldia"))
+            if sz_est:
+                sz, score, basis = sz_est, _ZMAP.get(sz_est), "alcaldia"
+        tiene_sismo = sz is not None
         if score is None:
-            score = 55  # default CDMX (mayoría zona transición/lacustre) — screening, NO avalúo de ingeniería
+            score, basis = 55, "default"  # CDMX genérico (raro, solo si no hay ni alcaldía)
         sel_pct = round(3.0 + score * 0.09, 1)      # SEL ≈ pérdida esperada (% del valor) según intensidad de zona
         sul_pct = round(sel_pct * 1.8, 1)           # SUL = PML90 (pérdida con 10% de excedencia)
+        _fuente = {"atlas": "Atlas de Riesgos CDMX (dato por colonia)", "alcaldia": "Estimada por zona geotécnica de la alcaldía (NTC CDMX)",
+                   "default": "Screening genérico CDMX"}.get(basis, "Screening de zona")
         out["riesgo"] = {
-            "flood_risk": cs.get("flood_risk"), "sismic_score": nrl.get("sismic_score"),
+            "flood_risk": cs.get("flood_risk"), "sismic_score": score,
             "subsidence": nrl.get("subsidence_mm_year") or nrl.get("subsidence_cm_yr") or nrl.get("subsidence"),
             "drivers": cs.get("top_drivers"), "completeness": cs.get("data_completeness_pct"),
-            "tiene_datos": bool(nrl) or (cs.get("data_completeness_pct") or 0) > 0,
+            "tiene_datos": True,
             "pml": {"sel_pct": sel_pct, "sul_pct": sul_pct, "sismic_zone": sz, "sismic_score": score,
-                    "tiene_dato_zona": tiene_sismo, "fuente": "Screening de zona (marco ASTM E2557/E2026) · Atlas de Riesgos CDMX"},
+                    "tiene_dato_zona": tiene_sismo, "basis": basis,
+                    "fuente": f"{_fuente} · marco ASTM E2557/E2026"},
         }
         # ÍNDICE SHF (apreciación oficial MX) — benchmark para la plusvalía · lee market_benchmarks (refrescable), seed Q1-2026
         shf_doc = await db.market_benchmarks.find_one({"_id": "shf"}, {"_id": 0}) or {}
