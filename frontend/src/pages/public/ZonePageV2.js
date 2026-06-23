@@ -148,7 +148,6 @@ export default function ZonePageV2() {
   const [similar, setSimilar] = useState([]);
   const [vida, setVida] = useState(null);
   const [lugares, setLugares] = useState(null);
-  const [vehiculos, setVehiculos] = useState([]);
   const [calcMode, setCalcMode] = useState('individual'); // calculadora: 'individual' (1 depa) | 'institucional' (2+ depas)
   const [calcDev, setCalcDev] = useState(null);   // calculadora: desarrollo elegido
   const [calcUnits, setCalcUnits] = useState([]); // unidades del desarrollo elegido
@@ -157,7 +156,6 @@ export default function ZonePageV2() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [lens, setLens] = useState(null);     // lente del inversionista: renta / plusvalia / refugio (reencuadra el tab)
-  const [capital, setCapital] = useState(null); // "¿con cuánto inviertes?" — recalcula a su monto
   const [saveOpen, setSaveOpen] = useState(false);
 
   useEffect(() => {
@@ -169,10 +167,9 @@ export default function ZonePageV2() {
       get(`/api/colonias-similar/${slug}`),
       get(`/api/zona/${slug}/vida`),
       get(`/api/zona/${slug}/lugares`),
-      get(`/api/market/vehiculos`),
-    ]).then(([i, l, d, s, v, lg, vh]) => {
+    ]).then(([i, l, d, s, v, lg]) => {
       if (!alive) return;
-      setInv(i); setLanding(l); setVida(v); setLugares(lg); setVehiculos((vh && vh.vehiculos) || []);
+      setInv(i); setLanding(l); setVida(v); setLugares(lg);
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
@@ -248,12 +245,6 @@ export default function ZonePageV2() {
   const lensCfg = LENSES.find((l) => l.k === lens) || null;
   const paraTi = (tag) => !!(lensCfg && lensCfg.tags.includes(tag));
   const ParaTi = ({ tag }) => paraTi(tag) ? <span style={{ marginLeft: 8, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5, color: '#6D28D9', background: 'rgba(124,92,255,0.12)', borderRadius: 9999, padding: '3px 9px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>✦ para ti</span> : null;
-  // ¿Con cuánto inviertes? — escala la comparativa de instrumentos a SU capital (lineal · honesto).
-  const ci = inv && inv.comparativa_instrumentos;
-  const capCalc = (ci && capital) ? { s: capital / ci.capital,
-    inmueble: Math.round(ci.inmueble_gana * (capital / ci.capital)),
-    cetes: Math.round(ci.cetes_gana * (capital / ci.capital)),
-    bolsa: Math.round(ci.bolsa_gana * (capital / ci.capital)) } : null;
   // Catalizadores de la zona (por qué sube) — derivados de DATO REAL (pipeline de obra, plusvalía, conectividad).
   const catalizadores = (() => {
     if (profile !== 'invertir') return [];
@@ -430,119 +421,8 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── ¿DÓNDE PONGO MI DINERO? · vs instrumentos (data NEUTRA honesta + narrativa persuasiva · gated) ── */}
-        {profile === 'invertir' && inv.comparativa_instrumentos && (() => {
-          const c = inv.comparativa_instrumentos;
-          const cols = [
-            { k: 'cetes', label: 'CETES', emoji: '🏦', pct: c.cetes_pct, gana: c.cetes_gana, nota: `tasa ${c.cetes_tasa_pct}% · Banxico` },
-            { k: 'bolsa', label: 'Bolsa', emoji: '📊', pct: c.bolsa_pct, gana: c.bolsa_gana, nota: `~${c.bolsa_tasa_pct}% · referencia histórica` },
-            { k: 'inmueble', label: 'Inmueble aquí', emoji: '🏠', pct: c.inmueble_pct, gana: c.inmueble_gana, nota: 'renta + plusvalía − costos', hero: true },
-          ];
-          const VENTAJAS = ['Te paga renta cada mes (no al final)', 'Lo tocas, lo rentas, lo heredas', 'Refugio real contra la inflación', 'Apalancamiento: pones poco, controlas mucho', 'Sin los sustos de la bolsa'];
-          return (
-            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-              <div style={eyebrow}>{tc('¿Dónde pongo mi dinero?')}</div>
-              <h2 style={chapTitle}>Tu dinero a 5 años, sin maquillaje<ParaTi tag="vs" /></h2>
-              <p style={lead}>Te mostramos los números reales — incluso cuando no nos favorecen. Mismo capital ({m1(c.capital)}), a 5 años:</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 18 }}>
-                {cols.map((x) => (
-                  <div key={x.k} className="zv2-win" style={{ ...cardBase, padding: '18px 20px', border: x.hero ? '2px solid rgba(124,92,255,0.4)' : cardBase.border }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>{x.emoji} {x.label}</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: x.hero ? '#7C5CFF' : INK, letterSpacing: '-0.03em', marginTop: 5 }}>+{x.pct}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 1 }}>+{m1(x.gana)}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 4 }}>{x.nota}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', marginTop: 16, background: 'linear-gradient(135deg, rgba(124,92,255,0.05), rgba(192,38,211,0.04))' }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK }}>Pero CETES y la bolsa son solo un número en una app.</div>
-                <p style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: MUT, marginTop: 6, lineHeight: 1.55 }}>El inmueble es lo único que, además de rendir, <b>es TUYO de verdad</b>:</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 12 }}>
-                  {VENTAJAS.map((v) => (
-                    <div key={v} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontFamily: 'DM Sans', fontSize: 13, color: '#3A3E55' }}>
-                      <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓</span> {v}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, marginTop: 16 }}>No es dónde rinde más en papel — es dónde construyes <span style={grad}>patrimonio real</span>.</div>
-              </div>
-            </section>
-          );
-        })()}
-
-        {/* ── TABLA COMPARATIVA DE VEHÍCULOS (criterios · tasas junio 2026 · CETES vivo Banxico vía cron) ── */}
-        {profile === 'invertir' && vehiculos.length > 0 && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Comparativa real')}<ParaTi tag="vs" /></div>
-            <h2 style={chapTitle}>Bienes raíces vs todo lo demás</h2>
-            <p style={lead}>Los mismos criterios para cada vehículo, con tasas de hoy (junio 2026 · CETES en vivo de Banxico). Mira dónde gana cada uno:</p>
-            <div style={{ overflowX: 'auto', marginTop: 18, borderRadius: 16, border: '1px solid rgba(16,18,28,0.08)' }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720, fontFamily: 'DM Sans', fontSize: 12.5 }}>
-                <thead>
-                  <tr style={{ background: 'rgba(99,102,241,0.06)' }}>
-                    {['Vehículo', 'Rendimiento/año', 'Riesgo', 'Liquidez', 'Te paga c/mes', 'Apalancable', 'Tangible', 'Protege inflación'].map((h, i) => (
-                      <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '12px 14px', fontWeight: 800, color: '#4B4F66', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(16,18,28,0.1)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {vehiculos.map((v) => {
-                    const hero = v.hero;
-                    const rend = hero ? (inv && inv.roi_anual_pct != null ? `~${inv.roi_anual_pct}%*` : '—') : (v.pct != null ? `${v.pct}%` : '—');
-                    const yes = (b) => b ? <span style={{ color: '#0E9F6E', fontWeight: 800 }}>✓</span> : <span style={{ color: '#C7CAD6' }}>—</span>;
-                    return (
-                      <tr key={v.k} style={{ background: hero ? 'linear-gradient(90deg, rgba(124,92,255,0.08), rgba(192,38,211,0.05))' : '#fff', borderBottom: '1px solid rgba(16,18,28,0.05)' }}>
-                        <td style={{ padding: '12px 14px', textAlign: 'left' }}>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: hero ? '#6D28D9' : INK }}>{v.nombre}</div>
-                          <div style={{ fontSize: 10.5, color: '#A2A6BC' }}>{v.cat}</div>
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: hero ? '#7C5CFF' : INK }}>{rend}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center', color: MUT }}>{v.riesgo}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center', color: MUT }}>{v.liquidez}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.mensual)}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.apalancable)}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>{yes(v.tangible)}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center', fontSize: 11.5, color: MUT }}>{v.inflacion}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>
-              Tasas junio 2026 · CETES en vivo de Banxico (se actualiza solo cada día). Fuentes oficiales: Banxico · cetesdirecto · BMV · GBM · investing.com. Bolsa / FIBRA / Afore = referencia. *Inmueble: rendimiento anual estimado de esta zona (renta + plusvalía); y además, es lo único que controlas, usas y heredas.
-            </div>
-          </section>
-        )}
-
-        {/* ── ¿CON CUÁNTO INVIERTES? (Bloque 3 · recalcula a su capital · escala lineal honesta) ── */}
-        {profile === 'invertir' && ci && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
-            <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px' }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK }}>¿Con cuánto quieres invertir?</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 4 }}>Ponlo y te decimos qué te dejaría aquí en 5 años, lado a lado con el banco y la bolsa.</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
-                {[1000000, 2500000, 5000000, 10000000].map((v) => (
-                  <button key={v} type="button" onClick={() => setCapital(v)} style={{ padding: '9px 15px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, border: capital === v ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: capital === v ? 'rgba(124,92,255,0.1)' : '#fff', color: capital === v ? '#6D28D9' : '#4B4F66' }}>{m1(v)}</button>
-                ))}
-                <span style={{ color: '#A2A6BC', fontSize: 12, fontFamily: 'DM Sans' }}>o</span>
-                <input type="text" inputMode="numeric" placeholder="otro monto $" value={capital ? `$${capital.toLocaleString('es-MX')}` : ''} onChange={(e) => { const n = parseInt(String(e.target.value || '').replace(/\D/g, ''), 10); setCapital(Number.isFinite(n) && n > 0 ? n : null); }} style={{ width: 160, padding: '9px 14px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.25)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: INK, outline: 'none', background: '#fff' }} />
-              </div>
-              {capCalc ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginTop: 16 }}>
-                  {[['🏠 Inmueble aquí', capCalc.inmueble, '#7C5CFF', true], ['🏦 CETES', capCalc.cetes, '#6B6F86', false], ['📊 Bolsa', capCalc.bolsa, '#6B6F86', false]].map(([l, g, c, hero]) => (
-                    <div key={l} style={{ ...cardBase, padding: '14px 16px', border: hero ? '2px solid rgba(124,92,255,0.4)' : cardBase.border }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>{l}</div>
-                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: c, marginTop: 4 }}>+{m1(g)}</div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC' }}>ganancia a 5 años</div>
-                    </div>
-                  ))}
-                </div>
-              ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 14 }}>Elige un monto ↑</div>}
-              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic' }}>estimado · escala del escenario base de la zona · el cálculo a detalle, con tu enganche y crédito, va en la cotización</div>
-            </div>
-          </section>
-        )}
+        {/* (dedup) "¿dónde pongo mi dinero" · "tabla vehículos" · "¿con cuánto inviertes" se movieron a la calculadora
+            (Pentágono de inversiones + vs CETES/Bolsa + dimensionar por capital) — la página no los repite. */}
 
         {/* ── CATALIZADORES (Bloque 4 · por qué sube · DATO REAL: obra, plusvalía, conectividad, demanda) ── */}
         {profile === 'invertir' && catalizadores.length > 0 && (
@@ -584,24 +464,7 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── BLOQUE PROPIO DEL PERFIL (gated por data · solo se ve si hay) ── */}
-        {profile === 'invertir' && inv.escenarios_inv && inv.escenarios_inv.length >= 2 && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Escenarios')}</div>
-            <h2 style={chapTitle}>¿Y si el mercado cambia?</h2>
-            <p style={lead}>No te vendo solo el mejor caso. Esto rinde tu inversión del escenario conservador al optimista — tú decides con los ojos abiertos:</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginTop: 18 }}>
-              {inv.escenarios_inv.map((e, i) => (
-                <div key={e.nombre} className="zv2-win" style={{ ...cardBase, padding: '18px 20px', border: e.nombre === 'Base' ? '2px solid rgba(124,92,255,0.4)' : cardBase.border }}>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>{e.nombre}{e.nombre === 'Base' ? ' · más probable' : ''}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: i === 0 ? '#E0A33E' : i === 2 ? '#0E9F6E' : '#7C5CFF', letterSpacing: '-0.03em', marginTop: 5 }}>+{e.plusvalia_pct}%</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC', marginTop: 2 }}>plusvalía/año{e.tir_pct != null ? ` · TIR ${e.tir_pct}%` : ''}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>estimado por el motor de inversión (escenarios conservador / base / optimista)</div>
-          </section>
-        )}
+        {/* (dedup) "escenarios conservador/base/optimista" se movieron a la calculadora (escenarios + Monte Carlo + sensibilidad). */}
         {/* ── VS LA CIUDAD (Bloque 7 · ¿cara o barata? · dato real agregado) ── */}
         {profile === 'invertir' && inv.vs_ciudad && (() => {
           const p = inv.vs_ciudad.precio_vs_ciudad_pct;
@@ -650,27 +513,7 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── RETORNO NETO DE IMPUESTOS (Bloque 9 · lo que de verdad te queda) ── */}
-        {profile === 'invertir' && inv.impuestos && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Después de impuestos')}</div>
-            <h2 style={chapTitle}>Lo que de verdad te queda</h2>
-            <p style={lead}>El rendimiento bonito siempre es antes de impuestos. Aquí está el real, ya con el ISR de la renta descontado:</p>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18 }}>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 220px' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>Renta neta de ISR</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: '#0E9F6E', marginTop: 4 }}>${inv.impuestos.renta_neta_isr_mes.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 2 }}>ya descontando ~{inv.impuestos.isr_renta_efectivo_pct}% de ISR de arrendamiento.</div>
-              </div>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 220px' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>Cap rate neto de ISR</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: '#7C5CFF', marginTop: 4 }}>{inv.impuestos.cap_rate_neto_isr_pct}%</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 2 }}>lo que rinde la renta ya neta de impuestos.</div>
-              </div>
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>estimado · régimen de arrendamiento con deducción ciega · el ISR de la venta se calcula al cotizar (LISR Art. 126)</div>
-          </section>
-        )}
+        {/* (dedup) "retorno neto de impuestos" se movió a la calculadora (ISR de renta + ISR de venta art.152/RESICO). */}
 
         {profile === 'primera' && rentaMes && mensual80 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
