@@ -786,6 +786,78 @@ export default function ZonePageV2() {
                   {bridge('¿Y les alcanza para su hogar aquí? Veámoslo', true)}
                 </div>
               </section>
+
+              {/* CAP 4 · ¿LES ALCANZA? (claro · herramienta de asequibilidad, misma lógica que primera, marco familia) */}
+              {(() => {
+                const tasa = 0.1145, plazo = 240, dti = 0.30;
+                const ing = Number(pcIngreso) || 0;
+                const pagoMax = Math.round(ing * dti);
+                const ii = tasa / 12;
+                const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + ii, -plazo)) / ii) : 0;
+                const precioMax = prestamoMax + (Number(pcAhorro) || 0);
+                const precioMin = inv && inv.precio_min;
+                const alcanza = precioMin ? precioMax >= precioMin : null;
+                const inputS = { padding: '10px 13px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: INK, outline: 'none', background: '#fff', width: 150 };
+                return (
+                  <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                    <div data-rev style={cont}>
+                      <div style={eyb('#C026D3')}>¿Les alcanza?</div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Pongan sus números.</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Con lo que entra en casa y lo que tienen ahorrado, les decimos para qué alcanza en {name} — y cómo esa mensualidad, en vez de renta, ya construye <b style={{ color: INK }}>su hogar</b>.</p>
+                      <div className="zv2-win" style={{ ...cardBase, padding: '24px 26px', marginTop: 20 }}>
+                        <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                          <div>
+                            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>Ingreso del hogar (al mes)</div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                              {[20000, 30000, 45000, 60000].map((v) => (
+                                <button key={v} type="button" onClick={() => setPcIngreso(v)} style={{ padding: '8px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: pcIngreso === v ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.2)', background: pcIngreso === v ? 'rgba(99,102,241,0.1)' : '#fff', color: pcIngreso === v ? '#4F46E5' : '#4B4F66' }}>${(v / 1000)}k</button>
+                              ))}
+                              <input type="text" inputMode="numeric" value={`$${Number(pcIngreso || 0).toLocaleString('es-MX')}`} onChange={(e) => setPcIngreso(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ ...inputS, width: 120 }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>Lo que tienen ahorrado (enganche)</div>
+                            <input type="text" inputMode="numeric" value={`$${Number(pcAhorro || 0).toLocaleString('es-MX')}`} onChange={(e) => setPcAhorro(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={inputS} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 20 }}>
+                          {[['Les alcanza para', m1(precioMax), '#6366F1', 'precio máximo del hogar'], ['Mensualidad', `$${pagoMax.toLocaleString('es-MX')}`, '#16182A', '~30% del ingreso (sano)'], ['Su enganche', m1(Number(pcAhorro) || 0), '#10B981', 'lo que ya tienen']].map(([l, v, c, sub]) => (
+                            <div key={l} style={{ ...cardBase, padding: '16px 18px' }}>
+                              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86' }}>{l}</div>
+                              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: c, letterSpacing: '-0.02em', marginTop: 3 }}>{v}</div>
+                              <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 2 }}>{sub}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {precioMin != null && (
+                          <div style={{ marginTop: 16, padding: '13px 16px', borderRadius: 12, background: alcanza ? 'rgba(16,185,129,0.08)' : 'rgba(99,102,241,0.07)', fontFamily: 'DM Sans', fontSize: 13.5, color: alcanza ? '#0E7A53' : '#4F46E5', lineHeight: 1.5 }}>
+                            {alcanza
+                              ? <>✓ <b>Sí les alcanza para {name}</b> — desde {m1(precioMin)}. Esa mensualidad, en vez de renta, ya es <b>de ustedes</b>.</>
+                              : <>En {name} arranca desde <b>{m1(precioMin)}</b> y por ahora les alcanza para {m1(precioMax)}. Cerca: súbanle al enganche, consideren <b>Infonavit/Cofinavit</b>, o vean zonas más accesibles para la familia.</>}
+                          </div>
+                        )}
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Estimado · crédito a 20 años, tasa ~11.45%, mensualidad máx 30% del ingreso. Con Infonavit/Cofinavit puede subir — se afina al cotizar.</div>
+                      </div>
+                      {bridge('Si les alcanza, falta lo más importante')}
+                    </div>
+                  </section>
+                );
+              })()}
+
+              {/* CAP 5 · AQUÍ EMPIEZA SU HOGAR (cierre + urgencia · familia) */}
+              <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', bottom: -180, left: -120, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.22), rgba(236,72,153,0) 70%)', pointerEvents: 'none' }} />
+                <div data-rev style={{ maxWidth: 760, margin: '0 auto', padding: '0 28px', textAlign: 'center', position: 'relative' }}>
+                  <div style={eyb('#C4B5FD')}>Su próximo capítulo</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', color: '#fff', margin: '12px 0 0', lineHeight: 1.06 }}>Aquí empieza el hogar<br />de tu familia.</h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.78)', maxWidth: 600, margin: '14px auto 0', lineHeight: 1.6 }}>En {name} dejan de mudarse, los niños crecen en un solo lugar, y cada peso construye lo suyo — no el patrimonio de alguien más.</p>
+                  <div style={{ display: 'inline-block', marginTop: 22, padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: '#FBCFE8' }}>⏳ Los niños crecen rápido y la casa correcta no espera. Cada mes de renta es uno que no vuelve.</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 26 }}>
+                    <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.45)' }}>🏠 Ver las propiedades de {name}</button>
+                    <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 26px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🔔 Avísame de algo para mi familia</button>
+                  </div>
+                </div>
+              </section>
             </>
           );
         })()}
@@ -826,7 +898,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── LA VIDA ALREDEDOR (amenidades de ZONA · Google · no-invertir) ── */}
-        {profile !== 'invertir' && vida && vida.fuente === 'google' && vida.amenidades && (() => {
+        {profile !== 'invertir' && profile !== 'familia' && vida && vida.fuente === 'google' && vida.amenidades && (() => {
           const am = vida.amenidades;
           const shown = CATS_ZONA.filter(([key]) => (am[key] || 0) > 0);
           if (!shown.length) return null;
@@ -938,7 +1010,7 @@ export default function ZonePageV2() {
             </section>
           );
         })()}
-        {(profile === 'familia' || profile === 'vivir') && devAmen.length > 0 && (
+        {profile === 'vivir' && devAmen.length > 0 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
             <div style={eyebrow}>{profile === 'familia' ? tc('Para los tuyos') : tc('A tu nivel')}</div>
             <h2 style={chapTitle}>{profile === 'familia' ? 'Lo que ofrecen los desarrollos aquí' : 'Desarrollos a tu altura'}</h2>
@@ -957,7 +1029,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── CONECTIVIDAD · minutos al metro (no-invertir) ── */}
-        {profile !== 'invertir' && metroData && (
+        {profile !== 'invertir' && profile !== 'familia' && metroData && (
           <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
             <div className="zv2-win" style={{ ...cardBase, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 28 }}>🚇</div>
@@ -976,7 +1048,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── LO MEJOR CERCA (mockup · clickable con reseñas · infra lista para datos reales de Google) ── */}
-        {(profile === 'familia' || profile === 'vivir') && lugaresData && (
+        {profile === 'vivir' && lugaresData && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
             <div style={eyebrow}>{tc('Lo mejor cerca')}</div>
             <h2 style={chapTitle}>{lugaresData.titulo}</h2>
@@ -985,8 +1057,8 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── CÓMO EMPEZAR (crédito · no-invertir · en invertir lo cubre la calculadora) ── */}
-        {profile !== 'invertir' && (
+        {/* ── CÓMO EMPEZAR (crédito · solo vivir/primera · invertir y familia tienen su propia herramienta) ── */}
+        {profile !== 'invertir' && profile !== 'familia' && (
         <section style={{ ...sec, marginTop: 58 }}>
           <div style={eyebrow}>{tc('Cómo empezar')}</div>
           <h2 style={chapTitle}>{S.cobrarTitle}</h2>
@@ -1011,8 +1083,8 @@ export default function ZonePageV2() {
         </section>
         )}
 
-        {/* ── BANDA ATLAX (no-invertir · en invertir el cierre ya tiene "pregúntale a Atlax") ── */}
-        {profile !== 'invertir' && (
+        {/* ── BANDA ATLAX (solo vivir/primera · invertir y familia ya cierran con su CTA) ── */}
+        {profile !== 'invertir' && profile !== 'familia' && (
         <section style={{ ...sec, marginTop: 58 }}>
           <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.06))', textAlign: 'center' }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
@@ -1027,7 +1099,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── NO ERES EL ÚNICO (no-invertir) ── */}
-        {profile !== 'invertir' && (comparables.length > 0 || similar.length > 0) && (
+        {profile !== 'invertir' && profile !== 'familia' && (comparables.length > 0 || similar.length > 0) && (
           <section style={{ ...sec, marginTop: 58 }}>
             <div style={eyebrow}>{tc('No eres el único')}</div>
             <h2 style={chapTitle}>La gente que sabe, está mirando aquí</h2>
@@ -1159,7 +1231,8 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── DA EL PRIMER PASO ── */}
+        {/* ── DA EL PRIMER PASO (no familia · su Cap 5 ya cierra con el CTA a propiedades) ── */}
+        {profile !== 'familia' && (
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
@@ -1172,6 +1245,7 @@ export default function ZonePageV2() {
             <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6366F1', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
           )}
         </section>
+        )}
 
         {/* ── FUENTES ── */}
         <section style={{ ...sec, marginTop: 46 }}>
