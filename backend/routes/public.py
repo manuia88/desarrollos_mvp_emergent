@@ -447,7 +447,15 @@ async def zona_lugares(colonia_id: str, request: Request):
         d = await db.zone_places.find_one(
             {"zone_id": colonia_id}, {"_id": 0, "places": 1, "source": 1})
         if not (d and d.get("places")):
-            return {"ok": True, "lugares": {}}
+            # ON-DEMAND (B): ingesta lazy esta colonia en segundo plano (fail-open · presupuesto compartido · cacheada
+            # para los siguientes). No bloquea: este visit ve vacío, el siguiente ya trae lugares reales.
+            try:
+                import asyncio
+                from google_places_ingest import ingest_one_zone
+                asyncio.create_task(ingest_one_zone(db, colonia_id))
+            except Exception:
+                pass
+            return {"ok": True, "lugares": {}, "cargando": True}
         places = d.get("places")
         out = {"ok": True, "fuente": d.get("source"), "lugares": places}
         # CONECTIVIDAD: minutos caminando a la estación más cercana (haversine · ~75 m/min · aprox · cero API extra).

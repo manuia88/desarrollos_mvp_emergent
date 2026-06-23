@@ -168,6 +168,59 @@ async def ingest_places_batch(db, max_requests: int = 900, only_with_devs: bool 
             "free_tier_enterprise_restante_aprox": max(0, 950 - (used + req_used))}
 
 
+# ── ON-DEMAND (lazy): ingesta UNA colonia la 1ª vez que alguien la visita (cacheada) ──
+# Comparte el contador mensual google_quota.places_used con el lote → entre ambos NUNCA rebasan el free tier.
+_INFLIGHT_ZONES: set = set()          # lock in-proceso: evita doble gasto por visitas concurrentes a la misma zona
+_ENTERPRISE_CAP = 950                 # tope free tier Enterprise (~1,000/mes)
+
+
+async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
+    """Ingesta lazy de UNA colonia (on-demand). Fail-open, idempotente (no re-ingesta si ya está cacheada), con lock
+    in-proceso y presupuesto mensual compartido. Pensada para dispararse fire-and-forget desde GET /lugares."""
+    key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not key or not colonia_id or colonia_id in _INFLIGHT_ZONES:
+        return {"ok": True, "reason": "skip"}
+    try:
+        if await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1}):
+            return {"ok": True, "reason": "already_cached"}
+        col = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "center": 1})
+        center = (col or {}).get("center")
+        if not (isinstance(center, (list, tuple)) and len(center) >= 2):
+            return {"ok": False, "reason": "no_center"}
+        month = _month_tag()
+        q = await db.google_quota.find_one({"month": month}) or {}
+        used = int(q.get("places_used") or 0)
+        cost = len(PLACE_CATEGORIES)
+        if (_ENTERPRISE_CAP - used) < cost:
+            return {"ok": True, "reason": "free_tier_agotado"}
+    except Exception:
+        return {"ok": False, "reason": "precheck_error"}
+    _INFLIGHT_ZONES.add(colonia_id)
+    try:
+        lat, lng = float(center[1]), float(center[0])
+        places: Dict[str, List[Dict[str, Any]]] = {}
+        ok_any, req = False, 0
+        async with httpx.AsyncClient() as client:
+            for our_key, gtype in PLACE_CATEGORIES.items():
+                try:
+                    places[our_key] = await _nearby_places(client, lat, lng, gtype, key)
+                    ok_any = True
+                except Exception:
+                    places[our_key] = []
+                req += 1
+        if ok_any:
+            await db.zone_places.update_one(
+                {"zone_id": colonia_id},
+                {"$set": {"zone_id": colonia_id, "source": "google", "places": places, "radius_m": RADIUS_M,
+                          "last_synced": datetime.now(timezone.utc), "via": "on_demand"}}, upsert=True)
+        await db.google_quota.update_one({"month": month}, {"$inc": {"places_used": req}}, upsert=True)
+        return {"ok": True, "ingested": 1 if ok_any else 0, "requests_used": req}
+    except Exception:
+        return {"ok": False, "reason": "ingest_error"}
+    finally:
+        _INFLIGHT_ZONES.discard(colonia_id)
+
+
 async def ingest_batch(db, max_requests: int = MAX_PER_MONTH) -> Dict[str, Any]:
     """Corre un lote dentro del free-tier del mes. Idempotente + fail-open."""
     key = os.environ.get("GOOGLE_MAPS_API_KEY")

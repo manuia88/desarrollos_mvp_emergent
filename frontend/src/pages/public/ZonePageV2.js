@@ -217,6 +217,10 @@ export default function ZonePageV2() {
     ]).then(([i, l, d, s, v, lg]) => {
       if (!alive) return;
       setInv(i); setLanding(l); setVida(v); setLugares(lg);
+      // on-demand: si la zona se está ingestando en bg (1ª visita), reintenta una vez para que ESTE visitante ya vea los lugares
+      if (lg && lg.cargando) {
+        setTimeout(() => { if (alive) get(`/api/zona/${slug}/lugares`).then((r) => { if (alive && r && r.lugares && Object.keys(r.lugares).length) setLugares(r); }).catch(() => {}); }, 13000);
+      }
       setDevs(Array.isArray(d) ? d : []);
       setSimilar((s && Array.isArray(s.similar)) ? s.similar : []);
       // default = perfil persistido (continuidad entre zonas) || arquetipo de la zona (del dato)
