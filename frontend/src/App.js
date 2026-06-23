@@ -996,7 +996,7 @@ function AppRouter() {
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
       <Route path="/asistente" element={<AsistentePage />} />
       {/* W4.2D2 — Programmatic SEO zone landing */}
-      <Route path="/zona/:slug" element={<ZonePageV2 />} />
+      <Route path="/zona/:slug" element={<ZonaRoute />} />
       {/* W4.2D3 — Programmatic SEO alcaldía + intent landings */}
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
       <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
@@ -1080,6 +1080,28 @@ function LoginRoute() {
 function ColoniaRedirect() {
   const { slug } = useReactRouterParams();
   return <Navigate to={`/zona/${slug}`} replace />;
+}
+
+// URL CANÓNICA por zona: el catálogo oficial (INEGI) parte algunas zonas con id largo + alcaldía. Para las zonas del
+// producto, el canónico es el id CORTO (donde viven inversión + desarrollos + URLs limpias). Redirige el largo → corto
+// → una sola URL por zona (sin contenido duplicado · SEO). Mapa explícito de las colisiones reales.
+const ZONA_ALIAS = {
+  'roma-norte-cuauhtemoc': 'roma-norte',
+  'roma-sur-cuauhtemoc': 'roma-sur',
+  'condesa-cuauhtemoc': 'condesa',
+  'juarez-cuauhtemoc': 'juarez',
+  'cuauhtemoc-cuauhtemoc': 'cuauhtemoc',
+  'del-valle-centro-benito-juarez': 'del-valle-centro',
+  'napoles-benito-juarez': 'napoles',
+  'anzures-miguel-hidalgo': 'anzures',
+  'doctores-cuauhtemoc': 'doctores',
+};
+function ZonaRoute() {
+  const { slug } = useReactRouterParams();
+  const location = useLocation();
+  const canonical = ZONA_ALIAS[slug];
+  if (canonical && canonical !== slug) return <Navigate to={`/zona/${canonical}${location.search}`} replace />;
+  return <ZonePageV2 />;
 }
 
 function MarketplaceRoute() {
