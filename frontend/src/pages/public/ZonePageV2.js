@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
-import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
 import InversionV4Calculator from '../../components/investment/InversionV4Calculator';
 import ZonaPropiedades from '../../components/zona/ZonaPropiedades';
@@ -354,7 +353,7 @@ export default function ZonePageV2() {
         {/* ───── TAB BAR · Propiedades | Conoce la zona (URL ?ver=) ───── */}
         <div style={{ ...sec, marginTop: 4 }}>
           <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 4 }}>
-            {[['propiedades', '🏠 Propiedades'], ['zona', '📖 Conoce la zona']].map(([v, l]) => (
+            {[['propiedades', `🏠 Propiedades${devs.length ? ` (${devs.length}${devs.length >= 12 ? '+' : ''})` : ''}`], ['zona', '📖 Conoce la zona']].map(([v, l]) => (
               <button key={v} type="button" onClick={() => setVer(v)} style={{ padding: '9px 20px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: ver === v ? '#fff' : 'transparent', color: ver === v ? '#6D28D9' : '#6B6F86', boxShadow: ver === v ? '0 2px 8px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>
             ))}
           </div>
@@ -363,7 +362,7 @@ export default function ZonePageV2() {
         {/* ───── TAB · PROPIEDADES (marketplace colonia-scoped · montado-oculto) ───── */}
         {visited.propiedades && (
           <div style={{ display: ver === 'propiedades' ? 'block' : 'none' }}>
-            <ZonaPropiedades colonia={slug} colonias={[]} profile={profile} />
+            <ZonaPropiedades colonia={slug} colonias={[]} profile={profile} zonaName={name} onVerZona={() => setVer('zona')} />
           </div>
         )}
 
@@ -771,9 +770,9 @@ export default function ZonePageV2() {
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
           <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : profile === 'invertir' ? `Hasta aquí, los números de la zona. Elige un desarrollo para cotizarlo con los números REALES de esa unidad — tu enganche, tu crédito, tu rendimiento — y compararlo contra el promedio de ${name}.` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
           {sortedDevs.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
-              {sortedDevs.map((d, i) => <DevelopmentCard key={d.id} dev={d} index={i} />)}
-            </div>
+            <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '16px 28px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.34)' }}>
+              🏠 Ver las {devs.length}{devs.length >= 12 ? '+' : ''} propiedades de {name} →
+            </button>
           ) : (
             <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6D4AFF', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
           )}

@@ -8,7 +8,7 @@ import { fetchDevelopments } from '../../api/marketplace';
 
 const PAGE_SIZE = 24;
 
-export default function ZonaPropiedades({ colonia, colonias = [], profile }) {
+export default function ZonaPropiedades({ colonia, colonias = [], profile, zonaName, onVerZona }) {
   const [filters, setFilters] = useState({});
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
@@ -67,6 +67,11 @@ export default function ZonaPropiedades({ colonia, colonias = [], profile }) {
   return (
     <div>
       <div style={{ ...sec, marginTop: 18 }}>
+        {onVerZona && (
+          <button type="button" onClick={onVerZona} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 14, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(99,102,241,0.25)', background: 'linear-gradient(135deg, rgba(124,92,255,0.06), rgba(192,38,211,0.04))', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+            📖 ¿Por qué {zonaName || 'esta zona'}? Conócela a fondo →
+          </button>
+        )}
         <TopFilters colonias={colonias} filters={filters} setFilters={setFilters} sort={sort} setSort={setSort}
           onAIQuery={() => {}} aiLoading={false} aiFilters={null} onAIClear={() => {}} />
         <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#8A8FA6', marginTop: 12, fontWeight: 600 }}>
