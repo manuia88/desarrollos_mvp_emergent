@@ -27,6 +27,27 @@ def _month_tag() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m")
 
 
+async def _zone_center(db, colonia_id: str):
+    """(lat, lng) del centro de una colonia. Resuelve el choque de 2 sistemas de id: prueba el catálogo db.colonias
+    (ids largos con alcaldía) y, si no está, el SEED COLONIAS_BY_ID (ids cortos · inversión/destacados). center=[lng,lat].
+    Así el lifestyle funciona con cualquiera de los dos ids."""
+    try:
+        col = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "center": 1})
+        ctr = (col or {}).get("center")
+        if isinstance(ctr, (list, tuple)) and len(ctr) >= 2:
+            return float(ctr[1]), float(ctr[0])
+    except Exception:
+        pass
+    try:
+        from data_seed import COLONIAS_BY_ID
+        ctr = (COLONIAS_BY_ID.get(colonia_id) or {}).get("center")
+        if isinstance(ctr, (list, tuple)) and len(ctr) >= 2:
+            return float(ctr[1]), float(ctr[0])
+    except Exception:
+        pass
+    return None
+
+
 async def _nearby_count(client: httpx.AsyncClient, lat: float, lng: float, gtype: str, key: str) -> int:
     """1 consulta a Places searchNearby (fieldmask mínimo = solo ids, lo más barato). Devuelve el conteo (0-20)."""
     body = {
@@ -183,9 +204,8 @@ async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
     try:
         if await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1}):
             return {"ok": True, "reason": "already_cached"}
-        col = await db.colonias.find_one({"id": colonia_id}, {"_id": 0, "center": 1})
-        center = (col or {}).get("center")
-        if not (isinstance(center, (list, tuple)) and len(center) >= 2):
+        ctr = await _zone_center(db, colonia_id)   # catálogo (id largo) o SEED (id corto) — resuelve el choque de ids
+        if not ctr:
             return {"ok": False, "reason": "no_center"}
         month = _month_tag()
         q = await db.google_quota.find_one({"month": month}) or {}
@@ -197,7 +217,7 @@ async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
         return {"ok": False, "reason": "precheck_error"}
     _INFLIGHT_ZONES.add(colonia_id)
     try:
-        lat, lng = float(center[1]), float(center[0])
+        lat, lng = ctr
         places: Dict[str, List[Dict[str, Any]]] = {}
         ok_any, req = False, 0
         async with httpx.AsyncClient() as client:
