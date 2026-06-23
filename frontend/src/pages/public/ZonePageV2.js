@@ -251,6 +251,9 @@ export default function ZonePageV2() {
     if ((a.escuela || 0) >= 12) chips.push(['🎓', 'Muchas escuelas']);
     return chips.slice(0, 4);
   })();
+  // Mi primera casa · "¿cuánto me alcanza?" — ingreso del hogar + ahorro → precio máximo (DTI 30%, crédito 20 años)
+  const [pcIngreso, setPcIngreso] = useState(30000);
+  const [pcAhorro, setPcAhorro] = useState(300000);
   // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
   const rentaMes = inv && inv.renta_prom;
   const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
@@ -584,6 +587,60 @@ export default function ZonePageV2() {
             </div>
           </section>
         )}
+        {/* ── ¿CUÁNTO TE ALCANZA? (herramienta propia de "Mi primera casa") ── */}
+        {profile === 'primera' && (() => {
+          const tasa = 0.1145, plazo = 240, dti = 0.30;
+          const ing = Number(pcIngreso) || 0;
+          const pagoMax = Math.round(ing * dti);
+          const i = tasa / 12;
+          const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + i, -plazo)) / i) : 0;
+          const precioMax = prestamoMax + (Number(pcAhorro) || 0);
+          const precioMin = inv && inv.precio_min;
+          const alcanza = precioMin ? precioMax >= precioMin : null;
+          const lbl = { fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 };
+          const inputS = { padding: '10px 13px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: INK, outline: 'none', background: '#fff', width: 150 };
+          return (
+            <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
+              <div style={eyebrow}>{tc('¿Cuánto te alcanza?')}</div>
+              <h2 style={chapTitle}>Pon tus números — te decimos para qué te alcanza</h2>
+              <p style={lead}>Con el ingreso de tu hogar y lo que tienes ahorrado, calculamos tu precio máximo y tu mensualidad — y si te alcanza para {name}.</p>
+              <div className="zv2-win" style={{ ...cardBase, padding: '24px 26px', marginTop: 18 }}>
+                <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div>
+                    <div style={lbl}>Ingreso del hogar (al mes)</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {[20000, 30000, 45000, 60000].map((v) => (
+                        <button key={v} type="button" onClick={() => setPcIngreso(v)} style={{ padding: '8px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: pcIngreso === v ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: pcIngreso === v ? 'rgba(124,92,255,0.1)' : '#fff', color: pcIngreso === v ? '#6D28D9' : '#4B4F66' }}>${(v / 1000)}k</button>
+                      ))}
+                      <input type="text" inputMode="numeric" value={`$${Number(pcIngreso || 0).toLocaleString('es-MX')}`} onChange={(e) => setPcIngreso(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ ...inputS, width: 120 }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={lbl}>Lo que tienes ahorrado (enganche)</div>
+                    <input type="text" inputMode="numeric" value={`$${Number(pcAhorro || 0).toLocaleString('es-MX')}`} onChange={(e) => setPcAhorro(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={inputS} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 20 }}>
+                  {[['Te alcanza para', m1(precioMax), '#7C5CFF', 'precio máximo de la casa'], ['Mensualidad', `$${pagoMax.toLocaleString('es-MX')}`, '#16182A', '~30% de tu ingreso (sano)'], ['Tu enganche', m1(Number(pcAhorro) || 0), '#0E9F6E', 'lo que ya tienes']].map(([l, v, c, sub]) => (
+                    <div key={l} style={{ ...cardBase, padding: '16px 18px' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86' }}>{l}</div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: c, letterSpacing: '-0.02em', marginTop: 3 }}>{v}</div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 2 }}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+                {precioMin != null && (
+                  <div style={{ marginTop: 16, padding: '13px 16px', borderRadius: 12, background: alcanza ? 'rgba(14,159,110,0.08)' : 'rgba(224,163,62,0.1)', fontFamily: 'DM Sans', fontSize: 13.5, color: alcanza ? '#0E7A53' : '#8A6A1E', lineHeight: 1.5 }}>
+                    {alcanza
+                      ? <>✓ <b>Sí te alcanza para {name}</b> — desde {m1(precioMin)}. Tu mensualidad (~${pagoMax.toLocaleString('es-MX')}) en vez de renta ya construye <b>tu patrimonio</b>.</>
+                      : <>En {name} arranca desde <b>{m1(precioMin)}</b> y por ahora te alcanza para {m1(precioMax)}. Cerca: súbele al enganche, considera <b>Infonavit/Cofinavit</b> (amplía el monto), o mira zonas más accesibles.</>}
+                  </div>
+                )}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Estimado · crédito a 20 años, tasa ~11.45%, mensualidad máx 30% del ingreso (regla sana). Con Infonavit/Cofinavit el monto puede subir — se afina al cotizar con tus datos.</div>
+              </div>
+            </section>
+          );
+        })()}
         {(profile === 'familia' || profile === 'vivir') && devAmen.length > 0 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
             <div style={eyebrow}>{profile === 'familia' ? tc('Para los tuyos') : tc('A tu nivel')}</div>
