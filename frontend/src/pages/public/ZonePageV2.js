@@ -9,6 +9,7 @@ import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
 import SaveSearchModal from '../../components/marketplace/SaveSearchModal';
 import InversionV4Calculator from '../../components/investment/InversionV4Calculator';
+import ZonaPropiedades from '../../components/zona/ZonaPropiedades';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
 
@@ -146,6 +147,9 @@ export default function ZonePageV2() {
   // TAB de la página unificada · 'propiedades' | 'zona' (Conoce la zona). Default 'zona' por ahora (Propiedades = Fase 3).
   const ver = searchParams.get('ver') === 'propiedades' ? 'propiedades' : 'zona';
   const setVer = (v) => { const n = new URLSearchParams(searchParams); if (v === 'zona') n.delete('ver'); else n.set('ver', v); setSearchParams(n); };
+  // tabs montados-ocultos: una vez visitado un tab, queda vivo (no se pierde estado: filtros, scroll). Lazy la 1ª vez.
+  const [visited, setVisited] = useState({ zona: true });
+  useEffect(() => { setVisited((s) => (s[ver] ? s : { ...s, [ver]: true })); }, [ver]);
   const [inv, setInv] = useState(null);
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
@@ -356,13 +360,15 @@ export default function ZonePageV2() {
           </div>
         </div>
 
-        {/* ───── TAB · PROPIEDADES (stub · lo construye la Fase 3) ───── */}
-        {ver === 'propiedades' && (
-          <section style={{ ...sec, marginTop: 24 }}><div style={{ ...cardBase, padding: 32, textAlign: 'center', color: '#6B6F86', fontFamily: 'DM Sans' }}>🏠 Las propiedades de {name} se mostrarán aquí <span style={{ color: '#A2A6BC' }}>(en construcción · Fase 3)</span>. Mientras, <button type="button" onClick={() => setVer('zona')} style={{ background: 'none', border: 'none', color: '#6D28D9', fontWeight: 800, cursor: 'pointer', font: 'inherit' }}>Conoce la zona →</button></div></section>
+        {/* ───── TAB · PROPIEDADES (marketplace colonia-scoped · montado-oculto) ───── */}
+        {visited.propiedades && (
+          <div style={{ display: ver === 'propiedades' ? 'block' : 'none' }}>
+            <ZonaPropiedades colonia={slug} colonias={[]} profile={profile} />
+          </div>
         )}
 
-        {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques) ───── */}
-        {ver === 'zona' && (<>
+        {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques · montado-oculto) ───── */}
+        {visited.zona && (<div style={{ display: ver === 'zona' ? 'block' : 'none' }}>
         {S && (
           <section style={{ ...sec, marginTop: 24 }}>
             <div key={profile} className="zv2-up" style={{ maxWidth: 760 }}>
@@ -782,7 +788,7 @@ export default function ZonePageV2() {
         </section>
         </div>
         )}
-        </>)}
+        </div>)}
       </div>
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
       <AtlaxBubble theme="light" />
