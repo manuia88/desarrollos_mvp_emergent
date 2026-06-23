@@ -543,28 +543,7 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── RIESGOS DE FRENTE (Bloque 8 · nombrarlos = confianza = conversión · Hormozi) ── */}
-        {profile === 'invertir' && inv && inv.precio_prom && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Sin letras chiquitas')}</div>
-            <h2 style={chapTitle}>Los riesgos, de frente<ParaTi tag="riesgos" /></h2>
-            <p style={lead}>Ningún portal te los dice. Nosotros sí — porque confiar es la base de invertir bien:</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 18 }}>
-              {[
-                ['💧', 'Liquidez', 'Un inmueble no se vende en un día como un CETES. Plan: horizonte de 3-5 años mínimo.'],
-                ['🏠', 'Vacancia', `Puede haber meses sin rentar. Por eso miramos la demanda real${inv.demanda_zona ? ` (${inv.demanda_zona.busquedas} búsquedas aquí)` : ''}.`],
-                ['📉', 'El mercado se mueve', 'Los precios pueden bajar a corto plazo. El escenario conservador ya lo contempla.'],
-                ['🏦', 'Las tasas', 'Si financias, la tasa pesa. Hoy está alta; cuando baje, tu rendimiento mejora.'],
-              ].map(([e, t, d]) => (
-                <div key={t} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 20 }}>{e}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: INK, marginTop: 4 }}>{t}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 3, lineHeight: 1.5 }}>{d}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* (reorden espina) "Los riesgos, de frente" se movió DESPUÉS de la calculadora (objeciones antes del cierre · Hormozi) */}
 
         {/* (dedup) "retorno neto de impuestos" se movió a la calculadora (ISR de renta + ISR de venta art.152/RESICO). */}
 
@@ -742,28 +721,7 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── EL VEREDICTO + REGISTRO AGÉNTICO (Bloque 13 · cierra el embudo · Vigila/casamentera) ── */}
-        {profile === 'invertir' && inv && inv.precio_prom && (() => {
-          const v = ({
-            renta: ['Para rentar, aquí hay flujo y demanda.', `${name} se renta porque hay quién la busque, y deja renta neta de ISR cada mes. Si buscas ingreso pasivo, esta zona te lo da.`],
-            plusvalia: ['Para plusvalía, la zona ya trae inercia.', `${name} sube de precio y tiene obra nueva empujando. Si buscas ganancia de capital, el momento es bueno.`],
-            refugio: ['Como refugio, protege tu dinero.', `${name} es un activo real que la inflación no se come, que controlas y heredas — la tranquilidad que CETES no te da.`],
-          })[lens] || ['Una inversión sólida, sin humo.', `${name} combina renta, plusvalía y un activo tangible. No es lo que más rinde en papel: es donde construyes patrimonio real.`];
-          return (
-            <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
-              <div className="zv2-win" style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.07), rgba(192,38,211,0.05))', textAlign: 'center' }}>
-                <div style={eyebrow}>{tc('El veredicto')}</div>
-                <h2 style={{ ...chapTitle, marginTop: 6 }}>{v[0]}</h2>
-                <p style={{ ...lead, maxWidth: 640, margin: '10px auto 0' }}>{v[1]}</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 22 }}>
-                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
-                  <button type="button" onClick={() => askAtlax(`Quiero invertir en ${name}. ¿Por dónde empiezo según mi objetivo (${lensCfg ? lensCfg.label : 'inversión'})?`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.8)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
-                </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 14, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>Déjanos tu objetivo y nuestro asistente vigila {name} por ti — cuando entre algo que encaje con lo que buscas, te lo traemos primero.</div>
-              </div>
-            </section>
-          );
-        })()}
+        {/* (reorden espina) El VEREDICTO se movió DESPUÉS de la calculadora + riesgos (el cierre va al final del arco) */}
 
         {/* ── CALCULADORA INTERACTIVA (Bloque 12 · proyecto → unidad → desglose completo · reusa InvestmentSimulator) ── */}
         {profile === 'invertir' && sortedDevs.length > 0 && (
@@ -826,6 +784,52 @@ export default function ZonePageV2() {
             )}
           </section>
         )}
+
+        {/* ── RIESGOS DE FRENTE (objeciones · DESPUÉS de la herramienta, antes del cierre · Hormozi) ── */}
+        {profile === 'invertir' && inv && inv.precio_prom && (
+          <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
+            <div style={eyebrow}>{tc('Sin letras chiquitas')}</div>
+            <h2 style={chapTitle}>Los riesgos, de frente<ParaTi tag="riesgos" /></h2>
+            <p style={lead}>Ningún portal te los dice. Nosotros sí — porque confiar es la base de invertir bien:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 18 }}>
+              {[
+                ['💧', 'Liquidez', 'Un inmueble no se vende en un día como un CETES. Plan: horizonte de 3-5 años mínimo.'],
+                ['🏠', 'Vacancia', `Puede haber meses sin rentar. Por eso miramos la demanda real${inv.demanda_zona ? ` (${inv.demanda_zona.busquedas} búsquedas aquí)` : ''}.`],
+                ['📉', 'El mercado se mueve', 'Los precios pueden bajar a corto plazo. El escenario conservador ya lo contempla.'],
+                ['🏦', 'Las tasas', 'Si financias, la tasa pesa. Hoy está alta; cuando baje, tu rendimiento mejora.'],
+              ].map(([e, t, d]) => (
+                <div key={t} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                  <div style={{ fontSize: 20 }}>{e}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: INK, marginTop: 4 }}>{t}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 3, lineHeight: 1.5 }}>{d}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── EL VEREDICTO + REGISTRO AGÉNTICO (cierre del embudo · Vigila/casamentera) ── */}
+        {profile === 'invertir' && inv && inv.precio_prom && (() => {
+          const v = ({
+            renta: ['Para rentar, aquí hay flujo y demanda.', `${name} se renta porque hay quién la busque, y deja renta neta de ISR cada mes. Si buscas ingreso pasivo, esta zona te lo da.`],
+            plusvalia: ['Para plusvalía, la zona ya trae inercia.', `${name} sube de precio y tiene obra nueva empujando. Si buscas ganancia de capital, el momento es bueno.`],
+            refugio: ['Como refugio, protege tu dinero.', `${name} es un activo real que la inflación no se come, que controlas y heredas — la tranquilidad que CETES no te da.`],
+          })[lens] || ['Una inversión sólida, sin humo.', `${name} combina renta, plusvalía y un activo tangible. No es lo que más rinde en papel: es donde construyes patrimonio real.`];
+          return (
+            <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
+              <div className="zv2-win" style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.07), rgba(192,38,211,0.05))', textAlign: 'center' }}>
+                <div style={eyebrow}>{tc('El veredicto')}</div>
+                <h2 style={{ ...chapTitle, marginTop: 6 }}>{v[0]}</h2>
+                <p style={{ ...lead, maxWidth: 640, margin: '10px auto 0' }}>{v[1]}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 22 }}>
+                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
+                  <button type="button" onClick={() => askAtlax(`Quiero invertir en ${name}. ¿Por dónde empiezo según mi objetivo (${lensCfg ? lensCfg.label : 'inversión'})?`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.8)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 14, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>Déjanos tu objetivo y nuestro asistente vigila {name} por ti — cuando entre algo que encaje con lo que buscas, te lo traemos primero.</div>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ── DA EL PRIMER PASO ── */}
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
