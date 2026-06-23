@@ -329,9 +329,9 @@ export default function ZonePageV2() {
   // Mi primera casa · "¿cuánto me alcanza?" — ingreso del hogar + ahorro → precio máximo (DTI 30%, crédito 20 años)
   const [pcIngreso, setPcIngreso] = useState(30000);
   const [pcAhorro, setPcAhorro] = useState(300000);
+  const [rentaUser, setRentaUser] = useState(null);   // "mi primera casa": renta actual del cliente para el comparador rentar-vs-comprar
   // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
   const rentaMes = inv && inv.renta_prom;
-  const mensual80 = inv && inv.credito && inv.credito.escenarios && inv.credito.escenarios[2] ? inv.credito.escenarios[2].pago : null;
   // Lente del inversionista (los 7 avatares → 3 puertas) + helper "para ti" que resalta el bloque del avatar elegido.
   const lensCfg = LENSES.find((l) => l.k === lens) || null;
   const paraTi = (tag) => !!(lensCfg && lensCfg.tags.includes(tag));
@@ -903,25 +903,45 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {profile === 'primera' && rentaMes && mensual80 && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Rentar vs comprar')}</div>
-            <h2 style={chapTitle}>La renta se va. Tu mensualidad se queda.</h2>
-            <p style={lead}>Mira la diferencia real entre seguir rentando y empezar a construir lo tuyo en {name}:</p>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18 }}>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #DC2626' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🏚️ Si rentas aquí</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#DC2626', letterSpacing: '-0.03em', marginTop: 5 }}>${rentaMes.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>En 5 años: ~{m1(rentaMes * 60)} que se van y nunca vuelven.</div>
+        {profile === 'primera' && tieneMercado && rentaMes && (() => {
+          const renta = Number(rentaUser) || rentaMes;
+          const meses = 60;
+          const rentaTirada = renta * meses;
+          const precio = inv.precio_min || inv.precio_prom;
+          const plus = (inv.plusvalia_anual_pct || 0) / 100;
+          const valor5 = Math.round(precio * Math.pow(1 + plus, 5));
+          const ganada = valor5 - precio;
+          return (
+            <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+              <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Rentar vs comprar</div>
+                <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿A dónde se va tu renta?</h2>
+                <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Pon lo que pagas de renta hoy y mira la diferencia, en 5 años, entre seguirla pagando y empezar lo tuyo en {name}:</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 18 }}>
+                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#6B6F86' }}>Mi renta hoy:</span>
+                  {[8000, 12000, 18000, 25000].map((v) => (
+                    <button key={v} type="button" onClick={() => setRentaUser(v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: renta === v ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.2)', background: renta === v ? 'rgba(99,102,241,0.1)' : '#fff', color: renta === v ? '#4F46E5' : '#4B4F66' }}>${(v / 1000)}k</button>
+                  ))}
+                  <input type="text" inputMode="numeric" value={`$${Math.round(renta).toLocaleString('es-MX')}`} onChange={(e) => setRentaUser(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: INK, outline: 'none', background: '#fff', width: 110 }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 22 }}>
+                  <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px', borderTop: '3px solid #DC2626' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🏚️ Si sigues rentando 5 años</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,5vw,40px)', color: '#DC2626', letterSpacing: '-0.03em', marginTop: 6 }}>−{m1(rentaTirada)}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Eso le pagas a tu casero. Al final de los 5 años, te quedas con <b style={{ color: '#DC2626' }}>cero</b> — ni un metro es tuyo.</div>
+                  </div>
+                  <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px', borderTop: '3px solid #10B981' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🔑 Si compras lo tuyo</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,5vw,40px)', color: '#10B981', letterSpacing: '-0.03em', marginTop: 6 }}>+{m1(valor5)}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Una propiedad desde {m1(precio)} que en 5 años vale <b style={{ color: '#0E7A53' }}>{m1(valor5)}</b> (+{m1(ganada)} de plusvalía) — y es <b>tuya</b>, no del casero.</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 16, padding: '14px 18px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(236,72,153,0.05))', fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,16px)', color: INK, lineHeight: 1.55 }}>La misma plata que hoy se va en renta, mañana es <b>tu patrimonio</b>. La diferencia en 5 años: <b style={{ color: '#0E7A53' }}>~{m1(rentaTirada + ganada)}</b> a tu favor.</div>
+                <div style={{ marginTop: 30, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>Y comprar tu primera es más alcanzable de lo que crees <span style={{ fontSize: 17, fontStyle: 'normal', color: '#EC4899' }}>↓</span></div>
               </div>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #10B981' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🔑 Si compras (80% crédito)</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#10B981', letterSpacing: '-0.03em', marginTop: 5 }}>${mensual80.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>Cada pago es TUYO — y el depto sube de valor mientras lo habitas.</div>
-              </div>
-            </div>
-          </section>
-        )}
+            </section>
+          );
+        })()}
         {/* ── ¿CUÁNTO TE ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) ── */}
         {profile === 'primera' && tieneMercado && (
           <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural={false} />
