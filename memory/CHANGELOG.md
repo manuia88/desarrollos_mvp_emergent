@@ -1,6 +1,26 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Calculadora de Inversión v4 (grado institucional) — 2026-06-22 · branch `dev-redesign-tandas`
+
+📊 **Calculadora de inversión nivel fondo en la página de zona** (`/zona/{slug}` → Invertir). "Pro por dentro, simple por fuera". Doc canónico: `memory/CALCULADORA_V4_PROGRESO.md`. Investigación verificada: `memory/INSTITUTIONAL_METRICS_RESEARCH.md` (auto-memoria).
+
+### Construido
+- **Flow correcto:** tipo (Para ti/Institucional) → desarrollo → unidad(es) en UN solo selector (Para ti=1, Institucional=1+). En institucional con 2+ unidades, TODO calcula sobre el portafolio combinado.
+- **Núcleo:** TIR (apal/desapal)/MIRR/VPN/cap rate/NOI/DSCR/equity multiple/payback · crédito amortización real · largo vs Airbnb (AirROI real) · pentágono de inversiones + radar · mejor año de salida por retorno marginal (Geltner & Miller).
+- **Nivel fondo:** escenarios + sensibilidad 2D (heatmap) + Monte Carlo + pro-forma CSV + supuestos editables + due diligence (descomposición NCREIF / spread CETES / yield-on-cost / préstamo máx DSCR / estabilización) + modo portafolio.
+- **Reporte institucional/internacional (INREV/NCREIF):** TWR sin apalancar + TWR por horizonte 1/3/5/10 + SI-IRR + PIC/TVPI/DPI/RVPI + TGER.
+- **Riesgo físico:** PML sísmico (SEL + SUL/PML90, marco ASTM E2557/E2026) con zona sísmica oficial CDMX por colonia.
+- **Feeds conectados:** Atlas de Riesgos CDMX (`/api/superadmin/atlas-riesgo/ingest`) · Índice SHF 1T 2026 (`/api/superadmin/shf/refresh` · nacional 8.7% / Valle de México 5.1%) · absorción (`absorcion_engine`).
+- **Multitenant/analíticas:** lead rutea por desarrollo + fallback a pool DMX (política `LEAD_REGISTRATION_RULES`) · log anónimo de simulaciones → `/api/inversion-v4/analytics` (demanda revelada superadmin).
+
+### Verificación
+11 tests verdes + 41 invariantes financieras + verificación en app (localhost:3000) de cada bloque. Portafolio validado por dos caminos independientes (cap/NOI/DSCR idénticos).
+
+### Prod
+Correr una vez tras deploy: `POST /api/superadmin/atlas-riesgo/ingest` y `/api/superadmin/shf/refresh` (header `x-cron-token`).
+
+
 ## QA & Security Hardening · Módulo Asesor — 2026-06-01
 
 🛡️ **Auditoría de producción (5 rondas) + reparación end-to-end + QA exhaustivo.**

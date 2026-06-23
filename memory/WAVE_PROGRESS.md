@@ -2,6 +2,22 @@
 
 ---
 
+## 📊 CALCULADORA DE INVERSIÓN v4 · GRADO INSTITUCIONAL (2026-06-22 · branch `dev-redesign-tandas`)
+Calculadora de inversión nivel fondo en `/zona/{slug}` → Invertir. "Pro por dentro, simple por fuera". Doc canónico: **`memory/CALCULADORA_V4_PROGRESO.md`** (checklist completo) + **`memory/INSTITUTIONAL_METRICS_RESEARCH.md`** (deep research verificado, en auto-memoria).
+
+| Pieza | Qué hace | Estado |
+|---|---|---|
+| **Flow** | tipo (Para ti/Institucional) → desarrollo → unidad(es) en UN solo selector · institucional 1+ → portafolio combinado | ✅ |
+| **Núcleo deal** | TIR/MIRR/VPN/cap rate/NOI/DSCR/equity multiple/payback · crédito real · largo vs Airbnb (AirROI) · pentágono+radar · salida por retorno marginal | ✅ |
+| **Nivel fondo** | escenarios + sensibilidad 2D + Monte Carlo + pro-forma CSV + supuestos editables + due diligence + modo portafolio | ✅ |
+| **Reporte INREV/NCREIF** | TWR sin apal + TWR x horizonte 1/3/5/10 + SI-IRR + PIC/TVPI/DPI/RVPI + TGER | ✅ |
+| **Riesgo físico** | PML sísmico (SEL/SUL/PML90 · ASTM E2557/E2026) con zona sísmica oficial CDMX por colonia | ✅ |
+| **Feeds** | Atlas Riesgos CDMX (`/atlas-riesgo/ingest`) · Índice SHF 1T2026 (`/shf/refresh` · CDMX 5.1%/nacional 8.7%) · absorción | ✅ dev · ⏳ correr ingest en prod |
+| **Multitenant/analíticas** | lead por desarrollo + pool DMX (política) · log anónimo → `/analytics` demanda revelada superadmin | ✅ |
+| **Verificación** | 11 tests + 41 invariantes + verificado en app · portafolio validado por 2 caminos | ✅ |
+
+---
+
 ## 🎨 FASE F6 · REDISEÑO PÚBLICO + INTEGRACIÓN AGÉNTICA (2026-06-17 · branch `dev-redesign-tandas`)
 Rediseño del marketplace/mapa público (estilo nistora, claro) + cableado de los "cables muertos" entre portales + features agénticas build-for-endstate. Doc canónico: **`memory/UPGRADES_ADICIONALES_2026-06-16.md`** + **`memory/INTEGRACION_MAPA_2026-06-16.md`** (en auto-memoria).
 
