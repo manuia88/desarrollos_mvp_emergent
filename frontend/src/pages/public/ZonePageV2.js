@@ -39,49 +39,7 @@ const LENSES = [
   { k: 'refugio', e: '🛡️', label: 'Proteger mi dinero', intro: 'Te enfocamos en seguridad: vs CETES/bolsa, refugio de inflación y los riesgos sin maquillaje.', tags: ['vs', 'riesgos'] },
 ];
 // MOCKUP "Lugares destacados" — infra lista; se reemplaza por zone_places reales (Google) cuando se active la zona.
-const SAMPLE_LUGARES = {
-  familia: { titulo: 'Las mejores escuelas cerca', items: [
-    { name: 'Colegio Williams', rating: 4.8, reviews: 1240, meta: 'Bilingüe · a 6 min', desc: '"Excelente nivel académico y trato cercano." De las mejor valoradas de la zona.' },
-    { name: 'Liceo Mexicano Japonés', rating: 4.6, reviews: 890, meta: 'a 8 min', desc: '"Disciplina, valores e instalaciones top."' },
-    { name: 'Instituto Montessori', rating: 4.7, reviews: 430, meta: 'Preescolar · a 5 min', desc: '"Ideal para los más chicos, mucho cuidado."' },
-  ] },
-  vivir: { titulo: 'Lo mejor para comer y vivir', items: [
-    { name: 'Pujol', rating: 4.7, reviews: 12400, meta: '$$$$ · a 7 min', desc: '"Cocina mexicana de autor, experiencia de otro nivel." Top mundial.' },
-    { name: 'Quintonil', rating: 4.7, reviews: 6800, meta: '$$$$ · a 9 min', desc: '"De los mejores de Latinoamérica."' },
-    { name: 'Café Nin', rating: 4.6, reviews: 5200, meta: 'Café · a 4 min', desc: '"Brunch perfecto, pan increíble."' },
-  ] },
-};
-function LugaresPreview({ data, isReal }) {
-  const [open, setOpen] = useState(-1);
-  if (!data) return null;
-  return (
-    <div style={{ marginTop: 18 }}>
-      {data.items.map((p, i) => (
-        <div key={p.name} className="zv2-win" style={{ background: '#fff', border: '1px solid rgba(16,18,28,0.07)', borderRadius: 16, boxShadow: '0 8px 22px rgba(99,102,241,0.06)', padding: '14px 18px', marginBottom: 10, cursor: 'pointer' }} onClick={() => setOpen(open === i ? -1 : i)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK }}>{p.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
-              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#10B981' }}>★ {p.rating}</span>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>({p.reviews.toLocaleString('es-MX')})</span>
-              <span style={{ color: '#6366F1', fontWeight: 800, fontFamily: 'Outfit' }}>{open === i ? '−' : '+'}</span>
-            </div>
-          </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 2 }}>{p.meta}</div>
-          {open === i && (
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
-              {p.desc && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, lineHeight: 1.5 }}>{p.desc}</div>}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: p.desc ? 10 : 0 }}>
-                <button type="button" onClick={(e) => { e.stopPropagation(); askAtlax(`Cuéntame más de ${p.name} y opciones parecidas cerca.`); }} style={{ border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
-                {p.maps_uri && <a href={p.maps_uri} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ background: 'rgba(16,18,28,0.05)', color: INK, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', textDecoration: 'none' }}>Ver reseñas en Google →</a>}
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 4, fontStyle: 'italic' }}>{isReal ? 'lugares y calificaciones reales de Google Places' : 'vista previa · se llena con reseñas reales de Google cuando se active la zona'}</div>
-    </div>
-  );
-}
+// (rebuild) SAMPLE_LUGARES + LugaresPreview retirados: el lifestyle real (Google Places) vive en el Cap 3 de cada arco.
 // Amenidades de la ZONA (alrededor · Google Places). key → emoji+label. Tope 20/categoría → se muestra "20+".
 const CATS_ZONA = [
   ['restaurante', '🍴', 'restaurantes'], ['cafe', '☕', 'cafés'], ['escuela', '🏫', 'escuelas'],
@@ -273,7 +231,7 @@ export default function ZonePageV2() {
   const noEncontrada = !loading && !esReal;                 // ni en SEED ni en catálogo → slug inválido
   const descubrimiento = esReal && !tieneMercado;           // colonia real del catálogo, aún sin precios/desarrollos
   const zScores = (landing && landing.scores_reales) || null;
-  const arcRebuilt = profile === 'invertir' || profile === 'familia' || profile === 'primera';  // perfiles con arco nuevo → ocultan los bloques viejos (solo 'vivir' los conserva por ahora)
+  const arcRebuilt = profile === 'invertir' || profile === 'familia' || profile === 'primera' || profile === 'vivir';  // los 4 perfiles con arco nuevo → ocultan los bloques viejos
   const alcaldia = landing && landing.alcaldia;
   const tier = landing && landing.tier;
   const comparables = (landing && landing.comparable_zones) || [];
@@ -292,20 +250,8 @@ export default function ZonePageV2() {
     return Object.entries(c).filter(([s]) => AMEN_DEV[s]).sort((a, b) => b[1] - a[1]).slice(0, 8);
   })();
   // Lugares destacados: data REAL de Google (zone_places) si existe → cae al SAMPLE (vista previa) si no.
-  const PRICE_TXT = { PRICE_LEVEL_INEXPENSIVE: '$', PRICE_LEVEL_MODERATE: '$$', PRICE_LEVEL_EXPENSIVE: '$$$', PRICE_LEVEL_VERY_EXPENSIVE: '$$$$' };
-  const realLugares = (() => {
-    if (!lugares || !lugares.lugares) return null;
-    const catFor = profile === 'familia' ? 'escuela' : 'restaurante';
-    const items = (lugares.lugares[catFor] || []).filter((p) => p.name && p.rating).slice(0, 5).map((p) => ({
-      name: p.name, rating: p.rating, reviews: p.reviews || 0,
-      meta: [PRICE_TXT[p.price_level], `${p.reviews || 0} reseñas`].filter(Boolean).join(' · '),
-      maps_uri: p.maps_uri,
-    }));
-    if (!items.length) return null;
-    return { titulo: profile === 'familia' ? 'Las mejores escuelas cerca' : 'Lo mejor para comer y vivir', items };
-  })();
-  const lugaresData = realLugares || (SAMPLE_LUGARES[profile] || null);
-  const lugaresEsReal = !!realLugares;
+  // (rebuild) La maquinaria vieja de "lugares preview" (realLugares/lugaresData/LugaresPreview/SAMPLE_LUGARES) se retiró:
+  // el lifestyle real (lugares.lugares de Google Places) ahora vive dentro del Cap 3 de cada arco de perfil.
   // Conectividad: minutos caminando al metro (real de /lugares · cae a vista previa si no hay)
   const metroReal = lugares && lugares.metro ? lugares.metro : null;
   const metroData = metroReal || { nombre: 'Metro Insurgentes', min_caminando: 6 };
@@ -1113,23 +1059,124 @@ export default function ZonePageV2() {
             </div>
           </section>
         )}
-        {profile === 'vivir' && devAmen.length > 0 && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{profile === 'familia' ? tc('Para los tuyos') : tc('A tu nivel')}</div>
-            <h2 style={chapTitle}>{profile === 'familia' ? 'Lo que ofrecen los desarrollos aquí' : 'Desarrollos a tu altura'}</h2>
-            <p style={lead}>{profile === 'familia' ? `No solo cuatro paredes: los proyectos en ${name} vienen con amenidades pensadas para la familia.` : `Vivir bien empieza en casa. Esto es lo que ofrecen los desarrollos de ${name}.`}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginTop: 18 }}>
-              {devAmen.map(([s, count]) => (
-                <div key={s} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 22 }}>{AMEN_DEV[s][0]}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, marginTop: 4 }}>{AMEN_DEV[s][1]}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC', marginTop: 1 }}>en {count} {count === 1 ? 'desarrollo' : 'desarrollos'}</div>
+        {/* ════════ ARCO VIVIR MEJOR (mismo sistema · aspiracional: la vida que mereces) ════════ */}
+        {profile === 'vivir' && S && tieneMercado && (() => {
+          const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
+          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
+          const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
+          const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
+          const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
+          const img = (i) => (realFotos.length > i ? realFotos[i] : STOCK[i % STOCK.length]);
+          const VIV = {
+            premium: { t: <>A la altura de<br />donde llegaste.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> es de las direcciones que dicen algo de ti: servicios, prestigio y una vida cuidada al detalle. Donde mereces estar.</> },
+            clasica: { t: <>Una zona con alma,<br />para vivir bien.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> tiene ese equilibrio difícil: tranquila pero viva, con todo cerca y carácter propio. Se vive a gusto y se presume.</> },
+            emergente: { t: <>Lo nuevo y con onda,<br />antes que nadie.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> es donde está pasando: lugares con energía fresca y vida nueva. Vivir aquí es estar en el momento.</> },
+            momentum: { t: <>Una zona que sube,<br />y tú con ella.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> está en su mejor momento: cada vez con más vida y mejores lugares. Vives bien hoy y aún mejor mañana.</> },
+          };
+          const vv = VIV[zoneArchetype(inv)] || VIV.clasica;
+          return (
+            <>
+              {/* CAP 1 · HERO (oscuro + foto · trabajaste para llegar aquí → vive donde mereces) */}
+              <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div data-rev style={{ ...cont, position: 'relative' }}>
+                  <div style={eyb('#A5B4FC')}>Vivir mejor · {name} · {aq.etiqueta}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
+                    Trabajaste para llegar aquí.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.42)' }}>No tiene por qué notarse menos.</span><br />
+                    Vive donde <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>mereces</span>.
+                  </h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 580, marginTop: 22, lineHeight: 1.55 }}>Tu casa dice quién eres. En {name}, una propiedad <b style={{ color: '#fff' }}>a la altura de la vida que construiste</b> — con todo lo que importa a la mano.</p>
+                  {bridge('¿Por qué aquí? Déjame mostrarte', true)}
                 </div>
-              ))}
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>amenidades reales de los desarrollos en la zona</div>
-          </section>
-        )}
+              </section>
+
+              {/* CAP 2 · POR QUÉ AQUÍ (claro · archetype vivir) */}
+              <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                <div data-rev style={cont}>
+                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
+                    <div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{vv.t}</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 540, marginTop: 16, lineHeight: 1.6 }}>{vv.c(name)}</p>
+                    </div>
+                    <div className="zv2-imgz" style={{ borderRadius: 18, boxShadow: '0 18px 40px rgba(16,18,28,0.14)' }}>
+                      <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
+                    </div>
+                  </div>
+                  {bridge('Lo que tienes a la puerta')}
+                </div>
+              </section>
+
+              {/* CAP 3 · LIFESTYLE REAL (lo mejor de la zona · Google Places) */}
+              {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
+                const cats = [['🍴', 'restaurante', 'Dónde comer'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🛒', 'supermercado', 'El súper'], ['🏥', 'hospital', 'Salud'], ['🚇', 'transporte', 'Transporte']]
+                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
+                if (!cats.length) return null;
+                return (
+                  <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                    <div data-rev style={cont}>
+                      <div style={eyb('#C026D3')}>A la puerta</div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Lo bueno, a la vuelta.</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo mejor de {name}, con calificación real — toca cualquiera para verlo en el mapa:</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
+                        {cats.map(([ic, l, arr]) => (
+                          <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
+                            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {arr.map((p) => (
+                                <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
+                                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                                  {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
+                    </div>
+                  </section>
+                );
+              })()}
+
+              {/* CAP 4 · A TU ALTURA (amenidades reales de los desarrollos · oscuro) */}
+              {devAmen.length > 0 && (
+                <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+                  <div data-rev style={cont}>
+                    <div style={eyb('#A5B4FC')}>A tu altura</div>
+                    <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Lo que te espera<br />en casa.</h2>
+                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.7)', maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Los desarrollos de {name} no son cuatro paredes — vienen con todo para vivir como mereces:</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 24 }}>
+                      {devAmen.map(([s, count]) => (
+                        <div key={s} className="zv2-glow" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '18px 18px' }}>
+                          <div style={{ fontSize: 24 }}>{AMEN_DEV[s][0]}</div>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5, color: '#fff', marginTop: 8 }}>{AMEN_DEV[s][1]}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>en {count} {count === 1 ? 'desarrollo' : 'desarrollos'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* CAP 5 · TU SIGUIENTE NIVEL (cierre · vivir) */}
+              <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', bottom: -180, left: -120, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.22), rgba(236,72,153,0) 70%)', pointerEvents: 'none' }} />
+                <div data-rev style={{ maxWidth: 760, margin: '0 auto', padding: '0 28px', textAlign: 'center', position: 'relative' }}>
+                  <div style={eyb('#C4B5FD')}>Tu siguiente nivel</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', color: '#fff', margin: '12px 0 0' }}>La vida que mereces<br />empieza aquí.</h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.78)', maxWidth: 600, margin: '14px auto 0', lineHeight: 1.6 }}>En {name} no solo tienes dónde vivir — tienes cómo vivir. A la altura de lo que construiste.</p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 26 }}>
+                    <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.45)' }}>🏠 Ver las propiedades de {name}</button>
+                    <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 26px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🔔 Avísame de algo a mi altura</button>
+                  </div>
+                </div>
+              </section>
+            </>
+          );
+        })()}
 
         {/* ── CONECTIVIDAD · minutos al metro (no-invertir) ── */}
         {!arcRebuilt && metroData && (
@@ -1150,15 +1197,7 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── LO MEJOR CERCA (mockup · clickable con reseñas · infra lista para datos reales de Google) ── */}
-        {profile === 'vivir' && lugaresData && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
-            <div style={eyebrow}>{tc('Lo mejor cerca')}</div>
-            <h2 style={chapTitle}>{lugaresData.titulo}</h2>
-            <p style={lead}>{profile === 'familia' ? 'Toca cada lugar para ver reseñas, calificación y a cuántos minutos está de aquí.' : 'Los favoritos de la zona, con calificación real. Toca cualquiera para ver más.'}</p>
-            <LugaresPreview data={lugaresData} isReal={lugaresEsReal} />
-          </section>
-        )}
+        {/* (rebuild) "Lo mejor cerca" se fundió en el Cap 3 (lifestyle real de Google Places) de los arcos de cada perfil. */}
 
         {/* ── CÓMO EMPEZAR (crédito · solo vivir/primera · invertir y familia tienen su propia herramienta) ── */}
         {!arcRebuilt && (
@@ -1334,8 +1373,8 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── DA EL PRIMER PASO (solo invertir/vivir · familia y primera cierran con su propio CTA) ── */}
-        {profile !== 'familia' && profile !== 'primera' && (
+        {/* ── DA EL PRIMER PASO (solo invertir · su embudo a propiedades tras el veredicto · los demás cierran en su arco) ── */}
+        {profile === 'invertir' && (
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
