@@ -21,10 +21,10 @@ const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:
 const INK = '#16182A';
 const MUT = '#5B5F76';
 const cardBase = { background: '#fff', border: '1px solid rgba(16,18,28,0.07)', borderRadius: 22, boxShadow: '0 18px 50px rgba(99,102,241,0.08), 0 2px 8px rgba(16,18,28,0.04)' };
-const eyebrow = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, background: 'linear-gradient(90deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+const eyebrow = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, background: 'linear-gradient(90deg,#6366F1,#4F46E5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 const chapTitle = { fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(25px,3.4vw,36px)', color: INK, letterSpacing: '-0.025em', margin: '8px 0 0', lineHeight: 1.1 };
 const lead = { fontFamily: 'DM Sans', fontSize: 16, color: MUT, lineHeight: 1.6, marginTop: 12, maxWidth: 640 };
-const grad = { background: 'linear-gradient(120deg,#6D4AFF,#C026D3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+const grad = { background: 'linear-gradient(120deg,#6366F1,#4F46E5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 
 const PROFILES = [
   { k: 'invertir', label: 'Invertir', e: '📈', promise: 'Tu dinero, trabajando' },
@@ -61,9 +61,9 @@ function LugaresPreview({ data, isReal }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK }}>{p.name}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
-              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#0E9F6E' }}>★ {p.rating}</span>
+              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: '#10B981' }}>★ {p.rating}</span>
               <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>({p.reviews.toLocaleString('es-MX')})</span>
-              <span style={{ color: '#6D4AFF', fontWeight: 800, fontFamily: 'Outfit' }}>{open === i ? '−' : '+'}</span>
+              <span style={{ color: '#6366F1', fontWeight: 800, fontFamily: 'Outfit' }}>{open === i ? '−' : '+'}</span>
             </div>
           </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 2 }}>{p.meta}</div>
@@ -71,7 +71,7 @@ function LugaresPreview({ data, isReal }) {
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
               {p.desc && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, lineHeight: 1.5 }}>{p.desc}</div>}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: p.desc ? 10 : 0 }}>
-                <button type="button" onClick={(e) => { e.stopPropagation(); askAtlax(`Cuéntame más de ${p.name} y opciones parecidas cerca.`); }} style={{ border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6D4AFF', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); askAtlax(`Cuéntame más de ${p.name} y opciones parecidas cerca.`); }} style={{ border: 'none', background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
                 {p.maps_uri && <a href={p.maps_uri} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ background: 'rgba(16,18,28,0.05)', color: INK, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, borderRadius: 9999, padding: '7px 14px', textDecoration: 'none' }}>Ver reseñas en Google →</a>}
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function ZonePageV2() {
   // Lente del inversionista (los 7 avatares → 3 puertas) + helper "para ti" que resalta el bloque del avatar elegido.
   const lensCfg = LENSES.find((l) => l.k === lens) || null;
   const paraTi = (tag) => !!(lensCfg && lensCfg.tags.includes(tag));
-  const ParaTi = ({ tag }) => paraTi(tag) ? <span style={{ marginLeft: 8, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5, color: '#6D28D9', background: 'rgba(124,92,255,0.12)', borderRadius: 9999, padding: '3px 9px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>✦ para ti</span> : null;
+  const ParaTi = ({ tag }) => paraTi(tag) ? <span style={{ marginLeft: 8, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10.5, color: '#4F46E5', background: 'rgba(124,92,255,0.12)', borderRadius: 9999, padding: '3px 9px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>✦ para ti</span> : null;
   // Catalizadores de la zona (por qué sube) — derivados de DATO REAL (pipeline de obra, plusvalía, conectividad).
   const catalizadores = (() => {
     if (profile !== 'invertir') return [];
@@ -372,7 +372,7 @@ export default function ZonePageV2() {
                     const on = p.k === profile;
                     return (
                       <button key={p.k} type="button" onClick={() => pickProfile(p.k)} className="zv2-tab"
-                        style={{ padding: '15px 18px', borderRadius: 16, border: `1.5px solid ${on ? 'transparent' : 'rgba(16,18,28,0.12)'}`, background: on ? 'linear-gradient(135deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : INK, boxShadow: on ? '0 12px 28px rgba(124,92,255,0.3)' : '0 6px 18px rgba(16,18,28,0.05)' }}>
+                        style={{ padding: '15px 18px', borderRadius: 16, border: `1.5px solid ${on ? 'transparent' : 'rgba(16,18,28,0.12)'}`, background: on ? 'linear-gradient(135deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : INK, boxShadow: on ? '0 12px 28px rgba(124,92,255,0.3)' : '0 6px 18px rgba(16,18,28,0.05)' }}>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15 }}>{p.e} {p.label}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 12, marginTop: 3, color: on ? 'rgba(255,255,255,0.9)' : '#8A8FA6' }}>{p.promise}</div>
                       </button>
@@ -389,7 +389,7 @@ export default function ZonePageV2() {
         <div style={{ ...sec, marginTop: 4 }}>
           <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 4 }}>
             {[['propiedades', `🏠 Propiedades${devs.length ? ` (${devs.length}${devs.length >= 12 ? '+' : ''})` : ''}`], ['zona', '📖 Conoce la zona']].map(([v, l]) => (
-              <button key={v} type="button" onClick={() => setVer(v)} style={{ padding: '9px 20px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: ver === v ? '#fff' : 'transparent', color: ver === v ? '#6D28D9' : '#6B6F86', boxShadow: ver === v ? '0 2px 8px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>
+              <button key={v} type="button" onClick={() => setVer(v)} style={{ padding: '9px 20px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: ver === v ? '#fff' : 'transparent', color: ver === v ? '#4F46E5' : '#6B6F86', boxShadow: ver === v ? '0 2px 8px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>
             ))}
           </div>
         </div>
@@ -410,8 +410,8 @@ export default function ZonePageV2() {
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
               <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
-                <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
+                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
+                <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
               </div>
             </div>
           </section>
@@ -438,17 +438,17 @@ export default function ZonePageV2() {
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
           const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
-          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.8)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#C4B5FD' : '#7C5CFF' }}>↓</span></div>);
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.8)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#A5B4FC' : '#6366F1' }}>↓</span></div>);
           return (
             <>
               {/* ─── CAP 1 · EL HÉROE Y SU ERROR (oscuro + imagen · conectar → nombrar el error → el giro) ─── */}
-              <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
+              <section style={{ width: '100%', background: `linear-gradient(102deg, #0A0C24 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
                 <div data-rev style={{ ...cont, position: 'relative' }}>
-                  <div style={eyb('#9D8BFF')}>Invertir · {name}</div>
+                  <div style={eyb('#A5B4FC')}>Invertir · {name}</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
                     Trabajaste años por ese dinero.<br />
                     <span style={{ color: 'rgba(255,255,255,0.42)' }}>Guardado en el banco, rinde para ellos.</span><br />
-                    Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
+                    Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#818CF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
                   </h2>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 560, marginTop: 22, lineHeight: 1.55 }}>Una propiedad en {name} toma lo que tanto te costó juntar y lo vuelve algo que <b style={{ color: '#fff' }}>crece solo</b>, te da <b style={{ color: '#fff' }}>ingresos cada mes</b> y <b style={{ color: '#fff' }}>siempre será tuyo</b>.</p>
                   {bridge('Déjame mostrarte por qué aquí', true)}
@@ -458,7 +458,7 @@ export default function ZonePageV2() {
               {/* ─── CAP 2 · LA OPORTUNIDAD (claro · por qué este lugar protege y crece · gráfica + imagen · pocos números) ─── */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#7C5CFF')}>Por qué aquí</div>
+                  <div style={eyb('#6366F1')}>Por qué aquí</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Hay lugares que la gente<br />nunca deja de querer.</h2>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>{name} es uno de ellos. Y cuando un lugar siempre tiene quién lo busque, lo que tienes ahí <b style={{ color: INK }}>no se devalúa</b> — al contrario: vale un poco más cada año, tranquilo y constante. No es suerte. Es lo que pasa aquí.</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,0.85fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 34 }}>
@@ -470,8 +470,8 @@ export default function ZonePageV2() {
                           const h = 36 + (p.v / vmax) * 64;
                           return (
                             <div key={p.y} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(10px,1.4vw,13px)', color: last ? '#0B8C5E' : '#B7BAC8', marginBottom: 6, visibility: show ? 'visible' : 'hidden' }}>{m1c(p.v)}</div>
-                              <div className="zv2-bar" style={{ width: '100%', maxWidth: 64, height: `${h}%`, borderRadius: '9px 9px 0 0', background: last ? 'linear-gradient(180deg,#10B981,#0B8C5E)' : 'linear-gradient(180deg,#D7F2E5,#B3E6CD)', transitionDelay: `${0.12 + i * 0.08}s` }} />
+                              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(10px,1.4vw,13px)', color: last ? '#059669' : '#B7BAC8', marginBottom: 6, visibility: show ? 'visible' : 'hidden' }}>{m1c(p.v)}</div>
+                              <div className="zv2-bar" style={{ width: '100%', maxWidth: 64, height: `${h}%`, borderRadius: '9px 9px 0 0', background: last ? 'linear-gradient(180deg,#10B981,#059669)' : 'linear-gradient(180deg,#D1FAE5,#A7F3D0)', transitionDelay: `${0.12 + i * 0.08}s` }} />
                               <div style={{ fontFamily: 'DM Sans', fontSize: 'clamp(9px,1.3vw,11px)', color: '#A2A6BC', marginTop: 8, fontWeight: 600 }}>{p.y === 0 ? 'Hoy' : p.y === 5 ? '+5 años' : ''}</div>
                             </div>
                           );
@@ -488,9 +488,9 @@ export default function ZonePageV2() {
               </section>
 
               {/* ─── CAP 3 · LOS BENEFICIOS (oscuro · lo que GANAS, sin números · imagen) ─── */}
-              <section style={{ width: '100%', background: `linear-gradient(180deg,#15132E,#0C0B1E)`, color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+              <section style={{ width: '100%', background: `linear-gradient(180deg,#0E1230,#0A0C24)`, color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#9D8BFF')}>Lo que ganas</div>
+                  <div style={eyb('#A5B4FC')}>Lo que ganas</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Tres cosas que el banco<br />nunca podrá darte.</h2>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, marginTop: 32 }}>
                     {[
@@ -515,7 +515,7 @@ export default function ZonePageV2() {
               {/* ─── CAP 4 · LA PRUEBA REAL (claro · datos ESPECÍFICOS de esta colonia — personalización real, no seed genérico) ─── */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#7C5CFF')}>No es promesa, es {name}</div>
+                  <div style={eyb('#6366F1')}>No es promesa, es {name}</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Por qué aquí, y no<br />en cualquier lado.</h2>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>Cada zona tiene su propia historia. Estas son las fuerzas reales que sostienen el valor de {name} — y que la hacen distinta a las demás:</p>
                   {catalizadores.length > 0 && (
@@ -534,7 +534,7 @@ export default function ZonePageV2() {
                   )}
                   {inv.vs_ciudad && (() => {
                     const p = inv.vs_ciudad.precio_vs_ciudad_pct; const caro = p >= 0;
-                    return (<p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 14, lineHeight: 1.6 }}>{caro ? <>Aquí cada metro vale más que el promedio de la ciudad — y lo vale: es zona consolidada, con valor estable y demanda que no falla.</> : <>Y todavía estás a tiempo: aquí entrar cuesta <b style={{ color: '#0B8C5E' }}>menos que el promedio de la ciudad</b>, con todo el recorrido de crecimiento por delante.</>}</p>);
+                    return (<p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 14, lineHeight: 1.6 }}>{caro ? <>Aquí cada metro vale más que el promedio de la ciudad — y lo vale: es zona consolidada, con valor estable y demanda que no falla.</> : <>Y todavía estás a tiempo: aquí entrar cuesta <b style={{ color: '#059669' }}>menos que el promedio de la ciudad</b>, con todo el recorrido de crecimiento por delante.</>}</p>);
                   })()}
                   {bridge('Ya viste por qué. Ahora veamos qué tan tuyo puede ser')}
                 </div>
@@ -556,17 +556,17 @@ export default function ZonePageV2() {
           <p style={lead}>{S.stackIntro}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 22 }}>
             {[
-              { n: 1, h: 'Sube de valor — solo.', big: `+${plus}%`, c: '#0E9F6E',
+              { n: 1, h: 'Sube de valor — solo.', big: `+${plus}%`, c: '#10B981',
                 copy: <>Cada año tu propiedad vale más. Un depto de {m1(inv.precio_prom)} se aprecia <b>~{k(inv.plusvalia_anual_abs || 0)} al año</b> <Q t="Plusvalía estimada por el motor según el tier y la tendencia de la zona — no es una medición de transacciones históricas." /> — sin que muevas un dedo.</> },
-              { n: 2, h: 'Y te paga mientras la tienes.', big: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : '—', c: '#C026D3',
+              { n: 2, h: 'Y te paga mientras la tienes.', big: inv.cap_rate_anual_pct != null ? `${inv.cap_rate_anual_pct}%` : '—', c: '#4F46E5',
                 copy: <>Si la rentas, podría dejarte <b>~${(inv.renta_prom || 0).toLocaleString('es-MX')}/mes</b>. Un cap rate de {inv.cap_rate_anual_pct}% <Q t="Cap rate: lo que rinde la propiedad por su renta (NOI ÷ precio), sin importar cómo la pagues. Estimado por el yield de la zona; no incluye la plusvalía." /> — lo que rinde cada año solo por rentarla.</> },
-              { n: 3, h: 'En 5 años, esto es tuyo.', big: `+${inv.ganancia_5y_pct}%`, c: '#0E9F6E',
+              { n: 3, h: 'En 5 años, esto es tuyo.', big: `+${inv.ganancia_5y_pct}%`, c: '#10B981',
                 copy: <>Si vendes a los 5 años, recuperas tu dinero <b>+ ~{m1(inv.ganancia_5y_abs)}</b> de ganancia. Tu rendimiento real al año: <b>{inv.tir_anual_pct}%</b> <Q t="TIR: tu rendimiento real por año, contando rentas + venta y ajustado al tiempo." />.</> },
             ].map((w) => (
               <div key={w.n} className="zv2-win" style={{ ...cardBase, padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 320px', minWidth: 260 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13 }}>{w.n}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13 }}>{w.n}</span>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: INK }}>{w.h}</span>
                   </div>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, marginTop: 8, lineHeight: 1.55 }}>{w.copy}</div>
@@ -629,9 +629,9 @@ export default function ZonePageV2() {
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#DC2626', letterSpacing: '-0.03em', marginTop: 5 }}>${rentaMes.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>En 5 años: ~{m1(rentaMes * 60)} que se van y nunca vuelven.</div>
               </div>
-              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #0E9F6E' }}>
+              <div className="zv2-win" style={{ ...cardBase, padding: '20px 24px', flex: '1 1 240px', borderTop: '3px solid #10B981' }}>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🔑 Si compras (80% crédito)</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#0E9F6E', letterSpacing: '-0.03em', marginTop: 5 }}>${mensual80.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#10B981', letterSpacing: '-0.03em', marginTop: 5 }}>${mensual80.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: '#A2A6BC' }}>/mes</span></div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 6 }}>Cada pago es TUYO — y el depto sube de valor mientras lo habitas.</div>
               </div>
             </div>
@@ -660,7 +660,7 @@ export default function ZonePageV2() {
                     <div style={lbl}>Ingreso del hogar (al mes)</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                       {[20000, 30000, 45000, 60000].map((v) => (
-                        <button key={v} type="button" onClick={() => setPcIngreso(v)} style={{ padding: '8px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: pcIngreso === v ? '1.5px solid #7C5CFF' : '1px solid rgba(99,102,241,0.2)', background: pcIngreso === v ? 'rgba(124,92,255,0.1)' : '#fff', color: pcIngreso === v ? '#6D28D9' : '#4B4F66' }}>${(v / 1000)}k</button>
+                        <button key={v} type="button" onClick={() => setPcIngreso(v)} style={{ padding: '8px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: pcIngreso === v ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.2)', background: pcIngreso === v ? 'rgba(124,92,255,0.1)' : '#fff', color: pcIngreso === v ? '#4F46E5' : '#4B4F66' }}>${(v / 1000)}k</button>
                       ))}
                       <input type="text" inputMode="numeric" value={`$${Number(pcIngreso || 0).toLocaleString('es-MX')}`} onChange={(e) => setPcIngreso(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ ...inputS, width: 120 }} />
                     </div>
@@ -671,7 +671,7 @@ export default function ZonePageV2() {
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginTop: 20 }}>
-                  {[['Te alcanza para', m1(precioMax), '#7C5CFF', 'precio máximo de la casa'], ['Mensualidad', `$${pagoMax.toLocaleString('es-MX')}`, '#16182A', '~30% de tu ingreso (sano)'], ['Tu enganche', m1(Number(pcAhorro) || 0), '#0E9F6E', 'lo que ya tienes']].map(([l, v, c, sub]) => (
+                  {[['Te alcanza para', m1(precioMax), '#6366F1', 'precio máximo de la casa'], ['Mensualidad', `$${pagoMax.toLocaleString('es-MX')}`, '#16182A', '~30% de tu ingreso (sano)'], ['Tu enganche', m1(Number(pcAhorro) || 0), '#10B981', 'lo que ya tienes']].map(([l, v, c, sub]) => (
                     <div key={l} style={{ ...cardBase, padding: '16px 18px' }}>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86' }}>{l}</div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: c, letterSpacing: '-0.02em', marginTop: 3 }}>{v}</div>
@@ -755,7 +755,7 @@ export default function ZonePageV2() {
                   <span style={{ flex: '0 0 92px', fontWeight: 800, color: INK }}>{e.aforo}% a crédito</span>
                   <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.enganche)}</span>
                   <span style={{ flex: 1, textAlign: 'right', color: '#4B4F66' }}>{m1(e.prestamo)}</span>
-                  <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#0E9F6E' }}>{k(e.pago)}</span>
+                  <span style={{ flex: 1, textAlign: 'right', fontWeight: 800, color: '#10B981' }}>{k(e.pago)}</span>
                 </div>
               ))}
               <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#A2A6BC', marginTop: 10, fontStyle: 'italic' }}>Informativo. Con más enganche, menos crédito y menos pagas al mes. Tu tasa y pago reales los define el banco según tu perfil.</div>
@@ -789,7 +789,7 @@ export default function ZonePageV2() {
               {(comparables.length ? comparables : similar).slice(0, 5).map((z) => (
                 <Link key={z.slug || z.id} to={`/zona/${z.slug || z.id}`} className="zv2-zlink" style={{ textDecoration: 'none', ...cardBase, padding: '14px 20px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: INK }}>{z.name || tc((z.slug || z.id || '').replace(/-/g, ' '))}</span>
-                  <span style={{ color: '#6D4AFF', fontWeight: 800 }}>→</span>
+                  <span style={{ color: '#6366F1', fontWeight: 800 }}>→</span>
                 </Link>
               ))}
             </div>
@@ -815,7 +815,7 @@ export default function ZonePageV2() {
               <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1 · ¿Para ti o institucional?</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
                 {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => { const on = calcMode === v; return (
-                  <button key={v} className="zv2-dev" type="button" onClick={() => { setCalcMode(v); setCalcUnit(null); setCalcSelUnits([]); }} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>
+                  <button key={v} className="zv2-dev" type="button" onClick={() => { setCalcMode(v); setCalcUnit(null); setCalcSelUnits([]); }} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>
                     <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l}</div>
                     <div style={{ fontSize: 10.5, fontWeight: 600, opacity: on ? 0.85 : 0.65, marginTop: 1 }}>{d}</div>
                   </button>
@@ -827,7 +827,7 @@ export default function ZonePageV2() {
               <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige el desarrollo</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
                 {sortedDevs.map((d) => { const on = calcDev === d.id; return (
-                  <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6D4AFF,#C026D3)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
+                  <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(124,92,255,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
                 ); })}
               </div>
             </div>
@@ -838,17 +838,17 @@ export default function ZonePageV2() {
                 {calcUnits.length > 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: 9, marginTop: 12 }}>
                     {calcUnits.slice(0, 18).map((u) => { const on = calcMode === 'institucional' ? calcSelUnits.some((x) => x.id === u.id) : (calcUnit && calcUnit.id === u.id); const toggle = () => (calcMode === 'institucional' ? setCalcSelUnits((s) => s.some((x) => x.id === u.id) ? s.filter((x) => x.id !== u.id) : [...s, u]) : setCalcUnit(u)); const precio = u.price_display || `$${Math.round(u.price).toLocaleString('es-MX')}`; const m2 = u.m2_total || u.m2_privative; const banos = u.bathrooms || u.banos || u.banos_completos; const estac = u.parking_spots ?? u.parking ?? u.estacionamientos; const pm2 = m2 && u.price ? Math.round(u.price / m2) : null; return (
-                      <button key={u.id} className="zv2-unit" type="button" onClick={toggle} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #7C5CFF' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 8px 20px rgba(124,92,255,.18)' : '0 2px 8px rgba(16,18,28,.05)' }}>
-                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#7C5CFF', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: on ? '#6D28D9' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
+                      <button key={u.id} className="zv2-unit" type="button" onClick={toggle} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid #6366F1' : '1px solid rgba(16,18,28,0.09)', background: on ? 'linear-gradient(180deg, rgba(124,92,255,0.10), #fff 70%)' : '#fff', boxShadow: on ? '0 8px 20px rgba(124,92,255,.18)' : '0 2px 8px rgba(16,18,28,.05)' }}>
+                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#6366F1', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: on ? '#4F46E5' : INK }}>{u.unit_number || u.prototype || 'Unidad'}</div>
                         <div style={{ fontSize: 10, color: '#8A8FA6', marginTop: 2, lineHeight: 1.5 }}>{m2}m² · {u.bedrooms || '—'} rec{banos ? ` · ${banos} baño` : ''}{estac != null && estac !== '' ? ` · ${estac} est` : ''}</div>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#0E9F6E', marginTop: 6 }}>{precio}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#10B981', marginTop: 6 }}>{precio}</div>
                         {pm2 ? <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 1 }}>${pm2.toLocaleString('es-MX')}/m²</div> : null}
                       </button>
                     ); })}
                   </div>
                 ) : <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#A2A6BC', marginTop: 10 }}>Cargando unidades…</div>}
-                {calcMode === 'institucional' && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: calcSelUnits.length >= 1 ? '#6D28D9' : '#A2A6BC', marginTop: 10, fontWeight: 700 }}>{calcSelUnits.length >= 1 ? `✓ ${calcSelUnits.length} ${calcSelUnits.length === 1 ? 'unidad elegida' : 'unidades elegidas'}` : 'Elige 1 o más unidades (un fondo también puede comprar una).'}</div>}
+                {calcMode === 'institucional' && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: calcSelUnits.length >= 1 ? '#4F46E5' : '#A2A6BC', marginTop: 10, fontWeight: 700 }}>{calcSelUnits.length >= 1 ? `✓ ${calcSelUnits.length} ${calcSelUnits.length === 1 ? 'unidad elegida' : 'unidades elegidas'}` : 'Elige 1 o más unidades (un fondo también puede comprar una).'}</div>}
               </div>
             )}
             {/* MOUNT · individual con 1 unidad, o institucional con 1+ */}
@@ -862,9 +862,9 @@ export default function ZonePageV2() {
 
         {/* ── CAP 6 · RIESGOS (full-bleed oscuro · objeciones de frente, lenguaje simple) ── */}
         {profile === 'invertir' && inv && inv.precio_prom && (
-          <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+          <section style={{ width: '100%', background: 'linear-gradient(180deg,#0E1230,#0A0C24)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
             <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Sin letra chiquita<ParaTi tag="riesgos" /></div>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#A5B4FC' }}>Sin letra chiquita<ParaTi tag="riesgos" /></div>
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.06, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Ninguna inversión es magia.<br />Esto es lo que debes saber.</h2>
               <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.7)', maxWidth: 600, marginTop: 16, lineHeight: 1.6 }}>Ningún portal te lo dice. Nosotros sí — porque la confianza es la base de invertir bien:</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, marginTop: 28 }}>
@@ -893,15 +893,15 @@ export default function ZonePageV2() {
             refugio: ['Como refugio, cuida lo tuyo.', `${name} es algo real que la inflación no se come, que tú controlas y heredas — esa tranquilidad no te la da el banco.`],
           })[lens] || ['Una inversión sólida, sin humo.', `${name} junta las tres cosas: renta, que suba de valor, y algo tuyo de verdad. No es lo que más promete en papel: es donde construyes patrimonio real.`];
           return (
-            <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
+            <section style={{ width: '100%', background: 'linear-gradient(135deg,#10143A 0%,#1E2252 52%,#262A5E 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', bottom: -180, left: -120, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(192,38,211,0.22), rgba(192,38,211,0) 70%)', pointerEvents: 'none' }} />
               <div data-rev style={{ maxWidth: 760, margin: '0 auto', padding: '0 28px', textAlign: 'center', position: 'relative' }}>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#C4B5FD' }}>Tu jugada</div>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#A5B4FC' }}>Tu jugada</div>
                 <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.06, fontSize: 'clamp(28px,4vw,46px)', color: '#fff', margin: '12px 0 0' }}>{v[0]}</h2>
                 <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.78)', maxWidth: 620, margin: '14px auto 0', lineHeight: 1.6 }}>{v[1]}</p>
-                <div style={{ display: 'inline-block', marginTop: 22, padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: '#FBCFE8' }}>⏳ Cada año que pasa, entrar cuesta más. El mejor momento fue ayer; el segundo, hoy.</div>
+                <div style={{ display: 'inline-block', marginTop: 22, padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: '#A5B4FC' }}>⏳ Cada año que pasa, entrar cuesta más. El mejor momento fue ayer; el segundo, hoy.</div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 26 }}>
-                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#7C5CFF,#E879F9)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.45)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
+                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#818CF8)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.45)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
                   <button type="button" onClick={() => askAtlax(`Quiero invertir en ${name}. ¿Por dónde empiezo según mi objetivo (${lensCfg ? lensCfg.label : 'inversión'})?`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 26px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 16, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>Déjanos tu objetivo y nuestro asistente vigila {name} por ti — cuando entre algo que encaje, te lo traemos primero.</div>
@@ -916,11 +916,11 @@ export default function ZonePageV2() {
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
           <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : profile === 'invertir' ? `Hasta aquí, los números de la zona. Elige un desarrollo para cotizarlo con los números REALES de esa unidad — tu enganche, tu crédito, tu rendimiento — y compararlo contra el promedio de ${name}.` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
           {sortedDevs.length > 0 ? (
-            <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '16px 28px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.34)' }}>
+            <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '16px 28px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.34)' }}>
               🏠 Ver las {devs.length}{devs.length >= 12 ? '+' : ''} propiedades de {name} →
             </button>
           ) : (
-            <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6D4AFF', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
+            <div style={{ ...cardBase, padding: 24, fontFamily: 'DM Sans', fontSize: 13.5, color: '#5B5F76' }}>Aún no hay desarrollos publicados en {name}. <button type="button" onClick={() => setSaveOpen(true)} style={{ border: 'none', background: 'none', padding: 0, color: '#6366F1', fontWeight: 800, fontFamily: 'DM Sans', fontSize: 13.5, cursor: 'pointer' }}>🔔 Vigila esta zona</button> y te avisamos en cuanto entre el primero.</div>
           )}
         </section>
 
