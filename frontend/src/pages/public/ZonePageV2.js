@@ -3,7 +3,7 @@
 // una SEÑAL DE INTENCIÓN (zone_intent → buyer_signals → lead/demanda/Atlax). Persiste el perfil entre zonas.
 // Sistema: memory/ZONA_PAGE_NARRATIVE_SYSTEM.md
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
 import DevelopmentCard from '../../components/marketplace/DevelopmentCard';
@@ -142,6 +142,10 @@ function buildStories(name, inv) {
 
 export default function ZonePageV2() {
   const { slug } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // TAB de la página unificada · 'propiedades' | 'zona' (Conoce la zona). Default 'zona' por ahora (Propiedades = Fase 3).
+  const ver = searchParams.get('ver') === 'propiedades' ? 'propiedades' : 'zona';
+  const setVer = (v) => { const n = new URLSearchParams(searchParams); if (v === 'zona') n.delete('ver'); else n.set('ver', v); setSearchParams(n); };
   const [inv, setInv] = useState(null);
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
@@ -303,6 +307,23 @@ export default function ZonePageV2() {
               </div>
             )}
 
+            {/* Snapshot de la zona · resumen general (arriba de los tabs) */}
+            {inv && (
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 18, alignItems: 'flex-end' }}>
+                {[
+                  ['Precio desde', m1(inv.precio_min || inv.precio_prom)],
+                  ['Plusvalía / año', inv.plusvalia_anual_pct != null ? `+${inv.plusvalia_anual_pct}%` : '—'],
+                  ...(inv.renta_prom ? [['Renta típica', `~$${Math.round(inv.renta_prom).toLocaleString('es-MX')}/mes`]] : []),
+                  ...(inv.cap_rate_anual_pct != null ? [['Cap rate', `${inv.cap_rate_anual_pct}%`]] : []),
+                ].map(([l, v]) => (
+                  <div key={l}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#8A8FA6', fontWeight: 700 }}>{l}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: INK, letterSpacing: '-0.02em', marginTop: 1 }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* La pregunta + las 4 tabs (cada una con micro-promesa) */}
             {S && (
               <div style={{ marginTop: 26 }}>
@@ -323,19 +344,37 @@ export default function ZonePageV2() {
               </div>
             )}
 
-            {/* La historia del perfil elegido (se despliega) */}
-            {S && (
-              <div key={profile} className="zv2-up" style={{ marginTop: 28, maxWidth: 760 }}>
-                <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
-                <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-                  <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
-                  <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
-                </div>
-              </div>
-            )}
           </div>
         </section>
+
+        {/* ───── TAB BAR · Propiedades | Conoce la zona (URL ?ver=) ───── */}
+        <div style={{ ...sec, marginTop: 4 }}>
+          <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 4 }}>
+            {[['propiedades', '🏠 Propiedades'], ['zona', '📖 Conoce la zona']].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setVer(v)} style={{ padding: '9px 20px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: ver === v ? '#fff' : 'transparent', color: ver === v ? '#6D28D9' : '#6B6F86', boxShadow: ver === v ? '0 2px 8px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* ───── TAB · PROPIEDADES (stub · lo construye la Fase 3) ───── */}
+        {ver === 'propiedades' && (
+          <section style={{ ...sec, marginTop: 24 }}><div style={{ ...cardBase, padding: 32, textAlign: 'center', color: '#6B6F86', fontFamily: 'DM Sans' }}>🏠 Las propiedades de {name} se mostrarán aquí <span style={{ color: '#A2A6BC' }}>(en construcción · Fase 3)</span>. Mientras, <button type="button" onClick={() => setVer('zona')} style={{ background: 'none', border: 'none', color: '#6D28D9', fontWeight: 800, cursor: 'pointer', font: 'inherit' }}>Conoce la zona →</button></div></section>
+        )}
+
+        {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques) ───── */}
+        {ver === 'zona' && (<>
+        {S && (
+          <section style={{ ...sec, marginTop: 24 }}>
+            <div key={profile} className="zv2-up" style={{ maxWidth: 760 }}>
+              <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
+              <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
+                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
+                <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, textAlign: 'center', color: '#8A8FA6', fontFamily: 'DM Sans' }}>Cargando la historia de {name}…</div></section>
@@ -743,6 +782,7 @@ export default function ZonePageV2() {
         </section>
         </div>
         )}
+        </>)}
       </div>
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
       <AtlaxBubble theme="light" />
