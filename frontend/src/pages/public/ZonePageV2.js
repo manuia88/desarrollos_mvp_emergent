@@ -21,10 +21,10 @@ const askAtlax = (query) => { try { window.dispatchEvent(new CustomEvent('atlax:
 const INK = '#16182A';
 const MUT = '#5B5F76';
 const cardBase = { background: '#fff', border: '1px solid rgba(16,18,28,0.07)', borderRadius: 22, boxShadow: '0 18px 50px rgba(99,102,241,0.08), 0 2px 8px rgba(16,18,28,0.04)' };
-const eyebrow = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, background: 'linear-gradient(90deg,#6366F1,#4F46E5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+const eyebrow = { fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, background: 'linear-gradient(90deg,#6366F1,#EC4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 const chapTitle = { fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(25px,3.4vw,36px)', color: INK, letterSpacing: '-0.025em', margin: '8px 0 0', lineHeight: 1.1 };
 const lead = { fontFamily: 'DM Sans', fontSize: 16, color: MUT, lineHeight: 1.6, marginTop: 12, maxWidth: 640 };
-const grad = { background: 'linear-gradient(120deg,#6366F1,#4F46E5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+const grad = { background: 'linear-gradient(120deg,#6366F1,#EC4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
 
 const PROFILES = [
   { k: 'invertir', label: 'Invertir', e: '📈', promise: 'Tu dinero, trabajando' },
@@ -384,7 +384,7 @@ export default function ZonePageV2() {
                     const on = p.k === profile;
                     return (
                       <button key={p.k} type="button" onClick={() => pickProfile(p.k)} className="zv2-tab"
-                        style={{ padding: '15px 18px', borderRadius: 16, border: `1.5px solid ${on ? 'transparent' : 'rgba(16,18,28,0.12)'}`, background: on ? 'linear-gradient(135deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : INK, boxShadow: on ? '0 12px 28px rgba(99,102,241,0.3)' : '0 6px 18px rgba(16,18,28,0.05)' }}>
+                        style={{ padding: '15px 18px', borderRadius: 16, border: `1.5px solid ${on ? 'transparent' : 'rgba(16,18,28,0.12)'}`, background: on ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : INK, boxShadow: on ? '0 12px 28px rgba(99,102,241,0.3)' : '0 6px 18px rgba(16,18,28,0.05)' }}>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15 }}>{p.e} {p.label}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 12, marginTop: 3, color: on ? 'rgba(255,255,255,0.9)' : '#8A8FA6' }}>{p.promise}</div>
                       </button>
@@ -404,7 +404,7 @@ export default function ZonePageV2() {
               {[['propiedades', `🏠 Propiedades${devs.length ? ` (${devs.length}${devs.length >= 12 ? '+' : ''})` : ''}`], ['zona', '📖 Conoce la zona']].map(([v, l]) => {
                 const on = ver === v;
                 return (
-                  <button key={v} type="button" onClick={() => setVer(v)} className="zv2-cta" style={{ padding: '10px 22px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: on ? 'linear-gradient(135deg,#6366F1,#4F46E5)' : 'transparent', color: on ? '#fff' : '#4F46E5', boxShadow: on ? '0 8px 20px rgba(99,102,241,0.36)' : 'none', transition: 'background .18s, box-shadow .18s, transform .18s' }}>{l}</button>
+                  <button key={v} type="button" onClick={() => setVer(v)} className="zv2-cta" style={{ padding: '10px 22px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: on ? 'linear-gradient(135deg,#6366F1,#EC4899)' : 'transparent', color: on ? '#fff' : '#4F46E5', boxShadow: on ? '0 8px 20px rgba(99,102,241,0.36)' : 'none', transition: 'background .18s, box-shadow .18s, transform .18s' }}>{l}</button>
                 );
               })}
             </div>
@@ -434,7 +434,7 @@ export default function ZonePageV2() {
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
               <p style={{ ...lead, marginTop: 14, maxWidth: 700 }}>{S.sub}</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(99,102,241,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
+                <button type="button" onClick={() => askAtlax(`Cuéntame de ${name}: ¿me conviene para ${profLabel}? Precios, plusvalía y cómo se vive.`)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(99,102,241,0.34)' }}>🤖 Pregúntale a Atlax sobre {name}</button>
                 <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.7)', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Vigila esta zona</button>
               </div>
             </div>
@@ -472,7 +472,7 @@ export default function ZonePageV2() {
                   <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
                     Trabajaste años por ese dinero.<br />
                     <span style={{ color: 'rgba(255,255,255,0.42)' }}>Guardado en el banco, rinde para ellos.</span><br />
-                    Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#818CF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
+                    Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
                   </h2>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 560, marginTop: 22, lineHeight: 1.55 }}>Una propiedad en {name} toma lo que tanto te costó juntar y lo vuelve algo que <b style={{ color: '#fff' }}>crece solo</b>, te da <b style={{ color: '#fff' }}>ingresos cada mes</b> y <b style={{ color: '#fff' }}>siempre será tuyo</b>.</p>
                   {bridge('Déjame mostrarte por qué aquí', true)}
@@ -590,7 +590,7 @@ export default function ZonePageV2() {
               <div key={w.n} className="zv2-win" style={{ ...cardBase, padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 320px', minWidth: 260 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13 }}>{w.n}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13 }}>{w.n}</span>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: INK }}>{w.h}</span>
                   </div>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, marginTop: 8, lineHeight: 1.55 }}>{w.copy}</div>
@@ -826,7 +826,7 @@ export default function ZonePageV2() {
         {profile === 'invertir' && sortedDevs.length > 0 && (
           <section id="calculadora" style={{ width: '100%', background: 'linear-gradient(180deg,#F4F5FF 0%,#EBEDFE 100%)', padding: 'clamp(50px,7vw,86px) 0', borderTop: '1px solid rgba(99,102,241,0.16)', borderBottom: '1px solid rgba(99,102,241,0.16)' }}>
             <div data-rev style={sec}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.04em', boxShadow: '0 10px 24px rgba(99,102,241,0.34)' }}>🧮 Calculadora interactiva</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.04em', boxShadow: '0 10px 24px rgba(99,102,241,0.34)' }}>🧮 Calculadora interactiva</div>
             <h2 style={{ ...chapTitle, marginTop: 16 }}>Veamos qué tan tuyo puede ser</h2>
             <p style={lead}>Elige un desarrollo y una unidad de {name}. Armamos el cálculo completo con TUS datos — tu enganche, tu crédito, lo que te deja al mes y cuánto vale en unos años.</p>
             <style>{`
@@ -840,7 +840,7 @@ export default function ZonePageV2() {
               <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1 · ¿Para ti o institucional?</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
                 {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => { const on = calcMode === v; return (
-                  <button key={v} className="zv2-dev" type="button" onClick={() => { setCalcMode(v); setCalcUnit(null); setCalcSelUnits([]); }} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(99,102,241,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>
+                  <button key={v} className="zv2-dev" type="button" onClick={() => { setCalcMode(v); setCalcUnit(null); setCalcSelUnits([]); }} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', textAlign: 'left', border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(99,102,241,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>
                     <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l}</div>
                     <div style={{ fontSize: 10.5, fontWeight: 600, opacity: on ? 0.85 : 0.65, marginTop: 1 }}>{d}</div>
                   </button>
@@ -852,7 +852,7 @@ export default function ZonePageV2() {
               <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2 · Elige el desarrollo</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
                 {sortedDevs.map((d) => { const on = calcDev === d.id; return (
-                  <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#4F46E5)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(99,102,241,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
+                  <button key={d.id} className="zv2-dev" type="button" onClick={() => setCalcDev(d.id)} style={{ padding: '11px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(99,102,241,0.22)', background: on ? 'linear-gradient(120deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 20px rgba(99,102,241,.28)' : '0 2px 8px rgba(16,18,28,.04)' }}>{on ? '🏗️ ' : ''}{d.name}</button>
                 ); })}
               </div>
             </div>
@@ -942,7 +942,7 @@ export default function ZonePageV2() {
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
           <p style={{ ...lead, marginBottom: 18 }}>{profile === 'primera' ? `Empieza por los más accesibles de ${name}:` : profile === 'invertir' ? `Hasta aquí, los números de la zona. Elige un desarrollo para cotizarlo con los números REALES de esa unidad — tu enganche, tu crédito, tu rendimiento — y compararlo contra el promedio de ${name}.` : `Estos son los desarrollos en ${name} donde puedes empezar hoy.`}</p>
           {sortedDevs.length > 0 ? (
-            <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '16px 28px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.34)' }}>
+            <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '16px 28px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.34)' }}>
               🏠 Ver las {devs.length}{devs.length >= 12 ? '+' : ''} propiedades de {name} →
             </button>
           ) : (
