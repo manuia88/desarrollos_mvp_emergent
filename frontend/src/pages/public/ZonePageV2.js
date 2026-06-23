@@ -396,6 +396,52 @@ export default function ZonePageV2() {
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
         <div key={`body-${profile}`}>
+        {/* ════════ MUESTRA REDISEÑO (estilo Dividenz/GBM) · arco full-bleed, fondos alternados, números enormes ════════ */}
+        {profile === 'invertir' && S && (() => {
+          const plus = inv.plusvalia_anual_pct;
+          const gan5 = inv.ganancia_5y_abs;
+          const tir = inv.tir_anual_pct;
+          const renta = inv.renta_prom;
+          const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
+          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 0.9 };
+          return (
+            <>
+              {/* ─── CAPÍTULO 1 · HERO (oscuro, full-bleed, gancho emocional + número enorme) ─── */}
+              <section style={{ width: '100%', background: 'radial-gradient(120% 120% at 80% 0%, #2A1B5E 0%, #14132B 55%, #0B0A1C 100%)', color: '#fff', padding: '96px 0 104px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -120, right: -80, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,255,0.45), rgba(124,92,255,0) 68%)', filter: 'blur(20px)', pointerEvents: 'none' }} />
+                <div style={{ ...cont, position: 'relative' }}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B9A8FF' }}>Invertir · {name}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(44px,8vw,86px)', margin: '18px 0 0' }}>Tu dinero, parado,<br /><span style={{ background: 'linear-gradient(90deg,#A78BFA,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>pierde.</span></h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(16px,2vw,20px)', color: 'rgba(255,255,255,0.78)', maxWidth: 600, marginTop: 22, lineHeight: 1.5 }}>La inflación se lo come en el banco. En <b style={{ color: '#fff' }}>{name}</b> deja de perder — y empieza a trabajar para ti.</p>
+                  {gan5 != null && (
+                    <div style={{ marginTop: 48, display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Si inviertes aquí, en 5 años ganas</div>
+                        <div style={{ ...giant, fontSize: 'clamp(52px,10vw,104px)', background: 'linear-gradient(90deg,#6EE7B7,#34D399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginTop: 4 }}>+{m1(gan5)}</div>
+                      </div>
+                      {tir != null && <div style={{ paddingBottom: 14 }}><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: '#fff' }}>{tir}%</div><div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>al año (TIR real)</div></div>}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 46, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>Baja y te muestro por qué <span style={{ fontSize: 18 }}>↓</span></div>
+                </div>
+              </section>
+
+              {/* ─── CAPÍTULO 2 · LA PRUEBA (claro, número gigante, no promesa) ─── */}
+              <section style={{ width: '100%', background: '#fff', padding: 'clamp(64px,9vw,104px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                <div style={cont}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7C5CFF' }}>La prueba, no la promesa</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(34px,5vw,56px)', color: INK, margin: '14px 0 0' }}>Aquí el precio sube.<br />Y no es opinión.</h2>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginTop: 30 }}>
+                    <div style={{ ...giant, fontSize: 'clamp(72px,14vw,150px)', color: '#0E9F6E' }}>+{plus}%</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 18, color: MUT, fontWeight: 700, paddingBottom: 18 }}>al año<br /><span style={{ fontSize: 13, fontWeight: 600, color: '#A2A6BC' }}>plusvalía estimada de {name}</span></div>
+                  </div>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 17, color: MUT, maxWidth: 620, marginTop: 8, lineHeight: 1.55 }}>Un depto de {m1(inv.precio_prom)} se aprecia <b style={{ color: INK }}>~{k(inv.plusvalia_anual_abs || 0)} al año</b> — sin que muevas un dedo. Eso es lo que el banco no te da.</p>
+                </div>
+              </section>
+            </>
+          );
+        })()}
+
         {/* ── LENTE DEL INVERSIONISTA (Bloque 0 · los 7 avatares → 3 puertas · reencuadra el MISMO tab) ── */}
         {profile === 'invertir' && (
           <section className="zv2-up" style={{ ...sec, marginTop: 30 }}>
