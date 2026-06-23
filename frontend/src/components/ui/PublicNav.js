@@ -94,7 +94,7 @@ export default function PublicNav() {
           )}
         </Link>
         <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
-        <Link to="/marketplace" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
+        <Link to="/mapa" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
       </div>
     </div>
   );

@@ -149,6 +149,12 @@ export default function ZonePageV2() {
   // tabs montados-ocultos: una vez visitado un tab, queda vivo (no se pierde estado: filtros, scroll). Lazy la 1ª vez.
   const [visited, setVisited] = useState({ zona: true });
   useEffect(() => { setVisited((s) => (s[ver] ? s : { ...s, [ver]: true })); }, [ver]);
+  // SEO: canónico apunta SIEMPRE a /zona/{slug} (sin ?ver) → consolida los redirects (/colonia, /marketplace?colonia) aquí.
+  useEffect(() => {
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) { link = document.createElement('link'); link.setAttribute('rel', 'canonical'); document.head.appendChild(link); }
+    link.setAttribute('href', `https://desarrollosmx.io/zona/${slug}`);
+  }, [slug]);
   const [inv, setInv] = useState(null);
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);

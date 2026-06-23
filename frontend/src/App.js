@@ -143,7 +143,6 @@ const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 
 // W4.18.2B Sub-D — public AVM + colonia landings
 const Valores           = lazy(() => import('./pages/public/Valores'));
-const ColoniaLanding    = lazy(() => import('./pages/public/ColoniaLanding'));
 const Barrios           = lazy(() => import('./pages/Barrios'));
 const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
@@ -690,7 +689,7 @@ function AppRouter() {
       <Route path="/mapa-valores" element={<MapaRoute />} />
       {/* W4.18.2B Sub-D — public AVM + colonia landings */}
       <Route path="/valores" element={<Valores />} />
-      <Route path="/colonia/:slug" element={<ColoniaLanding />} />
+      <Route path="/colonia/:slug" element={<ColoniaRedirect />} />
       {/* W5.15 P2 — Pagina publica de confianza institucional */}
       <Route path="/confianza" element={<ConfianzaPage />} />
       {/* W4.18.3 — Private Beta Gate */}
@@ -1075,6 +1074,12 @@ function LoginRoute() {
   const { openAuth } = useAuth();
   useEffect(() => { openAuth('login'); }, [openAuth]);
   return <HomeV2 />;
+}
+
+// Página unificada: /colonia/:slug es contenido duplicado de /zona/:slug → redirige (consolida SEO al canónico).
+function ColoniaRedirect() {
+  const { slug } = useReactRouterParams();
+  return <Navigate to={`/zona/${slug}`} replace />;
 }
 
 function MarketplaceRoute() {
