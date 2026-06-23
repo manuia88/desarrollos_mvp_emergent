@@ -460,8 +460,8 @@ export default function ZonePageV2() {
 
         {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques · montado-oculto) ───── */}
         {visited.zona && (<div style={{ display: ver === 'zona' ? 'block' : 'none' }}>
-        {/* Intro-gancho del header: solo perfiles no-invertir (en invertir, el Cap 1 del arco ES el hero, sin CTAs arriba) */}
-        {S && profile !== 'invertir' && (
+        {/* Intro-gancho del header: solo perfiles sin arco rediseñado (en invertir y familia, el Cap 1 del arco ES el hero) */}
+        {S && profile !== 'invertir' && profile !== 'familia' && (
           <section style={{ ...sec, marginTop: 24 }}>
             <div key={profile} className="zv2-up" style={{ maxWidth: 760 }}>
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
@@ -601,13 +601,99 @@ export default function ZonePageV2() {
           );
         })()}
 
+        {/* ════════ ARCO FAMILIA (mismo sistema de diseño · contenido: raíces / escuelas / seguridad / espacio) ════════ */}
+        {profile === 'familia' && S && (() => {
+          const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
+          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
+          const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
+          const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
+          const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
+          const img = (i) => (realFotos.length > i ? realFotos[i] : STOCK[i % STOCK.length]);
+          const FAM = {
+            premium: { t: <>Aquí tus hijos<br />crecen seguros.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> es de las zonas más cuidadas de la ciudad: tranquila, con todo cerca y gente que la cuida. El tipo de lugar donde quieres que crezcan.</> },
+            clasica: { t: <>Una zona hecha<br />para quedarse.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> es de esas zonas de toda la vida: escuelas, parques y vecinos que se conocen. Aquí las familias echan raíces y se quedan generaciones.</> },
+            emergente: { t: <>Más espacio para<br />los tuyos.</>, c: (n) => <>En <b style={{ color: INK }}>{n}</b> tu familia tiene más por lo mismo: más metros, más aire, más patio — en una zona que apenas va para arriba.</> },
+            momentum: { t: <>Una zona que<br />mejora con ustedes.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> va para arriba: cada año con más servicios y mejor para los tuyos. Crecen juntos.</> },
+          };
+          const fa = FAM[zoneArchetype(inv)] || FAM.clasica;
+          const escuelas = (lugaresData && Array.isArray(lugaresData.items)) ? lugaresData.items.filter((x) => x.name).slice(0, 3) : [];
+          return (
+            <>
+              {/* CAP 1 · EL HÉROE Y SU ERROR (oscuro + foto · conectar → mudarse otra vez → echar raíces) */}
+              <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div data-rev style={{ ...cont, position: 'relative' }}>
+                  <div style={eyb('#A5B4FC')}>Para mi familia · {name} · {aq.etiqueta}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
+                    Llevas años pagando renta.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.42)' }}>Y cada contrato, la posibilidad de mudarte otra vez.</span><br />
+                    Aquí tu familia <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>echa raíces</span>.
+                  </h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 580, marginTop: 22, lineHeight: 1.55 }}>Un lugar que es suyo de verdad — donde los niños crecen <b style={{ color: '#fff' }}>sin cambiar de escuela ni de amigos</b>, y cada peso construye <b style={{ color: '#fff' }}>SU hogar</b>, no el patrimonio de alguien más.</p>
+                  {bridge('Déjame mostrarte por qué aquí', true)}
+                </div>
+              </section>
+
+              {/* CAP 2 · POR QUÉ AQUÍ (claro + foto + escuelas reales · archetype-flavored) */}
+              <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                <div data-rev style={cont}>
+                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
+                    <div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{fa.t}</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 540, marginTop: 16, lineHeight: 1.6 }}>{fa.c(name)}</p>
+                      {escuelas.length > 0 && (
+                        <div style={{ marginTop: 18 }}>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🏫 Escuelas a la vuelta</div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                            {escuelas.map((e) => (
+                              <span key={e.name} style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', borderRadius: 9999, padding: '7px 14px' }}>{e.name}{e.rating ? ` · ★${e.rating}` : ''}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="zv2-imgz" style={{ borderRadius: 18, boxShadow: '0 18px 40px rgba(16,18,28,0.14)' }}>
+                      <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
+                    </div>
+                  </div>
+                  {bridge('Y eso es apenas el principio de lo que gana tu familia')}
+                </div>
+              </section>
+
+              {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
+              <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+                <div data-rev style={cont}>
+                  <div style={eyb('#A5B4FC')}>Lo que gana tu familia</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Tres cosas que una<br />renta nunca les dará.</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, marginTop: 32 }}>
+                    {[
+                      ['🌳', 'Raíces de verdad', 'Se acaban las mudanzas. Los niños crecen en un solo lugar, con sus amigos y su escuela de siempre.'],
+                      ['🛟', 'Tranquilidad', 'Un lugar seguro y tuyo, donde la familia duerme en paz — no a merced del próximo aumento de renta.'],
+                      ['🏡', 'Espacio para crecer', 'Lugar para todos, hoy y para los que vengan — y algo real que un día les heredas.'],
+                    ].map(([ic, t, d]) => (
+                      <div key={t} className="zv2-glow" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '22px 22px' }}>
+                        <div style={{ fontSize: 30 }}>{ic}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18.5, color: '#fff', marginTop: 12 }}>{t}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.66)', marginTop: 7, lineHeight: 1.58 }}>{d}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {bridge('¿Y les alcanza para su hogar aquí? Veámoslo', true)}
+                </div>
+              </section>
+            </>
+          );
+        })()}
+
         {/* (rebuild) El "lente del inversionista" se absorbió en el arco de la historia (Cap 1-4). lens queda en null → el veredicto usa su mensaje por defecto. */}
 
         {/* ── LA VIDA AQUÍ — PAUSADO: los conteos OSM no son confiables (1 gym en Polanco = falso). Se reactiva con
             datos verificados de Google Places (ingesta de pago, 1 vez). El endpoint /vida ya existe (build-for-endstate). ── */}
 
-        {/* ── VALUE STACK (no-invertir · el arco de invertir ya tiene su Cap 3 "Lo que ganas") ── */}
-        {profile !== 'invertir' && (
+        {/* ── VALUE STACK (solo vivir/primera · invertir y familia ya tienen su Cap 3 de beneficios en el arco) ── */}
+        {profile !== 'invertir' && profile !== 'familia' && (
         <section id="dinero" className="zv2-up" style={{ ...sec, marginTop: 54 }}>
           <div style={eyebrow}>{tc('Por qué tiene sentido')}</div>
           <h2 style={chapTitle}>{S.stackTitle}</h2>
