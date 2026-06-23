@@ -634,7 +634,7 @@ export default function ZonePageV2() {
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
           const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
-          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#EC4899' }}>↓</span></div>);
           const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
           const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
           const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
@@ -670,7 +670,7 @@ export default function ZonePageV2() {
               {/* CAP 2 · POR QUÉ AQUÍ (claro + foto + escuelas reales · archetype-flavored) */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={eyb('#EC4899')}>Por qué aquí</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
                     <div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{fa.t}</h2>
@@ -688,7 +688,7 @@ export default function ZonePageV2() {
               {lgReal && lifeCats.length > 0 && (
                 <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                   <div data-rev style={cont}>
-                    <div style={eyb('#C026D3')}>Así se vive aquí</div>
+                    <div style={eyb('#EC4899')}>Así se vive aquí</div>
                     <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>A la vuelta de tu casa.</h2>
                     <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Esto es lo que de verdad tienes cerca en {name} — con nombre y calificación real. Toca cualquiera para verlo en el mapa:</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16, marginTop: 28 }}>
@@ -748,7 +748,7 @@ export default function ZonePageV2() {
                 return (
                   <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                     <div data-rev style={cont}>
-                      <div style={eyb('#C026D3')}>¿Les alcanza?</div>
+                      <div style={eyb('#EC4899')}>¿Les alcanza?</div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Pongan sus números.</h2>
                       <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Con lo que entra en casa y lo que tienen ahorrado, les decimos para qué alcanza en {name} — y cómo esa mensualidad, en vez de renta, ya construye <b style={{ color: INK }}>su hogar</b>.</p>
                       <div className="zv2-win" style={{ ...cardBase, padding: '24px 26px', marginTop: 20 }}>
@@ -889,7 +889,7 @@ export default function ZonePageV2() {
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
           const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
-          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#EC4899' }}>↓</span></div>);
           const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
           const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
           const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
@@ -920,7 +920,7 @@ export default function ZonePageV2() {
               {/* CAP 2 · POR QUÉ AQUÍ (claro · archetype primera) */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={eyb('#EC4899')}>Por qué aquí</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
                     <div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{pr.t}</h2>
@@ -942,7 +942,7 @@ export default function ZonePageV2() {
                 return (
                   <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                     <div data-rev style={cont}>
-                      <div style={eyb('#C026D3')}>Así se vive aquí</div>
+                      <div style={eyb('#EC4899')}>Así se vive aquí</div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Tu nueva vida, a la mano.</h2>
                       <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo que de verdad tienes cerca en {name} — toca cualquiera para verlo en el mapa:</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
@@ -1031,7 +1031,7 @@ export default function ZonePageV2() {
                   ))}
                 </div>
                 {precioMin != null && (
-                  <div style={{ marginTop: 16, padding: '13px 16px', borderRadius: 12, background: alcanza ? 'rgba(14,159,110,0.08)' : 'rgba(224,163,62,0.1)', fontFamily: 'DM Sans', fontSize: 13.5, color: alcanza ? '#0E7A53' : '#8A6A1E', lineHeight: 1.5 }}>
+                  <div style={{ marginTop: 16, padding: '13px 16px', borderRadius: 12, background: alcanza ? 'rgba(16,185,129,0.08)' : 'rgba(99,102,241,0.07)', fontFamily: 'DM Sans', fontSize: 13.5, color: alcanza ? '#0E7A53' : '#4F46E5', lineHeight: 1.5 }}>
                     {alcanza
                       ? <>✓ <b>Sí te alcanza para {name}</b> — desde {m1(precioMin)}. Tu mensualidad (~${pagoMax.toLocaleString('es-MX')}) en vez de renta ya construye <b>tu patrimonio</b>.</>
                       : <>En {name} arranca desde <b>{m1(precioMin)}</b> y por ahora te alcanza para {m1(precioMax)}. Cerca: súbele al enganche, considera <b>Infonavit/Cofinavit</b> (amplía el monto), o mira zonas más accesibles.</>}
@@ -1064,7 +1064,7 @@ export default function ZonePageV2() {
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
           const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
-          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#EC4899' }}>↓</span></div>);
           const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
           const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
           const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
@@ -1095,7 +1095,7 @@ export default function ZonePageV2() {
               {/* CAP 2 · POR QUÉ AQUÍ (claro · archetype vivir) */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
-                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={eyb('#EC4899')}>Por qué aquí</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
                     <div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{vv.t}</h2>
@@ -1117,7 +1117,7 @@ export default function ZonePageV2() {
                 return (
                   <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                     <div data-rev style={cont}>
-                      <div style={eyb('#C026D3')}>A la puerta</div>
+                      <div style={eyb('#EC4899')}>A la puerta</div>
                       <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Lo bueno, a la vuelta.</h2>
                       <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo mejor de {name}, con calificación real — toca cualquiera para verlo en el mapa:</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>

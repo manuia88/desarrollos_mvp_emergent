@@ -279,7 +279,11 @@ async def zona_inversion(colonia_id: str, request: Request):
                 if d.get("price_from") and (d.get("m2_range") or [0])[0]]
         if pm2s:
             out["precio_m2"] = round(sum(pm2s) / len(pm2s))
-        rep = out.get("precio_prom") or (out.get("precio_m2", 50000) * 80)
+        # HONESTIDAD: solo simulamos con un precio REAL de mercado. Sin desarrollos → sin precio → devolvemos
+        # tiene_mercado=false y CERO métricas fabricadas (nada de default 50,000/m²). El front muestra modo descubrimiento.
+        rep = out.get("precio_prom") or ((out.get("precio_m2") or 0) * 80) or None
+        if not rep:
+            return out
         try:
             from investment_simulator_engine import simulate, _mortgage_rate
             sim = await simulate(db, rep, 60, 80, colonia_id, financiamiento_pct=0.80)  # depto típico 80m², 5 años, 80% crédito

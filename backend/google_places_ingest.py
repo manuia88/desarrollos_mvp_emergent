@@ -201,22 +201,22 @@ async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
     key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not key or not colonia_id or colonia_id in _INFLIGHT_ZONES:
         return {"ok": True, "reason": "skip"}
+    _INFLIGHT_ZONES.add(colonia_id)   # lock ANTES de cualquier await → cierra la ventana TOCTOU entre check y add
     try:
-        if await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1}):
-            return {"ok": True, "reason": "already_cached"}
-        ctr = await _zone_center(db, colonia_id)   # catálogo (id largo) o SEED (id corto) — resuelve el choque de ids
-        if not ctr:
-            return {"ok": False, "reason": "no_center"}
-        month = _month_tag()
-        q = await db.google_quota.find_one({"month": month}) or {}
-        used = int(q.get("places_used") or 0)
-        cost = len(PLACE_CATEGORIES)
-        if (_ENTERPRISE_CAP - used) < cost:
-            return {"ok": True, "reason": "free_tier_agotado"}
-    except Exception:
-        return {"ok": False, "reason": "precheck_error"}
-    _INFLIGHT_ZONES.add(colonia_id)
-    try:
+        try:
+            if await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1}):
+                return {"ok": True, "reason": "already_cached"}
+            ctr = await _zone_center(db, colonia_id)   # catálogo (id largo) o SEED (id corto) — resuelve el choque de ids
+            if not ctr:
+                return {"ok": False, "reason": "no_center"}
+            month = _month_tag()
+            q = await db.google_quota.find_one({"month": month}) or {}
+            used = int(q.get("places_used") or 0)
+            cost = len(PLACE_CATEGORIES)
+            if (_ENTERPRISE_CAP - used) < cost:
+                return {"ok": True, "reason": "free_tier_agotado"}
+        except Exception:
+            return {"ok": False, "reason": "precheck_error"}
         lat, lng = ctr
         places: Dict[str, List[Dict[str, Any]]] = {}
         ok_any, req = False, 0
