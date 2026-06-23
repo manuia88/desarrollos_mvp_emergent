@@ -267,6 +267,12 @@ export default function ZonePageV2() {
   };
 
   const name = (landing && landing.name) || tc((slug || '').replace(/-/g, ' '));
+  // Cobertura de CUALQUIER colonia: full (tiene mercado) · descubrimiento (catálogo, sin mercado) · no-encontrada (404).
+  const tieneMercado = !!(inv && inv.tiene_mercado);
+  const esReal = !!landing || tieneMercado;
+  const noEncontrada = !loading && !esReal;                 // ni en SEED ni en catálogo → slug inválido
+  const descubrimiento = esReal && !tieneMercado;           // colonia real del catálogo, aún sin precios/desarrollos
+  const zScores = (landing && landing.scores_reales) || null;
   const alcaldia = landing && landing.alcaldia;
   const tier = landing && landing.tier;
   const comparables = (landing && landing.comparable_zones) || [];
@@ -376,6 +382,17 @@ export default function ZonePageV2() {
       `}</style>
       <PublicNav />
       <div data-testid="zona-v2" style={{ minHeight: '100vh', paddingBottom: 80, color: INK }}>
+        {noEncontrada ? (
+          <section style={{ ...sec, paddingTop: 'clamp(60px,10vw,110px)', paddingBottom: 'clamp(60px,10vw,110px)', textAlign: 'center' }}>
+            <div style={{ fontSize: 48 }}>🗺️</div>
+            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,40px)', color: INK, margin: '14px 0 0', letterSpacing: '-0.03em' }}>No encontramos esa colonia</h1>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: MUT, maxWidth: 480, margin: '12px auto 0', lineHeight: 1.6 }}>Puede que el enlace esté mal escrito. Busca tu zona o explora todas las colonias de la ciudad.</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 28 }}>
+              <Link to="/colonias" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: '0 12px 30px rgba(99,102,241,0.34)' }}>🔎 Explorar colonias</Link>
+              <Link to="/mapa" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, textDecoration: 'none' }}>🗺️ Ver el mapa</Link>
+            </div>
+          </section>
+        ) : (<>
 
         {/* ───── CONTEXTO + ¿QUÉ BUSCAS? + TABS ───── */}
         <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(180deg,#FAF9FF 0%,#FFFFFF 96%)' }}>
@@ -394,8 +411,8 @@ export default function ZonePageV2() {
               </div>
             )}
 
-            {/* Snapshot de la zona · tira de stats premium (arriba de los tabs) */}
-            {inv && (
+            {/* Snapshot de la zona · tira de stats premium (solo si hay mercado real · no en descubrimiento) */}
+            {inv && tieneMercado && (
               <div style={{ display: 'inline-flex', flexWrap: 'wrap', marginTop: 22, background: '#fff', border: '1px solid rgba(16,18,28,0.08)', borderRadius: 18, boxShadow: '0 12px 34px rgba(99,102,241,0.09), 0 2px 8px rgba(16,18,28,0.04)', overflow: 'hidden' }}>
                 {[
                   ['Precio desde', m1(inv.precio_min || inv.precio_prom), INK],
@@ -411,8 +428,8 @@ export default function ZonePageV2() {
               </div>
             )}
 
-            {/* La pregunta + las 4 tabs (cada una con micro-promesa) */}
-            {S && (
+            {/* La pregunta + las 4 tabs (cada una con micro-promesa) · oculto en descubrimiento (no hay lentes que aplicar) */}
+            {S && !descubrimiento && (
               <div style={{ marginTop: 26 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>{name} es muchas cosas para mucha gente. <span style={grad}>¿Qué es para ti?</span></div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#8A8FA6', marginTop: 5 }}>Elige y te contamos su historia con esos ojos.</div>
@@ -446,7 +463,7 @@ export default function ZonePageV2() {
               })}
             </div>
             <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: '#9499AE' }}>{ver === 'zona' ? '— la historia de ' : '— en venta en '}{name}</span>
-            {ver === 'zona' && profile === 'invertir' && (
+            {ver === 'zona' && profile === 'invertir' && tieneMercado && (
               <button type="button" onClick={() => { const el = document.getElementById('calculadora'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="zv2-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 9999, border: '1.5px solid rgba(99,102,241,0.35)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>🧮 Calcular mi inversión</button>
             )}
           </div>
@@ -480,6 +497,66 @@ export default function ZonePageV2() {
 
         {loading ? (
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, textAlign: 'center', color: '#8A8FA6', fontFamily: 'DM Sans' }}>Cargando la historia de {name}…</div></section>
+        ) : descubrimiento ? (
+          <div data-rev style={{ ...sec, marginTop: 30 }}>
+            <div style={eyebrow}>{tc('Conoce la zona')}</div>
+            <h2 style={chapTitle}>Así es {name}.</h2>
+            <p style={lead}>Todavía no tenemos desarrollos en venta aquí, pero esto es lo que sí sabemos de la zona — con datos reales:</p>
+            {zScores && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginTop: 24 }}>
+                {[['🛡️', 'Seguridad', 'seguridad'], ['🎓', 'Educación', 'educacion'], ['🛍️', 'Comercio', 'comercio'], ['🚇', 'Movilidad', 'movilidad']].map(([ic, label, key]) => {
+                  const v = zScores[key]; if (v == null) return null;
+                  return (
+                    <div key={key} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                      <div style={{ fontSize: 20 }}>{ic}</div>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#6B6F86', marginTop: 6 }}>{label}</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 3 }}>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: v >= 70 ? '#0E7A53' : v >= 40 ? '#6366F1' : '#6B6F86' }}>{v}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>/100</div>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 9999, background: 'rgba(99,102,241,0.1)', marginTop: 8, overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.max(2, v)}%`, background: v >= 70 ? '#10B981' : 'linear-gradient(90deg,#6366F1,#EC4899)' }} /></div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
+              const cats = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir a comer'], ['🚇', 'transporte', 'Transporte']]
+                .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
+              if (!cats.length) return null;
+              return (
+                <div style={{ marginTop: 38 }}>
+                  <div style={eyebrow}>{tc('Así se vive aquí')}</div>
+                  <h2 style={chapTitle}>A la vuelta de la esquina.</h2>
+                  <p style={lead}>Lo que de verdad tienes cerca — toca cualquiera para verlo en el mapa:</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
+                    {cats.map(([ic, l, arr]) => (
+                      <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
+                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {arr.map((p) => (
+                            <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
+                              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                              {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
+                </div>
+              );
+            })()}
+            <div style={{ ...cardBase, padding: '26px 28px', marginTop: 38, textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04))' }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>Aún no hay desarrollos en venta en {name}</div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, maxWidth: 520, margin: '8px auto 0', lineHeight: 1.55 }}>Te avisamos en cuanto entre el primero. Mientras, explora las zonas que ya tienen propiedades disponibles.</p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20 }}>
+                <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ padding: '13px 24px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 26px rgba(99,102,241,0.3)' }}>🔔 Vigila {name}</button>
+                <Link to="/colonias" style={{ padding: '13px 22px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Explorar zonas con propiedades</Link>
+              </div>
+            </div>
+          </div>
         ) : !S ? (
           <section style={{ ...sec, marginTop: 28 }}><div style={{ ...cardBase, padding: 30, color: '#8A8FA6', fontFamily: 'DM Sans' }}>Aún estamos reuniendo los datos de {name}.</div></section>
         ) : (
@@ -1106,6 +1183,7 @@ export default function ZonePageV2() {
         </div>
         )}
         </div>)}
+        </>)}
       </div>
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
       <AtlaxBubble theme="light" />

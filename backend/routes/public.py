@@ -270,7 +270,7 @@ async def zona_inversion(colonia_id: str, request: Request):
         from data_developments import DEVELOPMENTS
         devs = [d for d in DEVELOPMENTS if d.get("colonia_id") == colonia_id]
         precios = [d.get("price_from") for d in devs if d.get("price_from")]
-        out = {"ok": True, "n_desarrollos": len(devs)}
+        out = {"ok": True, "n_desarrollos": len(devs), "tiene_mercado": bool(precios)}
         if precios:
             out["precio_prom"] = round(sum(precios) / len(precios))
             out["precio_min"] = min(precios)

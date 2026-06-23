@@ -58,7 +58,28 @@ async def get_colonia_landing(slug: str, request: Request) -> Dict[str, Any]:
     para anti-doorway."""
     info = COLONIAS_TARGET.get(slug)
     if not info:
-        raise HTTPException(404, f"Colonia '{slug}' no está en COLONIAS_TARGET")
+        # Fallback al CATÁLOGO (db.colonias · 2,788) → modo DESCUBRIMIENTO (nombre + scores reales + centro, sin mercado).
+        # Si tampoco existe ahí → 404 real (slug inválido / typo).
+        try:
+            db = request.app.state.db
+            col = await db.colonias.find_one(
+                {"id": slug}, {"_id": 0, "name": 1, "alcaldia": 1, "center": 1, "scores_reales": 1})
+        except Exception:
+            col = None
+        if not col:
+            raise HTTPException(404, f"Colonia '{slug}' no encontrada")
+        return {
+            "slug": slug,
+            "name": col.get("name") or slug.replace("-", " ").title(),
+            "alcaldia": col.get("alcaldia"),
+            "has_ie_data": False,
+            "landing_tier": "catalogo",
+            "modo": "descubrimiento",
+            "scores_reales": col.get("scores_reales") or {},
+            "center": col.get("center"),
+            "active_developments": 0,
+            "lead_capture_enabled": True,
+        }
 
     if info.get("has_ie_data"):
         # Reuse W4.2D2 endpoint: forward call internally for full data.
