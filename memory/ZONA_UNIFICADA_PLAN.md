@@ -1,6 +1,22 @@
 # Plan de acción — Página de Zona Unificada (header + 2 tabs)
 
-**Fecha:** 2026-06-22 · **Branch:** `dev-redesign-tandas` · **Estado:** PLAN (aprobado para arrancar)
+**Fecha:** 2026-06-22 · **Branch:** `dev-redesign-tandas` · **Estado:** ✅ FASES 1-5 COMPLETAS Y AUDITADAS (verificadas en app)
+
+## Estado de fases
+- ✅ **Fase 1** — Shell: header con snapshot + barra de tabs (Propiedades | Conoce la zona) URL-driven (`?ver=`).
+- ✅ **Fase 2** — Conoce la zona = contenido actual (vino con el shell).
+- ✅ **Fase 3** — Tab Propiedades: `ZonaPropiedades` (marketplace colonia-scoped embebido · TopFilters + DevelopmentCard + scroll infinito + comparar) · tabs montados-ocultos (no pierde estado).
+- ✅ **Fase 4** — Conteo en pestaña + CTAs de embudo entre tabs + dedup grid redundante + lente preview (primera→precio asc).
+- ✅ **Fase 5** — Migración: redirect /marketplace?colonia=X → /zona/X?ver=propiedades (en MarketplaceRoute) + default adaptativo por origen (compra→Propiedades, editorial→historia) en Mapa/HomeV2/ColoniasV2 + mapa interno + quiz.
+
+## Pendiente menor (no bloqueante)
+- [ ] Redirect `/colonia/:slug` → `/zona/:slug` (landing aparte · ver SEO antes).
+- [ ] Quitar `OportunidadPanel` huérfano del marketplace (ya inalcanzable en flujo colonia).
+- [ ] Código muerto preexistente: vista `viewMode='mapa'` del marketplace (inalcanzable · limpieza futura).
+- [ ] Default por origen completo: confirmar qué entry points editoriales deben forzar `?ver=zona`.
+
+---
+
 
 ## Objetivo (founder)
 Al entrar a una colonia: **info general arriba** + **2 tabs** (Propiedades · Conoce la zona). Cambiar entre "ver propiedades" y "entender la zona" = un clic, **sin salir ni doble scroll**. Los 4 perfiles (invertir/familia/primera/vivir) viven en "Conoce la zona". **Upgrade:** el perfil es un **lente global** que personaliza también el tab Propiedades.
