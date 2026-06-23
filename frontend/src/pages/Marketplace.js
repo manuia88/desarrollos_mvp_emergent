@@ -16,7 +16,7 @@ import AtlaxBubble from '../components/landing/AtlaxBubble';
 // BuyerCoach retirado: Atlax es la asistente única (unificación · evita "mil bubbles").
 import OportunidadPanel from '../components/marketplace/OportunidadPanel';
 import { Camera, ExternalLink, Bell } from '../components/icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse, fetchCasiCumple } from '../api/marketplace';
 import { saveMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
@@ -31,6 +31,7 @@ const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 export default function Marketplace({ user, onLogin, onLogout }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [colonias, setColonias] = useState([]);
   const [filters, setFilters] = useState({});
   const [aiFilters, setAiFilters] = useState(null);
@@ -249,11 +250,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     setSelectedColonia(coloniaId);
   }, []);
 
-  const handleFilterByColonia = useCallback((coloniaId, coloniaNombre) => {
-    setColoniaFilter(coloniaId);
-    setSelectedColonia(null);
-    setViewMode('lista');
-  }, []);
+  const handleFilterByColonia = useCallback((coloniaId) => {
+    // Página unificada: ver una colonia → su página de zona (tab Propiedades), no la vista vieja con sidebar.
+    navigate(`/zona/${coloniaId}?ver=propiedades`);
+  }, [navigate]);
 
   const handleClearColoniaFilter = () => setColoniaFilter(null);
 
@@ -862,7 +862,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <ColoniaQuizModal
         open={quizOpen}
         onClose={() => setQuizOpen(false)}
-        onSelectColonia={(coloniaId) => { setQuizOpen(false); setColoniaFilter(coloniaId); }}
+        onSelectColonia={(coloniaId) => { setQuizOpen(false); navigate(`/zona/${coloniaId}?ver=propiedades`); }}
       />
 
       <style>{`

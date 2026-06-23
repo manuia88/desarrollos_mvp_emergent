@@ -102,7 +102,7 @@ function Sparkline({ trend, up }) {
 function ColoniaCard({ c }) {
   const up = c.momentumPositive;
   return (
-    <Link to={`/marketplace?colonia=${encodeURIComponent(c.key)}`} className="dmx-glow"
+    <Link to={`/zona/${encodeURIComponent(c.key)}?ver=propiedades`} className="dmx-glow"
       style={{ textDecoration: 'none', display: 'block', borderRadius: 22, overflow: 'hidden', background: '#fff', border: '1px solid var(--card-border)' }}>
       {/* Foto + overlay claro + nombre en tinta + calidad + momentum */}
       <div className="dmx-photo" style={{ position: 'relative', aspectRatio: '16/10' }}>
@@ -141,7 +141,7 @@ export default function HomeV2() {
   const nav = useNavigate();
   const [zona, setZona] = useState('');
   const [faq, setFaq] = useState(0);
-  const go = () => nav(`/marketplace${zona ? `?colonia=${encodeURIComponent(zona)}` : ''}`);
+  const go = () => nav(zona ? `/zona/${encodeURIComponent(zona)}?ver=propiedades` : '/marketplace');
   // Abre Atlax (la IA, ya viva en /api/atlax/query) sembrando la pregunta del hero.
   const askAI = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: zona || '' } }));
 

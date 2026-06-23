@@ -1079,6 +1079,10 @@ function LoginRoute() {
 
 function MarketplaceRoute() {
   const { user, logout, openAuth } = useAuth();
+  const location = useLocation();
+  // Página unificada: entrar al marketplace por UNA colonia (?colonia=X) → página de zona unificada (tab Propiedades).
+  const colonia = new URLSearchParams(location.search).get('colonia');
+  if (colonia) return <Navigate to={`/zona/${colonia}?ver=propiedades`} replace />;
   return <Marketplace user={user} onLogin={openAuth} onLogout={logout} />;
 }
 

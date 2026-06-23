@@ -680,7 +680,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
               {isW ? '✓ Te avisaremos si cambia el precio o la seguridad' : '🔔 Vigila esta colonia'}
             </button>
 
-            <Link to={`/marketplace?colonia=${c.id}`} style={{
+            <Link to={`/zona/${c.id}?ver=propiedades`} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%',
               padding: '12px', borderRadius: 12, textDecoration: 'none',
               background: 'var(--grad)', color: '#fff', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,

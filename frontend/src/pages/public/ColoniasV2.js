@@ -52,9 +52,9 @@ export default function ColoniasV2() {
             Cruzamos 117 variables por colonia y te decimos lo que importa para tu día a día: si es segura, si caminas a todo y si tu compra va a valer más.
           </p>
           <div style={{ maxWidth: 520, margin: '0 auto', background: '#fff', border: '1px solid var(--card-border)', borderRadius: 'var(--r-card)', boxShadow: '0 10px 30px rgba(16,24,40,0.08)', padding: 8, display: 'flex', gap: 8 }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && nav(`/marketplace?colonia=${encodeURIComponent(q)}`)}
+            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && nav(`/zona/${encodeURIComponent(q)}?ver=propiedades`)}
               placeholder="Busca Tu Colonia o Alcaldía" style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 15, padding: '8px 10px', color: 'var(--cream)' }} />
-            <Button size="md" onClick={() => nav(`/marketplace?colonia=${encodeURIComponent(q)}`)}>Buscar</Button>
+            <Button size="md" onClick={() => nav(`/zona/${encodeURIComponent(q)}?ver=propiedades`)}>Buscar</Button>
           </div>
         </Section>
       </Container>
@@ -64,7 +64,7 @@ export default function ColoniasV2() {
         <Container>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px,1fr))', gap: 16 }}>
             {COLONIAS.map((z) => (
-              <Link key={z.key} to={`/marketplace?colonia=${encodeURIComponent(z.key)}`} className="dmx-zone" style={{ textDecoration: 'none', position: 'relative', display: 'block', borderRadius: 'var(--r-card)', overflow: 'hidden', aspectRatio: '16/11' }}>
+              <Link key={z.key} to={`/zona/${encodeURIComponent(z.key)}?ver=propiedades`} className="dmx-zone" style={{ textDecoration: 'none', position: 'relative', display: 'block', borderRadius: 'var(--r-card)', overflow: 'hidden', aspectRatio: '16/11' }}>
                 <img src={z.img} alt={z.n} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(11,11,18,0.85) 0%, rgba(11,11,18,0.1) 60%, transparent 100%)' }} />
                 {z.mom && <span style={{ position: 'absolute', top: 12, right: 12, background: z.up ? 'var(--ok,#1FA06A)' : 'var(--theme)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: '3px 9px' }}>{z.up ? '▲' : '▼'} {z.mom}</span>}
