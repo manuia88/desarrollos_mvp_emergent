@@ -1,14 +1,10 @@
 // Marketplace page — developments grid + Heatmap Map Intelligence (Batch 24)
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { LightScope, PublicNav, Footer } from '../components/ui';
 import TopFilters from '../components/marketplace/TopFilters';
 import RiskScoreSubscribeWidget from '../components/marketplace/RiskScoreSubscribeWidget';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
-import MarketplaceHeatmapLayer from '../components/marketplace/MarketplaceHeatmapLayer';
-import ColoniaSidebar from '../components/marketplace/ColoniaSidebar';
 import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
@@ -26,8 +22,6 @@ import { visitorId } from '../lib/buyerSignal';
 import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
 import MarketplaceMetaTags from '../components/seo/MarketplaceMetaTags';
 import { Z } from '../styles/zIndex';
-
-const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 export default function Marketplace({ user, onLogin, onLogout }) {
   const { t } = useTranslation();
@@ -50,8 +44,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const sentinelRef = useRef(null);
 
   // Batch 24 — View mode
-  const [viewMode, setViewMode] = useState('lista'); // 'lista' | 'mapa'
-  const [selectedColonia, setSelectedColonia] = useState(null);
+  const [viewMode] = useState('lista'); // vista única (el mapa vive en /mapa)
   const [imgSearchOpen, setImgSearchOpen] = useState(false);
   const [coloniaFilter, setColoniaFilter] = useState(null);
 
@@ -71,10 +64,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // W5.3 Parte 2B Sub-E — Forecast 12m growth minimum filter
   const [forecastDeltaMin, setForecastDeltaMin] = useState(0);
 
-  // Mapbox refs
-  const mapContainer = useRef(null);
-  const mapRef = useRef(null);
-  const [mapInstance, setMapInstance] = useState(null);
 
   // Tema claro a nivel body (refactor PublicPageShell) → mata el fondo oscuro residual detrás del scope.
   useEffect(() => {
@@ -219,41 +208,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     }
   };
 
-  // Inicializar mapa cuando se cambia a vista mapa
-  useEffect(() => {
-    if (viewMode !== 'mapa' || !mapContainer.current || mapRef.current) return;
-    if (!TOKEN) return;
-    mapboxgl.accessToken = TOKEN;
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-99.1969, 19.4270],
-      zoom: 10.5,
-    });
-    mapRef.current = map;
-    map.on('load', () => setMapInstance(map));
-    return () => {
-      // solo limpiar si cambiamos a lista
-    };
-  }, [viewMode]);
-
-  // Destruir mapa al volver a lista
-  useEffect(() => {
-    if (viewMode === 'lista' && mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-      setMapInstance(null);
-    }
-  }, [viewMode]);
-
-  const handleColoniaClick = useCallback((coloniaId) => {
-    setSelectedColonia(coloniaId);
-  }, []);
-
-  const handleFilterByColonia = useCallback((coloniaId) => {
-    // Página unificada: ver una colonia → su página de zona (tab Propiedades), no la vista vieja con sidebar.
-    navigate(`/zona/${coloniaId}?ver=propiedades`);
-  }, [navigate]);
 
   const handleClearColoniaFilter = () => setColoniaFilter(null);
 
@@ -783,57 +737,6 @@ export default function Marketplace({ user, onLogin, onLogout }) {
           </section>
         )}
 
-        {/* ── Vista Mapa ── */}
-        {viewMode === 'mapa' && (
-          <section
-            data-testid="marketplace-map-section"
-            style={{
-              height: 'calc(100vh - 130px)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {!TOKEN && (
-              <div style={{
-                position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                zIndex: Z.DROPDOWN, padding: '14px 20px',
-                background: 'rgba(239,68,68,0.14)',
-                border: '1px solid rgba(239,68,68,0.4)',
-                borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',
-              }}>
-                Mapbox token requerido
-              </div>
-            )}
-
-            {/* Mapbox container */}
-            <div
-              ref={mapContainer}
-              style={{ position: 'absolute', inset: 0 }}
-              data-testid="marketplace-map-container"
-            />
-
-            {/* Heatmap layer component */}
-            {mapInstance && (
-              <MarketplaceHeatmapLayer
-                mapInstance={mapInstance}
-                onColoniaClick={handleColoniaClick}
-              />
-            )}
-
-            {/* Colonia Sidebar */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-              <div style={{ position: 'relative', height: '100%', pointerEvents: 'none' }}>
-                <div style={{ pointerEvents: 'auto' }}>
-                  <ColoniaSidebar
-                    coloniaId={selectedColonia}
-                    onClose={() => setSelectedColonia(null)}
-                    onFilterByColonia={handleFilterByColonia}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
       </main>
 
       {/* Comparador ahora vive en la barra de filtros (TopFilters · ComparadorPill) */}
