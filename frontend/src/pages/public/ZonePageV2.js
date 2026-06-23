@@ -2,7 +2,7 @@
 // (con micro-promesa) → al elegir, la historia de ESE perfil (dolor+sueño) sobre la MISMA data real. La elección dispara
 // una SEÑAL DE INTENCIÓN (zone_intent → buyer_signals → lead/demanda/Atlax). Persiste el perfil entre zonas.
 // Sistema: memory/ZONA_PAGE_NARRATIVE_SYSTEM.md
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LightScope, PublicNav, Footer } from '../../components/ui';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
@@ -146,6 +146,7 @@ export default function ZonePageV2() {
   // TAB de la página unificada · 'propiedades' | 'zona' (Conoce la zona). Default 'zona' por ahora (Propiedades = Fase 3).
   const ver = searchParams.get('ver') === 'propiedades' ? 'propiedades' : 'zona';
   const setVer = (v) => { const n = new URLSearchParams(searchParams); if (v === 'zona') n.delete('ver'); else n.set('ver', v); setSearchParams(n); };
+  const progressRef = useRef(null);   // barra de progreso de scroll (upgrade) — se actualiza por ref, sin re-render
   // tabs montados-ocultos: una vez visitado un tab, queda vivo (no se pierde estado: filtros, scroll). Lazy la 1ª vez.
   const [visited, setVisited] = useState({ zona: true });
   useEffect(() => { setVisited((s) => (s[ver] ? s : { ...s, [ver]: true })); }, [ver]);
@@ -209,6 +210,17 @@ export default function ZonePageV2() {
     const safety = setTimeout(() => els.forEach((el) => el.classList.add('in')), 4000);
     return () => { io.disconnect(); clearTimeout(safety); };
   }, [profile, inv, ver]);
+
+  // ⬆ Upgrade: barra de progreso de scroll (orienta en la historia larga). Se actualiza por ref (sin re-render).
+  useEffect(() => {
+    const onScroll = () => {
+      const el = progressRef.current; if (!el) return;
+      const h = document.documentElement; const max = (h.scrollHeight - h.clientHeight) || 1;
+      el.style.width = `${Math.min(100, Math.max(0, (h.scrollTop / max) * 100))}%`;
+    };
+    onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Elegir perfil = persistir + DISPARAR señal de intención (zone_intent → buyer_signals → lead/demanda/Atlax). Cierra ciclo.
   const pickProfile = (kk) => {
@@ -385,12 +397,24 @@ export default function ZonePageV2() {
           </div>
         </section>
 
-        {/* ───── TAB BAR · Propiedades | Conoce la zona (URL ?ver=) ───── */}
-        <div style={{ ...sec, marginTop: 4 }}>
-          <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(16,18,28,0.05)', borderRadius: 9999, padding: 4 }}>
-            {[['propiedades', `🏠 Propiedades${devs.length ? ` (${devs.length}${devs.length >= 12 ? '+' : ''})` : ''}`], ['zona', '📖 Conoce la zona']].map(([v, l]) => (
-              <button key={v} type="button" onClick={() => setVer(v)} style={{ padding: '9px 20px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: ver === v ? '#fff' : 'transparent', color: ver === v ? '#4F46E5' : '#6B6F86', boxShadow: ver === v ? '0 2px 8px rgba(16,18,28,0.1)' : 'none' }}>{l}</button>
-            ))}
+        {/* ───── TAB BAR · sticky bajo el nav + highlight (no se pierde al hacer scroll) ───── */}
+        <div style={{ position: 'sticky', top: 63, zIndex: 40, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(16,18,28,0.07)', boxShadow: '0 6px 20px rgba(16,18,28,0.05)' }}>
+          <div style={{ ...sec, paddingTop: 11, paddingBottom: 11, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'inline-flex', gap: 5, background: 'rgba(99,102,241,0.08)', borderRadius: 9999, padding: 5, border: '1px solid rgba(99,102,241,0.16)' }}>
+              {[['propiedades', `🏠 Propiedades${devs.length ? ` (${devs.length}${devs.length >= 12 ? '+' : ''})` : ''}`], ['zona', '📖 Conoce la zona']].map(([v, l]) => {
+                const on = ver === v;
+                return (
+                  <button key={v} type="button" onClick={() => setVer(v)} className="zv2-cta" style={{ padding: '10px 22px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, background: on ? 'linear-gradient(135deg,#6366F1,#4F46E5)' : 'transparent', color: on ? '#fff' : '#4F46E5', boxShadow: on ? '0 8px 20px rgba(99,102,241,0.36)' : 'none', transition: 'background .18s, box-shadow .18s, transform .18s' }}>{l}</button>
+                );
+              })}
+            </div>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: '#9499AE' }}>{ver === 'zona' ? '— la historia de ' : '— en venta en '}{name}</span>
+            {ver === 'zona' && profile === 'invertir' && (
+              <button type="button" onClick={() => { const el = document.getElementById('calculadora'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="zv2-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 9999, border: '1.5px solid rgba(99,102,241,0.35)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>🧮 Calcular mi inversión</button>
+            )}
+          </div>
+          <div style={{ position: 'absolute', left: 0, bottom: 0, height: 2.5, width: '100%', background: 'rgba(99,102,241,0.1)' }}>
+            <div ref={progressRef} style={{ height: '100%', width: '0%', background: 'linear-gradient(90deg,#6366F1,#10B981)', transition: 'width .1s linear' }} />
           </div>
         </div>
 
@@ -800,9 +824,10 @@ export default function ZonePageV2() {
 
         {/* ── CALCULADORA INTERACTIVA (Bloque 12 · proyecto → unidad → desglose completo · reusa InvestmentSimulator) ── */}
         {profile === 'invertir' && sortedDevs.length > 0 && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
-            <div style={eyebrow}>{tc('Ahora sí · tus números')}</div>
-            <h2 style={chapTitle}>Veamos qué tan tuyo puede ser</h2>
+          <section id="calculadora" style={{ width: '100%', background: 'linear-gradient(180deg,#F4F5FF 0%,#EBEDFE 100%)', padding: 'clamp(50px,7vw,86px) 0', borderTop: '1px solid rgba(99,102,241,0.16)', borderBottom: '1px solid rgba(99,102,241,0.16)' }}>
+            <div data-rev style={sec}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.04em', boxShadow: '0 10px 24px rgba(99,102,241,0.34)' }}>🧮 Calculadora interactiva</div>
+            <h2 style={{ ...chapTitle, marginTop: 16 }}>Veamos qué tan tuyo puede ser</h2>
             <p style={lead}>Elige un desarrollo y una unidad de {name}. Armamos el cálculo completo con TUS datos — tu enganche, tu crédito, lo que te deja al mes y cuánto vale en unos años.</p>
             <style>{`
               .zv2-dev{transition:transform .15s,box-shadow .15s,border-color .15s}
@@ -857,6 +882,7 @@ export default function ZonePageV2() {
                 <InversionV4Calculator mode={calcMode} prefilled={calcMode === 'individual' && calcUnit ? { precio: calcUnit.price, renta: inv && inv.renta_prom } : {}} portfolioUnits={calcMode === 'institucional' ? calcSelUnits.map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) })) : []} lockPrice zoneId={slug} capRateMercado={inv && inv.cap_rate_anual_pct} devId={calcDev} numDesarrollos={Array.isArray(devs) ? devs.length : null} />
               </div>
             )}
+            </div>
           </section>
         )}
 
