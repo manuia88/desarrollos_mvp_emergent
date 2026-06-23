@@ -195,6 +195,21 @@ export default function ZonePageV2() {
     return () => { alive = false; };
   }, [slug]);
 
+  // ⬆ Upgrade: scroll-reveal cinematográfico de los capítulos de la historia (refuerza el "te lleva slide por slide").
+  // Fail-safe: sin IntersectionObserver, o si algo falla, todo queda visible a los 4s (nunca contenido atorado invisible).
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const els = Array.from(document.querySelectorAll('[data-rev]'));
+    if (!els.length) return undefined;
+    els.forEach((el) => { if (!el.classList.contains('in')) el.classList.add('zv2-rev'); });
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    els.forEach((el) => io.observe(el));
+    const safety = setTimeout(() => els.forEach((el) => el.classList.add('in')), 4000);
+    return () => { io.disconnect(); clearTimeout(safety); };
+  }, [profile, inv, ver]);
+
   // Elegir perfil = persistir + DISPARAR señal de intención (zone_intent → buyer_signals → lead/demanda/Atlax). Cierra ciclo.
   const pickProfile = (kk) => {
     setProfile(kk);
@@ -290,6 +305,9 @@ export default function ZonePageV2() {
       <style>{`
         @keyframes zv2up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
         .zv2-up { animation: zv2up .5s cubic-bezier(.2,.8,.2,1) both }
+        .zv2-rev { opacity:0; transform:translateY(30px); transition:opacity .75s cubic-bezier(.2,.8,.2,1), transform .75s cubic-bezier(.2,.8,.2,1) }
+        .zv2-rev.in { opacity:1; transform:none }
+        @media (prefers-reduced-motion: reduce) { .zv2-rev { opacity:1 !important; transform:none !important; transition:none } }
         .zv2-cta { transition: transform .18s, box-shadow .18s }
         .zv2-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(124,92,255,.42) }
         .zv2-win { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s }
@@ -416,7 +434,7 @@ export default function ZonePageV2() {
             <>
               {/* ─── CAP 1 · EL HÉROE Y SU ERROR (oscuro + imagen · conectar → nombrar el error → el giro) ─── */}
               <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ ...cont, position: 'relative' }}>
+                <div data-rev style={{ ...cont, position: 'relative' }}>
                   <div style={eyb('#9D8BFF')}>Invertir · {name}</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
                     Trabajaste años por ese dinero.<br />
@@ -430,7 +448,7 @@ export default function ZonePageV2() {
 
               {/* ─── CAP 2 · LA OPORTUNIDAD (claro · por qué este lugar protege y crece · gráfica + imagen · pocos números) ─── */}
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-                <div style={cont}>
+                <div data-rev style={cont}>
                   <div style={eyb('#7C5CFF')}>Por qué aquí</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Hay lugares que la gente<br />nunca deja de querer.</h2>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>{name} es uno de ellos. Y cuando un lugar siempre tiene quién lo busque, lo que tienes ahí <b style={{ color: INK }}>no se devalúa</b> — al contrario: vale un poco más cada año, tranquilo y constante. No es suerte. Es lo que pasa aquí.</p>
@@ -460,7 +478,7 @@ export default function ZonePageV2() {
 
               {/* ─── CAP 3 · LOS BENEFICIOS (oscuro · lo que GANAS, sin números · imagen) ─── */}
               <section style={{ width: '100%', background: `linear-gradient(180deg,#15132E,#0C0B1E)`, color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
-                <div style={cont}>
+                <div data-rev style={cont}>
                   <div style={eyb('#9D8BFF')}>Lo que ganas</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Tres cosas que el banco<br />nunca podrá darte.</h2>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, marginTop: 32 }}>
