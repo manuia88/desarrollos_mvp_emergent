@@ -695,8 +695,10 @@ export default function ZonePageV2() {
           // Lifestyle REAL (Google Places · nombre + ★ + reseñas + link a Maps). Solo si hay datos reales de la zona.
           const LG = (lugares && lugares.lugares) || {};
           const lgReal = !!(lugares && lugares.fuente === 'google');
-          const lifeCats = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud cerca'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir a comer'], ['🚇', 'transporte', 'Transporte']]
-            .map(([ic, key, label]) => [ic, label, (LG[key] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , arr]) => arr.length);
+          // FAMILIA: lo que decide una familia — escuelas al frente + parques + salud + súper. (Sin restaurantes/bares: eso es 'vivir'.)
+          const lifeCats = [['🏫', 'escuela', 'Escuelas cerca'], ['🌳', 'parque', 'Parques y áreas verdes'], ['🏥', 'hospital', 'Hospitales y salud'], ['🛒', 'supermercado', 'Súper y lo básico']]
+            .map(([ic, key, label]) => [ic, label, (LG[key] || []).filter((p) => p && p.name).slice(0, key === 'escuela' ? 4 : 3)]).filter(([, , arr]) => arr.length);
+          const famAmen = (Array.isArray(devAmen) ? devAmen : []).filter(([s]) => ['jardines', 'alberca', 'area_pets', 'pet', 'seguridad', 'salon_eventos', 'gym', 'roof'].includes(s));
           return (
             <>
               {/* CAP 1 · EL HÉROE Y SU ERROR (oscuro + foto · conectar → mudarse otra vez → echar raíces) */}
@@ -734,9 +736,9 @@ export default function ZonePageV2() {
               {lgReal && lifeCats.length > 0 && (
                 <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                   <div data-rev style={cont}>
-                    <div style={eyb('#EC4899')}>Así se vive aquí</div>
-                    <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>A la vuelta de tu casa.</h2>
-                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Esto es lo que de verdad tienes cerca en {name} — con nombre y calificación real. Toca cualquiera para verlo en el mapa:</p>
+                    <div style={eyb('#EC4899')}>Para los niños</div>
+                    <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Lo que importa para<br />una familia, a la vuelta.</h2>
+                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Escuelas, parques, hospitales — lo que de verdad pesa al elegir dónde crecen los tuyos en {name}, con calificación real. Toca cualquiera para verlo en el mapa:</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16, marginTop: 28 }}>
                       {lifeCats.map(([ic, label, arr]) => (
                         <div key={label} style={{ ...cardBase, padding: '18px 20px' }}>
@@ -753,6 +755,16 @@ export default function ZonePageV2() {
                       ))}
                     </div>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places, a ~1 km del centro de {name}.</div>
+                    {famAmen.length > 0 && (
+                      <div style={{ marginTop: 30 }}>
+                        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: INK }}>🏡 Y en los desarrollos, pensado para la familia:</div>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                          {famAmen.map(([s, count]) => (
+                            <span key={s} className="zv2-win" style={{ ...cardBase, padding: '10px 16px', display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66' }}><span style={{ fontSize: 17 }}>{AMEN_DEV[s][0]}</span> {AMEN_DEV[s][1]} <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}>· {count}</span></span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {bridge('Y eso es apenas el principio de lo que gana tu familia')}
                   </div>
                 </section>
@@ -1015,15 +1027,16 @@ export default function ZonePageV2() {
 
               {/* CAP 3 · LIFESTYLE REAL (lo mejor de la zona · Google Places) */}
               {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
-                const cats = [['🍴', 'restaurante', 'Dónde comer'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🛒', 'supermercado', 'El súper'], ['🏥', 'hospital', 'Salud'], ['🚇', 'transporte', 'Transporte']]
-                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
+                // VIVIR: dining + leisure (lo aspiracional). Sin súper/hospital/transporte — eso es práctico, no estilo de vida.
+                const cats = [['🍴', 'restaurante', 'Dónde comer rico'], ['☕', 'cafe', 'Cafés y para sentarse'], ['🌳', 'parque', 'Verde y para pasear']]
+                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, k === 'restaurante' ? 5 : 4)]).filter(([, , a]) => a.length);
                 if (!cats.length) return null;
                 return (
                   <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                     <div data-rev style={cont}>
-                      <div style={eyb('#EC4899')}>A la puerta</div>
-                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Lo bueno, a la vuelta.</h2>
-                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo mejor de {name}, con calificación real — toca cualquiera para verlo en el mapa:</p>
+                      <div style={eyb('#EC4899')}>El plan del finde</div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Salir y disfrutar,<br />sin tomar el coche.</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Los mejores lugares para comer, el café de la mañana, dónde pasear — lo que hace que valga la pena vivir en {name}, con calificación real. Toca cualquiera para verlo en el mapa:</p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
                         {cats.map(([ic, l, arr]) => (
                           <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
