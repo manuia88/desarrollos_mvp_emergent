@@ -400,10 +400,15 @@ export default function ZonePageV2() {
         {profile === 'invertir' && S && (() => {
           const plus = inv.plusvalia_anual_pct;
           const gan5 = inv.ganancia_5y_abs;
-          const tir = inv.tir_anual_pct;
           const renta = inv.renta_prom;
+          const precio = inv.precio_prom || 0;
+          const f = 1 + (plus || 0) / 100;
+          const serie = [0, 1, 2, 3, 4, 5].map((y) => ({ y, v: Math.round(precio * Math.pow(f, y)) }));
+          const vmax = serie[serie.length - 1].v || 1;
+          const m1c = (n) => { n = Math.round(Number(n) || 0); return n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`; };
           const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
           const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 0.9 };
+          const bridge = (txt, dark) => (<div style={{ marginTop: 30, fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700, color: dark ? '#C4B5FD' : '#7C5CFF', display: 'flex', alignItems: 'center', gap: 8 }}>{txt} <span style={{ fontSize: 17 }}>↓</span></div>);
           return (
             <>
               {/* ─── CAPÍTULO 1 · HERO (oscuro, full-bleed · micro-historia: tienes ahorro → el banco se lo come → aquí trabaja → el pago) ─── */}
@@ -412,33 +417,67 @@ export default function ZonePageV2() {
                 <div style={{ ...cont, position: 'relative' }}>
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Invertir · {name}</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,46px)', lineHeight: 1.16, margin: '20px 0 0', color: '#fff', letterSpacing: '-0.025em' }}>
-                    Tienes un dinero ahorrado.<br />
-                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Parado en el banco, la inflación se lo come.</span><br />
-                    En {name}, ese mismo dinero <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>trabaja para ti</span>.
+                    Tienes un dinero guardado.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>En el banco, poco a poco vale menos.</span><br />
+                    Aquí, ese mismo dinero <span style={{ background: 'linear-gradient(90deg,#A78BFA,#E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>crece</span>.
                   </h2>
                   {gan5 != null && (
                     <div style={{ marginTop: 38 }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(255,255,255,0.58)', fontWeight: 700 }}>Lo mismo invertido aquí, en 5 años te da</div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(255,255,255,0.58)', fontWeight: 700 }}>Si lo pones aquí, en 5 años tendrías</div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, flexWrap: 'wrap', marginTop: 8 }}>
                         <div style={{ ...giant, fontSize: 'clamp(38px,6vw,70px)', color: '#34D399', letterSpacing: '-0.04em' }}>+{m1(gan5)}</div>
-                        {tir != null && <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: 600, lineHeight: 1.45 }}>de ganancia · <b style={{ color: '#fff' }}>{tir}% al año</b><br /><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)' }}>y, a diferencia del banco, el depto es tuyo</span></div>}
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: 600, lineHeight: 1.45 }}>más de lo que pusiste.<br /><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)' }}>Y la casa es tuya.</span></div>
                       </div>
                     </div>
                   )}
-                  <div style={{ marginTop: 38, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.42)', display: 'flex', alignItems: 'center', gap: 8 }}>Te muestro por qué <span style={{ fontSize: 16 }}>↓</span></div>
+                  <div style={{ marginTop: 38, fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(255,255,255,0.42)', display: 'flex', alignItems: 'center', gap: 8 }}>Te enseño cómo <span style={{ fontSize: 16 }}>↓</span></div>
                 </div>
               </section>
 
-              {/* ─── CAPÍTULO 2 · LA PRUEBA (claro, número gigante, no promesa) ─── */}
-              <section style={{ width: '100%', background: '#fff', padding: 'clamp(64px,9vw,104px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+              {/* ─── CAPÍTULO 2 · CÓMO SUBE (claro · gráfica de barras + lenguaje simple) ─── */}
+              <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div style={cont}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7C5CFF' }}>La prueba, no la promesa</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(34px,5vw,56px)', color: INK, margin: '14px 0 0' }}>Aquí el precio sube.<br />Y no es opinión.</h2>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginTop: 30 }}>
-                    <div style={{ ...giant, fontSize: 'clamp(50px,8vw,96px)', color: '#0E9F6E' }}>+{plus}%</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 18, color: MUT, fontWeight: 700, paddingBottom: 18 }}>al año<br /><span style={{ fontSize: 13, fontWeight: 600, color: '#A2A6BC' }}>plusvalía estimada de {name}</span></div>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7C5CFF' }}>Por qué crece</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', lineHeight: 1.1, color: INK, margin: '14px 0 0', letterSpacing: '-0.025em' }}>Aquí, las casas valen más<br />cada año que pasa.</h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 16.5, color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.55 }}>Una casa que hoy cuesta <b style={{ color: INK }}>{m1c(precio)}</b> no se queda igual. Mira cómo sube, año con año:</p>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(6px,1.6vw,18px)', height: 'clamp(170px,26vw,240px)', marginTop: 32 }}>
+                    {serie.map((p, i) => {
+                      const last = i === serie.length - 1;
+                      const h = 34 + (p.v / vmax) * 66;
+                      return (
+                        <div key={p.y} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(10px,1.5vw,14px)', color: last ? '#0B8C5E' : '#9296AE', marginBottom: 7 }}>{m1c(p.v)}</div>
+                          <div style={{ width: '100%', maxWidth: 80, height: `${h}%`, borderRadius: '11px 11px 0 0', background: last ? 'linear-gradient(180deg,#10B981,#0B8C5E)' : 'linear-gradient(180deg,#CBEFDD,#A7E3C6)' }} />
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 'clamp(10px,1.4vw,12px)', color: '#A2A6BC', marginTop: 9, fontWeight: 600, textAlign: 'center' }}>{p.y === 0 ? 'Hoy' : `+${p.y} año${p.y > 1 ? 's' : ''}`}</div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 17, color: MUT, maxWidth: 620, marginTop: 8, lineHeight: 1.55 }}>Un depto de {m1(inv.precio_prom)} se aprecia <b style={{ color: INK }}>~{k(inv.plusvalia_anual_abs || 0)} al año</b> — sin que muevas un dedo. Eso es lo que el banco no te da.</p>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 16.5, color: MUT, maxWidth: 640, marginTop: 28, lineHeight: 1.6 }}>En 5 años, esa misma casa pasa de {m1c(serie[0].v)} a <b style={{ color: '#0B8C5E' }}>{m1c(serie[5].v)}</b>. Son <b style={{ color: INK }}>{m1(serie[5].v - serie[0].v)} más</b> — sin que muevas un dedo.</p>
+                  {bridge('Y mientras sube, hace algo más por ti')}
+                </div>
+              </section>
+
+              {/* ─── CAPÍTULO 3 · QUÉ HACE POR TI (oscuro · 3 cosas simples + fotos reales de la zona) ─── */}
+              <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+                <div style={cont}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Qué hace por ti</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,46px)', lineHeight: 1.1, color: '#fff', margin: '14px 0 0', letterSpacing: '-0.025em' }}>Tu dinero, aquí,<br />hace tres cosas.</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginTop: 30 }}>
+                    {[
+                      ['📈', 'Vale más cada año', `Hoy cuesta ${m1c(precio)}. En un año, ~${m1c(Math.round(precio * f))}. Sube sola.`],
+                      ['💵', 'Te paga cada mes', `Alguien vive ahí y te da ~${m1(renta || 0)} cada mes.`],
+                      ['🔑', 'Es tuyo de verdad', 'Lo tocas, lo usas, se lo dejas a tus hijos. No es un papel.'],
+                    ].map(([ic, t, d]) => (
+                      <div key={t} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '22px 22px' }}>
+                        <div style={{ fontSize: 28 }}>{ic}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#fff', marginTop: 10 }}>{t}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'rgba(255,255,255,0.66)', marginTop: 6, lineHeight: 1.55 }}>{d}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* (fotos reales de los desarrollos entran aquí cuando existan; hoy solo hay placeholders aleatorios → no se muestran) */}
+                  {bridge('Sigue — ahora vienen TUS números', true)}
                 </div>
               </section>
             </>
