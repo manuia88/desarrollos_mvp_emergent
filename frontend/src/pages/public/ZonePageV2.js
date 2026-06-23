@@ -126,6 +126,113 @@ function buildStories(name, inv) {
   };
 }
 
+// Explorador de lugares INTERACTIVO (reusado por los 4 perfiles). El cliente elige qué le importa (escuelas/parques/...)
+// y SE DESPLIEGAN los lugares reales de esa categoría (Google Places · nombre + ★ + link a mapa). defaultCat = lo que el
+// perfil pone al frente; el cliente puede explorar cualquier categoría. eyebrowText/title/intro cambian por perfil.
+function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro }) {
+  const LG = (lugares && lugares.lugares) || {};
+  const ALL = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🏥', 'hospital', 'Salud'], ['🛒', 'supermercado', 'Súper'], ['🚇', 'transporte', 'Transporte']]
+    .map(([ic, k, l]) => ({ ic, k, l, arr: (LG[k] || []).filter((p) => p && p.name) })).filter((c) => c.arr.length);
+  const init = (defaultCat && ALL.some((c) => c.k === defaultCat)) ? defaultCat : (ALL[0] && ALL[0].k);
+  const [sel, setSel] = useState(init);
+  if (!ALL.length) return null;
+  const active = ALL.find((c) => c.k === sel) || ALL[0];
+  return (
+    <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>{eyebrowText}</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>{title}</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 14, lineHeight: 1.6 }}>{intro}</p>
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 24 }}>
+          {ALL.map((c) => {
+            const on = c.k === active.k;
+            return (
+              <button key={c.k} type="button" onClick={() => setSel(c.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.12)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 22px rgba(99,102,241,0.28)' : 'none', transition: 'all .18s' }}>
+                <span style={{ fontSize: 16 }}>{c.ic}</span> {c.l}
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 999, background: on ? 'rgba(255,255,255,0.22)' : 'rgba(99,102,241,0.1)', color: on ? '#fff' : '#6366F1' }}>{c.arr.length}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div key={active.k} className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12, marginTop: 22 }}>
+          {active.arr.slice(0, 8).map((p) => (
+            <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '13px 15px', borderRadius: 13, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+              </span>
+              {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap', flexShrink: 0 }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ color: '#C7CAD6', flexShrink: 0 }}>›</span>}
+            </a>
+          ))}
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca cualquiera para abrirlo en el mapa.</div>
+      </div>
+    </section>
+  );
+}
+
+// Calculadora INTERACTIVA Renta vs Crédito hipotecario. Sliders (precio · enganche % · plazo · tu renta) → mensualidad
+// del crédito vs renta, lado a lado, recalculando en vivo. Para 'mi primera casa'.
+function RentVsMortgage({ name, precioBase, rentaBase }) {
+  const [precio, setPrecio] = useState(Math.min(Math.max(Math.round((precioBase || 2000000) / 100000) * 100000, 800000), 8000000));
+  const [engPct, setEngPct] = useState(20);
+  const [plazoAnos, setPlazoAnos] = useState(20);
+  const [renta, setRenta] = useState(Math.round((rentaBase || 15000) / 500) * 500);
+  const tasa = 0.1145;
+  const enganche = Math.round(precio * engPct / 100);
+  const prestamo = precio - enganche;
+  const i = tasa / 12, n = plazoAnos * 12;
+  const mensualidad = Math.round(prestamo * i / (1 - Math.pow(1 + i, -n)));
+  const dif = mensualidad - renta;
+  const Slider = ({ label, val, set, min, max, step, fmt, tip }) => (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86', display: 'flex', alignItems: 'center' }}>{label}{tip && <span className="tip"><span className="tip-q">?</span><span className="tip-box">{tip}</span></span>}</span>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#4F46E5' }}>{fmt(val)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={val} onChange={(e) => set(Number(e.target.value))} style={{ width: '100%', accentColor: '#6366F1', cursor: 'pointer' }} />
+    </div>
+  );
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Renta vs crédito</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Y si esa renta fuera tu mensualidad?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Mueve los números y compara, mes con mes, lo que pagas de renta hoy contra la mensualidad de un crédito para algo <b style={{ color: INK }}>tuyo</b> en {name}.</p>
+        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,30px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(22px,4vw,44px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <Slider label="Precio de la propiedad" val={precio} set={setPrecio} min={800000} max={8000000} step={100000} fmt={m1} />
+            <Slider label="Enganche" val={engPct} set={setEngPct} min={10} max={40} step={1} fmt={(v) => `${v}% · ${m1(enganche)}`} tip="Lo que pagas de tu bolsa al inicio. Mientras más das, menos te prestan y más baja la mensualidad." />
+            <Slider label="Plazo del crédito" val={plazoAnos} set={setPlazoAnos} min={10} max={20} step={5} fmt={(v) => `${v} años`} tip="A más años, mensualidad más baja (pero pagas más intereses al final)." />
+            <Slider label="Tu renta hoy" val={renta} set={setRenta} min={4000} max={60000} step={500} fmt={(v) => `$${v.toLocaleString('es-MX')}/mes`} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ padding: '16px 14px', borderRadius: 14, background: '#F6F6FA', border: '1px solid rgba(16,18,28,0.07)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>🏚️ Renta</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3.4vw,30px)', color: '#6B6F86', letterSpacing: '-0.02em', marginTop: 4 }}>${renta.toLocaleString('es-MX')}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>al mes · del casero</div>
+              </div>
+              <div style={{ padding: '16px 14px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04))', border: '1.5px solid rgba(16,185,129,0.3)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#0E7A53' }}>🔑 Crédito</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3.4vw,30px)', color: '#10B981', letterSpacing: '-0.02em', marginTop: 4 }}>${mensualidad.toLocaleString('es-MX')}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#0E7A53' }}>al mes · y es tuyo</div>
+              </div>
+            </div>
+            <div style={{ padding: '13px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.06)', fontFamily: 'DM Sans', fontSize: 13.5, color: INK, lineHeight: 1.5 }}>
+              {dif <= 0
+                ? <>Pagarías <b style={{ color: '#0E7A53' }}>{m1(Math.abs(dif))} menos al mes</b> que de renta — y el pago es <b>tuyo</b>, no del casero.</>
+                : <>Son <b style={{ color: '#4F46E5' }}>{m1(dif)} más al mes</b> que tu renta. La diferencia: cada pago construye <b>tu patrimonio</b> en lugar de irse.</>}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#6B6F86' }}>Enganche {m1(enganche)} · te prestan {m1(prestamo)} · {plazoAnos} años · tasa ~11.45%</div>
+          </div>
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Estimado a tasa fija ~11.45%. Tu tasa real depende del banco y tu perfil — con Infonavit/Cofinavit puede mejorar. Se afina al cotizar.</div>
+      </div>
+    </section>
+  );
+}
+
 // Herramienta de asequibilidad ÚNICA (reusada por 'mi primera casa' y 'familia'). Desglose paso a paso + globitos (?).
 // plural=true → lenguaje familia ('les/su'); false → primera ('te/tu').
 function AffordTool({ name, precioMin, ingreso, setIngreso, ahorro, setAhorro, plural }) {
@@ -692,12 +799,8 @@ export default function ZonePageV2() {
             momentum: { t: <>Una zona que<br />mejora con ustedes.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> va para arriba: cada año con más servicios y mejor para los tuyos. Crecen juntos.</> },
           };
           const fa = FAM[zoneArchetype(inv)] || FAM.clasica;
-          // Lifestyle REAL (Google Places · nombre + ★ + reseñas + link a Maps). Solo si hay datos reales de la zona.
-          const LG = (lugares && lugares.lugares) || {};
+          // Lifestyle REAL via explorador interactivo (LugaresExplorer). lgReal = hay datos de Google para gate.
           const lgReal = !!(lugares && lugares.fuente === 'google');
-          // FAMILIA: lo que decide una familia — escuelas al frente + parques + salud + súper. (Sin restaurantes/bares: eso es 'vivir'.)
-          const lifeCats = [['🏫', 'escuela', 'Escuelas cerca'], ['🌳', 'parque', 'Parques y áreas verdes'], ['🏥', 'hospital', 'Hospitales y salud'], ['🛒', 'supermercado', 'Súper y lo básico']]
-            .map(([ic, key, label]) => [ic, label, (LG[key] || []).filter((p) => p && p.name).slice(0, key === 'escuela' ? 4 : 3)]).filter(([, , arr]) => arr.length);
           const famAmen = (Array.isArray(devAmen) ? devAmen : []).filter(([s]) => ['jardines', 'alberca', 'area_pets', 'pet', 'seguridad', 'salon_eventos', 'gym', 'roof'].includes(s));
           return (
             <>
@@ -728,46 +831,27 @@ export default function ZonePageV2() {
                       <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
                     </div>
                   </div>
-                  {bridge(lgReal && lifeCats.length ? 'Y mira todo lo que tienes a la vuelta de tu casa' : 'Y eso es apenas el principio de lo que gana tu familia')}
+                  {bridge(lgReal ? 'Y elige tú mismo qué te importa cerca' : 'Y eso es apenas el principio de lo que gana tu familia')}
                 </div>
               </section>
 
-              {/* CAP 2.5 · ASÍ SE VIVE AQUÍ (claro · lifestyle REAL de Google Places · nombre + ★ + reseñas + link a Maps) */}
-              {lgReal && lifeCats.length > 0 && (
-                <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-                  <div data-rev style={cont}>
-                    <div style={eyb('#EC4899')}>Para los niños</div>
-                    <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Lo que importa para<br />una familia, a la vuelta.</h2>
-                    <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Escuelas, parques, hospitales — lo que de verdad pesa al elegir dónde crecen los tuyos en {name}, con calificación real. Toca cualquiera para verlo en el mapa:</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16, marginTop: 28 }}>
-                      {lifeCats.map(([ic, label, arr]) => (
-                        <div key={label} style={{ ...cardBase, padding: '18px 20px' }}>
-                          <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 18 }}>{ic}</span> {label}</div>
-                          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                            {arr.map((p) => (
-                              <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '8px 11px', borderRadius: 10, border: '1px solid rgba(16,18,28,0.06)' }}>
-                                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                                {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12.5, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ fontSize: 13, color: '#C7CAD6' }}>›</span>}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places, a ~1 km del centro de {name}.</div>
-                    {famAmen.length > 0 && (
-                      <div style={{ marginTop: 30 }}>
+              {/* CAP 2.5 · ¿QUÉ TE IMPORTA CERCA? (explorador INTERACTIVO · elige categoría → se despliega) + amenidades familiares */}
+              {lgReal && (
+                <>
+                  <LugaresExplorer lugares={lugares} name={name} defaultCat="escuela" eyebrowText="Para los niños" title="¿Qué te importa cerca?" intro={`Toca lo que más pesa para tu familia en ${name} y se despliega lo que hay de verdad — con calificación real:`} />
+                  {famAmen.length > 0 && (
+                    <section style={{ width: '100%', background: '#fff', padding: 'clamp(40px,6vw,68px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                      <div data-rev style={cont}>
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: INK }}>🏡 Y en los desarrollos, pensado para la familia:</div>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
                           {famAmen.map(([s, count]) => (
                             <span key={s} className="zv2-win" style={{ ...cardBase, padding: '10px 16px', display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#4B4F66' }}><span style={{ fontSize: 17 }}>{AMEN_DEV[s][0]}</span> {AMEN_DEV[s][1]} <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}>· {count}</span></span>
                           ))}
                         </div>
                       </div>
-                    )}
-                    {bridge('Y eso es apenas el principio de lo que gana tu familia')}
-                  </div>
-                </section>
+                    </section>
+                  )}
+                </>
               )}
 
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
@@ -880,37 +964,8 @@ export default function ZonePageV2() {
                 </div>
               </section>
 
-              {/* CAP 3 · LIFESTYLE REAL (Google Places · on-demand) */}
-              {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
-                const cats = [['🚇', 'transporte', 'Transporte'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud']]
-                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
-                if (!cats.length) return null;
-                return (
-                  <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-                    <div data-rev style={cont}>
-                      <div style={eyb('#EC4899')}>Así se vive aquí</div>
-                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Tu nueva vida, a la mano.</h2>
-                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo que de verdad tienes cerca en {name} — toca cualquiera para verlo en el mapa:</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
-                        {cats.map(([ic, l, arr]) => (
-                          <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                            <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
-                            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {arr.map((p) => (
-                                <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
-                                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                                  {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
-                    </div>
-                  </section>
-                );
-              })()}
+              {/* CAP 3 · ¿QUÉ TE IMPORTA CERCA? (explorador INTERACTIVO · práctico para una primera casa) */}
+              <LugaresExplorer lugares={lugares} name={name} defaultCat="transporte" eyebrowText="Tu día a día" title="¿Qué necesitas cerca?" intro={`Para tu primer lugar, lo práctico importa. Toca lo que te haga falta en ${name} y mira lo que hay — con calificación real:`} />
             </>
           );
         })()}
@@ -957,6 +1012,10 @@ export default function ZonePageV2() {
         {/* ── ¿CUÁNTO TE ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) ── */}
         {profile === 'primera' && tieneMercado && (
           <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural={false} />
+        )}
+        {/* ── RENTA vs CRÉDITO HIPOTECARIO (calculadora interactiva con sliders) ── */}
+        {profile === 'primera' && tieneMercado && (
+          <RentVsMortgage name={name} precioBase={inv && (inv.precio_min || inv.precio_prom)} rentaBase={rentaMes} />
         )}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
@@ -1025,38 +1084,10 @@ export default function ZonePageV2() {
                 </div>
               </section>
 
-              {/* CAP 3 · LIFESTYLE REAL (lo mejor de la zona · Google Places) */}
-              {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
-                // VIVIR: dining + leisure (lo aspiracional). Sin súper/hospital/transporte — eso es práctico, no estilo de vida.
-                const cats = [['🍴', 'restaurante', 'Dónde comer rico'], ['☕', 'cafe', 'Cafés y para sentarse'], ['🌳', 'parque', 'Verde y para pasear']]
-                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, k === 'restaurante' ? 5 : 4)]).filter(([, , a]) => a.length);
-                if (!cats.length) return null;
-                return (
-                  <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-                    <div data-rev style={cont}>
-                      <div style={eyb('#EC4899')}>El plan del finde</div>
-                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Salir y disfrutar,<br />sin tomar el coche.</h2>
-                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Los mejores lugares para comer, el café de la mañana, dónde pasear — lo que hace que valga la pena vivir en {name}, con calificación real. Toca cualquiera para verlo en el mapa:</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
-                        {cats.map(([ic, l, arr]) => (
-                          <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                            <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
-                            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {arr.map((p) => (
-                                <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
-                                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                                  {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
-                    </div>
-                  </section>
-                );
-              })()}
+              {/* CAP 3 · ¿QUÉ TE IMPORTA CERCA? (explorador INTERACTIVO · default dining — lo aspiracional) */}
+              {lugares && lugares.fuente === 'google' && (
+                <LugaresExplorer lugares={lugares} name={name} defaultCat="restaurante" eyebrowText="El plan del finde" title="¿Qué disfrutas más?" intro={`Comer rico, el café de la mañana, dónde pasear — toca lo tuyo y mira lo mejor de ${name}, con calificación real:`} />
+              )}
 
               {/* CAP 4 · A TU ALTURA (amenidades reales de los desarrollos · oscuro) */}
               {devAmen.length > 0 && (
