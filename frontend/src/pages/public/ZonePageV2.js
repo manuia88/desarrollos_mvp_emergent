@@ -126,6 +126,167 @@ function buildStories(name, inv) {
   };
 }
 
+// ⭐ FAMILIA · ¿Cuánto espacio necesitan? Stepper de composición familiar → recámaras/m² sugeridos → CONECTA con datos
+// reales de los desarrollos (bedrooms_range/m2_range/price_from/amenities) para mostrar los que SÍ les quedan en la zona.
+function EspacioTool({ devs, name }) {
+  const [adultos, setAdultos] = useState(2);
+  const [ninos, setNinos] = useState(2);
+  const [pet, setPet] = useState(false);
+  const [oficina, setOficina] = useState(false);
+  const recRec = Math.max(1, 1 + ninos + (oficina ? 1 : 0));   // 1 recámara principal + 1 por hijo + 1 si home office
+  const m2Sug = 45 + recRec * 22;
+  const lista = (Array.isArray(devs) ? devs : []).filter((d) => Array.isArray(d.bedrooms_range) && (d.bedrooms_range[1] || 0) >= recRec);
+  const petKeys = ['pet', 'area_pets', 'jardines'];
+  const fits = lista.filter((d) => !pet || (Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a)))).sort((a, b) => (a.price_from || 0) - (b.price_from || 0));
+  const Stepper = ({ label, val, set, min, max, icon }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 14px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}>
+      <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#4B4F66', display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{icon}</span>{label}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+        <button type="button" onClick={() => set(Math.max(min, val - 1))} style={{ width: 30, height: 30, borderRadius: 9, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#6366F1', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, lineHeight: 1 }}>−</button>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK, minWidth: 18, textAlign: 'center' }}>{val}</span>
+        <button type="button" onClick={() => set(Math.min(max, val + 1))} style={{ width: 30, height: 30, borderRadius: 9, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#6366F1', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, lineHeight: 1 }}>+</button>
+      </span>
+    </div>
+  );
+  const Toggle = ({ label, on, set, icon }) => (
+    <button type="button" onClick={() => set(!on)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.1)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66' }}><span style={{ fontSize: 16 }}>{icon}</span>{label}{on ? ' ✓' : ''}</button>
+  );
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>El espacio justo</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Cuánto espacio necesitan?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Dinos cómo es tu familia y te decimos cuántas recámaras buscar — y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b>.</p>
+        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(20px,3.5vw,38px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Stepper label="Adultos" val={adultos} set={setAdultos} min={1} max={4} icon="🧑" />
+            <Stepper label="Niños" val={ninos} set={setNinos} min={0} max={5} icon="🧒" />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+              <Toggle label="Tenemos mascota" on={pet} set={setPet} icon="🐾" />
+              <Toggle label="Trabajo en casa" on={oficina} set={setOficina} icon="💻" />
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, padding: '4px 0' }}>
+            <div style={{ textAlign: 'center', padding: '18px', borderRadius: 16, background: 'linear-gradient(135deg, rgba(99,102,241,0.09), rgba(236,72,153,0.06))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Lo que les conviene buscar</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 4 }}>{recRec} recámara{recRec > 1 ? 's' : ''}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>~{m2Sug} m² o más{pet ? ' · con espacio para la mascota' : ''}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} les queda${fits.length > 1 ? 'n' : ''}:` : `Por ahora ningún desarrollo en ${name} llega a ${recRec} recámaras${pet ? ' con espacio para mascota' : ''}.`}</div>
+          {fits.length > 0 ? (
+            <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
+              {fits.slice(0, 6).map((d) => (
+                <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '15px 17px' }}>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, letterSpacing: '-0.01em' }}>{d.name}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 5 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}</div>
+                  {d.price_from ? <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#10B981', marginTop: 6 }}>desde {m1(d.price_from)}</div> : null}
+                  {pet && Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a)) ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: '#0E7A53', marginTop: 5 }}>🐾 pet friendly</div> : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Quita la mascota o baja una recámara para ver opciones, o explora zonas con desarrollos más amplios. Te avisamos en cuanto entre uno que les quede.</p>
+          )}
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Recámaras y tamaños reales de los desarrollos disponibles en {name}.</div>
+      </div>
+    </section>
+  );
+}
+
+// ⭐ PRIMERA · Meta de enganche. CONECTA con el precio más accesible real de la zona (desarrollo más barato) → cuánto
+// enganche necesitas, cuánto te falta y en cuántos meses lo logras al ritmo que ahorras.
+function EngancheTool({ name, precioBase, devName }) {
+  const precio = precioBase || 1500000;
+  const target = Math.round(precio * 0.20 / 1000) * 1000;
+  const [ahorrado, setAhorrado] = useState(Math.round(target * 0.3 / 10000) * 10000);
+  const [mensual, setMensual] = useState(5000);
+  const falta = Math.max(0, target - ahorrado);
+  const meses = mensual > 0 && falta > 0 ? Math.ceil(falta / mensual) : 0;
+  const pct = Math.min(100, Math.round((ahorrado / target) * 100));
+  const listo = falta <= 0;
+  const tiempo = meses === 0 ? '' : meses < 12 ? `${meses} mes${meses > 1 ? 'es' : ''}` : `${Math.floor(meses / 12)} año${Math.floor(meses / 12) > 1 ? 's' : ''}${meses % 12 ? ` y ${meses % 12} mes${meses % 12 > 1 ? 'es' : ''}` : ''}`;
+  const Slider = ({ label, val, set, min, max, step, tip }) => (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86', display: 'flex', alignItems: 'center' }}>{label}{tip && <span className="tip"><span className="tip-q">?</span><span className="tip-box">{tip}</span></span>}</span>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#4F46E5' }}>${val.toLocaleString('es-MX')}{label.includes('mes') ? '/mes' : ''}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={val} onChange={(e) => set(Number(e.target.value))} style={{ width: '100%', accentColor: '#6366F1', cursor: 'pointer' }} />
+    </div>
+  );
+  return (
+    <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu meta</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Cuánto te falta para empezar?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo más accesible en {name}{devName ? <> ({devName})</> : ''} arranca desde <b style={{ color: INK }}>{m1(precio)}</b>. El enganche para empezar serían <b style={{ color: '#4F46E5' }}>{m1(target)}</b>. Mira cuánto te falta y en cuánto lo logras:</p>
+        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(20px,4vw,40px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, justifyContent: 'center' }}>
+            <Slider label="Lo que ya tienes ahorrado" val={ahorrado} set={setAhorrado} min={0} max={target} step={10000} />
+            <Slider label="Lo que puedes ahorrar al mes" val={mensual} set={setMensual} min={500} max={30000} step={500} tip="Lo que apartas cada mes para el enganche. Súbelo y mira cómo se acorta el tiempo." />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}><span>Tu avance al enganche</span><span style={{ color: '#4F46E5' }}>{pct}%</span></div>
+              <div style={{ height: 12, borderRadius: 9999, background: 'rgba(99,102,241,0.12)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.max(2, pct)}%`, background: listo ? '#10B981' : 'linear-gradient(90deg,#6366F1,#EC4899)', transition: 'width .3s' }} /></div>
+            </div>
+            <div style={{ padding: '15px 18px', borderRadius: 14, background: listo ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.07)', textAlign: 'center' }}>
+              {listo
+                ? <><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,3vw,26px)', color: '#0E7A53' }}>¡Ya tienes el enganche! 🎉</div><div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#0E7A53', marginTop: 4 }}>Es momento de dar el paso en {name}.</div></>
+                : <><div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Te falta {m1(falta)} · lo logras en</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(24px,3.6vw,34px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{tiempo}</div></>}
+            </div>
+          </div>
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Enganche estimado en 20% del precio más accesible real de {name}. Con Infonavit/Cofinavit el enganche puede ser menor.</div>
+      </div>
+    </section>
+  );
+}
+
+// ⭐ VIVIR · Qué tan caminable. Puntaje + desglose a partir de los conteos REALES de lugares (Google) a ~1 km.
+function WalkScore({ lugares, name }) {
+  const LG = (lugares && lugares.lugares) || {};
+  const cats = [['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🛒', 'supermercado', 'Súper'], ['🚇', 'transporte', 'Transporte'], ['🏥', 'hospital', 'Salud']];
+  const counts = cats.map(([ic, k, l]) => ({ ic, l, n: (LG[k] || []).filter((p) => p && p.name).length }));
+  const cubiertas = counts.filter((c) => c.n > 0).length;
+  const densidad = Math.min(1, counts.reduce((s, c) => s + Math.min(c.n, 5), 0) / 24);
+  const score = Math.round(100 * (0.55 * (cubiertas / cats.length) + 0.45 * densidad));
+  const label = score >= 80 ? 'Todo a pie' : score >= 55 ? 'Muy caminable' : score >= 30 ? 'Caminable' : 'Mejor con coche';
+  const color = score >= 55 ? '#10B981' : score >= 30 ? '#6366F1' : '#6B6F86';
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Sin tomar el coche</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Qué tan a pie se vive?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Lo que tienes caminando en {name} — sin subirte al coche para todo:</p>
+        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(22px,3.5vw,32px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(22px,4vw,44px)', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center', minWidth: 130 }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(48px,8vw,72px)', lineHeight: 1, color, letterSpacing: '-0.04em' }}>{score}</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC', marginTop: 2 }}>de 100 a pie</div>
+            <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, color, marginTop: 8 }}>{label}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+            {counts.map((c) => (
+              <div key={c.l} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, background: c.n > 0 ? 'rgba(16,185,129,0.06)' : '#F6F6FA', border: '1px solid rgba(16,18,28,0.06)' }}>
+                <span style={{ fontSize: 19 }}>{c.ic}</span>
+                <div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: c.n > 0 ? '#0E7A53' : '#A2A6BC' }}>{c.n >= 5 ? '5+' : c.n}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#6B6F86' }}>{c.l}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Basado en lugares reales de Google a ~1 km del centro de {name}. Mientras más cosas a pie, menos dependes del coche.</div>
+      </div>
+    </section>
+  );
+}
+
 // Explorador de lugares INTERACTIVO (reusado por los 4 perfiles). El cliente elige qué le importa (escuelas/parques/...)
 // y SE DESPLIEGAN los lugares reales de esa categoría (Google Places · nombre + ★ + link a mapa). defaultCat = lo que el
 // perfil pone al frente; el cliente puede explorar cualquier categoría. eyebrowText/title/intro cambian por perfil.
@@ -854,6 +1015,9 @@ export default function ZonePageV2() {
                 </>
               )}
 
+              {/* CAP 2.7 · ¿CUÁNTO ESPACIO NECESITAN? (interactivo · conecta con recámaras/m²/precio reales de los desarrollos) */}
+              {devs.length > 0 && <EspacioTool devs={devs} name={name} />}
+
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
                 <div data-rev style={cont}>
@@ -1017,6 +1181,10 @@ export default function ZonePageV2() {
         {profile === 'primera' && tieneMercado && (
           <RentVsMortgage name={name} precioBase={inv && (inv.precio_min || inv.precio_prom)} rentaBase={rentaMes} />
         )}
+        {/* ── META DE ENGANCHE (interactivo · conecta con el desarrollo más accesible real de la zona) ── */}
+        {profile === 'primera' && tieneMercado && (
+          <EngancheTool name={name} precioBase={(sortedDevs[0] && sortedDevs[0].price_from) || (inv && inv.precio_min)} devName={sortedDevs[0] && sortedDevs[0].name} />
+        )}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
         {profile === 'primera' && tieneMercado && (
@@ -1088,6 +1256,9 @@ export default function ZonePageV2() {
               {lugares && lugares.fuente === 'google' && (
                 <LugaresExplorer lugares={lugares} name={name} defaultCat="restaurante" eyebrowText="El plan del finde" title="¿Qué disfrutas más?" intro={`Comer rico, el café de la mañana, dónde pasear — toca lo tuyo y mira lo mejor de ${name}, con calificación real:`} />
               )}
+
+              {/* CAP 3.5 · ¿QUÉ TAN A PIE? (interactivo · puntaje de caminabilidad de los conteos reales de Google) */}
+              {lugares && lugares.fuente === 'google' && <WalkScore lugares={lugares} name={name} />}
 
               {/* CAP 4 · A TU ALTURA (amenidades reales de los desarrollos · oscuro) */}
               {devAmen.length > 0 && (
