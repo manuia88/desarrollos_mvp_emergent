@@ -277,7 +277,7 @@ export default function ZonePageV2() {
     const enObra = (devs || []).filter((d) => ['preventa', 'en_construccion'].includes(d.stage)).length;
     if (enObra >= 1) out.push(['🏗️', `${enObra} ${enObra === 1 ? 'desarrollo nuevo' : 'desarrollos nuevos'} en marcha`, 'Obra nueva = capital apostando por la zona. La oferta de calidad jala precio.']);
     if (inv && inv.plusvalia_anual_pct >= 5) out.push(['📈', `Precios subiendo ~${inv.plusvalia_anual_pct}% al año`, 'La zona ya trae inercia de plusvalía, no apuesta a futuro.']);
-    if (metroEsReal || (vida && vida.fuente === 'google' && (vida.amenidades || {}).transporte >= 10)) out.push(['🚇', 'Bien conectada al transporte', 'La conectividad sostiene la demanda de renta y el valor.']);
+    if ((lugares && lugares.metro) || (vida && vida.fuente === 'google' && (vida.amenidades || {}).transporte >= 10)) out.push(['🚇', 'Bien conectada al transporte', 'La conectividad sostiene la demanda de renta y el valor.']);
     if (inv && inv.demanda_zona && inv.demanda_zona.busquedas >= 10) out.push(['🔥', 'Zona muy buscada', `${inv.demanda_zona.busquedas} personas la buscaron aquí mismo.`]);
     return out;
   })();
