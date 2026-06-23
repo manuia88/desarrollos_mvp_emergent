@@ -235,6 +235,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // Al ENTRAR se ven los proyectos (no pantalla vacía). La búsqueda guiada es ayuda, no muro. "Nueva búsqueda" la reabre.
   const [browseAll, setBrowseAll] = useState(true);
   const showResults = canSearch || browseAll;
+  // ¿Hay una colonia activa en la búsqueda? → muestra su panel de inteligencia (si no, grid full-width, sin sidebar).
+  const coloniaActiva = coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia)) || null;
+  const coloniaNombre = coloniaActiva ? ((colonias.find((c) => c.id === coloniaActiva) || {}).name || coloniaActiva) : null;
 
   // C · Elasticidad: el comprador relaja UN criterio (lo que está dispuesto a ceder) → se quita + se CAPTURA.
   const EXTRA_LABEL = { balcon: 'balcón', terraza: 'terraza', roof_garden: 'roof garden', bodega: 'bodega', estacionamiento_independiente: 'cajón independiente', pet_friendly: 'pet friendly', gym: 'gimnasio', alberca: 'alberca', spa: 'spa', cancha_padel: 'cancha de pádel', cancha_tenis: 'cancha de tenis', asadores: 'asadores', concierge: 'concierge', seguridad: 'seguridad', cowork: 'coworking', roof: 'roof garden (común)', sky_lounge: 'sky lounge', cine: 'cine', paneles_solares: 'paneles solares', elevador: 'elevador' };
@@ -540,27 +543,43 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 <div data-testid="mkp-results-count" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
                   {browseAll && !canSearch ? `Todos los desarrollos · ${developments.length}` : resultsText}
                 </div>
-                {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
-                <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
-                  ✨ Nueva búsqueda
-                </button>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Quiz accesible en browse general (sin colonia, donde más sirve "¿qué zona?") */}
+                  {!coloniaActiva && (
+                    <button type="button" data-testid="abrir-quiz-colonia" onClick={() => setQuizOpen(true)}
+                      style={{ padding: '9px 16px', borderRadius: 9999, border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.06)', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13 }}>
+                      🧭 ¿No sabes qué zona? Haz el test
+                    </button>
+                  )}
+                  {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
+                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
+                    ✨ Nueva búsqueda
+                  </button>
+                </div>
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 280px) 1fr', gap: 24, alignItems: 'flex-start' }}>
-              <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 92, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
-                <OportunidadPanel
-                  developments={developments}
-                  colonias={colonias}
-                  selectedColoniaId={coloniaFilter || (filters.colonia || [])[0] || (aiFilters && (Array.isArray(aiFilters.colonia) ? aiFilters.colonia[0] : aiFilters.colonia))}
-                  onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                />
-                <button type="button" data-testid="abrir-quiz-colonia" onClick={() => setQuizOpen(true)}
-                  style={{ width: '100%', marginTop: 14, padding: '13px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.06)', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5 }}>
-                  🧭 ¿No sabes qué zona elegir? Haz el test
-                </button>
-              </aside>
+            <div style={{ display: 'grid', gridTemplateColumns: coloniaActiva ? 'minmax(260px, 280px) 1fr' : '1fr', gap: 24, alignItems: 'flex-start' }}>
+              {/* Panel de inteligencia SOLO cuando hay una colonia activa · sin scroll propio (un solo scroll) */}
+              {coloniaActiva && (
+                <aside data-testid="marketplace-sidebar" style={{ alignSelf: 'start' }}>
+                  <OportunidadPanel
+                    developments={developments}
+                    colonias={colonias}
+                    selectedColoniaId={coloniaActiva}
+                    onPerfilar={() => { const falta = requiredFields.find((f) => !f.ok); abrirFiltro((falta || {}).fkey || 'filter-location'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  />
+                  {/* General → específico: del marketplace a la página de zona a fondo */}
+                  <Link to={`/zona/${coloniaActiva}`} style={{ display: 'block', width: '100%', marginTop: 12, padding: '12px', borderRadius: 14, background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5 }}>
+                    📖 Conoce {coloniaNombre} a fondo →
+                  </Link>
+                  <button type="button" data-testid="abrir-quiz-colonia" onClick={() => setQuizOpen(true)}
+                    style={{ width: '100%', marginTop: 10, padding: '11px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.06)', color: '#6D28D9', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13 }}>
+                    🧭 ¿Otra zona? Haz el test
+                  </button>
+                </aside>
+              )}
               <div>
                 {!showResults ? (
                   <div data-testid="mkp-needs-zona-precio" style={{
