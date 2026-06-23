@@ -93,13 +93,46 @@ const fmtN = (n) => (n >= 20 ? '20+' : String(n));
 const AMEN_DEV = { alberca: ['🏊', 'Alberca'], gym: ['🏋️', 'Gimnasio'], roof: ['🌿', 'Roof garden'], cowork: ['💻', 'Coworking'], spa: ['💆', 'Spa'], concierge: ['🛎️', 'Concierge'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'], business_center: ['💼', 'Business center'], salon_eventos: ['🎉', 'Salón de eventos'], seguridad: ['🛡️', 'Seguridad 24/7'], pet: ['🐾', 'Pet friendly'], area_pets: ['🐾', 'Área para mascotas'], jardines: ['🌳', 'Jardines'], bicicletas: ['🚲', 'Biciestac.'], estacionamiento: ['🚗', 'Estacionamiento'] };
 
 // Contexto de zona: 1-2 líneas potentes, del arquetipo (dato), antes de preguntar el objetivo.
-function zoneContext(name, inv) {
+// ── CAPA DE ARQUETIPO ── el "carácter" de cada colonia sale de SUS datos (precio/m² + plusvalía).
+// Misma estructura de historia, pero el arquetipo cambia el tono y las frases. Fuente única de verdad.
+function zoneArchetype(inv) {
   const pm2 = (inv && inv.precio_m2) || 0; const pl = (inv && inv.plusvalia_anual_pct) || 0;
-  if (pm2 >= 85000) return `${name} es de las direcciones más codiciadas de la ciudad. Aquí el precio alto no es un defecto — es la prueba de una zona que la gente nunca deja de querer.`;
-  if (pm2 > 0 && pm2 < 42000) return `${name} es la zona en alza donde todavía puedes entrar a buen precio — antes de que el resto se dé cuenta.`;
-  if (pl >= 7) return `${name} no para de crecer: precios al alza, demanda fuerte y vida de sobra. Una de las apuestas más interesantes de la ciudad ahora mismo.`;
-  return `${name} es de esas zonas donde la ciudad se siente hogar: todo cerca, valor estable y una comunidad que se queda.`;
+  if (pm2 >= 85000) return 'premium';        // consolidada, siempre deseada
+  if (pm2 > 0 && pm2 < 42000) return 'emergente'; // en alza, entrar temprano
+  if (pl >= 7) return 'momentum';            // en pleno crecimiento
+  return 'clasica';                          // establecida, hogar
 }
+const ARQ = {
+  premium: {
+    etiqueta: 'Zona consolidada',
+    contexto: (n) => `${n} es de las direcciones más codiciadas de la ciudad. Aquí el precio alto no es un defecto — es la prueba de una zona que la gente nunca deja de querer.`,
+    heroSub: (n) => <>Una propiedad en {n} pone a trabajar lo que tanto te costó, en una de las direcciones que la ciudad <b style={{ color: '#fff' }}>nunca deja de querer</b> — valor sólido que además se hereda.</>,
+    cap2Titulo: <>Hay lugares que la gente<br />nunca deja de querer.</>,
+    cap2Cuerpo: (n) => <><b style={{ color: INK }}>{n}</b> es uno de ellos. Cuando una zona siempre tiene quién la busque, lo que tienes ahí <b style={{ color: INK }}>no se devalúa</b> — al contrario: sube tranquilo y constante. No es suerte: es estar donde todos quieren estar.</>,
+  },
+  emergente: {
+    etiqueta: 'Zona en alza',
+    contexto: (n) => `${n} es la zona en alza donde todavía puedes entrar a buen precio — antes de que el resto se dé cuenta.`,
+    heroSub: (n) => <>Una propiedad en {n} te deja <b style={{ color: '#fff' }}>entrar temprano</b>, cuando todavía está a buen precio — y crecer con la zona antes de que el resto se dé cuenta.</>,
+    cap2Titulo: <>Estás temprano.<br />Y eso es lo bueno.</>,
+    cap2Cuerpo: (n) => <><b style={{ color: INK }}>{n}</b> apenas está despegando: precios todavía accesibles y la plusvalía empujando fuerte. Entrar hoy aquí es <b style={{ color: INK }}>comprar barato lo que mañana será caro</b>.</>,
+  },
+  momentum: {
+    etiqueta: 'Zona en crecimiento',
+    contexto: (n) => `${n} no para de crecer: precios al alza, demanda fuerte y vida de sobra. Una de las apuestas más interesantes de la ciudad ahora mismo.`,
+    heroSub: (n) => <>Una propiedad en {n} te sube al <b style={{ color: '#fff' }}>momento</b> de una zona que no para de crecer — demanda fuerte y precios al alza, trabajando para ti.</>,
+    cap2Titulo: <>Una zona que no<br />para de crecer.</>,
+    cap2Cuerpo: (n) => <><b style={{ color: INK }}>{n}</b> trae inercia: la gente la busca, los precios suben y la vida sobra. Cuando una zona tiene este empuje, <b style={{ color: INK }}>lo que compras hoy vale más mañana</b>.</>,
+  },
+  clasica: {
+    etiqueta: 'Zona establecida',
+    contexto: (n) => `${n} es de esas zonas donde la ciudad se siente hogar: todo cerca, valor estable y una comunidad que se queda.`,
+    heroSub: (n) => <>Una propiedad en {n} es de las apuestas <b style={{ color: '#fff' }}>seguras</b>: una zona donde la ciudad se siente hogar, con valor estable y una comunidad que se queda.</>,
+    cap2Titulo: <>Una buena dirección<br />siempre será buena.</>,
+    cap2Cuerpo: (n) => <><b style={{ color: INK }}>{n}</b> es de esas zonas que no fallan: bien ubicada, con todo cerca y demanda constante. <b style={{ color: INK }}>Valor estable</b> que no depende de modas — por eso sube parejo, año con año.</>,
+  },
+};
+function zoneContext(name, inv) { return (ARQ[zoneArchetype(inv)] || ARQ.clasica).contexto(name); }
 
 function buildStories(name, inv) {
   const plus = inv.plusvalia_anual_pct; const g5 = inv.ganancia_5y_pct; const pmin = m1(inv.precio_min);
@@ -455,6 +488,7 @@ export default function ZonePageV2() {
           const serie = [0, 1, 2, 3, 4, 5].map((y) => ({ y, v: Math.round(precio * Math.pow(f, y)) }));
           const vmax = serie[serie.length - 1].v || 1;
           const m1c = (n) => { n = Math.round(Number(n) || 0); return n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`; };
+          const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;   // carácter de ESTA colonia → cambia el tono de la historia
           // imágenes: preferimos fotos REALES de los desarrollos; si solo hay placeholders, usamos un fallback curado y relevante (skyline/edificio/interior)
           const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
           const STOCK = ['1067', '1076', '164'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
@@ -468,13 +502,13 @@ export default function ZonePageV2() {
               {/* ─── CAP 1 · EL HÉROE Y SU ERROR (oscuro + imagen · conectar → nombrar el error → el giro) ─── */}
               <section style={{ width: '100%', background: `linear-gradient(102deg, #0A0C24 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
                 <div data-rev style={{ ...cont, position: 'relative' }}>
-                  <div style={eyb('#A5B4FC')}>Invertir · {name}</div>
+                  <div style={eyb('#A5B4FC')}>Invertir · {name} · {aq.etiqueta}</div>
                   <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
                     Trabajaste años por ese dinero.<br />
                     <span style={{ color: 'rgba(255,255,255,0.42)' }}>Guardado en el banco, rinde para ellos.</span><br />
                     Aquí, por fin, <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>rinde para ti</span>.
                   </h2>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 560, marginTop: 22, lineHeight: 1.55 }}>Una propiedad en {name} toma lo que tanto te costó juntar y lo vuelve algo que <b style={{ color: '#fff' }}>crece solo</b>, te da <b style={{ color: '#fff' }}>ingresos cada mes</b> y <b style={{ color: '#fff' }}>siempre será tuyo</b>.</p>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 560, marginTop: 22, lineHeight: 1.55 }}>{aq.heroSub(name)}</p>
                   {bridge('Déjame mostrarte por qué aquí', true)}
                 </div>
               </section>
@@ -483,8 +517,8 @@ export default function ZonePageV2() {
               <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                 <div data-rev style={cont}>
                   <div style={eyb('#6366F1')}>Por qué aquí</div>
-                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Hay lugares que la gente<br />nunca deja de querer.</h2>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>{name} es uno de ellos. Y cuando un lugar siempre tiene quién lo busque, lo que tienes ahí <b style={{ color: INK }}>no se devalúa</b> — al contrario: vale un poco más cada año, tranquilo y constante. No es suerte. Es lo que pasa aquí.</p>
+                  <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>{aq.cap2Titulo}</h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 16, lineHeight: 1.6 }}>{aq.cap2Cuerpo(name)}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,0.85fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 34 }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(5px,1.4vw,14px)', height: 'clamp(150px,22vw,210px)' }}>
