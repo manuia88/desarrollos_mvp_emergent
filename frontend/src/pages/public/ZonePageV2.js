@@ -333,6 +333,63 @@ function WalkScore({ lugares, name }) {
   );
 }
 
+// Arma tu prioridad: el cliente elige hasta 3 cosas que le importan → la zona responde con el DATO REAL de cada una
+// (conteos de lugares Google · precio_min · recámaras máx de los desarrollos · pet-friendly). Sin scores subjetivos.
+function ArmaPrioridad({ lugares, devs, inv, name }) {
+  const LG = (lugares && lugares.lugares) || {};
+  const cnt = (k) => ((LG[k] || []).filter((p) => p && p.name)).length;
+  const maxBed = Math.max(0, ...(devs || []).map((d) => (Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0)));
+  const petDevs = (devs || []).filter((d) => Array.isArray(d.amenities) && d.amenities.some((a) => ['pet', 'area_pets', 'jardines'].includes(a))).length;
+  const comer = cnt('restaurante') + cnt('cafe');
+  const OPTS = [
+    ['🏫', 'escuelas', 'Escuelas cerca', cnt('escuela') ? `${cnt('escuela')}+ escuelas a la vuelta` : null],
+    ['🍴', 'comer', 'Comer y salir', comer ? `${comer}+ lugares para comer y café` : null],
+    ['🌳', 'parques', 'Áreas verdes', cnt('parque') ? `${cnt('parque')}+ parques cerca` : null],
+    ['🚇', 'transporte', 'Buen transporte', cnt('transporte') ? `${cnt('transporte')}+ opciones de transporte` : null],
+    ['💰', 'precio', 'Precio accesible', inv && inv.precio_min ? `desde ${m1(inv.precio_min)}` : null],
+    ['🏠', 'espacio', 'Espacio para crecer', maxBed ? `hasta ${maxBed} recámaras` : null],
+    ['🐾', 'pet', 'Pet friendly', petDevs ? `${petDevs} desarrollo${petDevs > 1 ? 's' : ''} pet friendly` : null],
+  ].filter((o) => o[3]);
+  const [sel, setSel] = useState([]);
+  if (OPTS.length < 3) return null;
+  const toggle = (k) => setSel(sel.includes(k) ? sel.filter((x) => x !== k) : (sel.length < 3 ? [...sel, k] : sel));
+  const chosen = OPTS.filter((o) => sel.includes(o[1]));
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 820, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Lo que más te importa</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Qué pesa más para ti?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Elige hasta 3 cosas que más te importan y mira cómo responde {name} — con datos reales:</p>
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 22 }}>
+          {OPTS.map(([ic, k, label]) => {
+            const on = sel.includes(k);
+            const dis = !on && sel.length >= 3;
+            return (
+              <button key={k} type="button" onClick={() => toggle(k)} disabled={dis} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 17px', borderRadius: 999, cursor: dis ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.12)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : (dis ? '#C7CAD6' : '#4B4F66'), boxShadow: on ? '0 8px 22px rgba(99,102,241,0.28)' : 'none', opacity: dis ? 0.6 : 1, transition: 'all .15s' }}><span style={{ fontSize: 16 }}>{ic}</span>{label}{on ? ' ✓' : ''}</button>
+            );
+          })}
+        </div>
+        {chosen.length > 0 && (
+          <div key={sel.join(',')} className="zv2-pop" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 24, background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04))' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.5vw,24px)', color: INK, letterSpacing: '-0.02em' }}>Para ti, {name} te da:</div>
+            <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 16 }}>
+              {chosen.map(([ic, k, label, dato]) => (
+                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 13, background: '#fff', border: '1px solid rgba(16,185,129,0.25)' }}>
+                  <span style={{ fontSize: 22 }}>{ic}</span>
+                  <div>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#0E7A53' }}>✓ {label}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5, color: INK, marginTop: 1 }}>{dato}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // Quiz "¿esta zona es para ti?" — 3 preguntas rápidas por perfil → match honesto (refleja TUS respuestas, sin score falso)
 // + CTA al registro. Engancha y califica al lead (la 'acción' del arco). onCTA dispara el modal de registro existente.
 const QUIZ_CFG = {
@@ -1233,6 +1290,9 @@ export default function ZonePageV2() {
               {/* CAP 4 · ¿LES ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) */}
               <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural />
 
+              {/* CAP 4.3 · ARMA TU PRIORIDAD (personalizado · datos reales) */}
+              {lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
+
               {/* CAP 4.5 · QUIZ ¿es para tu familia? (engancha + califica → registro) */}
               <ZonaQuiz profile="familia" name={name} onCTA={() => setSaveOpen(true)} />
 
@@ -1378,6 +1438,8 @@ export default function ZonePageV2() {
         {profile === 'primera' && tieneMercado && (
           <EngancheTool name={name} precioBase={(sortedDevs[0] && sortedDevs[0].price_from) || (inv && inv.precio_min)} devName={sortedDevs[0] && sortedDevs[0].name} />
         )}
+        {/* ARMA TU PRIORIDAD (personalizado · datos reales) */}
+        {profile === 'primera' && tieneMercado && lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
         {/* QUIZ ¿es para tu primera? (engancha + califica → registro) */}
         {profile === 'primera' && tieneMercado && <ZonaQuiz profile="primera" name={name} onCTA={() => setSaveOpen(true)} />}
 
@@ -1477,6 +1539,9 @@ export default function ZonePageV2() {
                   </div>
                 </section>
               )}
+
+              {/* CAP 4.3 · ARMA TU PRIORIDAD (personalizado · datos reales) */}
+              {lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
 
               {/* CAP 4.5 · QUIZ ¿es tu lugar? (engancha + califica → registro) */}
               <ZonaQuiz profile="vivir" name={name} onCTA={() => setSaveOpen(true)} />
