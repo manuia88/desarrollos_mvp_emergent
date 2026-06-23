@@ -248,6 +248,51 @@ function EngancheTool({ name, precioBase, devName }) {
   );
 }
 
+// VIVIR · El finde perfecto: arma tu sábado eligiendo lugares REALES (café→comida→paseo→cena). Cada slot es un selector
+// sobre los lugares de Google de esa categoría (orden por ★). Interactivo, sin inventar nada.
+function FindePerfecto({ lugares, name }) {
+  const LG = (lugares && lugares.lugares) || {};
+  const byR = (arr) => (arr || []).filter((p) => p && p.name).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  const cafes = byR(LG.cafe), rest = byR(LG.restaurante), parq = byR(LG.parque);
+  const slots = [['☕', 'Café de la mañana', cafes], ['🍴', 'La comida', rest], ['🌳', 'Tarde de paseo', parq], ['🌙', 'La cena', rest]].filter((s) => s[2].length);
+  const [pick, setPick] = useState({ 3: 1 });
+  if (slots.length < 2) return null;
+  return (
+    <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 820, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu finde aquí</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Arma tu sábado.</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Así se vería un día en {name} — con lugares reales. Cámbialos a tu gusto:</p>
+        <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {slots.map(([ic, label, arr], i) => {
+            const idx = Math.min(pick[i] || 0, arr.length - 1);
+            const p = arr[idx] || arr[0];
+            const last = i === slots.length - 1;
+            return (
+              <div key={label} style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, boxShadow: '0 6px 16px rgba(99,102,241,0.3)' }}>{ic}</div>
+                  {!last && <div style={{ width: 2, flex: 1, background: 'rgba(99,102,241,0.2)', margin: '4px 0' }} />}
+                </div>
+                <div className="zv2-win" style={{ ...cardBase, padding: '14px 18px', marginBottom: 16, flex: 1 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                    <select value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(15px,2vw,18px)', color: INK, background: '#fff', cursor: 'pointer', letterSpacing: '-0.01em' }}>
+                      {arr.slice(0, 8).map((x, j) => (<option key={x.name} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>))}
+                    </select>
+                    {p && p.maps_uri ? <a href={p.maps_uri} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#4F46E5', textDecoration: 'none', whiteSpace: 'nowrap' }}>ver en el mapa ›</a> : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 4, fontStyle: 'italic' }}>Lugares reales de Google en {name}. Esto es un día cualquiera viviendo aquí.</div>
+      </div>
+    </section>
+  );
+}
+
 // ⭐ VIVIR · Qué tan caminable. Puntaje + desglose a partir de los conteos REALES de lugares (Google) a ~1 km.
 function WalkScore({ lugares, name }) {
   const LG = (lugares && lugares.lugares) || {};
@@ -283,6 +328,52 @@ function WalkScore({ lugares, name }) {
           </div>
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Basado en lugares reales de Google a ~1 km del centro de {name}. Mientras más cosas a pie, menos dependes del coche.</div>
+      </div>
+    </section>
+  );
+}
+
+// Quiz "¿esta zona es para ti?" — 3 preguntas rápidas por perfil → match honesto (refleja TUS respuestas, sin score falso)
+// + CTA al registro. Engancha y califica al lead (la 'acción' del arco). onCTA dispara el modal de registro existente.
+const QUIZ_CFG = {
+  familia: { eyb: '¿Les queda?', h: (n) => `¿${n} es para tu familia?`, qs: [['¿Qué es lo que más buscan?', ['Más espacio para todos', 'Buenas escuelas cerca', 'Una zona segura']], ['¿Cómo viven hoy?', ['Rentando', 'En un lugar que se quedó chico', 'Buscando algo mejor']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Buscas ${String(a[0] || '').toLowerCase()} — y eso es justo lo que una familia encuentra en ${n}. Vale la pena verlo a fondo.` },
+  primera: { eyb: '¿Es tu momento?', h: (n) => `¿${n} es para tu primera?`, qs: [['¿Qué te mueve a comprar?', ['Dejar de rentar', 'Tener algo mío', 'Empezar a construir patrimonio']], ['¿Cómo estás de enganche?', ['Ya tengo algo ahorrado', 'Apenas empiezo', 'Casi completo']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Tu meta: ${String(a[0] || '').toLowerCase()}. En ${n} esa misma mensualidad ya sería tuya — demos el primer paso.` },
+  vivir: { eyb: '¿Va contigo?', h: (n) => `¿${n} es tu lugar?`, qs: [['¿Qué buscas al mudarte?', ['Mejor ubicación', 'Amenidades de verdad', 'Más vida alrededor']], ['¿Cómo vives hoy?', ['Cómodo, pero quiero más', 'Listo para subir de nivel', 'Buscando el lugar correcto']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Quieres ${String(a[0] || '').toLowerCase()} — y ${n} se trata exactamente de eso. Es momento de verlo de cerca.` },
+};
+function ZonaQuiz({ profile, name, onCTA }) {
+  const CFG = QUIZ_CFG[profile];
+  const [ans, setAns] = useState([]);
+  if (!CFG) return null;
+  const step = ans.length;
+  const done = step >= CFG.qs.length;
+  const pick = (opt) => setAns([...ans, opt]);
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 680, margin: '0 auto', padding: '0 28px', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>{CFG.eyb}</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.05, fontSize: 'clamp(26px,3.6vw,42px)', color: INK, margin: '14px 0 0' }}>{CFG.h(name)}</h2>
+        {!done ? (
+          <div style={{ marginTop: 26 }}>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 22 }}>
+              {CFG.qs.map((q, i) => (<span key={i} style={{ width: 26, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
+            </div>
+            <div key={step} className="zv2-pop" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,22px)', color: INK }}>{CFG.qs[step][0]}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18, maxWidth: 420, margin: '18px auto 0' }}>
+              {CFG.qs[step][1].map((opt) => (
+                <button key={opt} type="button" onClick={() => pick(opt)} className="zv2-glow" style={{ padding: '14px 20px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{opt}</button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="zv2-pop" style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 42 }}>✨</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(16px,2.2vw,20px)', color: INK, lineHeight: 1.55, marginTop: 12, fontWeight: 600 }}>{CFG.cierre(name, ans)}</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
+              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero saber más de {name} →</button>
+              <button type="button" onClick={() => setAns([])} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -352,17 +443,34 @@ function LugaresMap({ places, icon, center }) {
   return <div ref={ref} className="zv2-map" style={{ width: '100%', height: 'clamp(300px,42vw,420px)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(16,18,28,0.1)', background: '#EAEAF2' }} />;
 }
 
+// Clasifica una escuela por su NOMBRE real (sin inventar nivel; lo ambiguo cae en 'otras'). Para el filtro por nivel (familia).
+const ESC_NIVELES = [['todas', 'Todas'], ['preescolar', 'Preescolar / Kínder'], ['primaria', 'Primaria'], ['secundaria', 'Secundaria'], ['bachillerato', 'Bachillerato'], ['universidad', 'Universidad']];
+function classifyEscuela(nombre) {
+  const s = String(nombre || '').toLowerCase();
+  if (/universidad|university|tecnol[óo]gico|centro universitario|posgrado|\bitam\b|\bunam\b|\bipn\b/.test(s)) return 'universidad';
+  if (/preparatoria|\bprepa\b|bachillerato|\bcch\b|colegio de ciencias|cbtis|conalep|\bcetis\b/.test(s)) return 'bachillerato';
+  if (/secundaria/.test(s)) return 'secundaria';
+  if (/primaria/.test(s)) return 'primaria';
+  if (/kinder|k[íi]nder|jard[íi]n de ni[ñn]os|preescolar|maternal|montessori|guarder[íi]a/.test(s)) return 'preescolar';
+  return 'otras';
+}
+
 // Explorador de lugares INTERACTIVO (reusado por los 4 perfiles). El cliente elige qué le importa (escuelas/parques/...)
 // y SE DESPLIEGAN los lugares reales de esa categoría (Google Places · nombre + ★ + link a mapa). defaultCat = lo que el
 // perfil pone al frente; el cliente puede explorar cualquier categoría. eyebrowText/title/intro cambian por perfil.
-function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro }) {
+function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro, schoolLevels }) {
   const LG = (lugares && lugares.lugares) || {};
   const ALL = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🏥', 'hospital', 'Salud'], ['🛒', 'supermercado', 'Súper'], ['🚇', 'transporte', 'Transporte']]
     .map(([ic, k, l]) => ({ ic, k, l, arr: (LG[k] || []).filter((p) => p && p.name) })).filter((c) => c.arr.length);
   const init = (defaultCat && ALL.some((c) => c.k === defaultCat)) ? defaultCat : (ALL[0] && ALL[0].k);
   const [sel, setSel] = useState(init);
+  const [lvl, setLvl] = useState('todas');
   if (!ALL.length) return null;
   const active = ALL.find((c) => c.k === sel) || ALL[0];
+  const showLevels = !!schoolLevels && active.k === 'escuela';
+  const lvlCounts = {};
+  if (showLevels) active.arr.forEach((p) => { const nv = classifyEscuela(p.name); lvlCounts[nv] = (lvlCounts[nv] || 0) + 1; });
+  const displayArr = (showLevels && lvl !== 'todas') ? active.arr.filter((p) => classifyEscuela(p.name) === lvl) : active.arr;
   const allPts = ALL.flatMap((c) => c.arr).filter((p) => p && p.loc && p.loc.latitude && p.loc.longitude);
   const center = allPts.length ? [allPts.reduce((s, p) => s + p.loc.longitude, 0) / allPts.length, allPts.reduce((s, p) => s + p.loc.latitude, 0) / allPts.length] : null;
   return (
@@ -382,9 +490,19 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro 
             );
           })}
         </div>
-        <div className="zv2-explorer-grid" style={{ marginTop: 22 }}>
-          <div key={active.k} className="zv2-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 'clamp(300px,42vw,420px)', overflowY: 'auto', paddingRight: 4 }}>
-            {active.arr.slice(0, 12).map((p) => (
+        {showLevels && (
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
+            {ESC_NIVELES.filter(([k]) => k === 'todas' || lvlCounts[k]).map(([k, l]) => {
+              const on = lvl === k;
+              return (
+                <button key={k} type="button" onClick={() => setLvl(k)} style={{ padding: '6px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: on ? '1.5px solid #6366F1' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(99,102,241,0.1)' : '#fff', color: on ? '#4F46E5' : '#6B6F86' }}>{l}{k !== 'todas' ? ` (${lvlCounts[k]})` : ''}</button>
+              );
+            })}
+          </div>
+        )}
+        <div className="zv2-explorer-grid" style={{ marginTop: 18 }}>
+          <div key={active.k + lvl} className="zv2-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 'clamp(300px,42vw,420px)', overflowY: 'auto', paddingRight: 4 }}>
+            {displayArr.slice(0, 12).map((p) => (
               <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '12px 14px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
@@ -394,7 +512,7 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro 
               </a>
             ))}
           </div>
-          <LugaresMap places={active.arr} icon={active.ic} center={center} />
+          <LugaresMap places={displayArr} icon={active.ic} center={center} />
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca un pin o la lista para abrirlo en el mapa.</div>
       </div>
@@ -1071,7 +1189,7 @@ export default function ZonePageV2() {
               {/* CAP 2.5 · ¿QUÉ TE IMPORTA CERCA? (explorador INTERACTIVO · elige categoría → se despliega) + amenidades familiares */}
               {lgReal && (
                 <>
-                  <LugaresExplorer lugares={lugares} name={name} defaultCat="escuela" eyebrowText="Para los niños" title="¿Qué te importa cerca?" intro={`Toca lo que más pesa para tu familia en ${name} y se despliega lo que hay de verdad — con calificación real:`} />
+                  <LugaresExplorer lugares={lugares} name={name} defaultCat="escuela" schoolLevels eyebrowText="Para los niños" title="¿Qué te importa cerca?" intro={`Toca lo que más pesa para tu familia en ${name} y se despliega lo que hay de verdad — con calificación real. En escuelas, filtra por nivel:`} />
                   {famAmen.length > 0 && (
                     <section style={{ width: '100%', background: '#fff', padding: 'clamp(40px,6vw,68px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
                       <div data-rev style={cont}>
@@ -1114,6 +1232,9 @@ export default function ZonePageV2() {
 
               {/* CAP 4 · ¿LES ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) */}
               <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural />
+
+              {/* CAP 4.5 · QUIZ ¿es para tu familia? (engancha + califica → registro) */}
+              <ZonaQuiz profile="familia" name={name} onCTA={() => setSaveOpen(true)} />
 
               {/* CAP 5 · AQUÍ EMPIEZA SU HOGAR (cierre + urgencia · familia) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
@@ -1257,6 +1378,8 @@ export default function ZonePageV2() {
         {profile === 'primera' && tieneMercado && (
           <EngancheTool name={name} precioBase={(sortedDevs[0] && sortedDevs[0].price_from) || (inv && inv.precio_min)} devName={sortedDevs[0] && sortedDevs[0].name} />
         )}
+        {/* QUIZ ¿es para tu primera? (engancha + califica → registro) */}
+        {profile === 'primera' && tieneMercado && <ZonaQuiz profile="primera" name={name} onCTA={() => setSaveOpen(true)} />}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
         {profile === 'primera' && tieneMercado && (
@@ -1332,6 +1455,9 @@ export default function ZonePageV2() {
               {/* CAP 3.5 · ¿QUÉ TAN A PIE? (interactivo · puntaje de caminabilidad de los conteos reales de Google) */}
               {lugares && lugares.fuente === 'google' && <WalkScore lugares={lugares} name={name} />}
 
+              {/* CAP 3.7 · EL FINDE PERFECTO (interactivo · arma tu sábado con lugares reales) */}
+              {lugares && lugares.fuente === 'google' && <FindePerfecto lugares={lugares} name={name} />}
+
               {/* CAP 4 · A TU ALTURA (amenidades reales de los desarrollos · oscuro) */}
               {devAmen.length > 0 && (
                 <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
@@ -1351,6 +1477,9 @@ export default function ZonePageV2() {
                   </div>
                 </section>
               )}
+
+              {/* CAP 4.5 · QUIZ ¿es tu lugar? (engancha + califica → registro) */}
+              <ZonaQuiz profile="vivir" name={name} onCTA={() => setSaveOpen(true)} />
 
               {/* CAP 5 · TU SIGUIENTE NIVEL (cierre · vivir) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
