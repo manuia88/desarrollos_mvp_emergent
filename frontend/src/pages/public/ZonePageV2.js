@@ -273,6 +273,7 @@ export default function ZonePageV2() {
   const noEncontrada = !loading && !esReal;                 // ni en SEED ni en catálogo → slug inválido
   const descubrimiento = esReal && !tieneMercado;           // colonia real del catálogo, aún sin precios/desarrollos
   const zScores = (landing && landing.scores_reales) || null;
+  const arcRebuilt = profile === 'invertir' || profile === 'familia' || profile === 'primera';  // perfiles con arco nuevo → ocultan los bloques viejos (solo 'vivir' los conserva por ahora)
   const alcaldia = landing && landing.alcaldia;
   const tier = landing && landing.tier;
   const comparables = (landing && landing.comparable_zones) || [];
@@ -482,7 +483,7 @@ export default function ZonePageV2() {
         {/* ───── TAB · CONOCE LA ZONA (historia del perfil + todos los bloques · montado-oculto) ───── */}
         {visited.zona && (<div style={{ display: ver === 'zona' ? 'block' : 'none' }}>
         {/* Intro-gancho del header: solo perfiles sin arco rediseñado (en invertir y familia, el Cap 1 del arco ES el hero) */}
-        {S && profile !== 'invertir' && profile !== 'familia' && (
+        {S && !arcRebuilt && (
           <section style={{ ...sec, marginTop: 24 }}>
             <div key={profile} className="zv2-up" style={{ maxWidth: 760 }}>
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,4.6vw,48px)', letterSpacing: '-0.03em', color: INK, margin: 0, lineHeight: 1.05 }}>{S.hookA} <span style={grad}>{S.hookB}</span></h2>
@@ -868,7 +869,7 @@ export default function ZonePageV2() {
             datos verificados de Google Places (ingesta de pago, 1 vez). El endpoint /vida ya existe (build-for-endstate). ── */}
 
         {/* ── VALUE STACK (solo vivir/primera · invertir y familia ya tienen su Cap 3 de beneficios en el arco) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && (
+        {!arcRebuilt && (
         <section id="dinero" className="zv2-up" style={{ ...sec, marginTop: 54 }}>
           <div style={eyebrow}>{tc('Por qué tiene sentido')}</div>
           <h2 style={chapTitle}>{S.stackTitle}</h2>
@@ -898,7 +899,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── LA VIDA ALREDEDOR (amenidades de ZONA · Google · no-invertir) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && vida && vida.fuente === 'google' && vida.amenidades && (() => {
+        {!arcRebuilt && vida && vida.fuente === 'google' && vida.amenidades && (() => {
           const am = vida.amenidades;
           const shown = CATS_ZONA.filter(([key]) => (am[key] || 0) > 0);
           if (!shown.length) return null;
@@ -936,6 +937,91 @@ export default function ZonePageV2() {
         {/* (reorden espina) "Los riesgos, de frente" se movió DESPUÉS de la calculadora (objeciones antes del cierre · Hormozi) */}
 
         {/* (dedup) "retorno neto de impuestos" se movió a la calculadora (ISR de renta + ISR de venta art.152/RESICO). */}
+
+        {/* ════════ ARCO MI PRIMERA CASA (mismo sistema · contenido: dejar de rentar / lo tuyo / accesible) ════════ */}
+        {profile === 'primera' && S && tieneMercado && (() => {
+          const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
+          const giant = { fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04 };
+          const eyb = (c) => ({ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: c });
+          const bridge = (txt, dark) => (<div style={{ marginTop: 34, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: dark ? 'rgba(255,255,255,0.82)' : '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>{txt} <span style={{ fontSize: 17, fontStyle: 'normal', color: dark ? '#F0ABFC' : '#C026D3' }}>↓</span></div>);
+          const aq = ARQ[zoneArchetype(inv)] || ARQ.clasica;
+          const realFotos = (Array.isArray(devs) ? devs : []).flatMap((d) => [d.hero_photo, ...((d.photos) || [])]).filter((p) => p && !/picsum|placehold|seed\//i.test(p));
+          const STOCK = ['164', '1076', '1067'].map((id) => `https://picsum.photos/id/${id}/1280/760`);
+          const img = (i) => (realFotos.length > i ? realFotos[i] : STOCK[i % STOCK.length]);
+          const PRIM = {
+            premium: { t: <>Empezar aquí<br />es empezar en grande.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> no es la más barata — pero es de las que nunca bajan. Tu primera propiedad aquí es un patrimonio que solo crece.</> },
+            clasica: { t: <>Tu primer lugar,<br />en una zona de verdad.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> tiene todo para empezar: bien ubicada, segura y con vida. Un primer hogar del que no te vas a querer ir.</> },
+            emergente: { t: <>Aquí sí alcanza<br />tu primera.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> todavía tiene precio de entrada — perfecto para tu primera propiedad. Entras accesible y creces con la zona.</> },
+            momentum: { t: <>Entra antes<br />de que suba.</>, c: (n) => <><b style={{ color: INK }}>{n}</b> va para arriba. Lo que compras hoy, mañana vale más — el mejor momento para tu primera es antes que el resto.</> },
+          };
+          const pr = PRIM[zoneArchetype(inv)] || PRIM.clasica;
+          return (
+            <>
+              {/* CAP 1 · HERO (oscuro + foto · años rentando → la renta no vuelve → lo tuyo) */}
+              <section style={{ width: '100%', background: `linear-gradient(102deg, #0C0B1E 0%, rgba(12,11,30,0.95) 44%, rgba(26,24,64,0.62) 100%), url(${img(0)}) right center / cover`, color: '#fff', padding: 'clamp(58px,7.5vw,90px) 0', position: 'relative', overflow: 'hidden' }}>
+                <div data-rev style={{ ...cont, position: 'relative' }}>
+                  <div style={eyb('#A5B4FC')}>Mi primera casa · {name} · {aq.etiqueta}</div>
+                  <h2 style={{ ...giant, fontSize: 'clamp(28px,4vw,48px)', margin: '20px 0 0', color: '#fff', maxWidth: 760 }}>
+                    Llevas años pagando renta.<br />
+                    <span style={{ color: 'rgba(255,255,255,0.42)' }}>Cada mes, ese dinero se va y no vuelve.</span><br />
+                    Aquí, tu primer lugar <span style={{ background: 'linear-gradient(90deg,#A5B4FC,#F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>es tuyo</span>.
+                  </h2>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,19px)', color: 'rgba(255,255,255,0.78)', maxWidth: 580, marginTop: 22, lineHeight: 1.55 }}>Tu primera propiedad — donde cada mensualidad construye <b style={{ color: '#fff' }}>tu patrimonio</b>, no el del casero, y por fin empiezas a tener algo <b style={{ color: '#fff' }}>real y tuyo</b>.</p>
+                  {bridge('¿Por qué aquí para empezar?', true)}
+                </div>
+              </section>
+
+              {/* CAP 2 · POR QUÉ AQUÍ (claro · archetype primera) */}
+              <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                <div data-rev style={cont}>
+                  <div style={eyb('#C026D3')}>Por qué aquí</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)', gap: 'clamp(18px,3vw,36px)', alignItems: 'center', marginTop: 14 }}>
+                    <div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK }}>{pr.t}</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 540, marginTop: 16, lineHeight: 1.6 }}>{pr.c(name)}</p>
+                    </div>
+                    <div className="zv2-imgz" style={{ borderRadius: 18, boxShadow: '0 18px 40px rgba(16,18,28,0.14)' }}>
+                      <img src={img(1)} alt="" loading="lazy" style={{ width: '100%', height: 'clamp(180px,26vw,250px)', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
+                    </div>
+                  </div>
+                  {bridge('Mira tu nueva vida aquí')}
+                </div>
+              </section>
+
+              {/* CAP 3 · LIFESTYLE REAL (Google Places · on-demand) */}
+              {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
+                const cats = [['🚇', 'transporte', 'Transporte'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud']]
+                  .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
+                if (!cats.length) return null;
+                return (
+                  <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                    <div data-rev style={cont}>
+                      <div style={eyb('#C026D3')}>Así se vive aquí</div>
+                      <h2 style={{ ...giant, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Tu nueva vida, a la mano.</h2>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo que de verdad tienes cerca en {name} — toca cualquiera para verlo en el mapa:</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
+                        {cats.map(([ic, l, arr]) => (
+                          <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+                            <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
+                            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {arr.map((p) => (
+                                <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
+                                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                                  {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
+                    </div>
+                  </section>
+                );
+              })()}
+            </>
+          );
+        })()}
 
         {profile === 'primera' && rentaMes && mensual80 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
@@ -1010,6 +1096,23 @@ export default function ZonePageV2() {
             </section>
           );
         })()}
+
+        {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
+        {profile === 'primera' && tieneMercado && (
+          <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', bottom: -180, left: -120, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.22), rgba(236,72,153,0) 70%)', pointerEvents: 'none' }} />
+            <div data-rev style={{ maxWidth: 760, margin: '0 auto', padding: '0 28px', textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#C4B5FD' }}>Tu primer paso</div>
+              <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.06, fontSize: 'clamp(28px,4vw,46px)', color: '#fff', margin: '12px 0 0' }}>Aquí dejas de rentar.</h2>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.78)', maxWidth: 600, margin: '14px auto 0', lineHeight: 1.6 }}>En {name}, cada mensualidad ya es tuya — y en unos años, lo que pagas hoy vale más. Tu primer patrimonio empieza aquí.</p>
+              <div style={{ display: 'inline-block', marginTop: 22, padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: '#FBCFE8' }}>⏳ Cada mes que sigues rentando es dinero que no vuelve. El mejor momento para empezar es hoy.</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 26 }}>
+                <button type="button" onClick={() => setVer('propiedades')} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.45)' }}>🏠 Ver lo que hay en {name}</button>
+                <button type="button" onClick={() => setSaveOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 26px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🔔 Avísame de algo para empezar</button>
+              </div>
+            </div>
+          </section>
+        )}
         {profile === 'vivir' && devAmen.length > 0 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 54 }}>
             <div style={eyebrow}>{profile === 'familia' ? tc('Para los tuyos') : tc('A tu nivel')}</div>
@@ -1029,7 +1132,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── CONECTIVIDAD · minutos al metro (no-invertir) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && metroData && (
+        {!arcRebuilt && metroData && (
           <section className="zv2-up" style={{ ...sec, marginTop: 40 }}>
             <div className="zv2-win" style={{ ...cardBase, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 28 }}>🚇</div>
@@ -1058,7 +1161,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── CÓMO EMPEZAR (crédito · solo vivir/primera · invertir y familia tienen su propia herramienta) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && (
+        {!arcRebuilt && (
         <section style={{ ...sec, marginTop: 58 }}>
           <div style={eyebrow}>{tc('Cómo empezar')}</div>
           <h2 style={chapTitle}>{S.cobrarTitle}</h2>
@@ -1084,7 +1187,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── BANDA ATLAX (solo vivir/primera · invertir y familia ya cierran con su CTA) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && (
+        {!arcRebuilt && (
         <section style={{ ...sec, marginTop: 58 }}>
           <div style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.06))', textAlign: 'center' }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3vw,30px)', color: INK, letterSpacing: '-0.02em' }}>¿Te queda una duda sobre {name}?</div>
@@ -1099,7 +1202,7 @@ export default function ZonePageV2() {
         )}
 
         {/* ── NO ERES EL ÚNICO (no-invertir) ── */}
-        {profile !== 'invertir' && profile !== 'familia' && (comparables.length > 0 || similar.length > 0) && (
+        {!arcRebuilt && (comparables.length > 0 || similar.length > 0) && (
           <section style={{ ...sec, marginTop: 58 }}>
             <div style={eyebrow}>{tc('No eres el único')}</div>
             <h2 style={chapTitle}>La gente que sabe, está mirando aquí</h2>
@@ -1231,8 +1334,8 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {/* ── DA EL PRIMER PASO (no familia · su Cap 5 ya cierra con el CTA a propiedades) ── */}
-        {profile !== 'familia' && (
+        {/* ── DA EL PRIMER PASO (solo invertir/vivir · familia y primera cierran con su propio CTA) ── */}
+        {profile !== 'familia' && profile !== 'primera' && (
         <section id="empezar" style={{ ...sec, marginTop: 64 }}>
           <div id="desarrollos" style={eyebrow}>{tc('Da el primer paso')}</div>
           <h2 style={{ ...chapTitle, marginBottom: 6 }}>{S.cierreTitle}</h2>
