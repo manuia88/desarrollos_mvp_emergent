@@ -11,6 +11,7 @@ import InversionV4Calculator from '../../components/investment/InversionV4Calcul
 import ZonaPropiedades from '../../components/zona/ZonaPropiedades';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
+import 'maplibre-gl/dist/maplibre-gl.css';   // mapa interactivo de lugares (el JS de maplibre se carga lazy dentro de LugaresMap)
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
@@ -287,6 +288,51 @@ function WalkScore({ lugares, name }) {
   );
 }
 
+// Mapa interactivo de lugares (maplibre-gl cargado LAZY). Muestra los pines de la categoría activa, popup con nombre+★+link.
+// Re-centra (fitBounds) al cambiar de categoría. Estilo CARTO Positron (gratis, sin token).
+function LugaresMap({ places, icon, center }) {
+  const ref = useRef(null);
+  const mapRef = useRef(null);
+  const mlRef = useRef(null);
+  const markersRef = useRef([]);
+  const [ready, setReady] = useState(0);
+  const pts = (places || []).filter((p) => p && p.loc && p.loc.latitude && p.loc.longitude);
+  useEffect(() => {
+    let cancelled = false;
+    if (!ref.current || mapRef.current) return undefined;
+    import('maplibre-gl').then((mod) => {
+      if (cancelled || !ref.current || mapRef.current) return;
+      const maplibregl = mod.default || mod;
+      mlRef.current = maplibregl;
+      const map = new maplibregl.Map({ container: ref.current, style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', center: center || [-99.1665, 19.4101], zoom: 13, attributionControl: false });
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      map.on('load', () => { if (!cancelled) { mapRef.current = map; setReady((r) => r + 1); } });
+    }).catch(() => {});
+    return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const map = mapRef.current; const maplibregl = mlRef.current;
+    if (!map || !maplibregl) return;
+    markersRef.current.forEach((m) => m.remove()); markersRef.current = [];
+    if (!pts.length) return;
+    const bounds = new maplibregl.LngLatBounds();
+    pts.forEach((p) => {
+      const el = document.createElement('div');
+      el.textContent = icon;
+      el.style.cssText = 'font-size:21px;cursor:pointer;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));';
+      const safe = String(p.name || '').replace(/</g, '&lt;');
+      const html = `<div style="font-family:'DM Sans',sans-serif;"><a href="${p.maps_uri || '#'}" target="_blank" rel="noopener noreferrer" style="font-weight:700;font-size:12.5px;color:#3A3E55;text-decoration:none;">${safe}${p.rating ? ` <span style="color:#0E7A53;font-weight:800;">★${p.rating}</span>` : ''}</a></div>`;
+      const popup = new maplibregl.Popup({ offset: 16, closeButton: false }).setHTML(html);
+      const mk = new maplibregl.Marker({ element: el }).setLngLat([p.loc.longitude, p.loc.latitude]).setPopup(popup).addTo(map);
+      markersRef.current.push(mk);
+      bounds.extend([p.loc.longitude, p.loc.latitude]);
+    });
+    if (!bounds.isEmpty()) { try { map.fitBounds(bounds, { padding: 48, maxZoom: 15.5, duration: 450 }); } catch (e) { /* noop */ } }
+  }, [places, icon, ready]);
+  if (!pts.length) return null;
+  return <div ref={ref} className="zv2-map" style={{ width: '100%', height: 'clamp(300px,42vw,420px)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(16,18,28,0.1)', background: '#EAEAF2' }} />;
+}
+
 // Explorador de lugares INTERACTIVO (reusado por los 4 perfiles). El cliente elige qué le importa (escuelas/parques/...)
 // y SE DESPLIEGAN los lugares reales de esa categoría (Google Places · nombre + ★ + link a mapa). defaultCat = lo que el
 // perfil pone al frente; el cliente puede explorar cualquier categoría. eyebrowText/title/intro cambian por perfil.
@@ -298,6 +344,8 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro 
   const [sel, setSel] = useState(init);
   if (!ALL.length) return null;
   const active = ALL.find((c) => c.k === sel) || ALL[0];
+  const allPts = ALL.flatMap((c) => c.arr).filter((p) => p && p.loc && p.loc.latitude && p.loc.longitude);
+  const center = allPts.length ? [allPts.reduce((s, p) => s + p.loc.longitude, 0) / allPts.length, allPts.reduce((s, p) => s + p.loc.latitude, 0) / allPts.length] : null;
   return (
     <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
       <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
@@ -315,18 +363,21 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro 
             );
           })}
         </div>
-        <div key={active.k} className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12, marginTop: 22 }}>
-          {active.arr.slice(0, 8).map((p) => (
-            <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '13px 15px', borderRadius: 13, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
-                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-              </span>
-              {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap', flexShrink: 0 }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ color: '#C7CAD6', flexShrink: 0 }}>›</span>}
-            </a>
-          ))}
+        <div className="zv2-explorer-grid" style={{ marginTop: 22 }}>
+          <div key={active.k} className="zv2-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 'clamp(300px,42vw,420px)', overflowY: 'auto', paddingRight: 4 }}>
+            {active.arr.slice(0, 12).map((p) => (
+              <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '12px 14px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
+                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                </span>
+                {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap', flexShrink: 0 }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ color: '#C7CAD6', flexShrink: 0 }}>›</span>}
+              </a>
+            ))}
+          </div>
+          <LugaresMap places={active.arr} icon={active.ic} center={center} />
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca cualquiera para abrirlo en el mapa.</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca un pin o la lista para abrirlo en el mapa.</div>
       </div>
     </section>
   );

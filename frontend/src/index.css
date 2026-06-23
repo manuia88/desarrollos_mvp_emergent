@@ -84,6 +84,10 @@
 .zv2-stagger > * { animation: zv2pop .4s cubic-bezier(.2,.8,.2,1) both; }
 .zv2-stagger > *:nth-child(1){animation-delay:.02s}.zv2-stagger > *:nth-child(2){animation-delay:.05s}.zv2-stagger > *:nth-child(3){animation-delay:.08s}.zv2-stagger > *:nth-child(4){animation-delay:.11s}.zv2-stagger > *:nth-child(5){animation-delay:.14s}.zv2-stagger > *:nth-child(6){animation-delay:.17s}.zv2-stagger > *:nth-child(7){animation-delay:.20s}.zv2-stagger > *:nth-child(8){animation-delay:.23s}
 @media (prefers-reduced-motion: reduce) { .zv2-pop, .zv2-stagger > * { animation: none !important; } }
+/* Explorador con mapa: lista a la izquierda, mapa a la derecha (apila en móvil) */
+.zv2-explorer-grid { display: grid; grid-template-columns: minmax(0,0.82fr) minmax(0,1.18fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .zv2-explorer-grid { grid-template-columns: 1fr; } }
+.zv2-map .maplibregl-popup-content { padding: 8px 12px; border-radius: 10px; box-shadow: 0 10px 28px rgba(16,18,28,.22); }
 
 /* Scope de tema CLARO solo-variables (para portales/drawers que viven fuera de
  * `.portal-asesor` vía createPortal). NO toca position/isolation/::before/`> *`,
