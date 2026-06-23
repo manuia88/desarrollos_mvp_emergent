@@ -801,9 +801,9 @@ export default function ZonePageV2() {
         {/* ── CALCULADORA INTERACTIVA (Bloque 12 · proyecto → unidad → desglose completo · reusa InvestmentSimulator) ── */}
         {profile === 'invertir' && sortedDevs.length > 0 && (
           <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
-            <div style={eyebrow}>{tc('Calculadora')}</div>
-            <h2 style={chapTitle}>Llévalo a números reales</h2>
-            <p style={lead}>Elige un desarrollo y una unidad específica de {name}. Te armamos el cálculo completo — enganche, crédito, renta, plusvalía, rendimiento y vs el banco.</p>
+            <div style={eyebrow}>{tc('Ahora sí · tus números')}</div>
+            <h2 style={chapTitle}>Veamos qué tan tuyo puede ser</h2>
+            <p style={lead}>Elige un desarrollo y una unidad de {name}. Armamos el cálculo completo con TUS datos — tu enganche, tu crédito, lo que te deja al mes y cuánto vale en unos años.</p>
             <style>{`
               .zv2-dev{transition:transform .15s,box-shadow .15s,border-color .15s}
               .zv2-dev:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(99,102,241,.14)}
@@ -860,47 +860,51 @@ export default function ZonePageV2() {
           </section>
         )}
 
-        {/* ── RIESGOS DE FRENTE (objeciones · DESPUÉS de la herramienta, antes del cierre · Hormozi) ── */}
+        {/* ── CAP 6 · RIESGOS (full-bleed oscuro · objeciones de frente, lenguaje simple) ── */}
         {profile === 'invertir' && inv && inv.precio_prom && (
-          <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
-            <div style={eyebrow}>{tc('Sin letras chiquitas')}</div>
-            <h2 style={chapTitle}>Los riesgos, de frente<ParaTi tag="riesgos" /></h2>
-            <p style={lead}>Ningún portal te los dice. Nosotros sí — porque confiar es la base de invertir bien:</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 18 }}>
-              {[
-                ['💧', 'Liquidez', 'Un inmueble no se vende en un día como un CETES. Plan: horizonte de 3-5 años mínimo.'],
-                ['🏠', 'Vacancia', `Puede haber meses sin rentar. Por eso miramos la demanda real${inv.demanda_zona ? ` (${inv.demanda_zona.busquedas} búsquedas aquí)` : ''}.`],
-                ['📉', 'El mercado se mueve', 'Los precios pueden bajar a corto plazo. El escenario conservador ya lo contempla.'],
-                ['🏦', 'Las tasas', 'Si financias, la tasa pesa. Hoy está alta; cuando baje, tu rendimiento mejora.'],
-              ].map(([e, t, d]) => (
-                <div key={t} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 20 }}>{e}</div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: INK, marginTop: 4 }}>{t}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 3, lineHeight: 1.5 }}>{d}</div>
-                </div>
-              ))}
+          <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
+            <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9D8BFF' }}>Sin letra chiquita<ParaTi tag="riesgos" /></div>
+              <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.06, fontSize: 'clamp(27px,3.8vw,44px)', color: '#fff', margin: '14px 0 0' }}>Ninguna inversión es magia.<br />Esto es lo que debes saber.</h2>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.7)', maxWidth: 600, marginTop: 16, lineHeight: 1.6 }}>Ningún portal te lo dice. Nosotros sí — porque la confianza es la base de invertir bien:</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, marginTop: 28 }}>
+                {[
+                  ['💧', 'No es dinero inmediato', 'Una propiedad no se vende en un día. La idea es tenerla unos años — por eso rinde.'],
+                  ['🏠', 'Puede haber meses vacíos', `A veces tarda en rentarse. Por eso cuidamos que de verdad haya quién la quiera${inv.demanda_zona && inv.demanda_zona.busquedas ? ` — aquí ${inv.demanda_zona.busquedas} la buscaron` : ''}.`],
+                  ['📉', 'El precio se mueve', 'A corto plazo puede bajar. A varios años, la tendencia aquí es subir.'],
+                  ['🏦', 'Si pides crédito, la tasa pesa', 'Hoy está alta; cuando baje, lo tuyo rinde todavía más.'],
+                ].map(([e, t, d]) => (
+                  <div key={t} className="zv2-glow" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '20px 20px' }}>
+                    <div style={{ fontSize: 24 }}>{e}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5, color: '#fff', marginTop: 9 }}>{t}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(255,255,255,0.62)', marginTop: 5, lineHeight: 1.55 }}>{d}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* ── EL VEREDICTO + REGISTRO AGÉNTICO (cierre del embudo · Vigila/casamentera) ── */}
+        {/* ── CAP 7 · TU JUGADA (full-bleed · cierre + urgencia + registro agéntico) ── */}
         {profile === 'invertir' && inv && inv.precio_prom && (() => {
           const v = ({
-            renta: ['Para rentar, aquí hay flujo y demanda.', `${name} se renta porque hay quién la busque, y deja renta neta de ISR cada mes. Si buscas ingreso pasivo, esta zona te lo da.`],
-            plusvalia: ['Para plusvalía, la zona ya trae inercia.', `${name} sube de precio y tiene obra nueva empujando. Si buscas ganancia de capital, el momento es bueno.`],
-            refugio: ['Como refugio, protege tu dinero.', `${name} es un activo real que la inflación no se come, que controlas y heredas — la tranquilidad que CETES no te da.`],
-          })[lens] || ['Una inversión sólida, sin humo.', `${name} combina renta, plusvalía y un activo tangible. No es lo que más rinde en papel: es donde construyes patrimonio real.`];
+            renta: ['Para rentar, aquí hay con quién y con qué.', `${name} se renta porque siempre hay quién la busque, y te deja algo cada mes. Si lo que quieres es un ingreso, esta zona te lo da.`],
+            plusvalia: ['Para que suba de valor, ya trae el empuje.', `${name} viene subiendo y con obra nueva detrás. Si lo que buscas es que valga más con el tiempo, el momento es bueno.`],
+            refugio: ['Como refugio, cuida lo tuyo.', `${name} es algo real que la inflación no se come, que tú controlas y heredas — esa tranquilidad no te la da el banco.`],
+          })[lens] || ['Una inversión sólida, sin humo.', `${name} junta las tres cosas: renta, que suba de valor, y algo tuyo de verdad. No es lo que más promete en papel: es donde construyes patrimonio real.`];
           return (
-            <section className="zv2-up" style={{ ...sec, marginTop: 60 }}>
-              <div className="zv2-win" style={{ ...cardBase, padding: '30px 32px', background: 'linear-gradient(135deg, rgba(124,92,255,0.07), rgba(192,38,211,0.05))', textAlign: 'center' }}>
-                <div style={eyebrow}>{tc('El veredicto')}</div>
-                <h2 style={{ ...chapTitle, marginTop: 6 }}>{v[0]}</h2>
-                <p style={{ ...lead, maxWidth: 640, margin: '10px auto 0' }}>{v[1]}</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 22 }}>
-                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 10px 26px rgba(124,92,255,0.34)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
-                  <button type="button" onClick={() => askAtlax(`Quiero invertir en ${name}. ¿Por dónde empiezo según mi objetivo (${lensCfg ? lensCfg.label : 'inversión'})?`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(255,255,255,0.8)', color: '#6D28D9', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
+            <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', bottom: -180, left: -120, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(192,38,211,0.22), rgba(192,38,211,0) 70%)', pointerEvents: 'none' }} />
+              <div data-rev style={{ maxWidth: 760, margin: '0 auto', padding: '0 28px', textAlign: 'center', position: 'relative' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#C4B5FD' }}>Tu jugada</div>
+                <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.06, fontSize: 'clamp(28px,4vw,46px)', color: '#fff', margin: '12px 0 0' }}>{v[0]}</h2>
+                <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: 'rgba(255,255,255,0.78)', maxWidth: 620, margin: '14px auto 0', lineHeight: 1.6 }}>{v[1]}</p>
+                <div style={{ display: 'inline-block', marginTop: 22, padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: '#FBCFE8' }}>⏳ Cada año que pasa, entrar cuesta más. El mejor momento fue ayer; el segundo, hoy.</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 26 }}>
+                  <button type="button" onClick={() => setSaveOpen(true)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#7C5CFF,#E879F9)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(124,92,255,0.45)' }}>🔔 Avísame cuando aparezca la oportunidad</button>
+                  <button type="button" onClick={() => askAtlax(`Quiero invertir en ${name}. ¿Por dónde empiezo según mi objetivo (${lensCfg ? lensCfg.label : 'inversión'})?`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '15px 26px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, cursor: 'pointer' }}>🤖 Pregúntale a Atlax</button>
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: MUT, marginTop: 14, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto' }}>Déjanos tu objetivo y nuestro asistente vigila {name} por ti — cuando entre algo que encaje con lo que buscas, te lo traemos primero.</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 16, maxWidth: 540, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>Déjanos tu objetivo y nuestro asistente vigila {name} por ti — cuando entre algo que encaje, te lo traemos primero.</div>
               </div>
             </section>
           );
