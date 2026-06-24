@@ -56,6 +56,7 @@ import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BuySignal from '../components/marketplace/BuySignal';
 import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
 import DemandaZonaCard from '../components/marketplace/DemandaZonaCard';
+import PerfilLente from '../components/marketplace/PerfilLente';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
@@ -407,6 +408,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               </div>
             );
           })()}
+
+          {/* ═══ ACTO 2 · LENTE DE PERFIL — '¿para qué lo quieres?' (lo de las tabs de colonia, para ESTE desarrollo). ═══ */}
+          <PerfilLente dev={dev} onGoTo={(tid) => { const el = document.querySelector(`[data-testid="${tid}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
 
           {/* CORONA · Veredicto del Desarrollo — sube al tope el veredicto (BuySignal) + plusvalía + zona +
               catastral en un hero glanceable, y cierra ciclo (Atlax agéntico / lead → Cerebro). */}
