@@ -280,7 +280,7 @@ function FindePerfecto({ lugares, name }) {
                     <select value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(15px,2vw,18px)', color: INK, background: '#fff', cursor: 'pointer', letterSpacing: '-0.01em' }}>
                       {arr.slice(0, 8).map((x, j) => (<option key={x.name} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>))}
                     </select>
-                    {p && p.maps_uri ? <a href={p.maps_uri} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#4F46E5', textDecoration: 'none', whiteSpace: 'nowrap' }}>ver en el mapa ›</a> : null}
+                    {p && p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : null}
                   </div>
                 </div>
               </div>
@@ -457,11 +457,11 @@ function PulsoZona({ name, busquedas, nDevs, precioDesde }) {
 
 // Mapa interactivo de lugares (maplibre-gl cargado LAZY). Muestra los pines de la categoría activa, popup con nombre+★+link.
 // Re-centra (fitBounds) al cambiar de categoría. Estilo CARTO Positron (gratis, sin token).
-function LugaresMap({ places, icon, center }) {
+function LugaresMap({ places, icon, center, selected }) {
   const ref = useRef(null);
   const mapRef = useRef(null);
   const mlRef = useRef(null);
-  const markersRef = useRef([]);
+  const markersRef = useRef({});
   const [ready, setReady] = useState(0);
   const pts = (places || []).filter((p) => p && p.loc && p.loc.latitude && p.loc.longitude);
   useEffect(() => {
@@ -480,7 +480,7 @@ function LugaresMap({ places, icon, center }) {
   useEffect(() => {
     const map = mapRef.current; const maplibregl = mlRef.current;
     if (!map || !maplibregl) return;
-    markersRef.current.forEach((m) => m.remove()); markersRef.current = [];
+    Object.values(markersRef.current).forEach((m) => m.remove()); markersRef.current = {};
     if (!pts.length) return;
     const bounds = new maplibregl.LngLatBounds();
     pts.forEach((p) => {
@@ -488,14 +488,26 @@ function LugaresMap({ places, icon, center }) {
       el.textContent = icon;
       el.style.cssText = 'font-size:21px;cursor:pointer;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));';
       const safe = String(p.name || '').replace(/</g, '&lt;');
-      const html = `<div style="font-family:'DM Sans',sans-serif;"><a href="${p.maps_uri || '#'}" target="_blank" rel="noopener noreferrer" style="font-weight:700;font-size:12.5px;color:#3A3E55;text-decoration:none;">${safe}${p.rating ? ` <span style="color:#0E7A53;font-weight:800;">★${p.rating}</span>` : ''}</a></div>`;
+      // Popup IN-PLATFORM (sin link a Google · no saca al cliente): nombre + ★ + reseñas.
+      const rev = p.reviews ? ` · ${p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews} reseñas` : '';
+      const html = `<div style="font-family:'DM Sans',sans-serif;max-width:190px;"><div style="font-weight:700;font-size:12.5px;color:#3A3E55;">${safe}</div>${p.rating ? `<div style="color:#0E7A53;font-weight:800;font-size:11.5px;margin-top:2px;">★${p.rating}<span style="color:#A2A6BC;font-weight:600;">${rev}</span></div>` : ''}</div>`;
       const popup = new maplibregl.Popup({ offset: 16, closeButton: false }).setHTML(html);
       const mk = new maplibregl.Marker({ element: el }).setLngLat([p.loc.longitude, p.loc.latitude]).setPopup(popup).addTo(map);
-      markersRef.current.push(mk);
+      markersRef.current[p.name] = mk;
       bounds.extend([p.loc.longitude, p.loc.latitude]);
     });
     if (!bounds.isEmpty()) { try { map.fitBounds(bounds, { padding: 48, maxZoom: 15.5, duration: 450 }); } catch (e) { /* noop */ } }
   }, [places, icon, ready]);
+  // Lugar elegido en la lista → vuela al pin y abre su popup (todo DENTRO de la plataforma).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selected || !selected.loc) return;
+    try {
+      map.flyTo({ center: [selected.loc.longitude, selected.loc.latitude], zoom: 16, duration: 600 });
+      const mk = markersRef.current[selected.name];
+      if (mk && mk.getPopup && !mk.getPopup().isOpen()) mk.togglePopup();
+    } catch (e) { /* noop */ }
+  }, [selected, ready]);
   if (!pts.length) return null;
   return <div ref={ref} className="zv2-map" style={{ width: '100%', height: 'clamp(300px,42vw,420px)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(16,18,28,0.1)', background: '#EAEAF2' }} />;
 }
@@ -522,6 +534,7 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
   const init = (defaultCat && ALL.some((c) => c.k === defaultCat)) ? defaultCat : (ALL[0] && ALL[0].k);
   const [sel, setSel] = useState(init);
   const [lvl, setLvl] = useState('todas');
+  const [selName, setSelName] = useState(null);   // lugar elegido en la lista → el mapa lo enfoca (in-platform)
   if (!ALL.length) return null;
   const active = ALL.find((c) => c.k === sel) || ALL[0];
   const showLevels = !!schoolLevels && active.k === 'escuela';
@@ -540,7 +553,7 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
           {ALL.map((c) => {
             const on = c.k === active.k;
             return (
-              <button key={c.k} type="button" onClick={() => setSel(c.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.12)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 22px rgba(99,102,241,0.28)' : 'none', transition: 'all .18s' }}>
+              <button key={c.k} type="button" onClick={() => { setSel(c.k); setSelName(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.12)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', boxShadow: on ? '0 8px 22px rgba(99,102,241,0.28)' : 'none', transition: 'all .18s' }}>
                 <span style={{ fontSize: 16 }}>{c.ic}</span> {c.l}
                 <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 999, background: on ? 'rgba(255,255,255,0.22)' : 'rgba(99,102,241,0.1)', color: on ? '#fff' : '#6366F1' }}>{c.arr.length}</span>
               </button>
@@ -552,26 +565,29 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
             {ESC_NIVELES.filter(([k]) => k === 'todas' || lvlCounts[k]).map(([k, l]) => {
               const on = lvl === k;
               return (
-                <button key={k} type="button" onClick={() => setLvl(k)} style={{ padding: '6px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: on ? '1.5px solid #6366F1' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(99,102,241,0.1)' : '#fff', color: on ? '#4F46E5' : '#6B6F86' }}>{l}{k !== 'todas' ? ` (${lvlCounts[k]})` : ''}</button>
+                <button key={k} type="button" onClick={() => { setLvl(k); setSelName(null); }} style={{ padding: '6px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, border: on ? '1.5px solid #6366F1' : '1px solid rgba(16,18,28,0.12)', background: on ? 'rgba(99,102,241,0.1)' : '#fff', color: on ? '#4F46E5' : '#6B6F86' }}>{l}{k !== 'todas' ? ` (${lvlCounts[k]})` : ''}</button>
               );
             })}
           </div>
         )}
         <div className="zv2-explorer-grid" style={{ marginTop: 18 }}>
           <div key={active.k + lvl} className="zv2-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 'clamp(300px,42vw,420px)', overflowY: 'auto', paddingRight: 4 }}>
-            {displayArr.slice(0, 12).map((p) => (
-              <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '12px 14px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
-                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                </span>
-                {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap', flexShrink: 0 }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ color: '#C7CAD6', flexShrink: 0 }}>›</span>}
-              </a>
-            ))}
+            {displayArr.slice(0, 12).map((p) => {
+              const son = selName === p.name;
+              return (
+                <button key={p.name} type="button" onClick={() => setSelName(p.name)} className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textAlign: 'left', cursor: 'pointer', width: '100%', padding: '12px 14px', borderRadius: 12, background: son ? 'rgba(99,102,241,0.08)' : '#fff', border: son ? '1.5px solid rgba(99,102,241,0.4)' : '1px solid rgba(16,18,28,0.07)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
+                    <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  </span>
+                  {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#0E7A53', whiteSpace: 'nowrap', flexShrink: 0 }}>★{p.rating}{p.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600, fontSize: 11 }}> · {p.reviews > 999 ? `${Math.round(p.reviews / 1000)}k` : p.reviews}</span> : ''}</span> : <span style={{ color: '#C7CAD6', flexShrink: 0 }}>📍</span>}
+                </button>
+              );
+            })}
           </div>
-          <LugaresMap places={displayArr} icon={active.ic} center={center} />
+          <LugaresMap places={displayArr} icon={active.ic} center={center} selected={displayArr.find((p) => p.name === selName) || null} />
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca un pin o la lista para abrirlo en el mapa.</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca un lugar de la lista y el mapa lo ubica — sin salir de aquí.</div>
       </div>
     </section>
   );
@@ -1052,10 +1068,10 @@ export default function ZonePageV2() {
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {arr.map((p) => (
-                            <a key={p.name} href={p.maps_uri || '#'} target="_blank" rel="noopener noreferrer" className="zv2-zlink" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, textDecoration: 'none', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
+                            <div key={p.name} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
                               <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                               {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
-                            </a>
+                            </div>
                           ))}
                         </div>
                       </div>

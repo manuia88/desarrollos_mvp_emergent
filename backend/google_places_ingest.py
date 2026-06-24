@@ -20,6 +20,7 @@ CATEGORIES: Dict[str, str] = {
 MAX_PER_MONTH = 4500          # colchón bajo el free tier de 5,000/mes
 RADIUS_M = 1200.0             # radio alrededor del centro de la colonia
 REFRESH_DAYS = 200           # re-consultar una colonia ~cada 6-7 meses
+INGEST_VERSION = 2           # ⬆ sube al cambiar la lógica de ingesta (tipos/categorías/topN) → el cache viejo se re-ingesta lazy
 _URL = "https://places.googleapis.com/v1/places:searchNearby"
 
 
@@ -48,10 +49,10 @@ async def _zone_center(db, colonia_id: str):
     return None
 
 
-async def _nearby_count(client: httpx.AsyncClient, lat: float, lng: float, gtype: str, key: str) -> int:
+async def _nearby_count(client: httpx.AsyncClient, lat: float, lng: float, gtypes: List[str], key: str) -> int:
     """1 consulta a Places searchNearby (fieldmask mínimo = solo ids, lo más barato). Devuelve el conteo (0-20)."""
     body = {
-        "includedTypes": [gtype],
+        "includedPrimaryTypes": gtypes,
         "maxResultCount": 20,
         "locationRestriction": {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": RADIUS_M}},
     }
@@ -102,18 +103,25 @@ async def _priority_colonias(db, limit: int) -> List[Dict[str, Any]]:
 
 # ── LUGARES con nombre + estrellas (curado por perfil) — INFRA lista, se corre cuando haya desarrollos reales ──
 # SKU Enterprise (incluye rating) → free tier más bajo (~1,000/mes). Por eso es función aparte + quota propia.
-PLACE_CATEGORIES: Dict[str, str] = {
-    "escuela": "school", "hospital": "hospital", "parque": "park",
-    "restaurante": "restaurant", "cafe": "cafe", "supermercado": "supermarket",
-    "transporte": "transit_station",  # captura estaciones con ubicación → minutos caminando al metro (haversine)
+# Tipos PRIMARIOS de Google (includedPrimaryTypes) — clave para la precisión: un gym con "school" entre sus tipos
+# secundarios YA NO cae en escuelas. Lista rica por categoría → recupera cobertura (todos los niveles de escuela, etc.).
+PLACE_CATEGORIES: Dict[str, List[str]] = {
+    "escuela": ["preschool", "primary_school", "secondary_school", "school", "university"],
+    "hospital": ["hospital", "doctor"],
+    "parque": ["park", "national_park", "garden"],
+    "restaurante": ["restaurant"],
+    "cafe": ["cafe", "coffee_shop"],
+    "supermercado": ["supermarket", "grocery_store"],
+    "transporte": ["subway_station", "train_station", "transit_station", "bus_station", "light_rail_station"],
 }
-TOP_N = 5  # top lugares por categoría (curado, no todo)
+TOP_N = 18  # la Places API cobra por REQUEST (no por resultado) → subir el tope llena el mapa sin costo extra
 
 
-async def _nearby_places(client: httpx.AsyncClient, lat: float, lng: float, gtype: str, key: str) -> List[Dict[str, Any]]:
-    """1 consulta searchNearby con campos ricos (nombre+rating+#reseñas+ubicación+precio+link). SKU Enterprise."""
+async def _nearby_places(client: httpx.AsyncClient, lat: float, lng: float, gtypes: List[str], key: str) -> List[Dict[str, Any]]:
+    """1 consulta searchNearby con campos ricos (nombre+rating+#reseñas+ubicación+precio+link). SKU Enterprise.
+    includedPrimaryTypes (tipo PRIMARIO) → categoriza bien (sin gyms en escuelas)."""
     body = {
-        "includedTypes": [gtype], "maxResultCount": TOP_N, "rankPreference": "POPULARITY",
+        "includedPrimaryTypes": gtypes, "maxResultCount": TOP_N, "rankPreference": "POPULARITY",
         "locationRestriction": {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": RADIUS_M}},
     }
     fm = "places.displayName,places.rating,places.userRatingCount,places.location,places.priceLevel,places.googleMapsUri"
@@ -180,7 +188,7 @@ async def ingest_places_batch(db, max_requests: int = 900, only_with_devs: bool 
                 await db.zone_places.update_one(
                     {"zone_id": t["id"]},
                     {"$set": {"zone_id": t["id"], "source": "google", "places": places,
-                              "radius_m": RADIUS_M, "last_synced": datetime.now(timezone.utc)}}, upsert=True)
+                              "radius_m": RADIUS_M, "v": INGEST_VERSION, "last_synced": datetime.now(timezone.utc)}}, upsert=True)
                 ingested += 1
             if req_used >= remaining:
                 break
@@ -204,8 +212,9 @@ async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
     _INFLIGHT_ZONES.add(colonia_id)   # lock ANTES de cualquier await → cierra la ventana TOCTOU entre check y add
     try:
         try:
-            if await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1}):
-                return {"ok": True, "reason": "already_cached"}
+            ex = await db.zone_places.find_one({"zone_id": colonia_id}, {"_id": 1, "v": 1})
+            if ex and int(ex.get("v") or 0) >= INGEST_VERSION:
+                return {"ok": True, "reason": "already_cached"}   # re-ingesta solo si el cache es de versión vieja
             ctr = await _zone_center(db, colonia_id)   # catálogo (id largo) o SEED (id corto) — resuelve el choque de ids
             if not ctr:
                 return {"ok": False, "reason": "no_center"}
@@ -232,7 +241,7 @@ async def ingest_one_zone(db, colonia_id: str) -> Dict[str, Any]:
             await db.zone_places.update_one(
                 {"zone_id": colonia_id},
                 {"$set": {"zone_id": colonia_id, "source": "google", "places": places, "radius_m": RADIUS_M,
-                          "last_synced": datetime.now(timezone.utc), "via": "on_demand"}}, upsert=True)
+                          "v": INGEST_VERSION, "last_synced": datetime.now(timezone.utc), "via": "on_demand"}}, upsert=True)
         await db.google_quota.update_one({"month": month}, {"$inc": {"places_used": req}}, upsert=True)
         return {"ok": True, "ingested": 1 if ok_any else 0, "requests_used": req}
     except Exception:
@@ -262,7 +271,7 @@ async def ingest_batch(db, max_requests: int = MAX_PER_MONTH) -> Dict[str, Any]:
             ok_any = False
             for our_key, gtype in CATEGORIES.items():
                 try:
-                    by_cat[our_key] = await _nearby_count(client, t["lat"], t["lng"], gtype, key)
+                    by_cat[our_key] = await _nearby_count(client, t["lat"], t["lng"], [gtype], key)
                     ok_any = True
                 except Exception:
                     by_cat[our_key] = None
