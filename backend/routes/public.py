@@ -2113,6 +2113,101 @@ async def colonias_search(request: Request, q: str = "", limit: int = 20):
              "featured": c.get("id") in seed_ids} for c in res]
 
 
+# ── LEAD MAGNET de landing (dev/asesor): muestra GRATIS un pulso REAL pero MÍNIMO de una zona; el reporte completo se
+#    desbloquea al registrarse. Dato 100% real (db.marketplace_searches + db.colonias). Honesto si la zona tiene poca señal.
+@router.get("/api/public/pulso-zona")
+async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = None, precio: Optional[int] = None, rol: str = "dev"):
+    from datetime import datetime as _d, timedelta as _t
+    import re as _rgx
+    db = request.app.state.db
+    q = (colonia or "").strip()
+    col = None
+    if q:
+        col = (await db.colonias.find_one({"id": q}, {"_id": 0})
+               or await db.colonias.find_one({"name": {"$regex": "^" + _rgx.escape(q), "$options": "i"}}, {"_id": 0}))
+    cid = (col or {}).get("id") or q
+    nombre = (col or {}).get("name") or q
+    scores = (col or {}).get("scores_reales") or (col or {}).get("scores") or {}
+    if not scores and nombre:   # colonia seed (id corto) sin scores → toma los del catálogo por nombre (choque de 2 sistemas de id)
+        try:
+            _alt = await db.colonias.find_one({"name": {"$regex": "^" + _rgx.escape(nombre), "$options": "i"}, "scores_reales": {"$exists": True}}, {"_id": 0, "scores_reales": 1})
+            scores = (_alt or {}).get("scores_reales") or {}
+        except Exception:
+            pass
+    valor_m2 = None
+    try:
+        _v = await db.colonia_catastro_byid.find_one({"colonia_id": cid}, {"_id": 0, "valor_suelo_m2": 1})
+        valor_m2 = (_v or {}).get("valor_suelo_m2")
+    except Exception:
+        pass
+    base = {"colonia_id": cid, "created_at_dt": {"$gte": _d.utcnow() - _t(days=30)}}
+    try:
+        demanda = await db.marketplace_searches.count_documents(base)
+    except Exception:
+        demanda = 0
+    pres = None
+    try:
+        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "p": {"$avg": "$precio_max"}}}]).to_list(1)
+        if _a and _a[0].get("p"):
+            pres = round(_a[0]["p"])
+    except Exception:
+        pass
+    oferta = [d for d in DEVELOPMENTS if d.get("colonia_id") == cid]
+    if rol == "asesor":
+        visible = [
+            {"k": "Personas buscando en tu zona (30 días)", "v": demanda, "fmt": "int"},
+            {"k": "Presupuesto promedio que buscan", "v": pres, "fmt": "money"},
+            {"k": "Índice de seguridad de la zona", "v": scores.get("seguridad"), "fmt": "score"},
+        ]
+        locked = ["Los leads listos para contactar en tu zona", "Qué recámaras y amenidades piden", "A qué zonas se va la demanda que no encuentra", "El reporte completo (precios, plusvalía, lugares cerca)"]
+    else:
+        visible = [
+            {"k": "Personas buscando aquí (30 días)", "v": demanda, "fmt": "int"},
+            {"k": "Presupuesto promedio que buscan", "v": pres, "fmt": "money"},
+            {"k": "Desarrollos compitiendo en tu zona", "v": len(oferta), "fmt": "int"},
+        ]
+        locked = ["A dónde se va la demanda que no encuentra aquí", "El esquema de pago que más piden (crédito vs preventa)", "Cuántos quieren tu zona pero no les alcanza (la brecha)", "Qué recámaras y amenidades piden y no hay", "El precio/m² de tus competidores directos"]
+    return {
+        "ok": True, "colonia": nombre, "colonia_id": cid,
+        "tiene_senal": demanda > 0 or bool(scores),
+        "visible": visible,
+        "indices": {"plusvalia": scores.get("plusvalia"), "vida": scores.get("vida"), "seguridad": scores.get("seguridad"), "valor_suelo_m2": valor_m2},
+        "locked": locked, "locked_count": len(locked),
+        "nota": ("Tu zona aún no tiene búsquedas registradas — regístrate y te avisamos en cuanto empiecen." if demanda == 0
+                 else "Esto es solo una muestra. El reporte completo de tu zona se desbloquea gratis al registrarte."),
+    }
+
+
+class RegistroInteresIn(BaseModel):
+    rol: str
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    colonia: Optional[str] = None
+    tipo: Optional[str] = None
+    precio: Optional[int] = None
+    empresa: Optional[str] = None
+
+
+@router.post("/api/public/registro-interes")
+async def registro_interes(payload: RegistroInteresIn, request: Request):
+    """Captura el registro de un dev/asesor desde la landing (lead magnet) con su contexto (zona/proyecto) → el equipo le
+    manda el reporte completo. Fail-open (nunca rompe la landing)."""
+    db = request.app.state.db
+    if not ((payload.email or "").strip() or (payload.telefono or "").strip()):
+        raise HTTPException(400, "Déjanos un email o teléfono para enviarte el reporte.")
+    import hashlib as _hl
+    from datetime import datetime as _d
+    _ip = (request.client.host if request.client else "") or "x"
+    doc = {**payload.dict(), "source": "landing_leadmagnet", "estado": "nuevo",
+           "created_at_dt": _d.utcnow(), "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16]}
+    try:
+        await db.registros_interes.insert_one(doc)
+    except Exception:
+        pass
+    return {"ok": True, "mensaje": "¡Listo! Te enviaremos el reporte completo de tu zona en breve."}
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
