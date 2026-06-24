@@ -61,6 +61,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [quizOpen, setQuizOpen] = useState(false);
   // E2 · gusto: "parecidos a los que te gustaron" (de los likes del visitor · Netflix-style)
   const [parecidos, setParecidos] = useState([]);
+  const [gustoPerfil, setGustoPerfil] = useState(null);   // perfil de gusto (amenidades/precio/recámaras) → lente para Atlax
   // E4 · casamentera: lo que el sistema encontró para ti (de tu búsqueda guardada con alerta)
   const [alertas, setAlertas] = useState([]);
 
@@ -84,7 +85,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     try { dismissed = sessionStorage.getItem('dmx_dismiss_parecidos') === '1'; } catch { /* noop */ }
     if (!dismissed) {
       fetch(`${API}/api/buyer/parecidos?visitor_id=${vid}&limit=6`)
-        .then((r) => r.json()).then((d) => setParecidos(d?.parecidos || [])).catch(() => {});
+        .then((r) => r.json()).then((d) => { setParecidos(d?.parecidos || []); setGustoPerfil(d?.gusto || null); }).catch(() => {});
     }
     fetch(`${API}/api/buyer/alertas?visitor_id=${vid}`)
       .then((r) => r.json()).then((d) => setAlertas(d?.alertas || [])).catch(() => {});
@@ -138,6 +139,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       ...(coloniaFilter ? { colonia: coloniaFilter } : {}),
       ...(hasActiveSubscores ? { subscore_min: JSON.stringify(subscoreMin) } : {}),
       ...(forecastDeltaMin > 0 ? { forecast_delta_min: forecastDeltaMin } : {}),
+      ...(sort === 'taste' ? { visitor_id: visitorId() } : {}),   // 'Para ti' → reordena por gusto del visitante
       sort,
     };
   }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
@@ -158,9 +160,18 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     if (f.enganche_max) parts.push(`enganche hasta ${money(f.enganche_max)}`);
     if (Array.isArray(f.amenity) && f.amenity.length) parts.push(`amenidades: ${f.amenity.join(', ')}`);
     if (f.stage) parts.push(String(f.stage).replace(/_/g, ' '));
-    if (!parts.length) return 'El usuario está en el marketplace de desarrollos (CDMX), explorando sin filtros aún.';
-    return `El usuario está en el marketplace buscando: ${parts.join(' · ')}. Hay ${developments.length} resultado(s) visibles ahora. Responde sobre ESTA búsqueda: ayúdalo a afinar, comparar zonas, o entender financiamiento.`;
-  }, [filters, aiFilters, coloniaFilter, colonias, developments.length]);
+    // Lente de gusto: lo que el visitante ha likeado → Atlax personaliza ("por lo que te ha gustado…").
+    let gustoNota = '';
+    if (gustoPerfil && (gustoPerfil.amenidades || []).length) {
+      const g = [];
+      if ((gustoPerfil.amenidades || []).length) g.push(`amenidades como ${gustoPerfil.amenidades.slice(0, 4).join(', ')}`);
+      if (gustoPerfil.precio_m2_prom) g.push(`~$${Number(gustoPerfil.precio_m2_prom).toLocaleString('es-MX')}/m²`);
+      if (gustoPerfil.recamaras) g.push(`${gustoPerfil.recamaras} recámaras`);
+      if (g.length) gustoNota = ` Por lo que le ha gustado antes, prefiere ${g.join(' · ')} — tenlo en cuenta al recomendar.`;
+    }
+    if (!parts.length) return `El usuario está en el marketplace de desarrollos (CDMX), explorando sin filtros aún.${gustoNota}`;
+    return `El usuario está en el marketplace buscando: ${parts.join(' · ')}. Hay ${developments.length} resultado(s) visibles ahora. Responde sobre ESTA búsqueda: ayúdalo a afinar, comparar zonas, o entender financiamiento.${gustoNota}`;
+  }, [filters, aiFilters, coloniaFilter, colonias, developments.length, gustoPerfil]);
 
   // Fetch inicial (página 1) — se reinicia cuando cambian los filtros. Guard "última respuesta gana" (race fix).
   useEffect(() => {

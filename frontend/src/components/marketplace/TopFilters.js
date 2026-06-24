@@ -411,6 +411,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
               outline: 'none', cursor: 'pointer',
             }}>
             <option value="recent">{t('marketplace_v2.sort_recent')}</option>
+            <option value="taste">✨ Para ti</option>
             <option value="price_asc">{t('marketplace_v2.sort_price_asc')}</option>
             <option value="price_desc">{t('marketplace_v2.sort_price_desc')}</option>
             <option value="sqm_desc">{t('marketplace_v2.sort_sqm_desc')}</option>

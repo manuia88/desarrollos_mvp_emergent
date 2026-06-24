@@ -351,6 +351,42 @@ def _amen_set(dev):
     return {str(a).strip().lower() for a in (dev.get("amenities") or []) if a}
 
 
+async def taste_scores(db, visitor_id: str) -> dict:
+    """{dev_id: score 0-100} de afinidad al GUSTO del visitante (sus likes). Misma lógica que /parecidos, reutilizable
+    para reordenar la búsqueda ('Para ti'). Vacío si no hay likes (→ se cae al orden normal). Fail-open."""
+    try:
+        from data_developments import DEVELOPMENTS
+        by_id = {d.get("id"): d for d in DEVELOPMENTS}
+        liked_ids = []
+        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+            if s.get("entity_id"):
+                liked_ids.append(s["entity_id"])
+        liked = [by_id[i] for i in liked_ids if i in by_id]
+        if not liked:
+            return {}
+        amen_pref = {}
+        for d in liked:
+            for a in _amen_set(d):
+                amen_pref[a] = amen_pref.get(a, 0) + 1
+        top_amen = set(sorted(amen_pref, key=amen_pref.get, reverse=True)[:6])
+        pm2 = [d.get("price_m2_dev") for d in liked if d.get("price_m2_dev")]
+        pm2_avg = sum(pm2) / len(pm2) if pm2 else None
+        rec_pref = max((d.get("bedrooms_range") or [0, 0])[1] for d in liked)
+        scores = {}
+        for d in DEVELOPMENTS:
+            da = _amen_set(d)
+            amen_sim = len(da & top_amen) / max(len(top_amen), 1)
+            price_sim = 1.0
+            if pm2_avg and d.get("price_m2_dev"):
+                price_sim = max(0.0, 1 - abs(d["price_m2_dev"] - pm2_avg) / max(pm2_avg, 1))
+            rec_sim = 1.0 if (rec_pref and (d.get("bedrooms_range") or [0, 0])[1] >= rec_pref) else 0.6
+            scores[d.get("id")] = round((amen_sim * 0.5 + price_sim * 0.35 + rec_sim * 0.15) * 100)
+        return scores
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] taste_scores fail: {e}")
+        return {}
+
+
 @router.get("/api/buyer/parecidos")
 async def parecidos(request: Request, visitor_id: str, limit: int = 6):
     """E2 · perfil de GUSTO: de lo que el comprador LIKEÓ, infiere su gusto (amenidades, precio/m², recámaras,

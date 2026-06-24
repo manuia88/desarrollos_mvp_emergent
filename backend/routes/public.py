@@ -1427,6 +1427,7 @@ async def list_developments(
     offset: int = 0,          # paginación: índice de inicio (infinite scroll)
     subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
     forecast_delta_min: Optional[int] = Query(None, description="W5.3 P2B — % mínimo crecimiento 12m"),
+    visitor_id: Optional[str] = None,   # 'Para ti' (sort=taste): reordena por el gusto del visitante (sus likes)
 ):
     results = list(DEVELOPMENTS)
     if colonia:
@@ -1627,6 +1628,15 @@ async def list_developments(
         results.sort(key=lambda d: -d["price_from"])
     elif sort == "sqm_desc":
         results.sort(key=lambda d: -d["m2_range"][1])
+    elif sort == "taste" and visitor_id:
+        # 'Para ti' · lente de gusto: reordena por afinidad a lo que el visitante ha likeado (reusa el motor de parecidos).
+        try:
+            from routes.buyer_signals import taste_scores
+            _ts = await taste_scores(request.app.state.db, visitor_id)
+            if _ts:
+                results.sort(key=lambda d: -_ts.get(d.get("id"), 0))
+        except Exception:
+            pass
     # Enriquecimiento en batch (precio fresco + amenidades + foto real del dev) · cierra ciclo.
     # Paginación: corta la página [offset, offset+limit) DESPUÉS de filtrar y ordenar (infinite scroll).
     cards = await _enrich_listing(request.app.state.db, results[offset:offset + limit])
