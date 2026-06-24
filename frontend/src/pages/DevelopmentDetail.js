@@ -100,6 +100,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   // Default a 'precios': en un marketplace lo primero que el comprador quiere ver es la lista
   // de precios (unidades + m² + estado). Antes caía en 'descripcion' y la lista quedaba escondida.
   const [tab, setTab] = useState('precios');
+  const [finTab, setFinTab] = useState('rento');   // sub-tab de la sección "Tu dinero" (4 calculadoras unificadas)
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
@@ -255,7 +256,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     { k: 'localizacion', label: tc(t('dev.tab_loc')) },
     { k: 'tour', label: tc('Tour 360°') },
     { k: 'tour_3d', label: tc('Tour 3D') },
-    { k: 'hipoteca', label: tc('Hipoteca') },
+    // 'hipoteca' reubicada → sección "Tu dinero" (sub-tab "Con crédito"), arriba.
   ];
 
   return (
@@ -400,8 +401,27 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* Bloque 4 · ¿Es buena compra? — precio justo (AVM) + buen momento (ciclo) para el comprador */}
           <BuySignal devId={dev.id} />
 
-          {/* Bloque 4.2 · ¿Me conviene comprar? — rentar vs comprar + costo total a N años */}
-          <OwnershipCalculator devId={dev.id} />
+          {/* TU DINERO — las 4 herramientas financieras JUNTAS (rento vs compro · plan del dev · crédito · inversión).
+              Antes estaban dispersas por toda la ficha; ahora viven en una sección con sub-tabs (nada se eliminó) y
+              arriba, donde el comprador decide (Hormozi: el dinero primero). */}
+          <section data-testid="tu-dinero" style={{ marginTop: 24, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', borderRadius: 18, padding: 'clamp(18px,2.4vw,26px)' }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Tu dinero</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 16px' }}>¿Cómo te conviene comprarlo?</h2>
+            <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--card-border, var(--border))', marginBottom: 20, overflowX: 'auto', scrollSnapType: 'x proximity' }}>
+              {[['rento', '¿Rento o compro?'], ['plan', 'Plan del desarrollador'], ['credito', 'Con crédito'], ['inversion', 'Como inversión']].map(([k, l]) => {
+                const a = finTab === k;
+                return (
+                  <button key={k} data-testid={`fin-tab-${k}`} onClick={() => setFinTab(k)} style={{ position: 'relative', padding: '12px 14px', background: 'transparent', border: 'none', color: a ? 'var(--cream)' : 'var(--cream-3)', fontFamily: 'Outfit, sans-serif', fontWeight: a ? 800 : 600, fontSize: 13.5, letterSpacing: '-0.01em', cursor: 'pointer', whiteSpace: 'nowrap', scrollSnapAlign: 'start' }}>
+                    {l}{a && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1, height: 3, borderRadius: 3, background: 'var(--grad)' }} />}
+                  </button>
+                );
+              })}
+            </div>
+            {finTab === 'rento' && <OwnershipCalculator devId={dev.id} />}
+            {finTab === 'plan' && <PublicCotizador formasPago={dev.config?.formas_pago} basePrice={dev.price_from} fechaInicio={dev.config?.fecha_inicio} fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate} />}
+            {finTab === 'credito' && <MortgageCalculator variant="inline" propiedadId={dev.id} propiedadNombre={dev.name} precioInicial={dev.price_from || 0} />}
+            {finTab === 'inversion' && <InvestmentSimulator compact light prefilled={{ precio: dev.price_from, m2: dev.m2_from || 80, colonia: dev.zone_id || 'del-valle' }} />}
+          </section>
 
           {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
           <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
@@ -432,14 +452,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
           <DevConfigSections config={dev.config} />
-
-          {/* B2.2 — Cotizador público con las formas de pago del desarrollador */}
-          <PublicCotizador
-            formasPago={dev.config?.formas_pago}
-            basePrice={dev.price_from}
-            fechaInicio={dev.config?.fecha_inicio}
-            fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate}
-          />
+          {/* (Cotizador público reubicado → sección "Tu dinero" · pestaña "Plan del desarrollador", arriba) */}
 
           {/* B2.4 — Plusvalía pública: % desde lanzamiento + histórico embebido */}
           <PlusvaliaCard
@@ -513,14 +526,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   isAdvisor={isAdvisor}
                 />
               )}
-              {tab === 'hipoteca' && (
-                <MortgageCalculator
-                  variant="inline"
-                  propiedadId={dev.id}
-                  propiedadNombre={dev.name}
-                  precioInicial={dev.price_from || 0}
-                />
-              )}
+              {/* (Hipoteca reubicada → sección "Tu dinero" · sub-tab "Con crédito") */}
             </div>
 
             {/* W5.15 P2 — AVM Confidence Range para este desarrollo */}
@@ -528,30 +534,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
             </div>
 
-            {/* W4.14 — Investment Simulator embed (siempre visible debajo de tabs) */}
-            <div style={{ marginTop: 32 }}>
-              <div style={{
-                background: 'var(--surface-card)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 14, padding: '20px 20px',
-              }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
-                  {tc('Simulador de inversión')}
-                </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 18 }}>
-                  Calcula ROI, TIR y flujo de caja en 3 escenarios para este desarrollo
-                </div>
-                <InvestmentSimulator
-                  compact
-                  light
-                  prefilled={{
-                    precio: dev.price_from,
-                    m2: dev.m2_from || 80,
-                    colonia: dev.zone_id || 'del-valle',
-                  }}
-                />
-              </div>
-            </div>
+            {/* (Simulador de inversión reubicado → sección "Tu dinero" · sub-tab "Como inversión", arriba) */}
 
             <div>
               <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
