@@ -135,103 +135,165 @@ function buildStories(name, inv) {
 const PERFIL_FAM_QS = [
   { k: 'adultos', icon: '🧑', q: '¿Cuántos adultos vivirían aquí?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'ninos', icon: '🧒', q: '¿Cuántos niños?', opts: [['Ninguno', 0], ['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'edades', icon: '🎈', q: '¿Qué edad tienen (o tendrán) los niños?', opts: [['Bebés / preescolar', 'chicos'], ['Primaria', 'primaria'], ['Adolescentes', 'adolescentes'], ['Aún no tenemos', 'na']] },
   { k: 'pet', icon: '🐾', q: '¿Tienen mascota?', sub: 'Todos los desarrollos aceptan mascotas; esto solo nos ayuda a marcar los que tienen área para ellas.', opts: [['Sí', true], ['No', false]] },
   { k: 'oficina', icon: '💻', q: '¿Alguien trabaja desde casa?', opts: [['Sí', true], ['No', false]] },
+  { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad prefieren?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
+  { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento necesitan?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'prioridad', icon: '⭐', q: '¿Qué es lo más importante para ustedes?', opts: [['Escuelas cerca', 'escuelas'], ['Zona segura', 'seguridad'], ['Espacio para crecer', 'espacio'], ['Áreas verdes', 'verde']] },
-  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', opts: [['~$20,000', 20000], ['~$35,000', 35000], ['~$50,000', 50000], ['$70,000 o más', 70000]] },
-  { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienen ahorrado para empezar?', sub: 'El enganche — lo que dan de su bolsa al inicio.', opts: [['~$150,000', 150000], ['~$400,000', 400000], ['~$700,000', 700000], ['$1,000,000 o más', 1000000]] },
+  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', input: true, ph: 'Escribe el monto, ej. 45000', opts: [['$20,000', 20000], ['$35,000', 35000], ['$50,000', 50000], ['$70,000', 70000]] },
+  { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienen ahorrado para el enganche?', input: true, ph: 'Escribe el monto, ej. 400000', sub: 'El enganche — lo que dan de su bolsa al inicio.', opts: [['$150,000', 150000], ['$400,000', 400000], ['$700,000', 700000], ['$1,000,000', 1000000]] },
 ];
 const PRIOR_FAM = { escuelas: 'escuelas cerca', seguridad: 'una zona segura', espacio: 'espacio para crecer', verde: 'áreas verdes' };
+const TIPO_FAM = { depto: 'un departamento', casa: 'una casa', cualquiera: 'departamento o casa' };
+const EDAD_FAM = { chicos: 'en preescolar', primaria: 'en primaria', adolescentes: 'adolescentes', na: '' };
+// Puntaje 0-10 de qué tanto le sirve un desarrollo a la familia (recámaras 4 · presupuesto 3 · m² 2 · amenidades fam 1).
+function scoreFamDev(d, ctx) {
+  let s = 0, max = 0; const reasons = [], gaps = [];
+  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
+  max += 4;
+  if (maxBed >= ctx.rec) { s += 4; reasons.push(`${ctx.rec}+ recámaras`); }
+  else if (maxBed >= ctx.rec - 1) { s += 2.5; reasons.push(`hasta ${maxBed} recámaras`); gaps.push(`1 recámara menos de lo ideal`); }
+  else if (maxBed > 0) { s += 1; gaps.push(`llega a ${maxBed} recámaras`); }
+  if (ctx.precioMax > 0 && d.price_from) {
+    max += 3;
+    if (d.price_from <= ctx.precioMax) { s += 3; reasons.push('dentro de su presupuesto'); }
+    else if (d.price_from <= ctx.precioMax * 1.3) { s += 1.5; gaps.push('un poco arriba del presupuesto'); }
+    else { gaps.push('arriba del presupuesto'); }
+  }
+  const maxM2 = Array.isArray(d.m2_range) ? (d.m2_range[1] || 0) : 0;
+  max += 2;
+  if (maxM2 >= ctx.m2) { s += 2; reasons.push(`hasta ${maxM2} m²`); }
+  else if (maxM2 >= ctx.m2 * 0.8) { s += 1; }
+  const famAm = ['jardines', 'alberca', 'seguridad', 'area_pets', 'salon_eventos', 'gym', 'roof', 'pet'];
+  const nFam = Array.isArray(d.amenities) ? d.amenities.filter((a) => famAm.includes(a)).length : 0;
+  max += 1;
+  if (nFam >= 2) { s += 1; reasons.push('amenidades familiares'); }
+  const hasPet = Array.isArray(d.amenities) && d.amenities.some((a) => ['pet', 'area_pets', 'jardines'].includes(a));
+  if (ctx.pet && hasPet) reasons.push('área para mascotas');
+  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
+  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2), hasPet };
+}
 function PerfilFamilia({ name, devs, onCTA, onProfile }) {
   const [ans, setAns] = useState({});
+  const [draft, setDraft] = useState('');
   const sentRef = useRef(false);
   const step = PERFIL_FAM_QS.findIndex((q) => ans[q.k] === undefined);
   const done = step === -1;
+  const cur = done ? null : PERFIL_FAM_QS[step];
   const rec = Math.max(1, 1 + (Number(ans.ninos) || 0) + (ans.oficina ? 1 : 0));
   const m2 = 45 + rec * 22;
-  const petKeys = ['pet', 'area_pets', 'jardines'];
-  // Financiero (mismo motor que el cotizador): 30% del ingreso → mensualidad → préstamo a 20 años → + enganche = precio máximo.
+  // Financiero (mismo motor que el cotizador): 30% del ingreso → mensualidad → préstamo 20 años → + enganche = precio máx.
   const ing = Number(ans.ingreso) || 0;
   const pagoMax = Math.round(ing * 0.30);
   const ii = 0.1145 / 12;
   const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + ii, -240)) / ii) : 0;
-  const precioMax = prestamoMax + (Number(ans.ahorro) || 0);
-  // Desarrollos: por RECÁMARAS (la mascota NO excluye — todos aceptan; solo marca petzone). Ordena por precio.
-  const fits = done ? (Array.isArray(devs) ? devs : [])
-    .filter((d) => Array.isArray(d.bedrooms_range) && (d.bedrooms_range[1] || 0) >= rec)
-    .sort((a, b) => (a.price_from || 0) - (b.price_from || 0)) : [];
+  const enganche = Number(ans.ahorro) || 0;
+  const precioMax = prestamoMax + enganche;
+  // SIEMPRE 2 propuestas: rankea TODOS los desarrollos por score y toma el top-2 (aunque no sean 10/10). Nunca "no hay".
+  const ranked = done ? (Array.isArray(devs) ? devs : []).map((d) => ({ d, ...scoreFamDev(d, { rec, m2, precioMax, pet: ans.pet }) })).sort((a, b) => b.score - a.score) : [];
+  const propuestas = ranked.slice(0, 2);
   useEffect(() => {
     if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, m2, precio_max: precioMax, pago_max: pagoMax }); } catch (e) { /* noop */ } }
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
+  const commitInput = () => { const v = parseInt(String(draft).replace(/\D/g, ''), 10); if (v > 0) { setAns({ ...ans, [cur.k]: v }); setDraft(''); } };
+  const RowF = ({ op, label, val, strong }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: strong ? '12px 15px' : '9px 15px', borderRadius: 11, background: strong ? 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04))' : '#fff', border: strong ? '1.5px solid rgba(16,185,129,0.3)' : '1px solid rgba(16,18,28,0.07)' }}>
+      <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: strong ? 14 : 12.5, color: strong ? INK : '#4B4F66' }}>{op ? <span style={{ color: '#A2A6BC', fontWeight: 800, marginRight: 7, fontFamily: 'Outfit' }}>{op}</span> : null}{label}</span>
+      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: strong ? 'clamp(18px,2.6vw,24px)' : 15, color: strong ? '#10B981' : INK, whiteSpace: 'nowrap' }}>{val}</span>
+    </div>
+  );
   return (
     <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 860, margin: '0 auto', padding: '0 28px' }}>
+      <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Su lugar ideal</div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Cuéntanos de tu familia.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>7 preguntas rápidas y te decimos cuánto espacio buscar, <b style={{ color: INK }}>para qué les alcanza</b> y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b> — todo de una.</p>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>10 preguntas rápidas y al final te damos un <b style={{ color: INK }}>reporte completo</b>: cuánto espacio buscar, para qué les alcanza y <b style={{ color: INK }}>2 desarrollos de {name} para ustedes</b>.</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
+            <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
               {PERFIL_FAM_QS.map((q, i) => (<span key={q.k} style={{ flex: 1, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
             </div>
             <div key={step} className="zv2-pop">
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_FAM_QS.length}</div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{PERFIL_FAM_QS[step].icon}</span>{PERFIL_FAM_QS[step].q}</div>
-              {PERFIL_FAM_QS[step].sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{PERFIL_FAM_QS[step].sub}</div>}
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
+              {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
-                {PERFIL_FAM_QS[step].opts.map(([label, val]) => (
-                  <button key={label} type="button" onClick={() => setAns({ ...ans, [PERFIL_FAM_QS[step].k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                {cur.opts.map(([label, val]) => (
+                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
                 ))}
               </div>
-              {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_FAM_QS[step - 1].k]; setAns(c); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}
+              {cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
+                  <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
+                  <button type="button" onClick={commitInput} disabled={!Number(String(draft).replace(/\D/g, ''))} className="zv2-cta" style={{ padding: '13px 24px', borderRadius: 12, border: 'none', cursor: Number(String(draft).replace(/\D/g, '')) ? 'pointer' : 'not-allowed', background: Number(String(draft).replace(/\D/g, '')) ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#E3E3EF', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5 }}>Continuar →</button>
+                </div>
+              )}
+              {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_FAM_QS[step - 1].k]; setAns(c); setDraft(''); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}
             </div>
           </div>
         ) : (
           <div className="zv2-pop" style={{ marginTop: 24 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
-              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Lo ideal para ustedes</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{rec} recámara{rec > 1 ? 's' : ''}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>~{m2} m² o más{ans.prioridad ? ` · ${PRIOR_FAM[ans.prioridad]}` : ''}</div>
+            {/* REPORTE */}
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#4B4F66', lineHeight: 1.6, padding: '14px 18px', borderRadius: 13, background: '#F6F6FA', border: '1px solid rgba(16,18,28,0.06)' }}>
+              <b style={{ color: INK }}>Su perfil:</b> {ans.adultos} adulto{ans.adultos > 1 ? 's' : ''}{Number(ans.ninos) > 0 ? ` y ${ans.ninos} niño${ans.ninos > 1 ? 's' : ''}${ans.edades && EDAD_FAM[ans.edades] ? ` ${EDAD_FAM[ans.edades]}` : ''}` : ', sin hijos'}{ans.pet ? ', con mascota' : ''}. Buscan {TIPO_FAM[ans.tipo] || 'una propiedad'} con {ans.cajones || 1} lugar{(ans.cajones || 1) > 1 ? 'es' : ''} de estacionamiento, priorizando <b style={{ color: INK }}>{PRIOR_FAM[ans.prioridad] || 'su espacio'}</b>.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 16 }}>
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>📐 Su espacio</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,34px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 6 }}>{rec} recámara{rec > 1 ? 's' : ''}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>~{m2} m² o más{ans.pet ? ' · con lugar para la mascota' : ''}</div>
               </div>
-              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))', border: '1.5px solid rgba(16,185,129,0.28)' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#0E7A53' }}>Les alcanza hasta</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#10B981', letterSpacing: '-0.02em', marginTop: 3 }}>{precioMax > 0 ? m1(precioMax) : '—'}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>{pagoMax > 0 ? <>mensualidad ~${pagoMax.toLocaleString('es-MX')} · enganche {m1(Number(ans.ahorro) || 0)}</> : 'pon tu ingreso'}</div>
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>💵 Para qué les alcanza</div>
+                {pagoMax > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+                    <RowF label="Lo que entra al mes" val={`$${ing.toLocaleString('es-MX')}`} />
+                    <RowF op="×30%" label="Mensualidad sana" val={`$${pagoMax.toLocaleString('es-MX')}`} />
+                    <RowF op="→" label="El banco les presta (20 años)" val={m1(prestamoMax)} />
+                    <RowF op="+" label="Su enganche" val={m1(enganche)} />
+                    <RowF strong op="=" label="Precio máximo" val={m1(precioMax)} />
+                  </div>
+                ) : <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 10 }}>Pon tu ingreso para ver el desglose.</div>}
               </div>
             </div>
-            {ans.pet ? <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#0E7A53', marginTop: 12, fontWeight: 600 }}>🐾 Todos los desarrollos aceptan mascota — marcamos con un badge los que además tienen área para ellas.</div> : null}
-            <div style={{ marginTop: 20 }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} con ${rec}+ recámaras:` : `Por ahora ningún desarrollo en ${name} llega a ${rec} recámaras.`}</div>
-              {fits.length > 0 ? (
-                <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
-                  {fits.slice(0, 6).map((d) => {
-                    const hasPet = Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a));
-                    return (
-                      <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '15px 17px' }}>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, letterSpacing: '-0.01em' }}>{d.name}</div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 5 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}</div>
-                        {d.price_from ? <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#10B981', marginTop: 6 }}>desde {m1(d.price_from)}</div> : null}
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {rec}+ recámaras</span>
-                          {precioMax > 0 && d.price_from ? (d.price_from <= precioMax
-                            ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ en tu presupuesto</span>
-                            : <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#9A6B00', background: 'rgba(245,158,11,0.12)', padding: '3px 8px', borderRadius: 999 }}>arriba de tu presupuesto</span>) : null}
-                          {hasPet ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>🐾 área para mascotas</span> : null}
+            {ans.pet ? <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#0E7A53', marginTop: 12, fontWeight: 600 }}>🐾 Todos los desarrollos aceptan mascota — marcamos los que además tienen área para ellas.</div> : null}
+            {/* 2 PROPUESTAS (siempre) */}
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>🏡 2 opciones para ustedes en {name}</div>
+              {propuestas.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
+                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
+                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
+                      {reasons.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
+                        </div>
+                      )}
+                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Te avisamos en cuanto entre uno que les quede, o explora zonas con desarrollos más amplios.</p>
+                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones que encajen.</p>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
-              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero que me asesoren →</button>
-              <button type="button" onClick={() => { sentRef.current = false; setAns({}); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
+              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero que me asesoren con estas opciones →</button>
+              <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Recámaras y tamaños reales de los desarrollos en {name}.</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Recámaras, tamaños y precios reales de los desarrollos en {name}. Estimación financiera a tasa ~11.45%, 20 años.</div>
           </div>
         )}
       </div>
@@ -605,7 +667,7 @@ function classifyEscuela(nombre) {
 function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro, schoolLevels }) {
   const LG = (lugares && lugares.lugares) || {};
   const ALL = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🏥', 'hospital', 'Salud'], ['🛒', 'supermercado', 'Súper'], ['🚇', 'transporte', 'Transporte']]
-    .map(([ic, k, l]) => ({ ic, k, l, arr: (LG[k] || []).filter((p) => p && p.name) })).filter((c) => c.arr.length);
+    .map(([ic, k, l]) => ({ ic, k, l, arr: (LG[k] || []).filter((p) => p && p.name).filter((p, i, a) => a.findIndex((x) => x.name === p.name) === i) })).filter((c) => c.arr.length);
   const init = (defaultCat && ALL.some((c) => c.k === defaultCat)) ? defaultCat : (ALL[0] && ALL[0].k);
   const [sel, setSel] = useState(init);
   const [lvl, setLvl] = useState('todas');
