@@ -457,6 +457,26 @@ function PulsoZona({ name, busquedas, nDevs, precioDesde }) {
 
 // Mapa interactivo de lugares (maplibre-gl cargado LAZY). Muestra los pines de la categoría activa, popup con nombre+★+link.
 // Re-centra (fitBounds) al cambiar de categoría. Estilo CARTO Positron (gratis, sin token).
+// Foto de un lugar (bajo demanda · proxy backend resuelve la referencia → URL pública, cacheada). Solo el lugar elegido.
+function PlacePhoto({ refName, alt }) {
+  const [uri, setUri] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    let alive = true; setUri(null); setErr(false);
+    if (!refName) return undefined;
+    fetch(`${API}/api/zona/place-photo?ref=${encodeURIComponent(refName)}&w=600`)
+      .then((r) => r.json()).then((d) => { if (alive) { if (d && d.uri) setUri(d.uri); else setErr(true); } })
+      .catch(() => { if (alive) setErr(true); });
+    return () => { alive = false; };
+  }, [refName]);
+  if (!refName || err) return null;
+  return (
+    <div style={{ width: 'clamp(110px,28vw,150px)', height: 'clamp(90px,22vw,110px)', borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: '#EEE' }}>
+      {uri ? <img src={uri} alt={alt || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={() => setErr(true)} /> : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#EDEDF5,#E3E3EF)' }} />}
+    </div>
+  );
+}
+
 function LugaresMap({ places, icon, center, selected }) {
   const ref = useRef(null);
   const mapRef = useRef(null);
@@ -570,6 +590,21 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
             })}
           </div>
         )}
+        {(() => {
+          const sp = displayArr.find((p) => p.name === selName);
+          if (!sp) return null;
+          return (
+            <div key={sp.name} className="zv2-pop" style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 18, padding: 12, borderRadius: 16, background: '#fff', border: '1.5px solid rgba(99,102,241,0.3)', boxShadow: '0 12px 30px rgba(99,102,241,0.12)' }}>
+              <PlacePhoto refName={sp.photo} alt={sp.name} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(15px,2.2vw,19px)', color: INK, letterSpacing: '-0.01em' }}>{sp.name}</div>
+                {sp.rating ? <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#0E7A53', marginTop: 3 }}>★{sp.rating}{sp.reviews ? <span style={{ color: '#A2A6BC', fontWeight: 600 }}> · {sp.reviews > 999 ? `${Math.round(sp.reviews / 1000)}k` : sp.reviews} reseñas</span> : ''}</div> : null}
+                {sp.address ? <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 4, lineHeight: 1.4 }}>📍 {sp.address}</div> : null}
+              </div>
+              <button type="button" onClick={() => setSelName(null)} aria-label="cerrar" style={{ alignSelf: 'flex-start', width: 26, height: 26, borderRadius: 8, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#9499AE', cursor: 'pointer', fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, lineHeight: 1, flexShrink: 0 }}>×</button>
+            </div>
+          );
+        })()}
         <div className="zv2-explorer-grid" style={{ marginTop: 18 }}>
           <div key={active.k + lvl} className="zv2-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 'clamp(300px,42vw,420px)', overflowY: 'auto', paddingRight: 4 }}>
             {displayArr.slice(0, 12).map((p) => {

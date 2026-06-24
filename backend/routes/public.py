@@ -497,6 +497,18 @@ async def zona_lugares(colonia_id: str, request: Request):
         return {"ok": True, "lugares": {}}
 
 
+@router.get("/api/zona/place-photo")
+async def zona_place_photo(request: Request, ref: str, w: int = 640):
+    """Proxy de foto de un lugar (Place Photo · bajo demanda). Resuelve la referencia → URL pública estable, cacheada,
+    con tope mensual. NO expone la API key al cliente. Devuelve {uri} o {uri:null}. Fail-open."""
+    try:
+        from google_places_ingest import resolve_photo
+        uri = await resolve_photo(request.app.state.db, ref, w)
+        return {"ok": True, "uri": uri}
+    except Exception:
+        return {"ok": True, "uri": None}
+
+
 @router.get("/api/market/vehiculos")
 async def market_vehiculos(request: Request):
     """Tabla comparativa de vehículos de inversión + criterios (tasas junio 2026 · CETES vivo de Banxico vía cron semanal).

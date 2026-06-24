@@ -8,9 +8,10 @@ cada ~6-12 meses → cero costo recurrente. Fail-open: si no hay key, no hace na
 Requiere env GOOGLE_MAPS_API_KEY (la pone el founder). El endpoint /api/superadmin/google-places/ingest (token) corre un lote.
 """
 import os
+import re
 import httpx
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # nuestra categoría → tipo de Google Places (New). 8 categorías clave (las que mueven la narrativa).
 CATEGORIES: Dict[str, str] = {
@@ -20,7 +21,7 @@ CATEGORIES: Dict[str, str] = {
 MAX_PER_MONTH = 4500          # colchón bajo el free tier de 5,000/mes
 RADIUS_M = 1200.0             # radio alrededor del centro de la colonia
 REFRESH_DAYS = 200           # re-consultar una colonia ~cada 6-7 meses
-INGEST_VERSION = 2           # ⬆ sube al cambiar la lógica de ingesta (tipos/categorías/topN) → el cache viejo se re-ingesta lazy
+INGEST_VERSION = 3           # ⬆ sube al cambiar la lógica de ingesta (tipos/categorías/topN/campos) → el cache viejo se re-ingesta lazy. v3 = + dirección + ref de foto
 _URL = "https://places.googleapis.com/v1/places:searchNearby"
 
 
@@ -124,7 +125,9 @@ async def _nearby_places(client: httpx.AsyncClient, lat: float, lng: float, gtyp
         "includedPrimaryTypes": gtypes, "maxResultCount": TOP_N, "rankPreference": "POPULARITY",
         "locationRestriction": {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": RADIUS_M}},
     }
-    fm = "places.displayName,places.rating,places.userRatingCount,places.location,places.priceLevel,places.googleMapsUri"
+    # shortFormattedAddress + photos son campos Pro → GRATIS al mismo SKU Enterprise (rating ya nos sube a Enterprise).
+    fm = ("places.displayName,places.rating,places.userRatingCount,places.location,places.priceLevel,"
+          "places.googleMapsUri,places.shortFormattedAddress,places.photos")
     headers = {"Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": fm}
     r = await client.post(_URL, json=body, headers=headers, timeout=20)
     if r.status_code != 200:
@@ -134,8 +137,11 @@ async def _nearby_places(client: httpx.AsyncClient, lat: float, lng: float, gtyp
         nm = (p.get("displayName") or {}).get("text")
         if not nm:
             continue
+        photos = p.get("photos") or []
+        photo_name = (photos[0].get("name") if photos and isinstance(photos[0], dict) else None)  # ref para el proxy de foto (display = bajo demanda)
         out.append({"name": nm, "rating": p.get("rating"), "reviews": p.get("userRatingCount"),
-                    "price_level": p.get("priceLevel"), "loc": p.get("location"), "maps_uri": p.get("googleMapsUri")})
+                    "price_level": p.get("priceLevel"), "loc": p.get("location"), "maps_uri": p.get("googleMapsUri"),
+                    "address": p.get("shortFormattedAddress"), "photo": photo_name})
     return out
 
 
@@ -291,3 +297,40 @@ async def ingest_batch(db, max_requests: int = MAX_PER_MONTH) -> Dict[str, Any]:
     await db.google_quota.update_one({"month": month}, {"$set": {"month": month, "used": used + req_used}}, upsert=True)
     return {"ok": True, "ingested": ingested, "requests_used": req_used, "month_used": used + req_used,
             "free_tier_restante_aprox": max(0, 4900 - (used + req_used))}
+
+
+# ── FOTO de un lugar (Place Photo · bajo demanda) ────────────────────────────────────────────────────────────────
+# Resuelve una referencia de foto → URL pública estable (lh3.googleusercontent.com · sin key). Cacheada + tope mensual.
+# Solo se llama para el lugar que el cliente TOCA → costo acotado. La display no expone la API key (proxy server-side).
+_PHOTO_URL = "https://places.googleapis.com/v1/{name}/media"
+_PHOTO_CAP = 3000  # tope mensual de Place Photo (separado del free tier de searchNearby)
+
+async def resolve_photo(db, photo_name: str, w: int = 640) -> Optional[str]:
+    key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not key or not photo_name or not re.match(r"^places/[^/]+/photos/[^/]+$", photo_name):
+        return None
+    try:
+        c = await db.place_photo_cache.find_one({"ref": photo_name}, {"_id": 0, "uri": 1})
+        if c and c.get("uri"):
+            return c["uri"]
+    except Exception:
+        pass
+    try:
+        month = _month_tag()
+        q = await db.google_quota.find_one({"month": month}) or {}
+        if int(q.get("photos_used") or 0) >= _PHOTO_CAP:
+            return None
+        async with httpx.AsyncClient() as client:
+            r = await client.get(_PHOTO_URL.format(name=photo_name),
+                                 params={"maxWidthPx": max(120, min(int(w or 640), 1200)), "skipHttpRedirect": "true", "key": key}, timeout=20)
+        if r.status_code != 200:
+            return None
+        uri = (r.json() or {}).get("photoUri")
+        if not uri:
+            return None
+        await db.place_photo_cache.update_one({"ref": photo_name},
+            {"$set": {"ref": photo_name, "uri": uri, "ts": datetime.now(timezone.utc)}}, upsert=True)
+        await db.google_quota.update_one({"month": month}, {"$inc": {"photos_used": 1}}, upsert=True)
+        return uri
+    except Exception:
+        return None
