@@ -6,7 +6,7 @@ import { LightScope, PublicNav } from '../components/ui';
 import { sendBuyerSignal, fetchInteres, visitorId } from '../lib/buyerSignal';
 import { readMatchCriteria } from '../lib/unitMatch';
 import { tc } from '../lib/titleCase';
-import { fetchDevelopment, fetchDevelopmentAssets } from '../api/marketplace';
+import { fetchDevelopment, fetchDevelopmentAssets, fetchSimilarDevelopments } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import DescriptionTab from '../components/dev/DescriptionTab';
@@ -102,6 +102,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   // de precios (unidades + m² + estado). Antes caía en 'descripcion' y la lista quedaba escondida.
   const [tab, setTab] = useState('precios');
   const [finTab, setFinTab] = useState('rento');   // sub-tab de la sección "Tu dinero" (4 calculadoras unificadas)
+  const [similares, setSimilares] = useState([]);  // "¿qué más me gusta?" — desarrollos parecidos a este
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
@@ -123,6 +124,13 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     document.body.classList.add('public-light');
     return () => document.body.classList.remove('public-light');
   }, []);
+
+  // "¿Qué más me gusta?" — trae desarrollos parecidos (motor /similar, antes huérfano). Engancha: nunca "solo vi este".
+  useEffect(() => {
+    if (!dev?.id) return;
+    let alive = true;
+    fetchSimilarDevelopments(dev.id).then((r) => { if (alive) setSimilares(Array.isArray(r) ? r : (r?.similar || [])); }).catch(() => {});
+  }, [dev?.id]);
 
   // W5.x F7 — Behavioral tracker (escucha scroll/time/exit-intent · dispara modal vía CustomEvent)
   useBehavioralTracker({ enabled: !!dev?.id, pageType: 'development', entityId: dev?.id });
@@ -593,6 +601,28 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             </div>
           </div>
         </section>
+
+        {/* ¿QUÉ MÁS ME GUSTA? — desarrollos parecidos a este (motor /similar, antes huérfano). El comprador nunca se va con uno solo. */}
+        {similares.length > 0 && (
+          <section data-testid="parecidos" style={{ marginTop: 40 }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>¿Te gustó este?</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 18px' }}>Desarrollos parecidos</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 16 }}>
+              {similares.slice(0, 6).map((s) => (
+                <a key={s.id} href={`/desarrollo/${s.slug || s.id}`} style={{ textDecoration: 'none', borderRadius: 16, border: '1px solid var(--card-border, var(--border))', overflow: 'hidden', background: 'var(--surface-card)', display: 'block', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(var(--theme-rgb),0.14)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                  {(s.hero_photo || (s.photos && s.photos[0])) && <img src={s.hero_photo || s.photos[0]} alt={s.name} loading="lazy" style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block', background: '#EDEEF1' }} />}
+                  <div style={{ padding: '14px 16px' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.colonia}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: '3px 0 6px', lineHeight: 1.15 }}>{s.name}</div>
+                    {s.price_from_display && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: '#059669' }}>desde {s.price_from_display}</div>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <RegistrationModal
