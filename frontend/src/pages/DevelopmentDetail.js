@@ -104,6 +104,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [tab, setTab] = useState('precios');
   const [finTab, setFinTab] = useState('rento');   // sub-tab de la sección "Tu dinero" (4 calculadoras unificadas)
   const [similares, setSimilares] = useState([]);  // "¿qué más me gusta?" — desarrollos parecidos a este
+  const [showPrecio, setShowPrecio] = useState(false);  // detalle del veredicto de precio (BuySignal) colapsable
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
@@ -423,6 +424,20 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* Demanda viva de la zona — social proof honesto (radar de demanda). Solo aparece si hay búsquedas reales. */}
           <DemandaZonaCard colonia={dev.colonia_id || dev.colonia} coloniaNombre={dev.colonia} />
 
+          {/* Detalle del veredicto de precio — el "por qué" (escala obra-nueva, prima de estrenar = valor, catastral, momento).
+              Colapsable: el veredicto ya se ve en la corona; aquí el comprador profundiza sin repetir el badge. */}
+          <div style={{ marginTop: 14 }}>
+            <button onClick={() => setShowPrecio((s) => !s)} data-testid="toggle-precio" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 12,
+              border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', cursor: 'pointer',
+              fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: 'var(--cream)',
+            }}>
+              {showPrecio ? 'Ocultar el análisis de precio' : '¿Por qué este precio es justo? Ver el análisis'}
+              <span style={{ transform: showPrecio ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--theme)' }}>▾</span>
+            </button>
+            {showPrecio && <div style={{ marginTop: 14 }}><BuySignal devId={dev.id} /></div>}
+          </div>
+
           {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
           <section id="ie-scores" data-testid="dev-ie-scores" style={{
             marginTop: 28, padding: '22px 24px',
@@ -441,20 +456,17 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 </h2>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', maxWidth: 360, lineHeight: 1.45 }}>
-                12 indicadores cruzan inventario DMX, track record del developer y comparativa de mercado. <strong style={{ color: 'var(--cream)' }}>DMX no opina, mide.</strong>
+                Los indicadores que más mueven la aguja — cruzando inventario DMX, track record del developer y mercado. <strong style={{ color: 'var(--cream)' }}>DMX no opina, mide.</strong>
               </div>
             </div>
             <ZoneScoreStrip
               zoneId={dev.id}
               scope="proyecto"
-              limit={8}
+              limit={5}
               title=" "
               onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
             />
           </section>
-
-          {/* Bloque 4 · ¿Es buena compra? — precio justo (AVM) + buen momento (ciclo) para el comprador */}
-          <BuySignal devId={dev.id} />
 
           {/* TU DINERO — las 4 herramientas financieras JUNTAS (rento vs compro · plan del dev · crédito · inversión).
               Antes estaban dispersas por toda la ficha; ahora viven en una sección con sub-tabs (nada se eliminó) y
@@ -478,17 +490,21 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             {finTab === 'inversion' && <InvestmentSimulator compact light prefilled={{ precio: dev.price_from, m2: dev.m2_from || 80, colonia: dev.zone_id || 'del-valle' }} />}
           </section>
 
-          {/* Fase 3.4 · lente del comprador — por qué vale (inteligencia de mercado del cubo, pública) */}
-          <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
-
-          {/* Despierta IA apagada · pronóstico + probabilidad de la zona, justo donde el comprador decide.
-              Componentes ya existían (ZonePage), faltaban en la ficha. */}
-          {(dev.colonia_id || dev.colonia) && (
-            <section style={{ marginTop: 20, display: 'grid', gap: 16 }}>
-              <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} />
-              <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} />
-            </section>
-          )}
+          {/* ═══ ACTO 5 · ¿CUÁNTO VALE Y HACIA DÓNDE VA? — valuación + pronóstico + probabilidad + plusvalía JUNTOS
+              (antes dispersos por toda la ficha). Un solo header, una sola historia del valor. ═══ */}
+          <section data-testid="valuacion" style={{ marginTop: 30 }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)' }}>El valor</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 18px' }}>¿Cuánto vale y hacia dónde va?</h2>
+            <div style={{ display: 'grid', gap: 16 }}>
+              <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
+              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} />}
+              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} />}
+              <PlusvaliaCard
+                plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
+                priceHistory={dev.price_history}
+              />
+            </div>
+          </section>
 
           {/* Narrativa AI — N5 (Phase C2) */}
           <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>
@@ -507,13 +523,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
           <DevConfigSections config={dev.config} />
-          {/* (Cotizador público reubicado → sección "Tu dinero" · pestaña "Plan del desarrollador", arriba) */}
-
-          {/* B2.4 — Plusvalía pública: % desde lanzamiento + histórico embebido */}
-          <PlusvaliaCard
-            plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
-            priceHistory={dev.price_history}
-          />
+          {/* (Cotizador público → "Tu dinero" · plan del dev; Plusvalía → Acto 5 "¿Cuánto vale?" — reubicados arriba) */}
 
           {/* Layout */}
           <div className="dev-grid" style={{
