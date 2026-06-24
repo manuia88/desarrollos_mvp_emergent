@@ -134,11 +134,28 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
   // Mismo vocabulario que el dev tagea → el filtro encuentra lo que existe (sin slugs huérfanos).
   const AMENITIES = ['gym', 'seguridad', 'pet', 'roof', 'cowork', 'alberca', 'salon_eventos', 'bicicletas', 'spa', 'concierge', 'business_center', 'jardines', 'estacionamiento', 'sky_lounge', 'cava', 'area_pets'];
   const AMEN_LABEL = { gym: 'Gimnasio', seguridad: 'Seguridad 24/7', pet: 'Pet friendly', roof: 'Roof garden', cowork: 'Coworking', alberca: 'Alberca', salon_eventos: 'Salón de eventos', bicicletas: 'Biciestacionamiento', spa: 'Spa', concierge: 'Concierge', business_center: 'Business center', jardines: 'Jardines', estacionamiento: 'Estacionamiento', sky_lounge: 'Sky lounge', cava: 'Cava', area_pets: 'Área para mascotas' };
-  // Ubicación buscable sobre TODAS las colonias reales.
-  const locSug = locQuery.trim().length >= 2
-    ? (colonias || []).filter(c => (c.name || '').toLowerCase().includes(locQuery.toLowerCase()) && !(filters.colonia || []).includes(c.id)).slice(0, 6)
-    : [];
-  const locName = (id) => (colonias || []).find(c => c.id === id)?.name || id;
+  // Ubicación buscable sobre TODO el catálogo (~1,811 colonias del backend, no solo las 16 curadas). El typeahead pega a
+  // /api/colonias-search (debounced) → el usuario encuentra y entra a CUALQUIER colonia; su ficha + lugares se autollenan.
+  const [locSug, setLocSug] = useState([]);
+  const [locNames, setLocNames] = useState({});   // id→name acumulado (chips de colonias fuera de las 16)
+  useEffect(() => {
+    const qq = locQuery.trim();
+    if (qq.length < 2) { setLocSug([]); return undefined; }
+    let alive = true;
+    const tid = setTimeout(() => {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonias-search?q=${encodeURIComponent(qq)}&limit=8`)
+        .then(r => r.json())
+        .then(list => {
+          if (!alive) return;
+          const sel = filters.colonia || [];
+          const res = (Array.isArray(list) ? list : []).filter(c => !sel.includes(c.id));
+          setLocSug(res);
+          setLocNames(prev => { const m = { ...prev }; res.forEach(c => { m[c.id] = c.name; }); return m; });
+        }).catch(() => {});
+    }, 220);
+    return () => { alive = false; clearTimeout(tid); };
+  }, [locQuery, filters.colonia]);
+  const locName = (id) => locNames[id] || (colonias || []).find(c => c.id === id)?.name || id;
 
   const onAISubmit = (e) => {
     e.preventDefault();

@@ -2067,6 +2067,42 @@ async def _load_colonia_names(db):
     return _COLONIA_NAMES_CACHE["data"]
 
 
+_COLONIA_SEARCH_CACHE = {"data": None}
+
+
+def _fold_txt(s):
+    import unicodedata as _ud
+    return _ud.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode("ascii").lower()
+
+
+@router.get("/api/colonias-search")
+async def colonias_search(request: Request, q: str = "", limit: int = 20):
+    """Typeahead sobre TODO el catálogo (db.colonias · ~1,811 colonias con scores), no solo las 16 curadas. Así el usuario
+    descubre y entra a CUALQUIER colonia (la ficha /zona/:id + lugares se autollenan con lazy-ingest). Acento/case-insensible.
+    Las 16 curadas (con ficha rica) se priorizan. Devuelve lo mínimo para el dropdown (id, name, alcaldía, calidad, scores)."""
+    db = request.app.state.db
+    if _COLONIA_SEARCH_CACHE["data"] is None:
+        try:
+            cols = await db.colonias.find({}, {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "scores": 1, "calidad": 1}).to_list(5000)
+            _COLONIA_SEARCH_CACHE["data"] = [c for c in cols if c.get("id") and c.get("name")]
+        except Exception:
+            _COLONIA_SEARCH_CACHE["data"] = []
+    data = _COLONIA_SEARCH_CACHE["data"] or []
+    seed_ids = {c["id"] for c in SEED_COLONIAS}
+    lim = max(1, min(int(limit or 20), 40))
+    qf = _fold_txt(q).strip()
+    if not qf:
+        feat = [c for c in data if c.get("id") in seed_ids]
+        res = (feat or data)[:lim]
+    else:
+        hits = [c for c in data if qf in _fold_txt(c.get("name"))]
+        hits.sort(key=lambda c: (not _fold_txt(c.get("name")).startswith(qf), c.get("id") not in seed_ids, -(c.get("calidad") or 0)))
+        res = hits[:lim]
+    return [{"id": c["id"], "name": c["name"], "alcaldia": c.get("alcaldia"),
+             "scores": c.get("scores"), "calidad": c.get("calidad"),
+             "featured": c.get("id") in seed_ids} for c in res]
+
+
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
