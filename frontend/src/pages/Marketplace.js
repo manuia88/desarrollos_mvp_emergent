@@ -739,6 +739,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {/* Cero callejones: convertir el "no hay" en una relación → te aviso cuando entre inventario que encaje (casamentera horaria). */}
+                          <button data-testid="empty-save-alert" onClick={() => setSaveSearchOpen(true)} style={{ padding: '11px 22px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#C026D3)', color: '#fff', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7 }}>🔔 Te aviso cuando llegue algo así</button>
                           <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setAiCrossRelax(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
@@ -860,7 +862,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <SaveSearchModal
         open={saveSearchOpen}
         onClose={() => setSaveSearchOpen(false)}
-        filters={filters}
+        filters={{ ...filters, ...(coloniaFilter ? { colonia: coloniaFilter } : {}) }}
         aiFilters={aiFilters}
       />
 
