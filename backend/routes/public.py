@@ -2127,13 +2127,6 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
                or await db.colonias.find_one({"name": {"$regex": "^" + _rgx.escape(q), "$options": "i"}}, {"_id": 0}))
     cid = (col or {}).get("id") or q
     nombre = (col or {}).get("name") or q
-    scores = (col or {}).get("scores_reales") or (col or {}).get("scores") or {}
-    if not scores and nombre:   # colonia seed (id corto) sin scores → toma los del catálogo por nombre (choque de 2 sistemas de id)
-        try:
-            _alt = await db.colonias.find_one({"name": {"$regex": "^" + _rgx.escape(nombre), "$options": "i"}, "scores_reales": {"$exists": True}}, {"_id": 0, "scores_reales": 1})
-            scores = (_alt or {}).get("scores_reales") or {}
-        except Exception:
-            pass
     valor_m2 = None
     try:
         _v = await db.colonia_catastro_byid.find_one({"colonia_id": cid}, {"_id": 0, "valor_suelo_m2": 1})
@@ -2158,21 +2151,24 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
         demanda = await db.marketplace_searches.count_documents(base)
     except Exception:
         demanda = 0
-    pres = None
+    pres = rec = None
     try:
-        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "p": {"$avg": "$precio_max"}}}]).to_list(1)
-        if _a and _a[0].get("p"):
-            pres = round(_a[0]["p"])
+        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "p": {"$avg": "$precio_max"}, "r": {"$avg": "$recamaras_min"}}}]).to_list(1)
+        if _a:
+            if _a[0].get("p"):
+                pres = round(_a[0]["p"])
+            if _a[0].get("r"):
+                rec = round(_a[0]["r"])
     except Exception:
         pass
-    oferta = [d for d in DEVELOPMENTS if d.get("colonia_id") == cid]
+    oferta = [d for d in DEVELOPMENTS if d.get("colonia_id") in _ids]
     if rol == "asesor":
         visible = [
-            {"k": "Personas buscando en tu zona (30 días)", "v": demanda, "fmt": "int"},
+            {"k": "Compradores buscando aquí (30 días)", "v": demanda, "fmt": "int"},
             {"k": "Presupuesto promedio que buscan", "v": pres, "fmt": "money"},
-            {"k": "Índice de seguridad de la zona", "v": scores.get("seguridad"), "fmt": "score"},
+            {"k": "Recámaras que más buscan", "v": rec, "fmt": "rec"},
         ]
-        locked = ["Los leads listos para contactar en tu zona", "Qué recámaras y amenidades piden", "A qué zonas se va la demanda que no encuentra", "El reporte completo (precios, plusvalía, lugares cerca)"]
+        locked = ["Los leads listos para contactar en tu zona", "Qué amenidades piden (y la zona no tiene)", "A qué zonas se va la demanda que no encuentra", "El reporte completo (precios, plusvalía, lugares cerca)"]
     else:
         visible = [
             {"k": "Personas buscando aquí (30 días)", "v": demanda, "fmt": "int"},
@@ -2182,9 +2178,10 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
         locked = ["A dónde se va la demanda que no encuentra aquí", "El esquema de pago que más piden (crédito vs preventa)", "Cuántos quieren tu zona pero no les alcanza (la brecha)", "Qué recámaras y amenidades piden y no hay", "El precio/m² de tus competidores directos"]
     return {
         "ok": True, "colonia": nombre, "colonia_id": cid,
-        "tiene_senal": demanda > 0 or bool(scores),
+        "tiene_senal": demanda > 0,
+        # Solo DATOS CONCRETOS y CONFIABLES (búsquedas reales) — sin índices "X/100" que no dicen nada ni datos ruidosos.
         "visible": visible,
-        "indices": {"plusvalia": scores.get("plusvalia"), "vida": scores.get("vida"), "seguridad": scores.get("seguridad"), "valor_suelo_m2": valor_m2},
+        "valor_suelo_m2": valor_m2,   # catastral real (puede faltar) → bonus honesto, claramente etiquetado en la UI
         "locked": locked, "locked_count": len(locked),
         "nota": ("Tu zona aún no tiene búsquedas registradas — regístrate y te avisamos en cuanto empiecen." if demanda == 0
                  else "Esto es solo una muestra. El reporte completo de tu zona se desbloquea gratis al registrarte."),

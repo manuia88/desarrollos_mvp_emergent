@@ -12,7 +12,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const fmtVal = (v, fmt) => {
   if (v === null || v === undefined || v === '') return '—';
   if (fmt === 'money') return `$${Number(v).toLocaleString('es-MX')}`;
-  if (fmt === 'score') return `${v}/100`;
+  if (fmt === 'rec') return `${v} rec.`;
   return Number(v).toLocaleString('es-MX');
 };
 
@@ -122,13 +122,10 @@ export default function ZonaPulsoWidget({ rol = 'dev' }) {
               </div>
             ))}
           </div>
-          {/* índices reales de la colonia */}
-          {pulso.indices && (pulso.indices.plusvalia != null || pulso.indices.valor_suelo_m2 != null) && (
+          {/* dato concreto extra (solo si existe) — valor catastral del suelo, claramente etiquetado */}
+          {pulso.valor_suelo_m2 != null && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              {pulso.indices.plusvalia != null && <span style={chip}>Plusvalía {pulso.indices.plusvalia}/100</span>}
-              {pulso.indices.seguridad != null && <span style={chip}>Seguridad {pulso.indices.seguridad}/100</span>}
-              {pulso.indices.vida != null && <span style={chip}>Calidad de vida {pulso.indices.vida}/100</span>}
-              {pulso.indices.valor_suelo_m2 != null && <span style={chip}>Suelo ${Number(pulso.indices.valor_suelo_m2).toLocaleString('es-MX')}/m²</span>}
+              <span style={chip}>🏷️ Valor catastral del suelo: <b style={{ color: 'var(--cream)' }}>${Number(pulso.valor_suelo_m2).toLocaleString('es-MX')}/m²</b></span>
             </div>
           )}
 
