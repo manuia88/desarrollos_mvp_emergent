@@ -88,6 +88,9 @@
 .zv2-explorer-grid { display: grid; grid-template-columns: minmax(0,0.82fr) minmax(0,1.18fr); gap: 18px; align-items: start; }
 @media (max-width: 760px) { .zv2-explorer-grid { grid-template-columns: 1fr; } }
 .zv2-map .maplibregl-popup-content { padding: 8px 12px; border-radius: 10px; box-shadow: 0 10px 28px rgba(16,18,28,.22); }
+/* Switcher de perfil en la barra sticky: scroll horizontal sin barra visible */
+.zv2-pillscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.zv2-pillscroll::-webkit-scrollbar { display: none; }
 
 /* Scope de tema CLARO solo-variables (para portales/drawers que viven fuera de
  * `.portal-asesor` vía createPortal). NO toca position/isolation/::before/`> *`,

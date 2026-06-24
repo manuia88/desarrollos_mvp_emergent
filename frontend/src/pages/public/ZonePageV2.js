@@ -980,7 +980,18 @@ export default function ZonePageV2() {
                 );
               })}
             </div>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: '#9499AE' }}>{ver === 'zona' ? '— la historia de ' : '— en venta en '}{name}</span>
+            {ver === 'zona' && !descubrimiento && S ? (
+              <div className="zv2-pillscroll" style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, minWidth: 0, padding: '2px 0' }}>
+                {PROFILES.map((p) => {
+                  const on = p.k === profile;
+                  return (
+                    <button key={p.k} type="button" onClick={() => pickProfile(p.k)} className="zv2-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9999, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.14)', background: on ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>{p.e} {p.label}</button>
+                  );
+                })}
+              </div>
+            ) : (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: '#9499AE' }}>{ver === 'zona' ? '— la historia de ' : '— en venta en '}{name}</span>
+            )}
             {ver === 'zona' && profile === 'invertir' && tieneMercado && (
               <button type="button" onClick={() => { const el = document.getElementById('calculadora'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="zv2-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 9999, border: '1.5px solid rgba(99,102,241,0.35)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>🧮 Calcular mi inversión</button>
             )}
