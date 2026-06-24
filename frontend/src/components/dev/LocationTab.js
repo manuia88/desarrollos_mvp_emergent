@@ -16,27 +16,20 @@ const POI_CATEGORIES = [
   { k: 'supermarkets', label: 'Super', color: '#A78BFA' },
 ];
 
-// Deterministic POI offsets around dev center (Math.random-free for stability)
-function poiFor(center, cat) {
-  const [lng, lat] = center;
-  const count = 5;
-  const rotations = { schools: 0, hospitals: 72, metro: 144, parks: 216, supermarkets: 288 };
-  const rot = rotations[cat.k] || 0;
-  const r = 0.005;
-  return Array.from({ length: count }, (_, i) => {
-    const angle = (rot + i * 36) * Math.PI / 180;
-    return { lng: lng + Math.cos(angle) * r * (0.6 + (i % 3) * 0.25), lat: lat + Math.sin(angle) * r * (0.6 + (i % 3) * 0.25) };
-  });
-}
-
-// Deterministic landmark times (stable per dev)
-function landmarkTimesFor(id) {
-  const h = [...id].reduce((s, c) => s + c.charCodeAt(0), 0);
-  return [
-    { name: 'Reforma', walk: 20 + (h % 18), drive: 8 + (h % 10) },
-    { name: 'Aeropuerto', walk: null, drive: 18 + (h % 20) },
-    { name: 'Centro Histórico', walk: 28 + (h % 22), drive: 12 + (h % 12) },
+// Distancia REAL (línea recta, haversine) del desarrollo a hitos de CDMX — antes eran tiempos inventados (hash del id).
+function landmarkDistancesFor(center) {
+  const [lng, lat] = center || [-99.17, 19.42];
+  const LM = [
+    { name: 'Paseo de la Reforma', lng: -99.1677, lat: 19.4270 },
+    { name: 'Centro Histórico', lng: -99.1332, lat: 19.4326 },
+    { name: 'Aeropuerto (AICM)', lng: -99.0721, lat: 19.4361 },
   ];
+  const km = (b) => {
+    const R = 6371, dLat = (b.lat - lat) * Math.PI / 180, dLng = (b.lng - lng) * Math.PI / 180;
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  };
+  return LM.map((l) => ({ name: l.name, km: km(l) }));
 }
 
 export default function LocationTab({ dev, user, onGateOpen }) {
@@ -44,13 +37,23 @@ export default function LocationTab({ dev, user, onGateOpen }) {
   const container = useRef(null);
   const mapRef = useRef(null);
   const [active, setActive] = useState({ schools: true, metro: true, parks: true, hospitals: false, supermarkets: false });
+  // Lugares REALES de la colonia (Google Places) — antes se inventaban posiciones (poiFor) y tiempos (hash). Ya no.
+  const [lugares, setLugares] = useState({});
+  useEffect(() => {
+    const cid = dev.colonia_id || dev.colonia;
+    if (!cid) return;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/zona/${encodeURIComponent(cid)}/lugares`)
+      .then((r) => r.json()).then((d) => setLugares(d?.lugares || {})).catch(() => {});
+  }, [dev.colonia_id, dev.colonia]);
+  const CAT_MAP = { schools: 'escuela', hospitals: 'hospital', metro: 'transporte', parks: 'parque', supermarkets: 'supermercado' };
+  const realPois = (catK) => (lugares[CAT_MAP[catK]] || []).filter((p) => p.loc && p.loc.latitude && p.loc.longitude);
 
   useEffect(() => {
     if (!TOKEN || !container.current || mapRef.current || !dev.center) return;
     mapboxgl.accessToken = TOKEN;
     const map = new mapboxgl.Map({
       container: container.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/light-v11',
       center: dev.center,
       zoom: 14,
     });
@@ -78,15 +81,15 @@ export default function LocationTab({ dev, user, onGateOpen }) {
         const srcId = `poi-${cat.k}`;
         const lyrId = `poi-layer-${cat.k}`;
         const visible = active[cat.k];
+        const pts = realPois(cat.k);   // lugares REALES de Google (con coordenadas), no posiciones inventadas
         if (!m.getSource(srcId)) {
-          if (!visible) return;
-          const points = poiFor(dev.center, cat);
+          if (!visible || !pts.length) return;
           m.addSource(srcId, {
             type: 'geojson',
             data: {
               type: 'FeatureCollection',
-              features: points.map(p => ({
-                type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { cat: cat.k },
+              features: pts.map(p => ({
+                type: 'Feature', geometry: { type: 'Point', coordinates: [p.loc.longitude, p.loc.latitude] }, properties: { cat: cat.k, name: p.name || '' },
               })),
             },
           });
@@ -107,9 +110,9 @@ export default function LocationTab({ dev, user, onGateOpen }) {
 
     if (m.isStyleLoaded()) applyLayer();
     else m.once('load', applyLayer);
-  }, [active, dev.center]);
+  }, [active, dev.center, lugares]);
 
-  const landmarks = landmarkTimesFor(dev.id);
+  const landmarks = landmarkDistancesFor(dev.center);
 
   return (
     <div data-testid="location-tab" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -139,7 +142,7 @@ export default function LocationTab({ dev, user, onGateOpen }) {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
               <span style={{ width: 7, height: 7, borderRadius: 9999, background: cat.color }} />
-              {cat.label}
+              {cat.label}{realPois(cat.k).length ? <span style={{ opacity: 0.7, fontWeight: 700 }}> · {realPois(cat.k).length}</span> : null}
             </button>
           );
         })}
@@ -166,9 +169,8 @@ export default function LocationTab({ dev, user, onGateOpen }) {
                 border: '1px solid var(--border)', borderRadius: 12,
               }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 6 }}>{l.name}</div>
-                <div style={{ display: 'flex', gap: 12, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-                  {l.walk !== null && <span><Route size={10} color="var(--cream-3)" /> {l.walk} min a pie</span>}
-                  <span><Route size={10} color="var(--cream-3)" /> {l.drive} min en auto</span>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                  <Route size={11} color="var(--cream-3)" /> a <b style={{ color: 'var(--cream)' }}>{l.km < 1 ? `${Math.round(l.km * 1000)} m` : `${l.km.toFixed(1)} km`}</b> en línea recta
                 </div>
               </div>
             ))}

@@ -52,12 +52,12 @@ export default function PhotoGallery({ dev }) {
             data-testid={`media-tab-${mt.k}`}
             onClick={() => setMediaTab(mt.k)}
             style={{
-              padding: '6px 12px', borderRadius: 9999,
-              background: mediaTab === mt.k ? 'var(--grad)' : 'transparent',
-              border: `1px solid ${mediaTab === mt.k ? 'transparent' : 'var(--border)'}`,
-              color: mediaTab === mt.k ? '#fff' : 'var(--cream-3)',
-              fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11.5,
-              cursor: 'pointer',
+              padding: '7px 14px', borderRadius: 9999,
+              background: mediaTab === mt.k ? 'rgba(var(--theme-rgb),0.12)' : 'transparent',
+              border: `1px solid ${mediaTab === mt.k ? 'rgba(var(--theme-rgb),0.32)' : 'var(--card-border, var(--border))'}`,
+              color: mediaTab === mt.k ? 'var(--theme)' : 'var(--cream-3)',
+              fontFamily: 'DM Sans', fontWeight: mediaTab === mt.k ? 700 : 600, fontSize: 12,
+              cursor: 'pointer', transition: 'all 0.15s',
             }}>
             {mt.label}
           </button>
