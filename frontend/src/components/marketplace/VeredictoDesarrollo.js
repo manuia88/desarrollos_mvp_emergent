@@ -14,9 +14,9 @@ const pm = (n) => n == null ? '—' : `$${Math.round(n / 1000)}k`;
 function Stat({ label, value, sub, color }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: color || 'var(--cream)', lineHeight: 1.05 }}>{value}</div>
-      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, marginBottom: 5 }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(24px,2.6vw,32px)', color: color || 'var(--cream)', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -55,8 +55,8 @@ export default function VeredictoDesarrollo({ devId, onContact, onAskAtlax }) {
 
       {/* Tira de stats que sostienen el veredicto (fusión de motores) */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(132px,1fr))', gap: 18,
-        marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 20,
+        marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)',
       }}>
         {pc && pc.este_pm2 != null && (
           <Stat label="Precio / m²" value={`${pm(pc.este_pm2)}/m²`}
