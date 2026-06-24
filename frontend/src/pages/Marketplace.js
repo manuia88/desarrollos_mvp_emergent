@@ -222,7 +222,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // Campos OBLIGATORIOS para buscar (regla founder): ZONA + PRESUPUESTO + RECÁMARAS + METRAJE (m²). Cualquiera puede
   // ser multi/rango. Sin los 4 → no hay búsqueda; la alerta dice EXACTAMENTE cuáles faltan (filtros más asertivos).
   const hasZona = !!(coloniaFilter || (filters.colonia || []).length || (aiFilters && aiFilters.colonia));
-  const hasPrecio = !!(filters.min_price || filters.max_price || (aiFilters && (aiFilters.min_price || aiFilters.max_price)));
+  // Presupuesto = precio O mensualidad O enganche O apartado (cualquier forma de decir "cuánto puedo pagar" cuenta).
+  const _budgetKeys = ['min_price', 'max_price', 'mensualidad_max', 'enganche_max', 'apartado_max'];
+  const hasPrecio = _budgetKeys.some((k) => filters[k] || (aiFilters && aiFilters[k]));
   const hasRecamaras = !!(filters.beds || (aiFilters && aiFilters.beds));
   const hasMetraje = !!(filters.min_sqm || filters.max_sqm || (aiFilters && (aiFilters.min_sqm || aiFilters.max_sqm)));
   const requiredFields = [
@@ -474,10 +476,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
                     {aiCrossZone.map((c) => (
                       <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.colonia || c.colonia_id}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.colonia || c.colonia_id}</div>
+                          {typeof c.match === 'number' ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: c.match >= 8 ? '#34D399' : '#A5B4FC', flexShrink: 0 }}>{c.match}<span style={{ fontSize: 9, opacity: 0.7 }}>/10</span></span> : null}
+                        </div>
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)', marginTop: 2 }}>{c.name}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>{Array.isArray(c.bedrooms_range) ? `${c.bedrooms_range[0]}–${c.bedrooms_range[1]} rec` : ''}{Array.isArray(c.m2_range) ? ` · ${c.m2_range[0]}–${c.m2_range[1]} m²` : ''}</div>
                         {c.price_from ? <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: '#34D399', marginTop: 4 }}>desde {c.price_from_display || `$${Number(c.price_from).toLocaleString('es-MX')}`}</div> : null}
+                        {Array.isArray(c.falta) && c.falta.length > 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(245,200,120,0.85)', marginTop: 5 }}>le falta: {c.falta.join(' · ')}</div> : null}
                       </Link>
                     ))}
                   </div>

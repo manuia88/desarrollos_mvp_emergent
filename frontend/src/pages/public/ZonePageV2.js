@@ -643,7 +643,7 @@ const PERFIL_VIV_QS = [
   { k: 'amenidad', icon: '✨', q: '¿Qué amenidad NO puede faltar?', opts: [['Roof garden', 'roof'], ['Spa', 'spa'], ['Gimnasio', 'gym'], ['Concierge', 'concierge'], ['Alberca', 'alberca']] },
   { k: 'estilo', icon: '🍸', q: '¿Qué estilo de vida buscas?', opts: [['Gastronómico', 'gastro'], ['Cultural', 'cultural'], ['Social / nocturno', 'social'], ['Tranquilo', 'tranquilo']] },
   { k: 'caminar', icon: '🚶', q: '¿Qué tanto te importa tener todo a pie?', opts: [['Muchísimo', 'mucho'], ['Algo', 'algo'], ['Me da igual', 'poco']] },
-  { k: 'presupuesto', icon: '💎', q: '¿Cuál es tu presupuesto?', input: true, ph: 'Escribe el monto, ej. 8000000', sub: 'Opcional — nos ayuda a afinar las opciones a tu rango.', opts: [['$5M', 5000000], ['$8M', 8000000], ['$12M', 12000000], ['$20M+', 20000000]] },
+  { k: 'presupuesto', icon: '💎', q: '¿Cuál es tu presupuesto?', input: true, ph: 'Escribe el monto, ej. 8000000', sub: 'Nos ayuda a afinar las opciones a tu rango.', opts: [['$5M', 5000000], ['$8M', 8000000], ['$12M', 12000000], ['$20M+', 20000000]] },
 ];
 const ESTILO_VIV = { gastro: 'gastronómico', cultural: 'cultural', social: 'social y nocturno', tranquilo: 'tranquilo' };
 const TIPO_VIV = { depto: 'un departamento', penthouse: 'un penthouse', casa: 'una casa', cualquiera: 'lo mejor disponible' };
@@ -689,7 +689,6 @@ function WizardVivir({ name, devs, allDevs, zoneId, lugares, onCTA, onProfile })
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                   <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
                   <button type="button" onClick={commitInput} disabled={!Number(String(draft).replace(/\D/g, ''))} className="zv2-cta" style={{ padding: '13px 24px', borderRadius: 12, border: 'none', cursor: Number(String(draft).replace(/\D/g, '')) ? 'pointer' : 'not-allowed', background: Number(String(draft).replace(/\D/g, '')) ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#E3E3EF', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5 }}>Continuar →</button>
-                  <button type="button" onClick={() => setAns({ ...ans, [cur.k]: 0 })} style={{ background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>prefiero no decir</button>
                 </div>
               )}
               {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_VIV_QS[step - 1].k]; setAns(c); setDraft(''); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}

@@ -2380,6 +2380,11 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _col = filters.get("colonia")
         _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
         _maxp = filters.get("max_price")
+        # Presupuesto en MENSUALIDAD o ENGANCHE → precio implícito (mensualidad: 80% financiado, 20a ~11.45% · enganche: 20%).
+        if not _maxp and filters.get("mensualidad_max"):
+            _maxp = int(filters["mensualidad_max"] / 0.008504)
+        if not _maxp and filters.get("enganche_max"):
+            _maxp = int(filters["enganche_max"] / 0.20)
         _beds = filters.get("beds")
         _baths = filters.get("baths")
         _park = filters.get("parking")
@@ -2397,17 +2402,43 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             if _tipo and d.get("property_type") and d.get("property_type") != _tipo:
                 return False
             return True
+        # Score 0-10 (presupuesto+rec ya son duros) por amenidades + features pedidos → ranking + qué FALTA (no binario).
+        _amen_req = set(filters.get("amenity") or [])
+        _feat_req = set(filters.get("unit_feature") or [])
+        _AMN = {"roof": "roof garden", "spa": "spa", "gym": "gimnasio", "concierge": "concierge", "alberca": "alberca", "seguridad": "seguridad", "asadores": "asadores", "sky_lounge": "sky lounge", "cava": "cava"}
+        _FTN = {"balcon": "balcón", "terraza": "terraza", "bodega": "bodega", "roof_garden": "roof garden", "estacionamiento_independiente": "estac. independiente"}
+
+        def _score_cross(d):
+            sc, mx, falta = 7, 7, []  # base 7 (ya cumple presupuesto+rec+baños+estac por el filtro duro)
+            if _amen_req:
+                mx += 2; miss = _amen_req - set(d.get("amenities") or [])
+                if not miss:
+                    sc += 2
+                else:
+                    falta += [_AMN.get(a, a) for a in sorted(miss)]
+            if _feat_req:
+                mx += 1; missf = _feat_req - set(d.get("unit_features") or [])
+                if not missf:
+                    sc += 1
+                else:
+                    falta += [_FTN.get(f, f) for f in sorted(missf)]
+            return max(1, min(10, round(sc / mx * 10))), falta[:3]
         # dispara si: pidió zona con presupuesto y <2 entran ahí · O la zona no está disponible (sin inventario) pero hay presupuesto
         _need_cross = bool(_maxp) and ((_req_cols and len([d for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and _dev_fits(d)]) < 2) or (zona_no_disponible and not _req_cols))
         if _need_cross:
             cands = [d for d in DEVELOPMENTS if d.get("colonia_id") not in _req_cols and _dev_fits(d)]
-            cands.sort(key=lambda d: d.get("price_from") or 0)
-            for d in cands[:5]:
+            scored = []
+            for d in cands:
+                sc, falta = _score_cross(d)
+                scored.append((sc, d.get("price_from") or 0, d, falta))
+            scored.sort(key=lambda x: (-x[0], x[1]))   # mejor match primero, luego más barato
+            for sc, _pf, d, falta in scored[:5]:
                 cross_zone.append({
                     "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
                     "slug": d.get("slug") or d.get("id"), "price_from": d.get("price_from"), "price_from_display": d.get("price_from_display"),
                     "bedrooms_range": d.get("bedrooms_range"), "bathrooms_range": d.get("bathrooms_range"),
                     "m2_range": d.get("m2_range"), "parking_range": d.get("parking_range"), "amenities": d.get("amenities") or [],
+                    "match": sc, "falta": falta,
                 })
             zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
     except Exception:
