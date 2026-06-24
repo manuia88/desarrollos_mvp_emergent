@@ -2276,6 +2276,14 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             ms = _re.search(r"(\d+(?:\.\d+)?)\s*(mdp|millones|mill[oó]n|m\b|mp\b)", _work)
             if ms:
                 filters["max_price"] = int(float(ms.group(1)) * 1_000_000)
+            else:
+                # Dígitos CRUDOS grandes (sin "millones"): "precio menor a 3000000", "hasta 4,500,000", "presupuesto 3000000".
+                # La mensualidad/enganche/apartado ya se quitaron de _work, así que un número de 7+ cifras es el precio.
+                mb = _re.search(r"\b(\d{7,9}|\d{1,3}(?:[,\.]\d{3}){2,3})\b", _work)
+                if mb:
+                    val = int(mb.group(1).replace(",", "").replace(".", ""))
+                    if 500_000 <= val <= 100_000_000:
+                        filters["max_price"] = val
     if "stage" not in filters:
         if "preventa" in ql:
             filters["stage"] = "preventa"

@@ -483,7 +483,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                   <span style={{ fontSize: 15 }}>📊</span>
-                  <span>En esta zona lo más económico arranca en <b style={{ color: 'var(--cream)' }}>~${Number(aiBrecha.mens_zona_pedida).toLocaleString('es-MX')}/mes</b> — unos <b style={{ color: '#F0A0C0' }}>${Number(aiBrecha.gap).toLocaleString('es-MX')}/mes</b> arriba de tu presupuesto. {aiCrossZone.length > 0 ? 'Abajo te muestro zonas donde tu número sí alcanza.' : 'Sube un poco tu mensualidad o ajusta el esquema de pago para ver opciones.'}</span>
+                  <span>En esta zona lo más económico arranca en <b style={{ color: 'var(--cream)' }}>~${Number(aiBrecha.mens_zona_pedida || 0).toLocaleString('es-MX')}/mes</b> — unos <b style={{ color: '#F0A0C0' }}>${Number(aiBrecha.gap).toLocaleString('es-MX')}/mes</b> arriba de tu presupuesto. {aiCrossZone.length > 0 ? 'Abajo te muestro zonas donde tu número sí alcanza.' : 'Sube un poco tu mensualidad o ajusta el esquema de pago para ver opciones.'}</span>
                 </div>
               )}
               {/* CROSS-ZONA: no alcanzó la zona pedida → estos desarrollos en otras zonas SÍ cumplen lo que buscas. */}
