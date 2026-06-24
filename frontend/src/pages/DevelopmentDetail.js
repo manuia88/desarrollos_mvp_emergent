@@ -18,11 +18,9 @@ import Sidebar from '../components/dev/Sidebar';
 import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
-import NarrativeBlock from '../components/landing/NarrativeBlock';
 // W6.MOV.3 — Reviews Residentes
 import DevReviewsBlock from '../components/property/DevReviewsBlock';
 // W5.x F4 — Narrative Layer LLM (cross-feature storyteller)
-import NarrativeBlockLLM from '../components/NarrativeBlock';
 // W5.x F7 — Lead Capture (behavioral tracker + modal)
 import useBehavioralTracker from '../hooks/useBehavioralTracker';
 import LeadCaptureModal from '../components/leadCapture/LeadCaptureModal';
@@ -506,19 +504,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             </div>
           </section>
 
-          {/* Narrativa AI — N5 (Phase C2) */}
-          <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>
-            <NarrativeBlock scope="development" entityId={dev.id} />
-          </section>
-
           {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
           <section data-testid="dev-reviews-residents-section" style={{ marginTop: 20 }}>
             <DevReviewsBlock devId={dev.id} />
-          </section>
-
-          {/* W5.x F4 — Narrative Layer LLM cross-feature (project audience) */}
-          <section data-testid="dev-narrative-layer-section" style={{ marginTop: 20 }}>
-            <NarrativeBlockLLM scope="project" entityId={dev.id} audience="neutral" />
           </section>
 
           {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
