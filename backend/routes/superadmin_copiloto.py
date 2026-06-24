@@ -172,7 +172,24 @@ async def buyer_cycle_intel(db, dias: int = 30):
         "lectura": "Lo que la gente escribió y el buscador NO entendió. Prender el LLM resuelve la mayoría; lo que persista = afinar el respaldo o agregar el campo. Es data real, no adivinanza.",
     }
 
+    # SUSTITUCIÓN: a qué zonas se va la demanda que NO encontró match en la zona pedida (cross-zona del buscador IA + wizards).
+    # 'La demanda de A se va a B' = dónde construir/expandir (selección de terreno). Oro de inteligencia de mercado.
+    sust_flows = await _agg(db.marketplace_searches, [
+        {"$match": {"sustitucion": True, **F}},
+        {"$unwind": "$zonas_sustitutas"},
+        {"$group": {"_id": {"pedida": "$colonia_id", "sustituta": "$zonas_sustitutas"}, "n": {"$sum": 1}}},
+        {"$sort": {"n": -1}}, {"$limit": 25},
+    ])
+    sust_total = await _count(db.marketplace_searches, {"sustitucion": True, **F})
+    sustitucion = {
+        "total": sust_total,
+        "flujos": [{"pedida": (f.get("_id") or {}).get("pedida"), "sustituta": (f.get("_id") or {}).get("sustituta"), "veces": f.get("n")}
+                   for f in sust_flows if (f.get("_id") or {}).get("pedida") and (f["_id"].get("sustituta") != f["_id"].get("pedida"))],
+        "lectura": "La demanda que la zona pedida no pudo cumplir pero que SÍ matchea en otra. 'La demanda de A se va a B' → dónde construir/expandir (selección de terreno).",
+    }
+
     return {
+        "sustitucion": sustitucion,
         "salud_buscador": salud_buscador,
         "ventana_dias": dias,
         "embudo": {

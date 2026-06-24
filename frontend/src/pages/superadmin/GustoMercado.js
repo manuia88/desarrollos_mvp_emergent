@@ -88,6 +88,22 @@ export default function GustoMercado({ filters }) {
               ))}
             </div>
           </div>
+          {cube.sustitucion && (cube.sustitucion.flujos || []).length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>🧭 Sustitución de demanda <span style={{ ...mute, fontWeight: 400 }}>(a dónde se va la demanda que la zona pedida no cumplió · selección de terreno)</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 8 }}>
+                {(cube.sustitucion.flujos || []).slice(0, 12).map((f, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{f.pedida}</b>
+                    <span style={{ color: '#8B7CF6' }}>→</span>
+                    <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{f.sustituta}</b>
+                    <span style={{ ...mute }}>· {f.veces}×</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, ...mute, marginTop: 8 }}>{cube.sustitucion.lectura}</div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 11.5, ...mute, flexWrap: 'wrap' }}>
             <span>📈 Velocidad: <b style={{ color: cube.velocidad?.tendencia === 'subiendo' ? GREEN : 'var(--sa-text)' }}>{cube.velocidad?.tendencia}</b> ({cube.velocidad?.ultimos_7d} vs {cube.velocidad?.previos_7d})</span>
             <span>👻 Shadow demand: <b style={{ color: 'var(--sa-text)' }}>{cube.shadow_demand?.ratio_anon_vs_reg}:1</b> anónimas/registradas (el top-of-funnel real)</span>
