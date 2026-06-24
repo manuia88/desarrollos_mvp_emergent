@@ -505,14 +505,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             </div>
           </section>
 
-          {/* ═══ ACTO 7 · ¿CONFÍAS? — reviews + riesgos honestos (risk-reversal). La transparencia construye confianza. ═══ */}
-          {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
-          <section data-testid="dev-reviews-residents-section" style={{ marginTop: 20 }}>
-            <DevReviewsBlock devId={dev.id} />
-          </section>
-
-          {/* Riesgos honestos — dato real (Atlas de Riesgos CDMX + preventa + absorción), lectura balanceada. */}
-          <RiesgosHonestos dev={dev} />
+          {/* ═══ ACTO 6 · CONOCE EL EDIFICIO — servicios/legal del dev + descripción, unidades, avance, amenidades, ubicación. ═══ */}
+          <div style={{ marginTop: 38, marginBottom: 2 }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)' }}>El edificio</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0' }}>Conócelo por dentro</h2>
+          </div>
 
           {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
           <DevConfigSections config={dev.config} />
@@ -646,6 +643,18 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               )}
             </div>
           </div>
+
+          {/* ═══ ACTO 7 · ¿CONFÍAS? — reviews + riesgos honestos (risk-reversal), después de conocer el edificio. ═══ */}
+          <div style={{ marginTop: 38, marginBottom: 2 }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)' }}>La confianza</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0' }}>¿Puedes confiar?</h2>
+          </div>
+          {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
+          <section data-testid="dev-reviews-residents-section" style={{ marginTop: 16 }}>
+            <DevReviewsBlock devId={dev.id} />
+          </section>
+          {/* Riesgos honestos — dato real (Atlas de Riesgos CDMX + preventa + absorción), lectura balanceada. */}
+          <RiesgosHonestos dev={dev} />
         </section>
 
         {/* ¿QUÉ MÁS ME GUSTA? — desarrollos parecidos a este (motor /similar, antes huérfano). El comprador nunca se va con uno solo. */}
