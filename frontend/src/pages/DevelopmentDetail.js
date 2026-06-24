@@ -55,6 +55,7 @@ import ForecastChart from '../components/forecast/ForecastChart';
 import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BuySignal from '../components/marketplace/BuySignal';
 import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
+import DemandaZonaCard from '../components/marketplace/DemandaZonaCard';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
@@ -367,6 +368,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             onContact={() => openGate({ source: 'veredicto_corona', dev_id: dev.id, dev_name: dev.name })}
             onAskAtlax={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }))}
           />
+
+          {/* Demanda viva de la zona — social proof honesto (radar de demanda). Solo aparece si hay búsquedas reales. */}
+          <DemandaZonaCard colonia={dev.colonia_id || dev.colonia} coloniaNombre={dev.colonia} />
 
           {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
           <section id="ie-scores" data-testid="dev-ie-scores" style={{
