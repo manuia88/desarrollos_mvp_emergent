@@ -135,10 +135,11 @@ function buildStories(name, inv) {
 const PERFIL_FAM_QS = [
   { k: 'adultos', icon: '🧑', q: '¿Cuántos adultos vivirían aquí?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'ninos', icon: '🧒', q: '¿Cuántos niños?', opts: [['Ninguno', 0], ['1', 1], ['2', 2], ['3 o más', 3]] },
-  { k: 'pet', icon: '🐾', q: '¿Tienen mascota?', opts: [['Sí', true], ['No', false]] },
+  { k: 'pet', icon: '🐾', q: '¿Tienen mascota?', sub: 'Todos los desarrollos aceptan mascotas; esto solo nos ayuda a marcar los que tienen área para ellas.', opts: [['Sí', true], ['No', false]] },
   { k: 'oficina', icon: '💻', q: '¿Alguien trabaja desde casa?', opts: [['Sí', true], ['No', false]] },
   { k: 'prioridad', icon: '⭐', q: '¿Qué es lo más importante para ustedes?', opts: [['Escuelas cerca', 'escuelas'], ['Zona segura', 'seguridad'], ['Espacio para crecer', 'espacio'], ['Áreas verdes', 'verde']] },
-  { k: 'cuando', icon: '📅', q: '¿Para cuándo se mudarían?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Aún explorando', 'explorando']] },
+  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', opts: [['~$20,000', 20000], ['~$35,000', 35000], ['~$50,000', 50000], ['$70,000 o más', 70000]] },
+  { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienen ahorrado para empezar?', sub: 'El enganche — lo que dan de su bolsa al inicio.', opts: [['~$150,000', 150000], ['~$400,000', 400000], ['~$700,000', 700000], ['$1,000,000 o más', 1000000]] },
 ];
 const PRIOR_FAM = { escuelas: 'escuelas cerca', seguridad: 'una zona segura', espacio: 'espacio para crecer', verde: 'áreas verdes' };
 function PerfilFamilia({ name, devs, onCTA, onProfile }) {
@@ -149,19 +150,25 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
   const rec = Math.max(1, 1 + (Number(ans.ninos) || 0) + (ans.oficina ? 1 : 0));
   const m2 = 45 + rec * 22;
   const petKeys = ['pet', 'area_pets', 'jardines'];
+  // Financiero (mismo motor que el cotizador): 30% del ingreso → mensualidad → préstamo a 20 años → + enganche = precio máximo.
+  const ing = Number(ans.ingreso) || 0;
+  const pagoMax = Math.round(ing * 0.30);
+  const ii = 0.1145 / 12;
+  const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + ii, -240)) / ii) : 0;
+  const precioMax = prestamoMax + (Number(ans.ahorro) || 0);
+  // Desarrollos: por RECÁMARAS (la mascota NO excluye — todos aceptan; solo marca petzone). Ordena por precio.
   const fits = done ? (Array.isArray(devs) ? devs : [])
     .filter((d) => Array.isArray(d.bedrooms_range) && (d.bedrooms_range[1] || 0) >= rec)
-    .filter((d) => !ans.pet || (Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a))))
     .sort((a, b) => (a.price_from || 0) - (b.price_from || 0)) : [];
   useEffect(() => {
-    if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, m2 }); } catch (e) { /* noop */ } }
+    if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, m2, precio_max: precioMax, pago_max: pagoMax }); } catch (e) { /* noop */ } }
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
       <div data-rev style={{ maxWidth: 860, margin: '0 auto', padding: '0 28px' }}>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Su lugar ideal</div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Cuéntanos de tu familia.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>6 preguntas rápidas y te decimos cuánto espacio buscar — y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b>.</p>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>7 preguntas rápidas y te decimos cuánto espacio buscar, <b style={{ color: INK }}>para qué les alcanza</b> y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b> — todo de una.</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
@@ -170,6 +177,7 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
             <div key={step} className="zv2-pop">
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_FAM_QS.length}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{PERFIL_FAM_QS[step].icon}</span>{PERFIL_FAM_QS[step].q}</div>
+              {PERFIL_FAM_QS[step].sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{PERFIL_FAM_QS[step].sub}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
                 {PERFIL_FAM_QS[step].opts.map(([label, val]) => (
                   <button key={label} type="button" onClick={() => setAns({ ...ans, [PERFIL_FAM_QS[step].k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
@@ -180,13 +188,21 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
           </div>
         ) : (
           <div className="zv2-pop" style={{ marginTop: 24 }}>
-            <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(18px,2.6vw,24px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>Para tu familia, lo ideal es buscar</div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(28px,4.5vw,40px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{rec} recámara{rec > 1 ? 's' : ''}</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: MUT, marginTop: 2 }}>~{m2} m² o más{ans.pet ? ' · con espacio para la mascota' : ''}{ans.prioridad ? ` · priorizando ${PRIOR_FAM[ans.prioridad]}` : ''}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Lo ideal para ustedes</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{rec} recámara{rec > 1 ? 's' : ''}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>~{m2} m² o más{ans.prioridad ? ` · ${PRIOR_FAM[ans.prioridad]}` : ''}</div>
+              </div>
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))', border: '1.5px solid rgba(16,185,129,0.28)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#0E7A53' }}>Les alcanza hasta</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#10B981', letterSpacing: '-0.02em', marginTop: 3 }}>{precioMax > 0 ? m1(precioMax) : '—'}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>{pagoMax > 0 ? <>mensualidad ~${pagoMax.toLocaleString('es-MX')} · enganche {m1(Number(ans.ahorro) || 0)}</> : 'pon tu ingreso'}</div>
+              </div>
             </div>
-            <div style={{ marginTop: 22 }}>
-              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} les queda${fits.length > 1 ? 'n' : ''}:` : `Por ahora ningún desarrollo en ${name} llega a ${rec} recámaras${ans.pet ? ' con espacio para mascota' : ''}.`}</div>
+            {ans.pet ? <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#0E7A53', marginTop: 12, fontWeight: 600 }}>🐾 Todos los desarrollos aceptan mascota — marcamos con un badge los que además tienen área para ellas.</div> : null}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} con ${rec}+ recámaras:` : `Por ahora ningún desarrollo en ${name} llega a ${rec} recámaras.`}</div>
               {fits.length > 0 ? (
                 <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
                   {fits.slice(0, 6).map((d) => {
@@ -198,7 +214,10 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
                         {d.price_from ? <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#10B981', marginTop: 6 }}>desde {m1(d.price_from)}</div> : null}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                           <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {rec}+ recámaras</span>
-                          {ans.pet && hasPet ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ pet friendly</span> : null}
+                          {precioMax > 0 && d.price_from ? (d.price_from <= precioMax
+                            ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ en tu presupuesto</span>
+                            : <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#9A6B00', background: 'rgba(245,158,11,0.12)', padding: '3px 8px', borderRadius: 999 }}>arriba de tu presupuesto</span>) : null}
+                          {hasPet ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>🐾 área para mascotas</span> : null}
                         </div>
                       </div>
                     );
@@ -499,7 +518,7 @@ function PlacePhoto({ refName, alt }) {
   );
 }
 
-function LugaresMap({ places, icon, center, selected }) {
+function LugaresMap({ places, icon, center, selected, onResetView }) {
   const ref = useRef(null);
   const mapRef = useRef(null);
   const mlRef = useRef(null);
@@ -540,18 +559,32 @@ function LugaresMap({ places, icon, center, selected }) {
     });
     if (!bounds.isEmpty()) { try { map.fitBounds(bounds, { padding: 48, maxZoom: 15.5, duration: 450 }); } catch (e) { /* noop */ } }
   }, [places, icon, ready]);
-  // Lugar elegido en la lista → vuela al pin y abre su popup (todo DENTRO de la plataforma).
+  // Lugar elegido → zoom IN al pin + popup. Sin lugar (deseleccionado) → zoom OUT al mapa general (toggle).
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !selected || !selected.loc) return;
+    const map = mapRef.current; const maplibregl = mlRef.current;
+    if (!map || !maplibregl) return;
     try {
-      map.flyTo({ center: [selected.loc.longitude, selected.loc.latitude], zoom: 16, duration: 600 });
-      const mk = markersRef.current[selected.name];
-      if (mk && mk.getPopup && !mk.getPopup().isOpen()) mk.togglePopup();
+      if (selected && selected.loc) {
+        map.flyTo({ center: [selected.loc.longitude, selected.loc.latitude], zoom: 16, duration: 600 });
+        const mk = markersRef.current[selected.name];
+        if (mk && mk.getPopup && !mk.getPopup().isOpen()) mk.togglePopup();
+      } else {
+        Object.values(markersRef.current).forEach((m) => { try { if (m.getPopup && m.getPopup().isOpen()) m.togglePopup(); } catch (e) { /* noop */ } });
+        const bounds = new maplibregl.LngLatBounds();
+        pts.forEach((p) => bounds.extend([p.loc.longitude, p.loc.latitude]));
+        if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 48, maxZoom: 15.5, duration: 600 });
+      }
     } catch (e) { /* noop */ }
-  }, [selected, ready]);
+  }, [selected, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!pts.length) return null;
-  return <div ref={ref} className="zv2-map" style={{ width: '100%', height: 'clamp(300px,42vw,420px)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(16,18,28,0.1)', background: '#EAEAF2' }} />;
+  return (
+    <div style={{ position: 'relative' }}>
+      <div ref={ref} className="zv2-map" style={{ width: '100%', height: 'clamp(300px,42vw,420px)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(16,18,28,0.1)', background: '#EAEAF2' }} />
+      {selected && (
+        <button type="button" onClick={() => onResetView && onResetView()} style={{ position: 'absolute', left: 12, bottom: 12, zIndex: 5, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, boxShadow: '0 6px 18px rgba(16,18,28,0.18)' }}>🔍 Ver todo el mapa</button>
+      )}
+    </div>
+  );
 }
 
 // Clasifica una escuela por su NOMBRE real (sin inventar nivel; lo ambiguo cae en 'otras'). Para el filtro por nivel (familia).
@@ -632,7 +665,7 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
             {displayArr.slice(0, 12).map((p) => {
               const son = selName === p.name;
               return (
-                <button key={p.name} type="button" onClick={() => setSelName(p.name)} className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textAlign: 'left', cursor: 'pointer', width: '100%', padding: '12px 14px', borderRadius: 12, background: son ? 'rgba(99,102,241,0.08)' : '#fff', border: son ? '1.5px solid rgba(99,102,241,0.4)' : '1px solid rgba(16,18,28,0.07)' }}>
+                <button key={p.name} type="button" onClick={() => setSelName(son ? null : p.name)} className="zv2-zlink" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textAlign: 'left', cursor: 'pointer', width: '100%', padding: '12px 14px', borderRadius: 12, background: son ? 'rgba(99,102,241,0.08)' : '#fff', border: son ? '1.5px solid rgba(99,102,241,0.4)' : '1px solid rgba(16,18,28,0.07)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
                     <span style={{ fontSize: 18, flexShrink: 0 }}>{active.ic}</span>
                     <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
@@ -642,7 +675,7 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
               );
             })}
           </div>
-          <LugaresMap places={displayArr} icon={active.ic} center={center} selected={displayArr.find((p) => p.name === selName) || null} />
+          <LugaresMap places={displayArr} icon={active.ic} center={center} selected={displayArr.find((p) => p.name === selName) || null} onResetView={() => setSelName(null)} />
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 16, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google, a ~1 km del centro de {name}. Toca un lugar de la lista y el mapa lo ubica — sin salir de aquí.</div>
       </div>
@@ -1371,13 +1404,7 @@ export default function ZonePageV2() {
                 </div>
               </section>
 
-              {/* CAP 4 · ¿LES ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) */}
-              <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural />
-
-              {/* CAP 4.3 · ARMA TU PRIORIDAD (personalizado · datos reales) */}
-              {lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
-
-              {/* (quiz fusionado en PerfilFamilia · Cap 2.7) */}
+              {/* (¿les alcanza? + arma-tu-prioridad + quiz FUSIONADOS en el wizard PerfilFamilia · Cap 2.7) */}
 
               {/* CAP 5 · AQUÍ EMPIEZA SU HOGAR (cierre + urgencia · familia) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
