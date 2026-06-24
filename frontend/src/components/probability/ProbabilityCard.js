@@ -3,12 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchProbabilityCardData } from '../../api/probability';
 
-const CREAM = '#F0EBE0';
+// Tema CLARO (la ficha vive en LightScope) — antes eran valores oscuros que rompían el rediseño.
+const CREAM = '#1E2230';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = '#4A4F5E';
+const MUTED_2 = '#8A8F9E';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

@@ -47,8 +47,8 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
     <aside
       data-testid="dev-sidebar"
       style={{
-        background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
-        border: '1px solid var(--border)',
+        background: 'var(--surface-card)',
+        border: '1px solid var(--card-border, var(--border))',
         borderRadius: 22, padding: 22,
         position: 'sticky', top: 90,
         maxHeight: 'calc(100vh - 110px)',

@@ -115,6 +115,13 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const contactoId = searchParams.get('contacto');
   const isAdvisor = user?.role && ADVISOR_ROLES.has(user.role);
 
+  // Tema CLARO a nivel <body> (rediseño) → mata el fondo NEGRO residual (#06080F) detrás del LightScope. Antes la ficha
+  // dejaba el body oscuro (faltaba esto que sí hacen las demás páginas públicas) → bordes/abajo en negro.
+  useEffect(() => {
+    document.body.classList.add('public-light');
+    return () => document.body.classList.remove('public-light');
+  }, []);
+
   // W5.x F7 — Behavioral tracker (escucha scroll/time/exit-intent · dispara modal vía CustomEvent)
   useBehavioralTracker({ enabled: !!dev?.id, pageType: 'development', entityId: dev?.id });
 

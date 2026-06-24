@@ -147,7 +147,7 @@ export default function LocationTab({ dev, user, onGateOpen }) {
 
       {/* Map */}
       {!TOKEN ? (
-        <div style={{ height: 420, borderRadius: 16, background: '#0D1118', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans', color: 'var(--cream-3)' }}>
+        <div style={{ height: 420, borderRadius: 16, background: 'rgba(var(--theme-rgb),0.04)', border: '1px dashed var(--card-border, var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans', color: 'var(--cream-3)' }}>
           {t('mapa.token_missing')}
         </div>
       ) : (

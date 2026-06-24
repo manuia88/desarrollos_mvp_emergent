@@ -3,13 +3,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generateNarrative } from '../api/narrative';
 
+// Tema CLARO (la ficha vive en LightScope) — antes negro puro (#06080F) que rompía el rediseño.
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const CREAM = '#F0EBE0';
-const BG = '#06080F';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
-const MUTED = 'rgba(240,235,224,0.62)';
+const CREAM = '#1E2230';
+const BG = 'transparent';
+const CARD_BG = '#FFFFFF';
+const BORDER = '1px solid #ECECEC';
+const MUTED = '#4A4F5E';
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
