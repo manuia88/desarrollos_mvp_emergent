@@ -160,7 +160,7 @@ function HeaderBadge({ narrative, delta }) {
   );
 }
 
-export default function ForecastChart({ mode, slug, params }) {
+export default function ForecastChart({ mode, slug, params, hideIfEmpty = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -210,6 +210,7 @@ export default function ForecastChart({ mode, slug, params }) {
   }
 
   if (error) {
+    if (hideIfEmpty) return null;   // ficha: no mostrar caja muerta cuando no hay datos de la zona
     return (
       <section data-testid="forecast-chart" aria-label="Proyección no disponible" style={cardStyle}>
         <ErrorState message="Forecast no disponible para esta zona." />

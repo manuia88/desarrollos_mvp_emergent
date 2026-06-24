@@ -496,8 +496,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 18px' }}>¿Cuánto vale y hacia dónde va?</h2>
             <div style={{ display: 'grid', gap: 16 }}>
               <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
-              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} />}
-              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} />}
+              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} hideIfEmpty />}
+              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} hideIfEmpty />}
               <PlusvaliaCard
                 plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
                 priceHistory={dev.price_history}

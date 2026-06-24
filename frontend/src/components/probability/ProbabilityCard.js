@@ -39,7 +39,7 @@ function confidenceChipStyle(lvl) {
   }
 }
 
-export default function ProbabilityCard({ type, id, months, listed, title }) {
+export default function ProbabilityCard({ type, id, months, listed, title, hideIfEmpty = false }) {
   const { t } = useTranslation('common');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +88,7 @@ export default function ProbabilityCard({ type, id, months, listed, title }) {
 
   // Error / no data → mostrar fallback honest
   if (error || !data) {
+    if (hideIfEmpty) return null;   // ficha: no mostrar caja muerta cuando no hay predicción
     return (
       <section
         data-testid={`probability-card-${type || 'unknown'}`}
@@ -110,6 +111,7 @@ export default function ProbabilityCard({ type, id, months, listed, title }) {
   }
 
   const insufficient = !!data.insufficient_data;
+  if (insufficient && hideIfEmpty) return null;   // ficha: ocultar cuando aún no hay señales suficientes
   const pct = Math.max(0, Math.min(100, Math.round(Number(data.probability_pct) || 0)));
   const confidence = String(data.confidence_lvl || data.confidence || 'MEDIA').toUpperCase();
   const sources = Array.isArray(data.sources_breakdown) ? data.sources_breakdown : [];
