@@ -34,6 +34,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [aiCrossZone, setAiCrossZone] = useState([]);     // si no alcanza la zona pedida → desarrollos en OTRAS zonas que sí cumplen
   const [aiMensSupuesto, setAiMensSupuesto] = useState(null); // supuesto usado para mapear mensualidad→precio (enganche·plazo·tasa)
   const [aiBrecha, setAiBrecha] = useState(null);         // brecha: lo + barato en la zona pedida vs lo que el comprador puede pagar
+  const [aiCrossRelax, setAiCrossRelax] = useState(null); // cómo se relajó el cruce: null=estricto · 'esquema' · 'cercano'
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
@@ -211,6 +212,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       setAiCrossZone(Array.isArray(resp?.cross_zone) ? resp.cross_zone : []);
       setAiMensSupuesto(resp?.mensualidad_supuesto || null);
       setAiBrecha(resp?.brecha_zona || null);
+      setAiCrossRelax(resp?.cross_relax || null);
     } finally {
       setAiLoading(false);
     }
@@ -457,7 +459,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); }}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setAiCrossRelax(null); }}
                 openKey={openKey}
                 openNonce={openNonce}
               />
@@ -487,8 +489,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {/* CROSS-ZONA: no alcanzó la zona pedida → estos desarrollos en otras zonas SÍ cumplen lo que buscas. */}
               {aiCrossZone.length > 0 && (
                 <div data-testid="ai-cross-zone" style={{ marginTop: 12, padding: '14px 16px', borderRadius: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.28)' }}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:</div>
-                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad por desarrollo, en sus dos esquemas — <b style={{ color: 'var(--cream)' }}>💳 crédito</b> (enganche {aiMensSupuesto.enganche} · {aiMensSupuesto.plazo_anios} años · {aiMensSupuesto.tasa}) y <b style={{ color: 'var(--cream)' }}>🏗️ preventa</b> (enganche en mensualidades durante la obra). {aiMensSupuesto.nota}</div> : null}
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> {aiCrossRelax === 'cercano' ? 'Nada entró exacto en tu presupuesto — esto es lo más cercano en otras zonas:' : aiCrossRelax === 'esquema' ? 'En crédito no alcanzó, pero con otro esquema de pago sí — mira estas opciones:' : 'Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:'}</div>
+                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad por desarrollo, en sus dos esquemas — <b style={{ color: 'var(--cream)' }}>💳 crédito</b> (enganche {aiMensSupuesto.enganche} · {aiMensSupuesto.plazo_anios} años · {aiMensSupuesto.tasa}) y <b style={{ color: 'var(--cream)' }}>🏗️ preventa</b> (lo que pagas al mes durante la obra). {aiMensSupuesto.nota}</div> : null}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
                     {aiCrossZone.map((c) => (
                       <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -507,6 +509,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                             <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 1 }}>{c.plan_real ? '✓ plan del desarrollador' : 'estimado'}</div>
                           </div>
                         ) : null}
+                        {c.sobre_presupuesto > 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#F0A0C0', marginTop: 4 }}>~${Number(c.sobre_presupuesto).toLocaleString('es-MX')}/mes arriba de tu presupuesto</div> : null}
                         {Array.isArray(c.falta) && c.falta.length > 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(245,200,120,0.85)', marginTop: 5 }}>le falta: {c.falta.join(' · ')}</div> : null}
                       </Link>
                     ))}
@@ -602,7 +605,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </button>
                   )}
                   {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
-                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setAiCrossRelax(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
                     ✨ Nueva búsqueda
                   </button>
@@ -716,7 +719,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setAiCrossRelax(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
 

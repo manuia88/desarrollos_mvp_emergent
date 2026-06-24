@@ -221,7 +221,6 @@ DEVELOPMENTS_RAW = [
         "street": "Eugenia 1100", "postal_code": "03020",
         "developer_id": "atlas-urbano",
         "stage": "preventa", "delivery_estimate": "2027-05",
-        "payment_plan": {"enganche_pct": 25, "preventa_meses": 30, "descuento_contado_pct": 6},
         "price_from": 3250000, "price_to": 6900000,
         "amenities": ["gym", "roof", "pet", "bicicletas"],
         "description": "Torre de 9 niveles con 48 unidades sobre Eugenia, a 4 minutos del Metro. Fachada de ladrillo artesanal, rooftop con asadores y cowork en planta baja.",
@@ -279,8 +278,6 @@ DEVELOPMENTS_RAW = [
         "street": "Dr. Vértiz 340", "postal_code": "06720",
         "developer_id": "agora-urbana",
         "stage": "preventa", "delivery_estimate": "2027-11",
-        # Plan de pagos REAL del desarrollador (granularidad): enganche %, nº de mensualidades en preventa, descuento por contado.
-        "payment_plan": {"enganche_pct": 15, "preventa_meses": 24, "descuento_contado_pct": 8},
         "price_from": 2450000, "price_to": 4800000,
         "amenities": ["gym", "pet", "cowork", "bicicletas", "seguridad"],
         "description": "60 unidades tipo loft con dobles alturas y acabados industriales. Zona con mayor apreciación proyectada en CDMX (+12% anual). Cowork + cafetería en planta baja.",
@@ -638,8 +635,6 @@ def _build_dev(dev_raw: dict) -> dict:
             or ("casa" if "casa" in f"{dev_raw['name']} {dev_raw['description']}".lower() else "departamento")
         ),
         "delivery_estimate": dev_raw["delivery_estimate"],
-        # Plan de pagos del desarrollador (granularidad mensualidad preventa/crédito). Vacío = se estima (20% / hasta entrega).
-        "payment_plan": dev_raw.get("payment_plan") or {},
         "price_from": dev_raw["price_from"],
         "price_to": dev_raw["price_to"],
         "price_from_display": f"${dev_raw['price_from']:,}",

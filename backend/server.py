@@ -1654,6 +1654,26 @@ async def startup():
         logging.info(f"[startup] commercial seeds: {seed_result}")
     except Exception as e:
         logging.warning(f"[startup] commercial init failed: {e}")
+    # Buscador IA · formas de pago: siembra (idempotente) esquemas DEMO para 2 desarrollos seed, así el cruce de zonas
+    # muestra mensualidades REALES (payment_schemes.compute_breakdown) y no solo estimadas. Los devs reales configuran
+    # las suyas en su módulo (db.dev_payment_schemes por tenant); esto solo cubre el catálogo demo (dev_org_id='seed_demo').
+    try:
+        import payment_schemes as _ps_seed
+        _demo_schemes = [
+            ("doctores-loft", "2025-06", "2027-11"),
+            ("narvarte-32", "2025-01", "2027-05"),
+        ]
+        for _pid, _fi, _fe in _demo_schemes:
+            if not await db.dev_payment_schemes.find_one({"project_id": _pid}):
+                await db.dev_payment_schemes.update_one(
+                    {"project_id": _pid, "dev_org_id": "seed_demo"},
+                    {"$set": {"project_id": _pid, "dev_org_id": "seed_demo",
+                              "schemes": _ps_seed.default_schemes(),
+                              "fecha_inicio": _fi, "fecha_entrega": _fe, "seeded_demo": True}},
+                    upsert=True)
+        logging.info("[startup] demo payment schemes ready")
+    except Exception as e:
+        logging.warning(f"[startup] demo payment schemes failed: {e}")
     # W5.22 Z.1.1 SUB-FIX-1 · Eager-load all modules calling register_feature
     # so catalog returns 42+ features instead of ~13 (lazy import problem).
     try:

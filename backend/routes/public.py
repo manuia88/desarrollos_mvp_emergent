@@ -2074,14 +2074,14 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     q = (payload.query or "").strip()
     if not q:
         return {"filters": {}, "query": q, "cached": False}
-    cache_key = q.lower()[:500]
+    cache_key = ("v2_" + q.lower())[:500]   # v2 = mensualidad por esquema real + cruce con fallback (invalida caché viejo)
     cached = await db.ai_search_cache.find_one({"cache_key": cache_key}, {"_id": 0})
     if cached:
         ts = cached.get("created_at")
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or [], "mensualidad_supuesto": cached.get("mensualidad_supuesto"), "brecha_zona": cached.get("brecha_zona")}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or [], "mensualidad_supuesto": cached.get("mensualidad_supuesto"), "brecha_zona": cached.get("brecha_zona"), "cross_relax": cached.get("cross_relax")}
     parsed = {}
     # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
     # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
@@ -2380,6 +2380,16 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     esquema_pedido = None      # qué esquema de pago pidió el comprador (preventa/credito/ambos) → señal para devs
     gap_mensualidad = None     # brecha: lo más barato que existe en la zona pedida − lo que el comprador puede pagar
     mens_zona_pedida = None    # mensualidad (crédito) más baja disponible en la zona pedida
+    cross_relax = None         # cómo se relajó el cruce: None=estricto · "esquema" · "cercano" (para ser honestos en la UI)
+    # FORMAS DE PAGO REALES (fuente de verdad: dev_payment_schemes, configuradas por el dev en su módulo · NO duplicar).
+    # Se precargan acá (async) para usarlas en el scoring sync. Si un dev no las configuró → se ESTIMA (marcado).
+    _schemes_by_dev = {}
+    try:
+        async for _sd in db.dev_payment_schemes.find({}, {"project_id": 1, "schemes": 1, "fecha_inicio": 1, "fecha_entrega": 1}):
+            if _sd.get("project_id"):
+                _schemes_by_dev[_sd["project_id"]] = _sd
+    except Exception:
+        pass
     try:
         _col = filters.get("colonia")
         _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
@@ -2408,14 +2418,24 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             now = datetime.now(timezone.utc)
             return (int(m.group(1)) - now.year) * 12 + (int(m.group(2)) - now.month)
 
-        def _plan(d):
-            return (d or {}).get("payment_plan") or {}
+        import payment_schemes as _ps
+
+        def _dev_schemes(d):
+            return _schemes_by_dev.get((d or {}).get("id"))
+
+        def _plan_real(d):
+            return bool(_dev_schemes(d))
 
         def _eng_de(price, d):
-            # enganche: el que pide el usuario · o el % del plan del desarrollador · o 20% default
+            # enganche: el que pide el usuario · o el firma% MÁS BAJO configurado por el dev · o 20% default
             if filters.get("enganche_max"):
                 return min(filters["enganche_max"], price)
-            return round(price * ((_plan(d).get("enganche_pct") or 20) / 100.0))
+            doc = _dev_schemes(d)
+            if doc and doc.get("schemes"):
+                firmas = [_ps._f(s.get("firma_pct")) for s in doc["schemes"] if _ps._f(s.get("firma_pct")) > 0]
+                if firmas:
+                    return round(price * (min(firmas) / 100.0))
+            return round(price * 0.20)
 
         def _mens_credito(price, d):
             if not price:
@@ -2424,26 +2444,44 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             return int(round(loan * _pf)) if loan > 0 else 0
 
         def _mens_preventa(price, d):
-            # enganche repartido en las mensualidades de la obra (plan REAL del dev si tiene · si no, hasta la entrega)
+            # Mensualidad de la obra. REAL si el dev configuró sus formas de pago (compute_breakdown) · si no, ESTIMADA.
             if not price or not d or d.get("stage") != "preventa":
                 return None
-            meses = _plan(d).get("preventa_meses") or _months_to_delivery(d)
+            doc = _dev_schemes(d)
+            if doc and doc.get("schemes"):
+                best = None
+                for s in doc["schemes"]:
+                    b = _ps.compute_breakdown(price, s, doc.get("fecha_inicio"), doc.get("fecha_entrega"))
+                    m = b.get("mensualidad_restante") or b.get("mensualidad")
+                    if m and (best is None or m < best):
+                        best = m
+                if best:
+                    return int(best)
+            meses = _months_to_delivery(d)
             if not meses or meses <= 0:
                 return None
-            return int(round(_eng_de(price, d) / meses))
+            return int(round(_eng_de(price, d) / meses))   # estimado: enganche repartido hasta la entrega
 
         def _contado(price, d):
-            # 3er esquema: pago de contado con el descuento REAL del desarrollador (solo si el plan lo trae · sin inventar).
-            pct = _plan(d).get("descuento_contado_pct")
-            if not price or not pct:
+            # 3er esquema: pago anticipado con el MAYOR descuento configurado por el dev (compute_breakdown). None si no hay.
+            doc = _dev_schemes(d)
+            if not price or not doc or not doc.get("schemes"):
                 return None
-            ahorro = int(round(price * (pct / 100.0)))
-            return {"precio": int(price - ahorro), "ahorro": ahorro, "pct": pct}
+            best = max(doc["schemes"], key=lambda s: _ps._f(s.get("descuento_pct")), default=None)
+            if not best or _ps._f(best.get("descuento_pct")) <= 0:
+                return None
+            b = _ps.compute_breakdown(price, best, doc.get("fecha_inicio"), doc.get("fecha_entrega"))
+            return {"precio": b["precio_aplicado"], "ahorro": b["ahorro"], "pct": b["descuento_pct"]}
         _mm = filters.get("mensualidad_max")
         _eng_b = filters.get("enganche_max")
         _has_budget = bool(_maxp or _mm or _eng_b)
 
-        def _budget_ok(d):
+        def _min_mens(d):
+            price = d.get("price_from") or 0
+            xs = [x for x in (_mens_credito(price, d), _mens_preventa(price, d)) if x]
+            return min(xs) if xs else 10 ** 12
+
+        def _budget_ok(d, relax_scheme=False):
             price = d.get("price_from") or 0
             if not price:
                 return False
@@ -2451,7 +2489,9 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                 return price <= _maxp
             if _mm:
                 mc, mp = _mens_credito(price, d), _mens_preventa(price, d)
-                if _want_preventa and not _want_credito:
+                if relax_scheme:
+                    cands = [mc, mp]                              # cualquier esquema que entre en el presupuesto
+                elif _want_preventa and not _want_credito:
                     cands = [mp]
                 elif _want_credito and not _want_preventa:
                     cands = [mc]
@@ -2469,7 +2509,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             mensualidad_supuesto = {
                 "mensualidad_max": _mm, "enganche": _eng_lbl, "esquemas": _esquemas,
                 "plazo_anios": _plazo, "tasa": "~11.45%",
-                "nota": "Mostramos la mensualidad de cada esquema por desarrollo: CRÉDITO (saldo financiado a plazo/tasa) y PREVENTA (enganche repartido en la obra). Son conceptos distintos. El enganche/plan exacto lo define cada desarrollador.",
+                "nota": "Mostramos la mensualidad de cada esquema por desarrollo: CRÉDITO (saldo financiado a plazo/tasa) y PREVENTA (lo que pagas al mes durante la obra según el plan del desarrollador; el resto se liquida al escriturar). Son conceptos distintos. El plan exacto lo define cada desarrollador.",
             }
         _beds = filters.get("beds")
         _baths = filters.get("baths")
@@ -2509,26 +2549,55 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                 else:
                     falta += [_FTN.get(f, f) for f in sorted(missf)]
             return max(1, min(10, round(sc / mx * 10))), falta[:3]
+        def _specs_ok(d):   # rec/baños/estac/tipo SIN presupuesto (para relajar después)
+            if _beds and ((d.get("bedrooms_range") or [0, 0])[-1] or 0) < _beds:
+                return False
+            if _baths and ((d.get("bathrooms_range") or [0, 0])[-1] or 0) < _baths:
+                return False
+            if _park and ((d.get("parking_range") or [0, 0])[-1] or 0) < _park:
+                return False
+            if _tipo and d.get("property_type") and d.get("property_type") != _tipo:
+                return False
+            return True
         # dispara si: pidió zona con presupuesto y <2 entran ahí · O la zona no está disponible (sin inventario) pero hay presupuesto
         _need_cross = _has_budget and ((_req_cols and len([d for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and _dev_fits(d)]) < 2) or (zona_no_disponible and not _req_cols))
         if _need_cross:
-            cands = [d for d in DEVELOPMENTS if d.get("colonia_id") not in _req_cols and _dev_fits(d)]
+            _fuera = [d for d in DEVELOPMENTS if d.get("colonia_id") not in _req_cols and d.get("price_from")]
+            # Tier 1 (estricto): cumplen el presupuesto en el esquema pedido.
+            cands = [d for d in _fuera if _specs_ok(d) and _budget_ok(d)]
+            # Tier 2 (relaja ESQUEMA): no alcanza en crédito pero SÍ en preventa (o viceversa) → igual lo mostramos.
+            if len(cands) < 2 and _mm:
+                relaxed = [d for d in _fuera if _specs_ok(d) and _budget_ok(d, relax_scheme=True)]
+                if len(relaxed) > len(cands):
+                    cands, cross_relax = relaxed, "esquema"
+            # Tier 3 (más cercano): si aún hay <2, mostramos lo de MENOR mensualidad aunque quede algo arriba — nunca vacío.
+            if len(cands) < 2:
+                cercanos = sorted([d for d in _fuera if _specs_ok(d)], key=_min_mens)[:5]
+                if len(cercanos) > len(cands):
+                    cands, cross_relax = cercanos, (cross_relax or "cercano")
             scored = []
             for d in cands:
                 sc, falta = _score_cross(d)
-                scored.append((sc, d.get("price_from") or 0, d, falta))
-            scored.sort(key=lambda x: (-x[0], x[1]))   # mejor match primero, luego más barato
+                scored.append((sc, _min_mens(d), d, falta))
+            scored.sort(key=lambda x: (-x[0], x[1]))   # mejor match primero, luego menor mensualidad
             for sc, _pr, d, falta in scored[:5]:
+                _price = d.get("price_from")
+                mc = _mens_credito(_price, d) if _mm else None
+                mp = _mens_preventa(_price, d) if _mm else None
+                _sobre = None   # cuánto/mes arriba del presupuesto (solo si NINGÚN esquema entra)
+                if _mm:
+                    _entra = [x for x in (mc, mp) if x is not None and x <= _mm]
+                    if not _entra and _pr < 10 ** 12:
+                        _sobre = _pr - _mm
                 cross_zone.append({
                     "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
-                    "slug": d.get("slug") or d.get("id"), "price_from": d.get("price_from"), "price_from_display": d.get("price_from_display"),
+                    "slug": d.get("slug") or d.get("id"), "price_from": _price, "price_from_display": d.get("price_from_display"),
                     "bedrooms_range": d.get("bedrooms_range"), "bathrooms_range": d.get("bathrooms_range"),
                     "m2_range": d.get("m2_range"), "parking_range": d.get("parking_range"), "amenities": d.get("amenities") or [],
                     "match": sc, "falta": falta, "stage": d.get("stage"),
-                    "mensualidad_credito": (_mens_credito(d.get("price_from"), d) if _mm else None),
-                    "mensualidad_preventa": (_mens_preventa(d.get("price_from"), d) if _mm else None),
-                    "contado": _contado(d.get("price_from"), d),
-                    "plan_real": bool(_plan(d)),
+                    "mensualidad_credito": mc, "mensualidad_preventa": mp,
+                    "contado": _contado(_price, d),
+                    "plan_real": _plan_real(d), "sobre_presupuesto": _sobre,
                 })
             zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
             # BRECHA DE PRESUPUESTO: lo más barato (mensualidad de crédito) que SÍ existe en la zona PEDIDA vs lo que el
@@ -2546,7 +2615,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                if gap_mensualidad else None)
     out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc),
            "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto,
-           "brecha_zona": _brecha}
+           "brecha_zona": _brecha, "cross_relax": cross_relax}
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
     if zona_no_disponible_slug:
@@ -2605,7 +2674,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             })
     except Exception:
         pass
-    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto, "brecha_zona": _brecha}
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto, "brecha_zona": _brecha, "cross_relax": cross_relax}
 
 
 class NLPSearchIn(BaseModel):
