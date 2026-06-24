@@ -49,10 +49,10 @@ export default function DesarrolladoresV2() {
             <div>
               <Badge tone="theme" size="md" style={{ marginBottom: 16 }}>Para Desarrolladores</Badge>
               <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(30px,4.2vw,48px)', lineHeight: 1.05, letterSpacing: -1.1, margin: '0 0 16px' }}>
-                Vende más rápido — y sabe exactamente <span style={GRADTXT}>qué construir y a qué precio</span>.
+                El radar de <span style={GRADTXT}>demanda inmobiliaria</span> de CDMX.
               </h1>
               <p style={{ fontSize: 'clamp(15.5px,1.6vw,18px)', color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 22px', maxWidth: 480 }}>
-                La única plataforma de CDMX que te muestra <b>lo que la gente busca y no encuentra en tus zonas</b> — y pone tu proyecto frente a quien sí va a comprar.
+                Ve qué quiere el comprador de tu zona <b>antes que tu competencia</b> — y pon tu proyecto frente a quien sí va a comprar.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <Link to="/login" style={{ textDecoration: 'none' }}><Button size="lg">Publica Tu Proyecto Gratis →</Button></Link>

@@ -49,10 +49,10 @@ export default function AsesoresV2() {
             <div>
               <Badge tone="theme" size="md" style={{ marginBottom: 16 }}>Para Asesores Inmobiliarios</Badge>
               <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(30px,4.2vw,48px)', lineHeight: 1.05, letterSpacing: -1.1, margin: '0 0 16px' }}>
-                Cierra más, <span style={GRADTXT}>trabajando menos</span>: la IA hace lo tedioso.
+                Te llegan clientes <span style={GRADTXT}>listos para comprar</span> — no curiosos.
               </h1>
               <p style={{ fontSize: 'clamp(15.5px,1.6vw,18px)', color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 22px', maxWidth: 480 }}>
-                Recibe <b>leads ya calientes</b> (con contexto de qué buscan), deja que un equipo de IA prospecte y nutra por ti, y muéstrale a cada cliente <b>justo lo que le va a gustar</b>.
+                Compradores reales, con presupuesto e intención, que ya saben qué quieren. <b>Tú solo cierras</b> — y una IA hace lo tedioso por ti.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <Link to="/login" style={{ textDecoration: 'none' }}><Button size="lg">Únete Gratis como Asesor →</Button></Link>
