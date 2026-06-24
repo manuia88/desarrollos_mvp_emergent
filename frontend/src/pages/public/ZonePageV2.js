@@ -301,51 +301,194 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
   );
 }
 
-// ⭐ PRIMERA · Meta de enganche. CONECTA con el precio más accesible real de la zona (desarrollo más barato) → cuánto
-// enganche necesitas, cuánto te falta y en cuántos meses lo logras al ritmo que ahorras.
-function EngancheTool({ name, precioBase, devName }) {
-  const precio = precioBase || 1500000;
-  const target = Math.round(precio * 0.20 / 1000) * 1000;
-  const [ahorrado, setAhorrado] = useState(Math.round(target * 0.3 / 10000) * 10000);
-  const [mensual, setMensual] = useState(5000);
-  const falta = Math.max(0, target - ahorrado);
-  const meses = mensual > 0 && falta > 0 ? Math.ceil(falta / mensual) : 0;
-  const pct = Math.min(100, Math.round((ahorrado / target) * 100));
-  const listo = falta <= 0;
-  const tiempo = meses === 0 ? '' : meses < 12 ? `${meses} mes${meses > 1 ? 'es' : ''}` : `${Math.floor(meses / 12)} año${Math.floor(meses / 12) > 1 ? 's' : ''}${meses % 12 ? ` y ${meses % 12} mes${meses % 12 > 1 ? 'es' : ''}` : ''}`;
-  const Slider = ({ label, val, set, min, max, step, tip }) => (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86', display: 'flex', alignItems: 'center' }}>{label}{tip && <span className="tip"><span className="tip-q">?</span><span className="tip-box">{tip}</span></span>}</span>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#4F46E5' }}>${val.toLocaleString('es-MX')}{label.includes('mes') ? '/mes' : ''}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={val} onChange={(e) => set(Number(e.target.value))} style={{ width: '100%', accentColor: '#6366F1', cursor: 'pointer' }} />
+// Fila de desglose financiero reusable (precio máximo, rentar-vs-comprar, etc.).
+function FinRow({ op, label, val, strong, tip }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: strong ? '12px 15px' : '9px 15px', borderRadius: 11, background: strong ? 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04))' : '#fff', border: strong ? '1.5px solid rgba(16,185,129,0.3)' : '1px solid rgba(16,18,28,0.07)' }}>
+      <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: strong ? 14 : 12.5, color: strong ? INK : '#4B4F66', display: 'flex', alignItems: 'center' }}>{op ? <span style={{ color: '#A2A6BC', fontWeight: 800, marginRight: 7, fontFamily: 'Outfit' }}>{op}</span> : null}{label}{tip ? <span className="tip"><span className="tip-q">?</span><span className="tip-box">{tip}</span></span> : null}</span>
+      <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: strong ? 'clamp(18px,2.6vw,24px)' : 15, color: strong ? '#10B981' : INK, whiteSpace: 'nowrap' }}>{val}</span>
     </div>
   );
+}
+// Puntaje 0-10 de un desarrollo para PRIMERA casa (presupuesto 4 · recámaras 3 · tamaño 2 · amenidades 1). Budget-first.
+function scorePrimDev(d, ctx) {
+  let s = 0, max = 0; const reasons = [], gaps = [];
+  if (ctx.precioMax > 0 && d.price_from) {
+    max += 4;
+    if (d.price_from <= ctx.precioMax) { s += 4; reasons.push('dentro de tu presupuesto'); }
+    else if (d.price_from <= ctx.precioMax * 1.3) { s += 2; gaps.push('un poco arriba del presupuesto'); }
+    else { gaps.push('arriba del presupuesto'); }
+  }
+  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
+  max += 3;
+  if (maxBed >= ctx.rec) { s += 3; reasons.push(`${ctx.rec}+ recámaras`); }
+  else if (maxBed > 0) { s += 1.5; gaps.push(`llega a ${maxBed} recámaras`); }
+  const maxM2 = Array.isArray(d.m2_range) ? (d.m2_range[1] || 0) : 0;
+  max += 2;
+  if (maxM2 >= ctx.m2) { s += 2; reasons.push(`hasta ${maxM2} m²`); } else if (maxM2 > 0) { s += 1; }
+  const nAm = Array.isArray(d.amenities) ? d.amenities.length : 0;
+  max += 1; if (nAm >= 3) { s += 1; reasons.push('buenas amenidades'); }
+  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
+  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2) };
+}
+const PERFIL_PRIM_QS = [
+  { k: 'personas', icon: '👥', q: '¿Cuántas personas vivirían aquí?', opts: [['Solo yo', 1], ['Dos', 2], ['Tres o más', 3]] },
+  { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad buscas?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
+  { k: 'motivo', icon: '🎯', q: '¿Qué te mueve a comprar?', opts: [['Dejar de rentar', 'renta'], ['Tener algo mío', 'patrimonio'], ['Independizarme', 'independencia']] },
+  { k: 'cuando', icon: '📅', q: '¿Para cuándo?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Explorando', 'explorando']] },
+  { k: 'renta', icon: '🏚️', q: '¿Cuánto pagas de renta hoy?', input: true, ph: 'Escribe el monto, ej. 12000', opts: [['$8,000', 8000], ['$12,000', 12000], ['$18,000', 18000], ['$25,000', 25000]] },
+  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', input: true, ph: 'Escribe el monto, ej. 30000', opts: [['$20,000', 20000], ['$30,000', 30000], ['$45,000', 45000], ['$60,000', 60000]] },
+  { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienes ahorrado para el enganche?', input: true, ph: 'Escribe el monto, ej. 200000', sub: 'El enganche — el pago inicial de tu bolsa.', opts: [['$50,000', 50000], ['$150,000', 150000], ['$300,000', 300000], ['$500,000', 500000]] },
+  { k: 'credito', icon: '🏛️', q: '¿Cómo piensas el crédito?', opts: [['Crédito bancario', 'banco'], ['Infonavit / Cofinavit', 'infonavit'], ['Aún no sé', 'nose']] },
+];
+const MOTIVO_PRIM = { renta: 'dejar de rentar', patrimonio: 'construir patrimonio', independencia: 'independizarse' };
+const TIPO_PRIM = { depto: 'un departamento', casa: 'una casa', cualquiera: 'departamento o casa' };
+function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
+  const [ans, setAns] = useState({});
+  const [draft, setDraft] = useState('');
+  const sentRef = useRef(false);
+  const step = PERFIL_PRIM_QS.findIndex((q) => ans[q.k] === undefined);
+  const done = step === -1;
+  const cur = done ? null : PERFIL_PRIM_QS[step];
+  const rec = Math.min(3, Math.max(1, Number(ans.personas) || 1));
+  const m2 = 40 + rec * 20;
+  const ing = Number(ans.ingreso) || 0;
+  const pagoMax = Math.round(ing * 0.30);
+  const ii = 0.1145 / 12;
+  const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + ii, -240)) / ii) : 0;
+  const enganche = Number(ans.ahorro) || 0;
+  const precioMax = prestamoMax + enganche;
+  const renta = Number(ans.renta) || 0;
+  const sorted = (Array.isArray(devs) ? devs : []).slice().sort((a, b) => (a.price_from || 0) - (b.price_from || 0));
+  const precioBase = (sorted[0] && sorted[0].price_from) || (inv && (inv.precio_min || inv.precio_prom)) || 0;
+  const plus = ((inv && inv.plusvalia_anual_pct) || 0) / 100;
+  // Rentar vs comprar a 1/3/5/10 años (lo que tiras en renta vs lo que valdría tu propiedad).
+  const proj = [1, 3, 5, 10].map((y) => ({ y, tirado: renta * 12 * y, valor: Math.round(precioBase * Math.pow(1 + plus, y)) }));
+  const engObjetivo = Math.round(precioBase * 0.20);
+  const faltaEng = Math.max(0, engObjetivo - enganche);
+  const mesesEng = renta > 0 && faltaEng > 0 ? Math.ceil(faltaEng / renta) : 0;   // ahorrando lo que hoy pagas de renta
+  const ranked = done ? sorted.map((d) => ({ d, ...scorePrimDev(d, { rec, m2, precioMax }) })).sort((a, b) => b.score - a.score) : [];
+  const propuestas = ranked.slice(0, 2);
+  useEffect(() => {
+    if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, precio_max: precioMax, pago_max: pagoMax }); } catch (e) { /* noop */ } }
+  }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
+  const commitInput = () => { const v = parseInt(String(draft).replace(/\D/g, ''), 10); if (v > 0) { setAns({ ...ans, [cur.k]: v }); setDraft(''); } };
   return (
-    <section style={{ width: '100%', background: 'linear-gradient(180deg,#FAFAFE,#F3F2FB)', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu meta</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Cuánto te falta para empezar?</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Lo más accesible en {name}{devName ? <> ({devName})</> : ''} arranca desde <b style={{ color: INK }}>{m1(precio)}</b>. El enganche para empezar serían <b style={{ color: '#4F46E5' }}>{m1(target)}</b>. Mira cuánto te falta y en cuánto lo logras:</p>
-        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(20px,4vw,40px)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, justifyContent: 'center' }}>
-            <Slider label="Lo que ya tienes ahorrado" val={ahorrado} set={setAhorrado} min={0} max={target} step={10000} />
-            <Slider label="Lo que puedes ahorrar al mes" val={mensual} set={setMensual} min={500} max={30000} step={500} tip="Lo que apartas cada mes para el enganche. Súbelo y mira cómo se acorta el tiempo." />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}><span>Tu avance al enganche</span><span style={{ color: '#4F46E5' }}>{pct}%</span></div>
-              <div style={{ height: 12, borderRadius: 9999, background: 'rgba(99,102,241,0.12)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.max(2, pct)}%`, background: listo ? '#10B981' : 'linear-gradient(90deg,#6366F1,#EC4899)', transition: 'width .3s' }} /></div>
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu primer paso</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Veamos tus números.</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>8 preguntas y al final un <b style={{ color: INK }}>reporte completo</b>: para qué te alcanza, renta vs comprar a 1/3/5/10 años, cuánto te falta de enganche y <b style={{ color: INK }}>2 opciones en {name}</b>.</p>
+        {!done ? (
+          <div style={{ marginTop: 26 }}>
+            <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
+              {PERFIL_PRIM_QS.map((q, i) => (<span key={q.k} style={{ flex: 1, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
             </div>
-            <div style={{ padding: '15px 18px', borderRadius: 14, background: listo ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.07)', textAlign: 'center' }}>
-              {listo
-                ? <><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,3vw,26px)', color: '#0E7A53' }}>¡Ya tienes el enganche! 🎉</div><div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#0E7A53', marginTop: 4 }}>Es momento de dar el paso en {name}.</div></>
-                : <><div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Te falta {m1(falta)} · lo logras en</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(24px,3.6vw,34px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{tiempo}</div></>}
+            <div key={step} className="zv2-pop">
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_PRIM_QS.length}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
+              {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                {cur.opts.map(([label, val]) => (
+                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                ))}
+              </div>
+              {cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
+                  <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
+                  <button type="button" onClick={commitInput} disabled={!Number(String(draft).replace(/\D/g, ''))} className="zv2-cta" style={{ padding: '13px 24px', borderRadius: 12, border: 'none', cursor: Number(String(draft).replace(/\D/g, '')) ? 'pointer' : 'not-allowed', background: Number(String(draft).replace(/\D/g, '')) ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#E3E3EF', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5 }}>Continuar →</button>
+                </div>
+              )}
+              {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_PRIM_QS[step - 1].k]; setAns(c); setDraft(''); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}
             </div>
           </div>
-        </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Enganche estimado en 20% del precio más accesible real de {name}. Con Infonavit/Cofinavit el enganche puede ser menor.</div>
+        ) : (
+          <div className="zv2-pop" style={{ marginTop: 24 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#4B4F66', lineHeight: 1.6, padding: '14px 18px', borderRadius: 13, background: '#F6F6FA', border: '1px solid rgba(16,18,28,0.06)' }}>
+              <b style={{ color: INK }}>Tu perfil:</b> buscas {TIPO_PRIM[ans.tipo] || 'una propiedad'} para {Number(ans.personas) > 1 ? `${ans.personas} personas` : 'ti'}, para <b style={{ color: INK }}>{MOTIVO_PRIM[ans.motivo] || 'comprar'}</b>{ans.credito === 'infonavit' ? ', con Infonavit/Cofinavit' : ans.credito === 'banco' ? ', con crédito bancario' : ''}. Hoy pagas {m1(renta)} de renta.
+            </div>
+            {/* ALCANCE */}
+            <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', marginTop: 16 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>💵 Para qué te alcanza</div>
+              {pagoMax > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+                  <FinRow label="Lo que entra al mes" val={`$${ing.toLocaleString('es-MX')}`} />
+                  <FinRow op="×30%" label="Mensualidad sana" tip="Los bancos recomiendan no pasar del 30% de tu ingreso en la mensualidad." val={`$${pagoMax.toLocaleString('es-MX')}`} />
+                  <FinRow op="→" label="El banco te presta (20 años)" tip="A tasa ~11.45%. Con Infonavit/Cofinavit puede subir." val={m1(prestamoMax)} />
+                  <FinRow op="+" label="Tu enganche" val={m1(enganche)} />
+                  <FinRow strong op="=" label="Precio máximo" val={m1(precioMax)} />
+                </div>
+              ) : <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 10 }}>Pon tu ingreso para ver el desglose.</div>}
+            </div>
+            {/* RENTAR VS COMPRAR 1/3/5/10 */}
+            {renta > 0 && precioBase > 0 && (
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', marginTop: 16 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🏚️ vs 🔑 Rentar o comprar, en el tiempo</div>
+                <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 6, lineHeight: 1.5 }}>Lo que tiras en renta (nunca vuelve) vs lo que valdría una propiedad tuya desde {m1(precioBase)}:</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, marginTop: 12, background: 'rgba(16,18,28,0.07)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '9px 12px', background: '#F6F6FA', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#6B6F86' }}>Plazo</div>
+                  <div style={{ padding: '9px 12px', background: '#F6F6FA', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#DC2626' }}>Rentando tiras</div>
+                  <div style={{ padding: '9px 12px', background: '#F6F6FA', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 11.5, color: '#0E7A53' }}>Comprando tendrías</div>
+                  {proj.map((p) => (
+                    <React.Fragment key={p.y}>
+                      <div style={{ padding: '10px 12px', background: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: INK }}>{p.y} año{p.y > 1 ? 's' : ''}</div>
+                      <div style={{ padding: '10px 12px', background: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#DC2626' }}>−{m1(p.tirado)}</div>
+                      <div style={{ padding: '10px 12px', background: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13.5, color: '#10B981' }}>{m1(p.valor)}</div>
+                    </React.Fragment>
+                  ))}
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: INK, marginTop: 12, lineHeight: 1.5, padding: '11px 14px', borderRadius: 11, background: 'rgba(16,185,129,0.07)' }}>En <b>10 años</b> de renta tiras <b style={{ color: '#DC2626' }}>{m1(proj[3].tirado)}</b> que no vuelven. Esa misma plata, comprando, sería <b style={{ color: '#0E7A53' }}>tu patrimonio</b>.</div>
+              </div>
+            )}
+            {/* META DE ENGANCHE */}
+            {precioBase > 0 && (
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', marginTop: 16 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🎯 Tu enganche</div>
+                {faltaEng <= 0 ? (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: '#0E7A53', marginTop: 10, fontWeight: 700 }}>✓ ¡Ya tienes el enganche! ({m1(engObjetivo)} para arrancar desde {m1(precioBase)}). Es momento de dar el paso.</div>
+                ) : (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: '#4B4F66', marginTop: 10, lineHeight: 1.6 }}>El enganche para empezar (20% de {m1(precioBase)}) es <b style={{ color: INK }}>{m1(engObjetivo)}</b>. Tienes {m1(enganche)}, te falta <b style={{ color: '#4F46E5' }}>{m1(faltaEng)}</b>.{mesesEng > 0 ? <> Ahorrando lo que hoy pagas de renta ({m1(renta)}/mes), lo juntas en <b style={{ color: '#4F46E5' }}>{mesesEng < 12 ? `${mesesEng} meses` : `${Math.floor(mesesEng / 12)} año${Math.floor(mesesEng / 12) > 1 ? 's' : ''}${mesesEng % 12 ? ` y ${mesesEng % 12} m` : ''}`}</b>.</> : null}</div>
+                )}
+              </div>
+            )}
+            {/* 2 PROPUESTAS */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>🔑 2 opciones para ti en {name}</div>
+              {propuestas.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
+                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
+                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
+                      {reasons.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
+                        </div>
+                      )}
+                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones.</p>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
+              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero dar el primer paso →</button>
+              <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Estimación a tasa ~11.45%, 20 años, mensualidad máx 30% del ingreso. Plusvalía y precios reales de {name}. Con Infonavit/Cofinavit el monto puede mejorar.</div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -745,134 +888,6 @@ function LugaresExplorer({ lugares, name, defaultCat, eyebrowText, title, intro,
   );
 }
 
-// Calculadora INTERACTIVA Renta vs Crédito hipotecario. Sliders (precio · enganche % · plazo · tu renta) → mensualidad
-// del crédito vs renta, lado a lado, recalculando en vivo. Para 'mi primera casa'.
-function RentVsMortgage({ name, precioBase, rentaBase }) {
-  const [precio, setPrecio] = useState(Math.min(Math.max(Math.round((precioBase || 2000000) / 100000) * 100000, 800000), 8000000));
-  const [engPct, setEngPct] = useState(20);
-  const [plazoAnos, setPlazoAnos] = useState(20);
-  const [renta, setRenta] = useState(Math.round((rentaBase || 15000) / 500) * 500);
-  const tasa = 0.1145;
-  const enganche = Math.round(precio * engPct / 100);
-  const prestamo = precio - enganche;
-  const i = tasa / 12, n = plazoAnos * 12;
-  const mensualidad = Math.round(prestamo * i / (1 - Math.pow(1 + i, -n)));
-  const dif = mensualidad - renta;
-  const Slider = ({ label, val, set, min, max, step, fmt, tip }) => (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86', display: 'flex', alignItems: 'center' }}>{label}{tip && <span className="tip"><span className="tip-q">?</span><span className="tip-box">{tip}</span></span>}</span>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#4F46E5' }}>{fmt(val)}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={val} onChange={(e) => set(Number(e.target.value))} style={{ width: '100%', accentColor: '#6366F1', cursor: 'pointer' }} />
-    </div>
-  );
-  return (
-    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Renta vs crédito</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Y si esa renta fuera tu mensualidad?</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Mueve los números y compara, mes con mes, lo que pagas de renta hoy contra la mensualidad de un crédito para algo <b style={{ color: INK }}>tuyo</b> en {name}.</p>
-        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,30px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(22px,4vw,44px)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <Slider label="Precio de la propiedad" val={precio} set={setPrecio} min={800000} max={8000000} step={100000} fmt={m1} />
-            <Slider label="Enganche" val={engPct} set={setEngPct} min={10} max={40} step={1} fmt={(v) => `${v}% · ${m1(enganche)}`} tip="Lo que pagas de tu bolsa al inicio. Mientras más das, menos te prestan y más baja la mensualidad." />
-            <Slider label="Plazo del crédito" val={plazoAnos} set={setPlazoAnos} min={10} max={20} step={5} fmt={(v) => `${v} años`} tip="A más años, mensualidad más baja (pero pagas más intereses al final)." />
-            <Slider label="Tu renta hoy" val={renta} set={setRenta} min={4000} max={60000} step={500} fmt={(v) => `$${v.toLocaleString('es-MX')}/mes`} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ padding: '16px 14px', borderRadius: 14, background: '#F6F6FA', border: '1px solid rgba(16,18,28,0.07)' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>🏚️ Renta</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3.4vw,30px)', color: '#6B6F86', letterSpacing: '-0.02em', marginTop: 4 }}>${renta.toLocaleString('es-MX')}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#A2A6BC' }}>al mes · del casero</div>
-              </div>
-              <div style={{ padding: '16px 14px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04))', border: '1.5px solid rgba(16,185,129,0.3)' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#0E7A53' }}>🔑 Crédito</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(22px,3.4vw,30px)', color: '#10B981', letterSpacing: '-0.02em', marginTop: 4 }}>${mensualidad.toLocaleString('es-MX')}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#0E7A53' }}>al mes · y es tuyo</div>
-              </div>
-            </div>
-            <div style={{ padding: '13px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.06)', fontFamily: 'DM Sans', fontSize: 13.5, color: INK, lineHeight: 1.5 }}>
-              {dif <= 0
-                ? <>Pagarías <b style={{ color: '#0E7A53' }}>{m1(Math.abs(dif))} menos al mes</b> que de renta — y el pago es <b>tuyo</b>, no del casero.</>
-                : <>Son <b style={{ color: '#4F46E5' }}>{m1(dif)} más al mes</b> que tu renta. La diferencia: cada pago construye <b>tu patrimonio</b> en lugar de irse.</>}
-            </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#6B6F86' }}>Enganche {m1(enganche)} · te prestan {m1(prestamo)} · {plazoAnos} años · tasa ~11.45%</div>
-          </div>
-        </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Estimado a tasa fija ~11.45%. Tu tasa real depende del banco y tu perfil — con Infonavit/Cofinavit puede mejorar. Se afina al cotizar.</div>
-      </div>
-    </section>
-  );
-}
-
-// Herramienta de asequibilidad ÚNICA (reusada por 'mi primera casa' y 'familia'). Desglose paso a paso + globitos (?).
-// plural=true → lenguaje familia ('les/su'); false → primera ('te/tu').
-function AffordTool({ name, precioMin, ingreso, setIngreso, ahorro, setAhorro, plural }) {
-  const tasa = 0.1145, plazo = 240, dti = 0.30;
-  const ing = Number(ingreso) || 0;
-  const pagoMax = Math.round(ing * dti);
-  const i = tasa / 12;
-  const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + i, -plazo)) / i) : 0;
-  const precioMax = prestamoMax + (Number(ahorro) || 0);
-  const alcanza = precioMin ? precioMax >= precioMin : null;
-  const v = plural
-    ? { eyb: '¿Cuánto les alcanza?', g: 'gana su hogar', presIntro: 'Eso es lo que les presta el banco', ahoStep: 'Su enganche', precio: 'su propiedad', sub: 'Con lo que entra en casa y lo que tienen ahorrado, les decimos —paso a paso— para qué les alcanza en ', alc: 'Sí les alcanza', noalc: 'esa mensualidad ya sería de ustedes' }
-    : { eyb: '¿Cuánto te alcanza?', g: 'ganas', presIntro: 'Eso es lo que te presta el banco', ahoStep: 'Tu enganche', precio: 'tu propiedad', sub: 'Con tu ingreso y lo que tienes ahorrado, te decimos —paso a paso— para qué te alcanza en ', alc: 'Sí te alcanza', noalc: 'esa mensualidad ya sería tuya' };
-  const T = ({ t }) => (<span className="tip"><span className="tip-q">?</span><span className="tip-box">{t}</span></span>);
-  const inputS = { padding: '10px 13px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: INK, outline: 'none', background: '#fff', width: 140 };
-  const cont = { maxWidth: 1000, margin: '0 auto', padding: '0 28px' };
-  const Row = ({ op, label, tip, val, hl }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: hl ? '15px 18px' : '11px 18px', borderRadius: 12, background: hl ? 'linear-gradient(135deg, rgba(99,102,241,0.09), rgba(236,72,153,0.06))' : '#fff', border: hl ? '1.5px solid rgba(99,102,241,0.28)' : '1px solid rgba(16,18,28,0.07)' }}>
-      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: hl ? 14.5 : 13, color: hl ? INK : '#4B4F66', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>{op && <span style={{ color: '#A2A6BC', fontWeight: 800, marginRight: 9, fontFamily: 'Outfit', fontSize: 15 }}>{op}</span>}{label}{tip && <T t={tip} />}</div>
-      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: hl ? 'clamp(22px,3.4vw,30px)' : 16, color: hl ? '#4F46E5' : INK, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>{val}</div>
-    </div>
-  );
-  return (
-    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={cont}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>{v.eyb}</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Pon {plural ? 'sus' : 'tus'} números.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 640, marginTop: 14, lineHeight: 1.6 }}>{v.sub}{name}.</p>
-        <div className="zv2-win" style={{ background: '#fff', border: '1px solid rgba(16,18,28,0.07)', borderRadius: 22, boxShadow: '0 18px 50px rgba(99,102,241,0.08), 0 2px 8px rgba(16,18,28,0.04)', padding: 'clamp(20px,3vw,28px)', marginTop: 22 }}>
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-end', paddingBottom: 20, borderBottom: '1px solid rgba(16,18,28,0.07)' }}>
-            <div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>{plural ? 'Ingreso del hogar (al mes)' : 'Tu ingreso del hogar (al mes)'}</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                {[20000, 30000, 45000, 60000].map((x) => (
-                  <button key={x} type="button" onClick={() => setIngreso(x)} style={{ padding: '8px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: ing === x ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.2)', background: ing === x ? 'rgba(99,102,241,0.1)' : '#fff', color: ing === x ? '#4F46E5' : '#4B4F66' }}>${(x / 1000)}k</button>
-                ))}
-                <input type="text" inputMode="numeric" value={`$${ing.toLocaleString('es-MX')}`} onChange={(e) => setIngreso(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ ...inputS, width: 110 }} />
-              </div>
-            </div>
-            <div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6, display: 'flex', alignItems: 'center' }}>{plural ? 'Lo que tienen ahorrado' : 'Lo que tienes ahorrado'}<T t="El dinero que ya tienes guardado para el enganche — el pago inicial que das de tu bolsa." /></div>
-              <input type="text" inputMode="numeric" value={`$${(Number(ahorro) || 0).toLocaleString('es-MX')}`} onChange={(e) => setAhorro(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={inputS} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18 }}>
-            <Row label={`Lo que ${v.g} al mes`} val={`$${ing.toLocaleString('es-MX')}`} />
-            <Row op="×" label="El 30% sano para vivienda" tip="Los bancos recomiendan no destinar más del 30% de tu ingreso al pago de la casa — así vives tranquilo, sin ahogarte." val="30%" />
-            <Row op="=" label="Tu mensualidad máxima" tip="Lo máximo que pagarías al mes sin apretarte. Es el corazón del cálculo." val={`$${pagoMax.toLocaleString('es-MX')}`} />
-            <Row op="→" label={v.presIntro} tip="A 20 años, con una tasa de ~11.45% (la típica de hoy). Es el préstamo máximo que sostiene esa mensualidad." val={m1(prestamoMax)} />
-            <Row op="+" label={v.ahoStep} tip="Tu ahorro inicial se suma al préstamo: mientras más enganche, más alcanza." val={m1(Number(ahorro) || 0)} />
-            <Row hl op="=" label={`Precio máximo de ${v.precio}`} val={m1(precioMax)} />
-          </div>
-          {precioMin != null && (
-            <div style={{ marginTop: 16, padding: '13px 16px', borderRadius: 12, background: alcanza ? 'rgba(16,185,129,0.08)' : 'rgba(99,102,241,0.07)', fontFamily: 'DM Sans', fontSize: 13.5, color: alcanza ? '#0E7A53' : '#4F46E5', lineHeight: 1.5 }}>
-              {alcanza
-                ? <>✓ <b>{v.alc} para {name}</b> — desde {m1(precioMin)}. Y {v.noalc} en vez de irse en renta.</>
-                : <>En {name} arranca desde <b>{m1(precioMin)}</b> y por ahora alcanza para {m1(precioMax)}. Cerca: súbele al enganche, considera <b>Infonavit/Cofinavit</b> (amplía el monto), o mira zonas más accesibles.</>}
-            </div>
-          )}
-          <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 12, fontStyle: 'italic' }}>Estimado · crédito a 20 años, tasa ~11.45%, mensualidad máx 30% del ingreso. Con Infonavit/Cofinavit puede subir — se afina al cotizar con tus datos reales.</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function ZonePageV2() {
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1007,12 +1022,7 @@ export default function ZonePageV2() {
     if ((a.escuela || 0) >= 12) chips.push(['🎓', 'Muchas escuelas']);
     return chips.slice(0, 4);
   })();
-  // Mi primera casa · "¿cuánto me alcanza?" — ingreso del hogar + ahorro → precio máximo (DTI 30%, crédito 20 años)
-  const [pcIngreso, setPcIngreso] = useState(30000);
-  const [pcAhorro, setPcAhorro] = useState(300000);
-  const [rentaUser, setRentaUser] = useState(null);   // "mi primera casa": renta actual del cliente para el comparador rentar-vs-comprar
-  // Rentar vs comprar (primera casa): renta de la zona vs mensualidad del crédito 80%
-  const rentaMes = inv && inv.renta_prom;
+  // (familia/primera: ingreso/ahorro/renta ahora viven DENTRO de sus wizards · PerfilFamilia/WizardPrimera)
   // Lente del inversionista (los 7 avatares → 3 puertas) + helper "para ti" que resalta el bloque del avatar elegido.
   const lensCfg = LENSES.find((l) => l.k === lens) || null;
   const paraTi = (tag) => !!(lensCfg && lensCfg.tags.includes(tag));
@@ -1559,61 +1569,11 @@ export default function ZonePageV2() {
           );
         })()}
 
-        {profile === 'primera' && tieneMercado && rentaMes && (() => {
-          const renta = Number(rentaUser) || rentaMes;
-          const meses = 60;
-          const rentaTirada = renta * meses;
-          const precio = inv.precio_min || inv.precio_prom;
-          const plus = (inv.plusvalia_anual_pct || 0) / 100;
-          const valor5 = Math.round(precio * Math.pow(1 + plus, 5));
-          const ganada = valor5 - precio;
-          return (
-            <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-              <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
-                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Rentar vs comprar</div>
-                <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿A dónde se va tu renta?</h2>
-                <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Pon lo que pagas de renta hoy y mira la diferencia, en 5 años, entre seguirla pagando y empezar lo tuyo en {name}:</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 18 }}>
-                  <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: '#6B6F86' }}>Mi renta hoy:</span>
-                  {[8000, 12000, 18000, 25000].map((v) => (
-                    <button key={v} type="button" onClick={() => setRentaUser(v)} style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, border: renta === v ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.2)', background: renta === v ? 'rgba(99,102,241,0.1)' : '#fff', color: renta === v ? '#4F46E5' : '#4B4F66' }}>${(v / 1000)}k</button>
-                  ))}
-                  <input type="text" inputMode="numeric" value={`$${Math.round(renta).toLocaleString('es-MX')}`} onChange={(e) => setRentaUser(parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0)} style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, color: INK, outline: 'none', background: '#fff', width: 110 }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 22 }}>
-                  <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px', borderTop: '3px solid #DC2626' }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🏚️ Si sigues rentando 5 años</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,5vw,40px)', color: '#DC2626', letterSpacing: '-0.03em', marginTop: 6 }}>−{m1(rentaTirada)}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Eso le pagas a tu casero. Al final de los 5 años, te quedas con <b style={{ color: '#DC2626' }}>cero</b> — ni un metro es tuyo.</div>
-                  </div>
-                  <div className="zv2-win" style={{ ...cardBase, padding: '22px 24px', borderTop: '3px solid #10B981' }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>🔑 Si compras lo tuyo</div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(30px,5vw,40px)', color: '#10B981', letterSpacing: '-0.03em', marginTop: 6 }}>+{m1(valor5)}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Una propiedad desde {m1(precio)} que en 5 años vale <b style={{ color: '#0E7A53' }}>{m1(valor5)}</b> (+{m1(ganada)} de plusvalía) — y es <b>tuya</b>, no del casero.</div>
-                  </div>
-                </div>
-                <div style={{ marginTop: 16, padding: '14px 18px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(236,72,153,0.05))', fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,16px)', color: INK, lineHeight: 1.55 }}>La misma plata que hoy se va en renta, mañana es <b>tu patrimonio</b>. La diferencia en 5 años: <b style={{ color: '#0E7A53' }}>~{m1(rentaTirada + ganada)}</b> a tu favor.</div>
-                <div style={{ marginTop: 30, fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.8vw,17px)', fontWeight: 600, fontStyle: 'italic', color: '#4B4F66', display: 'flex', alignItems: 'center', gap: 9 }}>Y comprar tu primera es más alcanzable de lo que crees <span style={{ fontSize: 17, fontStyle: 'normal', color: '#EC4899' }}>↓</span></div>
-              </div>
-            </section>
-          );
-        })()}
-        {/* ── ¿CUÁNTO TE ALCANZA? (herramienta única AffordTool · desglose paso a paso + globitos) ── */}
+        {/* WIZARD PRIMERA (TANDA C · fusiona rentar-vs-comprar + pon-tus-números + renta-vs-crédito + meta-enganche + prioridad
+            + quiz en 1 cuestionario 8Q → reporte: alcance + rentar-vs-comprar 1/3/5/10 años + enganche + 2 propuestas) */}
         {profile === 'primera' && tieneMercado && (
-          <AffordTool name={name} precioMin={inv && inv.precio_min} ingreso={pcIngreso} setIngreso={setPcIngreso} ahorro={pcAhorro} setAhorro={setPcAhorro} plural={false} />
+          <WizardPrimera name={name} devs={devs} inv={inv} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'primera', ...a })} />
         )}
-        {/* ── RENTA vs CRÉDITO HIPOTECARIO (calculadora interactiva con sliders) ── */}
-        {profile === 'primera' && tieneMercado && (
-          <RentVsMortgage name={name} precioBase={inv && (inv.precio_min || inv.precio_prom)} rentaBase={rentaMes} />
-        )}
-        {/* ── META DE ENGANCHE (interactivo · conecta con el desarrollo más accesible real de la zona) ── */}
-        {profile === 'primera' && tieneMercado && (
-          <EngancheTool name={name} precioBase={(sortedDevs[0] && sortedDevs[0].price_from) || (inv && inv.precio_min)} devName={sortedDevs[0] && sortedDevs[0].name} />
-        )}
-        {/* ARMA TU PRIORIDAD (personalizado · datos reales) */}
-        {profile === 'primera' && tieneMercado && lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
-        {/* QUIZ ¿es para tu primera? (engancha + califica → registro) */}
-        {profile === 'primera' && tieneMercado && <ZonaQuiz profile="primera" name={name} onCTA={() => setSaveOpen(true)} />}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
         {profile === 'primera' && tieneMercado && (
