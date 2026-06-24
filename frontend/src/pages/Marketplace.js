@@ -475,7 +475,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {aiCrossZone.length > 0 && (
                 <div data-testid="ai-cross-zone" style={{ marginTop: 12, padding: '14px 16px', borderRadius: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.28)' }}>
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:</div>
-                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad estimada · <b style={{ color: 'var(--cream)' }}>{aiMensSupuesto.esquema}</b> · enganche {aiMensSupuesto.enganche}{aiMensSupuesto.plazo_anios ? ` · ${aiMensSupuesto.plazo_anios} años · tasa ${aiMensSupuesto.tasa}` : ''}. {aiMensSupuesto.nota}</div> : null}
+                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad por desarrollo, en sus dos esquemas — <b style={{ color: 'var(--cream)' }}>💳 crédito</b> (enganche {aiMensSupuesto.enganche} · {aiMensSupuesto.plazo_anios} años · {aiMensSupuesto.tasa}) y <b style={{ color: 'var(--cream)' }}>🏗️ preventa</b> (enganche en mensualidades durante la obra). {aiMensSupuesto.nota}</div> : null}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
                     {aiCrossZone.map((c) => (
                       <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -486,7 +486,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)', marginTop: 2 }}>{c.name}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>{Array.isArray(c.bedrooms_range) ? `${c.bedrooms_range[0]}–${c.bedrooms_range[1]} rec` : ''}{Array.isArray(c.m2_range) ? ` · ${c.m2_range[0]}–${c.m2_range[1]} m²` : ''}</div>
                         {c.price_from ? <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: '#34D399', marginTop: 4 }}>desde {c.price_from_display || `$${Number(c.price_from).toLocaleString('es-MX')}`}</div> : null}
-                        {c.mensualidad_est ? <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>~${Number(c.mensualidad_est).toLocaleString('es-MX')}/mes</div> : null}
+                        {(c.mensualidad_credito || c.mensualidad_preventa) ? (
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.5 }}>
+                            {c.mensualidad_credito ? <div>💳 crédito: <b style={{ color: 'var(--cream)' }}>~${Number(c.mensualidad_credito).toLocaleString('es-MX')}/mes</b></div> : null}
+                            {c.mensualidad_preventa ? <div>🏗️ preventa: <b style={{ color: 'var(--cream)' }}>~${Number(c.mensualidad_preventa).toLocaleString('es-MX')}/mes</b></div> : null}
+                            <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 1 }}>{c.plan_real ? '✓ plan del desarrollador' : 'estimado'}</div>
+                          </div>
+                        ) : null}
                         {Array.isArray(c.falta) && c.falta.length > 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(245,200,120,0.85)', marginTop: 5 }}>le falta: {c.falta.join(' · ')}</div> : null}
                       </Link>
                     ))}
