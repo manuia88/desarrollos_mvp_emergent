@@ -55,6 +55,7 @@ import BuySignal from '../components/marketplace/BuySignal';
 import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
 import DemandaZonaCard from '../components/marketplace/DemandaZonaCard';
 import PerfilLente from '../components/marketplace/PerfilLente';
+import RiesgosHonestos from '../components/marketplace/RiesgosHonestos';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
 // B2 — Cables a Marketplace: lo que el dev configuró, visible para el comprador
 import DevConfigSections from '../components/marketplace/DevConfigSections';
@@ -504,10 +505,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             </div>
           </section>
 
+          {/* ═══ ACTO 7 · ¿CONFÍAS? — reviews + riesgos honestos (risk-reversal). La transparencia construye confianza. ═══ */}
           {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
           <section data-testid="dev-reviews-residents-section" style={{ marginTop: 20 }}>
             <DevReviewsBlock devId={dev.id} />
           </section>
+
+          {/* Riesgos honestos — dato real (Atlas de Riesgos CDMX + preventa + absorción), lectura balanceada. */}
+          <RiesgosHonestos dev={dev} />
 
           {/* B2.1 — Lo que el desarrollador configuró: servicios + construcción + legal */}
           <DevConfigSections config={dev.config} />
