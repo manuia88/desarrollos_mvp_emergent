@@ -680,6 +680,31 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             </div>
           </section>
         )}
+
+        {/* ═══ ACTO 8 · SIGUIENTE PASO — cierre fuerte. Hormozi siempre cierra con CTA. ═══ */}
+        <section data-testid="cierre-cta" style={{
+          marginTop: 44, padding: 'clamp(34px,5vw,60px) clamp(24px,4vw,48px)', borderRadius: 28,
+          background: 'var(--grad)', textAlign: 'center', color: '#fff',
+          boxShadow: '0 30px 80px rgba(99,102,241,0.28)',
+        }}>
+          <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.85 }}>El siguiente paso</div>
+          <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,44px)', letterSpacing: '-0.03em', margin: '8px auto 10px', maxWidth: 640, lineHeight: 1.05 }}>
+            ¿Listo para conocer {dev.name}?
+          </h2>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.6vw,16px)', opacity: 0.92, margin: '0 auto 26px', maxWidth: 480, lineHeight: 1.5 }}>
+            Agenda una visita sin compromiso. Te acompañamos con datos reales, no con presión.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => openGate({ source: 'cierre', dev_id: dev.id, dev_name: dev.name })} data-testid="cierre-cta-agendar"
+              style={{ padding: '16px 34px', borderRadius: 14, border: 'none', background: '#fff', color: '#4F46E5', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 16, cursor: 'pointer', boxShadow: '0 12px 30px rgba(0,0,0,0.18)' }}>
+              Agendar mi visita →
+            </button>
+            <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }))} data-testid="cierre-cta-atlax"
+              style={{ padding: '16px 30px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', color: '#fff', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+              ✨ Pregúntale a Atlax
+            </button>
+          </div>
+        </section>
       </main>
 
       <RegistrationModal
