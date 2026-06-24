@@ -129,70 +129,92 @@ function buildStories(name, inv) {
 
 // ⭐ FAMILIA · ¿Cuánto espacio necesitan? Stepper de composición familiar → recámaras/m² sugeridos → CONECTA con datos
 // reales de los desarrollos (bedrooms_range/m2_range/price_from/amenities) para mostrar los que SÍ les quedan en la zona.
-function EspacioTool({ devs, name }) {
-  const [adultos, setAdultos] = useState(2);
-  const [ninos, setNinos] = useState(2);
-  const [pet, setPet] = useState(false);
-  const [oficina, setOficina] = useState(false);
-  const recRec = Math.max(1, 1 + ninos + (oficina ? 1 : 0));   // 1 recámara principal + 1 por hijo + 1 si home office
-  const m2Sug = 45 + recRec * 22;
-  const lista = (Array.isArray(devs) ? devs : []).filter((d) => Array.isArray(d.bedrooms_range) && (d.bedrooms_range[1] || 0) >= recRec);
+// PerfilFamilia (TANDA B · fusión "¿cuánto espacio?" + quiz): cuestionario de 6 preguntas → recomienda recámaras/m²,
+// EMPATA con desarrollos reales mostrando POR QUÉ (recámaras ✓ · pet ✓ · presupuesto) + CTA. Alimenta superadmin con el
+// perfil estructurado (onProfile → buyer signal: tamaño de familia, prioridad, urgencia → inteligencia de demanda).
+const PERFIL_FAM_QS = [
+  { k: 'adultos', icon: '🧑', q: '¿Cuántos adultos vivirían aquí?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'ninos', icon: '🧒', q: '¿Cuántos niños?', opts: [['Ninguno', 0], ['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'pet', icon: '🐾', q: '¿Tienen mascota?', opts: [['Sí', true], ['No', false]] },
+  { k: 'oficina', icon: '💻', q: '¿Alguien trabaja desde casa?', opts: [['Sí', true], ['No', false]] },
+  { k: 'prioridad', icon: '⭐', q: '¿Qué es lo más importante para ustedes?', opts: [['Escuelas cerca', 'escuelas'], ['Zona segura', 'seguridad'], ['Espacio para crecer', 'espacio'], ['Áreas verdes', 'verde']] },
+  { k: 'cuando', icon: '📅', q: '¿Para cuándo se mudarían?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Aún explorando', 'explorando']] },
+];
+const PRIOR_FAM = { escuelas: 'escuelas cerca', seguridad: 'una zona segura', espacio: 'espacio para crecer', verde: 'áreas verdes' };
+function PerfilFamilia({ name, devs, onCTA, onProfile }) {
+  const [ans, setAns] = useState({});
+  const sentRef = useRef(false);
+  const step = PERFIL_FAM_QS.findIndex((q) => ans[q.k] === undefined);
+  const done = step === -1;
+  const rec = Math.max(1, 1 + (Number(ans.ninos) || 0) + (ans.oficina ? 1 : 0));
+  const m2 = 45 + rec * 22;
   const petKeys = ['pet', 'area_pets', 'jardines'];
-  const fits = lista.filter((d) => !pet || (Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a)))).sort((a, b) => (a.price_from || 0) - (b.price_from || 0));
-  const Stepper = ({ label, val, set, min, max, icon }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 14px', borderRadius: 12, background: '#fff', border: '1px solid rgba(16,18,28,0.08)' }}>
-      <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: '#4B4F66', display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{icon}</span>{label}</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
-        <button type="button" onClick={() => set(Math.max(min, val - 1))} style={{ width: 30, height: 30, borderRadius: 9, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#6366F1', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, lineHeight: 1 }}>−</button>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK, minWidth: 18, textAlign: 'center' }}>{val}</span>
-        <button type="button" onClick={() => set(Math.min(max, val + 1))} style={{ width: 30, height: 30, borderRadius: 9, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#6366F1', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, lineHeight: 1 }}>+</button>
-      </span>
-    </div>
-  );
-  const Toggle = ({ label, on, set, icon }) => (
-    <button type="button" onClick={() => set(!on)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.1)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : '#4B4F66' }}><span style={{ fontSize: 16 }}>{icon}</span>{label}{on ? ' ✓' : ''}</button>
-  );
+  const fits = done ? (Array.isArray(devs) ? devs : [])
+    .filter((d) => Array.isArray(d.bedrooms_range) && (d.bedrooms_range[1] || 0) >= rec)
+    .filter((d) => !ans.pet || (Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a))))
+    .sort((a, b) => (a.price_from || 0) - (b.price_from || 0)) : [];
+  useEffect(() => {
+    if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, m2 }); } catch (e) { /* noop */ } }
+  }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>El espacio justo</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Cuánto espacio necesitan?</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Dinos cómo es tu familia y te decimos cuántas recámaras buscar — y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b>.</p>
-        <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(20px,3.5vw,38px)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-            <Stepper label="Adultos" val={adultos} set={setAdultos} min={1} max={4} icon="🧑" />
-            <Stepper label="Niños" val={ninos} set={setNinos} min={0} max={5} icon="🧒" />
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
-              <Toggle label="Tenemos mascota" on={pet} set={setPet} icon="🐾" />
-              <Toggle label="Trabajo en casa" on={oficina} set={setOficina} icon="💻" />
+      <div data-rev style={{ maxWidth: 860, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Su lugar ideal</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Cuéntanos de tu familia.</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>6 preguntas rápidas y te decimos cuánto espacio buscar — y <b style={{ color: INK }}>qué desarrollos de {name} les quedan</b>.</p>
+        {!done ? (
+          <div style={{ marginTop: 26 }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 22 }}>
+              {PERFIL_FAM_QS.map((q, i) => (<span key={q.k} style={{ flex: 1, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
+            </div>
+            <div key={step} className="zv2-pop">
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_FAM_QS.length}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{PERFIL_FAM_QS[step].icon}</span>{PERFIL_FAM_QS[step].q}</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                {PERFIL_FAM_QS[step].opts.map(([label, val]) => (
+                  <button key={label} type="button" onClick={() => setAns({ ...ans, [PERFIL_FAM_QS[step].k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                ))}
+              </div>
+              {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_FAM_QS[step - 1].k]; setAns(c); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, padding: '4px 0' }}>
-            <div style={{ textAlign: 'center', padding: '18px', borderRadius: 16, background: 'linear-gradient(135deg, rgba(99,102,241,0.09), rgba(236,72,153,0.06))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#6B6F86' }}>Lo que les conviene buscar</div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(26px,4vw,36px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 4 }}>{recRec} recámara{recRec > 1 ? 's' : ''}</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 2 }}>~{m2Sug} m² o más{pet ? ' · con espacio para la mascota' : ''}</div>
+        ) : (
+          <div className="zv2-pop" style={{ marginTop: 24 }}>
+            <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(18px,2.6vw,24px)', textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05))', border: '1.5px solid rgba(99,102,241,0.25)' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: '#6B6F86' }}>Para tu familia, lo ideal es buscar</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(28px,4.5vw,40px)', color: '#4F46E5', letterSpacing: '-0.02em', marginTop: 3 }}>{rec} recámara{rec > 1 ? 's' : ''}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: MUT, marginTop: 2 }}>~{m2} m² o más{ans.pet ? ' · con espacio para la mascota' : ''}{ans.prioridad ? ` · priorizando ${PRIOR_FAM[ans.prioridad]}` : ''}</div>
             </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 22 }}>
-          <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} les queda${fits.length > 1 ? 'n' : ''}:` : `Por ahora ningún desarrollo en ${name} llega a ${recRec} recámaras${pet ? ' con espacio para mascota' : ''}.`}</div>
-          {fits.length > 0 ? (
-            <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
-              {fits.slice(0, 6).map((d) => (
-                <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '15px 17px' }}>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, letterSpacing: '-0.01em' }}>{d.name}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 5 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}</div>
-                  {d.price_from ? <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#10B981', marginTop: 6 }}>desde {m1(d.price_from)}</div> : null}
-                  {pet && Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a)) ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: '#0E7A53', marginTop: 5 }}>🐾 pet friendly</div> : null}
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: INK }}>{fits.length > 0 ? `🏡 ${fits.length} desarrollo${fits.length > 1 ? 's' : ''} en ${name} les queda${fits.length > 1 ? 'n' : ''}:` : `Por ahora ningún desarrollo en ${name} llega a ${rec} recámaras${ans.pet ? ' con espacio para mascota' : ''}.`}</div>
+              {fits.length > 0 ? (
+                <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
+                  {fits.slice(0, 6).map((d) => {
+                    const hasPet = Array.isArray(d.amenities) && d.amenities.some((a) => petKeys.includes(a));
+                    return (
+                      <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '15px 17px' }}>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15.5, color: INK, letterSpacing: '-0.01em' }}>{d.name}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 5 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}</div>
+                        {d.price_from ? <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#10B981', marginTop: 6 }}>desde {m1(d.price_from)}</div> : null}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {rec}+ recámaras</span>
+                          {ans.pet && hasPet ? <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ pet friendly</span> : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : (
+                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Te avisamos en cuanto entre uno que les quede, o explora zonas con desarrollos más amplios.</p>
+              )}
             </div>
-          ) : (
-            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Quita la mascota o baja una recámara para ver opciones, o explora zonas con desarrollos más amplios. Te avisamos en cuanto entre uno que les quede.</p>
-          )}
-        </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Recámaras y tamaños reales de los desarrollos disponibles en {name}.</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
+              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero que me asesoren →</button>
+              <button type="button" onClick={() => { sentRef.current = false; setAns({}); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Recámaras y tamaños reales de los desarrollos en {name}.</div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1324,8 +1346,8 @@ export default function ZonePageV2() {
                 </>
               )}
 
-              {/* CAP 2.7 · ¿CUÁNTO ESPACIO NECESITAN? (interactivo · conecta con recámaras/m²/precio reales de los desarrollos) */}
-              {devs.length > 0 && <EspacioTool devs={devs} name={name} />}
+              {/* CAP 2.7 · PERFILA TU FAMILIA (cuestionario 6Q · fusiona espacio+quiz · match con desarrollos + feed superadmin) */}
+              {devs.length > 0 && <PerfilFamilia name={name} devs={devs} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'familia', ...a })} />}
 
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
@@ -1355,8 +1377,7 @@ export default function ZonePageV2() {
               {/* CAP 4.3 · ARMA TU PRIORIDAD (personalizado · datos reales) */}
               {lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
 
-              {/* CAP 4.5 · QUIZ ¿es para tu familia? (engancha + califica → registro) */}
-              <ZonaQuiz profile="familia" name={name} onCTA={() => setSaveOpen(true)} />
+              {/* (quiz fusionado en PerfilFamilia · Cap 2.7) */}
 
               {/* CAP 5 · AQUÍ EMPIEZA SU HOGAR (cierre + urgencia · familia) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
