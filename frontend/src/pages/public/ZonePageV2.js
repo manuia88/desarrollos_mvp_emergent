@@ -261,10 +261,10 @@ const PERFIL_FAM_QS = [
   { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad prefieren?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
   { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento necesitan?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'banos', icon: '🛁', q: '¿Cuántos baños necesitan?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
-  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieren lista?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieren lista?', opts: [['Lista para mudarme ya', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['Sin prisa / explorando', 999]] },
   { k: 'pago', icon: '🏦', q: '¿Cómo piensan pagarla?', opts: [['Crédito hipotecario', 'credito'], ['Contado', 'contado'], ['Plan del desarrollador', 'plan'], ['Aún no sé', 'nose']] },
   { k: 'prioridad', icon: '⭐', q: '¿Qué es lo más importante para ustedes?', opts: [['Escuelas cerca', 'escuelas'], ['Zona segura', 'seguridad'], ['Espacio para crecer', 'espacio'], ['Áreas verdes', 'verde']] },
-  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', input: true, ph: 'Escribe el monto, ej. 45000', opts: [['$20,000', 20000], ['$35,000', 35000], ['$50,000', 50000], ['$70,000', 70000]] },
+  { k: 'ingreso', icon: '💵', q: '¿Cuál es tu ingreso mensual?', input: true, ph: 'Escribe el monto, ej. 45000', opts: [['$20,000', 20000], ['$35,000', 35000], ['$50,000', 50000], ['$70,000', 70000]] },
   { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienen ahorrado para el enganche?', input: true, ph: 'Escribe el monto, ej. 400000', sub: 'El enganche — lo que dan de su bolsa al inicio.', opts: [['$150,000', 150000], ['$400,000', 400000], ['$700,000', 700000], ['$1,000,000', 1000000]] },
 ];
 const PRIOR_FAM = { escuelas: 'escuelas cerca', seguridad: 'una zona segura', espacio: 'espacio para crecer', verde: 'áreas verdes' };
@@ -345,7 +345,7 @@ function PerfilFamilia({ name, devs, allDevs, zoneId, onCTA, onProfile }) {
                 <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>💵 Para qué les alcanza</div>
                 {pagoMax > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
-                    <RowF label="Lo que entra al mes" val={`$${ing.toLocaleString('es-MX')}`} />
+                    <RowF label="Tu ingreso mensual" val={`$${ing.toLocaleString('es-MX')}`} />
                     <RowF op="×30%" label="Mensualidad sana" val={`$${pagoMax.toLocaleString('es-MX')}`} />
                     <RowF op="→" label="El banco les presta (20 años)" val={m1(prestamoMax)} />
                     <RowF op="+" label="Su enganche" val={m1(enganche)} />
@@ -383,11 +383,10 @@ const PERFIL_PRIM_QS = [
   { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad buscas?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
   { k: 'banos', icon: '🛁', q: '¿Cuántos baños necesitas?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento?', opts: [['Ninguno', 0], ['1', 1], ['2 o más', 2]] },
-  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres lista?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres lista?', opts: [['Lista para mudarme ya', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['Sin prisa / explorando', 999]] },
   { k: 'motivo', icon: '🎯', q: '¿Qué te mueve a comprar?', opts: [['Dejar de rentar', 'renta'], ['Tener algo mío', 'patrimonio'], ['Independizarme', 'independencia']] },
-  { k: 'cuando', icon: '📅', q: '¿Para cuándo?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Explorando', 'explorando']] },
   { k: 'renta', icon: '🏚️', q: '¿Cuánto pagas de renta hoy?', input: true, ph: 'Escribe el monto, ej. 12000', opts: [['$8,000', 8000], ['$12,000', 12000], ['$18,000', 18000], ['$25,000', 25000]] },
-  { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', input: true, ph: 'Escribe el monto, ej. 30000', opts: [['$20,000', 20000], ['$30,000', 30000], ['$45,000', 45000], ['$60,000', 60000]] },
+  { k: 'ingreso', icon: '💵', q: '¿Cuál es tu ingreso mensual?', input: true, ph: 'Escribe el monto, ej. 30000', opts: [['$20,000', 20000], ['$30,000', 30000], ['$45,000', 45000], ['$60,000', 60000]] },
   { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienes ahorrado para el enganche?', input: true, ph: 'Escribe el monto, ej. 200000', sub: 'El enganche — el pago inicial de tu bolsa.', opts: [['$50,000', 50000], ['$150,000', 150000], ['$300,000', 300000], ['$500,000', 500000]] },
   { k: 'credito', icon: '🏛️', q: '¿Cómo piensas el crédito?', opts: [['Crédito bancario', 'banco'], ['Infonavit / Cofinavit', 'infonavit'], ['Aún no sé', 'nose']] },
 ];
@@ -433,7 +432,7 @@ function WizardPrimera({ name, devs, allDevs, zoneId, inv, onCTA, onProfile }) {
       <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu primer paso</div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Veamos tus números.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>8 preguntas y al final un <b style={{ color: INK }}>reporte completo</b>: para qué te alcanza, renta vs comprar a 1/3/5/10 años, cuánto te falta de enganche y <b style={{ color: INK }}>2 opciones en {name}</b>.</p>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>{PERFIL_PRIM_QS.length} preguntas y al final un <b style={{ color: INK }}>reporte completo</b>: para qué te alcanza, renta vs comprar a 1/3/5/10 años, cuánto te falta de enganche y <b style={{ color: INK }}>los desarrollos que mejor te quedan</b> (o en otra zona, si aquí no alcanza).</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
             <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
@@ -469,7 +468,7 @@ function WizardPrimera({ name, devs, allDevs, zoneId, inv, onCTA, onProfile }) {
               <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>💵 Para qué te alcanza</div>
               {pagoMax > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
-                  <FinRow label="Lo que entra al mes" val={`$${ing.toLocaleString('es-MX')}`} />
+                  <FinRow label="Tu ingreso mensual" val={`$${ing.toLocaleString('es-MX')}`} />
                   <FinRow op="×30%" label="Mensualidad sana" tip="Los bancos recomiendan no pasar del 30% de tu ingreso en la mensualidad." val={`$${pagoMax.toLocaleString('es-MX')}`} />
                   <FinRow op="→" label="El banco te presta (20 años)" tip="A tasa ~11.45%. Con Infonavit/Cofinavit puede subir." val={m1(prestamoMax)} />
                   <FinRow op="+" label="Tu enganche" val={m1(enganche)} />
@@ -640,12 +639,11 @@ const PERFIL_VIV_QS = [
   { k: 'recamaras', icon: '🛏️', q: '¿Cuántas recámaras?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'banos', icon: '🛁', q: '¿Cuántos baños?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
-  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres?', opts: [['Lista para mudarme ya', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['Sin prisa / explorando', 999]] },
   { k: 'amenidad', icon: '✨', q: '¿Qué amenidad NO puede faltar?', opts: [['Roof garden', 'roof'], ['Spa', 'spa'], ['Gimnasio', 'gym'], ['Concierge', 'concierge'], ['Alberca', 'alberca']] },
   { k: 'estilo', icon: '🍸', q: '¿Qué estilo de vida buscas?', opts: [['Gastronómico', 'gastro'], ['Cultural', 'cultural'], ['Social / nocturno', 'social'], ['Tranquilo', 'tranquilo']] },
   { k: 'caminar', icon: '🚶', q: '¿Qué tanto te importa tener todo a pie?', opts: [['Muchísimo', 'mucho'], ['Algo', 'algo'], ['Me da igual', 'poco']] },
   { k: 'presupuesto', icon: '💎', q: '¿Cuál es tu presupuesto?', input: true, ph: 'Escribe el monto, ej. 8000000', sub: 'Opcional — nos ayuda a afinar las opciones a tu rango.', opts: [['$5M', 5000000], ['$8M', 8000000], ['$12M', 12000000], ['$20M+', 20000000]] },
-  { k: 'cuando', icon: '📅', q: '¿Para cuándo?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Explorando', 'explorando']] },
 ];
 const ESTILO_VIV = { gastro: 'gastronómico', cultural: 'cultural', social: 'social y nocturno', tranquilo: 'tranquilo' };
 const TIPO_VIV = { depto: 'un departamento', penthouse: 'un penthouse', casa: 'una casa', cualquiera: 'lo mejor disponible' };
@@ -670,7 +668,7 @@ function WizardVivir({ name, devs, allDevs, zoneId, lugares, onCTA, onProfile })
       <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu siguiente nivel</div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Diseña tu vida aquí.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>8 preguntas y te damos <b style={{ color: INK }}>2 desarrollos de {name}</b> hechos a tu medida — amenidades, estilo y ubicación.</p>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>{PERFIL_VIV_QS.length} preguntas y te damos <b style={{ color: INK }}>los desarrollos que mejor te quedan</b> en {name} (o en otra zona, si aquí no alcanza) — amenidades, estilo y ubicación.</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
             <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
