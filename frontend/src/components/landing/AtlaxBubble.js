@@ -71,7 +71,7 @@ function saveHistory(h) {
 
 
 // ─── LeadCaptureMiniForm (W4.4E.5.1) ─────────────────────────────────────
-function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false }) {
+function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false, pageContext = null }) {
   const [nombre, setNombre] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -96,6 +96,7 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false
         nombre: nombre.trim(),
         whatsapp: whatsapp.trim(),
         email: email.trim() || null,
+        mensaje: pageContext || null,   // lo que el usuario buscaba/veía → el asesor recibe un lead CON contexto, no en blanco
       });
       setSuccess(true);
       try { localStorage.setItem(`dmx.atlax.lead_captured.${asistenteToken}`, 'true'); } catch (_) {/*ignore*/}
@@ -283,18 +284,23 @@ function nextOptions(messages) {
   const intent = lastA && lastA.intent_detected;
   const txt = `${(lastU && lastU.content) || ''} ${(lastA && lastA.content) || ''}`.toLowerCase();
   const has = (re) => re.test(txt);
+  let opts;
   if (intent === 'cita' || has(/agenda|visita|conocer el|ver el dep|me interesa este/))
-    return [{ l: '📅 Quiero agendar una visita', human: true }, { l: 'Ver opciones similares', p: 'Muéstrame más opciones parecidas a esta' }, { l: 'Hablar con un asesor', human: true }];
-  if (intent === 'presupuesto' || has(/presupuesto|crédito|credito|enganche|cuánto pago|mensualidad|infonavit/))
-    return [{ l: '💰 Opciones para mi presupuesto', p: '¿Qué opciones de vivienda nueva hay para mi presupuesto y cómo va el crédito?' }, { l: 'Comparar precios', p: 'Compara precios por m² entre estas colonias' }];
-  if (has(/polanco|condesa|roma|del valle|coyoac|juárez|juarez|nápoles|napoles|santa fe|narvarte/))
-    return [{ l: 'Ver desarrollos aquí', p: 'Muéstrame los desarrollos disponibles en esa colonia' }, { l: '¿Qué tan segura es?', p: '¿Qué tan segura es esa colonia y cómo se vive ahí?' }, { l: 'Precio por m²', p: '¿Cuánto cuesta el m² en esa colonia?' }];
-  if (has(/invertir|inversión|inversion|plusval|rentar|renta/))
-    return [{ l: 'Zonas que más suben', p: '¿Qué colonias tienen mayor plusvalía hoy?' }, { l: 'Dónde se renta mejor', p: '¿En qué zonas se renta más rápido y con mejor retorno?' }, { l: 'Comparar 2 colonias', p: 'Compara dos colonias para invertir' }];
-  if (has(/vivir|familia|hijos|escuela|tranquil|segur/))
-    return [{ l: 'Colonias familiares', p: '¿Qué colonias son buenas para vivir en familia?' }, { l: 'Con buenas escuelas', p: '¿Dónde hay buenas escuelas cerca?' }, { l: 'Ver opciones', p: 'Muéstrame opciones de vivienda nueva para vivir' }];
-  // Aún sin señal clara → calificar (vivir/invertir/presupuesto)
-  return [{ l: '🏡 Para vivir', p: 'Busco para vivir en CDMX. ¿Qué colonias me convienen?' }, { l: '📈 Para invertir', p: 'Busco invertir. ¿Qué zonas convienen?' }, { l: '💰 Según mi presupuesto', p: 'Tengo un presupuesto. ¿Qué opciones hay?' }];
+    opts = [{ l: '📅 Quiero agendar una visita', human: true }, { l: 'Ver opciones similares', p: 'Muéstrame más opciones parecidas a esta' }, { l: 'Hablar con un asesor', human: true }];
+  else if (intent === 'presupuesto' || has(/presupuesto|crédito|credito|enganche|cuánto pago|mensualidad|infonavit/))
+    opts = [{ l: '💰 Opciones para mi presupuesto', p: '¿Qué opciones de vivienda nueva hay para mi presupuesto y cómo va el crédito?' }, { l: 'Comparar precios', p: 'Compara precios por m² entre estas colonias' }];
+  else if (has(/polanco|condesa|roma|del valle|coyoac|juárez|juarez|nápoles|napoles|santa fe|narvarte/))
+    opts = [{ l: 'Ver desarrollos aquí', p: 'Muéstrame los desarrollos disponibles en esa colonia' }, { l: '¿Qué tan segura es?', p: '¿Qué tan segura es esa colonia y cómo se vive ahí?' }, { l: 'Precio por m²', p: '¿Cuánto cuesta el m² en esa colonia?' }];
+  else if (has(/invertir|inversión|inversion|plusval|rentar|renta/))
+    opts = [{ l: 'Zonas que más suben', p: '¿Qué colonias tienen mayor plusvalía hoy?' }, { l: 'Dónde se renta mejor', p: '¿En qué zonas se renta más rápido y con mejor retorno?' }, { l: 'Comparar 2 colonias', p: 'Compara dos colonias para invertir' }];
+  else if (has(/vivir|familia|hijos|escuela|tranquil|segur/))
+    opts = [{ l: 'Colonias familiares', p: '¿Qué colonias son buenas para vivir en familia?' }, { l: 'Con buenas escuelas', p: '¿Dónde hay buenas escuelas cerca?' }, { l: 'Ver opciones', p: 'Muéstrame opciones de vivienda nueva para vivir' }];
+  else  // Aún sin señal clara → calificar (vivir/invertir/presupuesto)
+    opts = [{ l: '🏡 Para vivir', p: 'Busco para vivir en CDMX. ¿Qué colonias me convienen?' }, { l: '📈 Para invertir', p: 'Busco invertir. ¿Qué zonas convienen?' }, { l: '💰 Según mi presupuesto', p: 'Tengo un presupuesto. ¿Qué opciones hay?' }];
+  // Atlax ACTÚA: en alta intención (handoff / cita / presupuesto detectados), ofrece proactivamente conectar con un asesor.
+  const wantsHuman = lastA && (lastA.hand_off || lastA.suggested_capture);
+  if (wantsHuman && !opts.some((o) => o.human)) opts = [{ l: '💬 Que me contacte un asesor', human: true }, ...opts];
+  return opts;
 }
 
 export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null } = {}) {
@@ -868,6 +874,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
               <LeadCaptureMiniForm
                 light={light}
                 asistenteToken={asistenteToken}
+                pageContext={contextRef.current}
                 onSuccess={() => setLeadCaptured(true)}
                 onClose={() => { setShowLeadForm(false); setFormDismissed(true); }}
               />
