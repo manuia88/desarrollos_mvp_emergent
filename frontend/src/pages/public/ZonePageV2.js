@@ -579,102 +579,140 @@ function WalkScore({ lugares, name }) {
   );
 }
 
-// Arma tu prioridad: el cliente elige hasta 3 cosas que le importan → la zona responde con el DATO REAL de cada una
-// (conteos de lugares Google · precio_min · recámaras máx de los desarrollos · pet-friendly). Sin scores subjetivos.
-function ArmaPrioridad({ lugares, devs, inv, name }) {
+// WizardVivir (TANDA D · #9): mismo patrón que familia/primera pero para la persona aspiracional — amenidades premium +
+// estilo de vida (no 'dejar de rentar'). 8 preguntas → reporte con 2 propuestas puntuadas por amenidades + feed superadmin.
+const AMEN_LABEL = { roof: ['🌿', 'Roof garden'], spa: ['💆', 'Spa'], gym: ['🏋️', 'Gimnasio'], concierge: ['🛎️', 'Concierge'], alberca: ['🏊', 'Alberca'], seguridad: ['🛡️', 'Seguridad 24/7'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'] };
+const PERFIL_VIV_QS = [
+  { k: 'personas', icon: '👥', q: '¿Para quién es tu nuevo lugar?', opts: [['Para mí', 1], ['Pareja', 2], ['Familia', 3]] },
+  { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad sueñas?', opts: [['Departamento', 'depto'], ['Penthouse', 'penthouse'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
+  { k: 'recamaras', icon: '🛏️', q: '¿Cuántas recámaras?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'amenidad', icon: '✨', q: '¿Qué amenidad NO puede faltar?', opts: [['Roof garden', 'roof'], ['Spa', 'spa'], ['Gimnasio', 'gym'], ['Concierge', 'concierge'], ['Alberca', 'alberca']] },
+  { k: 'estilo', icon: '🍸', q: '¿Qué estilo de vida buscas?', opts: [['Gastronómico', 'gastro'], ['Cultural', 'cultural'], ['Social / nocturno', 'social'], ['Tranquilo', 'tranquilo']] },
+  { k: 'caminar', icon: '🚶', q: '¿Qué tanto te importa tener todo a pie?', opts: [['Muchísimo', 'mucho'], ['Algo', 'algo'], ['Me da igual', 'poco']] },
+  { k: 'presupuesto', icon: '💎', q: '¿Cuál es tu presupuesto?', input: true, ph: 'Escribe el monto, ej. 8000000', sub: 'Opcional — nos ayuda a afinar las opciones a tu rango.', opts: [['$5M', 5000000], ['$8M', 8000000], ['$12M', 12000000], ['$20M+', 20000000]] },
+  { k: 'cuando', icon: '📅', q: '¿Para cuándo?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Explorando', 'explorando']] },
+];
+const ESTILO_VIV = { gastro: 'gastronómico', cultural: 'cultural', social: 'social y nocturno', tranquilo: 'tranquilo' };
+const TIPO_VIV = { depto: 'un departamento', penthouse: 'un penthouse', casa: 'una casa', cualquiera: 'lo mejor disponible' };
+function scoreVivDev(d, ctx) {
+  let s = 0, max = 0; const reasons = [], gaps = [];
+  const am = Array.isArray(d.amenities) ? d.amenities : [];
+  max += 3;
+  if (ctx.amenidad && am.includes(ctx.amenidad)) { s += 3; reasons.push(`tiene ${(AMEN_LABEL[ctx.amenidad] || ['', ctx.amenidad])[1].toLowerCase()}`); }
+  else if (ctx.amenidad) { gaps.push(`sin ${(AMEN_LABEL[ctx.amenidad] || ['', ctx.amenidad])[1].toLowerCase()}`); }
+  const premium = ['roof', 'spa', 'concierge', 'sky_lounge', 'cava', 'gym', 'alberca'];
+  const nPrem = am.filter((a) => premium.includes(a)).length;
+  max += 3;
+  if (nPrem >= 4) { s += 3; reasons.push('amenidades de lujo'); } else if (nPrem >= 2) { s += 1.5; reasons.push('buenas amenidades'); }
+  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
+  max += 2;
+  if (maxBed >= ctx.rec) { s += 2; reasons.push(`${ctx.rec}+ recámaras`); } else if (maxBed > 0) { s += 1; }
+  if (ctx.presupuesto > 0 && d.price_from) {
+    max += 2;
+    if (d.price_from <= ctx.presupuesto) { s += 2; reasons.push('en tu presupuesto'); }
+    else if (d.price_from <= ctx.presupuesto * 1.2) { s += 1; gaps.push('un poco arriba de tu presupuesto'); }
+    else { gaps.push('arriba de tu presupuesto'); }
+  }
+  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
+  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2) };
+}
+function WizardVivir({ name, devs, lugares, onCTA, onProfile }) {
+  const [ans, setAns] = useState({});
+  const [draft, setDraft] = useState('');
+  const sentRef = useRef(false);
+  const step = PERFIL_VIV_QS.findIndex((q) => ans[q.k] === undefined);
+  const done = step === -1;
+  const cur = done ? null : PERFIL_VIV_QS[step];
+  const rec = Math.min(3, Math.max(1, Number(ans.recamaras) || 1));
+  const presupuesto = Number(ans.presupuesto) || 0;
   const LG = (lugares && lugares.lugares) || {};
   const cnt = (k) => ((LG[k] || []).filter((p) => p && p.name)).length;
-  const maxBed = Math.max(0, ...(devs || []).map((d) => (Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0)));
-  const petDevs = (devs || []).filter((d) => Array.isArray(d.amenities) && d.amenities.some((a) => ['pet', 'area_pets', 'jardines'].includes(a))).length;
-  const comer = cnt('restaurante') + cnt('cafe');
-  const OPTS = [
-    ['🏫', 'escuelas', 'Escuelas cerca', cnt('escuela') ? `${cnt('escuela')}+ escuelas a la vuelta` : null],
-    ['🍴', 'comer', 'Comer y salir', comer ? `${comer}+ lugares para comer y café` : null],
-    ['🌳', 'parques', 'Áreas verdes', cnt('parque') ? `${cnt('parque')}+ parques cerca` : null],
-    ['🚇', 'transporte', 'Buen transporte', cnt('transporte') ? `${cnt('transporte')}+ opciones de transporte` : null],
-    ['💰', 'precio', 'Precio accesible', inv && inv.precio_min ? `desde ${m1(inv.precio_min)}` : null],
-    ['🏠', 'espacio', 'Espacio para crecer', maxBed ? `hasta ${maxBed} recámaras` : null],
-    ['🐾', 'pet', 'Pet friendly', petDevs ? `${petDevs} desarrollo${petDevs > 1 ? 's' : ''} pet friendly` : null],
-  ].filter((o) => o[3]);
-  const [sel, setSel] = useState([]);
-  if (OPTS.length < 3) return null;
-  const toggle = (k) => setSel(sel.includes(k) ? sel.filter((x) => x !== k) : (sel.length < 3 ? [...sel, k] : sel));
-  const chosen = OPTS.filter((o) => sel.includes(o[1]));
+  const ranked = done ? (Array.isArray(devs) ? devs : []).map((d) => ({ d, ...scoreVivDev(d, { rec, amenidad: ans.amenidad, presupuesto }) })).sort((a, b) => b.score - a.score) : [];
+  const propuestas = ranked.slice(0, 2);
+  useEffect(() => {
+    if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec }); } catch (e) { /* noop */ } }
+  }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
+  const commitInput = () => { const v = parseInt(String(draft).replace(/\D/g, ''), 10); if (v > 0) { setAns({ ...ans, [cur.k]: v }); setDraft(''); } };
   return (
     <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 820, margin: '0 auto', padding: '0 28px' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Lo que más te importa</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿Qué pesa más para ti?</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 600, marginTop: 14, lineHeight: 1.6 }}>Elige hasta 3 cosas que más te importan y mira cómo responde {name} — con datos reales:</p>
-        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 22 }}>
-          {OPTS.map(([ic, k, label]) => {
-            const on = sel.includes(k);
-            const dis = !on && sel.length >= 3;
-            return (
-              <button key={k} type="button" onClick={() => toggle(k)} disabled={dis} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 17px', borderRadius: 999, cursor: dis ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, border: on ? '1.5px solid transparent' : '1px solid rgba(16,18,28,0.12)', background: on ? 'linear-gradient(90deg,#6366F1,#EC4899)' : '#fff', color: on ? '#fff' : (dis ? '#C7CAD6' : '#4B4F66'), boxShadow: on ? '0 8px 22px rgba(99,102,241,0.28)' : 'none', opacity: dis ? 0.6 : 1, transition: 'all .15s' }}><span style={{ fontSize: 16 }}>{ic}</span>{label}{on ? ' ✓' : ''}</button>
-            );
-          })}
-        </div>
-        {chosen.length > 0 && (
-          <div key={sel.join(',')} className="zv2-pop" style={{ ...cardBase, padding: 'clamp(20px,3vw,28px)', marginTop: 24, background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04))' }}>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.5vw,24px)', color: INK, letterSpacing: '-0.02em' }}>Para ti, {name} te da:</div>
-            <div className="zv2-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 16 }}>
-              {chosen.map(([ic, k, label, dato]) => (
-                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 13, background: '#fff', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <span style={{ fontSize: 22 }}>{ic}</span>
-                  <div>
-                    <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#0E7A53' }}>✓ {label}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13.5, color: INK, marginTop: 1 }}>{dato}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// Quiz "¿esta zona es para ti?" — 3 preguntas rápidas por perfil → match honesto (refleja TUS respuestas, sin score falso)
-// + CTA al registro. Engancha y califica al lead (la 'acción' del arco). onCTA dispara el modal de registro existente.
-const QUIZ_CFG = {
-  familia: { eyb: '¿Les queda?', h: (n) => `¿${n} es para tu familia?`, qs: [['¿Qué es lo que más buscan?', ['Más espacio para todos', 'Buenas escuelas cerca', 'Una zona segura']], ['¿Cómo viven hoy?', ['Rentando', 'En un lugar que se quedó chico', 'Buscando algo mejor']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Buscas ${String(a[0] || '').toLowerCase()} — y eso es justo lo que una familia encuentra en ${n}. Vale la pena verlo a fondo.` },
-  primera: { eyb: '¿Es tu momento?', h: (n) => `¿${n} es para tu primera?`, qs: [['¿Qué te mueve a comprar?', ['Dejar de rentar', 'Tener algo mío', 'Empezar a construir patrimonio']], ['¿Cómo estás de enganche?', ['Ya tengo algo ahorrado', 'Apenas empiezo', 'Casi completo']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Tu meta: ${String(a[0] || '').toLowerCase()}. En ${n} esa misma mensualidad ya sería tuya — demos el primer paso.` },
-  vivir: { eyb: '¿Va contigo?', h: (n) => `¿${n} es tu lugar?`, qs: [['¿Qué buscas al mudarte?', ['Mejor ubicación', 'Amenidades de verdad', 'Más vida alrededor']], ['¿Cómo vives hoy?', ['Cómodo, pero quiero más', 'Listo para subir de nivel', 'Buscando el lugar correcto']], ['¿Para cuándo?', ['Cuanto antes', 'Este año', 'Aún explorando']]], cierre: (n, a) => `Quieres ${String(a[0] || '').toLowerCase()} — y ${n} se trata exactamente de eso. Es momento de verlo de cerca.` },
-};
-function ZonaQuiz({ profile, name, onCTA }) {
-  const CFG = QUIZ_CFG[profile];
-  const [ans, setAns] = useState([]);
-  if (!CFG) return null;
-  const step = ans.length;
-  const done = step >= CFG.qs.length;
-  const pick = (opt) => setAns([...ans, opt]);
-  return (
-    <section style={{ width: '100%', background: '#fff', padding: 'clamp(56px,8vw,92px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-      <div data-rev style={{ maxWidth: 680, margin: '0 auto', padding: '0 28px', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>{CFG.eyb}</div>
-        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.05, fontSize: 'clamp(26px,3.6vw,42px)', color: INK, margin: '14px 0 0' }}>{CFG.h(name)}</h2>
+      <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu siguiente nivel</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Diseña tu vida aquí.</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>8 preguntas y te damos <b style={{ color: INK }}>2 desarrollos de {name}</b> hechos a tu medida — amenidades, estilo y ubicación.</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 22 }}>
-              {CFG.qs.map((q, i) => (<span key={i} style={{ width: 26, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
+            <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
+              {PERFIL_VIV_QS.map((q, i) => (<span key={q.k} style={{ flex: 1, height: 5, borderRadius: 9999, background: i <= step ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(16,18,28,0.1)' }} />))}
             </div>
-            <div key={step} className="zv2-pop" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,22px)', color: INK }}>{CFG.qs[step][0]}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18, maxWidth: 420, margin: '18px auto 0' }}>
-              {CFG.qs[step][1].map((opt) => (
-                <button key={opt} type="button" onClick={() => pick(opt)} className="zv2-glow" style={{ padding: '14px 20px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{opt}</button>
-              ))}
+            <div key={step} className="zv2-pop">
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_VIV_QS.length}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
+              {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                {cur.opts.map(([label, val]) => (
+                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                ))}
+              </div>
+              {cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
+                  <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
+                  <button type="button" onClick={commitInput} disabled={!Number(String(draft).replace(/\D/g, ''))} className="zv2-cta" style={{ padding: '13px 24px', borderRadius: 12, border: 'none', cursor: Number(String(draft).replace(/\D/g, '')) ? 'pointer' : 'not-allowed', background: Number(String(draft).replace(/\D/g, '')) ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#E3E3EF', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5 }}>Continuar →</button>
+                  <button type="button" onClick={() => setAns({ ...ans, [cur.k]: 0 })} style={{ background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>prefiero no decir</button>
+                </div>
+              )}
+              {step > 0 && <button type="button" onClick={() => { const c = { ...ans }; delete c[PERFIL_VIV_QS[step - 1].k]; setAns(c); setDraft(''); }} style={{ marginTop: 18, background: 'none', border: 'none', color: '#9499AE', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>← atrás</button>}
             </div>
           </div>
         ) : (
           <div className="zv2-pop" style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 42 }}>✨</div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(16px,2.2vw,20px)', color: INK, lineHeight: 1.55, marginTop: 12, fontWeight: 600 }}>{CFG.cierre(name, ans)}</p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
-              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero saber más de {name} →</button>
-              <button type="button" onClick={() => setAns([])} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#4B4F66', lineHeight: 1.6, padding: '14px 18px', borderRadius: 13, background: '#F6F6FA', border: '1px solid rgba(16,18,28,0.06)' }}>
+              <b style={{ color: INK }}>Tu perfil:</b> buscas {TIPO_VIV[ans.tipo] || 'una propiedad'} de {rec} recámara{rec > 1 ? 's' : ''}, estilo <b style={{ color: INK }}>{ESTILO_VIV[ans.estilo] || 'a tu gusto'}</b>, con <b style={{ color: INK }}>{(AMEN_LABEL[ans.amenidad] || ['', 'amenidades'])[1].toLowerCase()}</b> imprescindible{presupuesto > 0 ? `, presupuesto ~${m1(presupuesto)}` : ''}.
             </div>
+            {(cnt('restaurante') + cnt('cafe') + cnt('parque')) > 0 && (
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', marginTop: 16 }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12.5, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🍸 Tu vida en {name}, a pie</div>
+                <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 10 }}>
+                  {[['🍴', cnt('restaurante'), 'restaurantes'], ['☕', cnt('cafe'), 'cafés'], ['🌳', cnt('parque'), 'parques']].filter(([, n]) => n > 0).map(([ic, n, l]) => (
+                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 20 }}>{ic}</span><span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#10B981' }}>{n >= 18 ? '18+' : n}</span><span style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT }}>{l}</span></div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>✨ 2 desarrollos a tu medida en {name}</div>
+              {propuestas.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
+                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
+                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                        <div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
+                      {reasons.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
+                        </div>
+                      )}
+                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones a tu altura.</p>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
+              <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero conocer estas opciones →</button>
+              <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Amenidades, recámaras y precios reales de los desarrollos en {name}.</div>
           </div>
         )}
       </div>
@@ -1672,11 +1710,8 @@ export default function ZonePageV2() {
                 </section>
               )}
 
-              {/* CAP 4.3 · ARMA TU PRIORIDAD (personalizado · datos reales) */}
-              {lugares && lugares.fuente === 'google' && <ArmaPrioridad lugares={lugares} devs={devs} inv={inv} name={name} />}
-
-              {/* CAP 4.5 · QUIZ ¿es tu lugar? (engancha + califica → registro) */}
-              <ZonaQuiz profile="vivir" name={name} onCTA={() => setSaveOpen(true)} />
+              {/* CAP 4.5 · WIZARD VIVIR (fusiona arma-prioridad + quiz → 8Q → reporte con 2 propuestas a tu medida) */}
+              <WizardVivir name={name} devs={devs} lugares={lugares} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'vivir', ...a })} />
 
               {/* CAP 5 · TU SIGUIENTE NIVEL (cierre · vivir) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
