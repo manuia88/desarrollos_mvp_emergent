@@ -2127,12 +2127,6 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
                or await db.colonias.find_one({"name": {"$regex": "^" + _rgx.escape(q), "$options": "i"}}, {"_id": 0}))
     cid = (col or {}).get("id") or q
     nombre = (col or {}).get("name") or q
-    valor_m2 = None
-    try:
-        _v = await db.colonia_catastro_byid.find_one({"colonia_id": cid}, {"_id": 0, "valor_suelo_m2": 1})
-        valor_m2 = (_v or {}).get("valor_suelo_m2")
-    except Exception:
-        pass
     # Demanda sobre TODOS los ids con el mismo nombre (seed corto + catálogo largo) → no perder señal por el choque de 2 sistemas de id.
     _ids = {cid}
     if nombre:
@@ -2153,15 +2147,27 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
         demanda = 0
     pres = rec = None
     try:
-        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "p": {"$avg": "$precio_max"}, "r": {"$avg": "$recamaras_min"}}}]).to_list(1)
+        import statistics as _stt
+        from collections import Counter as _Counter
+        _a = await db.marketplace_searches.aggregate([{"$match": base}, {"$group": {"_id": None, "ps": {"$push": "$precio_max"}, "rs": {"$push": "$recamaras_min"}}}]).to_list(1)
         if _a:
-            if _a[0].get("p"):
-                pres = round(_a[0]["p"])
-            if _a[0].get("r"):
-                rec = round(_a[0]["r"])
+            _ps = [x for x in (_a[0].get("ps") or []) if isinstance(x, (int, float)) and x]
+            _rs = [int(x) for x in (_a[0].get("rs") or []) if isinstance(x, (int, float)) and x]
+            pres = round(_stt.median(_ps)) if _ps else None     # MEDIANA (robusta a presupuestos atípicos)
+            rec = _Counter(_rs).most_common(1)[0][0] if _rs else None   # MODA (las recámaras que MÁS se piden)
     except Exception:
         pass
     oferta = [d for d in DEVELOPMENTS if d.get("colonia_id") in _ids]
+    # Precio/m² de MERCADO: mediana del $/m² de los desarrollos REALES de la zona (lo que de verdad se vende). None si no hay oferta.
+    precio_m2 = None
+    try:
+        import statistics as _st2
+        from data_developments import dev_price_m2 as _dpm2
+        _pm = [v for v in (_dpm2(d) for d in oferta) if v]
+        if _pm:
+            precio_m2 = round(_st2.median(_pm))
+    except Exception:
+        pass
     if rol == "asesor":
         visible = [
             {"k": "Compradores buscando aquí (30 días)", "v": demanda, "fmt": "int"},
@@ -2181,7 +2187,7 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
         "tiene_senal": demanda > 0,
         # Solo DATOS CONCRETOS y CONFIABLES (búsquedas reales) — sin índices "X/100" que no dicen nada ni datos ruidosos.
         "visible": visible,
-        "valor_suelo_m2": valor_m2,   # catastral real (puede faltar) → bonus honesto, claramente etiquetado en la UI
+        "precio_m2": precio_m2,   # $/m² de mercado (mediana de los desarrollos REALES de la zona) · None si no hay oferta
         "locked": locked, "locked_count": len(locked),
         "nota": ("Tu zona aún no tiene búsquedas registradas — regístrate y te avisamos en cuanto empiecen." if demanda == 0
                  else "Esto es solo una muestra. El reporte completo de tu zona se desbloquea gratis al registrarte."),

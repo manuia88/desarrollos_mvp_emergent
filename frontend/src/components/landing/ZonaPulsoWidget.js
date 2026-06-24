@@ -122,10 +122,10 @@ export default function ZonaPulsoWidget({ rol = 'dev' }) {
               </div>
             ))}
           </div>
-          {/* dato concreto extra (solo si existe) — valor catastral del suelo, claramente etiquetado */}
-          {pulso.valor_suelo_m2 != null && (
+          {/* dato concreto extra (solo si hay oferta) — precio/m² de mercado de los desarrollos reales de la zona */}
+          {pulso.precio_m2 != null && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              <span style={chip}>🏷️ Valor catastral del suelo: <b style={{ color: 'var(--cream)' }}>${Number(pulso.valor_suelo_m2).toLocaleString('es-MX')}/m²</b></span>
+              <span style={chip}>🏷️ Precio/m² de mercado: <b style={{ color: 'var(--cream)' }}>${Number(pulso.precio_m2).toLocaleString('es-MX')}/m²</b></span>
             </div>
           )}
 
