@@ -32,6 +32,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
   const [aiNoticeSlug, setAiNoticeSlug] = useState(null); // slug de la zona para enlazar a /zona
   const [aiCrossZone, setAiCrossZone] = useState([]);     // si no alcanza la zona pedida → desarrollos en OTRAS zonas que sí cumplen
+  const [aiMensSupuesto, setAiMensSupuesto] = useState(null); // supuesto usado para mapear mensualidad→precio (enganche·plazo·tasa)
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
@@ -207,6 +208,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       setAiNotice(resp?.zona_no_disponible || null);
       setAiNoticeSlug(resp?.zona_no_disponible_slug || null);
       setAiCrossZone(Array.isArray(resp?.cross_zone) ? resp.cross_zone : []);
+      setAiMensSupuesto(resp?.mensualidad_supuesto || null);
     } finally {
       setAiLoading(false);
     }
@@ -453,7 +455,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); }}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); setAiMensSupuesto(null); }}
                 openKey={openKey}
                 openNonce={openNonce}
               />
@@ -473,6 +475,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {aiCrossZone.length > 0 && (
                 <div data-testid="ai-cross-zone" style={{ marginTop: 12, padding: '14px 16px', borderRadius: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.28)' }}>
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:</div>
+                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad estimada con {aiMensSupuesto.esquema} · {aiMensSupuesto.enganche} · {aiMensSupuesto.plazo_anios} años · tasa {aiMensSupuesto.tasa}. (El plan de preventa del desarrollador es distinto.)</div> : null}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
                     {aiCrossZone.map((c) => (
                       <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -483,6 +486,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)', marginTop: 2 }}>{c.name}</div>
                         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>{Array.isArray(c.bedrooms_range) ? `${c.bedrooms_range[0]}–${c.bedrooms_range[1]} rec` : ''}{Array.isArray(c.m2_range) ? ` · ${c.m2_range[0]}–${c.m2_range[1]} m²` : ''}</div>
                         {c.price_from ? <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: '#34D399', marginTop: 4 }}>desde {c.price_from_display || `$${Number(c.price_from).toLocaleString('es-MX')}`}</div> : null}
+                        {c.mensualidad_est ? <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>~${Number(c.mensualidad_est).toLocaleString('es-MX')}/mes</div> : null}
                         {Array.isArray(c.falta) && c.falta.length > 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(245,200,120,0.85)', marginTop: 5 }}>le falta: {c.falta.join(' · ')}</div> : null}
                       </Link>
                     ))}
@@ -578,7 +582,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </button>
                   )}
                   {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
-                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
                     ✨ Nueva búsqueda
                   </button>
@@ -692,7 +696,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
 

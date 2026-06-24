@@ -2081,7 +2081,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or []}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or [], "mensualidad_supuesto": cached.get("mensualidad_supuesto")}
     parsed = {}
     # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
     # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
@@ -2376,13 +2376,39 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     # reales. + zonas_sustitutas = inteligencia de SUSTITUCIÓN (a qué zona se va la demanda de la pedida) para dev/superadmin.
     cross_zone = []
     zonas_sustitutas = []
+    mensualidad_supuesto = None
     try:
         _col = filters.get("colonia")
         _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
         _maxp = filters.get("max_price")
-        # Presupuesto en MENSUALIDAD o ENGANCHE → precio implícito (mensualidad: 80% financiado, 20a ~11.45% · enganche: 20%).
+        # MENSUALIDAD ≠ precio fijo: depende del esquema (enganche + plazo + tasa). NO se confunde con 'precio = X'. Usamos
+        # los supuestos PARSEADOS (enganche_max, plazo) — default crédito hipotecario 20% enganche / 20 años / ~11.45%.
+        # Esto deja EXPLÍCITO dónde está puesto el supuesto (mensualidad_supuesto) en vez de una conversión opaca.
+        _RATE = 0.1145
+        try:
+            _plazo = int(filters.get("plazo") or 20)
+        except Exception:
+            _plazo = 20
+        _plazo = min(max(_plazo, 5), 30)
+        _i = _RATE / 12.0
+        _pf = _i / (1 - (1 + _i) ** (-_plazo * 12))   # factor PMT por peso de préstamo
+
+        def _mens_dev(price):
+            if not price:
+                return None
+            eng = filters.get("enganche_max") or round(price * 0.20)
+            eng = min(eng, price)
+            loan = max(0, price - eng)
+            return int(round(loan * _pf)) if loan > 0 else 0
         if not _maxp and filters.get("mensualidad_max"):
-            _maxp = int(filters["mensualidad_max"] / 0.008504)
+            _mm = filters["mensualidad_max"]
+            if filters.get("enganche_max"):
+                _maxp = int(filters["enganche_max"] + _mm / _pf)            # tu enganche + lo que financia la mensualidad
+                _eng_txt = f"enganche ${int(filters['enganche_max']):,}"
+            else:
+                _maxp = int(_mm / (0.8 * _pf))                              # asume 20% de enganche
+                _eng_txt = "enganche 20%"
+            mensualidad_supuesto = {"mensualidad_max": _mm, "enganche": _eng_txt, "plazo_anios": _plazo, "tasa": "~11.45%", "esquema": "crédito hipotecario", "nota": "La mensualidad de preventa (plan del desarrollador) es distinta; esto estima la de crédito hipotecario."}
         if not _maxp and filters.get("enganche_max"):
             _maxp = int(filters["enganche_max"] / 0.20)
         _beds = filters.get("beds")
@@ -2432,19 +2458,19 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                 sc, falta = _score_cross(d)
                 scored.append((sc, d.get("price_from") or 0, d, falta))
             scored.sort(key=lambda x: (-x[0], x[1]))   # mejor match primero, luego más barato
-            for sc, _pf, d, falta in scored[:5]:
+            for sc, _pr, d, falta in scored[:5]:
                 cross_zone.append({
                     "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
                     "slug": d.get("slug") or d.get("id"), "price_from": d.get("price_from"), "price_from_display": d.get("price_from_display"),
                     "bedrooms_range": d.get("bedrooms_range"), "bathrooms_range": d.get("bathrooms_range"),
                     "m2_range": d.get("m2_range"), "parking_range": d.get("parking_range"), "amenities": d.get("amenities") or [],
-                    "match": sc, "falta": falta,
+                    "match": sc, "falta": falta, "mensualidad_est": (_mens_dev(d.get("price_from")) if filters.get("mensualidad_max") else None),
                 })
             zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
     except Exception:
         cross_zone = []
     out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc),
-           "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas}
+           "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto}
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
     if zona_no_disponible_slug:
@@ -2499,7 +2525,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             })
     except Exception:
         pass
-    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas}
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto}
 
 
 class NLPSearchIn(BaseModel):
