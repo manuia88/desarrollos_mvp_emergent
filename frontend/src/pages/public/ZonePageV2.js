@@ -132,6 +132,103 @@ function buildStories(name, inv) {
 // PerfilFamilia (TANDA B · fusión "¿cuánto espacio?" + quiz): cuestionario de 6 preguntas → recomienda recámaras/m²,
 // EMPATA con desarrollos reales mostrando POR QUÉ (recámaras ✓ · pet ✓ · presupuesto) + CTA. Alimenta superadmin con el
 // perfil estructurado (onProfile → buyer signal: tamaño de familia, prioridad, urgencia → inteligencia de demanda).
+// ── MOTOR DE MATCH de desarrollos (compartido por los 4 perfiles) ────────────────────────────────────────────────
+// Meses desde HOY hasta la entrega (delivery_estimate 'YYYY-MM'). null si no hay dato.
+function deliveryMonths(d) {
+  const s = d && d.delivery_estimate; const m = s && String(s).match(/^(\d{4})-(\d{2})/);
+  if (!m) return null;
+  const now = new Date();
+  return (Number(m[1]) - now.getFullYear()) * 12 + (Number(m[2]) - (now.getMonth() + 1));
+}
+const ENTREGA_LABEL = (months) => {
+  if (months == null) return 'Por confirmar';
+  if (months <= 0) return 'Entrega inmediata';
+  if (months <= 3) return 'Entrega en ~3 meses';
+  if (months <= 6) return 'Entrega en 3–6 meses';
+  if (months <= 12) return 'Entrega en 6–12 meses';
+  return `Entrega en ~${Math.round(months / 12)} año${months > 18 ? 's' : ''}`;
+};
+// Puntúa un desarrollo 0-10 contra los criterios PRESENTES (presupuesto·rec·baños·estac·entrega·amenidad·tipo). ok/gap = razones.
+function scoreDevMatch(d, c) {
+  let s = 0, max = 0; const ok = [], gap = [];
+  if (c.presupuesto > 0 && d.price_from) {
+    max += 3;
+    if (d.price_from <= c.presupuesto) { s += 3; ok.push('💰 en tu presupuesto'); }
+    else if (d.price_from <= c.presupuesto * 1.15) { s += 1.5; gap.push('un poco arriba del presupuesto'); }
+    else gap.push('arriba del presupuesto');
+  }
+  if (c.rec) { max += 3; const mb = (Array.isArray(d.bedrooms_range) ? d.bedrooms_range[1] : 0) || 0; if (mb >= c.rec) { s += 3; ok.push(`🛏️ ${c.rec}+ recámaras`); } else if (mb > 0) { s += 1; gap.push(`hasta ${mb} recámaras`); } }
+  if (c.banos) { max += 1; const mb = (Array.isArray(d.bathrooms_range) ? d.bathrooms_range[1] : 0) || 0; if (mb >= c.banos) { s += 1; ok.push(`🛁 ${c.banos}+ baños`); } else if (mb > 0) gap.push(`${mb} baños`); }
+  if (c.parking) { max += 1; const mp = (Array.isArray(d.parking_range) ? d.parking_range[1] : 0) || 0; if (mp >= c.parking) { s += 1; ok.push(`🚗 ${c.parking}+ estac.`); } else if (mp >= 0) gap.push(`${mp} estac.`); }
+  if (c.entrega != null) { max += 1; const dm = deliveryMonths(d); if (dm == null || dm <= c.entrega) { s += 1; ok.push(`🗓️ ${ENTREGA_LABEL(dm).toLowerCase()}`); } else gap.push('entrega más lejana'); }
+  if (c.amenidad) { max += 1; if ((d.amenities || []).includes(c.amenidad)) { s += 1; ok.push(`✨ ${(AMEN_LABEL[c.amenidad] || ['', c.amenidad])[1]}`); } else gap.push(`sin ${(AMEN_LABEL[c.amenidad] || ['', c.amenidad])[1].toLowerCase()}`); }
+  if (c.tipo && c.tipo !== 'cualquiera') { max += 1; if (d.property_type === c.tipo) { s += 1; } }
+  const score = max > 0 ? Math.round((s / max) * 10) : 5;
+  return { score: Math.max(1, Math.min(10, score)), ok: ok.slice(0, 5), gap: gap.slice(0, 2) };
+}
+// Tarjeta de una propuesta (con score, razones ✓ y gaps).
+function PropuestaCard({ d, score, ok, gap, i, zona }) {
+  return (
+    <div className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Opción {i + 1}{zona ? ` · ${zona}` : ''}</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
+        </div>
+        <div style={{ textAlign: 'center', flexShrink: 0, padding: '5px 10px', borderRadius: 11, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 11, color: '#A2A6BC' }}>/10</span></div>
+        </div>
+      </div>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: MUT, marginTop: 7 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.bathrooms_range) ? ` · ${d.bathrooms_range[1]} baños` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
+      {ok.length > 0 && <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 9 }}>{ok.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 7px', borderRadius: 999 }}>{r}</span>))}</div>}
+      {gap.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#9A6B00', marginTop: 7 }}>A considerar: {gap.join(' · ')}.</div>}
+    </div>
+  );
+}
+// Bloque de propuestas: top-5 EN LA ZONA + (si el presupuesto no alcanza) top-5 en OTRAS zonas + optimizador casi-match.
+function Propuestas({ devs, allDevs, zoneId, criteria, name, titleIcon, onSave }) {
+  const inZone = (Array.isArray(devs) ? devs : []).map((d) => ({ d, ...scoreDevMatch(d, criteria) })).sort((a, b) => b.score - a.score);
+  const top5 = inZone.slice(0, 5);
+  const bud = criteria.presupuesto || 0;
+  const dentro = bud > 0 ? inZone.filter((x) => x.d.price_from && x.d.price_from <= bud).length : inZone.length;
+  // CROSS-ZONA: solo si hay presupuesto y casi nada en la zona entra → 5 en otras zonas dentro del presupuesto.
+  const cross = (bud > 0 && dentro < 2)
+    ? (Array.isArray(allDevs) ? allDevs : []).filter((d) => d.colonia_id !== zoneId && d.price_from && d.price_from <= bud)
+      .map((d) => ({ d, ...scoreDevMatch(d, criteria) })).sort((a, b) => b.score - a.score).slice(0, 5)
+    : [];
+  // OPTIMIZADOR casi-match: el dev de la zona mejor puntuado que se pasa del presupuesto → cuánto más haría falta.
+  const overBudget = bud > 0 ? inZone.filter((x) => x.d.price_from && x.d.price_from > bud).sort((a, b) => a.d.price_from - b.d.price_from)[0] : null;
+  const nearMiss = (bud > 0 && dentro === 0 && overBudget) ? { dev: overBudget.d, falta: overBudget.d.price_from - bud } : null;
+  if (!top5.length && !cross.length) {
+    return (
+      <div style={{ marginTop: 20 }}>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Te avisamos en cuanto entre uno que encaje contigo.</p>
+        {onSave && <button type="button" onClick={onSave} className="zv2-cta" style={{ marginTop: 12, padding: '12px 22px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>🔔 Avísame cuando haya</button>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>{titleIcon} Lo que mejor te queda en {name}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 14 }}>
+        {top5.map((x, i) => (<PropuestaCard key={x.d.id || x.d.name} {...x} i={i} />))}
+      </div>
+      {nearMiss && (
+        <div style={{ marginTop: 14, padding: '13px 16px', borderRadius: 12, background: 'rgba(245,158,11,0.09)', fontFamily: 'DM Sans', fontSize: 13.5, color: '#7A5200', lineHeight: 1.5 }}>💡 Estás <b>muy cerca</b>: con <b>{m1(nearMiss.falta)}</b> más de presupuesto, <b>{nearMiss.dev.name}</b> (desde {m1(nearMiss.dev.price_from)}) entraría. ¿Súbele al enganche o ajustamos contigo?</div>
+      )}
+      {cross.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(16px,2.2vw,19px)', color: INK }}>🧭 Tu presupuesto rinde más en estas zonas</div>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 4, lineHeight: 1.5 }}>En {name} se te aprieta el presupuesto. Estas opciones, en otras zonas, encajan con lo que buscas y sí te alcanzan:</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 12, marginTop: 12 }}>
+            {cross.map((x, i) => (<PropuestaCard key={x.d.id || x.d.name} {...x} i={i} zona={x.d.colonia || x.d.colonia_id} />))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PERFIL_FAM_QS = [
   { k: 'adultos', icon: '🧑', q: '¿Cuántos adultos vivirían aquí?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'ninos', icon: '🧒', q: '¿Cuántos niños?', opts: [['Ninguno', 0], ['1', 1], ['2', 2], ['3 o más', 3]] },
@@ -140,6 +237,9 @@ const PERFIL_FAM_QS = [
   { k: 'oficina', icon: '💻', q: '¿Alguien trabaja desde casa?', opts: [['Sí', true], ['No', false]] },
   { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad prefieren?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
   { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento necesitan?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'banos', icon: '🛁', q: '¿Cuántos baños necesitan?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieren lista?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
+  { k: 'pago', icon: '🏦', q: '¿Cómo piensan pagarla?', opts: [['Crédito hipotecario', 'credito'], ['Contado', 'contado'], ['Plan del desarrollador', 'plan'], ['Aún no sé', 'nose']] },
   { k: 'prioridad', icon: '⭐', q: '¿Qué es lo más importante para ustedes?', opts: [['Escuelas cerca', 'escuelas'], ['Zona segura', 'seguridad'], ['Espacio para crecer', 'espacio'], ['Áreas verdes', 'verde']] },
   { k: 'ingreso', icon: '💵', q: '¿Cuánto entra en casa al mes?', input: true, ph: 'Escribe el monto, ej. 45000', opts: [['$20,000', 20000], ['$35,000', 35000], ['$50,000', 50000], ['$70,000', 70000]] },
   { k: 'ahorro', icon: '🏦', q: '¿Cuánto tienen ahorrado para el enganche?', input: true, ph: 'Escribe el monto, ej. 400000', sub: 'El enganche — lo que dan de su bolsa al inicio.', opts: [['$150,000', 150000], ['$400,000', 400000], ['$700,000', 700000], ['$1,000,000', 1000000]] },
@@ -147,34 +247,7 @@ const PERFIL_FAM_QS = [
 const PRIOR_FAM = { escuelas: 'escuelas cerca', seguridad: 'una zona segura', espacio: 'espacio para crecer', verde: 'áreas verdes' };
 const TIPO_FAM = { depto: 'un departamento', casa: 'una casa', cualquiera: 'departamento o casa' };
 const EDAD_FAM = { chicos: 'en preescolar', primaria: 'en primaria', adolescentes: 'adolescentes', na: '' };
-// Puntaje 0-10 de qué tanto le sirve un desarrollo a la familia (recámaras 4 · presupuesto 3 · m² 2 · amenidades fam 1).
-function scoreFamDev(d, ctx) {
-  let s = 0, max = 0; const reasons = [], gaps = [];
-  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
-  max += 4;
-  if (maxBed >= ctx.rec) { s += 4; reasons.push(`${ctx.rec}+ recámaras`); }
-  else if (maxBed >= ctx.rec - 1) { s += 2.5; reasons.push(`hasta ${maxBed} recámaras`); gaps.push(`1 recámara menos de lo ideal`); }
-  else if (maxBed > 0) { s += 1; gaps.push(`llega a ${maxBed} recámaras`); }
-  if (ctx.precioMax > 0 && d.price_from) {
-    max += 3;
-    if (d.price_from <= ctx.precioMax) { s += 3; reasons.push('dentro de su presupuesto'); }
-    else if (d.price_from <= ctx.precioMax * 1.3) { s += 1.5; gaps.push('un poco arriba del presupuesto'); }
-    else { gaps.push('arriba del presupuesto'); }
-  }
-  const maxM2 = Array.isArray(d.m2_range) ? (d.m2_range[1] || 0) : 0;
-  max += 2;
-  if (maxM2 >= ctx.m2) { s += 2; reasons.push(`hasta ${maxM2} m²`); }
-  else if (maxM2 >= ctx.m2 * 0.8) { s += 1; }
-  const famAm = ['jardines', 'alberca', 'seguridad', 'area_pets', 'salon_eventos', 'gym', 'roof', 'pet'];
-  const nFam = Array.isArray(d.amenities) ? d.amenities.filter((a) => famAm.includes(a)).length : 0;
-  max += 1;
-  if (nFam >= 2) { s += 1; reasons.push('amenidades familiares'); }
-  const hasPet = Array.isArray(d.amenities) && d.amenities.some((a) => ['pet', 'area_pets', 'jardines'].includes(a));
-  if (ctx.pet && hasPet) reasons.push('área para mascotas');
-  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
-  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2), hasPet };
-}
-function PerfilFamilia({ name, devs, onCTA, onProfile }) {
+function PerfilFamilia({ name, devs, allDevs, zoneId, onCTA, onProfile }) {
   const [ans, setAns] = useState({});
   const [draft, setDraft] = useState('');
   const sentRef = useRef(false);
@@ -190,9 +263,8 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
   const prestamoMax = pagoMax > 0 ? Math.round(pagoMax * (1 - Math.pow(1 + ii, -240)) / ii) : 0;
   const enganche = Number(ans.ahorro) || 0;
   const precioMax = prestamoMax + enganche;
-  // SIEMPRE 2 propuestas: rankea TODOS los desarrollos por score y toma el top-2 (aunque no sean 10/10). Nunca "no hay".
-  const ranked = done ? (Array.isArray(devs) ? devs : []).map((d) => ({ d, ...scoreFamDev(d, { rec, m2, precioMax, pet: ans.pet }) })).sort((a, b) => b.score - a.score) : [];
-  const propuestas = ranked.slice(0, 2);
+  // Criterios para el match de desarrollos (presupuesto + características + respuestas del wizard).
+  const criteria = { presupuesto: precioMax, rec, banos: Number(ans.banos) || 0, parking: Number(ans.cajones) || 0, entrega: ans.entrega, tipo: ans.tipo };
   useEffect(() => {
     if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, m2, precio_max: precioMax, pago_max: pagoMax }); } catch (e) { /* noop */ } }
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -208,7 +280,7 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
       <div data-rev style={{ maxWidth: 880, margin: '0 auto', padding: '0 28px' }}>
         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Su lugar ideal</div>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>Cuéntanos de tu familia.</h2>
-        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>10 preguntas rápidas y al final te damos un <b style={{ color: INK }}>reporte completo</b>: cuánto espacio buscar, para qué les alcanza y <b style={{ color: INK }}>2 desarrollos de {name} para ustedes</b>.</p>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>{PERFIL_FAM_QS.length} preguntas rápidas y al final un <b style={{ color: INK }}>reporte completo</b>: cuánto espacio buscar, para qué les alcanza y <b style={{ color: INK }}>los desarrollos que mejor les quedan</b> (o en otras zonas, si aquí no alcanza).</p>
         {!done ? (
           <div style={{ marginTop: 26 }}>
             <div style={{ display: 'flex', gap: 5, marginBottom: 22 }}>
@@ -260,37 +332,8 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
               </div>
             </div>
             {ans.pet ? <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#0E7A53', marginTop: 12, fontWeight: 600 }}>🐾 Todos los desarrollos aceptan mascota — marcamos los que además tienen área para ellas.</div> : null}
-            {/* 2 PROPUESTAS (siempre) */}
-            <div style={{ marginTop: 22 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>🏡 2 opciones para ustedes en {name}</div>
-              {propuestas.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
-                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
-                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                        <div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
-                        </div>
-                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
-                        </div>
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
-                      {reasons.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
-                        </div>
-                      )}
-                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones que encajen.</p>
-              )}
-            </div>
+            {/* PROPUESTAS: 5 en la zona + (si no alcanza) 5 en otras zonas + optimizador casi-match */}
+            <Propuestas devs={devs} allDevs={allDevs} zoneId={zoneId} criteria={criteria} name={name} titleIcon="🏡" onSave={onCTA} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
               <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero que me asesoren con estas opciones →</button>
               <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
@@ -312,30 +355,12 @@ function FinRow({ op, label, val, strong, tip }) {
     </div>
   );
 }
-// Puntaje 0-10 de un desarrollo para PRIMERA casa (presupuesto 4 · recámaras 3 · tamaño 2 · amenidades 1). Budget-first.
-function scorePrimDev(d, ctx) {
-  let s = 0, max = 0; const reasons = [], gaps = [];
-  if (ctx.precioMax > 0 && d.price_from) {
-    max += 4;
-    if (d.price_from <= ctx.precioMax) { s += 4; reasons.push('dentro de tu presupuesto'); }
-    else if (d.price_from <= ctx.precioMax * 1.3) { s += 2; gaps.push('un poco arriba del presupuesto'); }
-    else { gaps.push('arriba del presupuesto'); }
-  }
-  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
-  max += 3;
-  if (maxBed >= ctx.rec) { s += 3; reasons.push(`${ctx.rec}+ recámaras`); }
-  else if (maxBed > 0) { s += 1.5; gaps.push(`llega a ${maxBed} recámaras`); }
-  const maxM2 = Array.isArray(d.m2_range) ? (d.m2_range[1] || 0) : 0;
-  max += 2;
-  if (maxM2 >= ctx.m2) { s += 2; reasons.push(`hasta ${maxM2} m²`); } else if (maxM2 > 0) { s += 1; }
-  const nAm = Array.isArray(d.amenities) ? d.amenities.length : 0;
-  max += 1; if (nAm >= 3) { s += 1; reasons.push('buenas amenidades'); }
-  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
-  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2) };
-}
 const PERFIL_PRIM_QS = [
   { k: 'personas', icon: '👥', q: '¿Cuántas personas vivirían aquí?', opts: [['Solo yo', 1], ['Dos', 2], ['Tres o más', 3]] },
   { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad buscas?', opts: [['Departamento', 'depto'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
+  { k: 'banos', icon: '🛁', q: '¿Cuántos baños necesitas?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento?', opts: [['Ninguno', 0], ['1', 1], ['2 o más', 2]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres lista?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
   { k: 'motivo', icon: '🎯', q: '¿Qué te mueve a comprar?', opts: [['Dejar de rentar', 'renta'], ['Tener algo mío', 'patrimonio'], ['Independizarme', 'independencia']] },
   { k: 'cuando', icon: '📅', q: '¿Para cuándo?', opts: [['Cuanto antes', 'pronto'], ['Este año', 'año'], ['Explorando', 'explorando']] },
   { k: 'renta', icon: '🏚️', q: '¿Cuánto pagas de renta hoy?', input: true, ph: 'Escribe el monto, ej. 12000', opts: [['$8,000', 8000], ['$12,000', 12000], ['$18,000', 18000], ['$25,000', 25000]] },
@@ -345,7 +370,7 @@ const PERFIL_PRIM_QS = [
 ];
 const MOTIVO_PRIM = { renta: 'dejar de rentar', patrimonio: 'construir patrimonio', independencia: 'independizarse' };
 const TIPO_PRIM = { depto: 'un departamento', casa: 'una casa', cualquiera: 'departamento o casa' };
-function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
+function WizardPrimera({ name, devs, allDevs, zoneId, inv, onCTA, onProfile }) {
   const [ans, setAns] = useState({});
   const [draft, setDraft] = useState('');
   const sentRef = useRef(false);
@@ -375,8 +400,7 @@ function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
   const engObjetivo = Math.round(precioBase * 0.20);
   const faltaEng = Math.max(0, engObjetivo - enganche);
   const mesesEng = renta > 0 && faltaEng > 0 ? Math.ceil(faltaEng / renta) : 0;   // ahorrando lo que hoy pagas de renta
-  const ranked = done ? sorted.map((d) => ({ d, ...scorePrimDev(d, { rec, m2, precioMax }) })).sort((a, b) => b.score - a.score) : [];
-  const propuestas = ranked.slice(0, 2);
+  const criteria = { presupuesto: precioMax, rec, banos: Number(ans.banos) || 0, parking: Number(ans.cajones) || 0, entrega: ans.entrega, tipo: ans.tipo };
   useEffect(() => {
     if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec, precio_max: precioMax, pago_max: pagoMax }); } catch (e) { /* noop */ } }
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -485,37 +509,8 @@ function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
                 )}
               </div>
             )}
-            {/* 2 PROPUESTAS */}
-            <div style={{ marginTop: 20 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>🔑 2 opciones para ti en {name}</div>
-              {propuestas.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
-                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
-                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                        <div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
-                        </div>
-                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
-                        </div>
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
-                      {reasons.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
-                        </div>
-                      )}
-                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones.</p>
-              )}
-            </div>
+            {/* PROPUESTAS: 5 en la zona + (si no alcanza) 5 en otras zonas + optimizador casi-match */}
+            <Propuestas devs={devs} allDevs={allDevs} zoneId={zoneId} criteria={criteria} name={name} titleIcon="🔑" onSave={onCTA} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
               <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero dar el primer paso →</button>
               <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
@@ -620,6 +615,9 @@ const PERFIL_VIV_QS = [
   { k: 'personas', icon: '👥', q: '¿Para quién es tu nuevo lugar?', opts: [['Para mí', 1], ['Pareja', 2], ['Familia', 3]] },
   { k: 'tipo', icon: '🏠', q: '¿Qué tipo de propiedad sueñas?', opts: [['Departamento', 'depto'], ['Penthouse', 'penthouse'], ['Casa', 'casa'], ['Cualquiera', 'cualquiera']] },
   { k: 'recamaras', icon: '🛏️', q: '¿Cuántas recámaras?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'banos', icon: '🛁', q: '¿Cuántos baños?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'cajones', icon: '🚗', q: '¿Cuántos lugares de estacionamiento?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
+  { k: 'entrega', icon: '🗓️', q: '¿Para cuándo la quieres?', opts: [['Ya / inmediata', 0], ['En 3–6 meses', 6], ['6–12 meses', 12], ['No corre prisa', 999]] },
   { k: 'amenidad', icon: '✨', q: '¿Qué amenidad NO puede faltar?', opts: [['Roof garden', 'roof'], ['Spa', 'spa'], ['Gimnasio', 'gym'], ['Concierge', 'concierge'], ['Alberca', 'alberca']] },
   { k: 'estilo', icon: '🍸', q: '¿Qué estilo de vida buscas?', opts: [['Gastronómico', 'gastro'], ['Cultural', 'cultural'], ['Social / nocturno', 'social'], ['Tranquilo', 'tranquilo']] },
   { k: 'caminar', icon: '🚶', q: '¿Qué tanto te importa tener todo a pie?', opts: [['Muchísimo', 'mucho'], ['Algo', 'algo'], ['Me da igual', 'poco']] },
@@ -628,29 +626,7 @@ const PERFIL_VIV_QS = [
 ];
 const ESTILO_VIV = { gastro: 'gastronómico', cultural: 'cultural', social: 'social y nocturno', tranquilo: 'tranquilo' };
 const TIPO_VIV = { depto: 'un departamento', penthouse: 'un penthouse', casa: 'una casa', cualquiera: 'lo mejor disponible' };
-function scoreVivDev(d, ctx) {
-  let s = 0, max = 0; const reasons = [], gaps = [];
-  const am = Array.isArray(d.amenities) ? d.amenities : [];
-  max += 3;
-  if (ctx.amenidad && am.includes(ctx.amenidad)) { s += 3; reasons.push(`tiene ${(AMEN_LABEL[ctx.amenidad] || ['', ctx.amenidad])[1].toLowerCase()}`); }
-  else if (ctx.amenidad) { gaps.push(`sin ${(AMEN_LABEL[ctx.amenidad] || ['', ctx.amenidad])[1].toLowerCase()}`); }
-  const premium = ['roof', 'spa', 'concierge', 'sky_lounge', 'cava', 'gym', 'alberca'];
-  const nPrem = am.filter((a) => premium.includes(a)).length;
-  max += 3;
-  if (nPrem >= 4) { s += 3; reasons.push('amenidades de lujo'); } else if (nPrem >= 2) { s += 1.5; reasons.push('buenas amenidades'); }
-  const maxBed = Array.isArray(d.bedrooms_range) ? (d.bedrooms_range[1] || 0) : 0;
-  max += 2;
-  if (maxBed >= ctx.rec) { s += 2; reasons.push(`${ctx.rec}+ recámaras`); } else if (maxBed > 0) { s += 1; }
-  if (ctx.presupuesto > 0 && d.price_from) {
-    max += 2;
-    if (d.price_from <= ctx.presupuesto) { s += 2; reasons.push('en tu presupuesto'); }
-    else if (d.price_from <= ctx.presupuesto * 1.2) { s += 1; gaps.push('un poco arriba de tu presupuesto'); }
-    else { gaps.push('arriba de tu presupuesto'); }
-  }
-  const out10 = max > 0 ? Math.round((s / max) * 10) : 5;
-  return { score: Math.max(1, Math.min(10, out10)), reasons: reasons.slice(0, 4), gaps: gaps.slice(0, 2) };
-}
-function WizardVivir({ name, devs, lugares, onCTA, onProfile }) {
+function WizardVivir({ name, devs, allDevs, zoneId, lugares, onCTA, onProfile }) {
   const [ans, setAns] = useState({});
   const [draft, setDraft] = useState('');
   const sentRef = useRef(false);
@@ -661,8 +637,7 @@ function WizardVivir({ name, devs, lugares, onCTA, onProfile }) {
   const presupuesto = Number(ans.presupuesto) || 0;
   const LG = (lugares && lugares.lugares) || {};
   const cnt = (k) => ((LG[k] || []).filter((p) => p && p.name)).length;
-  const ranked = done ? (Array.isArray(devs) ? devs : []).map((d) => ({ d, ...scoreVivDev(d, { rec, amenidad: ans.amenidad, presupuesto }) })).sort((a, b) => b.score - a.score) : [];
-  const propuestas = ranked.slice(0, 2);
+  const criteria = { presupuesto, rec, banos: Number(ans.banos) || 0, parking: Number(ans.cajones) || 0, entrega: ans.entrega, amenidad: ans.amenidad, tipo: ans.tipo === 'penthouse' ? 'departamento' : ans.tipo };
   useEffect(() => {
     if (done && !sentRef.current) { sentRef.current = true; try { onProfile && onProfile({ ...ans, recamaras: rec }); } catch (e) { /* noop */ } }
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -714,36 +689,8 @@ function WizardVivir({ name, devs, lugares, onCTA, onProfile }) {
                 </div>
               </div>
             )}
-            <div style={{ marginTop: 20 }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(17px,2.4vw,21px)', color: INK }}>✨ 2 desarrollos a tu medida en {name}</div>
-              {propuestas.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginTop: 14 }}>
-                  {propuestas.map(({ d, score, reasons, gaps }, i) => (
-                    <div key={d.id || d.name} className="zv2-win" style={{ ...cardBase, padding: '18px 20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                        <div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 800, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Opción {i + 1}</div>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, letterSpacing: '-0.01em', marginTop: 2 }}>{d.name}</div>
-                        </div>
-                        <div style={{ textAlign: 'center', flexShrink: 0, padding: '6px 11px', borderRadius: 12, background: score >= 7 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)' }}>
-                          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: score >= 7 ? '#10B981' : '#4F46E5', lineHeight: 1 }}>{score}<span style={{ fontSize: 12, color: '#A2A6BC' }}>/10</span></div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#9499AE', fontWeight: 700 }}>para ti</div>
-                        </div>
-                      </div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: MUT, marginTop: 8 }}>{Array.isArray(d.bedrooms_range) ? `${d.bedrooms_range[0]}–${d.bedrooms_range[1]} rec` : ''}{Array.isArray(d.m2_range) ? ` · ${d.m2_range[0]}–${d.m2_range[1]} m²` : ''}{d.price_from ? ` · desde ${m1(d.price_from)}` : ''}</div>
-                      {reasons.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                          {reasons.map((r) => (<span key={r} style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: '#0E7A53', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: 999 }}>✓ {r}</span>))}
-                        </div>
-                      )}
-                      {gaps.length > 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#9A6B00', marginTop: 8 }}>A considerar: {gaps.join(' · ')}.</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: MUT, marginTop: 8, lineHeight: 1.55 }}>Aún no hay desarrollos cargados en {name}. Déjanos tus datos y te mandamos opciones a tu altura.</p>
-              )}
-            </div>
+            {/* PROPUESTAS: 5 en la zona + (si no alcanza) 5 en otras zonas + optimizador casi-match */}
+            <Propuestas devs={devs} allDevs={allDevs} zoneId={zoneId} criteria={criteria} name={name} titleIcon="✨" onSave={onCTA} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
               <button type="button" onClick={onCTA} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,0.32)' }}>Quiero conocer estas opciones →</button>
               <button type="button" onClick={() => { sentRef.current = false; setAns({}); setDraft(''); }} style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(16,18,28,0.12)', background: '#fff', color: '#6B6F86', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Volver a empezar</button>
@@ -981,6 +928,7 @@ export default function ZonePageV2() {
   const [inv, setInv] = useState(null);
   const [landing, setLanding] = useState(null);
   const [devs, setDevs] = useState([]);
+  const [allDevs, setAllDevs] = useState([]);   // TODOS los desarrollos (cross-zona) para el fallback "si no alcanza esta zona"
   const [similar, setSimilar] = useState([]);
   const [vida, setVida] = useState(null);
   const [lugares, setLugares] = useState(null);
@@ -993,6 +941,13 @@ export default function ZonePageV2() {
   const [profile, setProfile] = useState(null);
   const [lens] = useState(null);     // lente del inversionista (renta/plusvalia/refugio) · el selector se absorbió en el arco; queda null → veredicto usa su mensaje por defecto
   const [saveOpen, setSaveOpen] = useState(false);
+
+  // Todos los desarrollos (1 sola vez · ~18) para recomendar en OTRAS zonas si el presupuesto no alcanza ésta.
+  useEffect(() => {
+    let alive = true;
+    get('/api/developments?limit=200').then((d) => { if (alive) setAllDevs(Array.isArray(d) ? d : []); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true; setLoading(true);
@@ -1526,7 +1481,7 @@ export default function ZonePageV2() {
               )}
 
               {/* CAP 2.7 · PERFILA TU FAMILIA (cuestionario 6Q · fusiona espacio+quiz · match con desarrollos + feed superadmin) */}
-              {devs.length > 0 && <PerfilFamilia name={name} devs={devs} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'familia', ...a })} />}
+              {devs.length > 0 && <PerfilFamilia name={name} devs={devs} allDevs={allDevs} zoneId={slug} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'familia', ...a })} />}
 
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
@@ -1646,7 +1601,7 @@ export default function ZonePageV2() {
         {/* WIZARD PRIMERA (TANDA C · fusiona rentar-vs-comprar + pon-tus-números + renta-vs-crédito + meta-enganche + prioridad
             + quiz en 1 cuestionario 8Q → reporte: alcance + rentar-vs-comprar 1/3/5/10 años + enganche + 2 propuestas) */}
         {profile === 'primera' && tieneMercado && (
-          <WizardPrimera name={name} devs={devs} inv={inv} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'primera', ...a })} />
+          <WizardPrimera name={name} devs={devs} allDevs={allDevs} zoneId={slug} inv={inv} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'primera', ...a })} />
         )}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
@@ -1747,7 +1702,7 @@ export default function ZonePageV2() {
               )}
 
               {/* CAP 4.5 · WIZARD VIVIR (fusiona arma-prioridad + quiz → 8Q → reporte con 2 propuestas a tu medida) */}
-              <WizardVivir name={name} devs={devs} lugares={lugares} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'vivir', ...a })} />
+              <WizardVivir name={name} devs={devs} allDevs={allDevs} zoneId={slug} lugares={lugares} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'vivir', ...a })} />
 
               {/* CAP 5 · TU SIGUIENTE NIVEL (cierre · vivir) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
