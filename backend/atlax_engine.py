@@ -34,6 +34,7 @@ class AtlaxQueryIn(BaseModel):
     channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
     thread_id: Optional[str] = None  # W4.11a · null = creates new thread auto
     org_id: Optional[str] = None      # W4.7 Y.4A · persona org context (default "dmx")
+    page_context: Optional[str] = None  # qué está viendo/buscando el usuario AHORA (filtros, colonia, página) → Atlax responde en contexto
 
 
 def _now() -> datetime:
@@ -342,6 +343,16 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
             _augmented_map_context = wrap_untrusted(rag_context_text, "contexto de mercado")
         except Exception:
             _augmented_map_context = rag_context_text
+    # CONTEXTO DE PÁGINA: lo que el usuario está viendo/buscando AHORA (filtros, colonia, mapa) → para que Atlax responda
+    # sobre eso y la info fluya entre superficies (búsqueda → mapa → Atlax). Es app-generado pero se trata como dato no confiable.
+    if payload.page_context:
+        try:
+            from llm_safety import sanitize_user_input, wrap_untrusted
+            _pc = sanitize_user_input(payload.page_context, max_len=600) or ""
+            if _pc:
+                _augmented_map_context = (wrap_untrusted(_pc, "lo que el usuario está viendo ahora") + "\n" + _augmented_map_context).strip()
+        except Exception:
+            _augmented_map_context = (str(payload.page_context)[:600] + "\n" + _augmented_map_context).strip()
 
     # ─── 6. Llama AsistenteEngine.chat (LLM + 3 tools públicas + persiste asistente_messages)
     try:

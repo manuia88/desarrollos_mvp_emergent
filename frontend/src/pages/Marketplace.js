@@ -142,6 +142,26 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     };
   }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
 
+  // CONTEXTO PARA ATLAX: resumen en lenguaje natural de lo que el usuario busca AHORA → la info fluye búsqueda → asistente.
+  const atlaxContext = useMemo(() => {
+    const f = { ...filters, ...(aiFilters || {}), ...(coloniaFilter ? { colonia: coloniaFilter } : {}) };
+    const colName = (id) => (colonias || []).find((c) => c.id === id)?.name || String(id).replace(/-/g, ' ');
+    const money = (n) => `$${Number(n).toLocaleString('es-MX')}`;
+    const parts = [];
+    if (f.colonia) { const arr = Array.isArray(f.colonia) ? f.colonia : [f.colonia]; if (arr.length) parts.push(`zona ${arr.map(colName).join(', ')}`); }
+    if (f.beds) parts.push(`${f.beds}+ recámaras`);
+    if (f.baths) parts.push(`${f.baths}+ baños`);
+    if (f.parking) parts.push(`${f.parking}+ estacionamiento`);
+    if (f.tipo) parts.push(String(f.tipo));
+    if (f.min_price || f.max_price) parts.push(`precio ${f.min_price ? money(f.min_price) : ''}${f.min_price && f.max_price ? '–' : ''}${f.max_price ? money(f.max_price) : (f.min_price ? '+' : '')}`.trim());
+    if (f.mensualidad_max) parts.push(`mensualidad hasta ${money(f.mensualidad_max)}`);
+    if (f.enganche_max) parts.push(`enganche hasta ${money(f.enganche_max)}`);
+    if (Array.isArray(f.amenity) && f.amenity.length) parts.push(`amenidades: ${f.amenity.join(', ')}`);
+    if (f.stage) parts.push(String(f.stage).replace(/_/g, ' '));
+    if (!parts.length) return 'El usuario está en el marketplace de desarrollos (CDMX), explorando sin filtros aún.';
+    return `El usuario está en el marketplace buscando: ${parts.join(' · ')}. Hay ${developments.length} resultado(s) visibles ahora. Responde sobre ESTA búsqueda: ayúdalo a afinar, comparar zonas, o entender financiamiento.`;
+  }, [filters, aiFilters, coloniaFilter, colonias, developments.length]);
+
   // Fetch inicial (página 1) — se reinicia cuando cambian los filtros. Guard "última respuesta gana" (race fix).
   useEffect(() => {
     let active = true;
@@ -379,9 +399,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               </button>
               {/* "Encuentra tu lugar" suelto RETIRADO: la barra de búsqueda + las preguntas "lo que falta" son la
                   entrada única (el Perfilador se fundió ahí). Sin botón duplicado que lleve a otro lado. */}
-              {/* W4.18.2A — Ver en mapa (Mapa Cerebro Espacial DMX) */}
+              {/* W4.18.2A — Ver en mapa (Mapa Cerebro Espacial DMX) · lleva la colonia activa de la búsqueda → el mapa enfoca ahí */}
               <Link
-                to="/mapa"
+                to={(() => { const c = coloniaFilter || (aiFilters && aiFilters.colonia) || filters.colonia; const id = Array.isArray(c) ? c[0] : c; return id ? `/mapa?colonia=${encodeURIComponent(id)}` : '/mapa'; })()}
                 data-testid="ver-en-mapa-trigger"
                 style={{
                   padding: '9px 16px',
@@ -856,7 +876,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 900px) { .dev-grid { grid-template-columns: repeat(2, 1fr) !important; } }
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
-      <AtlaxBubble theme="light" />
+      <AtlaxBubble theme="light" context={atlaxContext} />
       {viewMode === 'lista' && <Footer />}
     </LightScope>
   );

@@ -1,7 +1,7 @@
 // Mapa page — Mapbox GL JS with CDMX colonia polygons colored by IE Score + heatmap toggle
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Navbar from '../components/landing/Navbar';
@@ -66,8 +66,23 @@ function buildCentersGeoJSON(colonias) {
   };
 }
 
+// Centroide aproximado de un polígono/multipolígono GeoJSON (promedio de vértices del primer anillo) → para volar a una
+// colonia de las 1,811 que NO está en las 16 seed (sin center precomputado).
+function _polyCentroid(geom) {
+  try {
+    let ring = null;
+    if (geom.type === 'Polygon') ring = geom.coordinates[0];
+    else if (geom.type === 'MultiPolygon') ring = geom.coordinates[0][0];
+    if (!ring || !ring.length) return null;
+    let sx = 0, sy = 0;
+    ring.forEach(([x, y]) => { sx += x; sy += y; });
+    return [sx / ring.length, sy / ring.length];
+  } catch { return null; }
+}
+
 export default function Mapa({ user, onLogin, onLogout }) {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const mapRef = useRef(null);
   const container = useRef(null);
   const [colonias, setColonias] = useState([]);
@@ -122,6 +137,28 @@ export default function Mapa({ user, onLogin, onLogout }) {
     const apply = () => { const s = m.getSource('colonias'); if (s) s.setData(geojson); };
     if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
   }, [geojson]);
+
+  // BÚSQUEDA → MAPA: si llega ?colonia=ID, enfoca esa colonia al entrar (de las 16 seed o de las 1,811 vía centroide) +
+  // abre su panel. Así la info fluye: el usuario busca/elige una zona y el mapa lo lleva justo ahí.
+  const _focusedRef = useRef(false);
+  useEffect(() => {
+    if (_focusedRef.current || !mapRef.current) return undefined;
+    const cid = searchParams.get('colonia');
+    if (!cid) return undefined;
+    let obj = coloniaById[cid];
+    let center = obj && obj.center;
+    if (!center && geojson) {
+      const feat = (geojson.features || []).find((f) => (f.properties || {}).id === cid);
+      if (feat) { obj = { ...(feat.properties || {}), id: cid }; center = _polyCentroid(feat.geometry); if (center) obj.center = center; }
+    }
+    if (obj) {
+      _focusedRef.current = true;
+      setSelected(obj);
+      const fly = () => mapRef.current && mapRef.current.flyTo({ center, zoom: 13.6, duration: 900 });
+      if (center) { const m = mapRef.current; if (m.isStyleLoaded && m.isStyleLoaded()) fly(); else m.once('idle', fly); }
+    }
+    return undefined;
+  }, [searchParams, geojson, coloniaById, mapReady]);
 
   // PREDIOS reales (nuestros desarrollos) como puntos verdes con $/m² · click → ficha del desarrollo.
   useEffect(() => {

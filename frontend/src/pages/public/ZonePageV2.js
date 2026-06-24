@@ -1134,7 +1134,7 @@ export default function ZonePageV2() {
             <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: MUT, maxWidth: 480, margin: '12px auto 0', lineHeight: 1.6 }}>Puede que el enlace esté mal escrito. Busca tu zona o explora todas las colonias de la ciudad.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 28 }}>
               <Link to="/colonias" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: '0 12px 30px rgba(99,102,241,0.34)' }}>🔎 Explorar colonias</Link>
-              <Link to="/mapa" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, textDecoration: 'none' }}>🗺️ Ver el mapa</Link>
+              <Link to={`/mapa?colonia=${encodeURIComponent(slug)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(99,102,241,0.3)', background: '#fff', color: '#4F46E5', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, textDecoration: 'none' }}>🗺️ Ver {name} en el mapa</Link>
             </div>
           </section>
         ) : (<>
@@ -1893,7 +1893,7 @@ export default function ZonePageV2() {
         </>)}
       </div>
       <SaveSearchModal open={saveOpen} onClose={() => setSaveOpen(false)} filters={{ colonia: [slug] }} />
-      <AtlaxBubble theme="light" />
+      <AtlaxBubble theme="light" context={`El usuario está viendo la ficha de la colonia ${name} (CDMX)${lensCfg ? `, con enfoque de ${lensCfg.label}` : ''}. Responde con datos de ${name}: cómo se vive, inversión/plusvalía, lugares cerca y desarrollos disponibles. Si no hay inventario aún en ${name}, ofrécele explorar la zona a fondo o ver zonas similares que sí tengan.`} />
       <Footer />
     </LightScope>
   );

@@ -297,7 +297,7 @@ function nextOptions(messages) {
   return [{ l: '🏡 Para vivir', p: 'Busco para vivir en CDMX. ¿Qué colonias me convienen?' }, { l: '📈 Para invertir', p: 'Busco invertir. ¿Qué zonas convienen?' }, { l: '💰 Según mi presupuesto', p: 'Tengo un presupuesto. ¿Qué opciones hay?' }];
 }
 
-export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark' } = {}) {
+export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null } = {}) {
   const light = theme === 'light';
   // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
   const lightVars = light ? { '--cream': '#1E2230', '--cream-2': '#4A4F5E', '--cream-3': '#8A8F9E', '--border': '#ECECEC' } : {};
@@ -323,6 +323,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   const [asistenteToken, setAsistenteToken] = useState(() => {
     try { return localStorage.getItem(SS_TOKEN) || null; } catch { return null; }
   });
+  // Contexto de página (lo que el usuario ve/busca ahora) en un ref → siempre el último valor al enviar, sin cerrar stale.
+  const contextRef = useRef(context);
+  useEffect(() => { contextRef.current = context; }, [context]);
   const [threadId, setThreadId] = useState(() => {
     try { return localStorage.getItem(SS_THREAD) || null; } catch { return null; }
   });
@@ -426,6 +429,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           session_id: sessionId,
           channel: 'web_bubble',
           thread_id: threadId || null,
+          page_context: contextRef.current || null,   // lo que el usuario ve/busca ahora → Atlax responde en contexto
         }),
       });
       const d = await r.json();
