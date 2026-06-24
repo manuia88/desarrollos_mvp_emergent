@@ -229,6 +229,29 @@ function Propuestas({ devs, allDevs, zoneId, criteria, name, titleIcon, onSave }
   );
 }
 
+// INVERTIR · matcher ligero: pon tu capital → top-5 desarrollos que caben en la zona + (si no) en otras zonas. Reusa
+// Propuestas. Complementa la calculadora ROI ('¿en cuál corro los números?').
+function InvertirMatch({ name, devs, allDevs, zoneId }) {
+  const [draft, setDraft] = useState('');
+  const [bud, setBud] = useState(0);
+  if (!((devs && devs.length) || (allDevs && allDevs.length))) return null;
+  const commit = () => { const v = parseInt(String(draft).replace(/\D/g, ''), 10); if (v > 0) setBud(v); };
+  return (
+    <section style={{ width: '100%', background: '#fff', padding: 'clamp(50px,7vw,82px) 0', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+      <div data-rev style={{ maxWidth: 1000, margin: '0 auto', padding: '0 28px' }}>
+        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#EC4899' }}>Tu capital</div>
+        <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, fontSize: 'clamp(27px,3.8vw,44px)', color: INK, margin: '14px 0 0' }}>¿En cuál inviertes?</h2>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 'clamp(15px,1.9vw,18px)', color: MUT, maxWidth: 620, marginTop: 14, lineHeight: 1.6 }}>Pon tu capital y te muestro los desarrollos de {name} que mejor le caben — y <b style={{ color: INK }}>si tu dinero rinde más en otra zona</b>. Luego corres los números del que elijas.</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 20 }}>
+          <input type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commit(); }} placeholder="Tu capital, ej. 5000000" style={{ flex: '1 1 260px', minWidth: 0, padding: '14px 17px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: INK, outline: 'none', background: '#fff' }} />
+          <button type="button" onClick={commit} disabled={!Number(String(draft).replace(/\D/g, ''))} className="zv2-cta" style={{ padding: '14px 26px', borderRadius: 12, border: 'none', cursor: Number(String(draft).replace(/\D/g, '')) ? 'pointer' : 'not-allowed', background: Number(String(draft).replace(/\D/g, '')) ? 'linear-gradient(135deg,#6366F1,#EC4899)' : '#E3E3EF', color: '#fff', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 15 }}>Ver opciones →</button>
+        </div>
+        {bud > 0 && <Propuestas devs={devs} allDevs={allDevs} zoneId={zoneId} criteria={{ presupuesto: bud }} name={name} titleIcon="📈" />}
+      </div>
+    </section>
+  );
+}
+
 const PERFIL_FAM_QS = [
   { k: 'adultos', icon: '🧑', q: '¿Cuántos adultos vivirían aquí?', opts: [['1', 1], ['2', 2], ['3 o más', 3]] },
   { k: 'ninos', icon: '🧒', q: '¿Cuántos niños?', opts: [['Ninguno', 0], ['1', 1], ['2', 2], ['3 o más', 3]] },
@@ -1726,6 +1749,9 @@ export default function ZonePageV2() {
             false → nunca renderizaban. Su contenido vive ahora dentro del arco de cada perfil (lifestyle/herramienta/cierre). */}
 
         {/* (reorden espina) El VEREDICTO se movió DESPUÉS de la calculadora + riesgos (el cierre va al final del arco) */}
+
+        {/* ── MATCHER DE CAPITAL (pon tu capital → 5 desarrollos que caben + cross-zona · antes de la calculadora) ── */}
+        {profile === 'invertir' && tieneMercado && <InvertirMatch name={name} devs={devs} allDevs={allDevs} zoneId={slug} />}
 
         {/* ── CALCULADORA INTERACTIVA (Bloque 12 · proyecto → unidad → desglose completo · reusa InvestmentSimulator) ── */}
         {profile === 'invertir' && sortedDevs.length > 0 && (
