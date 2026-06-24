@@ -15,7 +15,7 @@ const SENT_COLOR = {
   negative: '#F87171',
 };
 
-export default function DevReviewsBlock({ devId }) {
+export default function DevReviewsBlock({ devId, hideIfEmpty = false }) {
   const { t } = useTranslation('common');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +43,7 @@ export default function DevReviewsBlock({ devId }) {
   }
 
   if (error || !data || data.n_reviews === 0) {
+    if (hideIfEmpty) return null;   // ficha: no mostrar caja de "sin reseñas" en el acto de confianza
     return (
       <section data-testid="dev-reviews-empty" style={cardStyle}>
         <h3 style={titleStyle}>{t('reviewsResidents.title', 'Voz de residentes')}</h3>

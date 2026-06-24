@@ -651,7 +651,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           </div>
           {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
           <section data-testid="dev-reviews-residents-section" style={{ marginTop: 16 }}>
-            <DevReviewsBlock devId={dev.id} />
+            <DevReviewsBlock devId={dev.id} hideIfEmpty />
           </section>
           {/* Riesgos honestos — dato real (Atlas de Riesgos CDMX + preventa + absorción), lectura balanceada. */}
           <RiesgosHonestos dev={dev} />
