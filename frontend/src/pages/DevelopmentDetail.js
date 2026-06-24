@@ -369,6 +369,45 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           <PhotoGallery dev={dev} />
 
+          {/* ═══ ACTO 1 · HERO DE DATOS — el gancho: precio GIGANTE + lo que importa de un vistazo + siguiente paso. ═══ */}
+          {(() => {
+            const beds = dev.bedrooms_range || [];
+            const m2 = dev.m2_range || [];
+            const park = dev.parking_range || [];
+            const pm2 = dev.price_m2_dev || (dev.price_from && (m2[0]) ? Math.round(dev.price_from / m2[0]) : null);
+            const HStat = ({ k, v }) => v ? (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.4vw,28px)', color: 'var(--cream)', lineHeight: 1, letterSpacing: '-0.02em' }}>{v}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{k}</div>
+              </div>
+            ) : null;
+            return (
+              <div data-testid="dev-hero-stats" style={{
+                marginTop: 22, padding: 'clamp(20px,3vw,30px)', borderRadius: 24,
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(236,72,153,0.07) 60%, rgba(16,185,129,0.05))',
+                border: '1px solid rgba(99,102,241,0.22)', boxShadow: '0 20px 60px rgba(99,102,241,0.10)',
+                display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'clamp(20px,4vw,48px)', flexWrap: 'wrap',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="eyebrow" style={{ color: 'var(--theme)', margin: 0 }}>Precio · {t(`marketplace_v2.stage.${dev.stage}`)}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(40px,6vw,64px)', lineHeight: 0.92, letterSpacing: '-0.035em', background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginTop: 6 }}>
+                    {dev.price_from_display || (dev.price_from ? `$${Number(dev.price_from).toLocaleString('es-MX')}` : '—')}
+                  </div>
+                  {pm2 && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', marginTop: 8 }}>≈ <b style={{ color: 'var(--cream)' }}>${Number(pm2).toLocaleString('es-MX')}/m²</b> · entrega {dev.delivery_estimate}</div>}
+                </div>
+                <div style={{ display: 'flex', gap: 'clamp(18px,3vw,34px)', flexWrap: 'wrap' }}>
+                  <HStat k="Recámaras" v={beds.length ? (beds[0] === beds[1] ? beds[0] : `${beds[0]}–${beds[1]}`) : null} />
+                  <HStat k="m²" v={m2.length ? (m2[0] === m2[1] ? m2[0] : `${m2[0]}–${m2[1]}`) : null} />
+                  <HStat k="Estac." v={park.length ? (park[1] || park[0]) : null} />
+                </div>
+                <button onClick={() => openGate({ source: 'hero', dev_id: dev.id, dev_name: dev.name })} data-testid="hero-cta"
+                  style={{ padding: '15px 28px', borderRadius: 14, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 16, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 30px rgba(99,102,241,0.3)' }}>
+                  Agendar visita →
+                </button>
+              </div>
+            );
+          })()}
+
           {/* CORONA · Veredicto del Desarrollo — sube al tope el veredicto (BuySignal) + plusvalía + zona +
               catastral en un hero glanceable, y cierra ciclo (Atlax agéntico / lead → Cerebro). */}
           <VeredictoDesarrollo
