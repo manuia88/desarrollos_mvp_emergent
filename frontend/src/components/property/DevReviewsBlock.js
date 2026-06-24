@@ -4,14 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDevelopmentReviews } from '../../api/reviewsResidents';
 
-const CREAM = '#F0EBE0';
-const SUBTLE = 'rgba(240,235,224,0.65)';
-const PANEL_BG = 'rgba(240,235,224,0.04)';
-const PANEL_BORDER = 'rgba(240,235,224,0.10)';
+const CREAM = '#1E2230';
+const SUBTLE = 'rgba(30,34,48,0.65)';
+const PANEL_BG = 'rgba(30,34,48,0.04)';
+const PANEL_BORDER = 'rgba(30,34,48,0.10)';
 
 const SENT_COLOR = {
   positive: '#34D399',
-  neutral: 'rgba(240,235,224,0.50)',
+  neutral: 'rgba(30,34,48,0.50)',
   negative: '#F87171',
 };
 

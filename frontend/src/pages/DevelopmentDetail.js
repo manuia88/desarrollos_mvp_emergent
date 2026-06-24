@@ -453,15 +453,15 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             alignItems: 'start', marginTop: 28,
           }}>
             <div>
-              {/* Tab nav */}
+              {/* Tab nav — estilo institucional (GBM/Dividenz): barra limpia con subrayado de marca · sticky */}
               <div style={{
-                display: 'flex', gap: 4,
-                padding: 6,
-                background: 'var(--surface-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 9999,
-                marginBottom: 22,
+                display: 'flex', gap: 2,
+                borderBottom: '1px solid var(--card-border, var(--border))',
+                marginBottom: 24,
                 overflowX: 'auto',
+                position: 'sticky', top: 60, zIndex: 6,
+                background: 'var(--bg, #FAFAFB)',
+                scrollSnapType: 'x proximity',
               }} data-testid="tab-nav">
                 {tabs.map(t0 => {
                   const active = tab === t0.k;
@@ -470,15 +470,17 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                       data-testid={`tab-${t0.k}`}
                       onClick={() => setTab(t0.k)}
                       style={{
-                        padding: '9px 18px', borderRadius: 9999,
-                        background: active ? 'var(--grad)' : 'transparent',
-                        border: 'none',
-                        color: active ? '#fff' : 'var(--cream-2)',
-                        fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}>
+                        position: 'relative',
+                        padding: '14px 16px', background: 'transparent', border: 'none',
+                        color: active ? 'var(--cream)' : 'var(--cream-3)',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: active ? 800 : 600, fontSize: 14,
+                        letterSpacing: '-0.01em', cursor: 'pointer', whiteSpace: 'nowrap',
+                        scrollSnapAlign: 'start', transition: 'color 0.15s',
+                      }}
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = 'var(--cream)'; }}
+                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = 'var(--cream-3)'; }}>
                       {t0.label}
+                      {active && <span style={{ position: 'absolute', left: 10, right: 10, bottom: -1, height: 3, borderRadius: 3, background: 'var(--grad)' }} />}
                     </button>
                   );
                 })}
