@@ -2081,7 +2081,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug")}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or []}
     parsed = {}
     # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
     # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
@@ -2371,7 +2371,49 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                             "obra", "construccion", "construcción", "venta", "renta", "piso", "credito", "crédito", "contado", "preci"}
                 if len(cand) >= 4 and cand.split()[0] not in _NONZONE:
                     zona_no_disponible = cand
-    out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}
+    # ── CROSS-ZONA: si pidió zona + presupuesto y casi nada entra ahí (o la zona no tiene inventario), recomienda
+    # desarrollos de OTRAS zonas que SÍ cumplen los filtros dentro del presupuesto. Convierte el "no hay" en opciones
+    # reales. + zonas_sustitutas = inteligencia de SUSTITUCIÓN (a qué zona se va la demanda de la pedida) para dev/superadmin.
+    cross_zone = []
+    zonas_sustitutas = []
+    try:
+        _col = filters.get("colonia")
+        _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
+        _maxp = filters.get("max_price")
+        _beds = filters.get("beds")
+        _baths = filters.get("baths")
+        _park = filters.get("parking")
+        _tipo = filters.get("tipo")
+
+        def _dev_fits(d):
+            if _maxp and (d.get("price_from") or 0) > _maxp:
+                return False
+            if _beds and ((d.get("bedrooms_range") or [0, 0])[-1] or 0) < _beds:
+                return False
+            if _baths and ((d.get("bathrooms_range") or [0, 0])[-1] or 0) < _baths:
+                return False
+            if _park and ((d.get("parking_range") or [0, 0])[-1] or 0) < _park:
+                return False
+            if _tipo and d.get("property_type") and d.get("property_type") != _tipo:
+                return False
+            return True
+        # dispara si: pidió zona con presupuesto y <2 entran ahí · O la zona no está disponible (sin inventario) pero hay presupuesto
+        _need_cross = bool(_maxp) and ((_req_cols and len([d for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and _dev_fits(d)]) < 2) or (zona_no_disponible and not _req_cols))
+        if _need_cross:
+            cands = [d for d in DEVELOPMENTS if d.get("colonia_id") not in _req_cols and _dev_fits(d)]
+            cands.sort(key=lambda d: d.get("price_from") or 0)
+            for d in cands[:5]:
+                cross_zone.append({
+                    "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
+                    "slug": d.get("slug") or d.get("id"), "price_from": d.get("price_from"), "price_from_display": d.get("price_from_display"),
+                    "bedrooms_range": d.get("bedrooms_range"), "bathrooms_range": d.get("bathrooms_range"),
+                    "m2_range": d.get("m2_range"), "parking_range": d.get("parking_range"), "amenities": d.get("amenities") or [],
+                })
+            zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
+    except Exception:
+        cross_zone = []
+    out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc),
+           "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas}
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
     if zona_no_disponible_slug:
@@ -2410,6 +2452,9 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             "amenidades_pedidas": _amen, "features_pedidos": filters.get("unit_feature") or [],
             "zona_no_disponible": zona_no_disponible,
             "unmet": bool(zona_no_disponible) or (_supply == 0),
+            # SUSTITUCIÓN: la demanda de la zona pedida que SÍ matchea en otras zonas (oro para selección de terreno dev).
+            "zonas_sustitutas": zonas_sustitutas,
+            "sustitucion": bool(zonas_sustitutas),
             "completa": _completa,
             "texto_crudo": q[:300], "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
             "created_at_dt": _dt.utcnow(),
@@ -2423,7 +2468,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             })
     except Exception:
         pass
-    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug}
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas}
 
 
 class NLPSearchIn(BaseModel):

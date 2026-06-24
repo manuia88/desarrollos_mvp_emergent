@@ -31,6 +31,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [aiFilters, setAiFilters] = useState(null);
   const [aiNotice, setAiNotice] = useState(null);   // zona pedida que NO cubrimos (honestidad)
   const [aiNoticeSlug, setAiNoticeSlug] = useState(null); // slug de la zona para enlazar a /zona
+  const [aiCrossZone, setAiCrossZone] = useState([]);     // si no alcanza la zona pedida → desarrollos en OTRAS zonas que sí cumplen
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
@@ -205,6 +206,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       // Honestidad de zona: si pidió un lugar que no cubrimos, avísale (no fingimos resultados de otra zona).
       setAiNotice(resp?.zona_no_disponible || null);
       setAiNoticeSlug(resp?.zona_no_disponible_slug || null);
+      setAiCrossZone(Array.isArray(resp?.cross_zone) ? resp.cross_zone : []);
     } finally {
       setAiLoading(false);
     }
@@ -449,7 +451,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); }}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); }}
                 openKey={openKey}
                 openNonce={openNonce}
               />
@@ -463,6 +465,22 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 }}>
                   <span style={{ fontSize: 15 }}>📍</span>
                   <span>Aún no tenemos desarrollos en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{aiNotice}</b> (cubrimos CDMX). Te mostramos lo más cercano.{(() => { const slug = aiNoticeSlug || ((colonias || []).find((x) => (x.name || '').toLowerCase() === String(aiNotice).toLowerCase()) || {}).id; return slug ? <> <Link to={`/zona/${slug}`} style={{ color: 'var(--theme)', fontWeight: 800, textDecoration: 'none' }}>Conoce {aiNotice} a fondo →</Link></> : null; })()}</span>
+                </div>
+              )}
+              {/* CROSS-ZONA: no alcanzó la zona pedida → estos desarrollos en otras zonas SÍ cumplen lo que buscas. */}
+              {aiCrossZone.length > 0 && (
+                <div data-testid="ai-cross-zone" style={{ marginTop: 12, padding: '14px 16px', borderRadius: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.28)' }}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
+                    {aiCrossZone.map((c) => (
+                      <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 800, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.colonia || c.colonia_id}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)', marginTop: 2 }}>{c.name}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>{Array.isArray(c.bedrooms_range) ? `${c.bedrooms_range[0]}–${c.bedrooms_range[1]} rec` : ''}{Array.isArray(c.m2_range) ? ` · ${c.m2_range[0]}–${c.m2_range[1]} m²` : ''}</div>
+                        {c.price_from ? <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: '#34D399', marginTop: 4 }}>desde {c.price_from_display || `$${Number(c.price_from).toLocaleString('es-MX')}`}</div> : null}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               )}
               {/* Save Search button — visible cuando hay filtros */}
@@ -554,7 +572,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </button>
                   )}
                   {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
-                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
                     ✨ Nueva búsqueda
                   </button>
@@ -668,7 +686,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
 
