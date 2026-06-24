@@ -475,7 +475,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {aiCrossZone.length > 0 && (
                 <div data-testid="ai-cross-zone" style={{ marginTop: 12, padding: '14px 16px', borderRadius: 14, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.28)' }}>
                   <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>🧭</span> Tu presupuesto rinde más en otras zonas — esto cumple lo que buscas:</div>
-                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad estimada con {aiMensSupuesto.esquema} · {aiMensSupuesto.enganche} · {aiMensSupuesto.plazo_anios} años · tasa {aiMensSupuesto.tasa}. (El plan de preventa del desarrollador es distinto.)</div> : null}
+                  {aiMensSupuesto ? <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>Mensualidad estimada · <b style={{ color: 'var(--cream)' }}>{aiMensSupuesto.esquema}</b> · enganche {aiMensSupuesto.enganche}{aiMensSupuesto.plazo_anios ? ` · ${aiMensSupuesto.plazo_anios} años · tasa ${aiMensSupuesto.tasa}` : ''}. {aiMensSupuesto.nota}</div> : null}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginTop: 12 }}>
                     {aiCrossZone.map((c) => (
                       <Link key={c.id || c.name} to={`/zona/${c.colonia_id || c.slug}`} style={{ textDecoration: 'none', display: 'block', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>

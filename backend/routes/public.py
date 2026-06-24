@@ -2381,9 +2381,10 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _col = filters.get("colonia")
         _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
         _maxp = filters.get("max_price")
-        # MENSUALIDAD ≠ precio fijo: depende del esquema (enganche + plazo + tasa). NO se confunde con 'precio = X'. Usamos
-        # los supuestos PARSEADOS (enganche_max, plazo) — default crédito hipotecario 20% enganche / 20 años / ~11.45%.
-        # Esto deja EXPLÍCITO dónde está puesto el supuesto (mensualidad_supuesto) en vez de una conversión opaca.
+        # MENSUALIDAD ≠ precio fijo. Hay DOS conceptos distintos (NO se confunden):
+        #  · crédito hipotecario: (precio − enganche) amortizado a plazo/tasa (~11.45%, 20a).
+        #  · preventa (plan del desarrollador): el ENGANCHE repartido en mensualidades durante la obra (hasta la entrega).
+        # Se detecta el esquema del texto/filtros y se calcula el correcto POR DESARROLLO (presupuesto = mensualidad de ESE esquema).
         _RATE = 0.1145
         try:
             _plazo = int(filters.get("plazo") or 20)
@@ -2391,33 +2392,58 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             _plazo = 20
         _plazo = min(max(_plazo, 5), 30)
         _i = _RATE / 12.0
-        _pf = _i / (1 - (1 + _i) ** (-_plazo * 12))   # factor PMT por peso de préstamo
+        _pf = _i / (1 - (1 + _i) ** (-_plazo * 12))   # factor PMT por peso de préstamo (crédito)
+        _esq = str(filters.get("esquema_pago") or "").lower()
+        _is_preventa = ("preventa" in _esq) or ("desarrollad" in _esq) or bool(_re.search(r"preventa|plan del desarrollad|en obra|durante (la )?(obra|construcci)|mensualidades? de preventa", ql))
 
-        def _mens_dev(price):
+        def _months_to_delivery(d):
+            m = _re.match(r"^(\d{4})-(\d{2})", str((d or {}).get("delivery_estimate") or ""))
+            if not m:
+                return None
+            now = datetime.now(timezone.utc)
+            return (int(m.group(1)) - now.year) * 12 + (int(m.group(2)) - now.month)
+
+        def _eng_de(price):
+            return min(filters.get("enganche_max") or round(price * 0.20), price)
+
+        def _mens_dev(price, d=None):
             if not price:
                 return None
-            eng = filters.get("enganche_max") or round(price * 0.20)
-            eng = min(eng, price)
-            loan = max(0, price - eng)
-            return int(round(loan * _pf)) if loan > 0 else 0
-        if not _maxp and filters.get("mensualidad_max"):
-            _mm = filters["mensualidad_max"]
-            if filters.get("enganche_max"):
-                _maxp = int(filters["enganche_max"] + _mm / _pf)            # tu enganche + lo que financia la mensualidad
-                _eng_txt = f"enganche ${int(filters['enganche_max']):,}"
-            else:
-                _maxp = int(_mm / (0.8 * _pf))                              # asume 20% de enganche
-                _eng_txt = "enganche 20%"
-            mensualidad_supuesto = {"mensualidad_max": _mm, "enganche": _eng_txt, "plazo_anios": _plazo, "tasa": "~11.45%", "esquema": "crédito hipotecario", "nota": "La mensualidad de preventa (plan del desarrollador) es distinta; esto estima la de crédito hipotecario."}
-        if not _maxp and filters.get("enganche_max"):
-            _maxp = int(filters["enganche_max"] / 0.20)
+            if _is_preventa:
+                mtd = _months_to_delivery(d) if d else None
+                if d and (d.get("stage") == "preventa") and mtd and mtd > 0:
+                    return int(round(_eng_de(price) / mtd))     # enganche repartido en la obra
+                return None                                     # no aplica preventa (entrega inmediata / sin fecha)
+            loan = max(0, price - _eng_de(price))
+            return int(round(loan * _pf)) if loan > 0 else 0    # mensualidad de crédito
+        _mm = filters.get("mensualidad_max")
+        _eng_b = filters.get("enganche_max")
+        _has_budget = bool(_maxp or _mm or _eng_b)
+
+        def _budget_ok(d):
+            price = d.get("price_from") or 0
+            if not price:
+                return False
+            if _maxp:
+                return price <= _maxp
+            if _mm:
+                m = _mens_dev(price, d)
+                return (m is not None) and (m <= _mm)
+            if _eng_b:
+                return round(price * 0.20) <= _eng_b
+            return True
+        if _mm:
+            _eng_lbl = (f"${int(_eng_b):,}" if _eng_b else "20%")
+            mensualidad_supuesto = ({"mensualidad_max": _mm, "esquema": "preventa (plan del desarrollador)", "enganche": _eng_lbl, "nota": "Mensualidad de preventa = tu enganche repartido en las mensualidades hasta la entrega (solo desarrollos en preventa)."}
+                                    if _is_preventa else
+                                    {"mensualidad_max": _mm, "esquema": "crédito hipotecario", "enganche": _eng_lbl, "plazo_anios": _plazo, "tasa": "~11.45%", "nota": "Mensualidad del crédito sobre el saldo financiado; la de preventa (plan del dev) es distinta."})
         _beds = filters.get("beds")
         _baths = filters.get("baths")
         _park = filters.get("parking")
         _tipo = filters.get("tipo")
 
         def _dev_fits(d):
-            if _maxp and (d.get("price_from") or 0) > _maxp:
+            if not _budget_ok(d):
                 return False
             if _beds and ((d.get("bedrooms_range") or [0, 0])[-1] or 0) < _beds:
                 return False
@@ -2450,7 +2476,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                     falta += [_FTN.get(f, f) for f in sorted(missf)]
             return max(1, min(10, round(sc / mx * 10))), falta[:3]
         # dispara si: pidió zona con presupuesto y <2 entran ahí · O la zona no está disponible (sin inventario) pero hay presupuesto
-        _need_cross = bool(_maxp) and ((_req_cols and len([d for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and _dev_fits(d)]) < 2) or (zona_no_disponible and not _req_cols))
+        _need_cross = _has_budget and ((_req_cols and len([d for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and _dev_fits(d)]) < 2) or (zona_no_disponible and not _req_cols))
         if _need_cross:
             cands = [d for d in DEVELOPMENTS if d.get("colonia_id") not in _req_cols and _dev_fits(d)]
             scored = []
@@ -2464,7 +2490,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                     "slug": d.get("slug") or d.get("id"), "price_from": d.get("price_from"), "price_from_display": d.get("price_from_display"),
                     "bedrooms_range": d.get("bedrooms_range"), "bathrooms_range": d.get("bathrooms_range"),
                     "m2_range": d.get("m2_range"), "parking_range": d.get("parking_range"), "amenities": d.get("amenities") or [],
-                    "match": sc, "falta": falta, "mensualidad_est": (_mens_dev(d.get("price_from")) if filters.get("mensualidad_max") else None),
+                    "match": sc, "falta": falta, "mensualidad_est": (_mens_dev(d.get("price_from"), d) if _mm else None),
                 })
             zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
     except Exception:
