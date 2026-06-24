@@ -33,6 +33,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [aiNoticeSlug, setAiNoticeSlug] = useState(null); // slug de la zona para enlazar a /zona
   const [aiCrossZone, setAiCrossZone] = useState([]);     // si no alcanza la zona pedida → desarrollos en OTRAS zonas que sí cumplen
   const [aiMensSupuesto, setAiMensSupuesto] = useState(null); // supuesto usado para mapear mensualidad→precio (enganche·plazo·tasa)
+  const [aiBrecha, setAiBrecha] = useState(null);         // brecha: lo + barato en la zona pedida vs lo que el comprador puede pagar
   const [casiResults, setCasiResults] = useState([]);   // "los que más se asemejan" cuando 0 exactos
   const [relajCounts, setRelajCounts] = useState({});   // C · "si quitas X → N opciones" (conteo predictivo)
   const [aiLoading, setAiLoading] = useState(false);
@@ -209,6 +210,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       setAiNoticeSlug(resp?.zona_no_disponible_slug || null);
       setAiCrossZone(Array.isArray(resp?.cross_zone) ? resp.cross_zone : []);
       setAiMensSupuesto(resp?.mensualidad_supuesto || null);
+      setAiBrecha(resp?.brecha_zona || null);
     } finally {
       setAiLoading(false);
     }
@@ -455,7 +457,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 onAIQuery={onAIQuery}
                 aiLoading={aiLoading}
                 aiFilters={aiFilters}
-                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); setAiMensSupuesto(null); }}
+                onAIClear={() => { setAiFilters(null); setAiNotice(null); setAiNoticeSlug(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); }}
                 openKey={openKey}
                 openNonce={openNonce}
               />
@@ -469,6 +471,17 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 }}>
                   <span style={{ fontSize: 15 }}>📍</span>
                   <span>Aún no tenemos desarrollos en <b style={{ color: 'var(--cream)', textTransform: 'capitalize' }}>{aiNotice}</b> (cubrimos CDMX). Te mostramos lo más cercano.{(() => { const slug = aiNoticeSlug || ((colonias || []).find((x) => (x.name || '').toLowerCase() === String(aiNotice).toLowerCase()) || {}).id; return slug ? <> <Link to={`/zona/${slug}`} style={{ color: 'var(--theme)', fontWeight: 800, textDecoration: 'none' }}>Conoce {aiNotice} a fondo →</Link></> : null; })()}</span>
+                </div>
+              )}
+              {/* BRECHA DE PRESUPUESTO: honestidad — lo más económico que existe en la zona pedida vs lo que el comprador puso. */}
+              {aiBrecha && aiBrecha.gap > 0 && (
+                <div data-testid="ai-brecha" style={{
+                  marginTop: 10, padding: '11px 15px', borderRadius: 12,
+                  background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.28)',
+                  fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{ fontSize: 15 }}>📊</span>
+                  <span>En esta zona lo más económico arranca en <b style={{ color: 'var(--cream)' }}>~${Number(aiBrecha.mens_zona_pedida).toLocaleString('es-MX')}/mes</b> — unos <b style={{ color: '#F0A0C0' }}>${Number(aiBrecha.gap).toLocaleString('es-MX')}/mes</b> arriba de tu presupuesto. {aiCrossZone.length > 0 ? 'Abajo te muestro zonas donde tu número sí alcanza.' : 'Sube un poco tu mensualidad o ajusta el esquema de pago para ver opciones.'}</span>
                 </div>
               )}
               {/* CROSS-ZONA: no alcanzó la zona pedida → estos desarrollos en otras zonas SÍ cumplen lo que buscas. */}
@@ -490,6 +503,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.5 }}>
                             {c.mensualidad_credito ? <div>💳 crédito: <b style={{ color: 'var(--cream)' }}>~${Number(c.mensualidad_credito).toLocaleString('es-MX')}/mes</b></div> : null}
                             {c.mensualidad_preventa ? <div>🏗️ preventa: <b style={{ color: 'var(--cream)' }}>~${Number(c.mensualidad_preventa).toLocaleString('es-MX')}/mes</b></div> : null}
+                            {c.contado ? <div>💵 contado: <b style={{ color: '#34D399' }}>${Number(c.contado.precio).toLocaleString('es-MX')}</b> <span style={{ opacity: 0.8 }}>(ahorras ${Number(c.contado.ahorro).toLocaleString('es-MX')} · {c.contado.pct}%)</span></div> : null}
                             <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 1 }}>{c.plan_real ? '✓ plan del desarrollador' : 'estimado'}</div>
                           </div>
                         ) : null}
@@ -588,7 +602,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </button>
                   )}
                   {/* Reversible: vuelve al inicio de la búsqueda guiada (limpia y reaparecen las preguntas "lo que falta"). */}
-                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  <button onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setColoniaFilter(null); setBrowseAll(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     data-testid="volver-a-buscar" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: 13.5 }}>
                     ✨ Nueva búsqueda
                   </button>
@@ -702,7 +716,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
+                          <button data-testid="empty-clear" onClick={() => { setFilters({}); setAiFilters(null); setAiNotice(null); setAiCrossZone([]); setAiMensSupuesto(null); setAiBrecha(null); setColoniaFilter(null); setBrowseAll(true); }} className="btn btn-glass">Ver todos los desarrollos</button>
                         </div>
                       </div>
 

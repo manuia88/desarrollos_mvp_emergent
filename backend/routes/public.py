@@ -2081,7 +2081,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         if ts is not None and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
-            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or [], "mensualidad_supuesto": cached.get("mensualidad_supuesto")}
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True, "zona_no_disponible": cached.get("zona_no_disponible"), "zona_no_disponible_slug": cached.get("zona_no_disponible_slug"), "cross_zone": cached.get("cross_zone") or [], "zonas_sustitutas": cached.get("zonas_sustitutas") or [], "mensualidad_supuesto": cached.get("mensualidad_supuesto"), "brecha_zona": cached.get("brecha_zona")}
     parsed = {}
     # SAFE LIMIT del LLM (control de costo, founder): máx N búsquedas IA por IP/hora. Si se pasa, NO se llama al LLM
     # → cae al parser DETERMINISTA (gratis) abajo. Así el costo de API no se dispara y la búsqueda igual funciona.
@@ -2377,6 +2377,9 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     cross_zone = []
     zonas_sustitutas = []
     mensualidad_supuesto = None
+    esquema_pedido = None      # qué esquema de pago pidió el comprador (preventa/credito/ambos) → señal para devs
+    gap_mensualidad = None     # brecha: lo más barato que existe en la zona pedida − lo que el comprador puede pagar
+    mens_zona_pedida = None    # mensualidad (crédito) más baja disponible en la zona pedida
     try:
         _col = filters.get("colonia")
         _req_cols = set(_col if isinstance(_col, list) else ([_col] if _col else []))
@@ -2396,6 +2399,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _esq = str(filters.get("esquema_pago") or "").lower()
         _want_preventa = ("preventa" in _esq) or ("desarrollad" in _esq) or bool(_re.search(r"preventa|plan del desarrollad|en obra|durante (la )?(obra|construcci)|mensualidades? de preventa", ql))
         _want_credito = ("credito" in _esq) or ("hipotec" in _esq) or bool(_re.search(r"cr[ée]dito|hipotec", ql))
+        esquema_pedido = ("ambos" if (_want_preventa and _want_credito) else "preventa" if _want_preventa else "credito" if _want_credito else None)
 
         def _months_to_delivery(d):
             m = _re.match(r"^(\d{4})-(\d{2})", str((d or {}).get("delivery_estimate") or ""))
@@ -2427,6 +2431,14 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             if not meses or meses <= 0:
                 return None
             return int(round(_eng_de(price, d) / meses))
+
+        def _contado(price, d):
+            # 3er esquema: pago de contado con el descuento REAL del desarrollador (solo si el plan lo trae · sin inventar).
+            pct = _plan(d).get("descuento_contado_pct")
+            if not price or not pct:
+                return None
+            ahorro = int(round(price * (pct / 100.0)))
+            return {"precio": int(price - ahorro), "ahorro": ahorro, "pct": pct}
         _mm = filters.get("mensualidad_max")
         _eng_b = filters.get("enganche_max")
         _has_budget = bool(_maxp or _mm or _eng_b)
@@ -2515,13 +2527,26 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
                     "match": sc, "falta": falta, "stage": d.get("stage"),
                     "mensualidad_credito": (_mens_credito(d.get("price_from"), d) if _mm else None),
                     "mensualidad_preventa": (_mens_preventa(d.get("price_from"), d) if _mm else None),
+                    "contado": _contado(d.get("price_from"), d),
                     "plan_real": bool(_plan(d)),
                 })
             zonas_sustitutas = sorted({c["colonia_id"] for c in cross_zone if c.get("colonia_id")})
+            # BRECHA DE PRESUPUESTO: lo más barato (mensualidad de crédito) que SÍ existe en la zona PEDIDA vs lo que el
+            # comprador puede pagar. gap>0 = demanda real a un precio que la zona no ofrece (señal de pricing/terreno para devs).
+            if _req_cols and _mm:
+                _zc = [m for d in DEVELOPMENTS if d.get("colonia_id") in _req_cols and d.get("price_from")
+                       for m in [_mens_credito(d.get("price_from"), d)] if m]
+                if _zc:
+                    mens_zona_pedida = min(_zc)
+                    if mens_zona_pedida > _mm:
+                        gap_mensualidad = mens_zona_pedida - _mm
     except Exception:
         cross_zone = []
+    _brecha = ({"mens_zona_pedida": mens_zona_pedida, "gap": gap_mensualidad, "mensualidad_max": filters.get("mensualidad_max")}
+               if gap_mensualidad else None)
     out = {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc),
-           "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto}
+           "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto,
+           "brecha_zona": _brecha}
     if zona_no_disponible:
         out["zona_no_disponible"] = zona_no_disponible
     if zona_no_disponible_slug:
@@ -2563,6 +2588,10 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             # SUSTITUCIÓN: la demanda de la zona pedida que SÍ matchea en otras zonas (oro para selección de terreno dev).
             "zonas_sustitutas": zonas_sustitutas,
             "sustitucion": bool(zonas_sustitutas),
+            # ESQUEMA pedido (preventa/credito/ambos) + BRECHA de presupuesto en la zona pedida → señales de pricing para devs.
+            "esquema_pedido": esquema_pedido,
+            "gap_mensualidad": gap_mensualidad,
+            "mens_zona_pedida": mens_zona_pedida,
             "completa": _completa,
             "texto_crudo": q[:300], "query": q[:200], "ip_hash": _hl.sha256(_ip.encode()).hexdigest()[:16],
             "created_at_dt": _dt.utcnow(),
@@ -2576,7 +2605,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
             })
     except Exception:
         pass
-    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto}
+    return {"filters": filters, "query": q, "cached": False, "zona_no_disponible": zona_no_disponible, "zona_no_disponible_slug": zona_no_disponible_slug, "cross_zone": cross_zone, "zonas_sustitutas": zonas_sustitutas, "mensualidad_supuesto": mensualidad_supuesto, "brecha_zona": _brecha}
 
 
 class NLPSearchIn(BaseModel):

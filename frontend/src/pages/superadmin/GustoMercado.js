@@ -104,6 +104,40 @@ export default function GustoMercado({ filters }) {
               <div style={{ fontSize: 11, ...mute, marginTop: 8 }}>{cube.sustitucion.lectura}</div>
             </div>
           )}
+          {/* ESQUEMA DE PAGO pedido (preventa vs crédito) — cómo estructurar precio/plan para el dev */}
+          {cube.esquema_demanda && (cube.esquema_demanda.reparto || []).length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>💳 Esquema de pago que pide la gente <span style={{ ...mute, fontWeight: 400 }}>(crédito vs preventa · cómo estructurar precio y plan)</span></div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(cube.esquema_demanda.reparto || []).map((e, i) => {
+                  const total = (cube.esquema_demanda.reparto || []).reduce((s, x) => s + (x.veces || 0), 0) || 1;
+                  const pct = Math.round((e.veces / total) * 100);
+                  const lbl = e.esquema === 'preventa' ? '🏗️ preventa' : e.esquema === 'credito' ? '💳 crédito' : '🔀 ambos';
+                  return (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)', padding: '5px 10px', borderRadius: 8, background: 'var(--sa-bg-soft, rgba(255,255,255,0.03))', border: '1px solid var(--sa-border)' }}>
+                      <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{lbl}</b> <span style={{ ...mute }}>· {e.veces}× ({pct}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, ...mute, marginTop: 8 }}>{cube.esquema_demanda.lectura}</div>
+            </div>
+          )}
+          {/* BRECHA DE PAGO — zonas donde la mensualidad pedida no alcanza ni lo más barato (oportunidad de producto accesible) */}
+          {cube.brecha_pago && (cube.brecha_pago.zonas || []).length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sa-border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sa-text)', marginBottom: 6 }}>📊 Brecha de presupuesto <span style={{ ...mute, fontWeight: 400 }}>({cube.brecha_pago.total} búsquedas · piden comprar pero su mensualidad no llega ni a lo más barato)</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 8 }}>
+                {(cube.brecha_pago.zonas || []).slice(0, 12).map((b, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--sa-text-dim)' }}>
+                    <b style={{ color: 'var(--sa-text)', textTransform: 'capitalize' }}>{b.colonia}</b> <span style={{ ...mute }}>· {b.veces}×</span>
+                    {b.gap_prom != null && <div style={{ fontSize: 11, ...mute }}>piden ~${Number(b.mens_pedida_prom || 0).toLocaleString('es-MX')}/mes · faltan ~<b style={{ color: '#EC4899' }}>${Number(b.gap_prom).toLocaleString('es-MX')}/mes</b></div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, ...mute, marginTop: 8 }}>{cube.brecha_pago.lectura}</div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 11.5, ...mute, flexWrap: 'wrap' }}>
             <span>📈 Velocidad: <b style={{ color: cube.velocidad?.tendencia === 'subiendo' ? GREEN : 'var(--sa-text)' }}>{cube.velocidad?.tendencia}</b> ({cube.velocidad?.ultimos_7d} vs {cube.velocidad?.previos_7d})</span>
             <span>👻 Shadow demand: <b style={{ color: 'var(--sa-text)' }}>{cube.shadow_demand?.ratio_anon_vs_reg}:1</b> anónimas/registradas (el top-of-funnel real)</span>

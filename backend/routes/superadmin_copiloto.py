@@ -188,8 +188,38 @@ async def buyer_cycle_intel(db, dias: int = 30):
         "lectura": "La demanda que la zona pedida no pudo cumplir pero que SÍ matchea en otra. 'La demanda de A se va a B' → dónde construir/expandir (selección de terreno).",
     }
 
+    # ESQUEMA DE PAGO que pide la gente (preventa vs crédito) → señal para devs: cómo estructurar precio y plan de pagos.
+    esq_rows = await _agg(db.marketplace_searches, [
+        {"$match": {"esquema_pedido": {"$ne": None}, **F}},
+        {"$group": {"_id": "$esquema_pedido", "n": {"$sum": 1}}},
+        {"$sort": {"n": -1}},
+    ])
+    esquema_demanda = {
+        "reparto": [{"esquema": e["_id"], "veces": e["n"]} for e in esq_rows if e.get("_id")],
+        "lectura": "Qué esquema de pago pide la gente (crédito hipotecario vs preventa/plan del dev) → cómo estructurar precio y plan de pagos.",
+    }
+
+    # BRECHA DE PAGO: zonas donde la gente pide pero su mensualidad NO alcanza ni lo más barato (gap>0) → demanda a un precio que no existe.
+    brecha_rows = await _agg(db.marketplace_searches, [
+        {"$match": {"gap_mensualidad": {"$gt": 0}, **F}},
+        {"$group": {"_id": "$colonia_id", "n": {"$sum": 1}, "gap_prom": {"$avg": "$gap_mensualidad"},
+                    "mens_pedida_prom": {"$avg": "$mensualidad_max"}}},
+        {"$sort": {"n": -1}}, {"$limit": 12},
+    ])
+    brecha_total = await _count(db.marketplace_searches, {"gap_mensualidad": {"$gt": 0}, **F})
+    brecha_pago = {
+        "total": brecha_total,
+        "zonas": [{"colonia": b["_id"], "veces": b["n"],
+                   "gap_prom": round(b["gap_prom"]) if b.get("gap_prom") else None,
+                   "mens_pedida_prom": round(b["mens_pedida_prom"]) if b.get("mens_pedida_prom") else None}
+                  for b in brecha_rows if b.get("_id")],
+        "lectura": "Zonas donde la gente quiere comprar pero su mensualidad no llega ni a lo más barato. Demanda real a un precio que el mercado no ofrece (oportunidad de producto accesible).",
+    }
+
     return {
         "sustitucion": sustitucion,
+        "esquema_demanda": esquema_demanda,
+        "brecha_pago": brecha_pago,
         "salud_buscador": salud_buscador,
         "ventana_dias": dias,
         "embudo": {
