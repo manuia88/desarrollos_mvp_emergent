@@ -410,7 +410,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           })()}
 
           {/* ═══ ACTO 2 · LENTE DE PERFIL — '¿para qué lo quieres?' (lo de las tabs de colonia, para ESTE desarrollo). ═══ */}
-          <PerfilLente dev={dev} onGoTo={(tid) => { const el = document.querySelector(`[data-testid="${tid}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
+          <PerfilLente dev={dev}
+            onPerfilChange={(p) => setFinTab({ invertir: 'inversion', primera: 'credito', plan: 'plan', vivir: 'rento', familia: 'rento' }[p] || 'rento')}
+            onGoTo={(tid) => { const el = document.querySelector(`[data-testid="${tid}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
 
           {/* CORONA · Veredicto del Desarrollo — sube al tope el veredicto (BuySignal) + plusvalía + zona +
               catastral en un hero glanceable, y cierra ciclo (Atlax agéntico / lead → Cerebro). */}

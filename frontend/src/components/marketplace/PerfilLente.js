@@ -25,9 +25,10 @@ function Fact({ n, l }) {
   );
 }
 
-export default function PerfilLente({ dev, onGoTo }) {
+export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
   const [perfil, setPerfil] = useState('invertir');
   const [vida, setVida] = useState(null);
+  const pick = (k) => { setPerfil(k); if (onPerfilChange) onPerfilChange(k); };
 
   useEffect(() => {
     const cid = dev.colonia_id || dev.colonia;
@@ -103,7 +104,7 @@ export default function PerfilLente({ dev, onGoTo }) {
           {PROFILES.map((pr) => {
             const a = perfil === pr.k;
             return (
-              <button key={pr.k} data-testid={`lente-${pr.k}`} onClick={() => setPerfil(pr.k)} style={{
+              <button key={pr.k} data-testid={`lente-${pr.k}`} onClick={() => pick(pr.k)} style={{
                 padding: '11px 18px', borderRadius: 12, cursor: 'pointer',
                 border: a ? '1px solid transparent' : '1px solid var(--card-border, var(--border))',
                 background: a ? 'var(--grad)' : 'transparent',
