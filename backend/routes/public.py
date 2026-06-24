@@ -2140,7 +2140,20 @@ async def pulso_zona(request: Request, colonia: str = "", tipo: Optional[str] = 
         valor_m2 = (_v or {}).get("valor_suelo_m2")
     except Exception:
         pass
-    base = {"colonia_id": cid, "created_at_dt": {"$gte": _d.utcnow() - _t(days=30)}}
+    # Demanda sobre TODOS los ids con el mismo nombre (seed corto + catálogo largo) → no perder señal por el choque de 2 sistemas de id.
+    _ids = {cid}
+    if nombre:
+        _nf = _fold_txt(nombre)
+        try:
+            async for _c in db.colonias.find({"name": nombre}, {"_id": 0, "id": 1}):
+                if _c.get("id"):
+                    _ids.add(_c["id"])
+        except Exception:
+            pass
+        for _sc in SEED_COLONIAS:   # puente catálogo↔seed por nombre (la demanda se loguea con el id seed corto)
+            if _fold_txt(_sc.get("name")) == _nf and _sc.get("id"):
+                _ids.add(_sc["id"])
+    base = {"colonia_id": {"$in": list(_ids)}, "created_at_dt": {"$gte": _d.utcnow() - _t(days=30)}}
     try:
         demanda = await db.marketplace_searches.count_documents(base)
     except Exception:
