@@ -12,8 +12,10 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
   const [heat, setHeat] = useState(null);
   const [period, setPeriod] = useState('30d');
   const [selectedColonia, setSelectedColonia] = useState(null);
+  const [intel, setIntel] = useState(null);   // demanda insatisfecha en TUS zonas (el moat)
 
   useEffect(() => { api.getDemand().then(setLegacy).catch(() => setLegacy({ _err: true })); }, []);
+  useEffect(() => { api.getDemandIntel(60).then(setIntel).catch(() => setIntel({ _err: true })); }, []);
 
   useEffect(() => {
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
@@ -38,6 +40,75 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
             {legacy.es_estimado ? '◐ ' : '● '}{legacy.lectura}
           </span>
         </div>
+      )}
+
+      {/* ─── DEMANDA INSATISFECHA EN TUS ZONAS (el moat: qué busca la gente y no encuentra → dónde construir, a qué precio, qué plan) ─── */}
+      {intel && !intel._err && !intel.vacio && (
+        <Card data-testid="demand-intel-card" style={{ marginBottom: 20, border: '1px solid rgba(99,102,241,0.28)', background: 'linear-gradient(135deg, rgba(124,92,255,0.05), rgba(192,38,211,0.03))' }}>
+          <div className="eyebrow" style={{ marginBottom: 4, color: 'var(--theme)' }}>LO QUE LA GENTE BUSCA EN TUS ZONAS Y NO ENCUENTRA</div>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: '0 0 14px' }}>
+            Señal real y anónima de las búsquedas en DesarrollosMX, solo de tus colonias ({(intel.colonias || []).join(', ')}). Últimos {intel.ventana_dias} días.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
+            {/* Insatisfecha */}
+            <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>🔎 Demanda sin atender</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', marginTop: 4 }}>{fmt0(intel.insatisfechas)}<span style={{ fontSize: 13, color: 'var(--cream-3)', fontWeight: 600 }}> / {fmt0(intel.total_busquedas)}</span></div>
+              <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>búsquedas en tus zonas no hallaron match ({intel.insatisfechas_pct}%)</div>
+            </div>
+            {/* Brecha */}
+            {intel.brecha && (
+              <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>📊 No les alcanza</div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', marginTop: 4 }}>{fmt0(intel.brecha.personas)}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>quieren tu zona pero les faltan ~${fmt0(intel.brecha.gap_prom)}/mes (piden ~${fmt0(intel.brecha.mens_pedida_prom)})</div>
+              </div>
+            )}
+            {/* Perfil buscado */}
+            <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>🎯 Qué buscan</div>
+              <div style={{ fontSize: 13, color: 'var(--cream)', marginTop: 6, lineHeight: 1.7 }}>
+                {intel.perfil_buscado.recamaras_prom ? <div>~{intel.perfil_buscado.recamaras_prom} recámaras</div> : null}
+                {intel.perfil_buscado.precio_prom ? <div>~${fmt0(intel.perfil_buscado.precio_prom)} de precio</div> : null}
+                {intel.perfil_buscado.mensualidad_prom ? <div>~${fmt0(intel.perfil_buscado.mensualidad_prom)}/mes</div> : null}
+              </div>
+            </div>
+          </div>
+          {/* Sustitución + Esquema + Amenidades */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 12, marginTop: 12 }}>
+            {(intel.sustitucion || []).length > 0 && (
+              <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream)', marginBottom: 8 }}>🧭 A dónde se va tu demanda</div>
+                {intel.sustitucion.slice(0, 6).map((s, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ textTransform: 'capitalize' }}>{String(s.zona).replace(/-/g, ' ')}</span><span style={{ color: 'var(--cream-3)' }}>{s.veces}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(intel.esquema || []).length > 0 && (
+              <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream)', marginBottom: 8 }}>💳 Esquema de pago que piden</div>
+                {intel.esquema.map((e, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span>{e.esquema === 'preventa' ? '🏗️ preventa' : e.esquema === 'credito' ? '💳 crédito' : '🔀 ambos'}</span><span style={{ color: 'var(--cream-3)' }}>{e.veces}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(intel.amenidades_pedidas || []).length > 0 && (
+              <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream)', marginBottom: 8 }}>✨ Amenidades que piden</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {intel.amenidades_pedidas.slice(0, 8).map((a, i) => (
+                    <span key={i} style={{ fontSize: 11.5, padding: '3px 9px', borderRadius: 9999, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--cream-2)' }}>{String(a.amenidad).replace(/_/g, ' ')} · {a.veces}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 12 }}>{intel.lectura}</div>
+        </Card>
       )}
 
       {/* ─── Mapbox choropleth (Batch 6 · 4.17) ─── */}

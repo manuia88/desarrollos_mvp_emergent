@@ -26,6 +26,8 @@ export const getSecuritySummary = () => j('/api/desarrollador/security/summary')
 
 // Phase 4 Batch 14 — Developer dashboard
 export const getDashboard = () => j('/api/desarrollador/dashboard');
+// Demanda insatisfecha en TUS zonas (qué busca la gente y no encuentra · a dónde se va · brecha · esquema) — el moat del dev.
+export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dias=${dias}`);
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
 export const getDevPlays = () => j('/api/dev/projects/plays');
 // Inicio upgrade · "La Lectura del Portafolio" (cada número con su lectura + salud explicada + pulso)
