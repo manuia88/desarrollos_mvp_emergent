@@ -32,6 +32,24 @@ function landmarkDistancesFor(center) {
   return LM.map((l) => ({ name: l.name, km: km(l) }));
 }
 
+// Foto de un lugar vía proxy (el endpoint devuelve {uri} resuelto, no la imagen). Fallback elegante si no resuelve
+// (en local sin key de fotos, uri=None → placeholder; en prod carga la foto real de Google).
+function LugarFoto({ refName, alt }) {
+  const [uri, setUri] = useState(null);
+  useEffect(() => {
+    let alive = true; setUri(null);
+    if (!refName) return undefined;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/zona/place-photo?ref=${encodeURIComponent(refName)}&w=300`)
+      .then((r) => r.json()).then((d) => { if (alive && d && d.uri) setUri(d.uri); }).catch(() => {});
+    return () => { alive = false; };
+  }, [refName]);
+  return (
+    <div style={{ width: '100%', height: 108, background: 'linear-gradient(135deg,#EDEDF5,#E3E3EF)', overflow: 'hidden' }}>
+      {uri && <img src={uri} alt={alt || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+    </div>
+  );
+}
+
 export default function LocationTab({ dev, user, onGateOpen }) {
   const { t } = useTranslation();
   const container = useRef(null);
@@ -156,6 +174,34 @@ export default function LocationTab({ dev, user, onGateOpen }) {
       ) : (
         <div ref={container} data-testid="loc-map"
           style={{ height: 420, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }} />
+      )}
+
+      {/* LO MEJOR CERCA — lugares REALES (Google Places) con foto, rating y link a Maps. Antes no había nada real aquí. */}
+      {POI_CATEGORIES.some((c) => active[c.k] && realPois(c.k).length) && (
+        <div data-testid="lo-mejor-cerca">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Lo mejor cerca</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {POI_CATEGORIES.filter((c) => active[c.k] && realPois(c.k).length).map((cat) => (
+              <div key={cat.k}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: cat.color, marginBottom: 9, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 9999, background: cat.color }} />{cat.label}
+                </div>
+                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, scrollSnapType: 'x proximity' }}>
+                  {realPois(cat.k).slice(0, 10).map((p, i) => (
+                    <a key={i} href={p.maps_uri || '#'} target="_blank" rel="noreferrer" style={{ flex: '0 0 200px', scrollSnapAlign: 'start', textDecoration: 'none', borderRadius: 14, border: '1px solid var(--card-border, var(--border))', overflow: 'hidden', background: 'var(--surface-card)' }}>
+                      {p.photo && <LugarFoto refName={p.photo} alt={p.name} />}
+                      <div style={{ padding: '10px 12px' }}>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                        {p.rating && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3 }}>⭐ {p.rating}{p.reviews ? ` · ${Number(p.reviews).toLocaleString('es-MX')}` : ''}</div>}
+                        {p.address && <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address}</div>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Landmark times */}
