@@ -25,10 +25,10 @@ function fmtNumber(n) {
 }
 
 function deltaTone(pct) {
-  if (pct == null) return { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.30)', fg: '#a5b4fc' };
+  if (pct == null) return { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.30)', fg: '#6366F1' };
   if (pct > 5)   return { bg: 'rgba(163,230,53,0.10)', border: 'rgba(163,230,53,0.35)', fg: '#a3e635' };
   if (pct < -5)  return { bg: 'rgba(252,165,165,0.10)', border: 'rgba(252,165,165,0.35)', fg: '#fca5a5' };
-  return { bg: 'rgba(240,235,224,0.05)', border: 'rgba(240,235,224,0.2)', fg: 'rgba(240,235,224,0.7)' };
+  return { bg: 'rgba(30,34,48,0.05)', border: 'rgba(30,34,48,0.2)', fg: 'rgba(30,34,48,0.7)' };
 }
 
 function Skeleton() {
@@ -38,7 +38,7 @@ function Skeleton() {
       style={{
         height: 240,
         borderRadius: 16,
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04))',
+        background: 'linear-gradient(90deg, rgba(30,34,48,0.04), rgba(30,34,48,0.07), rgba(30,34,48,0.04))',
         backgroundSize: '200% 100%',
         animation: 'forecast-shimmer 1.4s linear infinite',
       }}
@@ -53,9 +53,9 @@ function ErrorState({ message }) {
       style={{
         padding: 16,
         borderRadius: 14,
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(30,34,48,0.04)',
         border: '1px dashed rgba(255,255,255,0.15)',
-        color: 'rgba(240,235,224,0.6)',
+        color: 'rgba(30,34,48,0.6)',
         fontFamily: 'DM Sans',
         fontSize: 12.5,
         textAlign: 'center',
@@ -106,20 +106,20 @@ function CustomTooltip({ active, payload, mode }) {
       style={{
         padding: '10px 12px',
         borderRadius: 12,
-        background: 'rgba(6,8,15,0.96)',
+        background: 'rgba(255,255,255,0.96)',
         border: '1px solid rgba(99,102,241,0.4)',
-        color: '#F0EBE0',
+        color: '#1E2230',
         fontFamily: 'DM Sans',
         fontSize: 12,
         minWidth: 180,
       }}
     >
-      <div style={{ color: '#a5b4fc', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+      <div style={{ color: '#6366F1', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
         {point.label}
       </div>
       <div style={{ fontWeight: 700 }}>{fmt(point.value)}</div>
       {point.months > 0 && (
-        <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: 'rgba(30,34,48,0.55)', marginTop: 2 }}>
           CI95: {fmt(point.low)} — {fmt(point.high)}
         </div>
       )}
@@ -132,10 +132,10 @@ function HeaderBadge({ narrative, delta }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
       <div>
-        <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 4 }}>
+        <div style={{ fontSize: 11, color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 4 }}>
           Proyección multi-horizonte
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(240,235,224,0.85)' }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'rgba(30,34,48,0.85)' }}>
           {narrative}
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function ForecastChart({ mode, slug, params }) {
   const cardStyle = {
     padding: 20,
     borderRadius: 18,
-    background: 'rgba(13,16,23,0.92)',
+    background: 'rgba(255,255,255,0.92)',
     backdropFilter: 'blur(24px)',
     border: '1px solid rgba(255,255,255,0.10)',
     marginBottom: 24,
@@ -246,13 +246,13 @@ export default function ForecastChart({ mode, slug, params }) {
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
             <XAxis
               dataKey="label"
-              stroke="rgba(240,235,224,0.5)"
+              stroke="rgba(30,34,48,0.5)"
               tick={{ fontSize: 11, fontFamily: 'DM Sans' }}
               axisLine={{ stroke: 'rgba(255,255,255,0.10)' }}
               tickLine={false}
             />
             <YAxis
-              stroke="rgba(240,235,224,0.5)"
+              stroke="rgba(30,34,48,0.5)"
               tick={{ fontSize: 11, fontFamily: 'DM Sans' }}
               axisLine={false}
               tickLine={false}
@@ -272,7 +272,7 @@ export default function ForecastChart({ mode, slug, params }) {
               type="monotone"
               dataKey="low"
               stroke="none"
-              fill="rgba(6,8,15,0.92)"
+              fill="rgba(255,255,255,0.92)"
               activeDot={false}
               isAnimationActive={false}
             />
@@ -282,8 +282,8 @@ export default function ForecastChart({ mode, slug, params }) {
               dataKey="value"
               stroke="url(#fcLine)"
               strokeWidth={2.5}
-              dot={{ r: 4, fill: '#F0EBE0', stroke: '#6366F1', strokeWidth: 2 }}
-              activeDot={{ r: 6, fill: '#EC4899', stroke: '#F0EBE0', strokeWidth: 2 }}
+              dot={{ r: 4, fill: '#1E2230', stroke: '#6366F1', strokeWidth: 2 }}
+              activeDot={{ r: 6, fill: '#EC4899', stroke: '#1E2230', strokeWidth: 2 }}
               isAnimationActive
               animationDuration={700}
             />
@@ -291,7 +291,7 @@ export default function ForecastChart({ mode, slug, params }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 10.5, color: 'rgba(240,235,224,0.4)', fontStyle: 'italic' }}>
+      <div style={{ marginTop: 10, fontSize: 10.5, color: 'rgba(30,34,48,0.4)', fontStyle: 'italic' }}>
         Proyección estadística ARIMA con intervalo de confianza al 95%. No constituye recomendación de inversión.
       </div>
     </section>

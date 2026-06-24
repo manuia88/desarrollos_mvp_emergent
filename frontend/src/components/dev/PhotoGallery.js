@@ -66,7 +66,7 @@ export default function PhotoGallery({ dev }) {
 
       <div style={{
         position: 'relative', height: 480, borderRadius: 20, overflow: 'hidden',
-        border: '1px solid var(--border)', background: '#0A0D16',
+        border: '1px solid var(--border)', background: '#EDEEF1',
       }}>
         {mediaTab === 'fotos' ? (
           <>
@@ -117,7 +117,7 @@ export default function PhotoGallery({ dev }) {
                 flexShrink: 0, width: 80, height: 56,
                 borderRadius: 8, overflow: 'hidden',
                 border: `2px solid ${active === i ? 'var(--indigo-3)' : 'transparent'}`,
-                background: '#0A0D16', padding: 0, cursor: 'pointer',
+                background: '#EDEEF1', padding: 0, cursor: 'pointer',
                 transition: 'border-color 0.2s',
               }}>
               {err[i] || !photos[i] ? <Fallback hue={hue} seed={i} /> : (

@@ -541,6 +541,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 </div>
                 <InvestmentSimulator
                   compact
+                  light
                   prefilled={{
                     precio: dev.price_from,
                     m2: dev.m2_from || 80,
