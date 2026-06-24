@@ -218,11 +218,13 @@ function PerfilFamilia({ name, devs, onCTA, onProfile }) {
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_FAM_QS.length}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
               {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
-                {cur.opts.map(([label, val]) => (
-                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
-                ))}
-              </div>
+              {!cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                  {cur.opts.map(([label, val]) => (
+                    <button key={label} type="button" onClick={() => setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                  ))}
+                </div>
+              )}
               {cur.input && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                   <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
@@ -362,6 +364,12 @@ function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
   const sorted = (Array.isArray(devs) ? devs : []).slice().sort((a, b) => (a.price_from || 0) - (b.price_from || 0));
   const precioBase = (sorted[0] && sorted[0].price_from) || (inv && (inv.precio_min || inv.precio_prom)) || 0;
   const plus = ((inv && inv.plusvalia_anual_pct) || 0) / 100;
+  // Cambiar la renta por mensualidad: la mensualidad de una propiedad A TU ALCANCE (precioMax) = pagoMax (30% sano del
+  // ingreso, por construcción). Comparar contra eso (no contra el dev más caro) es honesto y motivador.
+  const mensualidadCredito = pagoMax;
+  const difMensual = mensualidadCredito - renta;          // + = pones de más; - = ¡tu renta ya es mayor que una mensualidad sana!
+  const rentaTotal20 = renta * 12 * 20;                    // lo que tiras en renta en 20 años (el plazo del crédito)
+  const valor20 = precioMax > 0 ? Math.round(precioMax * Math.pow(1 + plus, 20)) : 0;
   // Rentar vs comprar a 1/3/5/10 años (lo que tiras en renta vs lo que valdría tu propiedad).
   const proj = [1, 3, 5, 10].map((y) => ({ y, tirado: renta * 12 * y, valor: Math.round(precioBase * Math.pow(1 + plus, y)) }));
   const engObjetivo = Math.round(precioBase * 0.20);
@@ -388,11 +396,13 @@ function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_PRIM_QS.length}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
               {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
-                {cur.opts.map(([label, val]) => (
-                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
-                ))}
-              </div>
+              {!cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                  {cur.opts.map(([label, val]) => (
+                    <button key={label} type="button" onClick={() => setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                  ))}
+                </div>
+              )}
               {cur.input && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                   <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
@@ -420,6 +430,30 @@ function WizardPrimera({ name, devs, inv, onCTA, onProfile }) {
                 </div>
               ) : <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: MUT, marginTop: 10 }}>Pon tu ingreso para ver el desglose.</div>}
             </div>
+            {/* CAMBIA TU RENTA POR UNA MENSUALIDAD TUYA (motivador · renta hoy vs mensualidad del crédito + cuánto adicional) */}
+            {renta > 0 && mensualidadCredito > 0 && (
+              <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(18px,2.6vw,26px)', marginTop: 16, background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04))', border: '1.5px solid rgba(99,102,241,0.22)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,23px)', color: INK, letterSpacing: '-0.02em' }}>Cambia tu renta por algo <span style={{ background: 'linear-gradient(90deg,#6366F1,#EC4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>tuyo</span>.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginTop: 16 }}>
+                  <div style={{ padding: '16px 18px', borderRadius: 14, background: '#fff', border: '1px solid rgba(16,18,28,0.08)', borderTop: '3px solid #DC2626' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#6B6F86' }}>🏚️ Hoy pagas de renta</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(24px,3.6vw,32px)', color: '#DC2626', letterSpacing: '-0.02em', marginTop: 4 }}>${renta.toLocaleString('es-MX')}<span style={{ fontSize: 13, color: '#A2A6BC', fontWeight: 600 }}>/mes</span></div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#A2A6BC', marginTop: 2 }}>y es de tu casero</div>
+                  </div>
+                  <div style={{ padding: '16px 18px', borderRadius: 14, background: '#fff', border: '1px solid rgba(16,18,28,0.08)', borderTop: '3px solid #10B981' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: '#0E7A53' }}>🔑 Mensualidad de algo tuyo</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(24px,3.6vw,32px)', color: '#10B981', letterSpacing: '-0.02em', marginTop: 4 }}>${mensualidadCredito.toLocaleString('es-MX')}<span style={{ fontSize: 13, color: '#A2A6BC', fontWeight: 600 }}>/mes</span></div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#A2A6BC', marginTop: 2 }}>compra ~{m1(precioMax)} · y es tuya</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 12, background: difMensual <= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.07)', fontFamily: 'DM Sans', fontSize: 'clamp(14px,1.9vw,16px)', color: INK, lineHeight: 1.55 }}>
+                  {difMensual <= 0
+                    ? <>🎉 <b>Tu renta ya es {m1(Math.abs(difMensual))} MÁS que una mensualidad sana.</b> Estás pagando de más cada mes por algo que <b>nunca será tuyo</b>. Con lo que hoy das de renta, ya podrías estar pagando <b>tu propia</b> propiedad.</>
+                    : <>Por solo <b style={{ color: '#4F46E5' }}>{m1(difMensual)} más al mes</b> que tu renta, dejas de pagarle a tu casero y empiezas a construir <b>tu</b> patrimonio. Es lo único que separa "rentar" de que la casa sea <b>tuya</b>.</>}
+                </div>
+                <div style={{ marginTop: 12, fontFamily: 'DM Sans', fontSize: 'clamp(13px,1.7vw,15px)', color: '#4B4F66', lineHeight: 1.6 }}>En <b style={{ color: INK }}>20 años</b> (lo que dura el crédito): seguir rentando = <b style={{ color: '#DC2626' }}>{m1(rentaTotal20)}</b> que le regalas a tu casero y no vuelven. Esa misma mensualidad, comprando = una propiedad <b style={{ color: '#0E7A53' }}>pagada y tuya</b> que para entonces valdría <b style={{ color: '#0E7A53' }}>~{m1(valor20)}</b>. Misma plata cada mes; una te deja en cero, la otra con un patrimonio.</div>
+              </div>
+            )}
             {/* RENTAR VS COMPRAR 1/3/5/10 */}
             {renta > 0 && precioBase > 0 && (
               <div className="zv2-win" style={{ ...cardBase, padding: 'clamp(16px,2.4vw,22px)', marginTop: 16 }}>
@@ -648,11 +682,13 @@ function WizardVivir({ name, devs, lugares, onCTA, onProfile }) {
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#9499AE' }}>Pregunta {step + 1} de {PERFIL_VIV_QS.length}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.6vw,24px)', color: INK, marginTop: 4, display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 24 }}>{cur.icon}</span>{cur.q}</div>
               {cur.sub && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#9499AE', marginTop: 7, maxWidth: 470, lineHeight: 1.45 }}>{cur.sub}</div>}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
-                {cur.opts.map(([label, val]) => (
-                  <button key={label} type="button" onClick={() => cur.input ? setDraft(String(val)) : setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: cur.input && String(draft) === String(val) ? '1.5px solid #6366F1' : '1px solid rgba(99,102,241,0.25)', background: cur.input && String(draft) === String(val) ? 'rgba(99,102,241,0.08)' : '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
-                ))}
-              </div>
+              {!cur.input && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                  {cur.opts.map(([label, val]) => (
+                    <button key={label} type="button" onClick={() => setAns({ ...ans, [cur.k]: val })} className="zv2-glow" style={{ padding: '13px 22px', borderRadius: 13, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.25)', background: '#fff', color: '#3A3E55', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 15, transition: 'all .15s' }}>{label}</button>
+                  ))}
+                </div>
+              )}
               {cur.input && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                   <input autoFocus type="text" inputMode="numeric" value={draft ? `$${Number(String(draft).replace(/\D/g, '') || 0).toLocaleString('es-MX')}` : ''} onChange={(e) => setDraft(String(e.target.value).replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') commitInput(); }} placeholder={cur.ph} style={{ flex: '1 1 240px', minWidth: 0, padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(99,102,241,0.28)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: INK, outline: 'none', background: '#fff' }} />
