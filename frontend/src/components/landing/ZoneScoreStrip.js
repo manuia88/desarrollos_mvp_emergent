@@ -5,10 +5,11 @@ import * as api from '../../api/ie_scores';
 import { Sparkle, Database } from '../icons';
 
 const TIER_TONES = {
-  green:   { bg: 'rgba(34,197,94,0.14)',  fg: '#86efac', border: 'rgba(34,197,94,0.28)', label: 'Óptimo' },
-  amber:   { bg: 'rgba(245,158,11,0.14)', fg: '#fcd34d', border: 'rgba(245,158,11,0.28)', label: 'Medio' },
-  red:     { bg: 'rgba(239,68,68,0.14)',  fg: '#fca5a5', border: 'rgba(239,68,68,0.28)', label: 'Atención' },
-  unknown: { bg: 'rgba(148,163,184,0.12)', fg: 'var(--cream-3)', border: 'rgba(148,163,184,0.22)', label: '—' },
+  // fg oscurecidos para contraste en fondo CLARO (antes verdes/ámbar claros que se lavaban).
+  green:   { bg: 'rgba(34,197,94,0.12)',  fg: '#15803D', border: 'rgba(34,197,94,0.30)', label: 'Óptimo' },
+  amber:   { bg: 'rgba(245,158,11,0.13)', fg: '#B45309', border: 'rgba(245,158,11,0.32)', label: 'Medio' },
+  red:     { bg: 'rgba(239,68,68,0.10)',  fg: '#DC2626', border: 'rgba(239,68,68,0.28)', label: 'Atención' },
+  unknown: { bg: 'rgba(148,163,184,0.10)', fg: 'var(--cream-3)', border: 'rgba(148,163,184,0.22)', label: '—' },
 };
 
 const CODE_LABELS = {
@@ -57,27 +58,36 @@ const CODE_LABELS = {
   IE_PROY_PRESALES_RATIO: 'Preventa',
   IE_PROY_MARCA_TRUST: 'Marca trust',
   IE_PROY_DEVELOPER_TRUST: 'Dev trust',
-  IE_PROY_DEVELOPER_DELIVERY_HIST: 'Delivery histórico',
-  IE_PROY_COMPETITION_PRESSURE: 'Presión competencia',
+  IE_PROY_DEVELOPER_DELIVERY_HIST: 'Cumple en entregar',
+  IE_PROY_COMPETITION_PRESSURE: 'Presión de competencia',
+  IE_PROY_DEVELOPER_CONCENTRATION: 'Concentración de oferta',
   // ─── N4 Predictive (Phase C1) ────────────────────────────────────────
   IE_COL_PLUSVALIA_PROYECTADA: 'Plusvalía 5y proyectada',
-  IE_PROY_DAYS_TO_SELLOUT: 'Días a sellout',
-  IE_PROY_ROI_BUYER: 'ROI comprador 5y',
+  IE_PROY_DAYS_TO_SELLOUT: 'Días para agotar inventario',
+  IE_PROY_ROI_BUYER: 'Retorno del comprador (5 años)',
 };
+
+// Red de seguridad: si un code no está mapeado, NUNCA mostramos el crudo (ej. "IE_PROY_DEVELOPER_CONCENTRATION").
+// Lo humanizamos: quita el prefijo IE_COL_/IE_PROY_, cambia _ por espacio y deja la primera en mayúscula.
+function humanizeCode(code) {
+  const w = String(code || '').replace(/^IE_(COL|PROY)_/, '').replace(/_/g, ' ').toLowerCase().trim();
+  return w ? w.charAt(0).toUpperCase() + w.slice(1) : 'Indicador';
+}
 
 // Predictive scores render in native units, not 0-100. Define per-code formatter.
 const PRED_FORMATTERS = {
+  // Formato HUMANO: número claro + rango en palabras (sin la jerga "IC70 [746–1549d]").
   IE_COL_PLUSVALIA_PROYECTADA: (v, ci) => ({
     main: `${v.toFixed(1)}%`,
-    sub: ci ? `±${((ci.high - ci.low) / 2).toFixed(1)}% IC${ci.percentile}` : 'anual',
+    sub: ci ? `entre ${ci.low.toFixed(1)}% y ${ci.high.toFixed(1)}% al año` : 'al año',
   }),
   IE_PROY_DAYS_TO_SELLOUT: (v, ci) => ({
-    main: `${Math.round(v)}d`,
-    sub: ci ? `IC${ci.percentile} [${Math.round(ci.low)}–${Math.round(ci.high)}d]` : 'estimado',
+    main: `~${Math.round(v).toLocaleString('es-MX')}`,
+    sub: ci ? `entre ${Math.round(ci.low).toLocaleString('es-MX')} y ${Math.round(ci.high).toLocaleString('es-MX')} días` : 'días estimados',
   }),
   IE_PROY_ROI_BUYER: (v, ci) => ({
     main: `${v > 0 ? '+' : ''}${v.toFixed(0)}%`,
-    sub: ci ? `IC${ci.percentile} [${ci.low.toFixed(0)}%–${ci.high.toFixed(0)}%]` : '5 años',
+    sub: ci ? `entre ${ci.low.toFixed(0)}% y ${ci.high.toFixed(0)}% a 5 años` : 'a 5 años',
   }),
 };
 
@@ -102,7 +112,7 @@ const ScorePill = ({ score, onClick }) => {
       onMouseLeave={e => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
     >
       <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-        {CODE_LABELS[score.code] || score.code}
+        {CODE_LABELS[score.code] || humanizeCode(score.code)}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
         {/* Señal honesta: la PALABRA es la protagonista, no el número crudo. Los predictivos
