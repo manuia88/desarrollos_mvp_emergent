@@ -395,8 +395,21 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             );
           })()}
 
+          {/* NAV DE ANCLAS sticky (estilo kplr) — saltar entre secciones de la ficha */}
+          <nav data-testid="anchor-nav" style={{ position: 'sticky', top: 58, zIndex: 20, marginTop: 18, background: 'var(--bg, #FAFAFB)', borderBottom: '1px solid var(--card-border, var(--border))' }}>
+            <div style={{ display: 'flex', gap: 2, overflowX: 'auto', scrollSnapType: 'x proximity' }}>
+              {[['descripcion', 'El proyecto'], ['veredicto-corona', 'Veredicto'], ['valuacion', 'El valor'], ['tu-dinero', 'Tu dinero'], ['conoce-edificio', 'El edificio'], ['riesgos-honestos', 'Confianza']].map(([id, label]) => (
+                <button key={id} onClick={() => { const el = document.querySelector(`[data-testid="${id}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: 'smooth' }); }}
+                  style={{ padding: '13px 14px', background: 'transparent', border: 'none', color: 'var(--cream-2)', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap', scrollSnapAlign: 'start' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--cream)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--cream-2)')}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
           {/* ═══ 2 COLUMNAS · contenido (izq) + RIEL DE DECISIÓN sticky (der) que te sigue toda la ficha (no solo abajo) ═══ */}
-          <div className="ficha-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 36, alignItems: 'start', marginTop: 22 }}>
+          <div className="ficha-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 36, alignItems: 'start', marginTop: 14 }}>
             {/* —— Columna izquierda: el contenido —— */}
             <div style={{ minWidth: 0 }}>
 
@@ -504,7 +517,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           </section>
 
           {/* ═══ ACTO 6 · CONOCE EL EDIFICIO — servicios/legal del dev + descripción, unidades, avance, amenidades, ubicación. ═══ */}
-          <div style={{ marginTop: 38, marginBottom: 2 }}>
+          <div data-testid="conoce-edificio" style={{ marginTop: 38, marginBottom: 2 }}>
             <div className="eyebrow" style={{ color: 'var(--theme)' }}>El edificio</div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0' }}>Conócelo por dentro</h2>
           </div>
@@ -596,8 +609,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
             </div>{/* —— fin columna izquierda —— */}
 
-            {/* —— RIEL DE DECISIÓN (sticky) — precio + CTAs + AVM, te sigue TODA la ficha (no solo el bloque de precios) —— */}
-            <div style={{ position: 'sticky', top: 80, alignSelf: 'start' }}>
+            {/* —— RIEL DE DECISIÓN (sticky) — precio + CTAs + AVM, te sigue TODA la ficha (top 112 para quedar bajo la nav de anclas) —— */}
+            <div style={{ position: 'sticky', top: 112, alignSelf: 'start' }}>
               <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
               <div style={{ marginTop: 16 }}>
                 <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
