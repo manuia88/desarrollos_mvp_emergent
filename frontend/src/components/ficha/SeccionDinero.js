@@ -24,7 +24,9 @@ const TABS = [
   ['inversion', 'Como inversión'],
 ];
 
-export default function SeccionDinero({ dev, unit }) {
+const INTENT_TAB = { invertir: 'inversion', primera: 'credito', familia: 'rentobuy', vivir: 'rentobuy' };
+
+export default function SeccionDinero({ dev, unit, intent }) {
   const cfg = dev.config || {};
   const base = unit
     ? { price: unit.price, m2: unit.m2_total || unit.m2_privative || 80, label: `Unidad ${unit.unit_number}` }
@@ -33,6 +35,8 @@ export default function SeccionDinero({ dev, unit }) {
   const [eng, setEng] = useState(20);     // enganche %
   const [years, setYears] = useState(20); // plazo crédito
   const [tab, setTab] = useState('rentobuy');
+  // el lente fija la vía por defecto (invertir→inversión, primera→crédito…)
+  useEffect(() => { if (intent && INTENT_TAB[intent]) setTab(INTENT_TAB[intent]); }, [intent]);
   const [own, setOwn] = useState(null);
   const [ownLoading, setOwnLoading] = useState(true);
   const [ingreso, setIngreso] = useState('');   // "¿califico?"

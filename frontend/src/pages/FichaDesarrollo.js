@@ -13,6 +13,7 @@ import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '..
 import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
+import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (de cero) — el lente, hechos reales del dev
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
@@ -40,6 +41,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
   const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + Tu dinero (granularidad por unidad)
+  const [intent, setIntent] = useState(null); // lente → fija la pestaña por defecto de Tu dinero
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => {
@@ -149,9 +151,9 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} />
               </Section>
 
-              {/* 3 · ¿ES PARA TI? — pendiente: reconstruir el lente de cero */}
+              {/* 3 · ¿ES PARA TI? — el LENTE (de cero) · fija la pestaña de Tu dinero + atajo */}
               <Section id="para-ti" eyebrow="Hecho a tu medida" title="¿Es para ti?">
-                <Placeholder hint="El lente (invertir / vivir / familia / primera) — UI nueva" />
+                <SeccionLente dev={dev} onIntent={setIntent} onGoTo={goTo} />
               </Section>
 
               {/* 4 · EL VALOR — UI NUEVA (de cero), reusa el motor buy-signal */}
@@ -161,7 +163,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
               {/* 5 · TU DINERO — MÓDULO UNIFICADO (de cero) · granularidad por unidad */}
               <Section id="dinero" eyebrow="Tu dinero" title="¿Cómo te conviene comprarlo?">
-                <SeccionDinero dev={dev} unit={unit} />
+                <SeccionDinero dev={dev} unit={unit} intent={intent} />
               </Section>
 
               {/* 6 · UBICACIÓN — pendiente: reconstruir de cero (mapa + lugares) */}
