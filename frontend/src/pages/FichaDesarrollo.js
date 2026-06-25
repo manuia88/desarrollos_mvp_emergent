@@ -194,7 +194,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <SeccionValor dev={dev} />
-                    <SeccionCalcInversion dev={dev} unit={unit} />
+                    <SeccionCalcInversion dev={dev} unit={unit} onGoTo={goTo} />
                   </div>
                 )}
               </Section>
