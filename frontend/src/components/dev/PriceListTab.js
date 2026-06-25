@@ -353,7 +353,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
       ) : (
         <div style={{ position: 'relative' }}>
           <PriceTable
-            units={filtered}
+            units={isRegistered ? filtered : filtered.slice(0, visibleCount)}
             visibleCount={visibleCount}
             isRegistered={isRegistered}
             onRowClick={onRowClick}
@@ -371,19 +371,12 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
               data-testid="paywall-overlay"
               onClick={() => onGateOpen()}
               style={{
-                position: 'absolute',
-                left: 0, right: 0,
-                top: `${56 + visibleCount * 42 + 10}px`,
-                bottom: 0,
-                background: 'linear-gradient(180deg, rgba(var(--bg-rgb),0.35) 0%, rgba(var(--bg-rgb),0.82) 45%, rgba(var(--bg-rgb),0.92) 100%)',
+                marginTop: 14,
                 display: 'flex',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 justifyContent: 'center',
-                padding: '32px 20px',
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 14,
+                padding: '8px 0',
                 cursor: 'pointer',
-                pointerEvents: 'auto',
               }}>
               <div
                 onClick={(e) => { e.stopPropagation(); onGateOpen(); }}
