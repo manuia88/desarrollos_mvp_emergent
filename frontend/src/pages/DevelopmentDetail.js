@@ -547,15 +547,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               {/* (Hipoteca reubicada → sección "Tu dinero" · sub-tab "Con crédito") */}
             </div>
 
-            {/* W5.15 P2 — AVM Confidence Range para este desarrollo */}
-            <div style={{ marginTop: 24 }}>
-              <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
-            </div>
-
-            {/* (Simulador de inversión reubicado → sección "Tu dinero" · sub-tab "Como inversión", arriba) */}
-
-            <div>
+            {/* ═══ COLUMNA DE DECISIÓN (sticky) — precio + CTAs + AVM, te sigue al hacer scroll. Antes: 3 hijos en un grid de
+                2 columnas dejaban el AVM vacío en la col 2 (hueco de ~840px) y empujaban el sidebar a la fila 2. ═══ */}
+            <div style={{ position: 'sticky', top: 76, alignSelf: 'start' }}>
               <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
+              {/* AVM confidence (se oculta solo si no hay dato) · debajo del precio */}
+              <div style={{ marginTop: 16 }}>
+                <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
+              </div>
               {/* (ProbabilityBar "venta completa en 12m" → removido · es métrica de VENDEDOR/dev, no del comprador) */}
               {isAdvisor && (
                 <button
