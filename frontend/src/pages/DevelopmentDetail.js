@@ -454,17 +454,40 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* TU DINERO — las 4 herramientas financieras (rento/plan/crédito/inversión) DESPUÉS de entender el valor. */}
           <section data-testid="tu-dinero" style={{ marginTop: 28, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', borderRadius: 18, padding: 'clamp(18px,2.4vw,26px)' }}>
             <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Tu dinero</div>
-            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 16px' }}>¿Cómo te conviene comprarlo?</h2>
-            <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--card-border, var(--border))', marginBottom: 20, overflowX: 'auto', scrollSnapType: 'x proximity' }}>
-              {[['rento', '¿Rento o compro?'], ['plan', 'Plan del desarrollador'], ['credito', 'Con crédito'], ['inversion', 'Como inversión']].map(([k, l]) => {
-                const a = finTab === k;
-                return (
-                  <button key={k} data-testid={`fin-tab-${k}`} onClick={() => setFinTab(k)} style={{ position: 'relative', padding: '12px 14px', background: 'transparent', border: 'none', color: a ? 'var(--cream)' : 'var(--cream-3)', fontFamily: 'Outfit, sans-serif', fontWeight: a ? 800 : 600, fontSize: 13.5, letterSpacing: '-0.01em', cursor: 'pointer', whiteSpace: 'nowrap', scrollSnapAlign: 'start' }}>
-                    {l}{a && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1, height: 3, borderRadius: 3, background: 'var(--grad)' }} />}
-                  </button>
-                );
-              })}
-            </div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 4px' }}>¿Cómo te conviene comprarlo?</h2>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: '0 0 16px' }}>Mira la respuesta de cada vía y abre la que te late.</p>
+            {/* TIRA DE RESPUESTAS — el número clave de cada vía de un vistazo; clic abre su calculadora (más eficiente que 4 tabs ciegas) */}
+            {(() => {
+              const _i = 0.1145 / 12, _pf = _i / (1 - (1 + _i) ** (-240));
+              const _eng = Math.round((dev.price_from || 0) * 0.20);
+              const _mens = dev.price_from ? Math.round((dev.price_from - _eng) * _pf) : 0;
+              const _m = (n) => `$${Number(n).toLocaleString('es-MX')}`;
+              const CARDS = [
+                { k: 'rento', t: '¿Rentar o comprar?', n: 'Compáralo', d: 'patrimonio vs renta' },
+                { k: 'plan', t: 'Plan del dev', n: 'En preventa', d: 'enganche + mensualidades' },
+                { k: 'credito', t: 'Con crédito', n: _mens ? `${_m(_mens)}/mes` : '—', d: `enganche ${_m(_eng)}` },
+                { k: 'inversion', t: 'Como inversión', n: 'ROI y TIR', d: 'vs CETES' },
+              ];
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 22 }}>
+                  {CARDS.map((c) => {
+                    const a = finTab === c.k;
+                    return (
+                      <button key={c.k} data-testid={`fin-tab-${c.k}`} onClick={() => setFinTab(c.k)} style={{
+                        textAlign: 'left', padding: '13px 15px', borderRadius: 14, cursor: 'pointer',
+                        border: a ? '1px solid var(--theme)' : '1px solid var(--card-border, var(--border))',
+                        background: a ? 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(236,72,153,0.06))' : 'var(--bg, transparent)',
+                        boxShadow: a ? '0 0 0 1px var(--theme)' : 'none', transition: 'all 0.15s',
+                      }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, color: a ? 'var(--theme)' : 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.t}</div>
+                        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(15px,1.8vw,19px)', color: 'var(--cream)', marginTop: 5, lineHeight: 1 }}>{c.n}</div>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>{c.d}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             {finTab === 'rento' && <OwnershipCalculator devId={dev.id} />}
             {finTab === 'plan' && <PublicCotizador formasPago={dev.config?.formas_pago} basePrice={dev.price_from} fechaInicio={dev.config?.fecha_inicio} fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate} />}
             {finTab === 'credito' && <MortgageCalculator variant="inline" propiedadId={dev.id} propiedadNombre={dev.name} precioInicial={dev.price_from || 0} />}
