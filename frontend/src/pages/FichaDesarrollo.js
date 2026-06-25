@@ -14,6 +14,8 @@ import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
 import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (de cero) — el lente, hechos reales del dev
+import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA (de cero) — lugares Google + vida OSM
+import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
@@ -28,14 +30,6 @@ function Loading({ msg }) {
   return <LightScope><PublicNav /><div style={{ paddingTop: 170, textAlign: 'center', fontFamily: SANS, color: 'var(--cream-3)' }}>{msg}</div></LightScope>;
 }
 
-// Molde de sección aún por reconstruir (de cero, no copy-paste). Se reemplaza una por una.
-function Placeholder({ hint }) {
-  return (
-    <Card style={{ padding: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120, fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-3)', textAlign: 'center', borderStyle: 'dashed' }}>
-      🧱 {hint}
-    </Card>
-  );
-}
 
 export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
@@ -166,14 +160,14 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <SeccionDinero dev={dev} unit={unit} intent={intent} />
               </Section>
 
-              {/* 6 · UBICACIÓN — pendiente: reconstruir de cero (mapa + lugares) */}
+              {/* 6 · UBICACIÓN — UI NUEVA (de cero) · lugares Google + vida OSM */}
               <Section id="ubicacion" eyebrow="El entorno" title="¿Cómo es vivir aquí?">
-                <Placeholder hint="Mapa + lo mejor cerca + conectividad — UI nueva" />
+                <SeccionUbicacion dev={dev} />
               </Section>
 
-              {/* 7 · CONFIANZA — pendiente: reconstruir de cero (riesgos + reseñas) */}
+              {/* 7 · CONFIANZA — UI NUEVA (de cero) · dev + sellos + riesgos honestos */}
               <Section id="confianza" eyebrow="Sin letras chiquitas" title="¿Puedes confiar?">
-                <Placeholder hint="Desarrollador + calidad de obra + legal + riesgos honestos — UI nueva" />
+                <SeccionConfianza dev={dev} />
               </Section>
             </div>
 
