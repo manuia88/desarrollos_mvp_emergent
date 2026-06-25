@@ -9,11 +9,9 @@ import { tc } from '../lib/titleCase';
 import { fetchDevelopment, fetchDevelopmentAssets, fetchSimilarDevelopments } from '../api/marketplace';
 import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
-import DescriptionTab from '../components/dev/DescriptionTab';
 import PriceListTab from '../components/dev/PriceListTab';
 import UnidadesPorTipo from '../components/dev/UnidadesPorTipo';
 import ProgressTab from '../components/dev/ProgressTab';
-import AmenitiesTab from '../components/dev/AmenitiesTab';
 import LocationTab from '../components/dev/LocationTab';
 import Sidebar from '../components/dev/Sidebar';
 import RegistrationModal from '../components/dev/RegistrationModal';
@@ -259,10 +257,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   const stageColor = STAGE_COLORS[dev.stage] || '#6366F1';
   const tabs = [
-    { k: 'descripcion', label: tc(t('dev.tab_desc')) },
+    // (Descripción → integrada arriba en "El proyecto"; Amenidades → en "Lo esencial". No se duplican aquí.)
     { k: 'precios', label: tc(t('dev.tab_prices')) },
     { k: 'avance', label: tc(t('dev.tab_progress')) },
-    { k: 'amenidades', label: tc(t('dev.tab_amen')) },
     { k: 'localizacion', label: tc(t('dev.tab_loc')) },
     { k: 'tour', label: tc('Tour 360°') },
     { k: 'tour_3d', label: tc('Tour 3D') },
@@ -398,7 +395,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* NAV DE ANCLAS sticky (estilo kplr) — saltar entre secciones de la ficha */}
           <nav data-testid="anchor-nav" style={{ position: 'sticky', top: 58, zIndex: 20, marginTop: 18, background: 'var(--bg, #FAFAFB)', borderBottom: '1px solid var(--card-border, var(--border))' }}>
             <div style={{ display: 'flex', gap: 2, overflowX: 'auto', scrollSnapType: 'x proximity' }}>
-              {[['descripcion', 'El proyecto'], ['veredicto-corona', 'Veredicto'], ['valuacion', 'El valor'], ['tu-dinero', 'Tu dinero'], ['conoce-edificio', 'El edificio'], ['riesgos-honestos', 'Confianza']].map(([id, label]) => (
+              {[['descripcion', 'El proyecto'], ['el-valor', 'El valor'], ['tu-dinero', 'Tu dinero'], ['conoce-edificio', 'El edificio'], ['riesgos-honestos', 'Confianza']].map(([id, label]) => (
                 <button key={id} onClick={() => { const el = document.querySelector(`[data-testid="${id}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: 'smooth' }); }}
                   style={{ padding: '13px 14px', background: 'transparent', border: 'none', color: 'var(--cream-2)', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap', scrollSnapAlign: 'start' }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--cream)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--cream-2)')}>
@@ -430,46 +427,44 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             onPerfilChange={(p) => setFinTab({ invertir: 'inversion', primera: 'credito', plan: 'plan', vivir: 'rento', familia: 'rento' }[p] || 'rento')}
             onGoTo={(tid) => { const el = document.querySelector(`[data-testid="${tid}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />
 
-          {/* CORONA · Veredicto del Desarrollo — sube al tope el veredicto (BuySignal) + plusvalía + zona +
-              catastral en un hero glanceable, y cierra ciclo (Atlax agéntico / lead → Cerebro). */}
-          <VeredictoDesarrollo
-            devId={dev.id}
-            onContact={() => openGate({ source: 'veredicto_corona', dev_id: dev.id, dev_name: dev.name })}
-            onAskAtlax={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }))}
-          />
+          {/* ═══ EL VALOR — UN SOLO ACTO: ¿es buen precio y buena inversión? (veredicto + demanda + por-qué + hacia-dónde-va).
+              Antes estaba fragmentado en 4 bloques con headers repetidos; ahora es un acto cohesivo. ═══ */}
+          <section data-testid="el-valor" style={{ marginTop: 38 }}>
+            {/* Veredicto (precio justo + momento) — su propia corona */}
+            <VeredictoDesarrollo
+              devId={dev.id}
+              onContact={() => openGate({ source: 'veredicto_corona', dev_id: dev.id, dev_name: dev.name })}
+              onAskAtlax={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }))}
+            />
 
-          {/* Demanda viva de la zona — social proof honesto (radar de demanda). Solo aparece si hay búsquedas reales. */}
-          <DemandaZonaCard colonia={dev.colonia_id || dev.colonia} coloniaNombre={dev.colonia} />
+            {/* Demanda viva (social proof) — parte del mismo acto, pegada al veredicto */}
+            <DemandaZonaCard colonia={dev.colonia_id || dev.colonia} coloniaNombre={dev.colonia} />
 
-          {/* Detalle del veredicto de precio — el "por qué" (escala obra-nueva, prima de estrenar = valor, catastral, momento).
-              Colapsable: el veredicto ya se ve en la corona; aquí el comprador profundiza sin repetir el badge. */}
-          <div style={{ marginTop: 14 }}>
-            <button onClick={() => setShowPrecio((s) => !s)} data-testid="toggle-precio" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 12,
-              border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', cursor: 'pointer',
-              fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: 'var(--cream)',
-            }}>
-              {showPrecio ? 'Ocultar el análisis de precio' : '¿Por qué este precio es justo? Ver el análisis'}
-              <span style={{ transform: showPrecio ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--theme)' }}>▾</span>
-            </button>
-            {showPrecio && <div style={{ marginTop: 14 }}><BuySignal devId={dev.id} /></div>}
-          </div>
+            {/* Detalle del precio (colapsable) */}
+            <div style={{ marginTop: 14 }}>
+              <button onClick={() => setShowPrecio((s) => !s)} data-testid="toggle-precio" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 12,
+                border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', cursor: 'pointer',
+                fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: 'var(--cream)',
+              }}>
+                {showPrecio ? 'Ocultar el análisis de precio' : '¿Por qué este precio es justo? Ver el análisis'}
+                <span style={{ transform: showPrecio ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--theme)' }}>▾</span>
+              </button>
+              {showPrecio && <div style={{ marginTop: 14 }}><BuySignal devId={dev.id} /></div>}
+            </div>
 
-          {/* (Score IE "Cómo mide DMX" → removido del marketplace público · es métrica interna del dev, no ayuda a comprar) */}
-
-          {/* ═══ EL VALOR — ¿cuánto vale y hacia dónde va? (valuación + pronóstico + plusvalía-desde-lanzamiento, UNA vez).
-              Va ANTES de Tu dinero: primero entiendes el valor, luego cómo pagarlo. ═══ */}
-          <section data-testid="valuacion" style={{ marginTop: 24 }}>
-            <div className="eyebrow" style={{ color: 'var(--theme)' }}>El valor</div>
-            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 18px' }}>¿Cuánto vale y hacia dónde va?</h2>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
-              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} hideIfEmpty />}
-              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} hideIfEmpty />}
-              <PlusvaliaCard
-                plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
-                priceHistory={dev.price_history}
-              />
+            {/* Hacia dónde va (mercado + plusvalía) — sub-bloque del mismo acto */}
+            <div data-testid="valuacion" style={{ marginTop: 26 }}>
+              <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.2vw,24px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 16px' }}>¿Cuánto vale y hacia dónde va?</h3>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
+                {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} hideIfEmpty />}
+                {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} hideIfEmpty />}
+                <PlusvaliaCard
+                  plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
+                  priceHistory={dev.price_history}
+                />
+              </div>
             </div>
           </section>
 
@@ -562,7 +557,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               </div>
 
               {/* Active tab content */}
-              {tab === 'descripcion' && <DescriptionTab dev={dev} />}
               {tab === 'precios' && (
                 <>
                   {/* Resumen por TIPO (estilo kplr) — la foto completa del inventario · luego la tabla detallada (con gate) */}
@@ -575,7 +569,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 </>
               )}
               {tab === 'avance' && <ProgressTab dev={dev} user={user} onGateOpen={openGate} />}
-              {tab === 'amenidades' && <AmenitiesTab dev={dev} />}
               {tab === 'localizacion' && <LocationTab dev={dev} user={user} onGateOpen={openGate} />}
               {tab === 'tour' && (
                 <VirtualTourPlaceholder
