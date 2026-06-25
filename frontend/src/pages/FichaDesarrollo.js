@@ -12,6 +12,7 @@ import { MapPin } from '../components/icons';
 import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
+import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
@@ -158,9 +159,9 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <SeccionValor dev={dev} />
               </Section>
 
-              {/* 5 · TU DINERO — pendiente: módulo unificado de cero (granularidad por unidad) */}
+              {/* 5 · TU DINERO — MÓDULO UNIFICADO (de cero) · granularidad por unidad */}
               <Section id="dinero" eyebrow="Tu dinero" title="¿Cómo te conviene comprarlo?">
-                <Placeholder hint="Módulo unificado: rento / crédito / plan / inversión (por unidad) — UI nueva" />
+                <SeccionDinero dev={dev} unit={unit} />
               </Section>
 
               {/* 6 · UBICACIÓN — pendiente: reconstruir de cero (mapa + lugares) */}
