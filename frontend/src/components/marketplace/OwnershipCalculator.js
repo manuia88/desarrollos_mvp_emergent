@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { fetchOwnership } from '../../api/marketplace';
 import { tc } from '../../lib/titleCase';
 
-const COL = { verde: '#86efac', ambar: '#fcd34d', rojo: '#fca5a5' };
+const COL = { verde: '#059669', ambar: '#B45309', rojo: '#DC2626' };   // oscuros para legibilidad en tema claro (antes pastel p/ fondo oscuro)
 const BG = { verde: 'rgba(34,197,94,0.12)', ambar: 'rgba(245,158,11,0.12)', rojo: 'rgba(239,68,68,0.12)' };
 const BD = { verde: 'rgba(34,197,94,0.32)', ambar: 'rgba(245,158,11,0.32)', rojo: 'rgba(239,68,68,0.32)' };
 const mmx = (n) => n == null ? '—' : (Math.abs(n) >= 1e6 ? `$${(n / 1e6).toFixed(Math.abs(n) >= 1e7 ? 1 : 2)}M` : `$${Math.round(n / 1000)}k`);
