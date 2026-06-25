@@ -19,8 +19,7 @@ import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
 
 const ANCLAS = [
-  ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
-  ['valor', 'El valor'], ['dinero', 'Tu dinero'], ['ubicacion', 'Ubicación'], ['confianza', 'Confianza'],
+  ['proyecto', 'El proyecto'], ['analisis', 'Tu análisis'], ['unidades', 'Unidades'], ['confianza', 'Confianza'],
 ];
 const STAGE = { preventa: 'Preventa', construccion: 'En construcción', entrega_inmediata: 'Entrega inmediata', terminado: 'Terminado' };
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -35,8 +34,8 @@ function Loading({ msg }) {
 export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
-  const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + Tu dinero (granularidad por unidad)
-  const [intent, setIntent] = useState(null); // lente → fija la pestaña por defecto de Tu dinero
+  const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + el análisis del lente (granularidad por unidad)
+  const [lens, setLens] = useState('vivir'); // EL LENTE: organiza la página (vivir | invertir)
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => {
@@ -153,32 +152,46 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 </Section>
               )}
 
-              {/* 2 · LAS UNIDADES — UI NUEVA (de cero) · por tipo + escasez honesta + elegir + comparador */}
+              {/* ══ EL LENTE: la página se organiza por "¿para qué lo quieres?" (arriba) ══ */}
+              <Section id="analisis" eyebrow="Hecho a tu medida" title="¿Para qué lo quieres?">
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+                  {[['vivir', '🏠', 'Para vivir', 'Estilo de vida, zona y tu pago mensual'], ['invertir', '📈', 'Para invertir', 'Rendimiento, plusvalía y análisis de fondo']].map(([k, ic, t, d]) => {
+                    const a = lens === k;
+                    return (
+                      <button key={k} onClick={() => setLens(k)} style={{ flex: '1 1 250px', textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', padding: '16px 18px', borderRadius: 15, border: `2px solid ${a ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: a ? 'rgba(99,102,241,0.06)' : 'var(--surface-card)', cursor: 'pointer', boxShadow: a ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none' }}>
+                        <span style={{ fontSize: 28, lineHeight: 1 }}>{ic}</span>
+                        <div>
+                          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: a ? 'var(--theme)' : 'var(--cream)' }}>{t}</div>
+                          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginTop: 2 }}>{d}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* lectura a la medida del lente */}
+                <SeccionLente dev={dev} lens={lens} />
+
+                {/* contenido del lente (se ajusta a la unidad elegida) */}
+                {lens === 'vivir' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <SeccionUbicacion dev={dev} />
+                    <SeccionDinero dev={dev} unit={unit} intent="vivir" />
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <SeccionValor dev={dev} />
+                    <SeccionDinero dev={dev} unit={unit} intent="invertir" />
+                  </div>
+                )}
+              </Section>
+
+              {/* LAS UNIDADES — elegir tu depa afina el análisis de arriba */}
               <Section id="unidades" eyebrow="Disponibilidad" title="Las unidades">
                 <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} />
               </Section>
 
-              {/* 3 · ¿ES PARA TI? — el LENTE (de cero) · fija la pestaña de Tu dinero + atajo */}
-              <Section id="para-ti" eyebrow="Hecho a tu medida" title="¿Es para ti?">
-                <SeccionLente dev={dev} onIntent={setIntent} onGoTo={goTo} />
-              </Section>
-
-              {/* 4 · EL VALOR — UI NUEVA (de cero), reusa el motor buy-signal */}
-              <Section id="valor" eyebrow="La inteligencia" title="¿Es buen precio y buena inversión?">
-                <SeccionValor dev={dev} />
-              </Section>
-
-              {/* 5 · TU DINERO — MÓDULO UNIFICADO (de cero) · granularidad por unidad */}
-              <Section id="dinero" eyebrow="Tu dinero" title="¿Cómo te conviene comprarlo?">
-                <SeccionDinero dev={dev} unit={unit} intent={intent} />
-              </Section>
-
-              {/* 6 · UBICACIÓN — UI NUEVA (de cero) · lugares Google + vida OSM */}
-              <Section id="ubicacion" eyebrow="El entorno" title="¿Cómo es vivir aquí?">
-                <SeccionUbicacion dev={dev} />
-              </Section>
-
-              {/* 7 · CONFIANZA — UI NUEVA (de cero) · dev + sellos + riesgos honestos */}
+              {/* CONFIANZA — común a ambos lentes */}
               <Section id="confianza" eyebrow="Sin letras chiquitas" title="¿Puedes confiar?">
                 <SeccionConfianza dev={dev} />
               </Section>

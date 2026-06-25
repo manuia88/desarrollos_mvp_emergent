@@ -7,6 +7,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, SERIF, SANS, HEAD } from './ui';
+import { amenInfo } from './amenIcons';
 
 const money = (n) => (n != null ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const PROTO = { PH: 'Penthouse', ph: 'Penthouse' };
@@ -196,10 +197,26 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
               </div>
             </div>
 
+            {/* amenidades del edificio (las disfruta esta unidad) */}
+            {(() => {
+              const am = Array.isArray((dev.config || {}).amenidades) && dev.config.amenidades.length ? dev.config.amenidades : (dev.amenities || []);
+              if (!am.length) return null;
+              return (
+                <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
+                  <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades del edificio</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {am.map((a, i) => { const { icon, label } = amenInfo(a); return (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}><span style={{ fontSize: 15 }}>{icon}</span> {label}</span>
+                    ); })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* enlace explícito a las calculadoras */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
-              <button onClick={() => onGoTo && onGoTo('dinero')} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Calcular mi pago con esta unidad ↓</button>
-              <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', alignSelf: 'center' }}>Todas las cuentas (crédito, plan, inversión) ya usan la {u.unit_number}.</span>
+              <button onClick={() => onGoTo && onGoTo('analisis')} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Ver mi análisis con esta unidad ↑</button>
+              <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', alignSelf: 'center' }}>Tu análisis (vivir/invertir) ya usa la {u.unit_number}.</span>
             </div>
           </Card>
         );
