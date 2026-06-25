@@ -215,8 +215,8 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
 
             {/* enlace explícito a las calculadoras */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
-              <button onClick={() => onGoTo && onGoTo('analisis')} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Ver mi análisis con esta unidad ↑</button>
-              <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', alignSelf: 'center' }}>Tu análisis (vivir/invertir) ya usa la {u.unit_number}.</span>
+              <button onClick={() => onGoTo && onGoTo('panorama')} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Ver mi panorama con esta unidad ↓</button>
+              <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', alignSelf: 'center' }}>Tu panorama (vivir/invertir) ya usa la {u.unit_number}.</span>
             </div>
           </Card>
         );

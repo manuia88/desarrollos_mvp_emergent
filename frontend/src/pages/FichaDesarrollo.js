@@ -18,9 +18,10 @@ import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA (de cero) — lugares Google + vida OSM
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
 import SeccionInversion from '../components/ficha/SeccionInversion'; // UI NUEVA (de cero) — análisis persona+institucional (analyze)
+import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD vivir (de zona) re-skineado + scoped a la unidad
 
 const ANCLAS = [
-  ['proyecto', 'El proyecto'], ['analisis', 'Tu análisis'], ['unidades', 'Unidades'], ['confianza', 'Confianza'],
+  ['proyecto', 'El proyecto'], ['lente', '¿Para qué?'], ['unidades', 'Unidades'], ['panorama', 'Tu panorama'], ['confianza', 'Confianza'],
 ];
 const STAGE = { preventa: 'Preventa', construccion: 'En construcción', entrega_inmediata: 'Entrega inmediata', terminado: 'Terminado' };
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -153,10 +154,10 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 </Section>
               )}
 
-              {/* ══ EL LENTE: la página se organiza por "¿para qué lo quieres?" (arriba) ══ */}
-              <Section id="analisis" eyebrow="Hecho a tu medida" title="¿Para qué lo quieres?">
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-                  {[['vivir', '🏠', 'Para vivir', 'Estilo de vida, zona y tu pago mensual'], ['invertir', '📈', 'Para invertir', 'Rendimiento, plusvalía y análisis de fondo']].map(([k, ic, t, d]) => {
+              {/* ══ PASO 1 · EL LENTE: ¿para qué lo quieres? ══ */}
+              <Section id="lente" eyebrow="Paso 1 · ¿Para qué lo quieres?" title="Empieza por aquí">
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {[['vivir', '🏠', 'Para vivir', 'Estilo de vida, zona y tu pago a la medida'], ['invertir', '📈', 'Para invertir', 'Rendimiento, plusvalía y análisis de fondo']].map(([k, ic, t, d]) => {
                     const a = lens === k;
                     return (
                       <button key={k} onClick={() => setLens(k)} style={{ flex: '1 1 250px', textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', padding: '16px 18px', borderRadius: 15, border: `2px solid ${a ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: a ? 'rgba(99,102,241,0.06)' : 'var(--surface-card)', cursor: 'pointer', boxShadow: a ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none' }}>
@@ -169,15 +170,26 @@ export default function FichaDesarrollo({ user, onLogin }) {
                     );
                   })}
                 </div>
+                <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>
+              </Section>
 
-                {/* lectura a la medida del lente */}
-                <SeccionLente dev={dev} lens={lens} />
+              {/* ══ PASO 2 · LAS UNIDADES: elige tu depa ══ */}
+              <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title="Elige tu unidad">
+                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} />
+              </Section>
 
-                {/* contenido del lente (se ajusta a la unidad elegida) */}
+              {/* ══ PASO 3 · TU PANORAMA: con la unidad, los números a tu medida ══ */}
+              <Section id="panorama" eyebrow={`Paso 3 · Tu panorama${unit ? ` · unidad ${unit.unit_number}` : ''}`} title={lens === 'vivir' ? '¿Te queda esta unidad?' : 'Tu inversión, al detalle'}>
+                {!unit && (
+                  <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)' }}>
+                    💡 Elige una unidad arriba para tus números exactos. Mientras, te muestro con el precio de entrada.
+                  </div>
+                )}
                 {lens === 'vivir' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <SeccionUbicacion dev={dev} />
+                    <SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} />
                     <SeccionDinero dev={dev} unit={unit} intent="vivir" />
+                    <SeccionUbicacion dev={dev} />
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -185,11 +197,6 @@ export default function FichaDesarrollo({ user, onLogin }) {
                     <SeccionInversion dev={dev} unit={unit} />
                   </div>
                 )}
-              </Section>
-
-              {/* LAS UNIDADES — elegir tu depa afina el análisis de arriba */}
-              <Section id="unidades" eyebrow="Disponibilidad" title="Las unidades">
-                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} />
               </Section>
 
               {/* CONFIANZA — común a ambos lentes */}
