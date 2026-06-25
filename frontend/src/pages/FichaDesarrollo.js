@@ -10,7 +10,8 @@ import { fetchDevelopment } from '../api/marketplace';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
-import SeccionValor from '../components/ficha/SeccionValor';   // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
+import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
+import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
@@ -37,6 +38,7 @@ function Placeholder({ hint }) {
 export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
+  const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + Tu dinero (granularidad por unidad)
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => {
@@ -141,9 +143,9 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 </Section>
               )}
 
-              {/* 2 · LAS UNIDADES — pendiente: reconstruir de cero con dev.units */}
+              {/* 2 · LAS UNIDADES — UI NUEVA (de cero) · por tipo + escasez honesta + elegir + comparador */}
               <Section id="unidades" eyebrow="Disponibilidad" title="Las unidades">
-                <Placeholder hint="Unidades por tipo + plano + comparador — UI nueva con dev.units" />
+                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} />
               </Section>
 
               {/* 3 · ¿ES PARA TI? — pendiente: reconstruir el lente de cero */}
@@ -172,12 +174,16 @@ export default function FichaDesarrollo({ user, onLogin }) {
               </Section>
             </div>
 
-            {/* ——— Riel de decisión (sticky) ——— */}
+            {/* ——— Riel de decisión (sticky) — refleja la unidad elegida ——— */}
             <div style={{ position: 'sticky', top: 110, alignSelf: 'start' }}>
               <Card>
-                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>Desde</div>
-                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--cream)', margin: '4px 0 2px', lineHeight: 1 }}>{dev.price_from_display || money(dev.price_from)}</div>
-                <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 16 }}>MXN · {STAGE[dev.stage] || dev.stage} · Entrega {dev.delivery_estimate}</div>
+                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: unit ? 'var(--theme)' : 'var(--cream-3)' }}>
+                  {unit ? `Unidad ${unit.unit_number}` : 'Desde'}
+                </div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--cream)', margin: '4px 0 2px', lineHeight: 1 }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</div>
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 16 }}>
+                  {unit ? `Piso ${unit.level} · ${unit.m2_total || unit.m2_privative} m²${unit.vista ? ` · ${unit.vista}` : ''}` : `MXN · ${STAGE[dev.stage] || dev.stage} · Entrega ${dev.delivery_estimate}`}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <BtnPrimary>📅 Agendar visita</BtnPrimary>
                   <BtnGhost>✨ Hablar con Atlax</BtnGhost>
