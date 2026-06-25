@@ -10,6 +10,7 @@ import { fetchDevelopment } from '../api/marketplace';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
+import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
@@ -51,7 +52,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const beds = dev.bedrooms_range || [], m2 = dev.m2_range || [], park = dev.parking_range || [];
   const rng = (a) => (a.length ? (a[0] === a[1] ? `${a[0]}` : `${a[0]}–${a[1]}`) : null);
   const nUnits = dev.total_units || (dev.units ? dev.units.length : null);
-  const amen = (Array.isArray(cfg.amenidades) ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : [])).slice(0, 12);
+  const amen = Array.isArray(cfg.amenidades) && cfg.amenidades.length ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : []);
+  const servicios = cfg.servicios && typeof cfg.servicios === 'object' ? Object.entries(cfg.servicios).filter(([, v]) => v) : [];
   const tipoMap = { departamento: 'Departamento', casa: 'Casa', loft: 'Loft', ph: 'Penthouse', estudio: 'Estudio' };
   const tipo = tipoMap[dev.property_type] || (dev.property_type ? dev.property_type[0].toUpperCase() + dev.property_type.slice(1) : null);
   const pagos = [...(cfg.formas_pago ? ['Preventa con mensualidades', 'Contado con descuento'] : []), 'Crédito hipotecario'];
@@ -60,10 +62,6 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
   const askAtlax = () => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } }));
   const agendar = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.` } }));
-
-  const Pill = ({ children }) => (
-    <span style={{ padding: '9px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{children}</span>
-  );
 
   return (
     <LightScope>
@@ -125,9 +123,21 @@ export default function FichaDesarrollo({ user, onLogin }) {
                   <Card style={{ padding: '16px 18px' }}><Stat sm value={nUnits} label="Unidades" /></Card>
                 </div>
                 {amen.length > 0 && (
-                  <div style={{ marginTop: 20 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{amen.map((a, i) => <Pill key={i}>{String(a).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</Pill>)}</div>
+                  <div style={{ marginTop: 22 }}>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Amenidades del desarrollo</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))', gap: 10 }}>
+                      {amen.map((a, i) => { const { icon, label } = amenInfo(a); return (
+                        <div key={i} className="dmx-card" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)' }}>
+                          <span style={{ fontSize: 21, lineHeight: 1 }}>{icon}</span>
+                          <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: 'var(--cream)' }}>{label}</span>
+                        </div>
+                      ); })}
+                    </div>
+                    {servicios.length > 0 && (
+                      <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginTop: 12 }}>
+                        Servicios: {servicios.map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`).join(' · ')}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div style={{ marginTop: 18 }}>

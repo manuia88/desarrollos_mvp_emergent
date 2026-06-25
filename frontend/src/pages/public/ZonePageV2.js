@@ -13,6 +13,7 @@ import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { tc } from '../../lib/titleCase';
 import 'maplibre-gl/dist/maplibre-gl.css';   // mapa interactivo de lugares (el JS de maplibre se carga lazy dentro de LugaresMap)
 import LugaresMap from '../../components/ficha/LugaresMap';   // componente compartido (un solo origen; lo reusa también la ficha)
+import { AMEN_DEV } from '../../components/ficha/amenIcons';  // mapa amenidades del desarrollo (origen único)
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
@@ -44,8 +45,7 @@ const LENSES = [
 // (rebuild) SAMPLE_LUGARES + LugaresPreview retirados: el lifestyle real (Google Places) vive en el Cap 3 de cada arco.
 // Amenidades de la ZONA (alrededor · Google Places). key → emoji+label. Tope 20/categoría → se muestra "20+".
 // (auditoría · limpieza) CATS_ZONA + fmtN retirados con el bloque "La vida alrededor".
-// Amenidades del DESARROLLO (del edificio) — NO confundir con amenidades de zona (Google). Slug → emoji+label.
-const AMEN_DEV = { alberca: ['🏊', 'Alberca'], gym: ['🏋️', 'Gimnasio'], roof: ['🌿', 'Roof garden'], cowork: ['💻', 'Coworking'], spa: ['💆', 'Spa'], concierge: ['🛎️', 'Concierge'], sky_lounge: ['🌆', 'Sky lounge'], cava: ['🍷', 'Cava'], business_center: ['💼', 'Business center'], salon_eventos: ['🎉', 'Salón de eventos'], seguridad: ['🛡️', 'Seguridad 24/7'], pet: ['🐾', 'Pet friendly'], area_pets: ['🐾', 'Área para mascotas'], jardines: ['🌳', 'Jardines'], bicicletas: ['🚲', 'Biciestac.'], estacionamiento: ['🚗', 'Estacionamiento'] };
+// Amenidades del DESARROLLO (del edificio) — AMEN_DEV importado arriba (origen único en components/ficha/amenIcons).
 
 // Contexto de zona: 1-2 líneas potentes, del arquetipo (dato), antes de preguntar el objetivo.
 // ── CAPA DE ARQUETIPO ── el "carácter" de cada colonia sale de SUS datos (precio/m² + plusvalía).
