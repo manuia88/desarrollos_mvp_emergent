@@ -3,7 +3,8 @@
  * real del proyecto: características, entrega, precio/m², plusvalía desde lanzamiento, unidades, desarrollador + track record,
  * amenidades destacadas y formas de pago disponibles. Sin métricas internas del dev. Nada inventado.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchBuySignal } from '../../api/marketplace';
 
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const fechaCorta = (s) => {
@@ -22,7 +23,7 @@ const AMEN = {
   ludoteca: '🧸 Ludoteca', pet_friendly: '🐶 Pet friendly', terraza: '🌿 Terraza', jardin: '🌳 Jardín',
   bodega: '📦 Bodegas', elevador: '🛗 Elevador', sauna: '🧖 Sauna', asadores: '🔥 Asadores',
 };
-const humAmen = (k) => AMEN[k] || ('· ' + String(k).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+const humAmen = (k) => AMEN[k] || String(k).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 function Tile({ icon, v, l }) {
   if (!v) return null;
@@ -40,7 +41,12 @@ export default function GeneralidadesDev({ dev }) {
   const beds = dev.bedrooms_range || [];
   const m2 = dev.m2_range || [];
   const park = dev.parking_range || [];
-  const pm2 = dev.price_m2_dev || (dev.price_from && m2[0] ? Math.round(dev.price_from / m2[0]) : null);
+  // Precio/m² desde la MISMA fuente que el veredicto (motor compute_price_context · este_pm2) para que NO se contradigan.
+  const [pm2, setPm2] = useState(null);
+  useEffect(() => {
+    if (!dev.id) return;
+    fetchBuySignal(dev.id).then((d) => setPm2(d?.precio_contexto?.este_pm2 || null)).catch(() => {});
+  }, [dev.id]);
   const rng = (a) => (a.length ? (a[0] === a[1] ? `${a[0]}` : `${a[0]}–${a[1]}`) : null);
   const plus = cfg.plusvalia_desde_lanzamiento_pct;
   const nUnits = dev.total_units || (dev.units ? dev.units.length : null);
@@ -61,8 +67,8 @@ export default function GeneralidadesDev({ dev }) {
         Generalidades del desarrollo
       </h2>
 
-      {/* Ficha técnica — los datos que un comprador busca primero */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+      {/* Ficha técnica — los datos que un comprador busca primero (grid compacto que cabe en 1-2 filas sin huérfanos) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(128px,1fr))', gap: 10 }}>
         <Tile icon="🏢" v={tipo} l="Tipo" />
         <Tile icon="🛏️" v={rng(beds) && `${rng(beds)}`} l="Recámaras" />
         <Tile icon="📐" v={rng(m2) && `${rng(m2)} m²`} l="Superficie" />
@@ -79,14 +85,14 @@ export default function GeneralidadesDev({ dev }) {
           <div style={{ width: 40, height: 40, borderRadius: 11, background: `hsl(${d.logo_hue || 231}, 55%, 55%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, flexShrink: 0 }}>{(d.name || '?')[0]}</div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Desarrollador</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{d.name}</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{d.name}{d.founded_year ? <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-3)' }}> · desde {d.founded_year}</span> : ''}</div>
           </div>
-          {(d.projects_delivered || d.founded_year) && (
-            <div style={{ display: 'flex', gap: 22 }}>
-              {d.projects_delivered ? <div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#059669', lineHeight: 1 }}>{d.projects_delivered}</div><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>proyectos entregados</div></div> : null}
-              {d.founded_year ? <div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', lineHeight: 1 }}>{d.founded_year}</div><div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>desde</div></div> : null}
+          {d.projects_delivered ? (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#059669', lineHeight: 1 }}>{d.projects_delivered}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>proyectos entregados</div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -116,6 +116,7 @@ function SelloLegal({ sello }) {
   if (!sello) return null;
   const tone = TIER_TONE[sello.tier] || TIER_TONE.gray;
   const configured = sello.configured;
+  if (!configured) return null;   // sin documentos cargados → no mostrar caja muerta "Documentación pendiente" al comprador
   return (
     <Card accent={`linear-gradient(180deg, ${tone.bg}, transparent)`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>

@@ -44,7 +44,6 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
   const price = dev.price_from || 0;
   const recTxt = beds.length ? (beds[0] === beds[1] ? `${beds[0]}` : `${beds[0]}–${beds[1]}`) : '—';
   const m2Txt = m2.length ? (m2[0] === m2[1] ? `${m2[0]}` : `${m2[0]}–${m2[1]}`) : '—';
-  const pm2 = dev.price_m2_dev || (price && m2[0] ? Math.round(price / m2[0]) : null);
   // Crédito hipotecario (20% enganche, 20 años, ~11.45%)
   const _i = 0.1145 / 12;
   const pf = _i / (1 - (1 + _i) ** (-240));
@@ -56,7 +55,8 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
     invertir: {
       titulo: 'Como inversión',
       facts: [
-        pm2 ? { n: money(pm2), l: 'precio/m² · en rango de obra nueva' } : null,
+        (dev.config && dev.config.plusvalia_desde_lanzamiento_pct != null)
+          ? { n: `+${dev.config.plusvalia_desde_lanzamiento_pct}%`, l: 'plusvalía desde lanzamiento' } : null,
         { n: `${recTxt} rec`, l: `${m2Txt} m² — unidad rentable` },
         { n: 'Preventa', l: 'entras antes de la plusvalía de entrega' },
       ].filter(Boolean),

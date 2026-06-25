@@ -371,8 +371,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* ═══ ACTO 1 · HERO DE DATOS — el gancho: precio GIGANTE + lo que importa de un vistazo + siguiente paso. ═══ */}
           {(() => {
-            const m2 = dev.m2_range || [];
-            const pm2 = dev.price_m2_dev || (dev.price_from && (m2[0]) ? Math.round(dev.price_from / m2[0]) : null);
             return (
               <div data-testid="dev-hero-stats" style={{
                 marginTop: 22, padding: 'clamp(20px,3vw,30px)', borderRadius: 24,
@@ -385,7 +383,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(40px,6vw,64px)', lineHeight: 0.92, letterSpacing: '-0.035em', background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginTop: 6 }}>
                     {dev.price_from_display || (dev.price_from ? `$${Number(dev.price_from).toLocaleString('es-MX')}` : '—')}
                   </div>
-                  {pm2 && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', marginTop: 8 }}>≈ <b style={{ color: 'var(--cream)' }}>${Number(pm2).toLocaleString('es-MX')}/m²</b> · entrega {dev.delivery_estimate}</div>}
+                  {dev.price_to && dev.price_to !== dev.price_from && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', marginTop: 8 }}>hasta <b style={{ color: 'var(--cream)' }}>${Number(dev.price_to).toLocaleString('es-MX')}</b> · entrega {dev.delivery_estimate}</div>}
                 </div>
                 {/* (stats recámaras/m²/estac → movidos a Generalidades, abajo, para no duplicar) */}
                 <button onClick={() => openGate({ source: 'hero', dev_id: dev.id, dev_name: dev.name })} data-testid="hero-cta"
