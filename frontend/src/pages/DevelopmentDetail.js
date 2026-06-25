@@ -302,8 +302,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 10 }}>
               <h1 data-testid="dev-h1" style={{
-                fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(32px, 4.5vw, 54px)',
-                letterSpacing: '-0.028em', color: 'var(--cream)', lineHeight: 1.0, margin: 0,
+                fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 'clamp(34px, 5vw, 60px)',
+                letterSpacing: '-0.01em', color: 'var(--cream)', lineHeight: 1.04, margin: 0,
               }}>
                 {dev.name}
               </h1>
@@ -402,6 +402,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* ═══ GENERALIDADES — lo esencial del desarrollo PRIMERO (características/entrega/precio-m²/desarrollador/
               amenidades/formas de pago). Lo que un comprador quiere saber al entrar, antes de cualquier análisis. ═══ */}
           <GeneralidadesDev dev={dev} />
+
+          {/* DESCRIPCIÓN editorial — prosa del proyecto arriba (como nolab/kplr), no enterrada en una tab. */}
+          {dev.description && (
+            <section data-testid="descripcion" style={{ marginTop: 26 }}>
+              <div className="eyebrow" style={{ color: 'var(--theme)' }}>El proyecto</div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 'clamp(15px,1.6vw,17.5px)', lineHeight: 1.75, color: 'var(--cream-2)', margin: '8px 0 0', maxWidth: 760, whiteSpace: 'pre-line' }}>{dev.description}</p>
+            </section>
+          )}
 
           {/* ═══ ACTO 2 · LENTE DE PERFIL — '¿para qué lo quieres?' (lo de las tabs de colonia, para ESTE desarrollo). ═══ */}
           <PerfilLente dev={dev}
