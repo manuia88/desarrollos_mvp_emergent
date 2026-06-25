@@ -64,6 +64,57 @@ def _slugify(name: str) -> str:
     return s[:60] or f"proyecto-{uuid.uuid4().hex[:6]}"
 
 
+def _fold_col(s: str) -> str:
+    """Normaliza un nombre de colonia para comparar (sin acentos/símbolos, minúsculas)."""
+    import unicodedata as _ud
+    t = _ud.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
+
+
+async def _resolve_colonia_id(db, nombre: str, alcaldia: str = None):
+    """Mapea el nombre de colonia que TECLEA el dev → id del catálogo db.colonias (slug) para que la inteligencia de zona
+    (lugares, demanda, riesgos, valuación) prenda. Match por nombre normalizado; desempata por alcaldía; prefiere el id
+    canónico (más corto, sin sufijo de alcaldía). Fail-open: None si no hay match seguro (la ficha degrada con gracia)."""
+    if not nombre:
+        return None
+    try:
+        target = _fold_col(nombre)
+        if not target:
+            return None
+        # 1) candidatos por nombre ~exacto (acentos/case-insensible)
+        cands = await db.colonias.find(
+            {"name": {"$regex": f"^{re.escape(nombre.strip())}$", "$options": "i"}},
+            {"_id": 0, "id": 1, "name": 1, "alcaldia": 1}).to_list(40)
+        # 2) si no hubo, fold-match exacto sobre un universo acotado por prefijo del slug
+        if not cands:
+            pref = target.split(" ")[0]
+            for c in await db.colonias.find(
+                    {"id": {"$regex": f"^{re.escape(pref)}"}},
+                    {"_id": 0, "id": 1, "name": 1, "alcaldia": 1}).to_list(200):
+                if _fold_col(c.get("name")) == target:
+                    cands.append(c)
+        # 3) nombres subdivididos (ej. "Del Valle" → "Del Valle Centro/Norte/Sur"): match por prefijo del nombre
+        if not cands:
+            for c in await db.colonias.find(
+                    {"name": {"$regex": f"^{re.escape(nombre.strip())}\\b", "$options": "i"}},
+                    {"_id": 0, "id": 1, "name": 1, "alcaldia": 1}).to_list(60):
+                cands.append(c)
+        if not cands:
+            return None
+        # desempate por alcaldía (municipio que teclea el dev) — aplica a 1+ candidatos
+        if alcaldia and len(cands) > 1:
+            af = _fold_col(alcaldia)
+            por_alc = [c for c in cands if _fold_col(c.get("alcaldia")) == af]
+            if por_alc:
+                cands = por_alc
+        if len(cands) == 1:
+            return cands[0]["id"]
+        # canónica = id más corto (la colonia base, sin sufijo de sección/alcaldía)
+        return sorted(cands, key=lambda c: len(c.get("id") or ""))[0]["id"]
+    except Exception:
+        return None
+
+
 def _org(user) -> str:
     return (getattr(user, "tenant_id", None) or
             getattr(user, "org_id", None) or "default")
@@ -293,6 +344,10 @@ async def create_project(payload: WizardProjectPayload, request: Request):
     total_units = int(op.get("total_unidades") or op.get("total_units") or 0)
     target_price = float(op.get("target_price") or op.get("price_from") or 0)
 
+    # Resuelve el colonia_id del catálogo para que la inteligencia de zona prenda en la ficha (lugares/demanda/riesgos/valor).
+    # Usa el id explícito si el front lo manda (typeahead), si no lo deriva del nombre tecleado. Fail-open.
+    colonia_id = ub.get("colonia_id") or await _resolve_colonia_id(db, ub.get("colonia"), ub.get("municipio") or ub.get("alcaldia"))
+
     project_doc = {
         "id": slug,
         "slug": slug,
@@ -310,6 +365,7 @@ async def create_project(payload: WizardProjectPayload, request: Request):
         "estado": ub.get("estado"),
         "municipio": ub.get("municipio"),
         "colonia": ub.get("colonia"),
+        "colonia_id": colonia_id,   # slug del catálogo → prende la inteligencia de zona en la ficha
         "calle": ub.get("calle"),
         "cp": ub.get("cp"),
         "lat": ub.get("lat"),
