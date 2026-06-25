@@ -11,6 +11,7 @@ import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import DescriptionTab from '../components/dev/DescriptionTab';
 import PriceListTab from '../components/dev/PriceListTab';
+import UnidadesPorTipo from '../components/dev/UnidadesPorTipo';
 import ProgressTab from '../components/dev/ProgressTab';
 import AmenitiesTab from '../components/dev/AmenitiesTab';
 import LocationTab from '../components/dev/LocationTab';
@@ -550,11 +551,15 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               {/* Active tab content */}
               {tab === 'descripcion' && <DescriptionTab dev={dev} />}
               {tab === 'precios' && (
-                <PriceListTab dev={dev} user={user}
-                  onGateOpen={openGate}
-                  selectedUnit={selectedUnit}
-                  onSelectUnit={setSelectedUnit}
-                  matchCriteria={matchCriteria} />
+                <>
+                  {/* Resumen por TIPO (estilo kplr) — la foto completa del inventario · luego la tabla detallada (con gate) */}
+                  <UnidadesPorTipo dev={dev} />
+                  <PriceListTab dev={dev} user={user}
+                    onGateOpen={openGate}
+                    selectedUnit={selectedUnit}
+                    onSelectUnit={setSelectedUnit}
+                    matchCriteria={matchCriteria} />
+                </>
               )}
               {tab === 'avance' && <ProgressTab dev={dev} user={user} onGateOpen={openGate} />}
               {tab === 'amenidades' && <AmenitiesTab dev={dev} />}
