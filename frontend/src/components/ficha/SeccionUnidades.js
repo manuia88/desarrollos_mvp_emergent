@@ -5,7 +5,7 @@
  *  3) Comparador hasta 3 unidades (upgrade).
  * Sistema visual único (Card/serif/tokens). NO reusa el componente viejo.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, SERIF, SANS, HEAD } from './ui';
 
 const money = (n) => (n != null ? `$${Number(n).toLocaleString('es-MX')}` : '—');
@@ -25,26 +25,38 @@ function escasez(avail, total) {
   return { txt: `${avail} disponibles`, c: '#059669', urgente: false };
 }
 
-function attrs(u) {
-  const out = [];
-  if (u.level != null) out.push(`Piso ${u.level}`);
-  if (u.m2_total || u.m2_privative) out.push(`${u.m2_total || u.m2_privative} m²`);
-  if (u.bedrooms != null) out.push(`${u.bedrooms} rec`);
-  if (u.bathrooms != null) out.push(`${u.bathrooms} baño${u.bathrooms === 1 ? '' : 's'}`);
-  if (u.parking_spots) out.push(`${u.parking_spots} estac.`);
-  if (u.orientation) out.push(u.orientation);
-  if (u.vista) out.push(`Vista ${String(u.vista).toLowerCase()}`);
-  if (u.terraza) out.push('Terraza');
-  if (u.balcon) out.push('Balcón');
-  if (u.roof_garden) out.push('Roof garden');
-  if (u.bodega) out.push('Bodega');
-  return out;
+// Vista: clasifica interior/exterior (como en lista de precios) y conserva el matiz real.
+const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : `Exterior · ${v}`));
+const m2line = (u) => {
+  const t = u.m2_total || u.m2_privative;
+  if (!t) return null;
+  const partes = [u.m2_privative && `${u.m2_privative} int`, u.m2_balcony && `${u.m2_balcony} balcón`, u.m2_terrace && `${u.m2_terrace} terraza`, u.m2_roof_garden && `${u.m2_roof_garden} roof`].filter(Boolean);
+  return partes.length > 1 ? `${t} m² · ${partes.join(' + ')}` : `${t} m²`;
+};
+// Ficha técnica de la unidad — conceptos reales tipo lista de precios del dev.
+function specRows(u) {
+  const estac = u.parking_spots ? `${u.parking_spots} cajón${u.parking_spots === 1 ? '' : 'es'}${u.estacionamiento_independiente ? ' · independiente' : ''}${u.parking_type && u.parking_type !== 'individual' ? ` · ${u.parking_type}` : ''}` : null;
+  return [
+    ['Nivel', u.level != null ? `Piso ${u.level}` : null],
+    ['Superficie', m2line(u)],
+    ['Distribución', [u.bedrooms != null && `${u.bedrooms} recámaras`, u.bathrooms != null && `${u.bathrooms} baños`].filter(Boolean).join(' · ') || null],
+    ['Vista', vistaLabel(u.vista)],
+    ['Orientación', u.orientation || null],
+    ['Estacionamiento', estac],
+    ['Bodega', u.bodega ? 'Sí, incluida' : 'No incluida'],
+  ].filter(([, v]) => v != null);
 }
+const extras = (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.pet_friendly && 'Pet friendly'].filter(Boolean);
 
-export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit }) {
+export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoTo }) {
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
+  const detailRef = useRef(null);
+  // al elegir unidad → llevar el detalle a la vista (para que SÍ se note la selección)
+  useEffect(() => {
+    if (selectedUnit && detailRef.current) detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [selectedUnit && selectedUnit.id]);
   if (!units.length) return null;
 
   const groups = {};
@@ -136,23 +148,62 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit }) {
         })}
       </div>
 
-      {/* unidad elegida — detalle */}
-      {selectedUnit && (
-        <Card style={{ marginTop: 14, borderColor: 'var(--theme)', background: 'rgba(99,102,241,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tu unidad elegida</div>
-            <button onClick={() => onSelectUnit && onSelectUnit(null)} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12, cursor: 'pointer' }}>Quitar ✕</button>
-          </div>
-          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 26, color: 'var(--cream)', margin: '4px 0 2px' }}>{protoName(selectedUnit.prototype)} · {selectedUnit.unit_number}</div>
-          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 24, color: 'var(--cream)' }}>{money(selectedUnit.price)}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
-            {attrs(selectedUnit).map((a, i) => (
-              <span key={i} style={{ padding: '6px 11px', borderRadius: 9, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)' }}>{a}</span>
-            ))}
-          </div>
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginTop: 12 }}>↓ Tu dinero y el riel ya calculan con esta unidad.</div>
-        </Card>
-      )}
+      {/* unidad elegida — detalle rico (plano/render + ficha técnica + enlace a calculadoras) */}
+      {selectedUnit && (() => {
+        const u = selectedUnit;
+        const plano = u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype];
+        const fallbackImg = (dev.photos || [])[0];
+        return (
+          <Card ref={detailRef} style={{ marginTop: 16, borderColor: 'var(--theme)', boxShadow: '0 0 0 3px rgba(99,102,241,0.12), 0 14px 34px rgba(16,18,28,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>✓ Tu unidad elegida</div>
+              <button onClick={() => onSelectUnit && onSelectUnit(null)} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12, cursor: 'pointer' }}>Quitar ✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)', gap: 22, alignItems: 'start' }}>
+              {/* plano / render */}
+              <div>
+                <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--card-border, var(--border))', aspectRatio: '4 / 3', background: 'var(--surface-card)' }}>
+                  {plano || fallbackImg ? (
+                    <img src={plano || fallbackImg} alt={`Vista ${protoName(u.prototype)}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 40, color: 'var(--cream-3)' }}>{protoName(u.prototype)}</div>
+                  )}
+                  <span style={{ position: 'absolute', left: 10, bottom: 10, padding: '4px 10px', borderRadius: 9999, background: 'rgba(16,18,28,0.62)', color: '#fff', fontFamily: SANS, fontSize: 11, fontWeight: 700 }}>{plano ? `Plano ${protoName(u.prototype)}` : `Render · ${dev.name}`}</span>
+                </div>
+                {!plano && (
+                  <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, intent: 'plano', unit: u.unit_number, prototype: u.prototype } }))} style={{ marginTop: 10, width: '100%', padding: '10px 14px', borderRadius: 11, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>📐 Pedir plano y ficha técnica del {protoName(u.prototype)}</button>
+                )}
+              </div>
+
+              {/* ficha técnica */}
+              <div>
+                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 26, color: 'var(--cream)', lineHeight: 1.05 }}>{protoName(u.prototype)} · {u.unit_number}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 14px' }}>{money(u.price)}</div>
+                <div>
+                  {specRows(u).map(([k, v], i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: i ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: SANS, fontSize: 13.5 }}>
+                      <span style={{ color: 'var(--cream-3)' }}>{k}</span>
+                      <span style={{ color: 'var(--cream)', fontWeight: 600, textAlign: 'right' }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+                {extras(u).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
+                    {extras(u).map((e, i) => <span key={i} style={{ padding: '5px 11px', borderRadius: 9, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', fontFamily: SANS, fontSize: 12, fontWeight: 700, color: '#059669' }}>✓ {e}</span>)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* enlace explícito a las calculadoras */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
+              <button onClick={() => onGoTo && onGoTo('dinero')} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Calcular mi pago con esta unidad ↓</button>
+              <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', alignSelf: 'center' }}>Todas las cuentas (crédito, plan, inversión) ya usan la {u.unit_number}.</span>
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* comparador (upgrade) */}
       {compareUnits.length >= 2 && (

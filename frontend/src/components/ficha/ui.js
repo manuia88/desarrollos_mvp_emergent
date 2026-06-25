@@ -9,9 +9,10 @@ export const SANS = "'DM Sans', sans-serif";
 export const HEAD = "'Outfit', sans-serif";
 
 // La ÚNICA tarjeta del sistema: superficie blanca, borde fino, sombra suave. Nada de gradientes/pills sueltos.
-export function Card({ children, style, ...rest }) {
+export const Card = React.forwardRef(function Card({ children, style, ...rest }, ref) {
   return (
     <div
+      ref={ref}
       style={{
         background: 'var(--surface-card, #fff)',
         border: '1px solid var(--card-border, var(--border))',
@@ -25,7 +26,7 @@ export function Card({ children, style, ...rest }) {
       {children}
     </div>
   );
-}
+});
 
 // Sección estándar: eyebrow (acento) + título serif + espacio generoso + ancla para la nav.
 export function Section({ id, eyebrow, title, intro, children, style }) {

@@ -142,7 +142,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
               {/* 2 · LAS UNIDADES — UI NUEVA (de cero) · por tipo + escasez honesta + elegir + comparador */}
               <Section id="unidades" eyebrow="Disponibilidad" title="Las unidades">
-                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} />
+                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} />
               </Section>
 
               {/* 3 · ¿ES PARA TI? — el LENTE (de cero) · fija la pestaña de Tu dinero + atajo */}
