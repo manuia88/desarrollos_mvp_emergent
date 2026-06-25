@@ -113,13 +113,13 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
               {/* 1 · LO ESENCIAL (real) */}
               <Section id="proyecto" eyebrow="Lo esencial" title="Lo que tienes que saber">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 12 }}>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={tipo} label="Tipo" /></Card>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={rng(beds)} label="Recámaras" /></Card>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={rng(m2) ? `${rng(m2)} m²` : null} label="Superficie" /></Card>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={rng(park)} label="Estac." /></Card>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={fechaCorta(dev.delivery_estimate)} label="Entrega" /></Card>
-                  <Card style={{ padding: '16px 18px' }}><Stat value={nUnits} label="Unidades" /></Card>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 12 }}>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={tipo} label="Tipo" /></Card>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(beds)} label="Recámaras" /></Card>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(m2) ? `${rng(m2)} m²` : null} label="Superficie" /></Card>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(park)} label="Estac." /></Card>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={fechaCorta(dev.delivery_estimate)} label="Entrega" /></Card>
+                  <Card style={{ padding: '16px 18px' }}><Stat sm value={nUnits} label="Unidades" /></Card>
                 </div>
                 {amen.length > 0 && (
                   <div style={{ marginTop: 20 }}>

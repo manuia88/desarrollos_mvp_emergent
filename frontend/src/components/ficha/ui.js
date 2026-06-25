@@ -43,12 +43,12 @@ export function Section({ id, eyebrow, title, intro, children, style }) {
   );
 }
 
-// Número grande + etiqueta (la pieza atómica de datos).
-export function Stat({ value, label, accent, sub }) {
+// Número grande + etiqueta (la pieza atómica de datos). `sm` = tiles compactos (evita que texto largo se corte).
+export function Stat({ value, label, accent, sub, sm }) {
   if (value == null || value === '') return null;
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(18px,2.2vw,26px)', color: accent || 'var(--cream)', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: sm ? 'clamp(15px,1.6vw,19px)' : 'clamp(18px,2.2vw,26px)', color: accent || 'var(--cream)', lineHeight: 1.05, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{value}</div>
       <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{label}</div>
       {sub && <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3 }}>{sub}</div>}
     </div>
