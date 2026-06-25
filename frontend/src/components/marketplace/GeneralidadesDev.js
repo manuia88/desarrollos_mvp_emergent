@@ -52,7 +52,6 @@ export default function GeneralidadesDev({ dev }) {
   const amen = (Array.isArray(cfg.amenidades) ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : [])).slice(0, 10);
   const tipoMap = { departamento: 'Departamento', casa: 'Casa', loft: 'Loft', ph: 'Penthouse', estudio: 'Estudio' };
   const tipo = tipoMap[dev.property_type] || (dev.property_type ? dev.property_type[0].toUpperCase() + dev.property_type.slice(1) : null);
-  const d = dev.developer || {};
 
   // Formas de pago disponibles (real: config.formas_pago)
   const pagos = [];
@@ -78,41 +77,24 @@ export default function GeneralidadesDev({ dev }) {
         {/* (Plusvalía desde lanzamiento vive UNA sola vez en "El valor" · gráfica — evita repetir el +5% por toda la ficha) */}
       </div>
 
-      {/* Desarrollador + track record (confianza) */}
-      {d.name && (
-        <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(99,102,241,0.07), rgba(16,185,129,0.04))', border: '1px solid var(--card-border, var(--border))', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: `hsl(${d.logo_hue || 231}, 55%, 55%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, flexShrink: 0 }}>{(d.name || '?')[0]}</div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Desarrollador</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{d.name}{d.founded_year ? <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-3)' }}> · desde {d.founded_year}</span> : ''}</div>
-          </div>
-          {d.projects_delivered ? (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#059669', lineHeight: 1 }}>{d.projects_delivered}</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>proyectos entregados</div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Amenidades destacadas */}
+      {/* Amenidades destacadas — mismo lenguaje visual que la ficha técnica (chips con borde/bg/radio consistentes, no pills) */}
       {amen.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 8 }}>Amenidades destacadas</div>
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {amen.map((a, i) => (
-              <span key={i} style={{ padding: '7px 13px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{humAmen(a)}</span>
+              <span key={i} style={{ padding: '9px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{humAmen(a)}</span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Formas de pago disponibles */}
-      <div style={{ marginTop: 16 }}>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 8 }}>Cómo lo puedes pagar</div>
+      {/* Formas de pago disponibles — mismo chip, acento verde */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Cómo lo puedes pagar</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {pagos.map((p, i) => (
-            <span key={i} style={{ padding: '7px 13px', borderRadius: 9999, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#059669' }}>✓ {p}</span>
+            <span key={i} style={{ padding: '9px 14px', borderRadius: 11, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, color: '#059669' }}>✓ {p}</span>
           ))}
         </div>
       </div>

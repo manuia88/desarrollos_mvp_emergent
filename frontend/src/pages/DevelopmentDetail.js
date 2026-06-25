@@ -290,7 +290,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         }}
       />
       <main style={{ paddingTop: 80 }}>
-        <section style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 64px' }}>
+        <section style={{ maxWidth: 1600, width: '94%', margin: '0 auto', padding: '20px 0 64px' }}>
 
           {/* Header */}
           <div style={{ marginBottom: 20 }}>
