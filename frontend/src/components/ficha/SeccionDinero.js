@@ -18,11 +18,12 @@ const monthsBetween = (a, b) => {
 };
 
 const TABS = [
-  ['rentobuy', '¿Rento o compro?'],
-  ['credito', 'Con crédito'],
-  ['plan', 'Plan del desarrollador'],
-  ['inversion', 'Como inversión'],
+  ['rentobuy', '¿Rento o compro?', 'Rentar vs comprar a 10–20 años'],
+  ['credito', 'Con crédito hipotecario', 'Mensualidad por banco + si calificas'],
+  ['plan', 'Plan del desarrollador', 'Preventa: apartado, firma, mensualidades'],
+  ['inversion', 'Como inversión', 'Yield de renta, plusvalía y retorno'],
 ];
+const TAB_LABEL = Object.fromEntries(TABS.map(([k, l]) => [k, l]));
 
 const INTENT_TAB = { invertir: 'inversion', primera: 'credito', familia: 'rentobuy', vivir: 'rentobuy' };
 
@@ -34,8 +35,9 @@ export default function SeccionDinero({ dev, unit, intent }) {
 
   const [eng, setEng] = useState(20);     // enganche %
   const [years, setYears] = useState(20); // plazo crédito
-  const [tab, setTab] = useState('rentobuy');
-  // el lente fija la vía por defecto (invertir→inversión, primera→crédito…)
+  const [tab, setTab] = useState(null);   // null = detalle colapsado (página corta); el dropdown lo abre
+  const [openSel, setOpenSel] = useState(false);
+  // el lente fija (y abre) la vía por defecto (invertir→inversión, primera→crédito…)
   useEffect(() => { if (intent && INTENT_TAB[intent]) setTab(INTENT_TAB[intent]); }, [intent]);
   const [own, setOwn] = useState(null);
   const [ownLoading, setOwnLoading] = useState(true);
@@ -118,16 +120,26 @@ export default function SeccionDinero({ dev, unit, intent }) {
         <Stat value={cfg.plusvalia_desde_lanzamiento_pct != null ? `+${cfg.plusvalia_desde_lanzamiento_pct}%` : (rb ? `+${rb.plusvalia_anual_pct}%/año` : '—')} label="Plusvalía" accent="#059669" />
       </div>
 
-      {/* ③ DETALLE — tabs */}
-      <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--card-border, var(--border))', margin: '4px 0 20px', overflowX: 'auto' }}>
-        {TABS.map(([k, l]) => {
-          const a = tab === k;
-          return (
-            <button key={k} onClick={() => setTab(k)} style={{ position: 'relative', padding: '11px 14px', background: 'transparent', border: 'none', color: a ? 'var(--cream)' : 'var(--cream-3)', fontFamily: HEAD, fontWeight: a ? 800 : 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              {l}{a && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1, height: 3, borderRadius: 3, background: 'var(--grad)' }} />}
-            </button>
-          );
-        })}
+      {/* ③ DETALLE — UN dropdown (en vez de 4 tabs). Resumen arriba siempre; el detalle se abre a demanda. */}
+      <div style={{ position: 'relative', margin: '6px 0 18px', maxWidth: 460 }}>
+        <button onClick={() => setOpenSel((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 16px', borderRadius: 12, border: `1.5px solid ${openSel ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: 'var(--surface-card)', cursor: 'pointer' }}>
+          <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14.5, color: tab ? 'var(--cream)' : 'var(--cream-2)' }}>{tab ? TAB_LABEL[tab] : 'Ver a detalle…'}</span>
+          <span style={{ color: 'var(--cream-3)', transform: openSel ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+        </button>
+        {openSel && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30, borderRadius: 13, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', boxShadow: '0 14px 34px rgba(16,18,28,0.12)', overflow: 'hidden' }}>
+            {TABS.map(([k, l, desc]) => {
+              const a = tab === k;
+              return (
+                <button key={k} onClick={() => { setTab(k); setOpenSel(false); }} style={{ width: '100%', textAlign: 'left', padding: '12px 16px', background: a ? 'rgba(99,102,241,0.07)' : 'transparent', border: 'none', borderBottom: '1px solid var(--card-border, var(--border))', cursor: 'pointer' }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 14, color: a ? 'var(--theme)' : 'var(--cream)' }}>{l}</div>
+                  <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>{desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {tab && <button onClick={() => setTab(null)} style={{ marginTop: 8, background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>Ocultar detalle ▲</button>}
       </div>
 
       {/* ── ¿Rento o compro? ── */}
