@@ -82,6 +82,50 @@ function Step2Operacion({ data = {}, onChange, ia_prefill }) {
   );
 }
 
+// Typeahead de colonia contra el catálogo (1,811+) → fija colonia_id (slug) para que la inteligencia de zona prenda en la
+// ficha (lugares/demanda/riesgos/valuación). Si el dev escribe sin elegir, colonia_id queda null y el backend lo resuelve.
+function ColoniaAutocomplete({ data = {}, onPick }) {
+  const [q, setQ] = useState(data.colonia || '');
+  const [opts, setOpts] = useState([]);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!q || q.trim().length < 2) { setOpts([]); return undefined; }
+    if (data.colonia === q && data.colonia_id) { setOpts([]); return undefined; }
+    let alive = true;
+    const t = setTimeout(() => {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/colonias-search?q=${encodeURIComponent(q.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { if (alive) setOpts((Array.isArray(d) ? d : (d.results || d.colonias || [])).slice(0, 8)); })
+        .catch(() => {});
+    }, 220);
+    return () => { alive = false; clearTimeout(t); };
+  }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div style={{ position: 'relative' }}>
+      <input value={q} data-testid="wizard-input-colonia" placeholder="Escribe y elige del catálogo…"
+        onChange={(e) => { setQ(e.target.value); setOpen(true); onPick({ colonia: e.target.value, colonia_id: null }); }}
+        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 160)}
+        className="w-full px-3 py-2 rounded-lg bg-[rgba(var(--cream-rgb),0.06)] border border-[rgba(var(--cream-rgb),0.12)] text-[var(--cream)] text-sm" />
+      {data.colonia_id
+        ? <div className="text-[11px] mt-1 text-emerald-400">✓ Zona reconocida — se activa la inteligencia de zona en tu ficha</div>
+        : (q && q.trim().length >= 2 && <div className="text-[11px] mt-1 text-amber-400">Elige una opción del catálogo para activar la inteligencia de zona</div>)}
+      {open && opts.length > 0 && (
+        <div style={{ position: 'absolute', zIndex: 30, left: 0, right: 0, top: '100%', marginTop: 4, maxHeight: 240, overflowY: 'auto' }}
+          className="rounded-lg border border-[rgba(var(--cream-rgb),0.18)] bg-[#12151f] shadow-xl">
+          {opts.map((o) => (
+            <button key={o.id} type="button"
+              onMouseDown={() => { onPick({ colonia: o.name, colonia_id: o.id, alcaldia: o.alcaldia }); setQ(o.name); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-[var(--cream)] hover:bg-[rgba(var(--cream-rgb),0.08)] flex justify-between items-center gap-2">
+              <span>{o.name}</span>
+              {o.alcaldia && <span className="text-[var(--cream-3)] text-xs whitespace-nowrap">{o.alcaldia}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ═══ STEP 3 — Ubicación ═══════════════════════════════════════════════════
 function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
   const set = (k, v) => onChange({ ...data, [k]: v });
@@ -99,7 +143,14 @@ function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
           <Input value={data.municipio || ''} onChange={v => set('municipio', v)} tid="municipio" />
         </Field>
         <Field label="Colonia *" ia={uia.colonia}>
-          <Input value={data.colonia || ''} onChange={v => set('colonia', v)} tid="colonia" />
+          <ColoniaAutocomplete data={data}
+            onPick={(c) => onChange({
+              ...data,
+              colonia: c.colonia,
+              colonia_id: c.colonia_id || null,
+              municipio: c.alcaldia || data.municipio,
+              estado: data.estado || 'Ciudad de México',
+            })} />
         </Field>
         <Field label="Calle y número" ia={uia.calle}>
           <Input value={data.calle || ''} onChange={v => set('calle', v)} tid="calle" />
