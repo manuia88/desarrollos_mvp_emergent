@@ -390,7 +390,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 {/* (stats recámaras/m²/estac → movidos a Generalidades, abajo, para no duplicar) */}
                 <button onClick={() => openGate({ source: 'hero', dev_id: dev.id, dev_name: dev.name })} data-testid="hero-cta"
                   style={{ padding: '15px 28px', borderRadius: 14, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 16, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 30px rgba(99,102,241,0.3)' }}>
-                  Agendar visita →
+                  Me interesa · ver precios y disponibilidad →
                 </button>
               </div>
             );
