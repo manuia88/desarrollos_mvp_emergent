@@ -32,6 +32,7 @@ export default function SeccionUbicacion({ dev }) {
   const [vida, setVida] = useState(null);
   const [cat, setCat] = useState(null);
   const [sel, setSel] = useState(null);
+  const [pick, setPick] = useState({});   // "el finde perfecto" — elección por slot
 
   useEffect(() => {
     if (!col) return undefined;
@@ -65,7 +66,21 @@ export default function SeccionUbicacion({ dev }) {
     ? Object.entries(vida.amenidades).filter(([k, v]) => VIDA_LABEL[k] && v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6)
     : [];
 
-  if (!metro && !cats.length && !vidaItems.length) return null;
+  // ⭐ Qué tan caminable (mismo cálculo que la página de zona, en nuestro diseño): cobertura + densidad de lugares reales.
+  const WCATS = [['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🛒', 'supermercado', 'Súper'], ['🏥', 'hospital', 'Salud'], ['🎓', 'escuela', 'Escuelas']];
+  const wcounts = WCATS.map(([ic, k, l]) => ({ ic, l, n: (lugares[k] || []).filter((p) => p && p.name).length }));
+  const cubiertas = wcounts.filter((c) => c.n > 0).length;
+  const densidad = Math.min(1, wcounts.reduce((s, c) => s + Math.min(c.n, 5), 0) / 30);
+  const score = Math.round(100 * (0.55 * (cubiertas / WCATS.length) + 0.45 * densidad));
+  const wlabel = score >= 80 ? 'Todo a pie' : score >= 55 ? 'Muy caminable' : score >= 30 ? 'Caminable' : 'Mejor con coche';
+  const wcolor = score >= 55 ? '#059669' : score >= 30 ? 'var(--theme)' : 'var(--cream-3)';
+  const hayWalk = wcounts.some((c) => c.n > 0);
+
+  // "El finde perfecto" — arma un sábado con lugares reales (top por ★), editable.
+  const byR = (arr) => (arr || []).filter((p) => p && p.name).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  const fslots = [['☕', 'Café de la mañana', byR(lugares.cafe)], ['🍴', 'La comida', byR(lugares.restaurante)], ['🌳', 'Tarde de paseo', byR(lugares.parque)], ['🌙', 'La cena', byR(lugares.restaurante)]].filter((s) => s[2].length);
+
+  if (!metro && !cats.length && !vidaItems.length && !hayWalk) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -78,6 +93,32 @@ export default function SeccionUbicacion({ dev }) {
             <div>
               <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: 'var(--cream)' }}>Metro {metro.nombre}</div>
               <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>a {metro.min_caminando} min caminando{metro.metros ? ` · ${metro.metros} m` : ''}</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ¿Qué tan a pie se vive? (walkscore) */}
+      {hayWalk && (
+        <Card>
+          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 3 }}>¿Qué tan a pie se vive?</div>
+          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 16 }}>Lo que tienes caminando, sin subirte al coche para todo · Google</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(18px,3vw,36px)', alignItems: 'center' }}>
+            <div style={{ textAlign: 'center', minWidth: 120 }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(44px,7vw,64px)', lineHeight: 1, color: wcolor, letterSpacing: '-0.04em' }}>{score}</div>
+              <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>de 100 a pie</div>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: wcolor, marginTop: 8 }}>{wlabel}</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10 }}>
+              {wcounts.map((c) => (
+                <div key={c.l} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, background: c.n > 0 ? 'rgba(16,185,129,0.06)' : 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }}>
+                  <span style={{ fontSize: 19 }}>{c.ic}</span>
+                  <div>
+                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: c.n > 0 ? '#059669' : 'var(--cream-3)' }}>{c.n >= 5 ? '5+' : c.n}</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{c.l}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </Card>
@@ -116,6 +157,38 @@ export default function SeccionUbicacion({ dev }) {
                 );
               })}
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* El finde perfecto — arma tu sábado con lugares reales */}
+      {fslots.length >= 2 && (
+        <Card>
+          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 3 }}>Arma tu sábado</div>
+          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 18 }}>Así se vería un día aquí, con lugares reales. Cámbialos a tu gusto.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {fslots.map(([ic, label, arr], i) => {
+              const idx = Math.min(pick[i] || 0, arr.length - 1);
+              const p = arr[idx] || arr[0];
+              const last = i === fslots.length - 1;
+              return (
+                <div key={label} style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>{ic}</div>
+                    {!last && <div style={{ width: 2, flex: 1, background: 'var(--card-border, var(--border))', margin: '4px 0' }} />}
+                  </div>
+                  <div style={{ flex: 1, marginBottom: 14, padding: '12px 15px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)' }}>
+                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                      <select value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid var(--card-border, var(--border))', fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: 'var(--cream)', background: 'var(--surface-card)', cursor: 'pointer' }}>
+                        {arr.slice(0, 8).map((x, j) => <option key={x.name} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>)}
+                      </select>
+                      {p && p.rating ? <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: '#059669', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
