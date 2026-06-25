@@ -48,6 +48,7 @@ const Marketplace       = lazy(() => import('./pages/Marketplace'));
 const Favoritos         = lazy(() => import('./pages/Favoritos'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
+const FichaDesarrollo = lazy(() => import('./pages/FichaDesarrollo'));   // rebuild limpio (preview con ?v2=1)
 const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
@@ -1152,6 +1153,9 @@ function SimuladorRoute() {
 
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
+  // Flag de preview: /desarrollo/:id?v2=1 → ficha NUEVA (rebuild limpio). Sin flag → la actual (no se rompe nada).
+  const v2 = new URLSearchParams(window.location.search).get('v2');
+  if (v2) return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
   return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
