@@ -1153,10 +1153,10 @@ function SimuladorRoute() {
 
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
-  // Flag de preview: /desarrollo/:id?v2=1 → ficha NUEVA (rebuild limpio). Sin flag → la actual (no se rompe nada).
-  const v2 = new URLSearchParams(window.location.search).get('v2');
-  if (v2) return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
-  return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
+  // En la rama del rebuild, la ficha NUEVA es la default (ya no hay que recordar el flag). La VIEJA queda en ?v1=1 para comparar.
+  const v1 = new URLSearchParams(window.location.search).get('v1');
+  if (v1) return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
+  return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
 // AdvisorRoute es el guard COMPARTIDO de los portales profesionales: lo usan tanto las

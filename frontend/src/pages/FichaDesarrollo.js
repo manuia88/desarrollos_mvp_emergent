@@ -57,6 +57,9 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const pagos = [...(cfg.formas_pago ? ['Preventa con mensualidades', 'Contado con descuento'] : []), 'Crédito hipotecario'];
 
   const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
+  // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
+  const askAtlax = () => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } }));
+  const agendar = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.` } }));
 
   const Pill = ({ children }) => (
     <span style={{ padding: '9px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{children}</span>
@@ -182,8 +185,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
                   {unit ? `Piso ${unit.level} · ${unit.m2_total || unit.m2_privative} m²${unit.vista ? ` · ${unit.vista}` : ''}` : `MXN · ${STAGE[dev.stage] || dev.stage} · Entrega ${dev.delivery_estimate}`}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <BtnPrimary>📅 Agendar visita</BtnPrimary>
-                  <BtnGhost>✨ Hablar con Atlax</BtnGhost>
+                  <BtnPrimary onClick={agendar}>📅 Agendar visita</BtnPrimary>
+                  <BtnGhost onClick={askAtlax}>✨ Hablar con Atlax</BtnGhost>
                 </div>
                 <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 16, lineHeight: 1.5 }}>Te acompañamos con datos reales, sin presión.</div>
               </Card>
