@@ -10,6 +10,19 @@ import { fetchDevelopment } from '../api/marketplace';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
+import UnidadesPorTipo from '../components/dev/UnidadesPorTipo';
+import PerfilLente from '../components/marketplace/PerfilLente';
+import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
+import DemandaZonaCard from '../components/marketplace/DemandaZonaCard';
+import PlusvaliaCard from '../components/marketplace/PlusvaliaCard';
+import MarketValueCard from '../components/marketplace/MarketValueCard';
+import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
+import MortgageCalculator from '../components/marketplace/MortgageCalculator';
+import PublicCotizador from '../components/marketplace/PublicCotizador';
+import InvestmentSimulator from '../components/investment/InvestmentSimulator';
+import LocationTab from '../components/dev/LocationTab';
+import RiesgosHonestos from '../components/marketplace/RiesgosHonestos';
+import DevReviewsBlock from '../components/property/DevReviewsBlock';
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['unidades', 'Unidades'], ['para-ti', '¿Es para ti?'],
@@ -27,6 +40,7 @@ function Loading({ msg }) {
 export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
+  const [finTab, setFinTab] = useState('rento');
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => {
@@ -48,6 +62,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const pagos = [...(cfg.formas_pago ? ['Preventa con mensualidades', 'Contado con descuento'] : []), 'Crédito hipotecario'];
 
   const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
+  const askAtlax = () => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia } }));
+  const openGate = () => askAtlax();   // por ahora abre Atlax; el modal de registro se cablea en el paso de cierre-de-ciclos
 
   const Pill = ({ children }) => (
     <span style={{ padding: '9px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{children}</span>
@@ -131,21 +147,60 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 </Section>
               )}
 
-              {/* Molde de las secciones que faltan (se llenan una por una) */}
-              {[
-                ['unidades', 'Unidades', 'Unidades por tipo + plano + comparador'],
-                ['para-ti', '¿Es para ti?', 'El lente: invertir / vivir / familia / primera'],
-                ['valor', 'El valor', 'Veredicto AVM + plusvalía + demanda + absorción'],
-                ['dinero', 'Tu dinero', 'Módulo unificado: rento / crédito / plan / inversión (por unidad)'],
-                ['ubicacion', 'Ubicación', 'Mapa + lo mejor cerca + conectividad'],
-                ['confianza', 'Confianza', 'Desarrollador + calidad de obra + legal + riesgos honestos'],
-              ].map(([anchor, title, hint]) => (
-                <Section key={anchor} id={anchor} eyebrow="Próxima sección" title={title}>
-                  <Card style={{ padding: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120, fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-3)', textAlign: 'center' }}>
-                    🧱 {hint}
-                  </Card>
-                </Section>
-              ))}
+              {/* 2 · UNIDADES (por tipo · real) */}
+              <Section id="unidades" eyebrow="Disponibilidad" title="Las unidades">
+                <UnidadesPorTipo dev={dev} />
+              </Section>
+
+              {/* 3 · ¿ES PARA TI? (el lente · real) */}
+              <Section id="para-ti" eyebrow="Hecho a tu medida" title="¿Es para ti?">
+                <PerfilLente dev={dev}
+                  onPerfilChange={(p) => setFinTab({ invertir: 'inversion', primera: 'credito', plan: 'plan', vivir: 'rento', familia: 'rento' }[p] || 'rento')}
+                  onGoTo={() => goTo('dinero')} />
+              </Section>
+
+              {/* 4 · EL VALOR (veredicto + demanda + plusvalía + mercado · real) */}
+              <Section id="valor" eyebrow="La inteligencia" title="¿Es buen precio y buena inversión?">
+                <VeredictoDesarrollo devId={dev.id} onContact={openGate} onAskAtlax={askAtlax} />
+                <DemandaZonaCard colonia={dev.colonia_id || dev.colonia} coloniaNombre={dev.colonia} />
+                <div style={{ marginTop: 22 }}>
+                  <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <PlusvaliaCard plusvaliaPct={cfg.plusvalia_desde_lanzamiento_pct} priceHistory={dev.price_history} />
+                </div>
+              </Section>
+
+              {/* 5 · TU DINERO (calculadoras · real) */}
+              <Section id="dinero" eyebrow="Tu dinero" title="¿Cómo te conviene comprarlo?">
+                <Card>
+                  <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--card-border, var(--border))', marginBottom: 20, overflowX: 'auto' }}>
+                    {[['rento', '¿Rento o compro?'], ['plan', 'Plan del desarrollador'], ['credito', 'Con crédito'], ['inversion', 'Como inversión']].map(([k, l]) => {
+                      const a = finTab === k;
+                      return (
+                        <button key={k} onClick={() => setFinTab(k)} style={{ position: 'relative', padding: '12px 14px', background: 'transparent', border: 'none', color: a ? 'var(--cream)' : 'var(--cream-3)', fontFamily: HEAD, fontWeight: a ? 800 : 600, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          {l}{a && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1, height: 3, borderRadius: 3, background: 'var(--grad)' }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {finTab === 'rento' && <OwnershipCalculator devId={dev.id} />}
+                  {finTab === 'plan' && <PublicCotizador formasPago={cfg.formas_pago} basePrice={dev.price_from} fechaInicio={cfg.fecha_inicio} fechaEntrega={cfg.fecha_entrega || dev.delivery_estimate} />}
+                  {finTab === 'credito' && <MortgageCalculator variant="inline" propiedadId={dev.id} propiedadNombre={dev.name} precioInicial={dev.price_from || 0} />}
+                  {finTab === 'inversion' && <InvestmentSimulator compact light prefilled={{ precio: dev.price_from, m2: (dev.m2_range || [])[0] || 80, colonia: dev.zone_id || dev.colonia_id || 'del-valle' }} />}
+                </Card>
+              </Section>
+
+              {/* 6 · UBICACIÓN (mapa + lo mejor cerca · real) */}
+              <Section id="ubicacion" eyebrow="El entorno" title="¿Cómo es vivir aquí?">
+                <LocationTab dev={dev} user={user} onGateOpen={openGate} />
+              </Section>
+
+              {/* 7 · CONFIANZA (riesgos + reseñas · real) */}
+              <Section id="confianza" eyebrow="Sin letras chiquitas" title="¿Puedes confiar?">
+                <RiesgosHonestos dev={dev} />
+                <div style={{ marginTop: 16 }}><DevReviewsBlock devId={dev.id} hideIfEmpty /></div>
+              </Section>
             </div>
 
             {/* ——— Riel de decisión (sticky) ——— */}
