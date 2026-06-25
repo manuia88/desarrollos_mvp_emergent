@@ -48,7 +48,6 @@ export default function GeneralidadesDev({ dev }) {
     fetchBuySignal(dev.id).then((d) => setPm2(d?.precio_contexto?.este_pm2 || null)).catch(() => {});
   }, [dev.id]);
   const rng = (a) => (a.length ? (a[0] === a[1] ? `${a[0]}` : `${a[0]}–${a[1]}`) : null);
-  const plus = cfg.plusvalia_desde_lanzamiento_pct;
   const nUnits = dev.total_units || (dev.units ? dev.units.length : null);
   const amen = (Array.isArray(cfg.amenidades) ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : [])).slice(0, 10);
   const tipoMap = { departamento: 'Departamento', casa: 'Casa', loft: 'Loft', ph: 'Penthouse', estudio: 'Estudio' };
@@ -75,8 +74,8 @@ export default function GeneralidadesDev({ dev }) {
         <Tile icon="🚗" v={rng(park)} l="Estacionamientos" />
         <Tile icon="📅" v={fechaCorta(dev.delivery_estimate)} l={`Entrega · ${STAGE[dev.stage] || dev.stage || ''}`} />
         <Tile icon="💵" v={pm2 && `$${Number(pm2).toLocaleString('es-MX')}`} l="Precio / m²" />
-        <Tile icon="📈" v={plus != null && `+${plus}%`} l="Plusvalía desde lanzamiento" />
         <Tile icon="🏗️" v={nUnits && `${nUnits}`} l="Unidades" />
+        {/* (Plusvalía desde lanzamiento vive UNA sola vez en "El valor" · gráfica — evita repetir el +5% por toda la ficha) */}
       </div>
 
       {/* Desarrollador + track record (confianza) */}

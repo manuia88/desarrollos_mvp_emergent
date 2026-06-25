@@ -55,9 +55,8 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
     invertir: {
       titulo: 'Como inversión',
       facts: [
-        (dev.config && dev.config.plusvalia_desde_lanzamiento_pct != null)
-          ? { n: `+${dev.config.plusvalia_desde_lanzamiento_pct}%`, l: 'plusvalía desde lanzamiento' } : null,
         { n: `${recTxt} rec`, l: `${m2Txt} m² — unidad rentable` },
+        { n: 'Obra nueva', l: 'estrenas, sin remodelar' },
         { n: 'Preventa', l: 'entras antes de la plusvalía de entrega' },
       ].filter(Boolean),
       verdict: 'Pon tus números: ROI, TIR, renta y comparación vs CETES con el precio real de esta unidad.',

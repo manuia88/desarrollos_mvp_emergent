@@ -394,7 +394,12 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             );
           })()}
 
-          {/* ═══ GENERALIDADES — lo esencial del desarrollo PRIMERO (características/entrega/precio-m²/plusvalía/desarrollador/
+          {/* ═══ 2 COLUMNAS · contenido (izq) + RIEL DE DECISIÓN sticky (der) que te sigue toda la ficha (no solo abajo) ═══ */}
+          <div className="ficha-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 36, alignItems: 'start', marginTop: 22 }}>
+            {/* —— Columna izquierda: el contenido —— */}
+            <div style={{ minWidth: 0 }}>
+
+          {/* ═══ GENERALIDADES — lo esencial del desarrollo PRIMERO (características/entrega/precio-m²/desarrollador/
               amenidades/formas de pago). Lo que un comprador quiere saber al entrar, antes de cualquier análisis. ═══ */}
           <GeneralidadesDev dev={dev} />
 
@@ -430,10 +435,24 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* (Score IE "Cómo mide DMX" → removido del marketplace público · es métrica interna del dev, no ayuda a comprar) */}
 
-          {/* TU DINERO — las 4 herramientas financieras JUNTAS (rento vs compro · plan del dev · crédito · inversión).
-              Antes estaban dispersas por toda la ficha; ahora viven en una sección con sub-tabs (nada se eliminó) y
-              arriba, donde el comprador decide (Hormozi: el dinero primero). */}
-          <section data-testid="tu-dinero" style={{ marginTop: 24, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', borderRadius: 18, padding: 'clamp(18px,2.4vw,26px)' }}>
+          {/* ═══ EL VALOR — ¿cuánto vale y hacia dónde va? (valuación + pronóstico + plusvalía-desde-lanzamiento, UNA vez).
+              Va ANTES de Tu dinero: primero entiendes el valor, luego cómo pagarlo. ═══ */}
+          <section data-testid="valuacion" style={{ marginTop: 24 }}>
+            <div className="eyebrow" style={{ color: 'var(--theme)' }}>El valor</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 18px' }}>¿Cuánto vale y hacia dónde va?</h2>
+            <div style={{ display: 'grid', gap: 16 }}>
+              <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
+              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} hideIfEmpty />}
+              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} hideIfEmpty />}
+              <PlusvaliaCard
+                plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
+                priceHistory={dev.price_history}
+              />
+            </div>
+          </section>
+
+          {/* TU DINERO — las 4 herramientas financieras (rento/plan/crédito/inversión) DESPUÉS de entender el valor. */}
+          <section data-testid="tu-dinero" style={{ marginTop: 28, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', borderRadius: 18, padding: 'clamp(18px,2.4vw,26px)' }}>
             <div className="eyebrow" style={{ color: 'var(--theme)', marginBottom: 4 }}>Tu dinero</div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,28px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '0 0 16px' }}>¿Cómo te conviene comprarlo?</h2>
             <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--card-border, var(--border))', marginBottom: 20, overflowX: 'auto', scrollSnapType: 'x proximity' }}>
@@ -452,22 +471,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             {finTab === 'inversion' && <InvestmentSimulator compact light prefilled={{ precio: dev.price_from, m2: dev.m2_from || 80, colonia: dev.zone_id || 'del-valle' }} />}
           </section>
 
-          {/* ═══ ACTO 5 · ¿CUÁNTO VALE Y HACIA DÓNDE VA? — valuación + pronóstico + probabilidad + plusvalía JUNTOS
-              (antes dispersos por toda la ficha). Un solo header, una sola historia del valor. ═══ */}
-          <section data-testid="valuacion" style={{ marginTop: 30 }}>
-            <div className="eyebrow" style={{ color: 'var(--theme)' }}>El valor</div>
-            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.8vw,30px)', letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 18px' }}>¿Cuánto vale y hacia dónde va?</h2>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <MarketValueCard colonia={dev.colonia_id || dev.colonia} />
-              {(dev.colonia_id || dev.colonia) && <ForecastChart mode="zone" slug={dev.colonia_id || dev.colonia} hideIfEmpty />}
-              {(dev.colonia_id || dev.colonia) && <ProbabilityCard type="drpi_up" id={dev.colonia_id || dev.colonia} months={12} hideIfEmpty />}
-              <PlusvaliaCard
-                plusvaliaPct={dev.config?.plusvalia_desde_lanzamiento_pct}
-                priceHistory={dev.price_history}
-              />
-            </div>
-          </section>
-
           {/* ═══ ACTO 6 · CONOCE EL EDIFICIO — servicios/legal del dev + descripción, unidades, avance, amenidades, ubicación. ═══ */}
           <div style={{ marginTop: 38, marginBottom: 2 }}>
             <div className="eyebrow" style={{ color: 'var(--theme)' }}>El edificio</div>
@@ -478,12 +481,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           <DevConfigSections config={dev.config} />
           {/* (Cotizador público → "Tu dinero" · plan del dev; Plusvalía → Acto 5 "¿Cuánto vale?" — reubicados arriba) */}
 
-          {/* Layout */}
-          <div className="dev-grid" style={{
-            display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32,
-            alignItems: 'start', marginTop: 28,
-          }}>
-            <div>
+          {/* El edificio — tabs a ancho completo de la columna de contenido (el sidebar se movió al riel de decisión) */}
+          <div style={{ marginTop: 24 }}>
               {/* Tab nav — estilo institucional (GBM/Dividenz): barra limpia con subrayado de marca · sticky */}
               <div style={{
                 display: 'flex', gap: 2,
@@ -547,58 +546,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               {/* (Hipoteca reubicada → sección "Tu dinero" · sub-tab "Con crédito") */}
             </div>
 
-            {/* ═══ COLUMNA DE DECISIÓN (sticky) — precio + CTAs + AVM, te sigue al hacer scroll. Antes: 3 hijos en un grid de
-                2 columnas dejaban el AVM vacío en la col 2 (hueco de ~840px) y empujaban el sidebar a la fila 2. ═══ */}
-            <div style={{ position: 'sticky', top: 76, alignSelf: 'start' }}>
-              <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
-              {/* AVM confidence (se oculta solo si no hay dato) · debajo del precio */}
-              <div style={{ marginTop: 16 }}>
-                <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
-              </div>
-              {/* (ProbabilityBar "venta completa en 12m" → removido · es métrica de VENDEDOR/dev, no del comprador) */}
-              {isAdvisor && (
-                <button
-                  data-testid="briefing-ie-cta"
-                  onClick={() => setBriefingOpen(true)}
-                  style={{
-                    marginTop: 12, width: '100%',
-                    padding: '13px 20px', borderRadius: 9999,
-                    background: 'var(--grad)',
-                    border: 'none', color: '#fff',
-                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
-                    letterSpacing: '0.02em',
-                    cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    boxShadow: '0 8px 22px rgba(236,72,153,0.28)',
-                    transition: 'transform 360ms cubic-bezier(0.22,1,0.36,1)',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                  onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
-                >
-                  <Sparkle size={13} /> Briefing IE para cliente
-                </button>
-              )}
-              {isAdvisor && (
-                <button
-                  data-testid="brochure-generate-cta"
-                  onClick={() => setBrochureOpen(true)}
-                  style={{
-                    marginTop: 10, width: '100%',
-                    padding: '12px 20px', borderRadius: 9999,
-                    background: 'transparent',
-                    border: '1px solid rgba(240,235,224,0.3)',
-                    color: 'var(--cream)',
-                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
-                    letterSpacing: '0.02em',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Generar brochure PDF
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* ═══ ACTO 7 · ¿CONFÍAS? — reviews + riesgos honestos (risk-reversal), después de conocer el edificio. ═══ */}
           <div style={{ marginTop: 38, marginBottom: 2 }}>
             <div className="eyebrow" style={{ color: 'var(--theme)' }}>La confianza</div>
@@ -610,6 +557,29 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           </section>
           {/* Riesgos honestos — dato real (Atlas de Riesgos CDMX + preventa + absorción), lectura balanceada. */}
           <RiesgosHonestos dev={dev} />
+
+            </div>{/* —— fin columna izquierda —— */}
+
+            {/* —— RIEL DE DECISIÓN (sticky) — precio + CTAs + AVM, te sigue TODA la ficha (no solo el bloque de precios) —— */}
+            <div style={{ position: 'sticky', top: 80, alignSelf: 'start' }}>
+              <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
+              <div style={{ marginTop: 16 }}>
+                <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
+              </div>
+              {isAdvisor && (
+                <button data-testid="briefing-ie-cta" onClick={() => setBriefingOpen(true)}
+                  style={{ marginTop: 12, width: '100%', padding: '13px 20px', borderRadius: 9999, background: 'var(--grad)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 22px rgba(236,72,153,0.28)' }}>
+                  <Sparkle size={13} /> Briefing IE para cliente
+                </button>
+              )}
+              {isAdvisor && (
+                <button data-testid="brochure-generate-cta" onClick={() => setBrochureOpen(true)}
+                  style={{ marginTop: 10, width: '100%', padding: '12px 20px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(240,235,224,0.3)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  Generar brochure PDF
+                </button>
+              )}
+            </div>
+          </div>{/* —— fin 2 columnas —— */}
         </section>
 
         {/* ¿QUÉ MÁS ME GUSTA? — desarrollos parecidos a este (motor /similar, antes huérfano). El comprador nunca se va con uno solo. */}
@@ -866,3 +836,4 @@ function Tour3DTabPanel({ unitId, projectSlug, devId, isAdvisor }) {
     </div>
   );
 }
+
