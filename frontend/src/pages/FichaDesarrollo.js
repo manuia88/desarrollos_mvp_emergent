@@ -17,8 +17,8 @@ import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (
 import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (de cero) — el lente, hechos reales del dev
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA (de cero) — lugares Google + vida OSM
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
-import SeccionInversion from '../components/ficha/SeccionInversion'; // UI NUEVA (de cero) — análisis persona+institucional (analyze)
 import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD vivir (de zona) re-skineado + scoped a la unidad
+import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion'; // calculadora REAL de zona (InversionV4) traída a la ficha
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['lente', '¿Para qué?'], ['unidades', 'Unidades'], ['panorama', 'Tu panorama'], ['confianza', 'Confianza'],
@@ -194,7 +194,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <SeccionValor dev={dev} />
-                    <SeccionInversion dev={dev} unit={unit} />
+                    <SeccionCalcInversion dev={dev} unit={unit} />
                   </div>
                 )}
               </Section>
