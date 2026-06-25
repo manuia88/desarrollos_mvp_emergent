@@ -16,7 +16,6 @@ import AmenitiesTab from '../components/dev/AmenitiesTab';
 import LocationTab from '../components/dev/LocationTab';
 import Sidebar from '../components/dev/Sidebar';
 import RegistrationModal from '../components/dev/RegistrationModal';
-import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 // W6.MOV.3 — Reviews Residentes
 import DevReviewsBlock from '../components/property/DevReviewsBlock';
@@ -28,7 +27,6 @@ import { resolvePricingExperiment, trackPricingEvent } from '../api/leads';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
-import ProbabilityBar from '../components/shared/ProbabilityBar';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // Phase 4 Batch 27 — Mortgage + Tour + WA CTA
 import MortgageCalculator from '../components/marketplace/MortgageCalculator';
@@ -54,6 +52,7 @@ import ProbabilityCard from '../components/probability/ProbabilityCard';
 import BuySignal from '../components/marketplace/BuySignal';
 import VeredictoDesarrollo from '../components/marketplace/VeredictoDesarrollo';
 import DemandaZonaCard from '../components/marketplace/DemandaZonaCard';
+import GeneralidadesDev from '../components/marketplace/GeneralidadesDev';
 import PerfilLente from '../components/marketplace/PerfilLente';
 import RiesgosHonestos from '../components/marketplace/RiesgosHonestos';
 import OwnershipCalculator from '../components/marketplace/OwnershipCalculator';
@@ -372,16 +371,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           {/* ═══ ACTO 1 · HERO DE DATOS — el gancho: precio GIGANTE + lo que importa de un vistazo + siguiente paso. ═══ */}
           {(() => {
-            const beds = dev.bedrooms_range || [];
             const m2 = dev.m2_range || [];
-            const park = dev.parking_range || [];
             const pm2 = dev.price_m2_dev || (dev.price_from && (m2[0]) ? Math.round(dev.price_from / m2[0]) : null);
-            const HStat = ({ k, v }) => v ? (
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px,2.4vw,28px)', color: 'var(--cream)', lineHeight: 1, letterSpacing: '-0.02em' }}>{v}</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{k}</div>
-              </div>
-            ) : null;
             return (
               <div data-testid="dev-hero-stats" style={{
                 marginTop: 22, padding: 'clamp(20px,3vw,30px)', borderRadius: 24,
@@ -396,11 +387,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   </div>
                   {pm2 && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', marginTop: 8 }}>≈ <b style={{ color: 'var(--cream)' }}>${Number(pm2).toLocaleString('es-MX')}/m²</b> · entrega {dev.delivery_estimate}</div>}
                 </div>
-                <div style={{ display: 'flex', gap: 'clamp(18px,3vw,34px)', flexWrap: 'wrap' }}>
-                  <HStat k="Recámaras" v={beds.length ? (beds[0] === beds[1] ? beds[0] : `${beds[0]}–${beds[1]}`) : null} />
-                  <HStat k="m²" v={m2.length ? (m2[0] === m2[1] ? m2[0] : `${m2[0]}–${m2[1]}`) : null} />
-                  <HStat k="Estac." v={park.length ? (park[1] || park[0]) : null} />
-                </div>
+                {/* (stats recámaras/m²/estac → movidos a Generalidades, abajo, para no duplicar) */}
                 <button onClick={() => openGate({ source: 'hero', dev_id: dev.id, dev_name: dev.name })} data-testid="hero-cta"
                   style={{ padding: '15px 28px', borderRadius: 14, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 16, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 30px rgba(99,102,241,0.3)' }}>
                   Agendar visita →
@@ -408,6 +395,10 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               </div>
             );
           })()}
+
+          {/* ═══ GENERALIDADES — lo esencial del desarrollo PRIMERO (características/entrega/precio-m²/plusvalía/desarrollador/
+              amenidades/formas de pago). Lo que un comprador quiere saber al entrar, antes de cualquier análisis. ═══ */}
+          <GeneralidadesDev dev={dev} />
 
           {/* ═══ ACTO 2 · LENTE DE PERFIL — '¿para qué lo quieres?' (lo de las tabs de colonia, para ESTE desarrollo). ═══ */}
           <PerfilLente dev={dev}
@@ -439,35 +430,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             {showPrecio && <div style={{ marginTop: 14 }}><BuySignal devId={dev.id} /></div>}
           </div>
 
-          {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
-          <section id="ie-scores" data-testid="dev-ie-scores" style={{
-            marginTop: 28, padding: '22px 24px',
-            background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))',
-            border: '1px solid var(--border)',
-            borderRadius: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 6 }}>
-              <div>
-                <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>{tc('Score IE del proyecto')}</div>
-                <h2 style={{
-                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px, 2.6vw, 28px)',
-                  letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0',
-                }}>
-                  {tc('Cómo mide DMX a')} <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{dev.name}</span>
-                </h2>
-              </div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', maxWidth: 360, lineHeight: 1.45 }}>
-                Los indicadores que más mueven la aguja — cruzando inventario DMX, track record del developer y mercado. <strong style={{ color: 'var(--cream)' }}>DMX no opina, mide.</strong>
-              </div>
-            </div>
-            <ZoneScoreStrip
-              zoneId={dev.id}
-              scope="proyecto"
-              limit={5}
-              title=" "
-              onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
-            />
-          </section>
+          {/* (Score IE "Cómo mide DMX" → removido del marketplace público · es métrica interna del dev, no ayuda a comprar) */}
 
           {/* TU DINERO — las 4 herramientas financieras JUNTAS (rento vs compro · plan del dev · crédito · inversión).
               Antes estaban dispersas por toda la ficha; ahora viven en una sección con sub-tabs (nada se eliminó) y
@@ -595,14 +558,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
             <div>
               <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
-              {/* W5.19 — Probability Bar: sells_complete 12m */}
-              <div style={{ marginTop: 14 }}>
-                <ProbabilityBar
-                  type="sells_complete"
-                  entity_id={dev.id}
-                  params={{ months: 12 }}
-                />
-              </div>
+              {/* (ProbabilityBar "venta completa en 12m" → removido · es métrica de VENDEDOR/dev, no del comprador) */}
               {isAdvisor && (
                 <button
                   data-testid="briefing-ie-cta"
