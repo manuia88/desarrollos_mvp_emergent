@@ -4,16 +4,20 @@
  * 👤 Para ti (1 unidad = la elegida) / 🏛️ Institucional (un fondo: N unidades disponibles). Re-skineado a nuestro diseño.
  */
 import React, { useState, useEffect } from 'react';
-import { Card, SERIF, SANS, HEAD } from './ui';
+import { Card, Stat, SERIF, SANS, HEAD } from './ui';
 import InversionV4Calculator from '../investment/InversionV4Calculator';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const money = (n) => (n != null ? `$${Number(n).toLocaleString('es-MX')}` : '—');
+const pct = (n) => (n != null && !isNaN(n) ? `${Number(n).toFixed(1)}%` : '—');
+const SEM = { verde: '#059669', amarillo: '#B45309', rojo: '#DC2626', gris: '#8A8FA6' };
 
 export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
   const [mode, setMode] = useState('individual');   // 'individual' (la unidad elegida) | 'institucional' (N unidades)
   const [nFondo, setNFondo] = useState(5);          // cuántas unidades evalúa el fondo
   const [inv, setInv] = useState(null);             // contexto de inversión de la zona (renta_prom, cap_rate)
+  const [result, setResult] = useState(null);       // resultado VIVO del calculador (para el resumen limpio)
+  const [expanded, setExpanded] = useState(false);  // divulgación progresiva: el cálculo completo se despliega a demanda
 
   useEffect(() => {
     const col = dev.colonia_id || dev.colonia;
@@ -71,20 +75,52 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
         )}
       </div>
 
-      {/* MOUNT · la calculadora real */}
+      {/* MOUNT · resumen limpio (valores vivos) + cálculo completo desplegable */}
       {mounted && (
-        <div key={`${mode}-${unit ? unit.id : ''}-${nFondo}`} style={{ marginTop: 22 }}>
-          <InversionV4Calculator
-            mode={mode}
-            prefilled={mode === 'individual' && unit ? { precio: unit.price, renta: inv && inv.renta_prom } : {}}
-            portfolioUnits={mode === 'institucional' ? fondoUnits.map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) })) : []}
-            lockPrice
-            noStickyBar
-            zoneId={dev.colonia_id || dev.colonia}
-            capRateMercado={inv && inv.cap_rate_anual_pct}
-            devId={dev.id}
-            numDesarrollos={null}
-          />
+        <div style={{ marginTop: 20 }}>
+          {/* resumen en NUESTRO diseño */}
+          {result ? (
+            <div>
+              {result.veredicto && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 9999, background: SEM[result.veredicto.semaforo] || '#B45309' }} />
+                    <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: SEM[result.veredicto.semaforo] || '#B45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Inversión {result.veredicto.nivel}</span>
+                  </div>
+                  <p style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', lineHeight: 1.6, margin: 0, maxWidth: 720 }}>{result.veredicto.parrafo}</p>
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(135px,1fr))', gap: 'clamp(14px,2vw,26px)' }}>
+                <Stat value={pct(result.tir_pct)} label="TIR (con crédito)" accent="var(--theme)" sub={result.tir_desapalancada_pct != null ? `${pct(result.tir_desapalancada_pct)} sin crédito` : null} />
+                <Stat value={pct(result.cap_rate_pct)} label="Cap rate" sub="renta neta ÷ precio" />
+                <Stat value={result.equity_multiple != null ? `${Number(result.equity_multiple).toFixed(2)}x` : '—'} label="Multiplica tu capital" />
+                <Stat value={money(result.flujo_mensual_1)} label="Flujo al mes" accent={(result.flujo_mensual_1 || 0) >= 0 ? '#059669' : '#DC2626'} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Calculando tu inversión…</div>
+          )}
+
+          {/* desplegar el cálculo completo */}
+          <button onClick={() => setExpanded((x) => !x)} style={{ marginTop: 18, padding: '11px 18px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: expanded ? 'rgba(109,74,255,0.06)' : 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            {expanded ? 'Ocultar el cálculo completo ▲' : '🧮 Ver y editar el cálculo completo (régimen, escenarios, Monte Carlo, vehículos) ▾'}
+          </button>
+
+          {/* el calculador REAL — siempre montado (calcula + alimenta el resumen), visible solo al desplegar */}
+          <div key={`${mode}-${unit ? unit.id : ''}-${nFondo}`} style={{ display: expanded ? 'block' : 'none', marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--card-border, var(--border))' }}>
+            <InversionV4Calculator
+              mode={mode}
+              prefilled={mode === 'individual' && unit ? { precio: unit.price, renta: inv && inv.renta_prom } : {}}
+              portfolioUnits={mode === 'institucional' ? fondoUnits.map((u) => ({ label: u.unit_number || u.prototype || 'Unidad', precio: u.price, renta: Math.round((u.price || 0) * 0.0045) })) : []}
+              lockPrice
+              noStickyBar
+              onResult={setResult}
+              zoneId={dev.colonia_id || dev.colonia}
+              capRateMercado={inv && inv.cap_rate_anual_pct}
+              devId={dev.id}
+              numDesarrollos={null}
+            />
+          </div>
         </div>
       )}
     </Card>
