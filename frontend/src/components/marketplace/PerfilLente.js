@@ -51,6 +51,7 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
   const eng = Math.round(price * 0.20);
   const mens = price ? Math.round((price - eng) * pf) : 0;
 
+  const pl = (n, s, p) => (n === 1 ? s : p);   // plural correcto (1 escuela / 2 escuelas)
   const PANELS = {
     invertir: {
       titulo: 'Como inversión',
@@ -65,9 +66,9 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
     vivir: {
       titulo: 'Para vivir aquí',
       facts: [
-        am.restaurante ? { n: am.restaurante, l: 'restaurantes a un paso' } : null,
-        am.cafe ? { n: am.cafe, l: 'cafés cerca' } : null,
-        { n: `${m2Txt} m²`, l: `${recTxt} recámaras de espacio` },
+        am.restaurante ? { n: am.restaurante, l: pl(am.restaurante, 'restaurante a un paso', 'restaurantes a un paso') } : null,
+        am.cafe ? { n: am.cafe, l: pl(am.cafe, 'café cerca', 'cafés cerca') } : null,
+        { n: `${m2Txt} m²`, l: `${recTxt} ${pl(beds[1] || beds[0], 'recámara', 'recámaras')} de espacio` },
       ].filter(Boolean),
       verdict: 'La vida diaria alrededor del edificio: lo mejor cerca, con foto y reseñas reales.',
       cta: 'Ver qué hay cerca →', goto: 'lo-mejor-cerca',
@@ -75,11 +76,11 @@ export default function PerfilLente({ dev, onGoTo, onPerfilChange }) {
     familia: {
       titulo: 'Para tu familia',
       facts: [
-        am.escuela ? { n: am.escuela, l: 'escuelas cerca' } : null,
-        am.hospital ? { n: am.hospital, l: 'hospitales cerca' } : null,
-        am.parque ? { n: am.parque, l: 'parques para los niños' } : null,
+        am.escuela ? { n: am.escuela, l: pl(am.escuela, 'escuela cerca', 'escuelas cerca') } : null,
+        am.hospital ? { n: am.hospital, l: pl(am.hospital, 'hospital cerca', 'hospitales cerca') } : null,
+        am.parque ? { n: am.parque, l: pl(am.parque, 'parque para los niños', 'parques para los niños') } : null,
       ].filter(Boolean),
-      verdict: `Espacio para crecer (${recTxt} recámaras, ${m2Txt} m²) con servicios y áreas verdes alrededor.`,
+      verdict: `Espacio para crecer (${recTxt} ${pl(beds[1] || beds[0], 'recámara', 'recámaras')}, ${m2Txt} m²) con servicios y áreas verdes alrededor.`,
       cta: 'Ver escuelas y parques →', goto: 'lo-mejor-cerca',
     },
     primera: {

@@ -36,10 +36,10 @@ export default function DemandaZonaCard({ colonia, coloniaNombre }) {
       <div style={{ fontSize: 26 }}>📊</div>
       <div style={{ flex: 1, minWidth: 220 }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(16px,2vw,20px)', color: 'var(--cream)', letterSpacing: '-0.01em' }}>
-          <span style={{ color: '#059669' }}>{Number(demanda).toLocaleString('es-MX')} personas</span> están buscando en {nombre}
+          <span style={{ color: '#059669' }}>{Number(demanda).toLocaleString('es-MX')} {demanda === 1 ? 'persona' : 'personas'}</span> {demanda === 1 ? 'está' : 'están'} buscando en {nombre}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 3 }}>
-          Últimos 30 días{pres ? ` · presupuesto típico ${money(pres)}` : ''}{rec ? ` · suelen buscar ${rec} recámaras` : ''}.
+          Últimos 30 días{pres ? ` · presupuesto típico ${money(pres)}` : ''}{rec ? ` · suelen buscar ${rec} ${rec === 1 ? 'recámara' : 'recámaras'}` : ''}.
         </div>
       </div>
       <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', maxWidth: 150, lineHeight: 1.4 }}>

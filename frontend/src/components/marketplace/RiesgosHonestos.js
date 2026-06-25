@@ -56,7 +56,7 @@ export default function RiesgosHonestos({ dev }) {
     const tone = m < 18 ? 'green' : m < 36 ? 'amber' : 'red';
     factores.push({
       icon: '📦', tone, t: 'Oferta en la zona',
-      d: `${ab.n_proyectos ? `${ab.n_proyectos} desarrollos compitiendo · ` : ''}~${m} meses para que se agote la oferta actual. ${tone === 'green' ? 'Se vende rápido.' : 'Hay competencia — tienes margen para negociar.'}`,
+      d: `${ab.n_proyectos ? `${ab.n_proyectos} ${ab.n_proyectos === 1 ? 'desarrollo compitiendo' : 'desarrollos compitiendo'} · ` : ''}~${m} ${m === 1 ? 'mes' : 'meses'} para que se agote la oferta actual. ${tone === 'green' ? 'Se vende rápido.' : 'Hay competencia — tienes margen para negociar.'}`,
     });
   }
 
