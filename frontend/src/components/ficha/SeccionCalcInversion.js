@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Stat, SERIF, SANS, HEAD } from './ui';
 import InversionV4Calculator from '../investment/InversionV4Calculator';
+import ComparadorInversion from './ComparadorInversion';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const money = (n) => (n != null ? `$${Number(n).toLocaleString('es-MX')}` : '—');
@@ -30,6 +31,14 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
   const dispo = (dev.units || []).filter((u) => u.status === 'disponible').sort((a, b) => (a.price || 0) - (b.price || 0));
   const fondoUnits = dispo.slice(0, Math.min(nFondo, dispo.length));
   const mounted = (mode === 'individual' && unit) || (mode === 'institucional' && fondoUnits.length >= 1);
+
+  // Descarga tu análisis = lead caliente + abre el calculador (donde vive el PDF real del motor).
+  const descargarAnalisis = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calc_inversion_pdf', devId: dev.id, devName: dev.name, unit: unit && unit.unit_number, tir_pct: result && result.tir_pct, precio: unit && unit.price } }));
+    } catch (e) { /* noop */ }
+    setDetalle(true);
+  };
 
   return (
     <Card>
@@ -104,11 +113,17 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
                   <Stat value={result.equity_multiple != null ? `${Number(result.equity_multiple).toFixed(2)}x` : '—'} label="Multiplica tu capital" sub={result.neto_al_vender != null ? `${money(result.neto_al_vender)} al vender` : null} />
                 </div>
 
-                {/* botón → ve los números a detalle */}
-                <button onClick={() => setDetalle((x) => !x)} style={{ marginTop: 20, padding: '14px 24px', borderRadius: 13, border: 'none', background: detalle ? 'var(--surface-card)' : 'var(--grad)', color: detalle ? 'var(--theme)' : '#fff', boxShadow: detalle ? 'none' : '0 10px 26px rgba(109,74,255,0.28)', outline: detalle ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: HEAD, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-                  {detalle ? 'Ocultar el detalle ▲' : 'Ve los números a detalle →'}
-                </button>
-                {!detalle && <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>Edita enganche, plazo, régimen fiscal, escenarios, Monte Carlo y compara contra CETES/FIBRA.</div>}
+                {/* ⚖️ comparar la inversión de 2 unidades (solo modo individual) */}
+                {mode === 'individual' && <ComparadorInversion dev={dev} unit={unit} />}
+
+                {/* acciones: ve a detalle + descarga el análisis (PDF + lead) */}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 20 }}>
+                  <button onClick={() => setDetalle((x) => !x)} style={{ padding: '14px 24px', borderRadius: 13, border: 'none', background: detalle ? 'var(--surface-card)' : 'var(--grad)', color: detalle ? 'var(--theme)' : '#fff', boxShadow: detalle ? 'none' : '0 10px 26px rgba(109,74,255,0.28)', outline: detalle ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: HEAD, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+                    {detalle ? 'Ocultar el detalle ▲' : 'Ve los números a detalle →'}
+                  </button>
+                  <button onClick={descargarAnalisis} style={{ padding: '13px 20px', borderRadius: 13, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>📄 Descarga tu análisis</button>
+                </div>
+                {!detalle && <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>El detalle: edita enganche, plazo, régimen fiscal, escenarios, Monte Carlo y compara contra CETES/FIBRA.</div>}
               </div>
             );
           })() : <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Calculando tu inversión…</div>}
