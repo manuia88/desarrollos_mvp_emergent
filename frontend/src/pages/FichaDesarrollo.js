@@ -17,6 +17,7 @@ import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (
 import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (de cero) — el lente, hechos reales del dev
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA (de cero) — lugares Google + vida OSM
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
+import SeccionInversion from '../components/ficha/SeccionInversion'; // UI NUEVA (de cero) — análisis persona+institucional (analyze)
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['analisis', 'Tu análisis'], ['unidades', 'Unidades'], ['confianza', 'Confianza'],
@@ -181,7 +182,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <SeccionValor dev={dev} />
-                    <SeccionDinero dev={dev} unit={unit} intent="invertir" />
+                    <SeccionInversion dev={dev} unit={unit} />
                   </div>
                 )}
               </Section>
