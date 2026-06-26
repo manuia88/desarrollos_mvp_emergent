@@ -17,6 +17,7 @@ import { AMEN_DEV } from '../../components/ficha/amenIcons';  // mapa amenidades
 import ZoneReviewsBlock from '../../components/zones/ZoneReviewsBlock';  // voz de residentes (motor real · hide-if-empty)
 import ZoneLivBlock from '../../components/zones/ZoneLivBlock';  // habitabilidad por perfil (motor LIV · hide-if-empty)
 import ZoneCycleBlock from '../../components/zones/ZoneCycleBlock';  // momento de la zona / ciclo (motor zone_cycle · hide-if-empty)
+import ZoneRiskBlock from '../../components/zones/ZoneRiskBlock';  // riesgo natural (Atlas CDMX · natural_risk · hide-if-empty)
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
@@ -1821,6 +1822,9 @@ export default function ZonePageV2() {
 
         {/* ── HABITABILIDAD POR PERFIL (motor LIV · hide-if-empty) ── */}
         <ZoneLivBlock slug={slug} name={name} />
+
+        {/* ── RIESGO NATURAL (Atlas CDMX · natural_risk · hide-if-empty) ── */}
+        <ZoneRiskBlock slug={slug} name={name} />
 
         {/* ── VOZ DE RESIDENTES (motor reviews_residents · hide-if-empty: invisible si no hay reseñas reales) ── */}
         <div style={{ ...sec, marginTop: 46 }}><ZoneReviewsBlock zoneId={slug} /></div>

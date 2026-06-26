@@ -521,6 +521,23 @@ async def zona_ciclo(colonia_id: str, request: Request):
         return {"ok": False, "available": False}
 
 
+@router.get("/api/zona/{colonia_id}/riesgo")
+async def zona_riesgo(colonia_id: str, request: Request):
+    """Riesgo NATURAL REAL de la zona (Atlas de Riesgos CDMX · natural_risk_engine): zona sísmica (A=bajo … D=alto),
+    % inundación y hundimiento del subsuelo. El dato de seguridad más honesto para el comprador (no inventado). Fail-open ·
+    hide-if-empty: si no hay capa del Atlas para la zona, available=False (el front no muestra nada)."""
+    try:
+        import natural_risk_engine as nre
+        r = await nre.compute_natural_risk_zone(request.app.state.db, colonia_id)
+        if not r or not r.get("available"):
+            return {"ok": False, "available": False}
+        return {"ok": True, "available": True,
+                "sismic_zone": r.get("sismic_zone"), "flood_pct": r.get("flood_pct"),
+                "subsidence_mm_year": r.get("subsidence_mm_year"), "fuente": "Atlas de Riesgos CDMX"}
+    except Exception:
+        return {"ok": False, "available": False}
+
+
 @router.get("/api/zona/{colonia_id}/vida")
 async def zona_vida(colonia_id: str, request: Request):
     """LA VIDA EN LA ZONA: conteos REALES de amenidades por categoría (OSM, denue_zone_density) — restaurantes,
