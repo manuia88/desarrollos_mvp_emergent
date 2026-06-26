@@ -90,12 +90,40 @@ async def _apply_unit_overrides(db, dev_id: str, units: list) -> list:
         return units
 
 
-def _price_range_from_units(units: list):
-    """min/max de precios EFECTIVOS (tras overrides) → 'desde/hasta' coherente con la lista real, no un price_from viejo del seed."""
-    prices = [u.get("price") for u in (units or []) if u.get("price")]
-    if not prices:
-        return None, None
-    return min(prices), max(prices)
+def _aggregates_from_units(units: list) -> dict:
+    """Conteos + rangos + desde/hasta derivados de las unidades EFECTIVAS (tras overrides del dev). Evita que el documento
+    siga mostrando cifras viejas del seed (precio, disponibles, m²/recámaras/baños/cajones) cuando el dev edita unidades.
+    Devuelve un dict para .update() sobre el doc/card. Espeja la lógica de _build_dev en data_developments.py."""
+    units = [u for u in (units or []) if u]
+    if not units:
+        return {}
+    agg: dict = {}
+    prices = [u.get("price") for u in units if u.get("price")]
+    if prices:
+        agg["price_from"] = min(prices)
+        agg["price_to"] = max(prices)
+        agg["price_from_display"] = f"${int(min(prices)):,}"
+    m2 = [u.get("m2_privative") for u in units if u.get("m2_privative")]
+    if m2:
+        agg["m2_range"] = [min(m2), max(m2)]
+    beds = [u.get("bedrooms") for u in units if u.get("bedrooms") is not None]
+    if beds:
+        agg["bedrooms_range"] = [min(beds), max(beds)]
+    baths = [u.get("bathrooms") for u in units if u.get("bathrooms") is not None]
+    if baths:
+        agg["bathrooms_range"] = [min(baths), max(baths)]
+    park = [u.get("parking_spots") for u in units if u.get("parking_spots") is not None]
+    if park:
+        agg["parking_range"] = [min(park), max(park)]
+    sc = {"disponible": 0, "reservado": 0, "vendido": 0}
+    for u in units:
+        s = (u.get("status") or "disponible").lower()
+        sc["reservado" if s == "apartado" else s] = sc.get("reservado" if s == "apartado" else s, 0) + 1
+    agg["units_total"] = len(units)
+    agg["units_available"] = sc.get("disponible", 0)
+    agg["units_reserved"] = sc.get("reservado", 0)
+    agg["units_sold"] = sc.get("vendido", 0)
+    return agg
 
 
 def _dev_public(d: dict, include_units: bool = False) -> dict:
@@ -216,13 +244,9 @@ async def _enrich_listing(db, devs: list) -> list:
     for d in devs:
         card = _dev_public(d)
         card["stage"] = _norm_stage(card.get("stage"), d.get("delivery_estimate"))   # por fecha de entrega real
-        # 'desde/hasta' coherente con las unidades vivas (overlay + ediciones manuales del dev) — no un price_from viejo
+        # Conteos + rangos + desde/hasta coherentes con las unidades vivas (overlay + ediciones manuales del dev) — no cifras viejas
         _eff_units = _merge_units(_apply_overlay(d).get("units") or [], ov_by_dev.get(d["id"]) or {})
-        _pf, _pt = _price_range_from_units(_eff_units)
-        if _pf is not None:
-            card["price_from"] = _pf
-            card["price_to"] = _pt
-            card["price_from_display"] = f"${int(_pf):,}"
+        card.update(_aggregates_from_units(_eff_units))
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
         m2lo = (d.get("m2_range") or [0])[0] or 0
@@ -1821,12 +1845,9 @@ async def get_development(dev_id: str, request: Request):
         out["contact_phone"] = pub.get("contact_phone") or DMX_FALLBACK_WHATSAPP
     # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
     out["units"] = await _apply_unit_overrides(db, dev_id, out.get("units") or [])
-    # "Desde/hasta" coherente con las unidades vivas (si el dev subió precios, el hero no puede seguir mostrando un 'desde' que ya no existe).
-    _pf, _pt = _price_range_from_units(out.get("units"))
-    if _pf is not None:
-        out["price_from"] = _pf
-        out["price_to"] = _pt
-        out["price_from_display"] = f"${int(_pf):,}"
+    # Conteos + rangos + desde/hasta coherentes con las unidades vivas (si el dev edita precio/estado/m²/etc., el doc no puede
+    # seguir mostrando cifras viejas del seed: 'desde' inexistente, 'X disponibles' que ya no aplica, rangos de búsqueda viejos).
+    out.update(_aggregates_from_units(out.get("units")))
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay
@@ -1835,6 +1856,29 @@ async def get_development(dev_id: str, request: Request):
             out["config"] = ov
             if ov.get("amenidades"):
                 out["amenities"] = ov["amenidades"]  # el dev es la fuente de verdad
+            if ov.get("fecha_entrega"):
+                out["delivery_estimate"] = ov["fecha_entrega"]  # la entrega que configuró el dev manda sobre el seed
+    except Exception:
+        pass
+    # Ubicación que el dev corrigió (pin del mapa / dirección / colonia) → el comprador ve el dato real, no el del seed. Fail-open.
+    try:
+        meta = await db.dev_project_meta.find_one({"project_id": dev_id}, {"_id": 0})
+        if meta:
+            if meta.get("lat") is not None and meta.get("lng") is not None:
+                out["center"] = {"lat": meta["lat"], "lng": meta["lng"]}
+            for _k_meta, _k_out in (("address", "address_full"), ("colonia", "colonia"), ("alcaldia", "alcaldia"), ("cp", "postal_code")):
+                if meta.get(_k_meta):
+                    out[_k_out] = meta[_k_meta]
+    except Exception:
+        pass
+    # Fotos REALES que subió el dev → también en la FICHA (no solo en la tarjeta del listado). Las del dev primero. Fail-open.
+    try:
+        from dev_assets import public_photos_for_dev
+        dev_photos = await public_photos_for_dev(db, dev_id)
+        urls = [p.get("url") for p in dev_photos if p.get("url")]
+        if urls:
+            seed_photos = [p for p in (out.get("photos") or []) if p not in urls]
+            out["photos"] = urls + seed_photos
     except Exception:
         pass
     out["stage"] = _norm_stage(out.get("stage"), out.get("delivery_estimate"))   # por fecha de entrega real

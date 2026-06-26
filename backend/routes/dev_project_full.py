@@ -282,7 +282,9 @@ async def project_public_overlay(db, pid: str) -> Dict[str, Any]:
         "amenidades": am.get("amenities") or [], "servicios": am.get("servicios") or {},
         "amenity_scope": am.get("amenity_scope") or {},
         "formas_pago": _payment_public(pagos.get("schemes")),
-        "fecha_inicio": pagos.get("fecha_inicio"), "fecha_entrega": pagos.get("fecha_entrega"),
+        "fecha_inicio": pagos.get("fecha_inicio"),
+        # Fallback a la entrega del proyecto si el dev no puso fecha en el módulo de pagos → el plan no muestra "$0/mes".
+        "fecha_entrega": pagos.get("fecha_entrega") or full.get("delivery_estimate"),
         "sistema_constructivo": sis, "sello_constructivo": sello,
         "sello_legal": sello_leg,
         "plusvalia_desde_lanzamiento_pct": full.get("plusvalia_desde_lanzamiento_pct"),

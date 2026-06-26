@@ -31,7 +31,7 @@ export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason 
     try {
       await fetch(`${API}/api/buyer/registrar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
-        body: JSON.stringify({ visitor_id: visitorId(), name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, dev_id: dev.id, source: `ficha_${reason}` }),
+        body: JSON.stringify({ visitor_id: visitorId(), name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, dev_id: dev.id, source: `ficha_${reason}`, unit_number: unit ? unit.unit_number : null, lens: lensLabel || null, contexto: keyAns || null }),
       });
       setSent(true);
     } catch (e) { setSent(true); /* fail-open: no frustres al cliente */ }

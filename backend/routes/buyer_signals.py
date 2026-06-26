@@ -212,9 +212,13 @@ class RegistrarLeadIn(BaseModel):
     phone: Optional[str] = None
     dev_id: Optional[str] = None       # si se registró desde una ficha
     source: str = "marketplace_save"   # de dónde (guardar búsqueda / contacto ficha / alerta)
+    unit_number: Optional[str] = None  # unidad concreta que eligió en la ficha
+    lens: Optional[str] = None         # vivir | invertir (lente de la ficha)
+    contexto: Optional[str] = None     # respuesta clave / escenario — lo que la UI le promete al asesor
 
 
-async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, dev_id=None, source="marketplace_save"):
+async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, dev_id=None, source="marketplace_save",
+                            unit_number=None, lens=None, contexto=None):
     """E3 · Crea (o ACTUALIZA si ya existe) el lead del comprador en un momento de ALTO INTENTO. Engancha su histórico
     anónimo (búsquedas/likes/vistas), lo ASIGNA a la casa, lo ESPEJA al CRM del asesor y baja sus favoritos al tablero.
     IDEMPOTENTE por visitor_id → un comprador = UN lead; varias acciones de alto intento solo lo enriquecen (sin
@@ -251,6 +255,12 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
         "busqueda_textual": perfil.get("texto_crudo") or perfil.get("query"),
     }
     now = _dt.utcnow()
+    # development_id = el desarrollo del que se registró (o el más relevante que vio) → el DEV filtra TODO por este campo;
+    # sin él, el lead existe pero el dev NUNCA lo ve en su cockpit/dashboard ni cuenta para su KPI de demanda.
+    development_id = dev_id or (viewed[0] if viewed else None)
+    # contexto que la ficha PROMETE al asesor (unidad/lente/escenario) — solo lo que llegó, no pisa lo previo con None.
+    _ctx = {k: v for k, v in {"development_id": development_id, "unidad_interes": unit_number,
+                              "lente": lens, "contexto_registro": contexto}.items() if v}
     # 3. ¿Ya existe lead de este visitor? → ACTUALIZA (no dupliques). Si no, créalo asignado a la casa.
     existing = await db.leads.find_one({"visitor_id": visitor_id}, {"_id": 0, "id": 1, "contact": 1})
     if existing:
@@ -261,7 +271,7 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
         await db.leads.update_one({"id": lead_id}, {"$set": {
             "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20],
             "temperatura": temperatura, "contact": contact,
-            "last_activity_at": now.isoformat(), "updated_at": now.isoformat()}})
+            "last_activity_at": now.isoformat(), "updated_at": now.isoformat(), **_ctx}})
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
         house_inm = lead.get("inmobiliaria_id")
     else:
@@ -280,7 +290,7 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             "assigned_to": assigned_to, "inmobiliaria_id": house_inm,
             "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20], "visitor_id": visitor_id,
             "created_at": now.isoformat(), "updated_at": now.isoformat(), "last_activity_at": now.isoformat(),
-            "created_by": "_copiloto",
+            "created_by": "_copiloto", **_ctx,
         }
         await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
     # 4. Espeja al CRM del asesor (idempotente, aislamiento). Si no se puede aún → mirror_pending (auto-reparable).
@@ -340,7 +350,8 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
     create_buyer_lead). Cierra el triángulo comprador↔asesor↔dev."""
     try:
         db = request.app.state.db
-        lead_id, house_inm = await create_buyer_lead(db, b.visitor_id, b.name, b.email, b.phone, b.dev_id, b.source)
+        lead_id, house_inm = await create_buyer_lead(db, b.visitor_id, b.name, b.email, b.phone, b.dev_id, b.source,
+                                                      unit_number=b.unit_number, lens=b.lens, contexto=b.contexto)
         return {"ok": True, "lead_id": lead_id, "asignado": "tu inmobiliaria" if house_inm else "asesor"}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] registrar lead fail: {e}")
