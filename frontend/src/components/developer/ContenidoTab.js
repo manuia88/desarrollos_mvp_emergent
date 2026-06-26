@@ -16,7 +16,6 @@ const CONTENT_SUBS = [
   { key: 'planos',    label: 'Planos',    asset_type: 'plano_thumbnail' },
   { key: 'renders',   label: 'Renders',   asset_type: 'foto_unidad_modelo' },
   { key: 'videos',    label: 'Videos',    asset_type: 'video' },
-  { key: 'tour360',   label: 'Tour 360°', asset_type: 'tour_360' },
   { key: 'brochures', label: 'Brochures', asset_type: 'brochure' },
 ];
 
@@ -87,6 +86,52 @@ function AssetThumb({ asset, onDelete, onSetCover }) {
           {asset.filename || 'Sin nombre'}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Editor MANUAL de la descripción del proyecto (la "historia" que ve el comprador en la ficha). Se pre-llena del
+// dato público actual y guarda al overlay del dev (PATCH /projects/{id}/basics) → se refleja en el marketplace.
+function DescripcionEditor({ devId }) {
+  const [desc, setDesc] = useState('');
+  const [orig, setOrig] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/developments/${devId}`).then(r => r.json())
+      .then(d => { if (alive) { const v = d.description || ''; setDesc(v); setOrig(v); } }).catch(() => {});
+    return () => { alive = false; };
+  }, [devId]);
+  const dirty = desc.trim() !== orig.trim();
+  const save = async () => {
+    if (!dirty || busy) return;
+    setBusy(true);
+    try {
+      await fetch(`${API}/api/dev/projects/${devId}/basics`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ description: desc.trim() }),
+      });
+      setOrig(desc.trim()); setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch (e) { /* fail-open */ }
+    setBusy(false);
+  };
+  return (
+    <div style={{ marginBottom: 22, padding: 18, borderRadius: 14, border: '1px solid rgba(var(--cream-rgb),0.12)', background: 'rgba(var(--cream-rgb),0.03)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>Descripción del proyecto</div>
+          <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>La "historia" que ve el comprador en la ficha. Lo que escribas aquí se publica en el marketplace.</div>
+        </div>
+        <button data-testid="save-descripcion" onClick={save} disabled={!dirty || busy}
+          style={{ background: (dirty && !busy) ? 'var(--grad, #6D4AFF)' : 'rgba(var(--cream-rgb),0.12)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 18px', fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13, cursor: (dirty && !busy) ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+          {busy ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+        </button>
+      </div>
+      <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={1500}
+        placeholder="Describe el proyecto: concepto, ubicación, qué lo hace especial…"
+        style={{ width: '100%', minHeight: 110, boxSizing: 'border-box', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(var(--cream-rgb),0.16)', background: 'rgba(var(--cream-rgb),0.04)', color: 'var(--cream)', fontFamily: "'DM Sans',sans-serif", fontSize: 14, lineHeight: 1.6, resize: 'vertical', outline: 'none' }} />
+      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 5, textAlign: 'right' }}>{desc.length}/1500</div>
     </div>
   );
 }
@@ -167,6 +212,7 @@ export default function ContenidoTab({ devId, user }) {
 
   return (
     <div>
+      <DescripcionEditor devId={devId} />
       {/* Sub-tab bar + botón subir */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

@@ -77,8 +77,10 @@ export default function SeccionDinero({ dev, unit, intent }) {
 
   // plan del dev por unidad (de config.formas_pago)
   const planMonths = monthsBetween(cfg.fecha_inicio, cfg.fecha_entrega);
+  // REGLA (founder): el cliente SIEMPRE cotiza sobre el PRECIO DE LISTA oficial del dev. Los descuentos por forma de pago
+  // del dev NO se muestran al cliente. Por eso el plan se calcula sobre base.price (lista), sin aplicar descuento_pct.
   const planes = (Array.isArray(cfg.formas_pago) ? cfg.formas_pago : []).map((p) => {
-    const precio = base.price * (1 - (p.descuento_pct || 0) / 100);
+    const precio = base.price;
     const firma = precio * (p.firma_pct || 0) / 100;
     const mensTotal = precio * (p.mensualidades_pct || 0) / 100;
     return { ...p, precio, firma, mensTotal, mensual: planMonths > 0 ? mensTotal / planMonths : 0, escritura: precio * (p.escritura_pct || 0) / 100 };
@@ -208,10 +210,9 @@ export default function SeccionDinero({ dev, unit, intent }) {
           {planMonths > 0 && <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginBottom: 14 }}>Preventa de <strong style={{ color: 'var(--cream)' }}>{planMonths} meses</strong> (de {cfg.fecha_inicio} a {cfg.fecha_entrega}) — sin banco hasta la entrega.</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
             {planes.map((p, i) => (
-              <div key={i} style={{ padding: 16, borderRadius: 14, border: `1px solid ${p.descuento_pct ? 'rgba(16,185,129,0.35)' : 'var(--card-border, var(--border))'}`, background: 'var(--surface-card)' }}>
+              <div key={i} style={{ padding: 16, borderRadius: 14, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{p.nombre}</span>
-                  {p.descuento_pct > 0 && <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: '#059669' }}>−{p.descuento_pct}%</span>}
                 </div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: '6px 0 10px' }}>{money(p.precio)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>

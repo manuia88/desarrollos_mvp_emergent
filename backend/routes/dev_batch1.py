@@ -446,6 +446,50 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
     return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom}
 
 
+class BasicsPayload(BaseModel):
+    description: Optional[str] = None
+    name: Optional[str] = None
+
+
+@router.patch("/projects/{project_id}/basics")
+async def save_project_basics(project_id: str, payload: BasicsPayload, request: Request):
+    """Edición MANUAL de la descripción / nombre del proyecto (la 'historia' de la ficha). Escribe al overlay del dev
+    (fields) y BLOQUEA esos campos (locked_fields) para que la auto-sincronización por documentos no los pise. El público
+    los lee vía _apply_overlay → la ficha del comprador refleja lo que el dev escribe. Aislamiento por proyecto (guard)."""
+    user = await _auth(request)
+    db = _db(request)
+    from dev_guard import guard_project
+    await guard_project(db, user, project_id, "projects/basics")   # la unidad de trabajo debe ser de ESTE dev
+    fields = {}
+    if payload.description is not None:
+        fields["description"] = payload.description.strip()[:1500]
+    if payload.name is not None and payload.name.strip():
+        fields["name"] = payload.name.strip()[:160]
+    if not fields:
+        raise HTTPException(400, "Nada que actualizar")
+    set_doc = {f"fields.{k}": v for k, v in fields.items()}
+    set_doc["updated_at"] = _now().isoformat()
+    set_doc["updated_by"] = user.user_id
+    await db.dev_overlays.update_one(
+        {"development_id": project_id},
+        {"$set": set_doc,
+         "$addToSet": {"locked_fields": {"$each": list(fields.keys())}},
+         "$setOnInsert": {"development_id": project_id}},
+        upsert=True,
+    )
+    try:   # invalida el cache del overlay público → el cambio se ve de inmediato en la ficha
+        from routes.public import invalidate_dev_overlay_cache
+        invalidate_dev_overlay_cache(project_id)
+    except Exception as _e:
+        log.warning(f"[dev_batch1] no se pudo invalidar overlay cache: {_e}")
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "update", "project_basics", project_id, before=None, after=fields, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "project_id": project_id, **fields}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # FORMAS DE PAGO (esquemas R3) — hasta 5 por proyecto, ajustan precio + plan
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -29,7 +29,6 @@ import BriefingIEModal from '../components/advisor/BriefingIEModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // Phase 4 Batch 27 — Mortgage + Tour + WA CTA
 import MortgageCalculator from '../components/marketplace/MortgageCalculator';
-import VirtualTourPlaceholder from '../components/marketplace/VirtualTourPlaceholder';
 import WhatsAppAsesorCTA from '../components/marketplace/WhatsAppAsesorCTA';
 // Phase 4 Batch 28 — buyer view tracking (auth-gated)
 import { trackPropertyView } from '../lib/funnelTracker';
@@ -261,7 +260,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     { k: 'precios', label: tc(t('dev.tab_prices')) },
     { k: 'avance', label: tc(t('dev.tab_progress')) },
     { k: 'localizacion', label: tc(t('dev.tab_loc')) },
-    { k: 'tour', label: tc('Tour 360°') },
     { k: 'tour_3d', label: tc('Tour 3D') },
     // 'hipoteca' reubicada → sección "Tu dinero" (sub-tab "Con crédito"), arriba.
   ];
@@ -570,13 +568,6 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               )}
               {tab === 'avance' && <ProgressTab dev={dev} user={user} onGateOpen={openGate} />}
               {tab === 'localizacion' && <LocationTab dev={dev} user={user} onGateOpen={openGate} />}
-              {tab === 'tour' && (
-                <VirtualTourPlaceholder
-                  propiedadId={dev.id}
-                  propiedadNombre={dev.name}
-                  tourUrl={dev.virtual_tour_url}
-                />
-              )}
               {tab === 'tour_3d' && (
                 <Tour3DTabPanel
                   unitId={selectedUnit?.id || dev.id}
