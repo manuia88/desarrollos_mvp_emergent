@@ -49,6 +49,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   const [airroi, setAirroi] = useState(null);       // datos reales de renta corta (AirROI) por zona
   const [airroiLoading, setAirroiLoading] = useState(false);
   const [radarK, setRadarK] = useState('bolsa');    // instrumento a comparar en el radar del Pentágono
+  const [showAvanzado, setShowAvanzado] = useState(false);  // divulgación progresiva DENTRO del calc: bloques expertos colapsados
   const [leadOpen, setLeadOpen] = useState(false);  // modal de captura para descargar el PDF (reusa /api/lead-capture)
   const [leadData, setLeadData] = useState({ nombre: '', telefono: '', correo: '', presupuesto: '', tiempo: '', privacidad: false });
   const [leadState, setLeadState] = useState('');   // '' | 'enviando' | 'ok' | 'error'
@@ -327,7 +328,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 8 }}>🏛️ Resumen institucional <span style={{ fontWeight: 600, color: '#8A8FA6', fontSize: 11 }}>· {portfolioUnits.length >= 2 ? `${portfolioUnits.length} unidades · portafolio` : 'lo clave de un vistazo'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(118px,1fr))', gap: 12 }}>
             {[['TIR (vende ' + f.horizonte_anios + 'a)', pct(r.tir_pct), (r.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626'],
-            ['Cap rate', pct(r.cap_rate_pct), '#C026D3'],
+            ['Cap rate', pct(r.cap_rate_pct), '#6D4AFF'],
             ...(capRateMercado != null ? [['vs mercado zona', `${(r.cap_rate_pct - capRateMercado) >= 0 ? '+' : ''}${(r.cap_rate_pct - capRateMercado).toFixed(1)} pts`, (r.cap_rate_pct - capRateMercado) >= 0 ? '#0E7A53' : '#DC2626']] : []),
             ...((r.credito || {}).dscr != null ? [['DSCR', r.credito.dscr, (r.credito.dscr >= 1.2 ? '#0E9F6E' : r.credito.dscr >= 1 ? '#E0A33E' : '#DC2626')]] : []),
             ...(r.escenarios && r.escenarios.pesimista ? [['TIR pesimista', pct(r.escenarios.pesimista.tir_pct), '#DC2626']] : []),
@@ -350,7 +351,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontSize: 11, color: '#6B6F86', fontWeight: 700 }}>Rinde al año · solo renta<Info><><b>Cap rate.</b> Lo que te deja la renta sobre el precio <b>cada año</b>, sin contar el crédito ni la venta. Es el rendimiento <b>anual y estable</b> — no depende de cuándo vendas. <b>Tu caso:</b> {pct(r.cap_rate_pct)} (= renta neta {m(r.noi)} ÷ precio {m(f.valor_propiedad)}).</></Info></div>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: '#C026D3', letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 36, color: '#6D4AFF', letterSpacing: '-0.02em', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div>
                     <div style={{ fontSize: 9.5, color: '#A2A6BC', marginTop: 3 }}>cap rate · cada año, sin importar cuándo vendas</div>
                   </div>
                   <div>
@@ -414,7 +415,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             return (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
                 <Grupo titulo="📈 Si es para invertir (rentarla)" sub="Lo que importa si la vas a rentar." items={[
-                  ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#C026D3', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual', <><b>Imagina</b> que prestas tu juguete y te dan monedas. El cap rate dice cuántas monedas te dan al año por cada 100 que vale el juguete. <b>Cómo:</b> lo que deja la renta en un año ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>. <b>Fuente:</b> renta = promedio de la zona.</>],
+                  ['🔑', 'Rendimiento de la renta (cap rate)', pct(r.cap_rate_pct), '#6D4AFF', 'Cuánto te deja la renta sobre el precio, sin contar el crédito.', 'anual', <><b>Imagina</b> que prestas tu juguete y te dan monedas. El cap rate dice cuántas monedas te dan al año por cada 100 que vale el juguete. <b>Cómo:</b> lo que deja la renta en un año ({m(r.noi)}) ÷ precio ({m(f.valor_propiedad)}) = <b>{pct(r.cap_rate_pct)}</b>. <b>Fuente:</b> renta = promedio de la zona.</>],
                   ['💰', 'Rendimiento promedio (ROI)', pct(r.roi_anualizado_pct), '#0E9F6E', 'Tu ganancia promedio contando TODO (renta + venta), repartida en los años.', 'anual', <>Junta TODO lo que ganas (la renta + lo que sube de valor al vender) y lo reparte entre los años que lo tienes. <b>Tu caso:</b> ~<b>{pct(r.roi_anualizado_pct)}</b> al año. Es como sacar el promedio de tus calificaciones de todo el año.</>],
                   ['🏦', 'Flujo de la renta', m(r.flujo_mensual_1) + '/mes', (r.flujo_mensual_1 || 0) >= 0 ? '#0E9F6E' : '#DC2626', 'Lo que te queda (o sale de tu bolsa) cada mes tras gastos y crédito.', 'mensual', <>Es tu domingo cada mes: lo que entra de renta menos lo que sale (gastos + mensualidad del banco). <b>Tu caso:</b> <b>{m(r.flujo_mensual_1)}/mes</b>. Si es negativo (rojo), tú pones esa diferencia.</>],
                   ['✖️', 'Multiplicas tu dinero', r.equity_multiple ? `${r.equity_multiple}x` : '—', '#7C5CFF', 'Por cada peso que pones, cuántos recuperas al final.', 'total', <>Por cada <b>$1</b> que pones de tu bolsa, cuántos recuperas al final. <b>Tu caso: {r.equity_multiple}x</b> → metes $1 y al final te llevas ${r.equity_multiple}. Más de 1 = ganas; menos de 1 = pierdes.</>],
@@ -600,7 +601,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   <div style={{ marginTop: 5, paddingTop: 6, borderTop: '1px dashed rgba(16,18,28,0.14)' }}>= Te queda: <b style={{ color: '#0E9F6E' }}>{m(x.noi)}/año</b><Info><>El <b>NOI</b>: ingreso − gastos. Lo que deja la propiedad antes del crédito y de impuestos. <b>Tu caso:</b> {m(x.ingreso_anual)} − {m(x.egresos_anual)} = {m(x.noi)}/año.</></Info></div>
                 </div>
                 <div style={{ marginTop: 11, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Renta al año (cap rate)<Info><>Lo que deja la renta sobre el precio cada año, sin contar venta ni crédito. Estable. <b>Tu caso:</b> {pct(x.cap_rate_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#C026D3' }}>{pct(x.cap_rate_pct)}</div></div>
+                  <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Renta al año (cap rate)<Info><>Lo que deja la renta sobre el precio cada año, sin contar venta ni crédito. Estable. <b>Tu caso:</b> {pct(x.cap_rate_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#6D4AFF' }}>{pct(x.cap_rate_pct)}</div></div>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Si vendes (TIR)<Info><>Rendimiento anual juntando renta + plusvalía si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(x.tir_pct)}.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: (x.tir_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626' }}>{pct(x.tir_pct)}</div></div>
                   <div><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>Te queda al mes<Info><>Lo que te sobra (o pones de tu bolsa) cada mes: ingreso − gastos − mensualidad del crédito, dividido entre 12. <b>Tu caso:</b> {m(x.flujo_mensual)}/mes.</></Info></div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: (x.flujo_mensual || 0) >= 0 ? '#16182A' : '#DC2626', marginTop: 2 }}>{m(x.flujo_mensual)}</div></div>
                 </div>
@@ -629,7 +630,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           {/* Cascada visual · de dónde viene tu ganancia */}
           {r && r.atribucion && (() => {
             const a = r.atribucion; const tot = (a.renta_neta_acum || 0) + (a.equity_buildup || 0) + (a.plusvalia || 0);
-            const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#7C5CFF'], ['Plusvalía', a.plusvalia, '#C026D3']].filter(([, v]) => (v || 0) > 0);
+            const segs = [['Renta', a.renta_neta_acum, '#0E9F6E'], ['Patrimonio', a.equity_buildup, '#7C5CFF'], ['Plusvalía', a.plusvalia, '#6D4AFF']].filter(([, v]) => (v || 0) > 0);
             return (
               <div className="iv4-card">
                 <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 10 }}>De dónde viene tu ganancia <span style={{ fontWeight: 700, color: '#16182A' }}>· {m(tot)}</span><Info><>Tu ganancia total sale de 3 cosas: <b>Renta</b> (lo que junta de rentas, ya sin gastos), <b>Patrimonio</b> (lo que pagaste del crédito y ya es tuyo) y <b>Plusvalía</b> (lo que subió de valor el depa). La barra muestra cuánto pone cada una. <b>Tu caso:</b> total {m(tot)}.</></Info></div>
@@ -643,8 +644,12 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
             );
           })()}
 
+          {/* TOGGLE · análisis avanzado (divulgación progresiva dentro del calc, estilo ficha) */}
+          {r && r.instrumentos && r.instrumentos.length > 0 && (
+            <button type="button" onClick={() => setShowAvanzado((v) => !v)} style={{ alignSelf: 'flex-start', padding: '11px 18px', borderRadius: 12, border: '1px solid rgba(16,18,28,0.1)', background: '#fff', color: '#6D4AFF', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>{showAvanzado ? 'Ocultar análisis avanzado ▲' : '🔬 Ver análisis avanzado · comparar inversiones, pentágono, proyección año a año ▾'}</button>
+          )}
           {/* TABLA COMPARATIVA OBJETIVA · Pentágono de las Inversiones (rendimiento/riesgo/liquidez/plazo/dedicación) */}
-          {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+          {showAvanzado && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
             const inmueble = { nombre: 'Este inmueble', pct: r.tir_pct, riesgo: 'Medio-bajo', liquidez: 'Baja', plazo: `Medio-largo (${f.horizonte_anios} años)`, esfuerzo: 'Media', ticket: 'Enganche', inflacion: 'Sí (real)', respaldo: 'Escritura + RPP', ejemplos: 'tu depa', hero: true };
             const filas = [inmueble, ...r.instrumentos];
             const cols = [
@@ -689,7 +694,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
           })()}
 
           {/* RADAR · Pentágono de las inversiones (perfil visual en 5 ejes) */}
-          {r && r.instrumentos && r.instrumentos.length > 0 && (() => {
+          {showAvanzado && r && r.instrumentos && r.instrumentos.length > 0 && (() => {
             const RI = { 'Muy bajo': 1, 'Bajo': 2, 'Medio-bajo': 2.5, 'Medio': 3, 'Medio-alto': 4, 'Alto': 4.5, 'Muy alto': 5 };
             const LI = { 'Nula': 0.4, 'Nula (retiro)': 0.4, 'Baja': 1.5, 'Media': 3, 'Alta': 5 };
             const DE = { 'Nulo': 0.4, 'Bajo': 1.5, 'Medio': 3, 'Media': 3, 'Alto': 5 };
@@ -729,7 +734,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       </div>{/* fin grid visual */}
 
           {/* PROYECCIÓN AÑO A AÑO + cuándo salir (tabla + gráfica · ancho completo) */}
-          {r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
+          {showAvanzado && r && r.proyeccion && r.proyeccion.rows && r.proyeccion.rows.length > 0 && (
             <div className="iv4-card">
               <div style={{ fontWeight: 800, fontSize: 12.5, marginBottom: 4 }}>📅 Tu Inversión Año Con Año <Info><><b>Cómo leerla:</b> cada renglón es un año. <b>Valor</b> = cuánto valdrá el depa. <b>Renta/mes</b> = lo que paga el inquilino. <b>Ganancia/año</b> = renta menos gastos. <b>Mensualidad</b> = lo que pagas al banco. <b>Diferencial</b> = lo que te queda o pones de tu bolsa al mes. <b>TIR si vendes</b> = cuánto te rindió si vendes ese año.</></Info></div>
               <div style={{ fontSize: 11.5, color: '#6B6F86', marginBottom: 6, lineHeight: 1.45 }}>{r.proyeccion.recomendacion}<Info><><b>¿Cómo decidimos el mejor año para salir?</b> NO es "la TIR más alta" (eso siempre premia esperar, porque los costos de comprar/vender se reparten en más años). Usamos la regla de <b>retorno marginal de retención</b>: te conviene quedártelo mientras retenerlo un año más te rinda (renta sobre su valor actual + plusvalía) <b>más que tu tasa de oportunidad</b> (CETES + prima de riesgo ≈ {r.proyeccion.hurdle_pct}%). Cuando cae por debajo, conviene vender y reinvertir. <b>Depende de:</b> plusvalía esperada, qué tan rápido sube la renta, tasas, y si necesitas el dinero. <b>Fuente:</b> {r.proyeccion.bibliografia}</></Info></div>
@@ -737,7 +742,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56, marginBottom: 12 }}>
                 {r.proyeccion.rows.map((row) => { const mx = Math.max(...r.proyeccion.rows.map((x) => x.valor || 0)) || 1; const best = row.anio === r.proyeccion.mejor_anio; return (
                   <div key={row.anio} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <div style={{ width: '70%', height: `${Math.max(6, (row.valor / mx) * 44)}px`, background: best ? 'linear-gradient(180deg,#6D4AFF,#C026D3)' : '#C7CAD6', borderRadius: '4px 4px 0 0' }} title={m(row.valor)} />
+                    <div style={{ width: '70%', height: `${Math.max(6, (row.valor / mx) * 44)}px`, background: best ? 'linear-gradient(180deg,#6D4AFF,#6D4AFF)' : '#C7CAD6', borderRadius: '4px 4px 0 0' }} title={m(row.valor)} />
                     <div style={{ fontSize: 9, color: best ? '#6D28D9' : '#8A8FA6', fontWeight: best ? 800 : 600, marginTop: 4 }}>{row.anio}a</div>
                   </div>
                 ); })}
@@ -781,7 +786,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
         const cr = r.credito || {};
         const dif = (r.tir_pct || 0) - (r.tir_desapalancada_pct || 0);
         const mets = [
-          ['Cap rate', pct(r.cap_rate_pct), '#C026D3', <>Renta neta ÷ precio. El rendimiento <b>anual</b> de la renta, sin contar el crédito. <b>Tu caso:</b> {pct(r.cap_rate_pct)}.</>],
+          ['Cap rate', pct(r.cap_rate_pct), '#6D4AFF', <>Renta neta ÷ precio. El rendimiento <b>anual</b> de la renta, sin contar el crédito. <b>Tu caso:</b> {pct(r.cap_rate_pct)}.</>],
           ['TIR (con crédito)', pct(r.tir_pct), '#6D28D9', <>Rendimiento anual total <b>apalancado</b> (renta + plusvalía) si vendes al año {f.horizonte_anios}. <b>Tu caso:</b> {pct(r.tir_pct)}.</>],
           ['TIR al contado', pct(r.tir_desapalancada_pct), '#16182A', <>La TIR si compraras <b>sin crédito</b>. Compárala con la de arriba: la diferencia es el efecto del apalancamiento.</>],
           ['MIRR', pct(r.mirr_pct), '#16182A', <><b>TIR modificada</b>, más realista: asume que reinviertes los flujos a una tasa normal, no a la propia TIR (que suele inflar el número). Por eso suele ser menor que la TIR.</>],
@@ -814,7 +819,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                   {d && <div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 4 }}>¿De dónde viene tu retorno? <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(NCREIF: income vs capital)</span></div>
                     <div style={{ display: 'flex', height: 14, borderRadius: 6, overflow: 'hidden', marginBottom: 5 }}>
-                      {[['#0E9F6E', Math.max(0, d.renta)], ['#7C5CFF', Math.max(0, d.patrimonio)], ['#C026D3', Math.max(0, d.plusvalia)]].map(([c, v], i) => <div key={i} style={{ width: `${Math.min(100, v)}%`, background: c }} />)}
+                      {[['#0E9F6E', Math.max(0, d.renta)], ['#7C5CFF', Math.max(0, d.patrimonio)], ['#6D4AFF', Math.max(0, d.plusvalia)]].map(([c, v], i) => <div key={i} style={{ width: `${Math.min(100, v)}%`, background: c }} />)}
                     </div>
                     <div style={{ fontSize: 10.5, color: '#5B5F76' }}>🟢 Renta {d.renta}% · 🟣 Patrimonio {d.patrimonio}% · 🟪 Plusvalía {d.plusvalia}% {d.renta < 0 ? <b style={{ color: '#DC2626' }}>· la renta resta (flujo negativo): el retorno es casi todo plusvalía/refugio</b> : null}</div>
                   </div>}
@@ -831,7 +836,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed rgba(16,18,28,0.1)' }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6B6F86', marginBottom: 6 }}>📊 Reporte a nivel fondo <span style={{ fontWeight: 600, color: '#A2A6BC' }}>(estándar INREV / NCREIF · para LPs)</span> <Info><>Las métricas con las que un fondo institucional reporta a sus inversionistas (incluso internacionales). <b>TWR</b> = rendimiento time-weighted sin apalancar (renta + plusvalía, método NCREIF NPI). <b>SI-IRR</b> = TIR desde el inicio (money-weighted, lo que vive el inversionista). <b>TVPI</b> = valor total ÷ capital aportado. <b>DPI</b> = repartido en efectivo ÷ aportado. <b>RVPI</b> = por realizar (la venta) ÷ aportado. <b>PIC</b> = capital aportado. <b>TGER</b> = costos del vehículo ÷ valor.</></Info></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(92px,1fr))', gap: 10 }}>
-                        {[['TWR (s/ apal.)', pct(mfo.twr_unlev_pct), '#0E7A53'], ...(mfo.si_irr_pct != null ? [['SI-IRR', pct(mfo.si_irr_pct), (mfo.si_irr_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626']] : []), ['TVPI', `${mfo.tvpi}×`, '#7C5CFF'], ['DPI', `${mfo.dpi}×`, '#16182A'], ['RVPI', `${mfo.rvpi}×`, '#C026D3'], ['PIC', m(mfo.pic), '#16182A'], ...(mfo.tger_pct != null ? [['TGER', pct(mfo.tger_pct), '#6B6F86']] : [])].map(([l, v, c]) => (
+                        {[['TWR (s/ apal.)', pct(mfo.twr_unlev_pct), '#0E7A53'], ...(mfo.si_irr_pct != null ? [['SI-IRR', pct(mfo.si_irr_pct), (mfo.si_irr_pct || 0) >= 0 ? '#0E9F6E' : '#DC2626']] : []), ['TVPI', `${mfo.tvpi}×`, '#7C5CFF'], ['DPI', `${mfo.dpi}×`, '#16182A'], ['RVPI', `${mfo.rvpi}×`, '#6D4AFF'], ['PIC', m(mfo.pic), '#16182A'], ...(mfo.tger_pct != null ? [['TGER', pct(mfo.tger_pct), '#6B6F86']] : [])].map(([l, v, c]) => (
                           <div key={l} style={{ padding: '8px 10px', borderRadius: 9, background: '#fff', border: '1px solid rgba(16,18,28,0.07)' }}><div style={{ fontSize: 9.5, color: '#6B6F86', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: c, marginTop: 1 }}>{v}</div></div>
                         ))}
                       </div>
@@ -866,7 +871,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(16,18,28,0.07)' }}>
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Calidad de entrada · tu cap rate vs el de la zona <Info><>La primera pregunta de un fondo: <b>¿compras bien?</b> Si tu cap rate de entrada es <b>mayor</b> que el promedio de la zona, pagas relativamente <b>barato</b> (mejor yield); si es menor, pagas caro. Fuente del mercado: promedio de la colonia (motor DMX).</></Info></div>
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>Tu cap rate</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#C026D3' }}>{pct(r.cap_rate_pct)}</div></div>
+                    <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>Tu cap rate</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#6D4AFF' }}>{pct(r.cap_rate_pct)}</div></div>
                     <div style={{ fontSize: 16, color: '#C9CCDB', fontWeight: 800 }}>vs</div>
                     <div><div style={{ fontSize: 10, color: '#6B6F86', fontWeight: 700 }}>Mercado de la zona</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#16182A' }}>{pct(capRateMercado)}</div></div>
                     <div style={{ padding: '8px 12px', borderRadius: 10, background: dif >= 0 ? 'rgba(14,159,110,0.1)' : 'rgba(220,38,38,0.08)', color: dif >= 0 ? '#0E7A53' : '#DC2626', fontWeight: 800, fontSize: 11.5 }}>{dif >= 0 ? `✓ Entras mejor: +${dif} pts de yield` : `⚠️ Entras caro: ${dif} pts vs el mercado`}</div>
@@ -918,7 +923,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: '#16182A', marginBottom: 8 }}>Monte Carlo · {r.montecarlo.n} escenarios al azar <Info><>Simula {r.montecarlo.n} futuros distintos variando al azar la plusvalía, la renta y las tasas. En vez de un solo número, te da un <b>rango</b>: el peor caso (5%), el esperado y el mejor (95%). Así ves el riesgo real, no solo el "todo sale perfecto".</></Info></div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>{[['Peor (5%)', r.montecarlo.p5, '#DC2626'], ['Esperado', r.montecarlo.p50, '#16182A'], ['Mejor (95%)', r.montecarlo.p95, '#0E9F6E']].map(([l, v, c]) => <div key={l} style={{ flex: '1 1 80px', textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(16,18,28,0.03)' }}><div style={{ fontSize: 10, color: '#8A8FA6' }}>{l}</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: c }}>{pct(v)}</div></div>)}</div>
                 <div style={{ fontSize: 12, color: r.montecarlo.prob_bajo_cetes_pct >= 50 ? '#DC2626' : '#5B5F76' }}>Probabilidad de rendir <b>menos que CETES</b>: <b>{r.montecarlo.prob_bajo_cetes_pct}%</b> <Info><>De los {r.montecarlo.n} escenarios, en cuántos tu inversión rinde por debajo de lo que da CETES sin riesgo. Más bajo = más seguro que valga la pena el riesgo.</></Info></div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#C026D3)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 34, marginTop: 8 }}>{r.montecarlo.hist.map((h, i) => { const mx = Math.max(...r.montecarlo.hist.map((x) => x.n)) || 1; return <div key={i} title={`desde ${h.desde}% · ${h.n}`} style={{ flex: 1, height: `${Math.max(4, (h.n / mx) * 100)}%`, background: 'linear-gradient(180deg,#7C5CFF,#6D4AFF)', borderRadius: '3px 3px 0 0', opacity: 0.8 }} />; })}</div>
               </div>
             )}
             {r.proforma && r.proforma.length > 0 && (
@@ -958,7 +963,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
 
       {/* ───── CALL TO ACTION (al final · convierte el interés en lead) ───── */}
       {r && (
-        <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #C026D3)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div className="iv4-noprint" style={{ marginTop: 16, padding: '18px 22px', borderRadius: 16, background: 'linear-gradient(120deg, #6D4AFF, #6D4AFF)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 280px' }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16.5 }}>¿Te late? Llévalo al siguiente paso.</div>
             <div style={{ fontSize: 12, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>Un asesor te arma el plan a tu medida —crédito, mejor año para vender, apartado— sin costo y sin compromiso.</div>
@@ -990,7 +995,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#5B5F76', cursor: 'pointer', lineHeight: 1.5 }}><input type="checkbox" checked={leadData.privacidad} onChange={(e) => setLead('privacidad', e.target.checked)} style={{ marginTop: 2 }} /><span>Acepto el <a href="/aviso-privacidad" target="_blank" rel="noreferrer" style={{ color: '#6D28D9' }}>aviso de privacidad</a> y que un asesor me contacte.</span></label>
               {leadState === 'error' && <div style={{ fontSize: 11, color: '#DC2626' }}>Revisa nombre, WhatsApp (10 dígitos) y el aviso de privacidad.</div>}
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button type="button" onClick={enviarLead} disabled={leadState === 'enviando'} style={{ flex: 1, padding: '12px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'linear-gradient(120deg,#6D4AFF,#C026D3)', color: '#fff' }}>{leadState === 'enviando' ? 'Enviando…' : leadState === 'ok' ? '✓ ¡Listo! Abriendo PDF…' : 'Descargar PDF'}</button>
+                <button type="button" onClick={enviarLead} disabled={leadState === 'enviando'} style={{ flex: 1, padding: '12px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, background: 'linear-gradient(120deg,#6D4AFF,#6D4AFF)', color: '#fff' }}>{leadState === 'enviando' ? 'Enviando…' : leadState === 'ok' ? '✓ ¡Listo! Abriendo PDF…' : 'Descargar PDF'}</button>
                 <button type="button" onClick={() => setLeadOpen(false)} style={{ padding: '12px 16px', borderRadius: 11, border: '1px solid rgba(16,18,28,0.15)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, background: '#fff', color: '#6B6F86' }}>Cancelar</button>
               </div>
             </div>
@@ -1021,7 +1026,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       {!noStickyBar && showSticky && r && createPortal(
         <div className="iv4-noprint" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1200, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(6px)', borderTop: '1px solid rgba(16,18,28,0.1)', boxShadow: '0 -6px 22px rgba(16,18,28,0.1)', padding: '9px 16px' }}>
           <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Renta/año</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#C026D3', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div></div>
+            <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Renta/año</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#6D4AFF', lineHeight: 1 }}>{pct(r.cap_rate_pct)}</div></div>
             <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>TIR (vende {f.horizonte_anios}a)</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: sem, lineHeight: 1 }}>{pct(r.tir_pct)}</div></div>
             <div><div style={{ fontSize: 9, color: '#6B6F86', fontWeight: 700 }}>Flujo/mes</div><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: (r.flujo_mensual_1 || 0) >= 0 ? '#16182A' : '#DC2626', lineHeight: 1 }}>{m(r.flujo_mensual_1)}</div></div>
             <div style={{ width: 1, height: 30, background: 'rgba(16,18,28,0.1)' }} />
