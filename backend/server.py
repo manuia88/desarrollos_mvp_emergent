@@ -1531,6 +1531,16 @@ async def startup():
                 "tenant_id": "agencia_demo",
                 "created_at": datetime.now(timezone.utc),
             })
+        # Vincula al asesor demo al roster de la inmobiliaria system-default, ACTIVO y con user_id → así SÍ recibe los
+        # leads públicos del marketplace. Sin esto, el flujo lead→asesor está muerto en el demo (el asesor existe en
+        # `users` pero `resolve_public_lead_owner` busca asesores activos en `inmobiliaria_internal_users` con user_id).
+        _sysinm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
+        if _sysinm:
+            await db.inmobiliaria_internal_users.update_one(
+                {"inmobiliaria_id": _sysinm["id"], "user_id": "user_asesor_0001"},
+                {"$set": {"inmobiliaria_id": _sysinm["id"], "user_id": "user_asesor_0001", "email": adv_email,
+                          "name": "Ana Gutiérrez", "role": "asesor", "status": "active", "public_lead_receiver": True}},
+                upsert=True)
         # Seed demo developer
         dev_email = "developer@demo.com"
         if not await db.users.find_one({"email": dev_email}):
