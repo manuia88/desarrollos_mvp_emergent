@@ -134,15 +134,19 @@ async def embudo_unidades(dev_id: str, request: Request):
     try:
         db = request.app.state.db
         from collections import defaultdict
-        fun = defaultdict(lambda: {"vistas": 0, "guardados": 0})
+        fun = defaultdict(lambda: {"vistas": 0, "guardados": 0, "leads": 0})
         async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_view"}, {"_id": 0, "unit_number": 1}):
             if s.get("unit_number"):
                 fun[s["unit_number"]]["vistas"] += 1
         async for s in db.buyer_signals.find({"entity_id": dev_id, "type": "unit_save", "active": True}, {"_id": 0, "unit_number": 1}):
             if s.get("unit_number"):
                 fun[s["unit_number"]]["guardados"] += 1
+        # LEADS por unidad (cierra la granularidad comprador→dev): leads que eligieron esta unidad concreta en la
+        # ficha/cotizador (unidad_interes). Antes el embudo solo tenía vistas/guardados; ahora ve hasta el lead por unidad.
+        async for ld in db.leads.find({"development_id": dev_id, "unidad_interes": {"$nin": [None, ""]}}, {"_id": 0, "unidad_interes": 1}):
+            fun[ld["unidad_interes"]]["leads"] += 1
         out = [{"unidad": k, **v} for k, v in fun.items()]
-        out.sort(key=lambda x: (-x["guardados"], -x["vistas"]))
+        out.sort(key=lambda x: (-x["leads"], -x["guardados"], -x["vistas"]))
         return {"ok": True, "unidades": out}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] embudo-unidades: {e}")
