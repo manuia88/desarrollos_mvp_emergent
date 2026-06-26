@@ -53,6 +53,13 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
+  const [view, setView] = useState(() => {
+    try { const v = localStorage.getItem('dmx.ficha.unitview'); if (v) return v; } catch (e) { /* noop */ }
+    return (typeof window !== 'undefined' && window.innerWidth <= 760) ? 'tarjetas' : 'lista';
+  });
+  const [sort, setSort] = useState({ col: 'price', dir: 'asc' });
+  useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview', view); } catch (e) { /* noop */ } }, [view]);
+  const sortBy = (col) => setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }));
   const detailRef = useRef(null);
   // al elegir unidad → llevar el detalle a la vista (para que SÍ se note la selección)
   useEffect(() => {
@@ -83,14 +90,87 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const compareUnits = compare.map((id) => units.find((u) => u.id === id)).filter(Boolean);
   const totalAvail = units.filter((u) => u.status === 'disponible').length;
 
+  // vista LISTA · columnas ordenables (lista de precios)
+  const COLS = [
+    ['unit_number', 'Unidad', (u) => u.unit_number, false],
+    ['level', 'Piso', (u) => u.level, true],
+    ['m2', 'm²', (u) => u.m2_total || u.m2_privative, true],
+    ['bedrooms', 'Rec', (u) => u.bedrooms, true],
+    ['bathrooms', 'Baños', (u) => u.bathrooms, true],
+    ['vista', 'Vista', (u) => u.vista, false],
+    ['pm2', '$/m²', (u) => { const a = u.m2_total || u.m2_privative; return a ? Math.round((u.price || 0) / a) : null; }, true],
+    ['price', 'Precio', (u) => u.price, true],
+  ];
+  const getter = Object.fromEntries(COLS.map(([k, , g]) => [k, g]));
+  const sortedUnits = units.slice().sort((a, b) => {
+    const g = getter[sort.col] || ((u) => u.price);
+    const va = g(a), vb = g(b);
+    const c = (typeof va === 'number' && typeof vb === 'number') ? (va - vb) : String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb));
+    return sort.dir === 'asc' ? c : -c;
+  });
+
   return (
     <div>
-      {/* resumen global honesto */}
-      <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginBottom: 16 }}>
-        <strong style={{ color: 'var(--cream)' }}>{totalAvail} de {units.length}</strong> unidades disponibles · {rows.length} tipo{rows.length === 1 ? '' : 's'}
+      {/* resumen + toggle tarjetas/lista */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>
+          <strong style={{ color: 'var(--cream)' }}>{totalAvail} de {units.length}</strong> unidades disponibles · {rows.length} tipo{rows.length === 1 ? '' : 's'}
+        </div>
+        <div style={{ display: 'inline-flex', borderRadius: 10, border: '1px solid var(--card-border, var(--border))', padding: 2, background: 'var(--surface-card)' }}>
+          {[['tarjetas', '▦ Tarjetas'], ['lista', '☰ Lista']].map(([v, l]) => {
+            const on = view === v;
+            return <button key={v} onClick={() => setView(v)} style={{ padding: '7px 13px', borderRadius: 8, border: 'none', cursor: 'pointer', background: on ? 'var(--theme)' : 'transparent', color: on ? '#fff' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 12.5 }}>{l}</button>;
+          })}
+        </div>
       </div>
 
-      {/* CAPA 1 · por tipo */}
+      {/* ── VISTA LISTA · lista de precios ordenable ── */}
+      {view === 'lista' && (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--card-border, var(--border))' }}>
+                  <th style={{ width: 30 }} />
+                  {COLS.map(([key, label, , num]) => (
+                    <th key={key} onClick={() => sortBy(key)} style={{ textAlign: num ? 'right' : 'left', padding: '11px 12px', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: sort.col === key ? 'var(--theme)' : 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                      {label}{sort.col === key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
+                    </th>
+                  ))}
+                  <th style={{ textAlign: 'right', padding: '11px 12px', fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedUnits.map((u) => {
+                  const dispo = u.status === 'disponible';
+                  const sel = multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id);
+                  const st = STATUS[u.status] || STATUS.disponible;
+                  const m2 = u.m2_total || u.m2_privative;
+                  const pm2 = m2 ? Math.round((u.price || 0) / m2) : null;
+                  const onRow = () => { if (!dispo) return; if (multi) onToggleUnit && onToggleUnit(u.id); else onSelectUnit && onSelectUnit(sel ? null : u); };
+                  return (
+                    <tr key={u.id} onClick={onRow} style={{ borderBottom: '1px solid var(--card-border, var(--border))', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.07)' : 'transparent', opacity: dispo ? 1 : 0.5 }}>
+                      <td style={{ textAlign: 'center', color: sel ? 'var(--theme)' : 'var(--cream-3)', fontWeight: 800 }}>{dispo ? (sel ? '✓' : '○') : '·'}</td>
+                      <td style={{ padding: '11px 12px', fontFamily: HEAD, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.level}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{m2}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.bedrooms ?? '—'}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.bathrooms ?? '—'}</td>
+                      <td style={{ padding: '11px 12px', color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{u.vista || '—'}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-3)' }}>{pm2 ? `$${pm2.toLocaleString('es-MX')}` : '—'}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', fontFamily: HEAD, fontWeight: 800, color: 'var(--cream)', whiteSpace: 'nowrap' }}>{money(u.price)}</td>
+                      <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 700, color: st.c, whiteSpace: 'nowrap', fontSize: 12 }}>{st.l}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* CAPA 1 · por tipo (tarjetas) */}
+      {view === 'tarjetas' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {rows.map((r) => {
           const esc = escasez(r.avail, r.total);
@@ -150,6 +230,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
           );
         })}
       </div>
+      )}
 
       {/* institucional: resumen del fondo (multi-selección) */}
       {multi && selectedIds.length > 0 && (() => {
