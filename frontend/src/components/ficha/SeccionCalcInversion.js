@@ -82,11 +82,11 @@ export default function SeccionCalcInversion({ dev, unit, mode = 'individual', u
                 {mode === 'individual' && <ComparadorInversion dev={dev} unit={unit} />}
 
                 {/* acciones: ve a detalle + descarga el análisis (PDF + lead) */}
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 20 }}>
-                  <button onClick={() => setDetalle((x) => !x)} style={{ padding: '14px 24px', borderRadius: 13, border: 'none', background: detalle ? 'var(--surface-card)' : 'var(--grad)', color: detalle ? 'var(--theme)' : '#fff', boxShadow: detalle ? 'none' : '0 10px 26px rgba(109,74,255,0.28)', outline: detalle ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: HEAD, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-                    {detalle ? 'Ocultar el detalle ▲' : 'Ve los números a detalle →'}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 22 }}>
+                  <button onClick={() => setDetalle((x) => !x)} style={{ flex: '1 1 300px', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '17px 28px', borderRadius: 14, border: 'none', background: detalle ? 'var(--surface-card)' : 'var(--grad)', color: detalle ? 'var(--theme)' : '#fff', boxShadow: detalle ? 'none' : '0 14px 32px rgba(109,74,255,0.36)', outline: detalle ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: HEAD, fontWeight: 800, fontSize: 16.5, cursor: 'pointer' }}>
+                    {detalle ? 'Ocultar el detalle ▲' : '📊 Ve los números a detalle →'}
                   </button>
-                  <button onClick={descargarAnalisis} style={{ padding: '13px 20px', borderRadius: 13, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>📄 Descarga tu análisis</button>
+                  <button onClick={descargarAnalisis} style={{ padding: '14px 18px', borderRadius: 13, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>📄 Descarga tu análisis</button>
                 </div>
                 {!detalle && <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>El detalle: edita enganche, plazo, régimen fiscal, escenarios, Monte Carlo y compara contra CETES/FIBRA.</div>}
               </div>

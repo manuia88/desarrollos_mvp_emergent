@@ -65,6 +65,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const [leadModal, setLeadModal] = useState(null); // {reason} cuando hay alto intento → captura → asesor
   const [savedUnits, setSavedUnits] = useState(() => new Set()); // unidades que el comprador GUARDÓ (unit_save) → embudo dev + superadmin + /favoritos
   const [showPanorama, setShowPanorama] = useState(false); // el panorama/inversión NO se muestra hasta que el usuario da 'Ver mi panorama' (no auto al elegir unidad)
+  const [showConfianza, setShowConfianza] = useState(false); // la Confianza ('¿Puedes confiar?') tampoco auto-aparece: se revela con su propio botón
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   // CIERRE DE CICLO: cualquier 'dmx:lead' (wizard #5, PDF, comparador, agendar) abre la captura → /api/buyer/registrar → asesor.
@@ -78,7 +79,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   useEffect(() => { if (lens && (lens === 'vivir' || invMode)) scrollTo('unidades'); }, [lens, invMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // NO auto-saltamos al panorama al elegir unidad: primero mostramos el DETALLE (características, plano, ficha técnica) en
   // la propia sección de unidades; el usuario avanza con el botón "Ver mi panorama con esta unidad ↓". Menos brinco.
-  useEffect(() => { setShowPanorama(false); }, [unit && unit.id]); // al cambiar de unidad → re-oculta el panorama (detalle primero)
+  useEffect(() => { setShowPanorama(false); setShowConfianza(false); }, [unit && unit.id]); // al cambiar de unidad → re-oculta panorama + confianza (detalle primero)
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
@@ -355,12 +356,19 @@ export default function FichaDesarrollo({ user, onLogin }) {
                     )}
                   </Section>
 
-                  {/* CONFIANZA — colapsable, común a ambos lentes */}
-                  <div data-testid="confianza" id="confianza" style={{ marginTop: 'clamp(44px,5.5vw,68px)', scrollMarginTop: 112 }}>
-                    <Modulo onOpen={() => signalModule('confianza')} eyebrow="Sin letras chiquitas" title="¿Puedes confiar?" hook="Desarrollador y track record · situación legal · riesgos honestos (sísmico, inundación, preventa)">
-                      <SeccionConfianza dev={dev} />
-                    </Modulo>
-                  </div>
+                  {/* CONFIANZA — NO auto-aparece con el panorama; se revela con su propio CTA (founder) y se abre directo */}
+                  {showConfianza ? (
+                    <div data-testid="confianza" id="confianza" style={{ marginTop: 'clamp(44px,5.5vw,68px)', scrollMarginTop: 112 }}>
+                      <Modulo forceOpen onOpen={() => signalModule('confianza')} eyebrow="Sin letras chiquitas" title="¿Puedes confiar?" hook="Desarrollador y track record · situación legal · riesgos honestos (sísmico, inundación, preventa)">
+                        <SeccionConfianza dev={dev} />
+                      </Modulo>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setShowConfianza(true); setTimeout(() => goTo('confianza'), 130); }} data-testid="reveal-confianza" style={{ width: '100%', marginTop: 'clamp(28px,4vw,44px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderRadius: 14, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}><b style={{ color: 'var(--cream)', fontFamily: HEAD, fontWeight: 800 }}>¿Puedes confiar?</b> — desarrollador, situación legal y riesgos honestos</span>
+                      <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Revísalo →</span>
+                    </button>
+                  )}
                 </>
               )}
             </div>
