@@ -62,7 +62,8 @@ const LISTA_PAGE = 15;
 const pgBtn = (off) => ({ background: 'var(--surface-card)', color: off ? 'var(--cream-3)' : 'var(--cream)', border: '1px solid var(--card-border, var(--border))', borderRadius: 9, padding: '7px 15px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700, cursor: off ? 'default' : 'pointer', opacity: off ? 0.5 : 1 });
 
 // Vista: clasifica interior/exterior (como en lista de precios) y conserva el matiz real.
-const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : `Exterior · ${v}`));
+// Vista = SOLO interior/exterior (alineado con la tabventas del portal dev; los valores granulares del seed se colapsan).
+const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : 'Exterior'));
 const m2line = (u) => {
   const t = u.m2_total || u.m2_privative;
   if (!t) return null;
@@ -88,6 +89,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
+  const [showCompare, setShowCompare] = useState(false); // el comparador NO se abre solo al elegir 2: el usuario da 'Comparar' en el tray
   const [view, setView] = useState('tarjetas');   // SIEMPRE abre en Tarjetas por default (founder) — sin recordar 'lista' de antes
   const [sort, setSort] = useState({ col: 'unit_number', dir: 'asc' });
   const [page, setPage] = useState(1);
@@ -100,9 +102,9 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   useEffect(() => {
     if (selectedUnit && detailRef.current) detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [selectedUnit && selectedUnit.id]);
-  // al abrir el comparador (2+ unidades) → bajar a él (antes no se notaba hasta hacer scroll manual)
+  // si baja de 2 → re-oculta el comparador (vuelve a requerir 'Comparar' cuando junte 2+)
   useEffect(() => {
-    if (compare.length >= 2 && compareRef.current) compareRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (compare.length < 2) setShowCompare(false);
   }, [compare.length]);
   if (!units.length) return null;
 
@@ -276,7 +278,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                             <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{u.unit_number}</span>
                             <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: st.c, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.l}</span>
                           </div>
-                          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>Piso {u.level} · {u.m2_total || u.m2_privative} m²{u.vista ? ` · ${u.vista}` : ''}</div>
+                          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>Piso {u.level} · {u.m2_total || u.m2_privative} m²{vistaLabel(u.vista) ? ` · ${vistaLabel(u.vista)}` : ''}</div>
                           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginTop: 6 }}>{money(u.price)}</div>
                           {dispo && (
                             <label onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, fontFamily: SANS, fontSize: 11, color: cmp ? 'var(--theme)' : 'var(--cream-3)', fontWeight: 600, cursor: 'pointer' }}>
@@ -384,8 +386,18 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
         );
       })()}
 
+      {/* TRAY flotante de comparación: eliges hasta 3 sin que se abra solo; tú das 'Comparar' cuando quieras (founder) */}
+      {compare.length >= 1 && !showCompare && (
+        <div data-testid="compare-tray" style={{ position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 16, background: 'var(--surface-card, #fff)', border: '1px solid var(--card-border, var(--border))', boxShadow: '0 18px 44px rgba(16,18,28,0.22)', maxWidth: 'calc(100vw - 28px)', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap' }}>⚖️ Comparar {compare.length} de 3</span>
+          <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220, whiteSpace: 'nowrap' }}>{compareUnits.map((u) => u.unit_number).join(' · ')}</span>
+          <button onClick={() => setCompare([])} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>Limpiar</button>
+          <button disabled={compare.length < 2} onClick={() => { setShowCompare(true); setTimeout(() => compareRef.current && compareRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' }), 130); }} style={{ padding: '10px 18px', borderRadius: 11, border: 'none', background: compare.length < 2 ? 'var(--card-border, #ddd)' : 'var(--grad)', color: compare.length < 2 ? 'var(--cream-3)' : '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, cursor: compare.length < 2 ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{compare.length < 2 ? 'Elige 1 más para comparar' : 'Comparar →'}</button>
+        </div>
+      )}
+
       {/* comparador (upgrade) */}
-      {compareUnits.length >= 2 && (
+      {compareUnits.length >= 2 && showCompare && (
         <Card ref={compareRef} style={{ marginTop: 14, borderColor: 'var(--theme)', boxShadow: '0 0 0 2px rgba(99,102,241,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>⚖️ Comparar {compareUnits.length} unidades</div>
@@ -400,15 +412,40 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 </tr>
               </thead>
               <tbody>
-                {[['Precio', (u) => money(u.price)], ['Piso', (u) => u.level], ['m² totales', (u) => u.m2_total || u.m2_privative], ['Recámaras', (u) => u.bedrooms], ['Baños', (u) => u.bathrooms], ['Estac.', (u) => u.parking_spots || '—'], ['Orientación', (u) => u.orientation || '—'], ['Vista', (u) => u.vista || '—'], ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—']].map(([label, fn], i) => (
-                  <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
-                    <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
-                    {compareUnits.map((u) => <td key={u.id} style={{ padding: '9px 12px', color: 'var(--cream)' }}>{fn(u)}</td>)}
-                  </tr>
-                ))}
+                {(() => {
+                  const m2 = (u) => u.m2_total || u.m2_privative || 0;
+                  const avgP = compareUnits.reduce((s, u) => s + (u.price || 0), 0) / compareUnits.length;
+                  const avgM = (compareUnits.reduce((s, u) => s + m2(u), 0) / compareUnits.length) || 1;
+                  const rentM2 = (avgP * 0.0045) / avgM;                 // renta/m²/mes de referencia (estimado de zona)
+                  const renta = (u) => Math.round(m2(u) * rentM2);
+                  const pm2 = (u) => (m2(u) ? Math.round(u.price / m2(u)) : null);
+                  const minPm2 = Math.min(...compareUnits.map((u) => pm2(u) ?? Infinity));
+                  const maxRend = Math.max(...compareUnits.map((u) => (u.price ? (renta(u) * 12) / u.price : 0)));
+                  const rows = [
+                    ['Precio', (u) => money(u.price), (u) => u.price === Math.min(...compareUnits.map((x) => x.price || Infinity))],
+                    ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
+                    ['m² totales', (u) => (m2(u) || '—')],
+                    ['Recámaras', (u) => u.bedrooms ?? '—'],
+                    ['Baños', (u) => u.bathrooms ?? '—'],
+                    ['Estac.', (u) => u.parking_spots || '—'],
+                    ['Nivel', (u) => u.level ?? '—'],
+                    ['Orientación', (u) => u.orientation || '—'],
+                    ['Vista', (u) => vistaLabel(u.vista) || '—'],
+                    ['Renta estimada', (u) => `${money(renta(u))}/mes`],
+                    ['Rendimiento bruto', (u) => (u.price ? `${((renta(u) * 12) / u.price * 100).toFixed(1)}%` : '—'), (u) => u.price && (renta(u) * 12) / u.price === maxRend],
+                    ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—'],
+                  ];
+                  return rows.map(([label, fn, best], i) => (
+                    <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
+                      <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
+                      {compareUnits.map((u) => { const win = best && best(u); return <td key={u.id} style={{ padding: '9px 12px', color: win ? '#059669' : 'var(--cream)', fontWeight: win ? 800 : 400 }}>{fn(u)}{win ? ' ✓' : ''}</td>; })}
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
+          <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 10 }}>Renta y rendimiento bruto estimados (referencia de zona). Para el número fino — TIR, fiscal, escenarios — abre la calculadora con "Elegir" abajo.</div>
           {/* avanzar: elegir una (o varias para fondo) y seguir con la calculadora */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border, var(--border))', alignItems: 'center' }}>
             <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>¿Con cuál{multi ? 'es' : ''} avanzas a tu inversión?</span>

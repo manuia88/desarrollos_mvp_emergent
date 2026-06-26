@@ -196,7 +196,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
                 { label: 'Balcón m²', get: (u) => u.m2_balcony || '—', best: (u) => maxBal && u.m2_balcony === maxBal },
                 { label: 'Nivel', get: (u) => u.level ?? '—' },
                 { label: 'Orientación', get: (u) => u.orientation || '—' },
-                { label: 'Vista', get: (u) => u.vista || '—' },
+                { label: 'Vista', get: (u) => (u.vista ? (String(u.vista).toLowerCase() === 'interior' ? 'Interior' : 'Exterior') : '—') },
                 { label: 'Bodega', get: (u) => (u.bodega ? '✓ Sí' : '—'), best: (u) => !!u.bodega },
               ];
               void num;
