@@ -328,13 +328,14 @@ export default function CitasPolicies({ user, onLogout, embedded }) {
     async function load() {
       const [projRes, tokenRes] = await Promise.all([
         fetch(`${API}/api/dev/projects/list-with-stats`, { credentials: 'include' }),
-        fetch(`${API}/api/superadmin/users?role=asesor`, { credentials: 'include' }),
+        fetch(`${API}/api/dev/internal-users`, { credentials: 'include' }),
       ]);
       if (projRes.ok) setProjects(await projRes.json());
 
       // Get asesores with google connected
       if (tokenRes.ok) {
-        const asesores = await tokenRes.json();
+        const _json = await tokenRes.json();
+        const asesores = (_json.items || _json || []).filter((a) => a.user_id);
         const ids = asesores.map(a => a.user_id);
         if (ids.length) {
           const tokenDocs = await fetch(`${API}/api/oauth/connections`, { credentials: 'include' });

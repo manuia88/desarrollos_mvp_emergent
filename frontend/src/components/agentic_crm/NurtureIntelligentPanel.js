@@ -153,7 +153,7 @@ export default function NurtureIntelligentPanel({ orgId }) {
       const [statsResp, seqResp, settings] = await Promise.all([
         apiFetch(`/api/superadmin/agentic-crm/nurture/stats?org_id=${encodeURIComponent(orgId)}&days=30`),
         apiFetch(`/api/agentic-crm/nurture/sequences?org_id=${encodeURIComponent(orgId)}&status=${statusFilter}&limit=50`),
-        apiFetch(`/api/superadmin/phase-y/settings?org_id=${encodeURIComponent(orgId)}`).catch(() => null),
+        apiFetch(`/api/superadmin/phase-y/${encodeURIComponent(orgId)}`).catch(() => null),
       ]);
       setStats(statsResp);
       setSequences(seqResp.sequences || []);

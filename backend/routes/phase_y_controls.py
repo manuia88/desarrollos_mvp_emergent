@@ -121,6 +121,24 @@ class MasterSwitchIn(BaseModel):
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
+@router.get("/settings-overview")
+async def settings_overview(request: Request):
+    """Resumen Phase Y de TODAS las orgs (solo superadmin) → alimenta el badge 'N orgs con nurture inteligente' del
+    panel de leads. DEBE ir antes de /{org_id} para que no lo capture la ruta dinámica."""
+    user = await _resolve_user(request)
+    if getattr(user, "role", "") != "superadmin":
+        raise HTTPException(403, "Solo superadmin")
+    db = request.app.state.db
+    orgs = []
+    try:
+        async for s in db.phase_y_settings.find({}, {"_id": 0, "org_id": 1, "feature_tiers": 1, "agentic_enabled": 1}):
+            orgs.append({"org_id": s.get("org_id"), "feature_tiers": s.get("feature_tiers") or {},
+                         "agentic_enabled": s.get("agentic_enabled")})
+    except Exception:
+        pass
+    return JSONResponse({"orgs": orgs})
+
+
 @router.get("/{org_id}")
 async def get_settings(org_id: str, request: Request):
     """Retorna Phase Y settings. Crea defaults si no existe."""

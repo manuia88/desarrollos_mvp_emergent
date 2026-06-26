@@ -588,13 +588,28 @@ async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, An
             # (lead_captures sin bridge). Mapea el shape del cotizador al que espera el espejo.
             try:
                 from services.lead_bridge import mirror_lead_to_asesor_contacto
+                # CONTEXTO al asesor (antes el lead del cotizador llegaba CIEGO): desarrollo + lente + plan de pago elegido.
+                _interes = payload.get("interes") if isinstance(payload.get("interes"), dict) else {}
+                _ctx = (" · ".join(f"{k}: {v}" for k, v in _interes.items() if v)[:200] or None) if _interes else None
                 await mirror_lead_to_asesor_contacto(db, {
                     "id": lead_id,
                     "assigned_to": lead_doc.get("assigned_to"),
                     "phone": whatsapp,
                     "contact": {"name": name, "phone": whatsapp},
                     "source": "cotizador",
+                    "development_id": property_id,          # el desarrollo del que cotizó (antes se perdía)
+                    "lente": audience,                      # vivir/invertir/familia…
+                    "unidad_interes": payload.get("unit_number") or payload.get("unit_id"),
+                    "contexto_registro": _ctx,              # plan de pago que eligió en el cotizador
                 })
+                # Favoritos/citas del comprador → tablero del asesor (igual que el path de la ficha)
+                _vid = payload.get("visitor_session_id")
+                if _vid:
+                    try:
+                        from routes.favoritos import mirror_favoritos_to_board
+                        await mirror_favoritos_to_board(db, _vid, lead_id)
+                    except Exception:
+                        pass
             except Exception as _bexc:  # noqa: BLE001
                 log.debug(f"[lead_capture] mirror skip: {_bexc}")
         except Exception as e:  # noqa: BLE001
