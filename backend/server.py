@@ -1124,12 +1124,10 @@ app.include_router(public_market_router)
 from routes.avm_accuracy import router as avm_accuracy_router
 app.include_router(avm_accuracy_router)
 
-# W5.2 — Zone Score público desagregado + SEO landings temáticas
-from routes.zones_public import router as zones_public_router
+# W5.2 — SEO landings temáticas (/cdmx/top-*). El router zones_public (sub-scores /api/zones-public) se retiró:
+# quedó huérfano tras el rediseño de la página de zona (la ficha /zona usa /api/zona/*). Sin consumidores front ni back.
 from routes.seo_themed import router as seo_themed_router
-app.include_router(zones_public_router)
 app.include_router(seo_themed_router)
-logging.info("[w5.2] zones-public router mounted")
 logging.info("[w5.2] seo-themed router mounted")
 
 # W5.3 Parte 1 — Forecast multi-horizonte (ARIMA)
