@@ -134,7 +134,7 @@ async def _leads_per_dev(db, since: Optional[datetime]) -> Dict[str, Dict[str, i
                 continue
             row = out.setdefault(did, {"leads_count": 0, "leads_won": 0})
             row["leads_count"] += 1
-            if (ld.get("status") or "").lower() in ("won", "ganado", "cerrado", "closed"):
+            if (ld.get("status") or "").lower() in ("won", "ganado", "cerrado", "cerrado_ganado", "closed"):
                 row["leads_won"] += 1
     except Exception as e:
         log.warning(f"[cube] leads aggregation failed: {e}")

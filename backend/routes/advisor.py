@@ -3150,6 +3150,20 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                               "updated_at": _now()}}, upsert=True)
         except Exception as _ue:
             logging.getLogger("dmx.advisor").warning(f"[operacion] marcar unidad vendida falló: {_ue}")
+        # Sincroniza el LEAD a 'cerrado_ganado' → la conversión/deals-cerrados del dev y del superadmin (que leen
+        # db.leads.status) cuentan el cierre. Antes, cerrar por OPERACIÓN sin mover la etapa del contacto dejaba el
+        # lead desincronizado y la analítica subcontaba ganados. Fail-soft.
+        try:
+            _lid_op = op.get("lead_id")
+            if not _lid_op and op.get("contacto_id"):
+                _ct = await db.asesor_contactos.find_one({"id": op["contacto_id"]}, {"_id": 0, "source_lead_id": 1})
+                _lid_op = (_ct or {}).get("source_lead_id")
+            if _lid_op:
+                await db.leads.update_one({"id": _lid_op}, {"$set": {
+                    "status": "cerrado_ganado", "lead_stage": "cerrado_ganado",
+                    "updated_at": _now(), "last_activity_at": _now()}})
+        except Exception as _le:
+            logging.getLogger("dmx.advisor").info(f"[operacion] sync lead cerrado no aplicó: {_le}")
     # P2.6 · operación CANCELADA → cierra el ciclo: marca el contacto como PERDIDO y
     # alimenta el aprendizaje del Cerebro (outcome lost). Antes la cancelación no propagaba nada.
     if payload.status == "cancelada":

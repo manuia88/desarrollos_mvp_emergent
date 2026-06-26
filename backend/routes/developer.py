@@ -202,7 +202,7 @@ async def portfolio_reading(request: Request):
             did = l.get("development_id")
             leads_by_dev[did] = leads_by_dev.get(did, 0) + 1
             leads_total += 1
-            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado"):
+            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado", "cerrado_ganado"):
                 leads_closed += 1
     except Exception:
         pass
@@ -523,7 +523,7 @@ async def dev_red_salud(request: Request):
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     db = get_db(request)
-    WON = ("vendido", "won", "ganado", "cerrado")
+    WON = ("vendido", "won", "ganado", "cerrado", "cerrado_ganado")
     amap = {}
     canal = {"inhouse": 0, "broker": 0}
     try:
@@ -710,7 +710,7 @@ async def dev_reporte_ejecutivo(request: Request):
                 continue
             a = amap.setdefault(name, {"leads": 0, "won": 0})
             a["leads"] += 1
-            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado"):
+            if (l.get("status_v2") or l.get("status") or "").lower() in ("vendido", "won", "ganado", "cerrado", "cerrado_ganado"):
                 a["won"] += 1
     except Exception:
         pass
