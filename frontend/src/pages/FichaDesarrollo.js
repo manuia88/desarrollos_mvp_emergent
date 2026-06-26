@@ -116,7 +116,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
     let alive = true;
     const col = dev.colonia_id || dev.colonia, m2 = unit.m2_total || unit.m2_privative || 80;
     fetch(`${HK_API}/api/public/ownership/${dev.id}?price=${unit.price}&m2=${m2}&enganche_pct=0.20&years=20`).then((r) => r.json()).then((d) => { if (alive && d && d.supuestos) setHk((h) => ({ ...h, mensual: d.supuestos.pago_mensual })); }).catch(() => {});
-    fetch(`${HK_API}/api/inversion-v4/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor_propiedad: unit.price, enganche_pct: 0.20, plazo_anios: 20, horizonte_anios: 10, renta_mensual: Math.round(unit.price * 0.0045), colonia: col }) }).then((r) => r.json()).then((d) => { if (alive && d && d.ok) setHk((h) => ({ ...h, tir: d.tir_pct, cetes: d.cetes_1a_pct })); }).catch(() => {});
+    fetch(`${HK_API}/api/inversion-v4/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor_propiedad: unit.price, enganche_pct: 0.20, plazo_anios: 20, horizonte_anios: 10, renta_mensual: Math.round(unit.price * 0.0045), colonia: col }) }).then((r) => r.json()).then((d) => { if (alive && d && d.ok) setHk((h) => ({ ...h, tir: d.tir_pct, cetes: d.cetes_1a_pct, plusvalia: d.apreciacion_return_pct, capRate: d.cap_rate_pct })); }).catch(() => {});
     return () => { alive = false; };
   }, [unit && unit.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -327,7 +327,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                   + el botón 'Ver mi panorama' — así el comprador ve lo que eligió antes de avanzar (founder). */}
               {paso1Done && (
                   <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title={multi ? 'Elige las unidades del fondo' : 'Elige tu unidad'}>
-                    <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
+                    <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} plusvalia={hk.plusvalia} />
                   </Section>
               )}
 

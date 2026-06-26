@@ -64,6 +64,9 @@ const pgBtn = (off) => ({ background: 'var(--surface-card)', color: off ? 'var(-
 // Vista: clasifica interior/exterior (como en lista de precios) y conserva el matiz real.
 // Vista = SOLO interior/exterior (alineado con la tabventas del portal dev; los valores granulares del seed se colapsan).
 const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : 'Exterior'));
+// Tipos de cajón (misma nomenclatura del portal dev · VentasTab) — para que el comparador coincida.
+const PARKING_LABELS = { individual: 'Individual', battery_shared: 'En batería (compartido)', bateria_propia: 'Batería propia', bateria_vecino: 'Batería vecino', eleva_autos: 'Eleva-autos', compartido: 'Compartido' };
+const parkLabel = (t) => (t ? (PARKING_LABELS[t] || String(t)) : null);
 const m2line = (u) => {
   const t = u.m2_total || u.m2_privative;
   if (!t) return null;
@@ -85,7 +88,7 @@ function specRows(u) {
 }
 const extras = (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.pet_friendly && 'Pet friendly'].filter(Boolean);
 
-export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoTo, multi = false, selectedIds = [], onToggleUnit }) {
+export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoTo, multi = false, selectedIds = [], onToggleUnit, plusvalia = null }) {
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
@@ -419,33 +422,55 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const rentM2 = (avgP * 0.0045) / avgM;                 // renta/m²/mes de referencia (estimado de zona)
                   const renta = (u) => Math.round(m2(u) * rentM2);
                   const pm2 = (u) => (m2(u) ? Math.round(u.price / m2(u)) : null);
+                  const cap = (u) => (u.price ? (renta(u) * 12 * 0.95) / u.price : 0); // NOI (neto de vacancia 5%) ÷ precio = cap rate (igual que el motor)
+                  const enganche = (u) => Math.round((u.price || 0) * 0.20);
+                  const escrit = (u) => Math.round((u.price || 0) * 0.08);            // gastos de escrituración del comprador (~8%, igual que el motor)
+                  const entrada = (u) => enganche(u) + escrit(u);
+                  const planoOf = (u) => u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || null;
                   const minPm2 = Math.min(...compareUnits.map((u) => pm2(u) ?? Infinity));
-                  const maxRend = Math.max(...compareUnits.map((u) => (u.price ? (renta(u) * 12) / u.price : 0)));
+                  const minPrice = Math.min(...compareUnits.map((u) => u.price || Infinity));
+                  const minEntrada = Math.min(...compareUnits.map((u) => entrada(u) || Infinity));
+                  const maxCap = Math.max(...compareUnits.map((u) => cap(u)));
+                  const pv = plusvalia != null ? Number(plusvalia) : 8.7;            // %/año · zona (SHF Q1-2026 si el motor no dio dato)
                   const rows = [
-                    ['Precio', (u) => money(u.price), (u) => u.price === Math.min(...compareUnits.map((x) => x.price || Infinity))],
+                    ['Plano', (u) => { const p = planoOf(u) || (dev.photos || [])[0]; return p ? <a href={p} target="_blank" rel="noreferrer" title="Ver en grande"><img src={p} alt={`Plano ${u.unit_number}`} style={{ width: '100%', maxWidth: 160, height: 88, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--card-border, var(--border))', display: 'block' }} /></a> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
+                    { h: '💰 Precio y entrada' },
+                    ['Precio', (u) => money(u.price), (u) => u.price === minPrice],
                     ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
+                    ['Enganche (20%)', (u) => money(enganche(u))],
+                    ['Gastos de escrituración (~8%)', (u) => money(escrit(u))],
+                    ['Inversión inicial (entrada)', (u) => money(entrada(u)), (u) => entrada(u) === minEntrada],
+                    { h: '📐 Características' },
                     ['m² totales', (u) => (m2(u) || '—')],
                     ['Recámaras', (u) => u.bedrooms ?? '—'],
                     ['Baños', (u) => u.bathrooms ?? '—'],
-                    ['Estac.', (u) => u.parking_spots || '—'],
+                    ['Estacionamiento', (u) => `${u.parking_spots || '—'} ${(u.parking_spots || 0) === 1 ? 'cajón' : 'cajones'}${parkLabel(u.parking_type) ? ` · ${parkLabel(u.parking_type)}` : ''}`],
                     ['Nivel', (u) => u.level ?? '—'],
                     ['Orientación', (u) => u.orientation || '—'],
                     ['Vista', (u) => vistaLabel(u.vista) || '—'],
+                    ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—'],
+                    { h: '📈 Rentabilidad estimada' },
                     ['Renta estimada', (u) => `${money(renta(u))}/mes`],
-                    ['Rendimiento bruto', (u) => (u.price ? `${((renta(u) * 12) / u.price * 100).toFixed(1)}%` : '—'), (u) => u.price && (renta(u) * 12) / u.price === maxRend],
-                    ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—'],
+                    ['Cap rate', (u) => (u.price ? `${(cap(u) * 100).toFixed(1)}%` : '—'), (u) => cap(u) === maxCap],
+                    ['Plusvalía (zona)', () => `${pv.toFixed(1)}%/año`],
                   ];
-                  return rows.map(([label, fn, best], i) => (
-                    <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
-                      <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
-                      {compareUnits.map((u) => { const win = best && best(u); return <td key={u.id} style={{ padding: '9px 12px', color: win ? '#059669' : 'var(--cream)', fontWeight: win ? 800 : 400 }}>{fn(u)}{win ? ' ✓' : ''}</td>; })}
-                    </tr>
-                  ));
+                  return rows.map((row, i) => {
+                    if (row.h) return (
+                      <tr key={i}><td colSpan={compareUnits.length + 1} style={{ padding: '15px 12px 5px', fontFamily: HEAD, fontWeight: 800, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--theme)' }}>{row.h}</td></tr>
+                    );
+                    const [label, fn, best] = row;
+                    return (
+                      <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
+                        <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{label}</td>
+                        {compareUnits.map((u) => { const win = best && best(u); return <td key={u.id} style={{ padding: '9px 12px', color: win ? '#059669' : 'var(--cream)', fontWeight: win ? 800 : 400, verticalAlign: 'middle' }}>{fn(u)}{win ? ' ✓' : ''}</td>; })}
+                      </tr>
+                    );
+                  });
                 })()}
               </tbody>
             </table>
           </div>
-          <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 10 }}>Renta y rendimiento bruto estimados (referencia de zona). Para el número fino — TIR, fiscal, escenarios — abre la calculadora con "Elegir" abajo.</div>
+          <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 10 }}>Enganche 20% y escrituración ~8% son estándar; renta, cap rate y plusvalía son estimados de zona (mismas bases que el motor). Para el número fino por unidad — TIR, fiscal, escenarios — abre la calculadora con "Elegir" abajo.</div>
           {/* avanzar: elegir una (o varias para fondo) y seguir con la calculadora */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border, var(--border))', alignItems: 'center' }}>
             <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>¿Con cuál{multi ? 'es' : ''} avanzas a tu inversión?</span>
