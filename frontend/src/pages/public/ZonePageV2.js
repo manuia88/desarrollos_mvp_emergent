@@ -14,6 +14,7 @@ import { tc } from '../../lib/titleCase';
 import 'maplibre-gl/dist/maplibre-gl.css';   // mapa interactivo de lugares (el JS de maplibre se carga lazy dentro de LugaresMap)
 import LugaresMap from '../../components/ficha/LugaresMap';   // componente compartido (un solo origen; lo reusa también la ficha)
 import { AMEN_DEV } from '../../components/ficha/amenIcons';  // mapa amenidades del desarrollo (origen único)
+import ZoneReviewsBlock from '../../components/zones/ZoneReviewsBlock';  // voz de residentes (motor real · hide-if-empty)
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
@@ -1812,6 +1813,9 @@ export default function ZonePageV2() {
           )}
         </section>
         )}
+
+        {/* ── VOZ DE RESIDENTES (motor reviews_residents · hide-if-empty: invisible si no hay reseñas reales) ── */}
+        <div style={{ ...sec, marginTop: 46 }}><ZoneReviewsBlock zoneId={slug} /></div>
 
         {/* ── FUENTES ── */}
         <section style={{ ...sec, marginTop: 46 }}>

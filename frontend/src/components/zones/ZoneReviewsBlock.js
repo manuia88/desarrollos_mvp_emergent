@@ -32,25 +32,9 @@ export default function ZoneReviewsBlock({ zoneId }) {
     return () => { mounted = false; };
   }, [zoneId]);
 
-  if (loading) {
-    return (
-      <section data-testid="zone-reviews-loading" style={cardStyle}>
-        <div style={{ color: SUBTLE, fontFamily: 'DM Sans, sans-serif' }}>
-          {t('reviewsResidents.loading', 'Cargando reseñas residentes…')}
-        </div>
-      </section>
-    );
-  }
-
-  if (error || !data || data.n_reviews === 0) {
-    return (
-      <section data-testid="zone-reviews-empty" style={cardStyle}>
-        <h3 style={titleStyle}>{t('reviewsResidents.title', 'Voz de residentes')}</h3>
-        <div style={{ marginTop: 12, color: SUBTLE, fontFamily: 'DM Sans, sans-serif', fontSize: 14 }}>
-          {t('reviewsResidents.empty', 'Aún no hay reseñas suficientes para esta zona.')}
-        </div>
-      </section>
-    );
+  // hide-if-empty (patrón founder): sin reseñas reales no se muestra NADA — cero tarjetas vacías de ruido.
+  if (loading || error || !data || data.n_reviews === 0) {
+    return null;
   }
 
   const { n_reviews, avg_rating, sentiment_breakdown_pct, top_themes, top_quotes } = data;
