@@ -67,6 +67,11 @@ const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ?
 // Tipos de cajón (misma nomenclatura del portal dev · VentasTab) — para que el comparador coincida.
 const PARKING_LABELS = { individual: 'Individual', battery_shared: 'En batería (compartido)', bateria_propia: 'Batería propia', bateria_vecino: 'Batería vecino', eleva_autos: 'Eleva-autos', compartido: 'Compartido' };
 const parkLabel = (t) => (t ? (PARKING_LABELS[t] || String(t)) : null);
+// AVM (precio vs mercado): el motor devuelve color por NOMBRE (rojo/verde…) y etiqueta tersa → a CSS + lenguaje claro.
+const AVM_COLOR = { rojo: '#dc2626', naranja: '#ea580c', amarillo: '#d97706', verde: '#059669', gris: 'var(--cream-3)' };
+const AVM_LABEL = { bajo: 'Buen precio', justo: 'Precio de mercado', alto: 'Sobre mercado' };
+const avmText = (v) => (v && v.etiqueta ? `${AVM_LABEL[v.etiqueta] || v.etiqueta}${v.diff_pct != null ? ` · ${v.diff_pct > 0 ? '+' : ''}${v.diff_pct}%` : ''}` : null);
+const avmColor = (v) => (v ? (AVM_COLOR[v.color] || 'var(--cream)') : 'var(--cream)');
 const m2line = (u) => {
   const t = u.m2_total || u.m2_privative;
   if (!t) return null;
@@ -98,6 +103,19 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const [page, setPage] = useState(1);
   // (sin persistencia: cada apertura de la ficha arranca en Tarjetas; el toggle a Lista vive solo en la sesión actual)
   useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
+  // AVM: posición de precio por unidad vs mercado real (mismo motor que el portal dev · endpoint público). 1 sola llamada batch.
+  const [avm, setAvm] = useState({});   // {unit_id: {etiqueta, color, diff_pct}}
+  useEffect(() => {
+    const colid = dev.colonia_id || dev.colonia;
+    const us = (dev.units || []).filter((u) => u.price && (u.m2_privative || u.m2_total));
+    if (!colid || !us.length) return;
+    let alive = true;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/precio-posicion-batch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ colonia: colid, nueva: true, unidades: us.map((u) => ({ id: u.id, precio: u.price, m2: u.m2_privative || u.m2_total, rec: u.bedrooms, ban: u.bathrooms })) }),
+    }).then((r) => r.json()).then((d) => { if (!alive) return; const m = {}; (d.unidades || []).forEach((v) => { if (v.id && v.etiqueta) m[v.id] = v; }); setAvm(m); }).catch(() => {});
+    return () => { alive = false; };
+  }, [dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
   const detailRef = useRef(null);
   const compareRef = useRef(null);
@@ -347,7 +365,10 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
               {/* ficha técnica */}
               <div>
                 <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 26, color: 'var(--cream)', lineHeight: 1.05 }}>{protoName(u.prototype)} · {u.unit_number}</div>
-                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 14px' }}>{money(u.price)}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 10px' }}>{money(u.price)}</div>
+                {avmText(avm[u.id]) && (
+                  <div title="Comparado con el precio/m² real de la zona (nuestro AVM)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', marginBottom: 14, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: avmColor(avm[u.id]) }}>📊 {avmText(avm[u.id])} vs mercado</div>
+                )}
                 <div>
                   {specRows(u).map(([k, v], i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: i ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: SANS, fontSize: 13.5 }}>
@@ -437,6 +458,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     { h: '💰 Precio y entrada' },
                     ['Precio', (u) => money(u.price), (u) => u.price === minPrice],
                     ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
+                    ['Precio vs mercado', (u) => { const v = avm[u.id]; return avmText(v) ? <span style={{ color: avmColor(v), fontWeight: 700 }}>{avmText(v)}</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
                     ['Enganche (20%)', (u) => money(enganche(u))],
                     ['Gastos de escrituración (~8%)', (u) => money(escrit(u))],
                     ['Inversión inicial (entrada)', (u) => money(entrada(u)), (u) => entrada(u) === minEntrada],
