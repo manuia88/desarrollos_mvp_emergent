@@ -9,7 +9,7 @@ import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment } from '../api/marketplace';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
-import { Section, Card, Stat, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
+import { Section, Card, Stat, Modulo, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
@@ -37,7 +37,10 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
   const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + el análisis del lente (granularidad por unidad)
-  const [lens, setLens] = useState('vivir'); // EL LENTE: organiza la página (vivir | invertir)
+  const [lens, setLens] = useState(null);   // EL LENTE: organiza la página (vivir | invertir) · null = aún no elige (paso 1)
+  const [invMode, setInvMode] = useState('individual'); // invertir: 'individual' (para ti) | 'institucional' (fondo)
+  const [fundIds, setFundIds] = useState([]); // institucional: unidades elegidas (multi)
+  const [hk, setHk] = useState({});         // ganchos VIVOS de cada módulo (la respuesta con tu unidad, sin abrir)
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => {
@@ -45,6 +48,25 @@ export default function FichaDesarrollo({ user, onLogin }) {
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
     return () => { alive = false; };
   }, [id]);
+
+  // ── GANCHOS VIVOS (upgrade #1): la respuesta real ya visible aunque el módulo esté cerrado ──
+  const HK_API = process.env.REACT_APP_BACKEND_URL;
+  useEffect(() => {
+    if (!dev || !dev.id) return undefined;
+    let alive = true;
+    const col = dev.colonia_id || dev.colonia;
+    fetch(`${HK_API}/api/public/buy-signal/${dev.id}`).then((r) => r.json()).then((d) => { if (alive && d) setHk((h) => ({ ...h, verdict: d.veredicto && d.veredicto.titulo, pm2: d.precio_contexto && d.precio_contexto.este_pm2 })); }).catch(() => {});
+    if (col) fetch(`${HK_API}/api/zona/${encodeURIComponent(col)}/lugares`).then((r) => r.json()).then((d) => { if (alive && d && d.metro) setHk((h) => ({ ...h, metroMin: d.metro.min_caminando, metroNom: d.metro.nombre })); }).catch(() => {});
+    return () => { alive = false; };
+  }, [dev && dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!unit) return undefined;
+    let alive = true;
+    const col = dev.colonia_id || dev.colonia, m2 = unit.m2_total || unit.m2_privative || 80;
+    fetch(`${HK_API}/api/public/ownership/${dev.id}?price=${unit.price}&m2=${m2}&enganche_pct=0.20&years=20`).then((r) => r.json()).then((d) => { if (alive && d && d.supuestos) setHk((h) => ({ ...h, mensual: d.supuestos.pago_mensual })); }).catch(() => {});
+    fetch(`${HK_API}/api/inversion-v4/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor_propiedad: unit.price, enganche_pct: 0.20, plazo_anios: 20, horizonte_anios: 10, renta_mensual: Math.round(unit.price * 0.0045), colonia: col }) }).then((r) => r.json()).then((d) => { if (alive && d && d.ok) setHk((h) => ({ ...h, tir: d.tir_pct, cetes: d.cetes_1a_pct })); }).catch(() => {});
+    return () => { alive = false; };
+  }, [unit && unit.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (dev === undefined) return <Loading msg="Cargando…" />;
   if (!dev) return <Loading msg="No encontramos este desarrollo." />;
@@ -63,6 +85,18 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
   const askAtlax = () => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } }));
   const agendar = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.` } }));
+
+  // flujo invertir·institucional: eliges varias unidades en el Paso 2
+  const multi = lens === 'invertir' && invMode === 'institucional';
+  const fundUnits = (dev.units || []).filter((u) => u.status === 'disponible' && fundIds.includes(u.id));
+  const toggleFund = (id) => setFundIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const needUnit = multi ? fundUnits.length === 0 : !unit;
+  // ganchos vivos (texto)
+  const kM2 = (n) => (n != null ? `$${Math.round(n / 1000).toLocaleString('es-MX')}k/m²` : null);
+  const hookValor = hk.verdict ? `${hk.verdict}${hk.pm2 ? ` · ${kM2(hk.pm2)}` : ''}` : 'Precio justo, plusvalía y demanda real';
+  const hookInv = hk.tir != null ? `Rinde ${hk.tir.toFixed(1)}%${hk.cetes != null ? (hk.tir > hk.cetes ? ' · le gana a CETES' : ' · por debajo de CETES') : ''}` : 'TIR, cap rate, escenarios y Monte Carlo';
+  const hookPago = hk.mensual ? `Tu mensualidad ~${money(hk.mensual)} · crédito, plan y rentar-vs-comprar` : 'Crédito multi-banco, plan del dev y rentar-vs-comprar';
+  const hookZona = hk.metroMin ? `Metro ${hk.metroNom} a ${hk.metroMin} min · mapa, lugares y qué tan caminable` : 'Mapa, mejores lugares y qué tan caminable';
 
   return (
     <LightScope>
@@ -170,39 +204,75 @@ export default function FichaDesarrollo({ user, onLogin }) {
                     );
                   })}
                 </div>
-                <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>
-              </Section>
 
-              {/* ══ PASO 2 · LAS UNIDADES: elige tu depa ══ */}
-              <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title="Elige tu unidad">
-                <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} />
-              </Section>
-
-              {/* ══ PASO 3 · TU PANORAMA: con la unidad, los números a tu medida ══ */}
-              <Section id="panorama" eyebrow={`Paso 3 · Tu panorama${unit ? ` · unidad ${unit.unit_number}` : ''}`} title={lens === 'vivir' ? '¿Te queda esta unidad?' : 'Tu inversión, al detalle'}>
-                {!unit && (
-                  <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)' }}>
-                    💡 Elige una unidad arriba para tus números exactos. Mientras, te muestro con el precio de entrada.
+                {/* si elige invertir → aquí mismo Para ti / Institucional */}
+                {lens === 'invertir' && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>¿Para ti o institucional?</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => {
+                        const on = invMode === v;
+                        return (
+                          <button key={v} onClick={() => { setInvMode(v); }} style={{ textAlign: 'left', padding: '12px 18px', borderRadius: 13, cursor: 'pointer', border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(99,102,241,0.07)' : 'var(--surface-card)', color: on ? 'var(--theme)' : 'var(--cream)' }}>
+                            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14 }}>{l}</div>
+                            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginTop: 1 }}>{d}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-                {lens === 'vivir' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} />
-                    <SeccionDinero dev={dev} unit={unit} intent="vivir" />
-                    <SeccionUbicacion dev={dev} />
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <SeccionValor dev={dev} />
-                    <SeccionCalcInversion dev={dev} unit={unit} onGoTo={goTo} />
-                  </div>
-                )}
+                {lens && <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>}
+                {!lens && <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Elige arriba y la ficha se arma para ti, paso a paso.</div>}
               </Section>
 
-              {/* CONFIANZA — común a ambos lentes */}
-              <Section id="confianza" eyebrow="Sin letras chiquitas" title="¿Puedes confiar?">
-                <SeccionConfianza dev={dev} />
-              </Section>
+              {/* Los pasos 2 y 3 aparecen una vez que eligió el lente (se va descubriendo por pasos) */}
+              {lens && (
+                <>
+                  {/* ══ PASO 2 · ELIGE UNIDAD(ES) ══ */}
+                  <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title={multi ? 'Elige las unidades del fondo' : 'Elige tu unidad'}>
+                    <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
+                  </Section>
+
+                  {/* ══ PASO 3 · TU PANORAMA · módulos que se descubren al dar click ══ */}
+                  <Section id="panorama" eyebrow="Paso 3 · Tu panorama a la medida" title={lens === 'vivir' ? '¿Te queda esta unidad?' : 'Tu inversión, al detalle'}>
+                    {needUnit ? (
+                      <Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>{multi ? 'Elige una o más unidades arriba para armar el análisis del fondo.' : 'Elige tu unidad arriba para ver tus números exactos.'}</span>
+                        <button onClick={() => goTo('unidades')} style={{ padding: '10px 16px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Elegir ↑</button>
+                      </Card>
+                    ) : lens === 'vivir' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <Modulo forceOpen eyebrow="A tu medida" title="¿Te queda esta unidad?" hook="Responde 5 preguntas y te digo si te alcanza, tu enganche y tu mensualidad">
+                          <SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} />
+                        </Modulo>
+                        <Modulo eyebrow="Tu dinero" title="Cómo lo pagas" hook={hookPago}>
+                          <SeccionDinero dev={dev} unit={unit} intent="vivir" />
+                        </Modulo>
+                        <Modulo eyebrow="El entorno" title="La zona y el estilo de vida" hook={hookZona}>
+                          <SeccionUbicacion dev={dev} />
+                        </Modulo>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <Modulo eyebrow="La inteligencia" title="¿Es buen precio?" hook={hookValor}>
+                          <SeccionValor dev={dev} />
+                        </Modulo>
+                        <Modulo forceOpen eyebrow="Tu inversión" title="Los números de tu inversión" hook={hookInv}>
+                          <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
+                        </Modulo>
+                      </div>
+                    )}
+                  </Section>
+
+                  {/* CONFIANZA — colapsable, común a ambos lentes */}
+                  <div data-testid="confianza" id="confianza" style={{ marginTop: 'clamp(44px,5.5vw,68px)', scrollMarginTop: 112 }}>
+                    <Modulo eyebrow="Sin letras chiquitas" title="¿Puedes confiar?" hook="Desarrollador y track record · situación legal · riesgos honestos (sísmico, inundación, preventa)">
+                      <SeccionConfianza dev={dev} />
+                    </Modulo>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ——— Riel de decisión (sticky) — refleja la unidad elegida ——— */}

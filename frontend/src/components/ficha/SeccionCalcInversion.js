@@ -13,9 +13,7 @@ const money = (n) => (n != null ? `$${Number(n).toLocaleString('es-MX')}` : '—
 const pct = (n) => (n != null && !isNaN(n) ? `${Number(n).toFixed(1)}%` : '—');
 const SEM = { verde: '#059669', amarillo: '#B45309', rojo: '#DC2626', gris: '#8A8FA6' };
 
-export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
-  const [mode, setMode] = useState('individual');   // 'individual' (la unidad elegida) | 'institucional' (eliges varias)
-  const [selIds, setSelIds] = useState([]);         // institucional: ids de las unidades que ELIGE el fondo (multi-selección)
+export default function SeccionCalcInversion({ dev, unit, mode = 'individual', units = [], onGoTo }) {
   const [inv, setInv] = useState(null);             // contexto de inversión de la zona (renta_prom, cap_rate)
   const [result, setResult] = useState(null);       // resultado VIVO del calculador (para el resumen concreto)
   const [detalle, setDetalle] = useState(false);    // "ve los números a detalle" → muestra el calculador completo
@@ -28,18 +26,9 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
     return () => { alive = false; };
   }, [dev.colonia_id, dev.colonia]);
 
-  const dispo = (dev.units || []).filter((u) => u.status === 'disponible').sort((a, b) => (a.price || 0) - (b.price || 0));
-  const fondoUnits = dispo.filter((u) => selIds.includes(u.id));
+  const fondoUnits = units || [];   // unidades del fondo (institucional), elegidas ARRIBA en el Paso 2
   const mounted = (mode === 'individual' && unit) || (mode === 'institucional' && fondoUnits.length >= 1);
 
-  // al pasar a institucional, arranca con la unidad elegida arriba ya seleccionada (de ahí agregas más)
-  useEffect(() => {
-    if (mode === 'institucional' && selIds.length === 0 && unit) setSelIds([unit.id]);
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggleFondo = (id) => setSelIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-
-  // Descarga tu análisis = lead caliente + abre el calculador (donde vive el PDF real del motor).
   const descargarAnalisis = () => {
     try {
       window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'calc_inversion_pdf', devId: dev.id, devName: dev.name, unit: unit && unit.unit_number, tir_pct: result && result.tir_pct, precio: unit && unit.price } }));
@@ -50,61 +39,14 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
   return (
     <Card>
       <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 'clamp(20px,2.4vw,26px)', color: 'var(--cream)' }}>Veamos qué tan tuyo puede ser</div>
-      <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)', margin: '6px 0 18px' }}>El cálculo completo con TUS datos — enganche, crédito, lo que te deja al mes y cuánto vale en unos años.</div>
+      <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)', margin: '6px 0 14px' }}>El cálculo completo con TUS datos — enganche, crédito, lo que te deja al mes y cuánto vale en unos años.</div>
 
-      {/* ¿Para ti o institucional? */}
-      <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>¿Para ti o institucional?</div>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-        {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => {
-          const on = mode === v;
-          return (
-            <button key={v} onClick={() => setMode(v)} style={{ textAlign: 'left', padding: '12px 18px', borderRadius: 13, cursor: 'pointer', border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(109,74,255,0.07)' : 'var(--surface-card)', color: on ? 'var(--theme)' : 'var(--cream)' }}>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14 }}>{l}</div>
-              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginTop: 1 }}>{d}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* contexto: qué unidad(es) usa — conectado a lo elegido arriba */}
-      <div style={{ marginTop: 16 }}>
-        {mode === 'individual' ? (
-          unit ? (
-            <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>Calculando con tu unidad elegida: <b style={{ color: 'var(--cream)' }}>{unit.unit_number}</b> · {money(unit.price)}. <button onClick={() => onGoTo && onGoTo('unidades')} style={{ background: 'none', border: 'none', color: 'var(--theme)', fontFamily: SANS, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: 0 }}>cambiar ↑</button></div>
-          ) : (
-            <div style={{ padding: '13px 16px', borderRadius: 12, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.2)', fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span>Elige tu unidad arriba para calcular con sus números exactos.</span>
-              <button onClick={() => onGoTo && onGoTo('unidades')} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>Elegir unidad ↑</button>
-            </div>
-          )
-        ) : (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-              <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>Elige las unidades que compra el fondo:</div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setSelIds(dispo.map((u) => u.id))} style={{ background: 'none', border: 'none', color: 'var(--theme)', fontFamily: SANS, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>todas</button>
-                <button onClick={() => setSelIds([])} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>limpiar</button>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 9 }}>
-              {dispo.map((u) => {
-                const on = selIds.includes(u.id);
-                const m2 = u.m2_total || u.m2_privative;
-                return (
-                  <button key={u.id} onClick={() => toggleFondo(u.id)} style={{ position: 'relative', padding: '11px 12px', borderRadius: 12, cursor: 'pointer', textAlign: 'left', border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(109,74,255,0.06)' : 'var(--surface-card)' }}>
-                    {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: 'var(--theme)', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
-                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: on ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</div>
-                    <div style={{ fontFamily: SANS, fontSize: 10, color: 'var(--cream-3)', marginTop: 2 }}>{m2}m² · {u.bedrooms || '—'} rec</div>
-                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: '#059669', marginTop: 5 }}>{money(u.price)}</div>
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ fontFamily: SANS, fontSize: 12.5, color: fondoUnits.length ? 'var(--theme)' : 'var(--cream-3)', marginTop: 10, fontWeight: 700 }}>
-              {fondoUnits.length ? `✓ ${fondoUnits.length} ${fondoUnits.length === 1 ? 'unidad' : 'unidades'} · ${money(fondoUnits.reduce((s, u) => s + (u.price || 0), 0))} total` : 'Elige 1 o más unidades (un fondo también puede comprar una).'}
-            </div>
-          </div>
-        )}
+      {/* contexto: qué unidad(es) — elegidas arriba en el Paso 2 */}
+      <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>
+        {mode === 'individual'
+          ? <>Calculando con <b style={{ color: 'var(--cream)' }}>{unit.unit_number}</b> · {money(unit.price)}.</>
+          : <>Fondo de <b style={{ color: 'var(--cream)' }}>{fondoUnits.length} {fondoUnits.length === 1 ? 'unidad' : 'unidades'}</b> · {money(fondoUnits.reduce((s, u) => s + (u.price || 0), 0))} total.</>}
+        {' '}<button onClick={() => onGoTo && onGoTo('unidades')} style={{ background: 'none', border: 'none', color: 'var(--theme)', fontFamily: SANS, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: 0 }}>cambiar ↑</button>
       </div>
 
       {/* MOUNT · RESUMEN concreto + botón "ve los números a detalle" → calculador completo */}
@@ -152,7 +94,7 @@ export default function SeccionCalcInversion({ dev, unit, onGoTo }) {
           })() : <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Calculando tu inversión…</div>}
 
           {/* el calculador REAL — siempre montado (calcula + alimenta el resumen), visible al pedir el detalle */}
-          <div key={`${mode}-${unit ? unit.id : ''}-${selIds.join(',')}`} style={{ display: detalle ? 'block' : 'none', marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--card-border, var(--border))' }}>
+          <div key={`${mode}-${unit ? unit.id : ''}-${fondoUnits.map((u) => u.id).join(',')}`} style={{ display: detalle ? 'block' : 'none', marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--card-border, var(--border))' }}>
             <InversionV4Calculator
               mode={mode}
               prefilled={mode === 'individual' && unit ? { precio: unit.price, renta: inv && inv.renta_prom } : {}}

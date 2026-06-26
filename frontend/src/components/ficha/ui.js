@@ -2,7 +2,7 @@
  * Ficha · sistema visual ÚNICO (rebuild limpio). Una sola tarjeta, una sola sección, un solo Stat — para que TODA la ficha
  * use el mismo lenguaje (la lección de "todo mezclado": no más plano/gradiente/pill revueltos). Serif editorial en títulos.
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const SERIF = "'Playfair Display', Georgia, serif";
 export const SANS = "'DM Sans', sans-serif";
@@ -54,6 +54,26 @@ export function Stat({ value, label, accent, sub, sm }) {
       {sub && <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3 }}>{sub}</div>}
     </div>
   );
+}
+
+// Módulo COLAPSABLE (divulgación progresiva): CERRADO = tarjeta limpia con título + GANCHO VIVO (la respuesta con tu unidad) +
+// "Ver →". ABIERTO = encabezado simple + el contenido (que trae sus propias tarjetas, sin doble borde). `forceOpen` (cambia con
+// el perfil) re-aplica el auto-abrir (upgrade #2). Así la página no es mil scroll de golpe; se descubre por pasos.
+export function Modulo({ eyebrow, title, hook, forceOpen = false, children }) {
+  const [open, setOpen] = useState(forceOpen);
+  useEffect(() => { setOpen(forceOpen); }, [forceOpen]);
+  const Header = ({ inCard }) => (
+    <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: inCard ? 'clamp(16px,2.2vw,24px)' : '2px 0 14px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+      <div style={{ minWidth: 0 }}>
+        {eyebrow && <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--theme)' }}>{eyebrow}</div>}
+        <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 'clamp(20px,2.6vw,30px)', letterSpacing: '-0.01em', color: 'var(--cream)', margin: '6px 0 0', lineHeight: 1.08 }}>{title}</div>
+        {hook && !open && <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 8, lineHeight: 1.5 }}>{hook}</div>}
+      </div>
+      <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 15px', borderRadius: 9999, border: '1px solid var(--card-border, var(--border))', background: open ? 'transparent' : 'var(--surface-card)', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13 }}>{open ? 'Ocultar ▲' : 'Ver →'}</span>
+    </button>
+  );
+  if (!open) return <Card style={{ padding: 0, overflow: 'hidden' }}><Header inCard /></Card>;
+  return <div><Header /><div>{children}</div></div>;
 }
 
 // Botón primario (gradiente de marca) y secundario (contorno) — consistentes en toda la ficha.

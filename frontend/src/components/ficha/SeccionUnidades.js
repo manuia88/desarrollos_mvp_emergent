@@ -49,7 +49,7 @@ function specRows(u) {
 }
 const extras = (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.pet_friendly && 'Pet friendly'].filter(Boolean);
 
-export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoTo }) {
+export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoTo, multi = false, selectedIds = [], onToggleUnit }) {
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
@@ -121,12 +121,14 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 10 }}>
                     {r.us.slice().sort((a, b) => (a.status === 'disponible' ? -1 : 1) - (b.status === 'disponible' ? -1 : 1) || (a.price || 0) - (b.price || 0)).map((u) => {
                       const dispo = u.status === 'disponible';
-                      const sel = selectedUnit && selectedUnit.id === u.id;
+                      const sel = multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id);
                       const cmp = compare.includes(u.id);
                       const st = STATUS[u.status] || STATUS.disponible;
+                      const onCell = () => { if (!dispo) return; if (multi) { onToggleUnit && onToggleUnit(u.id); } else { onSelectUnit && onSelectUnit(sel ? null : u); } };
                       return (
-                        <div key={u.id} onClick={() => dispo && onSelectUnit && onSelectUnit(sel ? null : u)}
+                        <div key={u.id} onClick={onCell}
                           style={{ position: 'relative', padding: '12px 13px', borderRadius: 12, border: `1.5px solid ${sel ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: sel ? 'rgba(99,102,241,0.06)' : 'var(--surface-card)', cursor: dispo ? 'pointer' : 'default', opacity: dispo ? 1 : 0.55 }}>
+                          {multi && dispo && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', border: `1.5px solid ${sel ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: sel ? 'var(--theme)' : 'transparent', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{sel ? '✓' : ''}</span>}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{u.unit_number}</span>
                             <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: st.c, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.l}</span>
@@ -149,8 +151,24 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
         })}
       </div>
 
-      {/* unidad elegida — detalle rico (plano/render + ficha técnica + enlace a calculadoras) */}
-      {selectedUnit && (() => {
+      {/* institucional: resumen del fondo (multi-selección) */}
+      {multi && selectedIds.length > 0 && (() => {
+        const sel = units.filter((u) => selectedIds.includes(u.id));
+        const total = sel.reduce((s, u) => s + (u.price || 0), 0);
+        return (
+          <Card style={{ marginTop: 16, borderColor: 'var(--theme)', background: 'rgba(99,102,241,0.04)' }}>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>El fondo compra</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: 'var(--cream)', margin: '4px 0 2px' }}>{sel.length} {sel.length === 1 ? 'unidad' : 'unidades'} · {money(total)}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
+              {sel.map((u) => <span key={u.id} style={{ padding: '5px 11px', borderRadius: 9, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12, fontWeight: 600, color: 'var(--cream)' }}>{u.unit_number} · {money(u.price)}</span>)}
+            </div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginTop: 12 }}>↓ Tu análisis de inversión ya corre con este portafolio.</div>
+          </Card>
+        );
+      })()}
+
+      {/* unidad elegida — detalle rico (plano/render + ficha técnica + enlace a calculadoras) · solo selección individual */}
+      {!multi && selectedUnit && (() => {
         const u = selectedUnit;
         const plano = u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype];
         const fallbackImg = (dev.photos || [])[0];
