@@ -89,6 +89,7 @@ export default function StockSoldOut({ filters }) {
           <TrendingUp size={16} style={{ color: 'var(--theme)' }} />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--sa-text)', margin: 0 }}>Stock y Sold-Out</h3>
           <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(var(--theme-rgb),0.18)', color: 'var(--theme)' }}>Mercado Predictivo</span>
+          {d.inventario_demo && <span title="Inventario y absorción son datos demo del catálogo seed; la demanda (leads) sí es real" style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.16)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>⚠ Inventario demo</span>}
         </div>
         <p data-testid="ss-resumen" style={{ fontSize: 14, color: 'var(--sa-text)', lineHeight: 1.55, margin: 0, fontWeight: 600 }}>{d.resumen}</p>
         <div style={{ fontSize: 11.5, ...mute, marginTop: 8 }}>{d.fuente?.nota}</div>

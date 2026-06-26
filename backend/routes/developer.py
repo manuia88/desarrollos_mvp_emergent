@@ -82,6 +82,39 @@ async def _effective_units(db, dev_ids):
     return out
 
 
+def _elasticidad_label(cedio: str) -> str:
+    """Convierte el código de lo que el comprador cedió en texto legible para el dev."""
+    c = (cedio or "").strip()
+    if ":" in c:
+        _kind, val = c.split(":", 1)
+        return val.replace("_", " ").strip().capitalize()
+    M = {"baths": "Un baño menos", "beds": "Una recámara menos", "m2": "Menos m²", "m2_min": "Menos m²",
+         "precio": "Subir presupuesto", "precio_max": "Subir presupuesto", "zona": "Cambiar de zona",
+         "colonia": "Cambiar de colonia", "parking": "Menos cajones", "estacionamiento": "Menos cajones",
+         "amenidades": "Menos amenidades", "stage": "Otra etapa de obra"}
+    return M.get(c, c.replace("_", " ").capitalize())
+
+
+@router.get("/elasticidad")
+async def dev_elasticidad(request: Request):
+    """En qué TRANSIGE el comprador cuando no encuentra todo (lo que más relaja). Dato de oro para producto/precio del dev,
+    que antes solo veía el superadmin. Tendencia de mercado (CDMX) — `buyer_elasticidad` no guarda colonia. Fail-open."""
+    await require_dev_admin(request)
+    db = get_db(request)
+    rows = []
+    try:
+        cur = db.buyer_elasticidad.aggregate([
+            {"$group": {"_id": "$cedio", "n": {"$sum": 1}}},
+            {"$sort": {"n": -1}}, {"$limit": 12},
+        ])
+        async for r in cur:
+            if r.get("_id"):
+                rows.append({"cedio": r["_id"], "label": _elasticidad_label(r["_id"]), "n": r["n"]})
+    except Exception:
+        pass
+    return {"concesiones": rows, "total": sum(r["n"] for r in rows), "alcance": "mercado_cdmx"}
+
+
 @router.get("/dashboard")
 async def dashboard(request: Request):
     from data_developments import DEVELOPMENTS, ALL_UNITS

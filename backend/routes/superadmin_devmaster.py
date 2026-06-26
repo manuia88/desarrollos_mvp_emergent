@@ -1304,8 +1304,11 @@ async def _stock_soldout(db, zona=None, segmento=None, dev_ids=None):
         "receta_exito": receta,
         "forecast_precio": forecast,
         "acciones": acciones[:3],
+        # El inventario/estatus del catálogo es DEMO (generado del seed) hasta que entre inventario/ventas reales →
+        # absorción, sell-through y "espacio para subir precio" son ilustrativos, NO métricas reales. La demanda (leads) SÍ es real.
+        "inventario_demo": True,
         "fuente": {"proyectos": len(proyectos), "con_demanda": sum(1 for p in proyectos if p["leads"]),
-                   "nota": "La absorción usa ventas acumuladas sobre el tiempo en mercado; se afina con la serie real de ventas semanales."},
+                   "nota": "⚠️ Inventario y absorción son DATOS DEMO (catálogo seed) hasta que entre inventario/ventas reales. La demanda (leads) sí es real."},
     }
 
 
