@@ -584,34 +584,22 @@ async def create_lead(db, payload: Dict[str, Any], request=None) -> Dict[str, An
     if db is not None:
         try:
             await db[COLLECTION_LEADS].insert_one(lead_doc)
-            # Puente al CRM del asesor (idempotente) — antes el lead del cotizador quedaba HUÉRFANO
-            # (lead_captures sin bridge). Mapea el shape del cotizador al que espera el espejo.
+            # RUTA UNIFICADA (fix "dos/tres universos de leads"): antes el lead del cotizador quedaba SOLO en lead_captures
+            # → el DEV (cuyo cockpit lee db.leads por development_id) nunca lo veía. Ahora pasa por create_buyer_lead →
+            # escribe db.leads con development_id (el dev lo ve) + espeja al asesor con contexto + baja favoritos + dedup por
+            # visitor_id. El lead_captures de arriba se conserva como registro propio del cotizador (PDF/WhatsApp/audit).
             try:
-                from services.lead_bridge import mirror_lead_to_asesor_contacto
-                # CONTEXTO al asesor (antes el lead del cotizador llegaba CIEGO): desarrollo + lente + plan de pago elegido.
                 _interes = payload.get("interes") if isinstance(payload.get("interes"), dict) else {}
                 _ctx = (" · ".join(f"{k}: {v}" for k, v in _interes.items() if v)[:200] or None) if _interes else None
-                await mirror_lead_to_asesor_contacto(db, {
-                    "id": lead_id,
-                    "assigned_to": lead_doc.get("assigned_to"),
-                    "phone": whatsapp,
-                    "contact": {"name": name, "phone": whatsapp},
-                    "source": "cotizador",
-                    "development_id": property_id,          # el desarrollo del que cotizó (antes se perdía)
-                    "lente": audience,                      # vivir/invertir/familia…
-                    "unidad_interes": payload.get("unit_number") or payload.get("unit_id"),
-                    "contexto_registro": _ctx,              # plan de pago que eligió en el cotizador
-                })
-                # Favoritos/citas del comprador → tablero del asesor (igual que el path de la ficha)
-                _vid = payload.get("visitor_session_id")
-                if _vid:
-                    try:
-                        from routes.favoritos import mirror_favoritos_to_board
-                        await mirror_favoritos_to_board(db, _vid, lead_id)
-                    except Exception:
-                        pass
+                from routes.buyer_signals import create_buyer_lead
+                await create_buyer_lead(
+                    db, payload.get("visitor_session_id") or lead_id,
+                    name=name, phone=whatsapp, dev_id=property_id, source="cotizador",
+                    unit_number=(payload.get("unit_number") or payload.get("unit_id")),
+                    lens=audience, contexto=_ctx,
+                )
             except Exception as _bexc:  # noqa: BLE001
-                log.debug(f"[lead_capture] mirror skip: {_bexc}")
+                log.debug(f"[lead_capture] unified lead skip: {_bexc}")
         except Exception as e:  # noqa: BLE001
             log.warning(f"[lead_capture] insert lead failed: {e}")
 
