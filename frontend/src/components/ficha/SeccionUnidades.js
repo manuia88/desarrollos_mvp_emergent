@@ -35,8 +35,6 @@ const m2terr = (u) => u.m2_terrace ?? null;
 const m2roof = (u) => u.m2_roof_garden ?? u.m2_roof ?? null;
 const m2tot = (u) => u.m2_total ?? u.area_total ?? null;
 const totalBreakdown = (u) => { const p = m2priv(u); if (!p) return null; let s = `${p}`; if (m2balc(u) > 0) s += `+${m2balc(u)}bal`; if (m2terr(u) > 0) s += `+${m2terr(u)}ter`; if (m2roof(u) > 0) s += `+${m2roof(u)}rg`; return s.includes('+') ? s : null; };
-const PARKING_TYPE_LABELS = { individual: 'Individual', dependiente: 'Dependiente', bateria: 'Batería propia', tandem: 'Tándem' };
-const PARKING_TYPE_COLOR = { individual: '#15803d', bateria: '#c2410c', dependiente: '#b45309', tandem: '#7c3aed' };
 // Estados con los colores que pidió el founder: disponible VERDE · reservado/apartado NARANJA · vendido ROJO.
 const ESTADO = {
   disponible: { label: 'Disponible', color: '#15803d', bg: 'rgba(34,197,94,0.13)', bd: 'rgba(34,197,94,0.42)' },
@@ -46,27 +44,21 @@ const ESTADO = {
   bloqueado:  { label: 'No disponible', color: '#64748b', bg: 'rgba(100,116,139,0.13)', bd: 'rgba(100,116,139,0.4)' },
 };
 const EstadoChip = ({ status }) => { const c = ESTADO[status] || ESTADO.disponible; return <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.bd}`, fontFamily: SANS, fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 7, whiteSpace: 'nowrap' }}>{c.label}</span>; };
-const tipoCajon = (u) => <span style={{ color: PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-3)', fontWeight: 700, fontSize: 12 }}>{PARKING_TYPE_LABELS[u.parking_type] || '—'}</span>;
-// Bandas de categoría (como la imagen) + columnas con su getter para ordenar.
+// Bandas de categoría (solo las 4 que pidió el founder) + columnas con su getter para ordenar.
 const CATS = [
   { label: 'Unidad', span: 3, rgb: '100,116,139', fg: '#334155' },
   { label: 'M² desglosados', span: 5, rgb: '56,150,230', fg: '#1e40af' },
   { label: 'Características', span: 3, rgb: '139,92,246', fg: '#5b21b6' },
-  { label: 'Adicionales', span: 3, rgb: '99,102,241', fg: '#3730a3' },
   { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#15803d' },
-  { label: '', span: 1, rgb: null, fg: 'transparent' },
 ];
 const HEADS = [
   ['ID', 'unit_number', false], ['PROTO.', 'prototype', false], ['NIVEL', 'level', true],
   ['M² PRIV.', 'm2priv', true], ['BALCÓN', 'm2balc', true], ['TERRAZA', 'm2terr', true], ['RG PRIV.', 'm2roof', true], ['M² TOTALES', 'm2tot', true],
   ['REC.', 'bedrooms', true], ['BAÑOS', 'bathrooms', true], ['CAJONES', 'parking_spots', true],
-  ['TIPO CAJÓN', 'parking_type', false], ['BODEGA', 'bodega', false], ['VISTA', 'vista', false],
-  ['PRECIO', 'price', true], ['ESTADO', 'status', false], ['', '', false],
+  ['PRECIO', 'price', true], ['ESTADO', 'status', false],
 ];
 const GET = { unit_number: (u) => u.unit_number || '', prototype: (u) => u.prototype || '', level: (u) => u.level ?? 0, m2priv: (u) => m2priv(u) || 0, m2balc: (u) => m2balc(u) || 0, m2terr: (u) => m2terr(u) || 0, m2roof: (u) => m2roof(u) || 0, m2tot: (u) => m2tot(u) || 0, bedrooms: (u) => u.bedrooms ?? 0, bathrooms: (u) => u.bathrooms ?? 0, parking_spots: (u) => u.parking_spots ?? 0, parking_type: (u) => u.parking_type || '', bodega: (u) => (u.bodega ? 1 : 0), vista: (u) => u.vista || '', price: (u) => u.price ?? 0, status: (u) => u.status || '' };
 const LISTA_PAGE = 15;
-const muLbl = { fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const muVal = { fontFamily: SANS, fontSize: 13, color: 'var(--cream)', marginTop: 3 };
 const pgBtn = (off) => ({ background: 'var(--surface-card)', color: off ? 'var(--cream-3)' : 'var(--cream)', border: '1px solid var(--card-border, var(--border))', borderRadius: 9, padding: '7px 15px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700, cursor: off ? 'default' : 'pointer', opacity: off ? 0.5 : 1 });
 
 // Vista: clasifica interior/exterior (como en lista de precios) y conserva el matiz real.
@@ -102,7 +94,6 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   });
   const [sort, setSort] = useState({ col: 'unit_number', dir: 'asc' });
   const [page, setPage] = useState(1);
-  const [expandedId, setExpandedId] = useState(null); // fila "+ Info" abierta
   useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview', view); } catch (e) { /* noop */ } }, [view]);
   useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
   const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
@@ -198,8 +189,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const lj = { padding: '8px 9px', fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' };
                   const bl = { borderLeft: '1px solid rgba(16,18,28,0.06)' };
                   return (
-                    <React.Fragment key={u.id}>
-                    <tr onClick={() => cotizar(u)} style={{ borderBottom: '1px solid rgba(16,18,28,0.06)', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.08)' : 'transparent', boxShadow: sel ? 'inset 3px 0 0 var(--theme)' : 'none', opacity: dispo ? 1 : 0.55 }}>
+                    <tr key={u.id} onClick={() => cotizar(u)} style={{ borderBottom: '1px solid rgba(16,18,28,0.06)', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.08)' : 'transparent', boxShadow: sel ? 'inset 3px 0 0 var(--theme)' : 'none', opacity: dispo ? 1 : 0.55 }}>
                       {/* UNIDAD */}
                       <td style={{ ...lj, fontFamily: HEAD, fontSize: 13, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</td>
                       <td style={{ ...lj }}><span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(16,18,28,0.06)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{u.prototype || '—'}</span></td>
@@ -214,37 +204,10 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                       <td style={{ ...lj, ...bl }}>{u.bedrooms ?? '—'}</td>
                       <td style={{ ...lj }}>{u.bathrooms ?? '—'}</td>
                       <td style={{ ...lj }}>{u.parking_spots ?? '—'}</td>
-                      {/* ADICIONALES */}
-                      <td style={{ ...lj, ...bl }}>{tipoCajon(u)}</td>
-                      <td style={{ ...lj }}><span style={{ color: u.bodega ? '#15803d' : 'var(--cream-3)', fontWeight: 700, fontSize: 12 }}>{u.bodega ? '✓ Incl.' : '—'}</span></td>
-                      <td style={{ ...lj }}>{u.vista || '—'}</td>
                       {/* PRECIO */}
                       <td style={{ ...lj, ...bl, fontFamily: HEAD, fontSize: 12.5, fontWeight: 800, color: 'var(--cream)' }}>{fmtFull(u.price)}</td>
                       <td style={{ ...lj }}><EstadoChip status={u.status} /></td>
-                      {/* ACCIONES */}
-                      <td style={{ ...lj }}>
-                        <div style={{ display: 'inline-flex', gap: 6 }}>
-                          {dispo && <button onClick={(e) => { e.stopPropagation(); cotizar(u); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: sel ? 'var(--cream)' : 'var(--grad)', border: 'none', color: '#fff', borderRadius: 9999, padding: '4px 13px', fontFamily: HEAD, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>{sel ? '✓ Elegida' : '💲 Cotizar'}</button>}
-                          <button onClick={(e) => { e.stopPropagation(); setExpandedId((x) => (x === u.id ? null : u.id)); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,18,28,0.05)', border: '1px solid var(--card-border, var(--border))', color: 'var(--cream-2)', borderRadius: 9999, padding: '4px 11px', fontFamily: HEAD, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>{expandedId === u.id ? '− Info' : '+ Info'}</button>
-                        </div>
-                      </td>
                     </tr>
-                    {expandedId === u.id && (
-                      <tr style={{ background: 'rgba(16,18,28,0.025)' }}>
-                        <td colSpan={17} style={{ padding: '14px 18px', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, alignItems: 'flex-start' }}>
-                            <div><div style={muLbl}>Superficie</div><div style={muVal}>{m2line(u) || '—'}</div></div>
-                            <div><div style={muLbl}>Distribución</div><div style={muVal}>{[u.bedrooms != null && `${u.bedrooms} rec`, u.bathrooms != null && `${u.bathrooms} baños`, u.parking_spots != null && `${u.parking_spots} cajón${u.parking_spots === 1 ? '' : 'es'}`].filter(Boolean).join(' · ') || '—'}</div></div>
-                            <div><div style={muLbl}>Cajón · bodega</div><div style={muVal}>{PARKING_TYPE_LABELS[u.parking_type] || '—'}{u.bodega ? ' · bodega incl.' : ''}</div></div>
-                            <div><div style={muLbl}>Vista</div><div style={muVal}>{u.vista || '—'}</div></div>
-                            {extras(u).length > 0 && <div><div style={muLbl}>Extras</div><div style={muVal}>{extras(u).join(' · ')}</div></div>}
-                            <div style={{ marginLeft: 'auto' }}><div style={muLbl}>Precio</div><div style={{ ...muVal, fontFamily: HEAD, fontSize: 18, fontWeight: 800, color: 'var(--cream)' }}>{fmtFull(u.price)}</div></div>
-                            {dispo && <button onClick={() => cotizar(u)} style={{ alignSelf: 'center', background: sel ? 'var(--cream)' : 'var(--grad)', border: 'none', color: '#fff', borderRadius: 11, padding: '10px 18px', fontFamily: HEAD, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>{sel ? '✓ Elegida — ver números' : '💲 Cotizar esta unidad'}</button>}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    </React.Fragment>
                   );
                 })}
               </tbody>
