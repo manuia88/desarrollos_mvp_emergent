@@ -34,14 +34,33 @@ function Loading({ msg }) {
   return <LightScope><PublicNav /><div style={{ paddingTop: 170, textAlign: 'center', fontFamily: SANS, color: 'var(--cream-3)' }}>{msg}</div></LightScope>;
 }
 
+// Paso COMPLETADO → barra compacta (✓ + lo elegido + 'cambiar'). Mantiene el ancla para el nav/cockpit.
+function StepBar({ anchor, eyebrow, label, onEdit }) {
+  return (
+    <div data-testid={anchor} id={anchor} style={{ marginTop: 'clamp(20px,3vw,32px)', scrollMarginTop: 112 }}>
+      <Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '13px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <span style={{ width: 24, height: 24, borderRadius: 9999, background: '#059669', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>✓</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{eyebrow}</div>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+          </div>
+        </div>
+        <button onClick={onEdit} style={{ background: 'transparent', border: '1px solid var(--card-border, var(--border))', borderRadius: 10, padding: '8px 14px', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0 }}>Cambiar ✎</button>
+      </Card>
+    </div>
+  );
+}
+
 
 export default function FichaDesarrollo({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
   const [unit, setUnit] = useState(null);   // unidad elegida → alimenta riel + el análisis del lente (granularidad por unidad)
   const [lens, setLens] = useState(null);   // EL LENTE: organiza la página (vivir | invertir) · null = aún no elige (paso 1)
-  const [invMode, setInvMode] = useState('individual'); // invertir: 'individual' (para ti) | 'institucional' (fondo)
+  const [invMode, setInvMode] = useState(null); // invertir: 'individual' (para ti) | 'institucional' (fondo) · null = aún no elige
   const [fundIds, setFundIds] = useState([]); // institucional: unidades elegidas (multi)
+  const [editStep, setEditStep] = useState(null); // 're-editar' un paso completado ('lente' | 'unidades')
   const [hk, setHk] = useState({});         // ganchos VIVOS de cada módulo (la respuesta con tu unidad, sin abrir)
   const [leadModal, setLeadModal] = useState(null); // {reason} cuando hay alto intento → captura → asesor
 
@@ -52,6 +71,10 @@ export default function FichaDesarrollo({ user, onLogin }) {
     window.addEventListener('dmx:lead', onLead);
     return () => window.removeEventListener('dmx:lead', onLead);
   }, []);
+  // REVELADO SECUENCIAL: al completar el paso 1 (lente + modo si invierte) → baja al paso 2. Al elegir unidad → baja al paso 3.
+  const scrollTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 130); };
+  useEffect(() => { if (lens && (lens === 'vivir' || invMode)) scrollTo('unidades'); }, [lens, invMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (unit) scrollTo('panorama'); }, [unit && unit.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
@@ -108,8 +131,12 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const hookZona = hk.metroMin ? `Metro ${hk.metroNom} a ${hk.metroMin} min · mapa, lugares y qué tan caminable` : 'Mapa, mejores lugares y qué tan caminable';
 
   // ── SENSOR (upgrade): cada elección/módulo abierto → señal (alimenta lead score + analítica del dev) ──
-  const chooseLens = (k) => { setLens(k); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
-  const pickUnit = (u) => { setUnit(u); if (u) { try { sendBuyerSignal('unit_view', { dev_id: dev.id, unit: u.unit_number, price: u.price }); } catch (e) { /* noop */ } } };
+  const chooseLens = (k) => { setLens(k); if (k === 'vivir') setEditStep(null); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
+  const chooseMode = (v) => { setInvMode(v); setEditStep(null); };
+  const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); try { sendBuyerSignal('unit_view', { dev_id: dev.id, unit: u.unit_number, price: u.price }); } catch (e) { /* noop */ } } };
+  // pasos completados (para colapsarlos a una barra compacta)
+  const paso1Done = !!(lens && (lens === 'vivir' || invMode));
+  const paso2Done = paso1Done && !needUnit;
   const signalModule = (m) => { try { sendBuyerSignal('module_open', { dev_id: dev.id, module: m, lens, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } };
   // cockpit "Tu decisión": el número clave del lente (gancho vivo)
   const keyAns = lens === 'invertir' ? (hk.tir != null ? `Rinde ${hk.tir.toFixed(1)}%${hk.cetes != null ? (hk.tir > hk.cetes ? ' · le gana a CETES' : ' · debajo de CETES') : ''}` : null) : (hk.mensual ? `Mensualidad ~${money(hk.mensual)}` : null);
@@ -205,7 +232,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 </Section>
               )}
 
-              {/* ══ PASO 1 · EL LENTE: ¿para qué lo quieres? ══ */}
+              {/* ══ PASO 1 · EL LENTE (full si no completo / re-editando; si no, barra compacta) ══ */}
+              {(!paso1Done || editStep === 'lente') ? (
               <Section id="lente" eyebrow="Paso 1 · ¿Para qué lo quieres?" title="Empieza por aquí">
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   {[['vivir', '🏠', 'Para vivir', 'Estilo de vida, zona y tu pago a la medida'], ['invertir', '📈', 'Para invertir', 'Rendimiento, plusvalía y análisis de fondo']].map(([k, ic, t, d]) => {
@@ -230,7 +258,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                       {[['individual', '👤 Para ti', 'Compras 1 departamento'], ['institucional', '🏛️ Institucional', 'Un fondo compra 2 o más']].map(([v, l, d]) => {
                         const on = invMode === v;
                         return (
-                          <button key={v} onClick={() => { setInvMode(v); }} style={{ textAlign: 'left', padding: '12px 18px', borderRadius: 13, cursor: 'pointer', border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(99,102,241,0.07)' : 'var(--surface-card)', color: on ? 'var(--theme)' : 'var(--cream)' }}>
+                          <button key={v} onClick={() => chooseMode(v)} style={{ textAlign: 'left', padding: '12px 18px', borderRadius: 13, cursor: 'pointer', border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(99,102,241,0.07)' : 'var(--surface-card)', color: on ? 'var(--theme)' : 'var(--cream)' }}>
                             <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14 }}>{l}</div>
                             <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', marginTop: 1 }}>{d}</div>
                           </button>
@@ -242,23 +270,24 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 {lens && <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>}
                 {!lens && <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Elige arriba y la ficha se arma para ti, paso a paso.</div>}
               </Section>
+              ) : (
+                <StepBar anchor="lente" eyebrow="Paso 1 · ¿Para qué?" label={lensLabel || 'Elegido'} onEdit={() => setEditStep('lente')} />
+              )}
 
-              {/* Los pasos 2 y 3 aparecen una vez que eligió el lente (se va descubriendo por pasos) */}
-              {lens && (
-                <>
-                  {/* ══ PASO 2 · ELIGE UNIDAD(ES) ══ */}
+              {/* ══ PASO 2 · ELIGE UNIDAD(ES) — solo tras completar el paso 1 (encadenado) ══ */}
+              {paso1Done && ((!paso2Done || editStep === 'unidades') ? (
                   <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title={multi ? 'Elige las unidades del fondo' : 'Elige tu unidad'}>
                     <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
                   </Section>
+              ) : (
+                <StepBar anchor="unidades" eyebrow="Paso 2 · Tu unidad" label={unit ? `Unidad ${unit.unit_number} · ${money(unit.price)}` : `${fundUnits.length} unidades del fondo`} onEdit={() => setEditStep('unidades')} />
+              ))}
 
-                  {/* ══ PASO 3 · TU PANORAMA · módulos que se descubren al dar click ══ */}
+              {/* ══ PASO 3 · TU PANORAMA — solo tras elegir unidad (encadenado) ══ */}
+              {paso2Done && (
+                <>
                   <Section id="panorama" eyebrow="Paso 3 · Tu panorama a la medida" title={lens === 'vivir' ? '¿Te queda esta unidad?' : 'Tu inversión, al detalle'}>
-                    {needUnit ? (
-                      <Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>{multi ? 'Elige una o más unidades arriba para armar el análisis del fondo.' : 'Elige tu unidad arriba para ver tus números exactos.'}</span>
-                        <button onClick={() => goTo('unidades')} style={{ padding: '10px 16px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Elegir ↑</button>
-                      </Card>
-                    ) : lens === 'vivir' ? (
+                    {lens === 'vivir' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <Modulo forceOpen onOpen={() => signalModule('vivir_panorama')} eyebrow="A tu medida" title="¿Te queda esta unidad?" hook="Responde 5 preguntas y te digo si te alcanza, tu enganche y tu mensualidad">
                           <SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} />
