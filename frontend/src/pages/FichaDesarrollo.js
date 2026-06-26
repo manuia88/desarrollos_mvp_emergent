@@ -64,6 +64,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const [hk, setHk] = useState({});         // ganchos VIVOS de cada módulo (la respuesta con tu unidad, sin abrir)
   const [leadModal, setLeadModal] = useState(null); // {reason} cuando hay alto intento → captura → asesor
   const [savedUnits, setSavedUnits] = useState(() => new Set()); // unidades que el comprador GUARDÓ (unit_save) → embudo dev + superadmin + /favoritos
+  const [showPanorama, setShowPanorama] = useState(false); // el panorama/inversión NO se muestra hasta que el usuario da 'Ver mi panorama' (no auto al elegir unidad)
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   // CIERRE DE CICLO: cualquier 'dmx:lead' (wizard #5, PDF, comparador, agendar) abre la captura → /api/buyer/registrar → asesor.
@@ -77,6 +78,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   useEffect(() => { if (lens && (lens === 'vivir' || invMode)) scrollTo('unidades'); }, [lens, invMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // NO auto-saltamos al panorama al elegir unidad: primero mostramos el DETALLE (características, plano, ficha técnica) en
   // la propia sección de unidades; el usuario avanza con el botón "Ver mi panorama con esta unidad ↓". Menos brinco.
+  useEffect(() => { setShowPanorama(false); }, [unit && unit.id]); // al cambiar de unidad → re-oculta el panorama (detalle primero)
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
@@ -130,7 +132,10 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const tipo = tipoMap[dev.property_type] || (dev.property_type ? dev.property_type[0].toUpperCase() + dev.property_type.slice(1) : null);
   const pagos = [...(cfg.formas_pago ? ['Preventa con mensualidades', 'Contado con descuento'] : []), 'Crédito hipotecario'];
 
-  const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
+  const goTo = (anchor) => {
+    if (anchor === 'panorama') setShowPanorama(true);   // revelar el panorama/inversión SOLO con acción explícita
+    setTimeout(() => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }, anchor === 'panorama' ? 130 : 0);
+  };
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number, lens, decision: { lens: lensLabel, unit: unit && unit.unit_number, key: keyAns } } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
@@ -325,8 +330,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
                   </Section>
               )}
 
-              {/* ══ PASO 3 · TU PANORAMA — solo tras elegir unidad (encadenado) ══ */}
-              {paso2Done && (
+              {/* ══ PASO 3 · TU PANORAMA — solo tras elegir unidad Y dar 'Ver mi panorama' (individual); el fondo lo muestra directo ══ */}
+              {paso2Done && (multi || showPanorama) && (
                 <>
                   <Section id="panorama" eyebrow="Paso 3 · Tu panorama a la medida" title={lens === 'vivir' ? '¿Te queda esta unidad?' : 'Tu inversión, al detalle'}>
                     {lens === 'vivir' ? (
