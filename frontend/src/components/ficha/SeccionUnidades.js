@@ -26,6 +26,49 @@ function escasez(avail, total) {
   return { txt: `${avail} disponibles`, c: '#059669', urgente: false };
 }
 
+// ════ LISTA DE PRECIOS (diseño de VentasTab · portal dev) — helpers + estados + columnas ════
+const fmtFull = (v) => (v || v === 0) ? `$${Number(v).toLocaleString('es-MX')}` : '—';
+const fm2 = (v) => (v || v === 0) ? `${v} m²` : '—';
+const m2priv = (u) => u.m2_privative ?? u.m2_priv ?? null;
+const m2balc = (u) => u.m2_balcony ?? u.m2_balcon ?? null;
+const m2terr = (u) => u.m2_terrace ?? null;
+const m2roof = (u) => u.m2_roof_garden ?? u.m2_roof ?? null;
+const m2tot = (u) => u.m2_total ?? u.area_total ?? null;
+const totalBreakdown = (u) => { const p = m2priv(u); if (!p) return null; let s = `${p}`; if (m2balc(u) > 0) s += `+${m2balc(u)}bal`; if (m2terr(u) > 0) s += `+${m2terr(u)}ter`; if (m2roof(u) > 0) s += `+${m2roof(u)}rg`; return s.includes('+') ? s : null; };
+const PARKING_TYPE_LABELS = { individual: 'Individual', dependiente: 'Dependiente', bateria: 'Batería propia', tandem: 'Tándem' };
+const PARKING_TYPE_COLOR = { individual: '#15803d', bateria: '#c2410c', dependiente: '#b45309', tandem: '#7c3aed' };
+// Estados con los colores que pidió el founder: disponible VERDE · reservado/apartado NARANJA · vendido ROJO.
+const ESTADO = {
+  disponible: { label: 'Disponible', color: '#15803d', bg: 'rgba(34,197,94,0.13)', bd: 'rgba(34,197,94,0.42)' },
+  reservado:  { label: 'Reservado',  color: '#c2410c', bg: 'rgba(249,115,22,0.14)', bd: 'rgba(249,115,22,0.42)' },
+  apartado:   { label: 'Apartado',   color: '#c2410c', bg: 'rgba(249,115,22,0.14)', bd: 'rgba(249,115,22,0.42)' },
+  vendido:    { label: 'Vendido',    color: '#b91c1c', bg: 'rgba(224,70,61,0.12)', bd: 'rgba(224,70,61,0.38)' },
+  bloqueado:  { label: 'No disponible', color: '#64748b', bg: 'rgba(100,116,139,0.13)', bd: 'rgba(100,116,139,0.4)' },
+};
+const EstadoChip = ({ status }) => { const c = ESTADO[status] || ESTADO.disponible; return <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.bd}`, fontFamily: SANS, fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 7, whiteSpace: 'nowrap' }}>{c.label}</span>; };
+const tipoCajon = (u) => <span style={{ color: PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-3)', fontWeight: 700, fontSize: 12 }}>{PARKING_TYPE_LABELS[u.parking_type] || '—'}</span>;
+// Bandas de categoría (como la imagen) + columnas con su getter para ordenar.
+const CATS = [
+  { label: 'Unidad', span: 3, rgb: '100,116,139', fg: '#334155' },
+  { label: 'M² desglosados', span: 5, rgb: '56,150,230', fg: '#1e40af' },
+  { label: 'Características', span: 3, rgb: '139,92,246', fg: '#5b21b6' },
+  { label: 'Adicionales', span: 3, rgb: '99,102,241', fg: '#3730a3' },
+  { label: 'Precio', span: 2, rgb: '34,197,94', fg: '#15803d' },
+  { label: '', span: 1, rgb: null, fg: 'transparent' },
+];
+const HEADS = [
+  ['ID', 'unit_number', false], ['PROTO.', 'prototype', false], ['NIVEL', 'level', true],
+  ['M² PRIV.', 'm2priv', true], ['BALCÓN', 'm2balc', true], ['TERRAZA', 'm2terr', true], ['RG PRIV.', 'm2roof', true], ['M² TOTALES', 'm2tot', true],
+  ['REC.', 'bedrooms', true], ['BAÑOS', 'bathrooms', true], ['CAJONES', 'parking_spots', true],
+  ['TIPO CAJÓN', 'parking_type', false], ['BODEGA', 'bodega', false], ['VISTA', 'vista', false],
+  ['PRECIO', 'price', true], ['ESTADO', 'status', false], ['', '', false],
+];
+const GET = { unit_number: (u) => u.unit_number || '', prototype: (u) => u.prototype || '', level: (u) => u.level ?? 0, m2priv: (u) => m2priv(u) || 0, m2balc: (u) => m2balc(u) || 0, m2terr: (u) => m2terr(u) || 0, m2roof: (u) => m2roof(u) || 0, m2tot: (u) => m2tot(u) || 0, bedrooms: (u) => u.bedrooms ?? 0, bathrooms: (u) => u.bathrooms ?? 0, parking_spots: (u) => u.parking_spots ?? 0, parking_type: (u) => u.parking_type || '', bodega: (u) => (u.bodega ? 1 : 0), vista: (u) => u.vista || '', price: (u) => u.price ?? 0, status: (u) => u.status || '' };
+const LISTA_PAGE = 15;
+const muLbl = { fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const muVal = { fontFamily: SANS, fontSize: 13, color: 'var(--cream)', marginTop: 3 };
+const pgBtn = (off) => ({ background: 'var(--surface-card)', color: off ? 'var(--cream-3)' : 'var(--cream)', border: '1px solid var(--card-border, var(--border))', borderRadius: 9, padding: '7px 15px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700, cursor: off ? 'default' : 'pointer', opacity: off ? 0.5 : 1 });
+
 // Vista: clasifica interior/exterior (como en lista de precios) y conserva el matiz real.
 const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : `Exterior · ${v}`));
 const m2line = (u) => {
@@ -57,9 +100,12 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
     try { const v = localStorage.getItem('dmx.ficha.unitview'); if (v) return v; } catch (e) { /* noop */ }
     return (typeof window !== 'undefined' && window.innerWidth <= 760) ? 'tarjetas' : 'lista';
   });
-  const [sort, setSort] = useState({ col: 'price', dir: 'asc' });
+  const [sort, setSort] = useState({ col: 'unit_number', dir: 'asc' });
+  const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState(null); // fila "+ Info" abierta
   useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview', view); } catch (e) { /* noop */ } }, [view]);
-  const sortBy = (col) => setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }));
+  useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
+  const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
   const detailRef = useRef(null);
   // al elegir unidad → llevar el detalle a la vista (para que SÍ se note la selección)
   useEffect(() => {
@@ -90,24 +136,19 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const compareUnits = compare.map((id) => units.find((u) => u.id === id)).filter(Boolean);
   const totalAvail = units.filter((u) => u.status === 'disponible').length;
 
-  // vista LISTA · columnas ordenables (lista de precios)
-  const COLS = [
-    ['unit_number', 'Unidad', (u) => u.unit_number, false],
-    ['level', 'Piso', (u) => u.level, true],
-    ['m2', 'm²', (u) => u.m2_total || u.m2_privative, true],
-    ['bedrooms', 'Rec', (u) => u.bedrooms, true],
-    ['bathrooms', 'Baños', (u) => u.bathrooms, true],
-    ['vista', 'Vista', (u) => u.vista, false],
-    ['pm2', '$/m²', (u) => { const a = u.m2_total || u.m2_privative; return a ? Math.round((u.price || 0) / a) : null; }, true],
-    ['price', 'Precio', (u) => u.price, true],
-  ];
-  const getter = Object.fromEntries(COLS.map(([k, , g]) => [k, g]));
+  // vista LISTA · lista de precios ordenable + paginada (15)
   const sortedUnits = units.slice().sort((a, b) => {
-    const g = getter[sort.col] || ((u) => u.price);
+    const g = GET[sort.col] || GET.unit_number;
     const va = g(a), vb = g(b);
-    const c = (typeof va === 'number' && typeof vb === 'number') ? (va - vb) : String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb));
+    const c = (typeof va === 'number' && typeof vb === 'number') ? (va - vb) : String(va).localeCompare(String(vb), 'es', { numeric: true });
     return sort.dir === 'asc' ? c : -c;
   });
+  const totalPages = Math.max(1, Math.ceil(sortedUnits.length / LISTA_PAGE));
+  const pageSafe = Math.min(page, totalPages);
+  const paged = sortedUnits.slice((pageSafe - 1) * LISTA_PAGE, pageSafe * LISTA_PAGE);
+  const colCats = []; CATS.forEach((c, ci) => { for (let k = 0; k < c.span; k++) colCats.push({ ...c, first: k === 0, ci }); });
+  const selId = (u) => (multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id));
+  const cotizar = (u) => { if (u.status !== 'disponible') return; if (multi) { onToggleUnit && onToggleUnit(u.id); } else { onSelectUnit && onSelectUnit(selId(u) ? null : u); } };
 
   return (
     <div>
@@ -124,49 +165,101 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
         </div>
       </div>
 
-      {/* ── VISTA LISTA · lista de precios ordenable ── */}
+      {/* ── VISTA LISTA · lista de precios (diseño VentasTab) — bandas + 16 columnas + Cotizar/+Info + paginación 15 ── */}
       {view === 'lista' && (
+        <>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1080 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--card-border, var(--border))' }}>
-                  <th style={{ width: 30 }} />
-                  {COLS.map(([key, label, , num]) => (
-                    <th key={key} onClick={() => sortBy(key)} style={{ textAlign: num ? 'right' : 'left', padding: '11px 12px', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: sort.col === key ? 'var(--theme)' : 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
-                      {label}{sort.col === key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
-                    </th>
+                {/* fila 1 · bandas de categoría */}
+                <tr>
+                  {CATS.map((g, i) => (
+                    <th key={i} colSpan={g.span} style={{ padding: g.label ? '7px 12px' : 0, textAlign: 'center', fontFamily: SANS, fontSize: 10, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.34)` : 'transparent', borderBottom: g.rgb ? `2px solid rgba(${g.rgb},0.8)` : '1px solid var(--card-border, var(--border))', borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(16,18,28,0.1)' : 'none' }}>{g.label}</th>
                   ))}
-                  <th style={{ textAlign: 'right', padding: '11px 12px', fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Estado</th>
+                </tr>
+                {/* fila 2 · columnas (ordenables) */}
+                <tr>
+                  {HEADS.map(([label, key, num], idx) => {
+                    const c = colCats[idx] || {};
+                    const active = sort.col === key;
+                    return (
+                      <th key={idx} onClick={() => sortBy(key)} style={{ padding: '8px 9px', textAlign: num ? 'right' : 'left', fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: active ? 'var(--theme)' : (c.rgb ? c.fg : 'var(--cream-3)'), background: c.rgb ? `rgba(${c.rgb},0.11)` : 'transparent', borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.45)` : '1px solid var(--card-border, var(--border))', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: key ? 'pointer' : 'default', userSelect: 'none', borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none' }}>
+                        {label}{active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {sortedUnits.map((u) => {
+                {paged.map((u) => {
                   const dispo = u.status === 'disponible';
-                  const sel = multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id);
-                  const st = STATUS[u.status] || STATUS.disponible;
-                  const m2 = u.m2_total || u.m2_privative;
-                  const pm2 = m2 ? Math.round((u.price || 0) / m2) : null;
-                  const onRow = () => { if (!dispo) return; if (multi) onToggleUnit && onToggleUnit(u.id); else onSelectUnit && onSelectUnit(sel ? null : u); };
+                  const sel = selId(u);
+                  const lj = { padding: '8px 9px', fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap' };
+                  const bl = { borderLeft: '1px solid rgba(16,18,28,0.06)' };
                   return (
-                    <tr key={u.id} onClick={onRow} style={{ borderBottom: '1px solid var(--card-border, var(--border))', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.07)' : 'transparent', opacity: dispo ? 1 : 0.5 }}>
-                      <td style={{ textAlign: 'center', color: sel ? 'var(--theme)' : 'var(--cream-3)', fontWeight: 800 }}>{dispo ? (sel ? '✓' : '○') : '·'}</td>
-                      <td style={{ padding: '11px 12px', fontFamily: HEAD, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.level}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{m2}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.bedrooms ?? '—'}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-2)' }}>{u.bathrooms ?? '—'}</td>
-                      <td style={{ padding: '11px 12px', color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{u.vista || '—'}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', color: 'var(--cream-3)' }}>{pm2 ? `$${pm2.toLocaleString('es-MX')}` : '—'}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', fontFamily: HEAD, fontWeight: 800, color: 'var(--cream)', whiteSpace: 'nowrap' }}>{money(u.price)}</td>
-                      <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 700, color: st.c, whiteSpace: 'nowrap', fontSize: 12 }}>{st.l}</td>
+                    <React.Fragment key={u.id}>
+                    <tr onClick={() => cotizar(u)} style={{ borderBottom: '1px solid rgba(16,18,28,0.06)', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.08)' : 'transparent', boxShadow: sel ? 'inset 3px 0 0 var(--theme)' : 'none', opacity: dispo ? 1 : 0.55 }}>
+                      {/* UNIDAD */}
+                      <td style={{ ...lj, fontFamily: HEAD, fontSize: 13, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</td>
+                      <td style={{ ...lj }}><span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(16,18,28,0.06)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{u.prototype || '—'}</span></td>
+                      <td style={{ ...lj }}>{u.level ?? '—'}</td>
+                      {/* M² DESGLOSADOS */}
+                      <td style={{ ...lj, ...bl }}>{fm2(m2priv(u))}</td>
+                      <td style={{ ...lj }}>{fm2(m2balc(u))}</td>
+                      <td style={{ ...lj }}>{fm2(m2terr(u))}</td>
+                      <td style={{ ...lj }}>{fm2(m2roof(u))}</td>
+                      <td style={{ ...lj }}><div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream)' }}>{fm2(m2tot(u))}</div>{totalBreakdown(u) && <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{totalBreakdown(u)}</div>}</td>
+                      {/* CARACTERÍSTICAS */}
+                      <td style={{ ...lj, ...bl }}>{u.bedrooms ?? '—'}</td>
+                      <td style={{ ...lj }}>{u.bathrooms ?? '—'}</td>
+                      <td style={{ ...lj }}>{u.parking_spots ?? '—'}</td>
+                      {/* ADICIONALES */}
+                      <td style={{ ...lj, ...bl }}>{tipoCajon(u)}</td>
+                      <td style={{ ...lj }}><span style={{ color: u.bodega ? '#15803d' : 'var(--cream-3)', fontWeight: 700, fontSize: 12 }}>{u.bodega ? '✓ Incl.' : '—'}</span></td>
+                      <td style={{ ...lj }}>{u.vista || '—'}</td>
+                      {/* PRECIO */}
+                      <td style={{ ...lj, ...bl, fontFamily: HEAD, fontSize: 12.5, fontWeight: 800, color: 'var(--cream)' }}>{fmtFull(u.price)}</td>
+                      <td style={{ ...lj }}><EstadoChip status={u.status} /></td>
+                      {/* ACCIONES */}
+                      <td style={{ ...lj }}>
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          {dispo && <button onClick={(e) => { e.stopPropagation(); cotizar(u); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: sel ? 'var(--cream)' : 'var(--grad)', border: 'none', color: '#fff', borderRadius: 9999, padding: '4px 13px', fontFamily: HEAD, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>{sel ? '✓ Elegida' : '💲 Cotizar'}</button>}
+                          <button onClick={(e) => { e.stopPropagation(); setExpandedId((x) => (x === u.id ? null : u.id)); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,18,28,0.05)', border: '1px solid var(--card-border, var(--border))', color: 'var(--cream-2)', borderRadius: 9999, padding: '4px 11px', fontFamily: HEAD, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>{expandedId === u.id ? '− Info' : '+ Info'}</button>
+                        </div>
+                      </td>
                     </tr>
+                    {expandedId === u.id && (
+                      <tr style={{ background: 'rgba(16,18,28,0.025)' }}>
+                        <td colSpan={17} style={{ padding: '14px 18px', borderBottom: '1px solid rgba(16,18,28,0.06)' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, alignItems: 'flex-start' }}>
+                            <div><div style={muLbl}>Superficie</div><div style={muVal}>{m2line(u) || '—'}</div></div>
+                            <div><div style={muLbl}>Distribución</div><div style={muVal}>{[u.bedrooms != null && `${u.bedrooms} rec`, u.bathrooms != null && `${u.bathrooms} baños`, u.parking_spots != null && `${u.parking_spots} cajón${u.parking_spots === 1 ? '' : 'es'}`].filter(Boolean).join(' · ') || '—'}</div></div>
+                            <div><div style={muLbl}>Cajón · bodega</div><div style={muVal}>{PARKING_TYPE_LABELS[u.parking_type] || '—'}{u.bodega ? ' · bodega incl.' : ''}</div></div>
+                            <div><div style={muLbl}>Vista</div><div style={muVal}>{u.vista || '—'}</div></div>
+                            {extras(u).length > 0 && <div><div style={muLbl}>Extras</div><div style={muVal}>{extras(u).join(' · ')}</div></div>}
+                            <div style={{ marginLeft: 'auto' }}><div style={muLbl}>Precio</div><div style={{ ...muVal, fontFamily: HEAD, fontSize: 18, fontWeight: 800, color: 'var(--cream)' }}>{fmtFull(u.price)}</div></div>
+                            {dispo && <button onClick={() => cotizar(u)} style={{ alignSelf: 'center', background: sel ? 'var(--cream)' : 'var(--grad)', border: 'none', color: '#fff', borderRadius: 11, padding: '10px 18px', fontFamily: HEAD, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>{sel ? '✓ Elegida — ver números' : '💲 Cotizar esta unidad'}</button>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
             </table>
           </div>
         </Card>
+        {/* paginación 15 por página */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 14 }}>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pageSafe === 1} style={pgBtn(pageSafe === 1)}>← Anterior</button>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>Página <strong style={{ color: 'var(--cream)' }}>{pageSafe}</strong> de {totalPages} · {sortedUnits.length} unidades</span>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={pageSafe === totalPages} style={pgBtn(pageSafe === totalPages)}>Siguiente →</button>
+          </div>
+        )}
+        </>
       )}
 
       {/* CAPA 1 · por tipo (tarjetas) */}
