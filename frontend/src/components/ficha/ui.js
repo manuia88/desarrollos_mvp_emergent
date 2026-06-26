@@ -59,11 +59,12 @@ export function Stat({ value, label, accent, sub, sm }) {
 // Módulo COLAPSABLE (divulgación progresiva): CERRADO = tarjeta limpia con título + GANCHO VIVO (la respuesta con tu unidad) +
 // "Ver →". ABIERTO = encabezado simple + el contenido (que trae sus propias tarjetas, sin doble borde). `forceOpen` (cambia con
 // el perfil) re-aplica el auto-abrir (upgrade #2). Así la página no es mil scroll de golpe; se descubre por pasos.
-export function Modulo({ eyebrow, title, hook, forceOpen = false, children }) {
+export function Modulo({ eyebrow, title, hook, forceOpen = false, onOpen, children }) {
   const [open, setOpen] = useState(forceOpen);
   useEffect(() => { setOpen(forceOpen); }, [forceOpen]);
+  const toggle = () => setOpen((o) => { const nv = !o; if (nv && onOpen) onOpen(); return nv; });   // señal SOLO al abrir por click
   const Header = ({ inCard }) => (
-    <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: inCard ? 'clamp(16px,2.2vw,24px)' : '2px 0 14px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+    <button onClick={toggle} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: inCard ? 'clamp(16px,2.2vw,24px)' : '2px 0 14px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
       <div style={{ minWidth: 0 }}>
         {eyebrow && <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--theme)' }}>{eyebrow}</div>}
         <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 'clamp(20px,2.6vw,30px)', letterSpacing: '-0.01em', color: 'var(--cream)', margin: '6px 0 0', lineHeight: 1.08 }}>{title}</div>

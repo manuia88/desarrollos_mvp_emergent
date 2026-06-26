@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment } from '../api/marketplace';
+import { sendBuyerSignal } from '../lib/buyerSignal';   // sensor: cada elección/módulo abierto → señal (lead score + dev)
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, Modulo, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
@@ -83,8 +84,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
   const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
-  const askAtlax = () => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } }));
-  const agendar = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.` } }));
+  const askAtlax = () => { try { sendBuyerSignal('lead', { dev_id: dev.id, source: 'cockpit_atlax', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number, lens, decision: { lens: lensLabel, unit: unit && unit.unit_number, key: keyAns } } })); };
+  const agendar = () => { try { sendBuyerSignal('lead', { dev_id: dev.id, source: 'cockpit_agendar', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.${keyAns ? ` Me interesa: ${keyAns}.` : ''}` } })); };
 
   // flujo invertir·institucional: eliges varias unidades en el Paso 2
   const multi = lens === 'invertir' && invMode === 'institucional';
@@ -97,6 +98,14 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const hookInv = hk.tir != null ? `Rinde ${hk.tir.toFixed(1)}%${hk.cetes != null ? (hk.tir > hk.cetes ? ' · le gana a CETES' : ' · por debajo de CETES') : ''}` : 'TIR, cap rate, escenarios y Monte Carlo';
   const hookPago = hk.mensual ? `Tu mensualidad ~${money(hk.mensual)} · crédito, plan y rentar-vs-comprar` : 'Crédito multi-banco, plan del dev y rentar-vs-comprar';
   const hookZona = hk.metroMin ? `Metro ${hk.metroNom} a ${hk.metroMin} min · mapa, lugares y qué tan caminable` : 'Mapa, mejores lugares y qué tan caminable';
+
+  // ── SENSOR (upgrade): cada elección/módulo abierto → señal (alimenta lead score + analítica del dev) ──
+  const chooseLens = (k) => { setLens(k); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
+  const pickUnit = (u) => { setUnit(u); if (u) { try { sendBuyerSignal('unit_view', { dev_id: dev.id, unit: u.unit_number, price: u.price }); } catch (e) { /* noop */ } } };
+  const signalModule = (m) => { try { sendBuyerSignal('module_open', { dev_id: dev.id, module: m, lens, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } };
+  // cockpit "Tu decisión": el número clave del lente (gancho vivo)
+  const keyAns = lens === 'invertir' ? (hk.tir != null ? `Rinde ${hk.tir.toFixed(1)}%${hk.cetes != null ? (hk.tir > hk.cetes ? ' · le gana a CETES' : ' · debajo de CETES') : ''}` : null) : (hk.mensual ? `Mensualidad ~${money(hk.mensual)}` : null);
+  const lensLabel = lens === 'invertir' ? `Invertir · ${invMode === 'institucional' ? 'Institucional' : 'Para ti'}` : lens === 'vivir' ? 'Para vivir' : null;
 
   return (
     <LightScope>
@@ -194,7 +203,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                   {[['vivir', '🏠', 'Para vivir', 'Estilo de vida, zona y tu pago a la medida'], ['invertir', '📈', 'Para invertir', 'Rendimiento, plusvalía y análisis de fondo']].map(([k, ic, t, d]) => {
                     const a = lens === k;
                     return (
-                      <button key={k} onClick={() => setLens(k)} style={{ flex: '1 1 250px', textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', padding: '16px 18px', borderRadius: 15, border: `2px solid ${a ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: a ? 'rgba(99,102,241,0.06)' : 'var(--surface-card)', cursor: 'pointer', boxShadow: a ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none' }}>
+                      <button key={k} onClick={() => chooseLens(k)} style={{ flex: '1 1 250px', textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', padding: '16px 18px', borderRadius: 15, border: `2px solid ${a ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: a ? 'rgba(99,102,241,0.06)' : 'var(--surface-card)', cursor: 'pointer', boxShadow: a ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none' }}>
                         <span style={{ fontSize: 28, lineHeight: 1 }}>{ic}</span>
                         <div>
                           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: a ? 'var(--theme)' : 'var(--cream)' }}>{t}</div>
@@ -231,7 +240,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <>
                   {/* ══ PASO 2 · ELIGE UNIDAD(ES) ══ */}
                   <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title={multi ? 'Elige las unidades del fondo' : 'Elige tu unidad'}>
-                    <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={setUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
+                    <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
                   </Section>
 
                   {/* ══ PASO 3 · TU PANORAMA · módulos que se descubren al dar click ══ */}
@@ -243,22 +252,22 @@ export default function FichaDesarrollo({ user, onLogin }) {
                       </Card>
                     ) : lens === 'vivir' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <Modulo forceOpen eyebrow="A tu medida" title="¿Te queda esta unidad?" hook="Responde 5 preguntas y te digo si te alcanza, tu enganche y tu mensualidad">
+                        <Modulo forceOpen onOpen={() => signalModule('vivir_panorama')} eyebrow="A tu medida" title="¿Te queda esta unidad?" hook="Responde 5 preguntas y te digo si te alcanza, tu enganche y tu mensualidad">
                           <SeccionPanorama dev={dev} unit={unit} onSelectUnit={setUnit} />
                         </Modulo>
-                        <Modulo eyebrow="Tu dinero" title="Cómo lo pagas" hook={hookPago}>
+                        <Modulo onOpen={() => signalModule('vivir_pago')} eyebrow="Tu dinero" title="Cómo lo pagas" hook={hookPago}>
                           <SeccionDinero dev={dev} unit={unit} intent="vivir" />
                         </Modulo>
-                        <Modulo eyebrow="El entorno" title="La zona y el estilo de vida" hook={hookZona}>
+                        <Modulo onOpen={() => signalModule('vivir_zona')} eyebrow="El entorno" title="La zona y el estilo de vida" hook={hookZona}>
                           <SeccionUbicacion dev={dev} />
                         </Modulo>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <Modulo eyebrow="La inteligencia" title="¿Es buen precio?" hook={hookValor}>
+                        <Modulo onOpen={() => signalModule('inv_valor')} eyebrow="La inteligencia" title="¿Es buen precio?" hook={hookValor}>
                           <SeccionValor dev={dev} />
                         </Modulo>
-                        <Modulo forceOpen eyebrow="Tu inversión" title="Los números de tu inversión" hook={hookInv}>
+                        <Modulo forceOpen onOpen={() => signalModule('inv_calc')} eyebrow="Tu inversión" title="Los números de tu inversión" hook={hookInv}>
                           <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                         </Modulo>
                       </div>
@@ -267,7 +276,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
                   {/* CONFIANZA — colapsable, común a ambos lentes */}
                   <div data-testid="confianza" id="confianza" style={{ marginTop: 'clamp(44px,5.5vw,68px)', scrollMarginTop: 112 }}>
-                    <Modulo eyebrow="Sin letras chiquitas" title="¿Puedes confiar?" hook="Desarrollador y track record · situación legal · riesgos honestos (sísmico, inundación, preventa)">
+                    <Modulo onOpen={() => signalModule('confianza')} eyebrow="Sin letras chiquitas" title="¿Puedes confiar?" hook="Desarrollador y track record · situación legal · riesgos honestos (sísmico, inundación, preventa)">
                       <SeccionConfianza dev={dev} />
                     </Modulo>
                   </div>
@@ -275,21 +284,36 @@ export default function FichaDesarrollo({ user, onLogin }) {
               )}
             </div>
 
-            {/* ——— Riel de decisión (sticky) — refleja la unidad elegida ——— */}
+            {/* ——— COCKPIT "Tu decisión" (sticky) — se va armando con tus elecciones + sus respuestas ——— */}
             <div style={{ position: 'sticky', top: 110, alignSelf: 'start' }}>
               <Card>
-                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: unit ? 'var(--theme)' : 'var(--cream-3)' }}>
-                  {unit ? `Unidad ${unit.unit_number}` : 'Desde'}
+                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--theme)' }}>Tu decisión</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--cream)', margin: '6px 0 2px', lineHeight: 1 }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</div>
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>
+                  {unit ? `${unit.unit_number} · Piso ${unit.level} · ${unit.m2_total || unit.m2_privative} m²` : multi ? `${fundUnits.length} unidades · fondo` : `Desde · ${STAGE[dev.stage] || dev.stage}`}
                 </div>
-                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--cream)', margin: '4px 0 2px', lineHeight: 1 }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</div>
-                <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 16 }}>
-                  {unit ? `Piso ${unit.level} · ${unit.m2_total || unit.m2_privative} m²${unit.vista ? ` · ${unit.vista}` : ''}` : `MXN · ${STAGE[dev.stage] || dev.stage} · Entrega ${dev.delivery_estimate}`}
+
+                {/* el camino que vas armando */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid var(--card-border, var(--border))' }}>
+                  {[
+                    ['1', lensLabel, lensLabel ? null : 'Elige para qué', 'lente'],
+                    ['2', unit ? `Unidad ${unit.unit_number}` : (multi && fundUnits.length ? `${fundUnits.length} unidades` : null), (unit || (multi && fundUnits.length)) ? null : (lens ? 'Elige tu unidad' : null), 'unidades'],
+                    ['3', keyAns, keyAns ? null : ((unit || (multi && fundUnits.length)) ? 'Abre tu panorama' : null), 'panorama'],
+                  ].map(([n, done, todo, anchor]) => (
+                    (done || todo) ? (
+                      <button key={n} onClick={() => goTo(anchor)} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                        <span style={{ width: 18, height: 18, borderRadius: 9999, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: done ? '#059669' : 'var(--surface-card)', color: done ? '#fff' : 'var(--cream-3)', border: done ? 'none' : '1px solid var(--card-border, var(--border))' }}>{done ? '✓' : n}</span>
+                        <span style={{ fontFamily: SANS, fontSize: 13, fontWeight: done ? 700 : 500, color: done ? 'var(--cream)' : 'var(--cream-3)' }}>{done || todo}</span>
+                      </button>
+                    ) : null
+                  ))}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <BtnPrimary onClick={agendar}>📅 Agendar visita</BtnPrimary>
-                  <BtnGhost onClick={askAtlax}>✨ Hablar con Atlax</BtnGhost>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                  <BtnPrimary onClick={agendar}>{unit ? `📅 Agendar con la ${unit.unit_number}` : '📅 Agendar visita'}</BtnPrimary>
+                  <BtnGhost onClick={askAtlax}>✨ {unit ? `Pregúntale a Atlax sobre la ${unit.unit_number}` : 'Hablar con Atlax'}</BtnGhost>
                 </div>
-                <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 16, lineHeight: 1.5 }}>Te acompañamos con datos reales, sin presión.</div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 14, lineHeight: 1.5 }}>{keyAns ? 'Tu asesor recibe esto tal cual — sin que repitas nada.' : 'Te acompañamos con datos reales, sin presión.'}</div>
               </Card>
             </div>
           </div>
