@@ -1201,34 +1201,12 @@ export default function ZonePageV2() {
                 })}
               </div>
             )}
-            {lugares && lugares.fuente === 'google' && lugares.lugares && (() => {
-              const cats = [['🏫', 'escuela', 'Escuelas'], ['🌳', 'parque', 'Parques'], ['🏥', 'hospital', 'Salud'], ['🛒', 'supermercado', 'El súper'], ['🍴', 'restaurante', 'Para salir a comer'], ['🚇', 'transporte', 'Transporte']]
-                .map(([ic, k, l]) => [ic, l, (lugares.lugares[k] || []).filter((p) => p && p.name).slice(0, 3)]).filter(([, , a]) => a.length);
-              if (!cats.length) return null;
-              return (
-                <div style={{ marginTop: 38 }}>
-                  <div style={eyebrow}>{tc('Así se vive aquí')}</div>
-                  <h2 style={chapTitle}>A la vuelta de la esquina.</h2>
-                  <p style={lead}>Lo que de verdad tienes cerca — toca cualquiera para verlo en el mapa:</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 20 }}>
-                    {cats.map(([ic, l, arr]) => (
-                      <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
-                        <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {arr.map((p, j) => (
-                            <div key={`${p.name}-${j}`} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
-                              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                              {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: '#A2A6BC', marginTop: 14, fontStyle: 'italic' }}>Lugares y calificaciones reales de Google Places.</div>
-                </div>
-              );
-            })()}
+            {/* Mapa interactivo de lugares (MISMO componente que las colonias con desarrollos) — el comprador explora la zona aunque aún no haya inventario */}
+            {lugares && lugares.fuente === 'google' && (
+              <div style={{ marginTop: 38 }}>
+                <LugaresExplorer lugares={lugares} name={name} defaultCat="restaurante" eyebrowText="Así se vive aquí" title="¿Qué te importa cerca?" intro={`Lo que de verdad tienes cerca — toca cualquiera y el mapa lo ubica. Lo mejor de ${name}, con calificación real de Google:`} />
+              </div>
+            )}
             {/* Los motores de zona REALES también en descubrimiento (zonas sin desarrollos aún) — dato real para CUALQUIER zona */}
             <div style={{ marginTop: 28 }}>
               <ZoneCycleBlock slug={slug} name={name} />
