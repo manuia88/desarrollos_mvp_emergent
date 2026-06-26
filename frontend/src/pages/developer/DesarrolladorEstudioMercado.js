@@ -95,6 +95,52 @@ function SimuladorPalancas() {
   );
 }
 
+// F2.9 · Calculadora de cuota de mantenimiento (antes invisible: el motor existía sin UI). El dev juega con m² + amenidades
+// y ve la cuota sugerida + si está en rango de mercado CDMX. Reusa /api/dev/cuota-recomendada (amenidades_engine).
+const CUOTA_AMEN = [['alberca', 'Alberca'], ['gimnasio', 'Gimnasio'], ['spa', 'Spa'], ['roof', 'Roof garden'], ['sky', 'Sky lounge'], ['concierge', 'Concierge'], ['cine', 'Cine'], ['coworking', 'Coworking'], ['salon', 'Salón'], ['asador', 'Asador']];
+const CUOTA_BANDA = { baja: '#34D399', tipica: '#60A5FA', alta: '#FBBF24', premium: '#F87171', sin_dato: 'var(--cream-3)' };
+
+function CuotaCalculator({ coloniaId }) {
+  const [m2, setM2] = useState(100);
+  const [amen, setAmen] = useState(() => new Set(['alberca', 'gimnasio']));
+  const [res, setRes] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api.getCuotaRecomendada(m2 || 1, [...amen].join(','), coloniaId).then((r) => { if (alive) setRes(r); }).catch(() => { if (alive) setRes(null); });
+    return () => { alive = false; };
+  }, [m2, amen, coloniaId]);
+  const toggle = (t) => setAmen((s) => { const n = new Set(s); if (n.has(t)) n.delete(t); else n.add(t); return n; });
+  const col = CUOTA_BANDA[res?.banda] || 'var(--cream-2)';
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>🧾 ¿Cuánto cobrar de mantenimiento?</div>
+      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Cuota sugerida por el paquete de amenidades + la zona — juega con los números.</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)' }}>m² del depa</span>
+        <input type="number" min="20" max="600" value={m2} onChange={(e) => setM2(Number(e.target.value))} style={{ width: 90, padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-card, rgba(255,255,255,0.04))', color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 14 }} />
+      </div>
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
+        {CUOTA_AMEN.map(([t, l]) => {
+          const on = amen.has(t);
+          return (
+            <button key={t} type="button" onClick={() => toggle(t)} style={{ padding: '6px 12px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 12, border: on ? '1.5px solid var(--theme)' : '1px solid var(--border)', background: on ? 'rgba(109,74,255,0.12)' : 'transparent', color: on ? 'var(--theme)' : 'var(--cream-3)' }}>{l}</button>
+          );
+        })}
+      </div>
+      {res && res.cuota_estimada_mxn != null && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <div>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.02em' }}>${res.cuota_estimada_mxn.toLocaleString('es-MX')}<span style={{ fontSize: 14, color: 'var(--cream-3)', fontWeight: 600 }}>/mes</span></div>
+            <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)' }}>${res.tarifa_m2}/m² · {res.amenidades_premium} amenidades premium</div>
+          </div>
+          {res.veredicto && <span style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 12.5, padding: '5px 12px', borderRadius: 9999, color: col, background: `${col}1f`, border: `1px solid ${col}55` }}>{res.veredicto}</span>}
+        </div>
+      )}
+      {res && res.referencia_segmento && <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 10 }}>{res.referencia_segmento}</div>}
+    </Card>
+  );
+}
+
 export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }) {
   const [mode, setMode] = useState('colonia');
   const [categoria, setCategoria] = useState('media');
@@ -352,6 +398,8 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
                 <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>Memo de inversión · reúsa el motor de rendimiento + perfil de zona (qué le falta).</div>
               </Card>
             )}
+            {/* F2.9 · Calculadora de cuota de mantenimiento (motor existía sin UI) */}
+            <CuotaCalculator coloniaId={colonia?.id} />
             {propuesta && (
               <Card style={{ marginBottom: 12, border: '1px solid rgba(226,152,46,0.45)', background: 'linear-gradient(140deg, rgba(226,152,46,0.10), transparent)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

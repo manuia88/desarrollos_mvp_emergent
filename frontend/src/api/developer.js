@@ -76,6 +76,9 @@ export const getEstudioHistorial = (coloniaId) =>
 // F2.10 · Memo de inversionista de la zona: ¿comercio en planta baja? + a quién rentar + veredicto (reusa inversionista_engine)
 export const getMemoInversionista = (coloniaId) =>
   j(`/api/dev/memo-inversionista?colonia_id=${encodeURIComponent(coloniaId)}`);
+// F2.9 · Cuota de mantenimiento recomendada desde el paquete de amenidades + zona (reusa amenidades_engine)
+export const getCuotaRecomendada = (m2, amenidades, coloniaId) =>
+  j(`/api/dev/cuota-recomendada?m2=${m2}${amenidades ? `&amenidades=${encodeURIComponent(amenidades)}` : ''}${coloniaId ? `&colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
 // F3.4 · Autopiloto: jugadas del Cerebro (zonas cuyo dato cambió) + regenerar con OK (cierra loop)
 export const getEstudioPropuestas = () =>
   j('/api/dev/estudio-mercado/propuestas');
