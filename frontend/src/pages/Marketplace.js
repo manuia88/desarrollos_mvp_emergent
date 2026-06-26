@@ -5,6 +5,7 @@ import { LightScope, PublicNav, Footer } from '../components/ui';
 import TopFilters from '../components/marketplace/TopFilters';
 import RiskScoreSubscribeWidget from '../components/marketplace/RiskScoreSubscribeWidget';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
+import ParecidosCerraron from '../components/marketplace/ParecidosCerraron';
 import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
@@ -440,6 +441,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             </div>
           </div>
         </section>
+
+        {/* Prueba social por cierres (moat flywheel · null-safe: invisible si no hay cierres parecidos) */}
+        <ParecidosCerraron />
 
         {/* Sticky filter bar — solo en vista lista */}
         {viewMode === 'lista' && (
