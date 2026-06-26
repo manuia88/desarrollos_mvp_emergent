@@ -88,13 +88,10 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const units = dev.units || [];
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
-  const [view, setView] = useState(() => {
-    try { const v = localStorage.getItem('dmx.ficha.unitview2'); if (v) return v; } catch (e) { /* noop */ }
-    return 'tarjetas';   // por default: Tarjetas (founder · menos fricción)
-  });
+  const [view, setView] = useState('tarjetas');   // SIEMPRE abre en Tarjetas por default (founder) — sin recordar 'lista' de antes
   const [sort, setSort] = useState({ col: 'unit_number', dir: 'asc' });
   const [page, setPage] = useState(1);
-  useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview2', view); } catch (e) { /* noop */ } }, [view]);
+  // (sin persistencia: cada apertura de la ficha arranca en Tarjetas; el toggle a Lista vive solo en la sesión actual)
   useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
   const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
   const detailRef = useRef(null);
