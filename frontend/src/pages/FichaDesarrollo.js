@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment } from '../api/marketplace';
-import { sendBuyerSignal } from '../lib/buyerSignal';   // sensor: cada elección/módulo abierto → señal (lead score + dev)
+import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';   // sensor: cada elección/módulo abierto → señal (lead score + dev)
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, Modulo, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
@@ -63,6 +63,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const [editStep, setEditStep] = useState(null); // 're-editar' un paso completado ('lente' | 'unidades')
   const [hk, setHk] = useState({});         // ganchos VIVOS de cada módulo (la respuesta con tu unidad, sin abrir)
   const [leadModal, setLeadModal] = useState(null); // {reason} cuando hay alto intento → captura → asesor
+  const [savedUnits, setSavedUnits] = useState(() => new Set()); // unidades que el comprador GUARDÓ (unit_save) → embudo dev + superadmin + /favoritos
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   // CIERRE DE CICLO: cualquier 'dmx:lead' (wizard #5, PDF, comparador, agendar) abre la captura → /api/buyer/registrar → asesor.
@@ -80,6 +81,21 @@ export default function FichaDesarrollo({ user, onLogin }) {
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
     return () => { alive = false; };
   }, [id]);
+
+  // Estado inicial del toggle "guardar unidad": qué unidades de ESTE dev ya guardó el comprador (unit_save activos).
+  useEffect(() => {
+    if (!dev || !dev.id) return undefined;
+    let alive = true;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/favoritos?visitor_id=${encodeURIComponent(visitorId())}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive || !d || !Array.isArray(d.favoritos)) return;
+        const card = d.favoritos.find((f) => f.id === dev.id || f.dev_id === dev.id);
+        if (card && Array.isArray(card.unidades_guardadas)) setSavedUnits(new Set(card.unidades_guardadas));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [dev && dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── GANCHOS VIVOS (upgrade #1): la respuesta real ya visible aunque el módulo esté cerrado ──
   const HK_API = process.env.REACT_APP_BACKEND_URL;
@@ -133,7 +149,15 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // ── SENSOR (upgrade): cada elección/módulo abierto → señal (alimenta lead score + analítica del dev) ──
   const chooseLens = (k) => { setLens(k); if (k === 'vivir') setEditStep(null); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
   const chooseMode = (v) => { setInvMode(v); setEditStep(null); };
-  const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } };
+  const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); if (u.unit_number) { try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } } };
+  // GUARDAR la UNIDAD (unidad como átomo): emite unit_save/unit_unsave → embudo del dev + demanda superadmin + /favoritos del comprador.
+  const toggleSaveUnit = () => {
+    if (!unit || !unit.unit_number) return;
+    const u = unit.unit_number;
+    const on = !savedUnits.has(u);
+    try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ }
+    setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u); else n.delete(u); return n; });
+  };
   // pasos completados (para colapsarlos a una barra compacta)
   const paso1Done = !!(lens && (lens === 'vivir' || invMode));
   const paso2Done = paso1Done && !needUnit;
@@ -349,6 +373,11 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
                   <BtnPrimary onClick={agendar}>{unit ? `📅 Agendar con la ${unit.unit_number}` : '📅 Agendar visita'}</BtnPrimary>
                   <BtnGhost onClick={askAtlax}>✨ {unit ? `Pregúntale a Atlax sobre la ${unit.unit_number}` : 'Hablar con Atlax'}</BtnGhost>
+                  {unit && (
+                    <button onClick={toggleSaveUnit} aria-pressed={savedUnits.has(unit.unit_number)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 14px', borderRadius: 11, border: `1px solid ${savedUnits.has(unit.unit_number) ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: savedUnits.has(unit.unit_number) ? 'rgba(109,74,255,0.1)' : 'transparent', color: savedUnits.has(unit.unit_number) ? 'var(--theme)' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
+                      {savedUnits.has(unit.unit_number) ? `❤️ Guardada · la ${unit.unit_number}` : `🤍 Guardar la ${unit.unit_number}`}
+                    </button>
+                  )}
                 </div>
                 <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 14, lineHeight: 1.5 }}>{keyAns ? 'Tu asesor recibe esto tal cual — sin que repitas nada.' : 'Te acompañamos con datos reales, sin presión.'}</div>
               </Card>
