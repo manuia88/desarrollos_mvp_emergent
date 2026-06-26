@@ -1215,8 +1215,8 @@ export default function ZonePageV2() {
                       <div key={l} className="zv2-win" style={{ ...cardBase, padding: '16px 18px' }}>
                         <div style={{ fontFamily: 'DM Sans', fontWeight: 800, fontSize: 13, color: INK, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 17 }}>{ic}</span> {l}</div>
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {arr.map((p) => (
-                            <div key={p.name} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
+                          {arr.map((p, j) => (
+                            <div key={`${p.name}-${j}`} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(16,18,28,0.06)' }}>
                               <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: '#3A3E55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                               {p.rating ? <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, color: '#0E7A53', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
                             </div>
@@ -1229,6 +1229,12 @@ export default function ZonePageV2() {
                 </div>
               );
             })()}
+            {/* Los motores de zona REALES también en descubrimiento (zonas sin desarrollos aún) — dato real para CUALQUIER zona */}
+            <div style={{ marginTop: 28 }}>
+              <ZoneCycleBlock slug={slug} name={name} />
+              <ZoneLivBlock slug={slug} name={name} />
+              <ZoneRiskBlock slug={slug} name={name} />
+            </div>
             <div style={{ ...cardBase, padding: '26px 28px', marginTop: 38, textAlign: 'center', background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04))' }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(18px,2.4vw,24px)', color: INK, letterSpacing: '-0.02em' }}>Aún no hay desarrollos en venta en {name}</div>
               <p style={{ fontFamily: 'DM Sans', fontSize: 14.5, color: MUT, maxWidth: 520, margin: '8px auto 0', lineHeight: 1.55 }}>Te avisamos en cuanto entre el primero. Mientras, explora las zonas que ya tienen propiedades disponibles.</p>
