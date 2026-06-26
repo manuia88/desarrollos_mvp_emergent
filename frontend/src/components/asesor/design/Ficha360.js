@@ -1338,6 +1338,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                                   </div>
                                 )}
                                 {p.client_cita && <div className="asr-pcard__note" style={{ color: 'var(--theme-2)', fontWeight: 600 }}>📅 Pidió: {p.client_cita}</div>}
+                                {Array.isArray(p.client_units) && p.client_units.length > 0 && <div className="asr-pcard__note" style={{ color: 'var(--theme)', fontWeight: 600 }}>🏠 Le interesan: {p.client_units.join(', ')}</div>}
                                 {p.client_note && <div className="asr-pcard__note" style={{ color: 'var(--cream-2)' }}>📝 {p.client_note}</div>}
                                 {p.visit_feedback && <div className="asr-pcard__note" style={{ color: '#10b981', fontWeight: 600 }}>✓ {FB_LABEL[p.visit_feedback.salio] || 'Visitada'}{p.visit_feedback.nota ? ` · ${p.visit_feedback.nota}` : ''}</div>}
                                 {(() => { const n = STAGE_NUDGE(p); return n ? <div className="asr-pcard__note" style={{ color: n.u ? '#e8930c' : 'var(--theme-2)', fontWeight: 700 }}>{n.u ? '⏳ ' : '📅 '}{n.t}</div> : null; })()}

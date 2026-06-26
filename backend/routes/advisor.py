@@ -1266,6 +1266,19 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     res = await db.asesor_contactos.update_one({"id": cid, "owner_id": user.user_id}, {"$set": patch})
     if not res.matched_count: raise HTTPException(404, "No encontrado")
     c = await db.asesor_contactos.find_one({"id": cid}, {"_id": 0})
+    # PUENTE INVERSO: la etapa que mueve el asesor REGRESA a db.leads → las métricas del dev/superadmin (conversión,
+    # pipeline, deals cerrados, expertise por zona) reflejan el trabajo del asesor. Antes el mapeo era de una sola vía
+    # (lead→etapa al crear el contacto). Fail-open · solo si el contacto vino de un lead.
+    try:
+        _lid = (old_c or c or {}).get("source_lead_id")
+        if "etapa" in patch and _lid:
+            _ETAPA_TO_STATUS = {"nuevo": "nuevo", "contactado": "contactado", "visita": "cita",
+                                "negociacion": "negociacion", "cerrado": "cerrado_ganado"}
+            _st = _ETAPA_TO_STATUS.get(patch["etapa"], "contactado")
+            await db.leads.update_one({"id": _lid}, {"$set": {
+                "status": _st, "lead_stage": _st, "last_activity_at": _now(), "updated_at": _now()}})
+    except Exception:
+        pass
     # F0.1 — Audit log
     try:
         from audit_log import log_mutation

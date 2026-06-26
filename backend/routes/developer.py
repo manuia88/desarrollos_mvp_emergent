@@ -175,6 +175,16 @@ async def portfolio_reading(request: Request):
         pass
     conv = round(leads_closed / leads_total * 100) if leads_total else 0
     leads_x_unit = round(leads_total / avail, 1) if avail else 0
+    # Demanda ANÓNIMA (top-of-funnel): vistas/me-gusta/guardados de la ficha ANTES de registrarse. Sin esto, un desarrollo
+    # con mucho tráfico anónimo y pocos leads se leía como "demanda fría" — lo contrario de la realidad.
+    senales_anon = 0
+    try:
+        senales_anon = await db.buyer_signals.count_documents({
+            "entity_id": {"$in": list(dev_ids)},
+            "type": {"$in": ["ficha_view", "view", "like", "save", "unit_view", "unit_save"]},
+            "active": {"$ne": False}})
+    except Exception:
+        pass
 
     # ── Lecturas (cada número con su lectura + veredicto) ──
     lecturas = []
@@ -190,11 +200,15 @@ async def portfolio_reading(request: Request):
         "lectura": (f"Has colocado {absor}% del inventario ({sold} de {total}). " +
                     ("Ritmo sano para preventa." if absor >= 40 else "Vas lento para tu etapa — revisa precio o marketing." if absor < 20 else "Vas en camino, no te confíes.")),
     })
+    _hot = leads_x_unit >= 2 or (avail and senales_anon >= avail * 12) or senales_anon >= 80
+    _warm = leads_x_unit >= 1 or senales_anon >= (avail * 4 if avail else 20)
     lecturas.append({
-        "metrica": "Demanda", "valor": f"{leads_total} leads · {leads_x_unit}/unidad",
-        "veredicto": "bien" if leads_x_unit >= 2 else "ojo" if leads_x_unit >= 1 else "mal",
-        "lectura": (f"{leads_total} interesados para {avail} unidades disponibles. " +
-                    ("Demanda caliente — tienes espacio para subir precio." if leads_x_unit >= 2 else "Demanda tibia — alimenta el embudo." if leads_x_unit >= 1 else "Demanda fría — empuja marketing y captación.")),
+        "metrica": "Demanda",
+        "valor": f"{leads_total} leads" + (f" · {senales_anon} vistas/♥" if senales_anon else "") + f" · {leads_x_unit}/unidad",
+        "veredicto": "bien" if _hot else "ojo" if _warm else "mal",
+        "lectura": (f"{leads_total} registrados" + (f" + {senales_anon} interacciones anónimas (vistas/me-gusta)" if senales_anon else "") +
+                    f" para {avail} unidades disponibles. " +
+                    ("Demanda caliente — tienes espacio para subir precio." if _hot else "Demanda tibia — alimenta el embudo." if _warm else "Demanda fría — empuja marketing y captación.")),
     })
     if conv:
         lecturas.append({
