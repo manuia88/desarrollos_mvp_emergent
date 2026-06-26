@@ -20,11 +20,19 @@ log = logging.getLogger("dmx.inversionista")
 
 # Perfil de inquilino objetivo por tier de zona (estudio 4S + NSE).
 _INQUILINO = {
-    "luxury":   {"perfil": "Ejecutivos y adultos jóvenes 30-45 · NSE A/B", "nse": "A/B"},
-    "premium":  {"perfil": "Adultos jóvenes 28-40 · NSE A/C+ · ejecutivos y parejas", "nse": "A/C+"},
-    "trendy":   {"perfil": "Jóvenes profesionistas 25-35 · NSE C+ · parejas sin hijos", "nse": "C+"},
-    "emerging": {"perfil": "Estudiantes foráneos 19-25 y primer empleo · NSE C+/C", "nse": "C+/C"},
-    "mid":      {"perfil": "Jóvenes profesionistas 25-35 · NSE C+/C", "nse": "C+/C"},
+    "luxury":        {"perfil": "Ejecutivos y adultos jóvenes 30-45 · NSE A/B", "nse": "A/B"},
+    "premium":       {"perfil": "Adultos jóvenes 28-40 · NSE A/C+ · ejecutivos y parejas", "nse": "A/C+"},
+    "trendy":        {"perfil": "Jóvenes profesionistas 25-35 · NSE C+ · parejas sin hijos", "nse": "C+"},
+    "emerging":      {"perfil": "Estudiantes foráneos 19-25 y primer empleo · NSE C+/C", "nse": "C+/C"},
+    "mid":           {"perfil": "Jóvenes profesionistas 25-35 · NSE C+/C", "nse": "C+/C"},
+    # Tiers adicionales del catálogo de colonias (antes caían al genérico por mismatch de tier):
+    "mid-up":        {"perfil": "Profesionistas establecidos y familias jóvenes 30-45 · NSE C+/B", "nse": "C+/B"},
+    "central":       {"perfil": "Profesionistas y parejas urbanas 25-40 · NSE C+", "nse": "C+"},
+    "up-and-coming": {"perfil": "Jóvenes en primer/segundo empleo 23-32 · NSE C+/C", "nse": "C+/C"},
+    "revival":       {"perfil": "Creativos y jóvenes profesionistas 25-38 · NSE C+", "nse": "C+"},
+    "corporate":     {"perfil": "Ejecutivos y corporativos 28-45 · NSE A/C+", "nse": "A/C+"},
+    "colonial":      {"perfil": "Familias y profesionistas establecidos 30-50 · NSE C+/B", "nse": "C+/B"},
+    "family":        {"perfil": "Familias jóvenes con hijos 30-45 · NSE C+/B", "nse": "C+/B"},
 }
 _INQUILINO_DEFAULT = {"perfil": "Jóvenes profesionistas 25-35 · NSE C+", "nse": "C+"}
 
@@ -86,7 +94,16 @@ async def memo_inversionista(db, colonia_id: Optional[str], precio: Optional[flo
         except Exception as e:
             log.warning(f"[inversionista] yield fail-open: {e}")
 
-    inq = perfil_inquilino(tier)
+    # El perfil de inquilino va por el TIER de la colonia (NSE real: Premium/Luxury/Trendy…), no por
+    # tier_zona (A/B/C/D del baseline de inversión) — el mismatch tiraba TODA zona al genérico.
+    try:
+        from data_seed import COLONIAS_BY_ID
+        seed_tier = (COLONIAS_BY_ID.get(colonia_id) or {}).get("tier")
+    except Exception:  # noqa: BLE001
+        seed_tier = None
+    # Solo damos perfil de inquilino cuando hay NSE REAL de la colonia (tier del catálogo seed) — sin inventar
+    # un NSE para zonas sin ese dato (honestidad: mejor ocultar que adivinar mal en una zona premium).
+    inq = perfil_inquilino(seed_tier) if seed_tier else None
     pb = await comercio_pb(db, colonia_id)
 
     veredicto = []
@@ -94,7 +111,8 @@ async def memo_inversionista(db, colonia_id: Optional[str], precio: Optional[flo
         veredicto.append(f"IRR estimado ~{rendimiento['irr_pct']}% · cap rate {rendimiento.get('cap_rate_pct')}% a 5 años.")
     if plusvalia:
         veredicto.append(f"Plusvalía base de la zona ~{plusvalia}%/año.")
-    veredicto.append(f"Rentar a: {inq['perfil']}.")
+    if inq:
+        veredicto.append(f"Rentar a: {inq['perfil']}.")
     veredicto.append(f"Comercio en PB: {pb['recomendacion'].lower()} — {pb['razon']}")
 
     return {

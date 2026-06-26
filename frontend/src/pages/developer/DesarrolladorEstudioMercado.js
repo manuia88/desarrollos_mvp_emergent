@@ -119,14 +119,16 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
 
   const [propuesta, setPropuesta] = useState(null);  // F3.4 · jugada del Cerebro para esta colonia
   const [regenBusy, setRegenBusy] = useState(false);
+  const [memo, setMemo] = useState(null);  // F2.10 · memo de inversionista (comercio PB + a quién rentar) — antes invisible
 
   // F3.2/F3.4 · carga historial + jugada del Cerebro (si el dato cambió) de esta colonia
   useEffect(() => {
-    if (!colonia) { setHistorial([]); setPropuesta(null); return; }
+    if (!colonia) { setHistorial([]); setPropuesta(null); setMemo(null); return; }
     api.getEstudioHistorial(colonia.id).then(r => setHistorial(r.items || [])).catch(() => setHistorial([]));
     api.getEstudioPropuestas()
       .then(r => setPropuesta((r.propuestas || []).find(p => String(p.colonia_id) === String(colonia.id)) || null))
       .catch(() => setPropuesta(null));
+    api.getMemoInversionista(colonia.id).then(setMemo).catch(() => setMemo(null));
   }, [colonia]);
 
   // F3.4 · aprobar la jugada del Cerebro: regenera (resuelve predicción vs realidad) + recarga
@@ -325,6 +327,31 @@ export default function DesarrolladorEstudioMercado({ user, onLogout, embedded }
               </div>
               {(data.veredicto || []).map((v, i) => <div key={i} style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', padding: '3px 0' }}>· {v}</div>)}
             </Card>
+            {/* F2.10 · Memo de inversión: ¿comercio en planta baja? + a quién rentar (antes invisible — motor existía sin UI) */}
+            {memo && (memo.comercio_pb || (memo.perfil_inquilino && memo.perfil_inquilino.perfil)) && (
+              <Card style={{ marginBottom: 12, border: '1px solid rgba(99,102,241,0.3)' }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginBottom: 10 }}>💡 Qué conviene construir aquí</div>
+                {memo.comercio_pb && memo.comercio_pb.recomendacion && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', marginBottom: 8 }}>
+                    <span style={{ fontSize: 18 }}>🏪</span>
+                    <div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>Comercio en planta baja: {memo.comercio_pb.recomendacion}</div>
+                      {memo.comercio_pb.razon && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 2 }}>{memo.comercio_pb.razon}</div>}
+                    </div>
+                  </div>
+                )}
+                {memo.perfil_inquilino && memo.perfil_inquilino.perfil && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 18 }}>🔑</span>
+                    <div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>A quién rentar: {memo.perfil_inquilino.perfil}</div>
+                      {memo.perfil_inquilino.nse && <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginTop: 2 }}>Perfil objetivo del inquilino · NSE {memo.perfil_inquilino.nse}</div>}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', marginTop: 8 }}>Memo de inversión · reúsa el motor de rendimiento + perfil de zona (qué le falta).</div>
+              </Card>
+            )}
             {propuesta && (
               <Card style={{ marginBottom: 12, border: '1px solid rgba(226,152,46,0.45)', background: 'linear-gradient(140deg, rgba(226,152,46,0.10), transparent)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

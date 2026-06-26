@@ -73,6 +73,9 @@ export const guardarEstudio = (coloniaId, categoria) =>
   post(`/api/dev/estudio-mercado/guardar?colonia_id=${encodeURIComponent(coloniaId)}&categoria=${categoria || 'media'}`);
 export const getEstudioHistorial = (coloniaId) =>
   j(`/api/dev/estudio-mercado/historial${coloniaId ? `?colonia_id=${encodeURIComponent(coloniaId)}` : ''}`);
+// F2.10 · Memo de inversionista de la zona: ¿comercio en planta baja? + a quién rentar + veredicto (reusa inversionista_engine)
+export const getMemoInversionista = (coloniaId) =>
+  j(`/api/dev/memo-inversionista?colonia_id=${encodeURIComponent(coloniaId)}`);
 // F3.4 · Autopiloto: jugadas del Cerebro (zonas cuyo dato cambió) + regenerar con OK (cierra loop)
 export const getEstudioPropuestas = () =>
   j('/api/dev/estudio-mercado/propuestas');
