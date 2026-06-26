@@ -908,12 +908,28 @@ async def get_contacto_overview(cid: str, request: Request):
     user = await require_advisor(request)
     db = get_db(request)
     # Aislamiento: el contacto debe pertenecer al asesor (si no, 404).
-    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1})
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1, "source_lead_id": 1})
     if not c:
         raise HTTPException(404, "No encontrado")
 
     events: List[dict] = []
     sources: dict = {}
+
+    # 0) CASAMENTERA: inventario NUEVO que matchea a este lead (el cron lo escribe en db.leads cada hora). Antes este
+    #    dato se generaba pero el asesor NUNCA lo veía → leads dormidos sin re-enganche. Ahora cae en su timeline.
+    try:
+        _lid = c.get("source_lead_id")
+        if _lid:
+            _lead = await db.leads.find_one({"id": _lid}, {"_id": 0, "casamentera_matches": 1})
+            for m in ((_lead or {}).get("casamentera_matches") or [])[-5:]:
+                events.append({
+                    "ts": _ts_iso(m.get("at")), "source": "casamentera", "kind": "match",
+                    "title": "Nuevo match para este lead",
+                    "body": f"Entró inventario que le encaja: {m.get('dev_name') or m.get('dev_id') or 'un desarrollo'}. Buen momento para reactivarlo.",
+                })
+            sources["casamentera"] = "ok"
+    except Exception:
+        sources["casamentera"] = "error"
 
     # 1) Timeline propio (notas/visitas/llamadas/mensajes registrados).
     try:
