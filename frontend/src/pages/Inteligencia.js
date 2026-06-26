@@ -23,9 +23,19 @@ const CATEGORIES = [
 
 const TOTAL = CATEGORIES.reduce((a, c) => a + c.n, 0); // 97
 
+// Demo interactivo: colonias con scores REALES (el visitante elige y la lectura LIVE se actualiza)
+const DEMO_ZONES = [
+  { id: 'roma_norte', name: 'Roma Norte' }, { id: 'polanco', name: 'Polanco' },
+  { id: 'condesa', name: 'Condesa' }, { id: 'juarez', name: 'Juárez' },
+  { id: 'del_valle_centro', name: 'Del Valle' }, { id: 'narvarte', name: 'Narvarte' },
+  { id: 'napoles', name: 'Nápoles' }, { id: 'escandon', name: 'Escandón' },
+  { id: 'coyoacan_centro', name: 'Coyoacán' },
+];
+
 export default function Inteligencia() {
   const { user, logout, openAuth } = useAuth();
   const [explainCode, setExplainCode] = useState(null);
+  const [zone, setZone] = useState(DEMO_ZONES[0]);   // colonia del demo LIVE
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -63,26 +73,45 @@ export default function Inteligencia() {
           border: '1px solid var(--border)',
           borderRadius: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
             <div>
               <div className="eyebrow" style={{ marginBottom: 4 }}>LIVE · IE ENGINE</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
-                Roma Norte · lectura actual
+                {zone.name} · lectura actual
               </div>
             </div>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
-              Haz click en un score para ver "cómo lo sabemos" →
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              <select
+                data-testid="ie-demo-zone-select"
+                value={zone.id}
+                onChange={(e) => setZone(DEMO_ZONES.find(z => z.id === e.target.value) || DEMO_ZONES[0])}
+                style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)', background: 'rgba(255,255,255,0.07)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', cursor: 'pointer' }}
+              >
+                {DEMO_ZONES.map(z => <option key={z.id} value={z.id} style={{ color: '#111' }}>📍 {z.name}</option>)}
+              </select>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+                Cambia de colonia · click en un score para ver "cómo lo sabemos" →
+              </div>
             </div>
           </div>
           <ZoneScoreStrip
-            zoneId="roma_norte"
+            zoneId={zone.id}
             limit={12}
             onScoreClick={s => setExplainCode(s.code)}
             title=""
           />
           <div style={{ marginTop: 16 }}>
-            <NarrativeBlock scope="colonia" entityId="roma_norte" />
+            <NarrativeBlock scope="colonia" entityId={zone.id} />
           </div>
+          {/* Conecta el demo con los motores completos (ciclo · riesgo · habitabilidad · mapa) en la página de zona */}
+          <a
+            href={`/zona/${zone.id.replace(/_/g, '-')}`}
+            data-testid="ie-demo-zona-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 16, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, color: 'var(--theme, #818CF8)', textDecoration: 'none' }}
+          >
+            Ver {zone.name} a fondo — momento de la zona, riesgo, habitabilidad y mapa
+            <ArrowRight size={15} />
+          </a>
         </div>
 
         <div style={{
