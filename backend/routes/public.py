@@ -64,6 +64,17 @@ def _apply_overlay(d: dict) -> dict:
     return out
 
 
+_OV_SKIP = {"unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id", "price_change_reason"}
+
+
+def _merge_units(units: list, ov_map: dict) -> list:
+    """Fusiona (sync) un mapa {unit_id: override} sobre las unidades base. El override del dev gana (precio/estado/m²/…)."""
+    if not units or not ov_map:
+        return units
+    return [({**u, **{k: v for k, v in (ov_map.get(u.get("id")) or {}).items()
+                      if k not in _OV_SKIP and v is not None}}) for u in units]
+
+
 async def _apply_unit_overrides(db, dev_id: str, units: list) -> list:
     """Fusiona las ediciones MANUALES del dev (developer_unit_overrides: precio/estado/m²/bodega/cajón…) sobre las
     unidades base → el comprador ve EXACTO lo que el dev administra en su portal. Cierra el ciclo dev→comprador
@@ -74,13 +85,17 @@ async def _apply_unit_overrides(db, dev_id: str, units: list) -> list:
         ov_map = {}
         async for ov in db.developer_unit_overrides.find({"dev_id": dev_id}, {"_id": 0}):
             ov_map[ov.get("unit_id")] = ov
-        if not ov_map:
-            return units
-        _skip = {"unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id", "price_change_reason"}
-        return [({**u, **{k: v for k, v in (ov_map.get(u.get("id")) or {}).items()
-                          if k not in _skip and v is not None}}) for u in units]
+        return _merge_units(units, ov_map)
     except Exception:
         return units
+
+
+def _price_range_from_units(units: list):
+    """min/max de precios EFECTIVOS (tras overrides) → 'desde/hasta' coherente con la lista real, no un price_from viejo del seed."""
+    prices = [u.get("price") for u in (units or []) if u.get("price")]
+    if not prices:
+        return None, None
+    return min(prices), max(prices)
 
 
 def _dev_public(d: dict, include_units: bool = False) -> dict:
@@ -156,6 +171,13 @@ async def _enrich_listing(db, devs: list) -> list:
             _dev_overlay_cache[o.get("development_id")] = o
     except Exception:
         pass
+    # 1b) ediciones MANUALES del dev (batch) → el 'desde' de la tarjeta refleja los precios editados, igual que la ficha
+    ov_by_dev: Dict[str, Dict[str, Any]] = {}
+    try:
+        async for ov in db.developer_unit_overrides.find({"dev_id": {"$in": ids}}, {"_id": 0}):
+            ov_by_dev.setdefault(ov.get("dev_id"), {})[ov.get("unit_id")] = ov
+    except Exception:
+        pass
     # 2) amenidades enriquecidas
     amen_by: Dict[str, Any] = {}
     try:
@@ -194,10 +216,17 @@ async def _enrich_listing(db, devs: list) -> list:
     for d in devs:
         card = _dev_public(d)
         card["stage"] = _norm_stage(card.get("stage"), d.get("delivery_estimate"))   # por fecha de entrega real
+        # 'desde/hasta' coherente con las unidades vivas (overlay + ediciones manuales del dev) — no un price_from viejo
+        _eff_units = _merge_units(_apply_overlay(d).get("units") or [], ov_by_dev.get(d["id"]) or {})
+        _pf, _pt = _price_range_from_units(_eff_units)
+        if _pf is not None:
+            card["price_from"] = _pf
+            card["price_to"] = _pt
+            card["price_from_display"] = f"${int(_pf):,}"
         cid = d.get("colonia_id")
         col = _COLS.get(cid) or {}
         m2lo = (d.get("m2_range") or [0])[0] or 0
-        dev_pm2 = (d.get("price_from") or 0) / m2lo if m2lo else 0
+        dev_pm2 = (card.get("price_from") or 0) / m2lo if m2lo else 0
         if dev_pm2:
             card["price_m2_dev"] = round(dev_pm2)
             zona_pm2 = col.get("price_m2_num") or ((col.get("price_m2") or 0) * 1000)
@@ -1792,6 +1821,12 @@ async def get_development(dev_id: str, request: Request):
         out["contact_phone"] = pub.get("contact_phone") or DMX_FALLBACK_WHATSAPP
     # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
     out["units"] = await _apply_unit_overrides(db, dev_id, out.get("units") or [])
+    # "Desde/hasta" coherente con las unidades vivas (si el dev subió precios, el hero no puede seguir mostrando un 'desde' que ya no existe).
+    _pf, _pt = _price_range_from_units(out.get("units"))
+    if _pf is not None:
+        out["price_from"] = _pf
+        out["price_to"] = _pt
+        out["price_from_display"] = f"${int(_pf):,}"
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay
