@@ -20,6 +20,7 @@ import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
 import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD vivir (de zona) re-skineado + scoped a la unidad
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion'; // calculadora REAL de zona (InversionV4) traída a la ficha
+import LeadCaptureModal from '../components/ficha/LeadCaptureModal'; // cierra el ciclo: alto intento → lead → asesor_contactos
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['lente', '¿Para qué?'], ['unidades', 'Unidades'], ['panorama', 'Tu panorama'], ['confianza', 'Confianza'],
@@ -42,8 +43,15 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const [invMode, setInvMode] = useState('individual'); // invertir: 'individual' (para ti) | 'institucional' (fondo)
   const [fundIds, setFundIds] = useState([]); // institucional: unidades elegidas (multi)
   const [hk, setHk] = useState({});         // ganchos VIVOS de cada módulo (la respuesta con tu unidad, sin abrir)
+  const [leadModal, setLeadModal] = useState(null); // {reason} cuando hay alto intento → captura → asesor
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
+  // CIERRE DE CICLO: cualquier 'dmx:lead' (wizard #5, PDF, comparador, agendar) abre la captura → /api/buyer/registrar → asesor.
+  useEffect(() => {
+    const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' });
+    window.addEventListener('dmx:lead', onLead);
+    return () => window.removeEventListener('dmx:lead', onLead);
+  }, []);
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
@@ -85,7 +93,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
   const askAtlax = () => { try { sendBuyerSignal('lead', { dev_id: dev.id, source: 'cockpit_atlax', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number, lens, decision: { lens: lensLabel, unit: unit && unit.unit_number, key: keyAns } } })); };
-  const agendar = () => { try { sendBuyerSignal('lead', { dev_id: dev.id, source: 'cockpit_agendar', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: `Quiero agendar una visita a ${dev.name}${unit ? ` (unidad ${unit.unit_number})` : ''}.${keyAns ? ` Me interesa: ${keyAns}.` : ''}` } })); };
+  const agendar = () => { try { sendBuyerSignal('intent', { dev_id: dev.id, action: 'agendar', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
 
   // flujo invertir·institucional: eliges varias unidades en el Paso 2
   const multi = lens === 'invertir' && invMode === 'institucional';
@@ -319,6 +327,9 @@ export default function FichaDesarrollo({ user, onLogin }) {
           </div>
         </div>
       </main>
+      {leadModal && (
+        <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyAns} reason={leadModal.reason} onClose={() => setLeadModal(null)} />
+      )}
     </LightScope>
   );
 }
