@@ -89,12 +89,12 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   const [openType, setOpenType] = useState(null);
   const [compare, setCompare] = useState([]);
   const [view, setView] = useState(() => {
-    try { const v = localStorage.getItem('dmx.ficha.unitview'); if (v) return v; } catch (e) { /* noop */ }
-    return (typeof window !== 'undefined' && window.innerWidth <= 760) ? 'tarjetas' : 'lista';
+    try { const v = localStorage.getItem('dmx.ficha.unitview2'); if (v) return v; } catch (e) { /* noop */ }
+    return 'tarjetas';   // por default: Tarjetas (founder · menos fricción)
   });
   const [sort, setSort] = useState({ col: 'unit_number', dir: 'asc' });
   const [page, setPage] = useState(1);
-  useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview', view); } catch (e) { /* noop */ } }, [view]);
+  useEffect(() => { try { localStorage.setItem('dmx.ficha.unitview2', view); } catch (e) { /* noop */ } }, [view]);
   useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
   const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
   const detailRef = useRef(null);

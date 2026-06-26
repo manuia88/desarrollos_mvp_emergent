@@ -291,9 +291,26 @@ export default function FichaDesarrollo({ user, onLogin }) {
                     </div>
                   </div>
                 )}
-                {lens && <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>}
+                {lens === 'vivir' && <div style={{ marginTop: 18 }}><SeccionLente dev={dev} lens={lens} /></div>}
                 {!lens && <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 13, color: 'var(--cream-3)' }}>Elige arriba y la ficha se arma para ti, paso a paso.</div>}
               </Section>
+              ) : lens === 'invertir' ? (
+                /* Invertir completado → barra compacta que MANTIENE el toggle Para ti/Institucional (switch en 1 click, sin fricción de 'cambiar') */
+                <div data-testid="lente" id="lente" style={{ marginTop: 'clamp(20px,3vw,32px)', scrollMarginTop: 112 }}>
+                  <Card style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '13px 20px' }}>
+                    <span style={{ width: 24, height: 24, borderRadius: 9999, background: '#059669', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>✓</span>
+                    <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Paso 1 · Invertir</div>
+                    <div style={{ display: 'flex', gap: 7, marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {[['individual', '👤 Para ti'], ['institucional', '🏛️ Institucional']].map(([v, l]) => {
+                        const on = invMode === v;
+                        return (
+                          <button key={v} onClick={() => chooseMode(v)} style={{ padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: HEAD, fontWeight: 700, fontSize: 13, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: on ? 'rgba(99,102,241,0.08)' : 'transparent', color: on ? 'var(--theme)' : 'var(--cream-2)' }}>{l}</button>
+                        );
+                      })}
+                      <button onClick={() => setEditStep('lente')} title="Cambiar de lente (vivir/invertir)" style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 6px' }}>✎</button>
+                    </div>
+                  </Card>
+                </div>
               ) : (
                 <StepBar anchor="lente" eyebrow="Paso 1 · ¿Para qué?" label={lensLabel || 'Elegido'} onEdit={() => setEditStep('lente')} />
               )}
@@ -325,9 +342,6 @@ export default function FichaDesarrollo({ user, onLogin }) {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <Modulo onOpen={() => signalModule('inv_valor')} eyebrow="La inteligencia" title="¿Es buen precio?" hook={hookValor}>
-                          <SeccionValor dev={dev} />
-                        </Modulo>
                         <Modulo forceOpen onOpen={() => signalModule('inv_calc')} eyebrow="Tu inversión" title="Los números de tu inversión" hook={hookInv}>
                           <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                         </Modulo>

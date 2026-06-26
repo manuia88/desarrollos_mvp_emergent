@@ -109,6 +109,9 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     } catch { setLeadState('error'); }
   };
 
+  // Clave ESTABLE del portafolio (string comparado por valor): el padre pasa portfolioUnits como array NUEVO en cada
+  // render → si va directo en las deps, el efecto se re-dispara infinitamente (loop de POST /analyze). La key lo corta.
+  const portfolioKey = (portfolioUnits || []).map((u) => `${u.precio}:${u.renta}`).join('|');
   useEffect(() => {
     clearTimeout(timer.current);
     const num = (x) => (x === '' || x === null ? undefined : Number(x));
@@ -126,7 +129,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
     const payload = { ...f, incluir_sensibilidad: vista === 'institucional', valor_propiedad: vp, renta_mensual: rm, tarifa_noche: tarifa, predial: pred, mantenimiento: mant, seguro: seg, num_unidades: num(f.num_unidades), ltv: num(f.ltv), tasa_anual: tasaFrac, plazo_meses: num(f.plazo_meses), abono_capital_mensual: num(f.abono_capital_mensual) || 0, apreciacion_anual: num(f.apreciacion_anual), crecimiento_renta_anual: num(f.crecimiento_renta_anual), exit_cap_rate: num(f.exit_cap_rate) || 0, capex_reserve_pct: num(f.capex_reserve_pct), prima_riesgo_inmobiliario: num(f.prima_riesgo_inmobiliario), tasa_vacancia: num(f.tasa_vacancia), zone_id: zoneId || undefined, usa_airroi: !!(airroi && airroi.adr_mxn) };
     timer.current = setTimeout(() => run(payload), 250);
     return () => clearTimeout(timer.current);
-  }, [f, vista, run, zoneId, airroi, portfolioUnits, descVol]);
+  }, [f, vista, run, zoneId, airroi, portfolioKey, descVol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // al elegir otra unidad/proyecto (cambia el precio que llega), sincroniza el precio bloqueado → permite comparar proyectos
   useEffect(() => {
@@ -165,7 +168,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
       } catch { /* noop */ }
     }, 300);
     return () => clearTimeout(t);
-  }, [vista, portfolioUnits, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual]);
+  }, [vista, portfolioKey, descVol, f.con_credito, f.ltv, f.tasa_anual, f.plazo_meses, f.horizonte_anios, f.modo_renta, f.apreciacion_anual, f.crecimiento_renta_anual]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
