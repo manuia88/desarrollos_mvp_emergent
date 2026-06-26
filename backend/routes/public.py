@@ -494,6 +494,33 @@ async def zona_inversion(colonia_id: str, request: Request):
         return {"ok": True}
 
 
+@router.get("/api/zona/{colonia_id}/ciclo")
+async def zona_ciclo(colonia_id: str, request: Request):
+    """Fase del CICLO inmobiliario de la zona (motor zone_cycle_engine · señal comparada con la ciudad) → '¿es buen
+    momento para comprar aquí?'. Antes solo lo veía el portal del dev; ahora también el comprador. Fail-open · hide-if-empty
+    (available=False si no hay colonia). La lectura es para el COMPRADOR (no la del dev, que habla de subir precio/vender)."""
+    try:
+        from data_seed import COLONIAS_BY_ID, COLONIAS
+        import zone_cycle_engine as zce
+        c = COLONIAS_BY_ID.get(colonia_id)
+        if not c:
+            return {"ok": False, "available": False}
+        zce.ensure_cycle_distributions(COLONIAS)
+        z = zce.compute_zone_cycle(c)
+        _fase = (z.get("ciclo") or {}).get("fase_key")
+        _buyer = {
+            "expansion": "La zona va al alza — si compras probablemente siga subiendo, pero ya no entras tan barato.",
+            "recuperacion": "Apenas empieza a subir — buen momento para entrar antes de que se encarezca.",
+            "maduro": "Zona consolidada — estable y segura, con crecimiento más lento. Pagas por la tranquilidad.",
+            "contraccion": "Precios a la baja — puede haber oportunidad, pero revisa bien antes de entrar.",
+        }.get(_fase)
+        return {"ok": True, "available": True, "ciclo": z.get("ciclo"), "gentrificacion": z.get("gentrificacion"),
+                "lectura_comprador": _buyer,
+                "nota": "Señal del ciclo comparada con el resto de la ciudad — no un número exacto."}
+    except Exception:
+        return {"ok": False, "available": False}
+
+
 @router.get("/api/zona/{colonia_id}/vida")
 async def zona_vida(colonia_id: str, request: Request):
     """LA VIDA EN LA ZONA: conteos REALES de amenidades por categoría (OSM, denue_zone_density) — restaurantes,
