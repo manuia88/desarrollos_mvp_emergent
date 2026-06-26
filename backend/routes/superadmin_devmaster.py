@@ -1956,3 +1956,40 @@ async def equipo_en_riesgo(request: Request, umbral: int = 50, limite: int = 50)
     return {"ok": True, "umbral": umbral, "total": len(en_riesgo),
             "criticos": altos, "moderados": medios,
             "en_riesgo": en_riesgo, "lectura": lectura}
+
+
+@router.get("/demanda-unidades")
+async def demanda_unidades(request: Request, limit: int = 20):
+    """GRANULARIDAD POR UNIDAD → superadmin (el moat): qué UNIDADES concretas (no solo desarrollos) mueven más demanda en
+    TODA la ciudad — vistas + guardados + leads por unidad, cruzando todos los devs, con colonia/precio/m². El dato ya se
+    captura (buyer_signals.unit_number + leads.unidad_interes); aquí se AGREGA y EXPONE (capas 2-3 del cubo por-unidad).
+    Cero dato inventado: si no hay señal, lista vacía (hide-if-empty en el front)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    from data_developments import DEVELOPMENTS_BY_ID
+    from collections import defaultdict
+    dem = defaultdict(lambda: {"vistas": 0, "guardados": 0, "leads": 0})
+    try:
+        async for s in db.buyer_signals.find({"type": "unit_view", "unit_number": {"$nin": [None, ""]}}, {"_id": 0, "entity_id": 1, "unit_number": 1}):
+            if s.get("entity_id"):
+                dem[(s["entity_id"], s["unit_number"])]["vistas"] += 1
+        async for s in db.buyer_signals.find({"type": "unit_save", "active": True, "unit_number": {"$nin": [None, ""]}}, {"_id": 0, "entity_id": 1, "unit_number": 1}):
+            if s.get("entity_id"):
+                dem[(s["entity_id"], s["unit_number"])]["guardados"] += 1
+        async for ld in db.leads.find({"unidad_interes": {"$nin": [None, ""]}}, {"_id": 0, "development_id": 1, "unidad_interes": 1}):
+            if ld.get("development_id"):
+                dem[(ld["development_id"], ld["unidad_interes"])]["leads"] += 1
+    except Exception:
+        pass
+    rows = []
+    for (dev_id, unit), v in dem.items():
+        d = DEVELOPMENTS_BY_ID.get(dev_id) or {}
+        uo = next((u for u in (d.get("units") or []) if u.get("unit_number") == unit), {})
+        rows.append({
+            "dev_id": dev_id, "dev_name": d.get("name") or dev_id, "colonia": d.get("colonia"),
+            "unidad": unit, "precio": uo.get("price"), "m2": uo.get("m2_total") or uo.get("m2_privative"),
+            "score": v["leads"] * 5 + v["guardados"] * 2 + v["vistas"], **v,
+        })
+    rows.sort(key=lambda r: -r["score"])
+    return {"ok": True, "unidades": rows[:limit], "total_con_demanda": len(rows)}

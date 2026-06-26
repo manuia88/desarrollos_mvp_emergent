@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Eye, Camera, MapPin, Heart, Lightbulb } from 'lucide-react';
 import { fetchGustoMercado, fetchBuyerCycleIntel } from '../../api/superadminDevmaster';
+import UnitDemandPanel from '../../components/superadmin/UnitDemandPanel';  // demanda por UNIDAD (capa 3 del cubo por-unidad · hide-if-empty)
 
 const dim = { color: 'var(--sa-text-dim)' };
 const mute = { color: 'var(--sa-text-mute)' };
@@ -51,6 +52,8 @@ export default function GustoMercado({ filters }) {
 
   return (
     <div data-testid="gusto-mercado" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* GRANULARIDAD POR UNIDAD (capa 3 del cubo por-unidad · el moat) — hide-if-empty */}
+      <UnitDemandPanel />
       {/* Copiloto · EL CUBO DEL CICLO DEL COMPRADOR (Bloomberg CDMX) */}
       {cube && cube.embudo && (
         <div data-testid="cubo-comprador" style={{ ...card, borderColor: 'rgba(var(--theme-rgb),0.45)' }}>
