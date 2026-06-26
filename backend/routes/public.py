@@ -64,6 +64,25 @@ def _apply_overlay(d: dict) -> dict:
     return out
 
 
+async def _apply_unit_overrides(db, dev_id: str, units: list) -> list:
+    """Fusiona las ediciones MANUALES del dev (developer_unit_overrides: precio/estado/m²/bodega/cajón…) sobre las
+    unidades base → el comprador ve EXACTO lo que el dev administra en su portal. Cierra el ciclo dev→comprador
+    (mismo merge que /developments/{id}/units, ahora también en la ficha). Fail-open."""
+    if not units:
+        return units
+    try:
+        ov_map = {}
+        async for ov in db.developer_unit_overrides.find({"dev_id": dev_id}, {"_id": 0}):
+            ov_map[ov.get("unit_id")] = ov
+        if not ov_map:
+            return units
+        _skip = {"unit_id", "dev_id", "updated_by", "updated_at", "reason", "hold_id", "price_change_reason"}
+        return [({**u, **{k: v for k, v in (ov_map.get(u.get("id")) or {}).items()
+                          if k not in _skip and v is not None}}) for u in units]
+    except Exception:
+        return units
+
+
 def _dev_public(d: dict, include_units: bool = False) -> dict:
     d = _apply_overlay(d)
     out = {k: v for k, v in d.items() if k != "_id" and (include_units or k != "units")}
@@ -1771,6 +1790,8 @@ async def get_development(dev_id: str, request: Request):
             raise HTTPException(404, "Desarrollo no encontrado")
         out = {k: v for k, v in pub.items() if k != "config"}
         out["contact_phone"] = pub.get("contact_phone") or DMX_FALLBACK_WHATSAPP
+    # Ediciones manuales del dev (precio/estado/m²/…) → la ficha muestra el dato vivo, no el seed. Cierra el ciclo dev→comprador.
+    out["units"] = await _apply_unit_overrides(db, dev_id, out.get("units") or [])
     # B0.3 · Overlay del dev (amenidades/servicios/pagos/sistema) sobre la ficha pública — fail-open
     try:
         from routes.dev_project_full import project_public_overlay
@@ -1799,18 +1820,8 @@ async def list_dev_units(
     await _ensure_overlay_loaded(dev_id, request.app.state.db)
     d = _apply_overlay(d)
     units = list(d.get("units", []))
-    # Fusiona las ediciones MANUALES del dev (developer_unit_overrides) → el comprador ve el dato
-    # actualizado (precio/estado/m²), no solo el seed. Cierra el ciclo dev→comprador.
-    try:
-        ov_map = {}
-        async for ov in request.app.state.db.developer_unit_overrides.find({"dev_id": dev_id}, {"_id": 0}):
-            ov_map[ov.get("unit_id")] = ov
-        if ov_map:
-            _skip = {"unit_id", "dev_id", "updated_by", "updated_at", "reason"}
-            units = [({**u, **{k: v for k, v in (ov_map.get(u.get("id")) or {}).items()
-                               if k not in _skip and v is not None}}) for u in units]
-    except Exception:
-        pass
+    # Fusiona las ediciones MANUALES del dev → el comprador ve el dato vivo (mismo helper que la ficha).
+    units = await _apply_unit_overrides(request.app.state.db, dev_id, units)
     if status:
         units = [u for u in units if u.get("status") == status]
     if beds is not None:
