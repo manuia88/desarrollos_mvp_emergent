@@ -51,13 +51,44 @@ def _user_dev_ids(user) -> List[str]:
 
 
 # ─── Dashboard ────────────────────────────────────────────────────────────────
+async def _effective_units(db, dev_ids):
+    """Unidades de los dev_ids con las ediciones manuales del dev (developer_unit_overrides) YA fusionadas → conteos/
+    absorción/revenue coherentes con lo que el dev administra (igual que /inventario y la ficha pública). El dashboard,
+    portfolio y reporte deben usar esto y NO ALL_UNITS crudo; si no, el dev ve dos absorciones distintas en la misma sesión."""
+    from data_developments import ALL_UNITS
+    dev_ids = set(dev_ids or [])
+    units = [u for u in ALL_UNITS if u["development_id"] in dev_ids]
+    if not units:
+        return units
+    overrides = {}
+    try:
+        async for ov in db.developer_unit_overrides.find({"dev_id": {"$in": list(dev_ids)}}, {"_id": 0}):
+            overrides[ov.get("unit_id")] = ov
+    except Exception:
+        return units
+    if not overrides:
+        return units
+    _flds = ("status", "bodega", "parking_type", "parking_spots", "vista", "m2_privative", "m2_balcony",
+             "m2_terrace", "m2_roof_garden", "m2_total", "bedrooms", "bathrooms", "price", "prototype", "level")
+    out = []
+    for u in units:
+        ov = overrides.get(u["id"])
+        m = {**u}
+        if ov:
+            for f in _flds:
+                if ov.get(f) is not None:
+                    m[f] = ov[f]
+        out.append(m)
+    return out
+
+
 @router.get("/dashboard")
 async def dashboard(request: Request):
     from data_developments import DEVELOPMENTS, ALL_UNITS
     user = await require_dev_admin(request)
     dev_ids = _user_dev_ids(user)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
-    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+    my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
 
     available = sum(1 for u in my_units if u["status"] == "disponible")
     reserved  = sum(1 for u in my_units if u["status"] == "reservado")
@@ -119,7 +150,7 @@ async def portfolio_reading(request: Request):
     dev_ids = _user_dev_ids(user)
     db = get_db(request)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
-    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+    my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
 
     total = len(my_units)
     sold = sum(1 for u in my_units if is_sold(u.get("status")))
@@ -586,7 +617,7 @@ async def dev_reporte_ejecutivo(request: Request):
     periodo = f"{_MESES_ES[now.month]} {now.year}"
 
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
-    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+    my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
     total = len(my_units)
     sold = sum(1 for u in my_units if is_sold(u.get("status")))
     avail = sum(1 for u in my_units if u["status"] == "disponible")
@@ -1110,7 +1141,7 @@ async def generate_report(request: Request, month: Optional[str] = None):
     month_key = month or (_now() - timedelta(days=30)).strftime("%Y-%m")
     dev_ids = _user_dev_ids(user)
     my_devs = [d for d in DEVELOPMENTS if d["id"] in dev_ids]
-    my_units = [u for u in ALL_UNITS if any(u["development_id"] == d["id"] for d in my_devs)]
+    my_units = await _effective_units(get_db(request), dev_ids)   # con ediciones del dev (no seed crudo)
 
     from data_developments import SOLD_STATUSES
     total_units = len(my_units)

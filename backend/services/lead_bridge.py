@@ -161,23 +161,41 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             "phones_norm": [np] if np else [],
             "emails": [email] if email else [],
             "tipo": "comprador",
-            "temperatura": "frio",
+            "temperatura": lead.get("temperatura") or "frio",   # conducta real, no 'frio' hardcodeado
             "etapa": _STATUS_TO_ETAPA.get(lead.get("status"), "nuevo"),
             "tags": [],
             "fuente": "Marketplace",
-            "project_id": lead.get("project_id"),
+            "project_id": lead.get("project_id") or lead.get("development_id"),
+            # CONTEXTO que el comprador eligió en la ficha → el asesor NO repite preguntas (lo que la UI le promete).
+            "development_id": lead.get("development_id"),
+            "unidad_interes": lead.get("unidad_interes"),
+            "lente": lead.get("lente"),
+            "contexto_registro": lead.get("contexto_registro"),
+            "buyer_profile": lead.get("buyer_profile"),
             "dev_org_id": lead.get("dev_org_id"),
             "created_at": lead.get("created_at"),
         }
         await db.asesor_contactos.insert_one(doc)
-        # E0.8 · primer evento en el hilo de actividad canónico (FAIL-OPEN).
+        # E0.8 · primer evento en el hilo de actividad canónico (FAIL-OPEN) — con el contexto real del comprador.
         try:
             from services.lead_activity import record_activity
-            proj = lead.get("project_id") or ""
+            _did = lead.get("development_id") or lead.get("project_id") or ""
+            try:
+                from data_developments import DEVELOPMENTS_BY_ID
+                _dname = (DEVELOPMENTS_BY_ID.get(_did) or {}).get("name") or _did
+            except Exception:
+                _dname = _did
+            _parts = [f"Desarrollo: {_dname}"] if _dname else ["Entró por marketplace"]
+            if lead.get("unidad_interes"):
+                _parts.append(f"unidad {lead['unidad_interes']}")
+            if lead.get("lente"):
+                _parts.append(str(lead["lente"]))
+            if lead.get("contexto_registro"):
+                _parts.append(str(lead["contexto_registro"]))
             await record_activity(
                 db, owner, cid, "evento",
                 title="Lead recibido",
-                body=("Entró por marketplace" + (f" · {proj}" if proj else "")),
+                body=" · ".join(_parts),
                 source="system", ref_id=lead_id, ts=lead.get("created_at"),
             )
         except Exception:

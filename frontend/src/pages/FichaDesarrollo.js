@@ -133,7 +133,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // ── SENSOR (upgrade): cada elección/módulo abierto → señal (alimenta lead score + analítica del dev) ──
   const chooseLens = (k) => { setLens(k); if (k === 'vivir') setEditStep(null); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
   const chooseMode = (v) => { setInvMode(v); setEditStep(null); };
-  const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); try { sendBuyerSignal('unit_view', { dev_id: dev.id, unit: u.unit_number, price: u.price }); } catch (e) { /* noop */ } } };
+  const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } };
   // pasos completados (para colapsarlos a una barra compacta)
   const paso1Done = !!(lens && (lens === 'vivir' || invMode));
   const paso2Done = paso1Done && !needUnit;
