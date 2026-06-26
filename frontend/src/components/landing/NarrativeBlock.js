@@ -104,20 +104,9 @@ export default function NarrativeBlock({
     return () => { alive = false; };
   }, [url]);
 
-  // Error
-  if (err) {
-    if (resolvedMode === 'compact') return null;
-    if (isScenario) return (
-      <div data-testid="scenario-narrative-error" style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', padding: '10px 0' }}>
-        Analisis multi-escenario no disponible en este momento.
-      </div>
-    );
-    return (
-      <div data-testid="narrative-error" style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', padding: 10 }}>
-        Narrativa aun no disponible.
-      </div>
-    );
-  }
+  // Error / no disponible (204 sin LLM, sin scores, etc.) → hide-if-empty: ocultar el bloque, no dejar un placeholder
+  // ni un error en una página pública. La narrativa aparece sola cuando hay LLM + scores reales.
+  if (err) return null;
 
   // Loading skeleton
   if (!data) {

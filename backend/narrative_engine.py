@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 log = logging.getLogger("dmx.narrative")
@@ -575,14 +575,22 @@ class NarrativeOut(BaseModel):
 @pub_router.get("/zones/{zone_id}/narrative", response_model=NarrativeOut)
 async def public_zone_narrative(zone_id: str, request: Request):
     db = request.app.state.db
-    doc = await get_or_generate(db, "colonia", zone_id)
+    # FAIL-OPEN: si la narrativa no se puede generar (sin LLM key / sin scores / cap de presupuesto) devolvemos 204
+    # limpio en vez de un 500 (que llega SIN headers CORS y ensucia la consola de una página pública). El front se oculta.
+    try:
+        doc = await get_or_generate(db, "colonia", zone_id)
+    except Exception:  # noqa: BLE001
+        return Response(status_code=204)
     return NarrativeOut(**{k: doc[k] for k in NarrativeOut.model_fields.keys() if k in doc})
 
 
 @pub_router.get("/developments/{dev_id}/narrative", response_model=NarrativeOut)
 async def public_dev_narrative(dev_id: str, request: Request):
     db = request.app.state.db
-    doc = await get_or_generate(db, "development", dev_id)
+    try:
+        doc = await get_or_generate(db, "development", dev_id)
+    except Exception:  # noqa: BLE001
+        return Response(status_code=204)
     return NarrativeOut(**{k: doc[k] for k in NarrativeOut.model_fields.keys() if k in doc})
 
 
