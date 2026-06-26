@@ -213,15 +213,27 @@ async def unit_detail_route(unit_id: str, request: Request):
     if not price_history and dev:
         price_history = (dev.get("price_history") or [])[-12:]
 
+    # Demanda REAL por unidad (el moat): leads + vistas + guardados con los MISMOS campos que el embudo del dev y
+    # demanda-unidades — antes consultaba unit_id/interested_unit_id (campos que el lead NO tiene) → siempre 0.
+    unit_number = unit.get("unit_number") or unit.get("numero")
     leads: List[Dict[str, Any]] = []
-    try:
-        cur = db.leads.find(
-            {"$or": [{"unit_id": unit_id}, {"interested_unit_id": unit_id}]}, {"_id": 0},
-        ).sort([("created_at", -1)]).limit(20)
-        async for ld in cur:
-            leads.append(ld)
-    except Exception:
-        pass
+    vistas = guardados = 0
+    if dev_id and unit_number:
+        try:
+            cur = db.leads.find(
+                {"development_id": dev_id, "unidad_interes": unit_number}, {"_id": 0},
+            ).sort([("created_at", -1)]).limit(20)
+            async for ld in cur:
+                leads.append(ld)
+        except Exception:
+            pass
+        try:
+            vistas = await db.buyer_signals.count_documents(
+                {"entity_id": dev_id, "type": "unit_view", "unit_number": unit_number})
+            guardados = await db.buyer_signals.count_documents(
+                {"entity_id": dev_id, "type": "unit_save", "active": True, "unit_number": unit_number})
+        except Exception:
+            pass
 
     ie_score = None
     if dev:
@@ -233,6 +245,7 @@ async def unit_detail_route(unit_id: str, request: Request):
         "price_history": price_history,
         "leads": leads,
         "leads_count": len(leads),
+        "demanda": {"vistas": vistas, "guardados": guardados, "leads": len(leads)},
         "ie_score_zone": ie_score,
     }
 
@@ -554,38 +567,61 @@ async def children_route(
 
     if next_tier == "unit":
         items: List[Dict[str, Any]] = []
+        # Demanda REAL por unidad de este dev en UN solo barrido (no por-unidad) → la lista muestra qué unidad mueve
+        # de verdad, no solo su precio. Mismos campos que el embudo del dev y demanda-unidades (el moat granular).
+        dmap: Dict[str, Dict[str, int]] = {}
+
+        def _d(un):
+            return dmap.setdefault(un, {"vistas": 0, "guardados": 0, "leads": 0})
+        try:
+            async for s in db.buyer_signals.find({"entity_id": tier_id, "type": "unit_view", "unit_number": {"$nin": [None, ""]}}, {"_id": 0, "unit_number": 1}):
+                _d(s["unit_number"])["vistas"] += 1
+            async for s in db.buyer_signals.find({"entity_id": tier_id, "type": "unit_save", "active": True, "unit_number": {"$nin": [None, ""]}}, {"_id": 0, "unit_number": 1}):
+                _d(s["unit_number"])["guardados"] += 1
+            async for ld in db.leads.find({"development_id": tier_id, "unidad_interes": {"$nin": [None, ""]}}, {"_id": 0, "unidad_interes": 1}):
+                _d(ld["unidad_interes"])["leads"] += 1
+        except Exception:
+            pass
         # Try seed first
         try:
             from data_developments import DEVELOPMENTS_BY_ID
             dev = DEVELOPMENTS_BY_ID.get(tier_id)
             if dev:
                 for u in (dev.get("units") or [])[:500]:
+                    un = u.get("unit_number")
+                    dem = dmap.get(un) or {"vistas": 0, "guardados": 0, "leads": 0}
                     items.append({
                         "tier": "unit",
                         "tier_id": u.get("id") or u.get("unit_id"),
-                        "name": u.get("unit_number") or u.get("name") or u.get("id"),
+                        "name": un or u.get("name") or u.get("id"),
                         "kpis": {
                             "price_mxn": u.get("price") or u.get("price_mxn"),
                             "m2": u.get("m2_privative") or u.get("size_m2"),
                             "status": u.get("status"),
                             "bedrooms": u.get("bedrooms"),
                             "bathrooms": u.get("bathrooms"),
+                            "vistas": dem["vistas"], "guardados": dem["guardados"], "leads": dem["leads"],
                         },
                     })
         except Exception:
             pass
         if not items:
             async for u in db.units.find({"development_id": tier_id}, {"_id": 0}).limit(500):
+                un = u.get("unit_number")
+                dem = dmap.get(un) or {"vistas": 0, "guardados": 0, "leads": 0}
                 items.append({
                     "tier": "unit",
                     "tier_id": u.get("id") or u.get("unit_id"),
-                    "name": u.get("unit_number") or u.get("name") or u.get("id"),
+                    "name": un or u.get("name") or u.get("id"),
                     "kpis": {
                         "price_mxn": u.get("price") or u.get("price_mxn"),
                         "m2": u.get("m2_privative") or u.get("size_m2"),
                         "status": u.get("status"),
+                        "vistas": dem["vistas"], "guardados": dem["guardados"], "leads": dem["leads"],
                     },
                 })
+        # Orden: las que MÁS mueven primero (leads > guardados > vistas) — el superadmin ve el calor al instante.
+        items.sort(key=lambda it: (-(it["kpis"].get("leads") or 0), -(it["kpis"].get("guardados") or 0), -(it["kpis"].get("vistas") or 0)))
         return {"items": items, "next_tier": "unit", "total": len(items)}
 
     existing = await db.cube_aggregations.count_documents(

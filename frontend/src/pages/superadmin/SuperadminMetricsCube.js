@@ -205,6 +205,18 @@ function UnitDetailView({ unitId, onBack }) {
         </div>
       </div>
 
+      {/* DEMANDA REAL por esta unidad (el moat granular): interés concreto del comprador, no solo su precio */}
+      {data.demanda && (
+        <div data-testid="cube-unit-demanda" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[['👁️', 'Vistas', data.demanda.vistas], ['❤️', 'Guardados', data.demanda.guardados], ['🔥', 'Leads', data.demanda.leads]].map(([ic, l, v]) => (
+            <div key={l} style={{ flex: '1 1 120px', padding: 14, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(240,235,224,0.55)', marginBottom: 6 }}>{ic} {l}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: (v || 0) > 0 ? 'var(--theme)' : 'rgba(240,235,224,0.30)', letterSpacing: '-0.025em' }}>{v || 0}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
         gridAutoRows: 'auto' }} className="cube-unit-grid">
         <div style={{ padding: 14, borderRadius: 12,
