@@ -26,7 +26,12 @@ router = APIRouter(tags=["buyer-signals"])
 
 VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "share", "dwell", "photo_dwell",
          "unit_view", "unit_save", "unit_unsave",
-         "zone_intent"}   # D · embudo POR UNIDAD + unidad como átomo · zone_intent = perfil declarado en una zona (value=perfil)
+         "zone_intent",   # D · embudo POR UNIDAD + unidad como átomo · zone_intent = perfil declarado en una zona (value=perfil)
+         # Conducta de la ficha que alimenta el ENGAGEMENT del comprador → temperatura del lead (antes se rechazaban):
+         "lens",          # eligió un lente (vivir/invertir) — intención declarada (value = lente)
+         "intent",        # alto intento sobre una unidad — agendar (value = acción)
+         "module_open",   # abrió un módulo de análisis — engagement profundo (value = módulo)
+         "lead"}          # pidió hablar con Atlax sobre una unidad (value = origen)
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -221,6 +226,54 @@ class RegistrarLeadIn(BaseModel):
     contexto: Optional[str] = None     # respuesta clave / escenario — lo que la UI le promete al asesor
 
 
+async def compute_engagement(db, visitor_id: str) -> dict:
+    """ENGAGEMENT del comprador desde su conducta REAL (buyer_signals) → score 0-100 + temperatura + factores
+    explicables. Es lo que hace que el asesor priorice por INTERÉS real, no por orden de llegada. FAIL-OPEN.
+    Pesos: del compromiso más fuerte (guardar/agendar una unidad) al más leve (ver). Cada tipo capado para no
+    inflar con repeticiones; bonus leve por tiempo total. Reusable por create_buyer_lead y por el detalle del asesor."""
+    counts: dict = {}
+    dwell_ms = 0
+    try:
+        async for row in db.buyer_signals.aggregate([
+            {"$match": {"visitor_id": visitor_id, "active": {"$ne": False}}},
+            {"$group": {"_id": "$type", "n": {"$sum": 1}, "dwell": {"$sum": {"$ifNull": ["$dwell_ms", 0]}}}},
+        ]):
+            counts[str(row.get("_id"))] = int(row.get("n") or 0)
+            dwell_ms += int(row.get("dwell") or 0)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[engagement] agg fail-open: {e}")
+        return {"score": 0, "temperatura": "frio", "factores": []}
+
+    def cn(t):
+        return int(counts.get(t, 0))
+    # (tipo, peso por unidad, tope, etiqueta legible para el asesor)
+    pesos = [
+        ("unit_save",   25, 50, lambda c: f"Guardó {c} unidad{'es' if c > 1 else ''}"),
+        ("intent",      20, 40, lambda c: "Pidió agendar una visita"),
+        ("like",        12, 36, lambda c: f"Le gustaron {c} desarrollo{'s' if c > 1 else ''}"),
+        ("compare",     10, 20, lambda c: "Comparó propiedades"),
+        ("lead",         8, 16, lambda c: "Habló con el asistente (Atlax)"),
+        ("unit_view",    6, 30, lambda c: f"Vio {c} unidad{'es' if c > 1 else ''} a detalle"),
+        ("module_open",  5, 25, lambda c: f"Abrió {c} análisis a fondo"),
+        ("ficha_view",   3, 21, lambda c: f"Vio {c} ficha{'s' if c > 1 else ''}"),
+        ("lens",         4,  8, lambda c: "Definió para qué la quiere"),
+    ]
+    score, factores = 0, []
+    for t, w, cap, label in pesos:
+        c = cn(t)
+        if c <= 0:
+            continue
+        score += min(c * w, cap)
+        factores.append(label(c))
+    if dwell_ms >= 60000:  # bonus por tiempo: 1 pt/min, tope 10
+        mins = round(dwell_ms / 60000)
+        score += min(mins, 10)
+        factores.append(f"~{mins} min explorando")
+    score = max(0, min(100, score))
+    temp = "caliente" if score >= 55 else ("tibio" if score >= 25 else "frio")
+    return {"score": score, "temperatura": temp, "factores": factores[:6]}
+
+
 async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, dev_id=None, source="marketplace_save",
                             unit_number=None, lens=None, contexto=None):
     """E3 · Crea (o ACTUALIZA si ya existe) el lead del comprador en un momento de ALTO INTENTO. Engancha su histórico
@@ -242,9 +295,11 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             viewed.append(s["entity_id"])
     if dev_id and dev_id not in liked:
         viewed.insert(0, dev_id)
-    # Temperatura por CONDUCTA (founder: "mucha actividad cuenta"): muchos likes/vistas = lead caliente.
-    n_liked, n_viewed = len(set(liked)), len(viewed)
-    temperatura = "caliente" if (n_liked >= 3 or n_viewed >= 8) else ("tibio" if (n_liked + n_viewed) >= 3 else "frio")
+    # Temperatura por CONDUCTA real: engagement de TODAS sus señales (guardó/agendó/abrió análisis/vio unidades…) →
+    # el asesor prioriza por interés real, no por orden de llegada. Guardamos score + factores explicables.
+    engagement = await compute_engagement(db, visitor_id)
+    temperatura = engagement["temperatura"]
+    _eng = {"engagement_score": engagement["score"], "engagement_factores": engagement["factores"]}
     profile = {
         "colonias": perfil.get("colonias"), "presupuesto_max": perfil.get("precio_max"),
         "presupuesto_min": perfil.get("precio_min"),
@@ -275,7 +330,7 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
         await db.leads.update_one({"id": lead_id}, {"$set": {
             "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20],
             "temperatura": temperatura, "contact": contact,
-            "last_activity_at": now.isoformat(), "updated_at": now.isoformat(), **_ctx}})
+            "last_activity_at": now.isoformat(), "updated_at": now.isoformat(), **_eng, **_ctx}})
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
         house_inm = lead.get("inmobiliaria_id")
     else:
@@ -294,7 +349,7 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             "assigned_to": assigned_to, "inmobiliaria_id": house_inm,
             "buyer_profile": profile, "liked_devs": liked, "viewed_devs": viewed[:20], "visitor_id": visitor_id,
             "created_at": now.isoformat(), "updated_at": now.isoformat(), "last_activity_at": now.isoformat(),
-            "created_by": "_copiloto", **_ctx,
+            "created_by": "_copiloto", **_eng, **_ctx,
         }
         await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
     # 4. Espeja al CRM del asesor (idempotente, aislamiento). Si no se puede aún → mirror_pending (auto-reparable).

@@ -131,8 +131,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
   const goTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); };
   // Riel → abre Atlax con contexto (dev + unidad elegida). El cierre-de-ciclo completo (lead al asesor) viene después.
-  const askAtlax = () => { try { sendBuyerSignal('lead', { dev_id: dev.id, source: 'cockpit_atlax', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number, lens, decision: { lens: lensLabel, unit: unit && unit.unit_number, key: keyAns } } })); };
-  const agendar = () => { try { sendBuyerSignal('intent', { dev_id: dev.id, action: 'agendar', lens, mode: invMode, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
+  const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number, lens, decision: { lens: lensLabel, unit: unit && unit.unit_number, key: keyAns } } })); };
+  const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
 
   // flujo invertir·institucional: eliges varias unidades en el Paso 2
   const multi = lens === 'invertir' && invMode === 'institucional';
@@ -147,7 +147,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const hookZona = hk.metroMin ? `Metro ${hk.metroNom} a ${hk.metroMin} min · mapa, lugares y qué tan caminable` : 'Mapa, mejores lugares y qué tan caminable';
 
   // ── SENSOR (upgrade): cada elección/módulo abierto → señal (alimenta lead score + analítica del dev) ──
-  const chooseLens = (k) => { setLens(k); if (k === 'vivir') setEditStep(null); try { sendBuyerSignal('lens', { dev_id: dev.id, lens: k }); } catch (e) { /* noop */ } };
+  const chooseLens = (k) => { setLens(k); if (k === 'vivir') setEditStep(null); try { sendBuyerSignal('lens', { entity_id: dev.id, colonia: dev.colonia, value: k }); } catch (e) { /* noop */ } };
   const chooseMode = (v) => { setInvMode(v); setEditStep(null); };
   const pickUnit = (u) => { setUnit(u); if (u) { setEditStep(null); if (u.unit_number) { try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } } };
   // GUARDAR la UNIDAD (unidad como átomo): emite unit_save/unit_unsave → embudo del dev + demanda superadmin + /favoritos del comprador.
@@ -161,7 +161,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // pasos completados (para colapsarlos a una barra compacta)
   const paso1Done = !!(lens && (lens === 'vivir' || invMode));
   const paso2Done = paso1Done && !needUnit;
-  const signalModule = (m) => { try { sendBuyerSignal('module_open', { dev_id: dev.id, module: m, lens, unit: unit && unit.unit_number }); } catch (e) { /* noop */ } };
+  const signalModule = (m) => { try { sendBuyerSignal('module_open', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: m }); } catch (e) { /* noop */ } };
   // cockpit "Tu decisión": el número clave del lente (gancho vivo)
   const keyAns = lens === 'invertir' ? (hk.tir != null ? `Rinde ${hk.tir.toFixed(1)}%${hk.cetes != null ? (hk.tir > hk.cetes ? ' · le gana a CETES' : ' · debajo de CETES') : ''}` : null) : (hk.mensual ? `Mensualidad ~${money(hk.mensual)}` : null);
   const lensLabel = lens === 'invertir' ? `Invertir · ${invMode === 'institucional' ? 'Institucional' : 'Para ti'}` : lens === 'vivir' ? 'Para vivir' : null;

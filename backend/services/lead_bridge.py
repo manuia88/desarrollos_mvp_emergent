@@ -125,6 +125,16 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             {"owner_id": owner, "source_lead_id": lead_id}, {"_id": 0, "id": 1}
         )
         if existing:
+            # Re-engagement: el comprador volvió y subió su interés → refresca temperatura + factores para que el
+            # asesor lo vea CALENTARSE en su lista (no se queda frío de la primera vez). FAIL-OPEN.
+            try:
+                await db.asesor_contactos.update_one({"id": existing["id"]}, {"$set": {
+                    "temperatura": lead.get("temperatura") or "frio",
+                    "engagement_score": lead.get("engagement_score"),
+                    "engagement_factores": lead.get("engagement_factores") or [],
+                }})
+            except Exception:  # noqa: BLE001
+                pass
             return existing["id"]
 
         # 2) ¿el dueño ya tiene un contacto del mismo cliente (alta manual)? → enlazar
@@ -162,6 +172,10 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             "emails": [email] if email else [],
             "tipo": "comprador",
             "temperatura": lead.get("temperatura") or "frio",   # conducta real, no 'frio' hardcodeado
+            # Por QUÉ está así de caliente: el engagement explicable del comprador (guardó/agendó/vio unidades…) →
+            # el asesor prioriza por interés real y abre con contexto, no a ciegas.
+            "engagement_score": lead.get("engagement_score"),
+            "engagement_factores": lead.get("engagement_factores") or [],
             "etapa": _STATUS_TO_ETAPA.get(lead.get("status"), "nuevo"),
             "tags": [],
             "fuente": "Marketplace",

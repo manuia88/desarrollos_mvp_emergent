@@ -770,6 +770,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   <span className="asr-assignee">· <span className="asr-assignee__av">TÚ</span> Asignada a ti</span>
                 )}
               </div>
+              {/* POR QUÉ está así de caliente: engagement explicable del comprador (su conducta REAL en la ficha) → el asesor prioriza con contexto */}
+              {Array.isArray(c.engagement_factores) && c.engagement_factores.length > 0 && (
+                <div data-testid="asr-engagement-why" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)', marginTop: 7, lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>Por qué:</span> {c.engagement_factores.join(' · ')}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {waUrl && (
