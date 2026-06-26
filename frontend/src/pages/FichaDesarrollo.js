@@ -160,7 +160,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
           </nav>
 
           {/* ══════ 2 COLUMNAS ══════ */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 44, alignItems: 'start' }}>
+          <div className="ficha-grid">
             {/* ——— Columna izquierda: contenido ——— */}
             <div style={{ minWidth: 0 }}>
 
@@ -327,6 +327,17 @@ export default function FichaDesarrollo({ user, onLogin }) {
           </div>
         </div>
       </main>
+
+      {/* ── Barra de acción fija (solo móvil) — precio + agendar siempre a la mano ── */}
+      <div className="ficha-mobilebar">
+        <div style={{ minWidth: 0, flex: '0 0 auto' }}>
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--cream)', lineHeight: 1 }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</div>
+          <div style={{ fontFamily: SANS, fontSize: 10.5, color: 'var(--cream-3)', marginTop: 1 }}>{unit ? `Unidad ${unit.unit_number}` : (keyAns || 'Desde')}</div>
+        </div>
+        <button onClick={askAtlax} style={{ flex: '0 0 auto', padding: '12px 14px', borderRadius: 11, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>✨ Atlax</button>
+        <button onClick={agendar} style={{ flex: 1, padding: '13px 14px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.3)' }}>📅 Agendar</button>
+      </div>
+
       {leadModal && (
         <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyAns} reason={leadModal.reason} onClose={() => setLeadModal(null)} />
       )}

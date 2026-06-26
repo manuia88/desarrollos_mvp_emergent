@@ -588,3 +588,17 @@ input[type="number"] {
   background: #0d1118;
   color: var(--cream);
 }
+
+/* ── Ficha v2 · responsivo (móvil) ───────────────────────────────────────── */
+.ficha-grid { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 44px; align-items: start; }
+.ficha-mobilebar { display: none; }
+@media (max-width: 900px) {
+  .ficha-grid { grid-template-columns: 1fr; gap: 24px; }
+  /* el cockpit deja de ser sticky en una sola columna (si no, queda flotando raro) */
+  .ficha-grid > div:last-child { position: static !important; }
+  /* barra de acción fija abajo (blueprint): precio + agendar siempre a la mano */
+  .ficha-mobilebar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1100; gap: 10px; align-items: center;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,0.97); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--card-border, rgba(16,18,28,0.1)); box-shadow: 0 -6px 22px rgba(16,18,28,0.1); }
+  .public-light { padding-bottom: 76px; } /* que la barra no tape el contenido */
+}
