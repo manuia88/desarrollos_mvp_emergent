@@ -75,7 +75,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
   // REVELADO SECUENCIAL: al completar el paso 1 (lente + modo si invierte) → baja al paso 2. Al elegir unidad → baja al paso 3.
   const scrollTo = (anchor) => { const el = document.querySelector(`[data-testid="${anchor}"]`); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 130); };
   useEffect(() => { if (lens && (lens === 'vivir' || invMode)) scrollTo('unidades'); }, [lens, invMode]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (unit) scrollTo('panorama'); }, [unit && unit.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NO auto-saltamos al panorama al elegir unidad: primero mostramos el DETALLE (características, plano, ficha técnica) en
+  // la propia sección de unidades; el usuario avanza con el botón "Ver mi panorama con esta unidad ↓". Menos brinco.
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
@@ -316,13 +317,13 @@ export default function FichaDesarrollo({ user, onLogin }) {
               )}
 
               {/* ══ PASO 2 · ELIGE UNIDAD(ES) — solo tras completar el paso 1 (encadenado) ══ */}
-              {paso1Done && ((!paso2Done || editStep === 'unidades') ? (
+              {/* Paso 2 NO colapsa al elegir: se queda mostrando la unidad con su DETALLE (características, plano, ficha técnica)
+                  + el botón 'Ver mi panorama' — así el comprador ve lo que eligió antes de avanzar (founder). */}
+              {paso1Done && (
                   <Section id="unidades" eyebrow="Paso 2 · Disponibilidad" title={multi ? 'Elige las unidades del fondo' : 'Elige tu unidad'}>
                     <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} />
                   </Section>
-              ) : (
-                <StepBar anchor="unidades" eyebrow="Paso 2 · Tu unidad" label={unit ? `Unidad ${unit.unit_number} · ${money(unit.price)}` : `${fundUnits.length} unidades del fondo`} onEdit={() => setEditStep('unidades')} />
-              ))}
+              )}
 
               {/* ══ PASO 3 · TU PANORAMA — solo tras elegir unidad (encadenado) ══ */}
               {paso2Done && (

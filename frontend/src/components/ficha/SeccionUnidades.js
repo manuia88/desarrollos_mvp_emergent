@@ -95,10 +95,15 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
   useEffect(() => { setPage(1); }, [sort]); // al reordenar, vuelve a la página 1
   const sortBy = (col) => { if (!col) return; setSort((s) => (s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' })); };
   const detailRef = useRef(null);
+  const compareRef = useRef(null);
   // al elegir unidad → llevar el detalle a la vista (para que SÍ se note la selección)
   useEffect(() => {
     if (selectedUnit && detailRef.current) detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [selectedUnit && selectedUnit.id]);
+  // al abrir el comparador (2+ unidades) → bajar a él (antes no se notaba hasta hacer scroll manual)
+  useEffect(() => {
+    if (compare.length >= 2 && compareRef.current) compareRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [compare.length]);
   if (!units.length) return null;
 
   const groups = {};
@@ -187,8 +192,13 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const bl = { borderLeft: '1px solid rgba(16,18,28,0.06)' };
                   return (
                     <tr key={u.id} onClick={() => cotizar(u)} style={{ borderBottom: '1px solid rgba(16,18,28,0.06)', cursor: dispo ? 'pointer' : 'default', background: sel ? 'rgba(99,102,241,0.08)' : 'transparent', boxShadow: sel ? 'inset 3px 0 0 var(--theme)' : 'none', opacity: dispo ? 1 : 0.55 }}>
-                      {/* UNIDAD */}
-                      <td style={{ ...lj, fontFamily: HEAD, fontSize: 13, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>{u.unit_number}</td>
+                      {/* UNIDAD (+ checkbox para comparar, también en Lista) */}
+                      <td style={{ ...lj, fontFamily: HEAD, fontSize: 13, fontWeight: 800, color: sel ? 'var(--theme)' : 'var(--cream)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {dispo && <input type="checkbox" title="Comparar esta unidad" checked={compare.includes(u.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => toggleCompare(u.id, e)} style={{ accentColor: 'var(--theme)', cursor: 'pointer' }} />}
+                          {u.unit_number}
+                        </span>
+                      </td>
                       <td style={{ ...lj }}><span style={{ display: 'inline-block', padding: '1px 9px', borderRadius: 6, background: 'rgba(16,18,28,0.06)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{u.prototype || '—'}</span></td>
                       <td style={{ ...lj }}>{u.level ?? '—'}</td>
                       {/* M² DESGLOSADOS */}
@@ -376,9 +386,9 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
 
       {/* comparador (upgrade) */}
       {compareUnits.length >= 2 && (
-        <Card style={{ marginTop: 14 }}>
+        <Card ref={compareRef} style={{ marginTop: 14, borderColor: 'var(--theme)', boxShadow: '0 0 0 2px rgba(99,102,241,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>Comparar {compareUnits.length} unidades</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>⚖️ Comparar {compareUnits.length} unidades</div>
             <button onClick={() => setCompare([])} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -398,6 +408,18 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* avanzar: elegir una (o varias para fondo) y seguir con la calculadora */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border, var(--border))', alignItems: 'center' }}>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>¿Con cuál{multi ? 'es' : ''} avanzas a tu inversión?</span>
+            {compareUnits.map((u) => {
+              const chosen = multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id);
+              return (
+                <button key={u.id} onClick={() => cotizar(u)} style={{ padding: '10px 16px', borderRadius: 11, border: chosen ? '1.5px solid var(--theme)' : 'none', background: chosen ? 'rgba(99,102,241,0.1)' : 'var(--grad)', color: chosen ? 'var(--theme)' : '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                  {chosen ? `✓ Elegida la ${u.unit_number}` : `Elegir la ${u.unit_number} →`}
+                </button>
+              );
+            })}
           </div>
         </Card>
       )}
