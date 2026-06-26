@@ -31,10 +31,14 @@ export default function PublicNav() {
   const [scrolled, setScrolled] = useState(false);
   const [tools, setTools] = useState(false);
   const [favCount, setFavCount] = useState(0);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 820);
+  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
     on(); window.addEventListener('scroll', on, { passive: true });
-    return () => window.removeEventListener('scroll', on);
+    const onR = () => setIsMobile(window.innerWidth <= 820);
+    onR(); window.addEventListener('resize', onR);
+    return () => { window.removeEventListener('scroll', on); window.removeEventListener('resize', onR); };
   }, []);
   useEffect(() => {
     const read = () => { try { setFavCount(JSON.parse(localStorage.getItem('dmx.favorites') || '[]').length); } catch { setFavCount(0); } };
@@ -60,6 +64,7 @@ export default function PublicNav() {
           </span>
         </Link>
 
+        {!isMobile && (<>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
           {LINKS.map((l) => <NavLink key={l.to} {...l} />)}
           {/* Herramientas dropdown */}
@@ -95,7 +100,23 @@ export default function PublicNav() {
         </Link>
         <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
         <Link to="/mapa" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
+        </>)}
+        {isMobile && (
+          <button onClick={() => setMenuOpen((o) => !o)} aria-label="Menú" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 11, border: '1px solid var(--border)', background: 'transparent', color: 'var(--cream)', fontSize: 20, cursor: 'pointer' }}>{menuOpen ? '✕' : '☰'}</button>
+        )}
       </div>
+      {isMobile && menuOpen && (
+        <div className="dmx-card" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-2, #fff)', padding: '10px 18px 18px', boxShadow: 'var(--sh-card)' }}>
+          {LINKS.map((l) => <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={mobileItem}>{tc(l.label)}</Link>)}
+          <div style={{ ...mobileItem, color: 'var(--cream-3)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 14 }}>Herramientas</div>
+          {TOOLS.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ ...mobileItem, fontSize: 13.5, paddingTop: 7, paddingBottom: 7 }}>{tc(tl.label)}</Link>)}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link to="/favoritos" onClick={() => setMenuOpen(false)} style={{ ...mobileItem, padding: '8px 0' }}>♥ Favoritos{favCount > 0 ? ` (${favCount})` : ''}</Link>
+            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
+            <Link to="/mapa" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -109,6 +130,11 @@ function NavLink({ label, to }) {
     </Link>
   );
 }
+
+const mobileItem = {
+  display: 'block', padding: '11px 0', textDecoration: 'none', color: 'var(--cream)',
+  fontFamily: "'DM Sans',sans-serif", fontSize: 15, fontWeight: 700, borderBottom: '1px solid var(--border)',
+};
 
 const navBtnStyle = {
   display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 13px', borderRadius: 'var(--r-pill)',

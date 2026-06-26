@@ -26,7 +26,7 @@ const Auto = () => <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800,
 // link directo al Proyector de Impuestos (abre en pestaña nueva para no perder la calculadora)
 const ProyectorLink = () => <a href="/tools/tax-projector" target="_blank" rel="noreferrer" style={{ color: '#6D28D9', fontWeight: 700, textDecoration: 'underline' }}>Proyector de Impuestos</a>;
 // globito "?" con explicación rica (qué es · de dónde sale · ejemplo real). children = contenido.
-const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: 'rgba(124,92,255,0.14)', color: '#6D28D9', fontSize: 9, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
+const Info = ({ children }) => <sup className="iv4-tip" tabIndex={0} style={{ marginLeft: 3 }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 12, height: 12, borderRadius: '50%', background: 'rgba(16,18,28,0.05)', color: '#9499AE', fontSize: 8.5, fontWeight: 800 }}>?</span><span className="iv4-tipbox" style={{ width: 250 }}>{children}</span></sup>;
 
 export default function InversionV4Calculator({ prefilled = {}, lockPrice = false, zoneId = '', capRateMercado = null, devId = '', numDesarrollos = null, mode = 'individual', portfolioUnits = [], noStickyBar = false, onResult = null }) {
   const precio0 = prefilled.precio || 5_000_000;
@@ -170,7 +170,7 @@ export default function InversionV4Calculator({ prefilled = {}, lockPrice = fals
   // estilos
   const inp = { background: '#fff', border: '1px solid rgba(16,18,28,0.16)', borderRadius: 9, color: '#16182A', fontFamily: 'DM Sans', fontSize: 13, padding: '9px 11px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lab = { fontFamily: 'DM Sans', fontSize: 10.5, color: '#6B6F86', marginBottom: 5, display: 'block', fontWeight: 700 };
-  const sectTitle = { fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#16182A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 };
+  const sectTitle = { fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 17, color: '#16182A', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' };
   const grpLabel = { fontFamily: 'DM Sans', fontWeight: 800, fontSize: 10, color: '#9499AE', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 };
   const Toggle = ({ k, opts }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

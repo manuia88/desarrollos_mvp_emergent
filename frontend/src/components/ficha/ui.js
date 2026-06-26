@@ -49,7 +49,7 @@ export function Stat({ value, label, accent, sub, sm }) {
   if (value == null || value === '') return null;
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: sm ? 'clamp(15px,1.6vw,19px)' : 'clamp(18px,2.2vw,26px)', color: accent || 'var(--cream)', lineHeight: 1.05, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{value}</div>
+      <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: sm ? 'clamp(14px,1.5vw,17px)' : 'clamp(18px,2.2vw,26px)', color: accent || 'var(--cream)', lineHeight: 1.1, letterSpacing: '-0.02em', overflowWrap: 'break-word', hyphens: 'auto' }}>{value}</div>
       <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{label}</div>
       {sub && <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3 }}>{sub}</div>}
     </div>
