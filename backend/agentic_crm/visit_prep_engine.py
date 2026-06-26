@@ -292,14 +292,14 @@ async def _tool_likely_objections(db, segment: Optional[str], zone: Optional[str
 # ─── Layer 1: LLM ─────────────────────────────────────────────────────────────
 async def _layer_llm(db, org_id: str, lead: Dict[str, Any], asesor: Dict[str, Any],
                      project: Dict[str, Any], visit_at: datetime) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     cb = _get_cb(org_id)
     if cb.is_open():
         raise CircuitOpenError(f"Circuit visit_prep abierto · org={org_id}")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     lead_id = lead.get("id") or ""
     project_id = project.get("id") or ""

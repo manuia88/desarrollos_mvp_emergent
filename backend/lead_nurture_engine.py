@@ -578,14 +578,14 @@ def _normalize_sequence(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 # ─── Layer 1: LLM ─────────────────────────────────────────────────────────────
 async def _nrt_layer_llm(db, org_id: str, lead: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     cb = _get_cb_nrt(org_id)
     if cb.is_open():
         raise CircuitOpenError(f"Circuit nurture_intelligent abierto · org={org_id}")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     lead_id = lead.get("id") or ""
     lead_name = (lead.get("contact") or {}).get("name") or lead.get("name") or lead_id

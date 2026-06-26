@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.insights_ai")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SONNET_MODEL = "claude-sonnet-4-5-20250929"
 HAIKU_MODEL = "claude-haiku-4-5-20251001"
 CACHE_TTL_HOURS = 24
@@ -113,7 +113,7 @@ async def _call_claude(model: str, system: str, user_text: str) -> Optional[str]
     if not EMERGENT_LLM_KEY:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"insight_{uuid.uuid4().hex[:8]}",

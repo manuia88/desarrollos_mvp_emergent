@@ -24,7 +24,7 @@ VALID_EVENTS = {
 ADMIN_ROLES = {"developer_admin", "developer_director", "inmobiliaria_admin",
                 "asesor_admin", "superadmin"}
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SUGGESTION_THRESHOLD = 100  # min events before AI gets called
 SUGGESTION_TTL_HOURS = 24
 
@@ -245,7 +245,7 @@ async def _maybe_suggest(db, project_id: str, period: str, total: int,
         return None
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         prompt = (
             "Analiza este funnel de conversión y sugiere UNA acción concreta para reducir el "
             "principal drop-off. Responde JSON válido sin markdown: "

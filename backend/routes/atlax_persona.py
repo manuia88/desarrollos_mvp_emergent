@@ -217,14 +217,14 @@ async def preview_persona_endpoint(org_id: str, body: PreviewPersonaIn, request:
     )
     full_system = (persona_prefix + "\n" + base_system) if persona_prefix else base_system
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(503, "EMERGENT_LLM_KEY no configurado")
 
     model_name = os.environ.get("ASISTENTE_MODEL", "claude-sonnet-4-5-20250929")
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+        from llm_client import LlmChat, UserMessage as LlmUserMsg
         import uuid as _uuid
         session_id = f"prev_{_uuid.uuid4().hex[:10]}"
         chat = LlmChat(

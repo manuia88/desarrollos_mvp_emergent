@@ -105,7 +105,7 @@ class AdsRequest(BaseModel):
 # ─── Video engine adapter ─────────────────────────────────────────────────────
 async def _generate_video_stub(req: VideoRequest, user) -> dict:
     """STUB: Claude generates script/storyboard/subtitles. No render."""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from llm_client import LlmChat, UserMessage
 
     voice = next((v for v in VOICES if v["id"] == req.voice_id), VOICES[0])
     music = MUSIC_TRACKS.get(req.music_mood, MUSIC_TRACKS["lujo"])[0]
@@ -132,7 +132,7 @@ Devuelve JSON con esta estructura exacta (sin markdown, sin backticks, JSON puro
 Genera exactamente {scenes_count} scenes que cubran toda la duración {req.duration}s. El voiceover total debe leerse en {req.duration}s a ritmo natural (~150 palabras por minuto).
 """
     try:
-        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"),
+        chat = LlmChat(api_key=os.environ.get("ANTHROPIC_API_KEY"),
                        session_id=_uid("video"),
                        system_message="Eres director creativo senior de video real estate LATAM.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
@@ -231,8 +231,8 @@ VIDEO_ENGINE = {
 # ─── Ads engine adapter ───────────────────────────────────────────────────────
 async def _generate_ads_openai_stub(req: AdsRequest, user) -> dict:
     """openai-stub: 10 real copies + 7 hero images via gpt-image-1, 90 placeholder slots."""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
-    from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+    from llm_client import LlmChat, UserMessage
+    from llm_client import OpenAIImageGeneration
 
     # Resolve source data
     src_data = ""
@@ -278,7 +278,7 @@ Devuelve JSON puro (sin backticks):
 Cada headline máximo 60 caracteres. Cada body máximo 110 caracteres. Cada cta máximo 30 caracteres."""
     copies = []
     try:
-        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"),
+        chat = LlmChat(api_key=os.environ.get("ANTHROPIC_API_KEY"),
                        session_id=_uid("ads"),
                        system_message="Eres copywriter senior de ads inmobiliarios LATAM.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
@@ -461,7 +461,7 @@ async def get_ad_batch(bid: str, request: Request):
 async def generate_hero_image(bid: str, angulo: str, request: Request):
     """Lazy hero image generation per ángulo — fits in single proxy timeout window.
     Image bytes stored in `studio_assets` to avoid BSON 16MB cap on the batch doc."""
-    from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+    from llm_client import OpenAIImageGeneration
     user = await require_studio(request)
     db = get_db(request)
     batch = await db.studio_ad_batches.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
@@ -480,7 +480,7 @@ async def generate_hero_image(bid: str, angulo: str, request: Request):
                   f"Architectural photography, dramatic natural lighting, premium feel, "
                   f"navy + cream + indigo color palette. No text overlays. Clean, high-end.")
     try:
-        image_gen = OpenAIImageGeneration(api_key=os.environ.get("EMERGENT_LLM_KEY"))
+        image_gen = OpenAIImageGeneration(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         imgs = await image_gen.generate_images(prompt=img_prompt, model="gpt-image-1", number_of_images=1)
         if not imgs:
             raise HTTPException(502, "Generación falló")

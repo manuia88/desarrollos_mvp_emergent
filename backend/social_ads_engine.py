@@ -34,7 +34,7 @@ log = logging.getLogger("dmx.social_ads")
 # Cap conexiones Meta por tenant (configurable env · default 5).
 MAX_CONNECTIONS_PER_TENANT = int(os.environ.get("SOCIAL_ADS_MAX_CONNECTIONS_PER_TENANT", "5"))
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 
 _CAMPAIGN_OBJECTIVES = [
@@ -308,7 +308,7 @@ async def _llm_allocation_rationale(
     if not EMERGENT_LLM_KEY:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         summary = [
             {k: c.get(k) for k in ("name", "status", "ctr", "cpc_mxn", "conversions", "daily_budget_mxn")}
             for c in campaigns

@@ -163,11 +163,11 @@ async def _llm_refine_suggestion(
 
     Siempre registra costo vía ai_budget.track_ai_call. FAIL-OPEN None (usa heurística).
     """
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
 
         system = (
             "Eres un coach de ventas inmobiliarias en México. Devuelve UN solo consejo "

@@ -143,12 +143,12 @@ def _has_numeric_citation(text: str, citations: List[Dict[str, Any]]) -> bool:
 async def _call_llm(system_prompt: str, user_prompt: str) -> Dict[str, Any]:
     """Invoca Claude Sonnet via emergentintegrations.LlmChat · retorna {text, tokens_in, tokens_out, ok}."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+        from llm_client import LlmChat, UserMessage as LlmUserMsg
     except Exception as e:  # noqa: BLE001
         log.warning(f"[narrative_layer] emergentintegrations import failed: {e}")
         return {"ok": False, "reason": "llm_unavailable"}
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return {"ok": False, "reason": "no_emergent_llm_key"}
 

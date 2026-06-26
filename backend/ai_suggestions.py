@@ -32,7 +32,7 @@ log = logging.getLogger("dmx.ai_suggestions")
 
 router = APIRouter(tags=["ai_suggestions"])
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_HAIKU_MODEL = "claude-haiku-4-5-20251001"
 CACHE_TTL_HOURS = 24
 
@@ -313,7 +313,7 @@ async def _call_claude(db, dev_org_id: str, entity_type: str,
     user_text = narrative_zone_block + forecast_block + "CONTEXTO:\n" + json.dumps(ctx, ensure_ascii=False, default=str)
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"suggestions_{entity_type}_{uuid.uuid4().hex[:8]}",

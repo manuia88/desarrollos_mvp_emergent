@@ -277,7 +277,7 @@ async def _lead_tool_age_dist(db, params: Dict[str, Any], org_id: str) -> Dict[s
 
 # ─── Layer 1: LLM ─────────────────────────────────────────────────────────────
 async def _layer_llm(db, org_id: str, period_days: int) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 
@@ -285,7 +285,7 @@ async def _layer_llm(db, org_id: str, period_days: int) -> Optional[Dict[str, An
     if cb.is_open():
         raise CircuitOpenError(f"Circuit abierto lead para org {org_id}")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     system_prompt = f"""Eres un agente especializado en optimización de funnel de leads inmobiliarios para DesarrollosMX (México).
 Organización: {org_id}

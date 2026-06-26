@@ -104,11 +104,11 @@ async def _gather_context(db, zone_id: str, tier: str, period: str) -> Dict[str,
 
 async def _claude_sonnet_brief(ctx: Dict[str, Any], zone_id: str, period: str) -> Dict[str, Any]:
     """Single Sonnet call returning structured executive brief."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return _stub_brief(ctx, reason="EMERGENT_LLM_KEY missing")
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
     except Exception:
         return _stub_brief(ctx, reason="emergentintegrations no instalado")
 
@@ -731,7 +731,7 @@ async def generate_cross_source_brief(db, country_focus: str = "MX") -> Dict[str
 
     # Best-effort LLM call · reuses ai_budget gating from existing module
     try:
-        from emergentintegrations.llmchat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
         prompt = (
             f"Eres un analista macro inmobiliario senior de DesarrollosMX (MX). "
             f"Recibes datos macro globales ({len(ok_sources)} fuentes: {', '.join(ok_sources[:8])}) "

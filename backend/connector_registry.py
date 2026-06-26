@@ -84,11 +84,11 @@ HTTP_TIMEOUT = 30.0
 
 
 async def _hc_claude(model_label: str) -> Tuple[bool, int, Optional[str], Optional[str]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return False, 0, "EMERGENT_LLM_KEY ausente", None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
     except Exception as e:
         return False, 0, f"emergentintegrations no disponible: {e}", None
     t0 = time.monotonic()

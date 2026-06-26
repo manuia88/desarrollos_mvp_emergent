@@ -912,7 +912,7 @@ async def _agentic_loop(
     Ejecuta el loop agentic: send → parse tool_calls → exec → reinject → final response.
     Returns: (final_text, tool_calls_list, total_in_tokens, total_out_tokens)
     """
-    from emergentintegrations.llm.chat import UserMessage as LlmUserMsg
+    from llm_client import UserMessage as LlmUserMsg
 
     total_in = _estimate_tokens(user_message)
     total_out = 0
@@ -1088,9 +1088,9 @@ class DirectorAgent:
             }
 
         # ── Real LLM call ─────────────────────────────────────────────────────
-        from emergentintegrations.llm.chat import LlmChat
+        from llm_client import LlmChat
 
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 

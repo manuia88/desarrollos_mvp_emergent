@@ -188,12 +188,12 @@ async def extract_bulk_project(
     """Run Claude Haiku on the project's key files and return structured data + cost_mxn."""
     async with CLAUDE_SEMAPHORE:
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+            from llm_client import LlmChat, UserMessage  # type: ignore
         except Exception:
             log.warning("[bulk_ingest] emergentintegrations not available, returning stub")
             return _stub_extraction(project_name_hint), 0.0
 
-        api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             log.warning("[bulk_ingest] no LLM key, returning stub")
             return _stub_extraction(project_name_hint), 0.0

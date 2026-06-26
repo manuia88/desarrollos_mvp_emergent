@@ -121,7 +121,7 @@ def _strip_quoted(body: str) -> str:
 
 # ─── Layer 1: LLM ─────────────────────────────────────────────────────────────
 async def _layer_llm(org_id: str, reply_doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     cb = _get_cb(org_id)
@@ -132,7 +132,7 @@ async def _layer_llm(org_id: str, reply_doc: Dict[str, Any]) -> Optional[Dict[st
     if not body:
         return None
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     system_prompt = """Eres clasificador AI de respuestas de email de compradores inmobiliarios CDMX.
 Categoriza cada reply en UNA categoría y produce next_best_action.

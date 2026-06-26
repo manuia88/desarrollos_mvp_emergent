@@ -50,8 +50,8 @@ FORMATO (JSON estricto, sin texto adicional):
 
 
 async def _call_llm(prompt: str, provider: str = "anthropic") -> str:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     model = CLAUDE_MODEL if provider == "anthropic" else OPENAI_MODEL

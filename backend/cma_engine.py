@@ -263,11 +263,11 @@ async def _llm_narrative(
         _subscore_label_es(subscores.get("seguridad")),
         drpi_label, forecast_12m_pct,
     )
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return template_fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         sys_prompt = (
             "Eres un asesor inmobiliario experto en CDMX. Genera una narrativa de máximo 150 palabras "
             "para un análisis comparativo de mercado (CMA) que un asesor compartirá con su cliente. "

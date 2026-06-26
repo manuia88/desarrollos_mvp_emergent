@@ -25,7 +25,7 @@ init_posthog()
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME   = os.environ.get("DB_NAME")
 JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 # P1.12 · salt de PII SOLO en el backend (antes el front lo traía en el bundle con default débil).
 LFPDPPP_SALT = os.environ.get("LFPDPPP_SALT") or secrets.token_hex(16)

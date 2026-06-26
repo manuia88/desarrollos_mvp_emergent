@@ -274,12 +274,12 @@ async def detect_feature_flag_thrash(db) -> List[Dict[str, Any]]:
 
 async def _claude_haiku_reasoning(candidate: Dict[str, Any]) -> Dict[str, Any]:
     """Single Haiku call for reasoning + confidence. Returns {confidence, summary, recommendation}."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return {"confidence": 0.75, "summary": candidate.get("message", ""),
                 "recommendation": "Revisar manualmente."}
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
     except Exception:
         return {"confidence": 0.75, "summary": candidate.get("message", ""),
                 "recommendation": "Revisar manualmente."}

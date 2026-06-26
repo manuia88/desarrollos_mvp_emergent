@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.client_insights")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 HAIKU_MODEL = "claude-haiku-4-5-20251001"
 CACHE_TTL_MIN = 30
 
@@ -51,7 +51,7 @@ async def _classify_sentiment(messages: List[str]) -> str:
         return "neutral"
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"sentiment_{uuid.uuid4().hex[:8]}",
@@ -89,7 +89,7 @@ async def _recommend_next_action(ctx: Dict[str, Any]) -> Dict[str, Any]:
     health = ctx.get("health_score", "—")
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"next_action_{uuid.uuid4().hex[:8]}",

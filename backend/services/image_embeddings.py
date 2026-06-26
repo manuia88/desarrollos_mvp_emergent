@@ -23,7 +23,7 @@ import numpy as np
 
 log = logging.getLogger("dmx.image_embeddings")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 VISION_MODEL = "claude-sonnet-4-5-20250929"
 EMBEDDING_DIMS = 1536  # dimensión fija del vector
 
@@ -93,7 +93,7 @@ async def _describe_image_url(image_url: str) -> Tuple[Optional[str], Optional[b
         ctype = "image/webp"
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContent  # type: ignore
+        from llm_client import LlmChat, UserMessage, FileContent  # type: ignore
 
         b64 = base64.b64encode(img_bytes).decode("utf-8")
         file_c = FileContent(content_type=ctype, file_content_base64=b64)

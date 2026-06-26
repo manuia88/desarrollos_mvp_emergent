@@ -739,12 +739,12 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
 async def _claude_narrative(*, project_name: str, kpis: Dict, period: str,
                             db=None, dev_org_id: str = "default") -> str:
     """Claude haiku narrative summary for executive section."""
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return (f"Durante {period} el proyecto {project_name} registró {kpis['leads']} leads totales, "
                 f"{kpis['citas']} citas y {kpis['wins']} cierres ganados ({kpis['win_rate']}% conversión).")
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"narrative_{project_name}_{period}",
             system_message=(

@@ -271,11 +271,11 @@ async def _claude_zone_narrative(
             f"Riesgo {100 - sub_scores['risk_factors']:.0f}/100",
         ],
     }
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"site_sel_{zone['id']}",
             system_message=(
@@ -818,11 +818,11 @@ async def _compare_narrative(studies_summary: List[Dict]) -> str:
     fallback = (f"Comparación entre {len(studies_summary)} estudios: enfoques distintos en "
                 f"segmento y precio target. Revisa el ranking y métricas para decidir cuál criterio "
                 f"se alinea mejor con tu tesis de inversión.")[:280]
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"site_compare_{secrets.token_hex(4)}",
             system_message=(
@@ -1055,11 +1055,11 @@ async def _claude_scenario_narrative(label: str, scn: Dict) -> str:
                 f"{scn['discount_pct']:.0f}%. Breakeven mes "
                 f"{scn['breakeven_month'] if scn['breakeven_month'] > 0 else 'fuera de horizonte'}, "
                 f"{scn['total_units_sold']} unidades vendidas.")[:200]
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"scn_{label}_{secrets.token_hex(3)}",
             system_message=(

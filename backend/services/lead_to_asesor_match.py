@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.lead_to_asesor_match")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 HAIKU_MODEL = "claude-haiku-4-5-20251001"
 CACHE_TTL_MIN = 60
 WON = ["won", "ganado", "cerrado_ganado", "closed_won"]
@@ -272,7 +272,7 @@ async def _generate_reasons(
         return _heuristic_reasons(score_breakdown)
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"match_reasons_{uuid.uuid4().hex[:8]}",

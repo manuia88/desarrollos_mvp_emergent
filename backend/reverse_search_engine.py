@@ -77,12 +77,12 @@ async def parse_query(text: str, language: str = "es-MX") -> Dict[str, Any]:
         return fallback
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+        from llm_client import LlmChat, UserMessage as LlmUserMsg
     except Exception as e:  # noqa: BLE001
         log.warning(f"[reverse_search] emergentintegrations import failed: {e}")
         return fallback
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return fallback
 

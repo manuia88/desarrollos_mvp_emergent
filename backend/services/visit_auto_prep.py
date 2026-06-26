@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.visit_auto_prep")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SONNET_MODEL = "claude-sonnet-4-5-20250929"
 
 
@@ -225,7 +225,7 @@ async def _generate_briefing_with_claude(
     )
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
 
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,

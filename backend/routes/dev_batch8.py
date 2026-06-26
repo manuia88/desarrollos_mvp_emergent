@@ -327,11 +327,11 @@ async def _claude_scenario_narrative(label: str, summary: Dict,
         f"breakeven mes {summary.get('breakeven_month') or 'fuera horizonte'}, "
         f"{summary['gap_count']} gaps detectados."
     )[:240]
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"cf_scn_{label}_{secrets.token_hex(3)}",
             system_message=(
@@ -395,11 +395,11 @@ async def _claude_recommendations(*, base_summary: Dict, biggest_gap: Optional[D
     })
     fallback = fallback[:5]
 
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return fallback
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=key, session_id=f"cf_rec_{secrets.token_hex(3)}",
             system_message=(

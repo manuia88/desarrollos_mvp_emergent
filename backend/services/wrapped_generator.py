@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.wrapped_generator")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 HAIKU_MODEL   = "claude-haiku-4-5-20251001"
 SONNET_MODEL  = "claude-sonnet-4-5-20250929"
 PLATFORM_ORG  = "dmx_platform"
@@ -75,7 +75,7 @@ async def _generate_narrative(stats: Dict[str, Any], model: str, is_annual: bool
     )
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         session_id = f"wrapped_{uuid.uuid4().hex[:8]}"
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,

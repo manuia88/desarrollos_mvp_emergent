@@ -233,11 +233,11 @@ async def demand_heatmap(
 # ═════════════════════════════════════════════════════════════════════════════
 async def _claude_recommendations(units_summary: List[Dict], project_name: str, db=None, tenant_id: Optional[str] = None) -> Optional[List[str]]:
     """Claude haiku recommendation prompt. Returns list of strings or None."""
-    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         system_message = (
             "Eres analista senior de marketing inmobiliario en México. Recibes datos de engagement "
             "por unidad de un proyecto. Genera 2 a 3 recomendaciones accionables específicas "

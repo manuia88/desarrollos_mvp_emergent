@@ -71,12 +71,12 @@ def _heuristic_verdict(claim: str, url: str) -> Dict[str, Any]:
 
 
 async def _call_llm_factcheck(claim: str, url: str) -> Dict[str, Any]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return _heuristic_verdict(claim, url)
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
 
         sys_msg = (
             "Eres un fact-checker editorial de DesarrollosMX (es-MX). "

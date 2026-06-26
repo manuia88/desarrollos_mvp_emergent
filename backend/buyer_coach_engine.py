@@ -200,11 +200,11 @@ def _infer_disc(messages: List[Dict[str, str]]) -> str:
 # ─── Layer 1: LLM call ───────────────────────────────────────────────────────
 
 async def _llm_respond(conversation: Dict[str, Any], user_message: str) -> str:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return ""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmMsg
+        from llm_client import LlmChat, UserMessage as LlmMsg
         stage = conversation.get("current_stage", 1)
         sys_prompt = STAGE_SYSTEM_PROMPTS.get(stage, STAGE_SYSTEM_PROMPTS[1])
         if conversation.get("inferred_budget_range"):

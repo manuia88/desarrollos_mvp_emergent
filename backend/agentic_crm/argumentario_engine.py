@@ -499,7 +499,7 @@ class ArgumentarioEngine:
         zone: str,
         lead_name: str,
     ) -> Tuple[Optional[Dict[str, Any]], int, float]:
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise Exception("EMERGENT_LLM_KEY no configurado")
 
@@ -656,7 +656,7 @@ OUTPUT JSON REQUERIDO:
         if _rag_context_text:
             user_prompt = f"{user_prompt}\n\n{_rag_context_text}"
 
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+        from llm_client import LlmChat, UserMessage as LlmUserMsg
         session_id = f"arg_{uuid.uuid4().hex[:10]}"
         chat = LlmChat(
             api_key=api_key, session_id=session_id, system_message=system_prompt,

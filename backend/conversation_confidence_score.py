@@ -105,12 +105,12 @@ async def score_reply(user_text: str, assistant_text: str,
     ctx = context if isinstance(context, dict) else {}
 
     import os
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return _fallback("no_llm_key")
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         import secrets
         chat = LlmChat(
             api_key=api_key,

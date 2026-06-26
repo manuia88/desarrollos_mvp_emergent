@@ -14,13 +14,13 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from llm_client import LlmChat, UserMessage
 
 log = logging.getLogger("dmx.newsletter_pulse")
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 RESEND_FROM = os.environ.get("RESEND_FROM", "DMX <hola@desarrollosmx.io>")
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 NURTURE_THROTTLE_DAYS = int(os.environ.get("NURTURE_THROTTLE_DAYS", "7"))
 
 VALID_SEGMENTS = {"dev", "asesor", "buyer", "inversionista"}

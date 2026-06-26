@@ -1746,8 +1746,8 @@ Tono de un asesor real que ya lo conoce, no plantilla. Solo el mensaje, sin comi
 
     text = None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"), session_id=f"wadraft_{cid}",
+        from llm_client import LlmChat, UserMessage
+        chat = LlmChat(api_key=os.environ.get("ANTHROPIC_API_KEY"), session_id=f"wadraft_{cid}",
                        system_message="Eres un asesor inmobiliario mexicano cercano y eficaz.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
         text = (await chat.send_message(UserMessage(text=prompt))).strip().strip('"')
@@ -3334,8 +3334,8 @@ Objetivo: {objetivo_txt}.
 Escribe un mensaje de WhatsApp de 2-3 párrafos cortos, tono profesional-cercano mexicano, específico y con datos. Evita frases de marketing vacío. Cierra con 1 CTA claro. No uses emojis. Máximo 180 palabras."""
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"), session_id=cache_key,
+        from llm_client import LlmChat, UserMessage
+        chat = LlmChat(api_key=os.environ.get("ANTHROPIC_API_KEY"), session_id=cache_key,
                        system_message="Eres un asesor inmobiliario mexicano experto.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
         text = await chat.send_message(UserMessage(text=prompt))
@@ -3472,9 +3472,9 @@ async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request
     # Claude call
     import json as _json
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
-            api_key=os.environ.get("EMERGENT_LLM_KEY"),
+            api_key=os.environ.get("ANTHROPIC_API_KEY"),
             session_id=f"argrag_{cache_key}",
             system_message=_ARG_RAG_SYS,
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")

@@ -38,7 +38,7 @@ DAILY_CAP_PER_TENANT = int(os.environ.get("LEAD_ENRICHMENT_DAILY_CAP_PER_TENANT"
 
 PDL_API_KEY = os.environ.get("PDL_API_KEY", "")
 CLEARBIT_API_KEY = os.environ.get("CLEARBIT_API_KEY", "")
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # Cost estimates (USD per call, approx)
 COST_EMAIL_VALIDATION_USD = 0.0    # stdlib free
@@ -311,7 +311,7 @@ async def _lookup_ai_research_summary(
         pass
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
     except ImportError:
         return {"success": False, "source": "ai_research_summary",
                 "status": "skipped", "reason": "emergentintegrations_missing",

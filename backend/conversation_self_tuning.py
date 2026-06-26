@@ -88,11 +88,11 @@ async def _call_llm_for_diff(top: List[Dict[str, Any]],
     {diff, tokens_in, tokens_out} o None si LLM no disponible/falla (FAIL-OPEN).
     """
     import os
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
 
         def _digest(rows: List[Dict[str, Any]]) -> str:
             n = len(rows)

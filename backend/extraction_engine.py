@@ -118,8 +118,8 @@ def _strip_markdown_json(s: str) -> str:
 
 
 async def _call_claude(doc_id: str, doc_type: str, ocr_text: str, temperature: float) -> Dict[str, Any]:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    from llm_client import LlmChat, UserMessage
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 

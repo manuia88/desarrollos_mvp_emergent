@@ -16,7 +16,7 @@ from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID, DEVELOPERS, DEVE
 
 router = APIRouter(tags=["public"])
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY")
 DMX_FALLBACK_WHATSAPP = os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")
 
 # ─── Dev overlay cache (shared singleton via module-level dict) ────────────────
@@ -1471,7 +1471,7 @@ async def generate_property_briefing(prop_id: str, request: Request):
         return {"text": cached["text"], "cached": True, "week": week}
     text = None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         scores = c.get("scores", {})
         prompt = (
             f"Propiedad: {p['titulo']}, {p['sqm']} m², {p['beds']} rec, precio {p['price_display']}.\n"
@@ -2074,7 +2074,7 @@ async def generate_dev_briefing(dev_id: str, request: Request):
         return {"text": cached["text"], "cached": True, "week": week}
     text = None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         scores = c.get("scores", {}) if c else {}
         stage_label = {
             "preventa": "Preventa", "en_construccion": "En construcción",
@@ -2381,7 +2381,7 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
     try:
         if not _allow_llm:
             raise RuntimeError("ai_rate_limited")  # salta al fallback determinista
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"aisrch_{hash(cache_key) & 0xffffffff}",

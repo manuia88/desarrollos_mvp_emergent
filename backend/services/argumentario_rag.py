@@ -22,7 +22,7 @@ import numpy as np
 
 log = logging.getLogger("dmx.argumentario_rag")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 EMBEDDING_DIMS = 1536
 SONNET_MODEL = "claude-sonnet-4-5-20250929"
 
@@ -142,7 +142,7 @@ async def _generate_answer(
     )
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
 
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,

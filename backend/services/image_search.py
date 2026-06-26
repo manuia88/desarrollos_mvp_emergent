@@ -26,7 +26,7 @@ import numpy as np
 
 log = logging.getLogger("dmx.image_search")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 VISION_MODEL = "claude-sonnet-4-5-20250929"
 
 # Batch 25: toggle para usar vectores reales vs TF-IDF fallback
@@ -42,7 +42,7 @@ async def compute_image_description(image_bytes: bytes, content_type: str = "ima
     if not EMERGENT_LLM_KEY:
         raise RuntimeError("EMERGENT_LLM_KEY no configurada")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContent  # type: ignore
+    from llm_client import LlmChat, UserMessage, FileContent  # type: ignore
 
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     file_c = FileContent(content_type=content_type, file_content_base64=b64)

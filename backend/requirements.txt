@@ -30,7 +30,7 @@ dnspython==2.8.0
 ecdsa==0.19.2
 elevenlabs==2.46.0
 email-validator==2.3.0
-emergentintegrations==0.1.0
+# emergentintegrations RETIRADO (migrado a SDK directo Anthropic/OpenAI · ver llm_client.py)
 et_xmlfile==2.0.0
 fal_client==1.0.0
 fastapi==0.104.1
@@ -169,3 +169,4 @@ watchfiles==1.1.1
 websockets==14.2
 yarl==1.23.0
 zipp==3.23.0
+anthropic>=0.40.0

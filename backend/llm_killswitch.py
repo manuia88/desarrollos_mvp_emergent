@@ -29,7 +29,7 @@ class AIDisabledError(RuntimeError):
 def install_llm_killswitch() -> bool:
     """Idempotente. Devuelve True si quedó instalado (o ya estaba)."""
     try:
-        from emergentintegrations.llm.chat import LlmChat  # type: ignore
+        from llm_client import LlmChat  # type: ignore
     except Exception as e:  # la lib puede no estar disponible en algunos entornos
         log.warning(f"[llm_killswitch] LlmChat no importable; kill-switch global NO instalado: {e}")
         return False

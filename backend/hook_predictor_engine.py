@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.hook_predictor")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 CACHE_TTL_DAYS = 7
 DEFAULT_THRESHOLD = int(os.environ.get("HOOK_PREDICTOR_THRESHOLD", "60"))
@@ -125,7 +125,7 @@ async def _llm_score(text: str, audience: Optional[str]) -> Optional[Dict[str, A
     if not EMERGENT_LLM_KEY:
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"hookpred_{uuid.uuid4().hex[:8]}",

@@ -1178,8 +1178,8 @@ class AsistenteEngine:
             }
 
         # ── Real LLM call ───────────────────────────────────────────────────
-        from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        from llm_client import LlmChat, UserMessage as LlmUserMsg
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 
@@ -1306,7 +1306,7 @@ class AsistenteEngine:
         }
 
     async def _agentic_loop(self, chat, user_message: str, max_rounds: int = 2) -> Tuple[str, List[Dict]]:
-        from emergentintegrations.llm.chat import UserMessage as LlmUserMsg
+        from llm_client import UserMessage as LlmUserMsg
         all_tool_calls: List[Dict] = []
         current_message = user_message
         for _r in range(max_rounds):

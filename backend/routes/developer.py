@@ -1219,7 +1219,7 @@ async def generate_report(request: Request, month: Optional[str] = None):
 
     summary_text = None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         prompt = f"""Eres un analista senior de real estate. Escribe un resumen ejecutivo (1 párrafo, 4-6 oraciones, es-MX) del desempeño del portafolio en el mes {month_key}:
 - {len(my_devs)} desarrollos activos ({', '.join(d['name'] for d in my_devs[:5])})
 - Absorción: {absorbed}% ({sold} unidades vendidas de {total_units})
@@ -1227,7 +1227,7 @@ async def generate_report(request: Request, month: Optional[str] = None):
 - Amenidades top: {', '.join(sum([d.get('amenities', [])[:2] for d in my_devs[:3]], []))}
 
 Tono: analítico, basado en datos, sin marketing vacío. Cierra con el insight accionable #1 del mes."""
-        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"),
+        chat = LlmChat(api_key=os.environ.get("ANTHROPIC_API_KEY"),
                        session_id=f"report-{user.user_id}-{month_key}",
                        system_message="Eres un analista senior de real estate LATAM.")
         chat.with_model("anthropic", "claude-sonnet-4-5-20250929")

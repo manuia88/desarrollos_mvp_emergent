@@ -87,12 +87,12 @@ def _empty_payload(colonia_nombre: str = "") -> Dict[str, Any]:
 
 async def _call_claude(user_prompt: str) -> Optional[Dict[str, Any]]:
     """Invoca Claude Sonnet vía emergentintegrations. Devuelve dict parseado o None."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         log.warning("[colonia_history] EMERGENT_LLM_KEY missing — returning mock")
         return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=api_key,
             session_id="dmx_colonia_history",

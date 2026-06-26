@@ -27,7 +27,7 @@ _AI_SUMMARY_RATE: Dict[str, datetime] = {}     # lead_id → last refresh ts
 _HEAT_QUEUE_LOCK = False                       # naive in-process lock for batch run
 
 CLAUDE_HAIKU_MODEL = "claude-haiku-4-5-20251001"
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ async def _claude_json(*, system: str, user_text: str, session_id: str, max_char
             log.warning(f"[batch4.4] dev_org {dev_org_id} over AI budget — skipping call ({call_type})")
             return None
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=session_id,

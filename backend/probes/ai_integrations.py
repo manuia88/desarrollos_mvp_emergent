@@ -22,7 +22,7 @@ async def _claude_within_budget(db, project_id, user):
         return {"passed": False, "error_type": "wiring_broken",
                 "location": "ai_budget.is_within_budget",
                 "recommendation": f"Error verificando budget: {str(e)[:100]}"}
-    if not os.environ.get("EMERGENT_LLM_KEY"):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
         return {"passed": False, "error_type": "integration_external",
                 "location": "env.EMERGENT_LLM_KEY",
                 "recommendation": "EMERGENT_LLM_KEY no configurada — llamadas AI fallarán con stub."}

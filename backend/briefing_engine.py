@@ -143,9 +143,9 @@ def _build_user_prompt(
 
 async def _generate_briefing(system_prompt: str, user_prompt: str, session_key: str) -> Dict[str, Any]:
     """Single Claude call. Returns parsed JSON dict + cost tracking."""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from llm_client import LlmChat, UserMessage
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     model = "claude-sonnet-4-5-20250929"

@@ -181,8 +181,8 @@ async def sentiment_classify(text: str) -> Dict[str, Any]:
     if not text or len(text.strip()) < 5:
         return {"sentiment": "neutral", "themes": [], "confidence": 0.5}
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        from llm_client import LlmChat, UserMessage
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             return {"sentiment": "neutral", "themes": [], "confidence": 0.5, "stub": True}
         session_key = f"sentiment_{hashlib.md5(text.encode()).hexdigest()[:10]}"

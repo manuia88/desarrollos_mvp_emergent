@@ -818,7 +818,7 @@ class ConversationEngine:
     # ── internals ────────────────────────────────────────────────────────────
     async def _generate(self, thread: Dict, history: List[Dict], user_text: str):
         """Returns (assistant_text, stub: bool, used_llm: bool, model_used: str)."""
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         sentiment = detect_sentiment(user_text)
         # W7.AS.3.F R2 fix · 3-tier cost optimizer picks the model (FAIL-OPEN →
         # CONVERSATION_MODEL). Wiring select_model here makes the optimizer live
@@ -831,7 +831,7 @@ class ConversationEngine:
         if not api_key:
             return _stub_reply(user_text, sentiment), True, False, model
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+            from llm_client import LlmChat, UserMessage as LlmUserMsg
             sys_prompt = thread.get("system_prompt") or DEFAULT_SYSTEM_PROMPT
             ctx = thread.get("initial_context")
             if ctx:

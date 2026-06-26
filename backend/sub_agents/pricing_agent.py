@@ -193,7 +193,7 @@ def _estimate_tokens(text: str) -> int:
 # ─── Layer implementations ─────────────────────────────────────────────────────
 async def _layer_llm(db, org_id: str, project_id: str, sim_mode: bool) -> Optional[Dict[str, Any]]:
     """Layer 1: Claude Sonnet agentic loop with 4 pricing tools."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 
@@ -201,7 +201,7 @@ async def _layer_llm(db, org_id: str, project_id: str, sim_mode: bool) -> Option
     if cb.is_open():
         raise CircuitOpenError(f"Circuit abierto para org {org_id}")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     system_prompt = f"""Eres un agente especializado en optimización de pricing inmobiliario para DesarrollosMX (México).
 Organización: {org_id}

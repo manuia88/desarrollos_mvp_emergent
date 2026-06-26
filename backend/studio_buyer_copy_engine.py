@@ -350,7 +350,7 @@ def _looks_like_placeholder(key: str) -> bool:
 
 def _should_use_mock() -> bool:
     """True si EMERGENT_LLM_KEY no está configurada (mock determinístico FAIL-SOFT)."""
-    return _looks_like_placeholder(os.environ.get("EMERGENT_LLM_KEY", ""))
+    return _looks_like_placeholder(os.environ.get("ANTHROPIC_API_KEY", ""))
 
 
 def _generate_mock_copy(
@@ -391,8 +391,8 @@ def _generate_mock_copy(
 
 
 async def _call_llm(prompt: str, job_id: str, provider: str = "anthropic") -> str:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
     model = CLAUDE_MODEL if provider == "anthropic" else OPENAI_MODEL

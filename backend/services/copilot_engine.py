@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.copilot")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SONNET_MODEL = "claude-sonnet-4-5-20250929"
 HISTORY_LIMIT = 10  # last N messages sent to Claude
 
@@ -74,7 +74,7 @@ async def _call_claude(system: str, history: List[Dict[str, str]],
     """Returns {text, tokens_in_est, tokens_out_est}. Raises RuntimeError on failure."""
     if not EMERGENT_LLM_KEY:
         raise RuntimeError("EMERGENT_LLM_KEY no configurada")
-    from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+    from llm_client import LlmChat, UserMessage  # type: ignore
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=f"copilot_{uuid.uuid4().hex[:10]}",

@@ -287,11 +287,11 @@ async def classify_sentiment(text: str) -> Dict[str, Any]:
     txt = (text or "").strip()
     if len(txt) < 5:
         return {"sentiment": "neutral", "score": 0.5, "stub": True}
-    api_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         return {"sentiment": "neutral", "score": 0.5, "stub": True}
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         session_key = f"rep_sentiment_{hashlib.md5(txt.encode()).hexdigest()[:10]}"
         system_prompt = (
             "Eres analista de sentimiento de menciones de marca inmobiliaria CDMX. "

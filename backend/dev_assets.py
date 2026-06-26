@@ -105,11 +105,11 @@ def watermark_image(data: bytes, mime_type: str = "image/jpeg") -> bytes:
 # ─── AI Categorize (Claude vision) ────────────────────────────────────────────
 async def ai_categorize(image_bytes: bytes) -> Dict[str, Any]:
     """Returns {category, caption, model, ok, error?}. Cero invención."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return {"ok": False, "error": "EMERGENT_LLM_KEY missing"}
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        from llm_client import LlmChat, UserMessage, ImageContent
     except Exception as e:
         return {"ok": False, "error": f"emergentintegrations import failed: {e}"}
 

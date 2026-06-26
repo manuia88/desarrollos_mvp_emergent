@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional, Tuple
 
 log = logging.getLogger("dmx.studio_copy_llm")
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL_NAME = os.environ.get("STUDIO_COPY_MODEL", "claude-opus-4-7")
 ANTHROPIC_MODEL = os.environ.get("STUDIO_COPY_ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929")
@@ -90,7 +90,7 @@ async def _invoke_via_anthropic_direct(prompt: str) -> str:
 async def _invoke_via_emergent(prompt: str) -> str:
     """Path principal · usa EMERGENT_LLM_KEY via emergentintegrations."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
+        from llm_client import LlmChat, UserMessage  # type: ignore
     except ImportError as exc:
         raise RuntimeError(f"emergentintegrations not installed: {exc}") from exc
     chat = LlmChat(

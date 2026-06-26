@@ -28,7 +28,7 @@ log = logging.getLogger("dmx.batch14")
 
 router = APIRouter(tags=["batch14"])
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_HAIKU_MODEL = "claude-haiku-4-5-20251001"
 
 
@@ -351,7 +351,7 @@ async def _generate_weekly_brief(user_id: str, inmobiliaria_id: str, db) -> Dict
 
     if EMERGENT_LLM_KEY:
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            from llm_client import LlmChat, UserMessage
             chat = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=str(uuid.uuid4()),

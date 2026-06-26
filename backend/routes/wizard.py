@@ -597,7 +597,7 @@ async def _extract_text_from_upload(path: Path) -> str:
 
 
 async def _run_claude_extraction(dev_org_id: str, combined_text: str, source_summary: str) -> Optional[Dict]:
-    emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+    emergent_key = os.environ.get("ANTHROPIC_API_KEY")
     if not emergent_key or not combined_text.strip():
         return None
     try:
@@ -607,7 +607,7 @@ async def _run_claude_extraction(dev_org_id: str, combined_text: str, source_sum
     except Exception:
         pass
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=emergent_key,
             session_id=f"wiz_extract_{uuid.uuid4().hex[:8]}",

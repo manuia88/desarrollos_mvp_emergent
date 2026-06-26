@@ -76,12 +76,12 @@ async def _generate_narrative(
     if not await is_within_budget(db, "dmx_bulletins"):
         return fallback
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return fallback
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         sys_msg = (
             "Eres un editor de mercado inmobiliario en México escribiendo un boletín "
             "mensual riguroso para tomadores de decisión. Voz neutra, basada en datos, "

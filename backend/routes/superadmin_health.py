@@ -105,7 +105,7 @@ async def _check_services(db) -> List[Dict[str, Any]]:
     })
 
     # claude_haiku / claude_sonnet — emergent llm key presence + recent successful ai_usage
-    has_emergent = bool(os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
+    has_emergent = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
     for model_name, label in [("haiku", "claude_haiku"), ("sonnet", "claude_sonnet")]:
         recent_ok = None
         try:

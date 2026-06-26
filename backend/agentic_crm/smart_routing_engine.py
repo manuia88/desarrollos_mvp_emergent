@@ -257,7 +257,7 @@ async def _tool_asesor_current_load(db, org_id: str, asesor_id: Optional[str]) -
 
 # ─── Layer 1: LLM ─────────────────────────────────────────────────────────────
 async def _layer_llm(db, org_id: str, lead: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 
@@ -273,7 +273,7 @@ async def _layer_llm(db, org_id: str, lead: Dict[str, Any]) -> Optional[Dict[str
     segment = _segment_of_lead(lead)
     lead_id = lead.get("id") or lead.get("lead_id") or ""
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
+    from llm_client import LlmChat, UserMessage as LlmUserMsg
 
     system_prompt = f"""Eres el ruteador inteligente de leads de DesarrollosMX (México). Asignas leads a asesores con base en fit real.
 

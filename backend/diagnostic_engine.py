@@ -277,7 +277,7 @@ async def ai_recommend_for_failure(db, dev_org_id: str, result: ProbeResult) -> 
     import os
     import json
     import re
-    emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+    emergent_key = os.environ.get("ANTHROPIC_API_KEY")
     if not emergent_key or result.passed:
         return None
     sig = f"{result.probe_id}__{result.error_type or 'x'}__{(result.location or '')[:60]}"
@@ -295,7 +295,7 @@ async def ai_recommend_for_failure(db, dev_org_id: str, result: ProbeResult) -> 
     except Exception:
         pass
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         system = (
             "Eres un experto ingeniero backend de DMX (plataforma real estate LATAM FastAPI+React+MongoDB). "
             "Dado el resultado de una probe fallida, sugiere fix específico. "

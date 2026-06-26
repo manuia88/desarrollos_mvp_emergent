@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field
 log = logging.getLogger("dmx.batch11")
 router = APIRouter(prefix="/api/dev", tags=["batch11"])
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+EMERGENT_LLM_KEY = os.environ.get("ANTHROPIC_API_KEY")
 CLAUDE_HAIKU_MODEL = "claude-haiku-4-5"
 AI_PREDICTION_TTL_HOURS = 1
 
@@ -101,7 +101,7 @@ async def _claude_haiku(db, dev_org_id: str, system: str, user_text: str,
     except Exception:
         pass
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import LlmChat, UserMessage
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=session_id,
