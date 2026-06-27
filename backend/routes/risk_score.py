@@ -89,7 +89,7 @@ async def public_risk_score(zone_id: str, request: Request):
         "formula_version": doc.get("formula_version"),
         "sources_active": doc.get("sources_active"),
         "placeholder_flags": doc.get("placeholder_flags"),
-        "weights": doc.get("weights"),
+        # "weights" QUITADO (pentest 2026-06-27): los pesos exactos de la fórmula de riesgo son moat, no público.
         "source": "via DMX Risk Score",
     }
     if tier == "free":

@@ -58,6 +58,12 @@ async def score_route(
         banos=banos, antiguedad_anos=antiguedad_anos,
     )
     doc.pop("_id", None)
+    # Option A (pentest 2026-06-27): quita los PESOS de la fórmula (weight_pct/raw) de cada factor — el público
+    # ve el score y la contribución de cada factor, no la receta (los pesos exactos = moat replicable).
+    for _f in (doc.get("factors") or {}).values():
+        if isinstance(_f, dict):
+            _f.pop("weight_pct", None)
+            _f.pop("raw", None)
     return JSONResponse({"ok": True, "score": doc})
 
 

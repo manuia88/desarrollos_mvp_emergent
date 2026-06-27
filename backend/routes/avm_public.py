@@ -61,9 +61,11 @@ async def avm_quick_endpoint(
     attrs = {"vista": vista, "estado_conservacion": estado_conservacion, "condicion": condicion,
              "orientacion": orientacion, "nivel": nivel, "n_amenidades": n_amenidades}
     attrs = {k: v for k, v in attrs.items() if v not in (None, 0, "")} or None
+    # SEGURIDAD (pentest 2026-06-27): el AVM PÚBLICO no expone la descomposición hedónica (intercept +
+    # contribución cruda por feature = la receta del modelo). El estimado sí; la receta no. (`explain` se ignora aquí).
     out = await eng.avm_quick_async(
         request.app.state.db, colonia_slug, m2, recamaras, banos, antiguedad_anos,
-        with_explain=explain, attrs=attrs,
+        with_explain=False, attrs=attrs,
     )
     if "error" in out:
         raise HTTPException(404, out["error"])

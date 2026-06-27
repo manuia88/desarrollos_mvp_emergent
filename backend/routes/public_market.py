@@ -72,8 +72,8 @@ async def amenity_ranker(request: Request, colonia: Optional[str] = Query(None))
     db = request.app.state.db
     scope = {"geo.colonia_id": colonia} if colonia else None
     r = await dmx_hedonic_atom.fit_and_rank(db, scope, persist=False)
-    return {
-        "amenity_ranker": r.get("amenity_ranker", []),
-        "r_squared": r.get("r_squared"),
-        "sample_size": r.get("sample_size"),
-    }
+    # Option A (pentest 2026-06-27): el PÚBLICO ve el ranking (qué amenidad mueve el precio) pero NO la receta
+    # estadística del modelo hedónico (r²/p-value/significancia/n) = moat (versión completa en /api/dev/market/...).
+    pub = [{"atributo": a.get("atributo"), "impacto_pct_precio_m2": a.get("impacto_pct_precio_m2")}
+           for a in (r.get("amenity_ranker") or [])]
+    return {"amenity_ranker": pub}
