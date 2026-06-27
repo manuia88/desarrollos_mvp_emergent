@@ -109,10 +109,12 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
                   MODELO PREDICTIVO · N4
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                  {data.model_version && (
                   <div>
                     <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Modelo</div>
-                    <strong style={{ color: 'var(--cream)' }}>{data.model_version || '—'}</strong>
+                    <strong style={{ color: 'var(--cream)' }}>{data.model_version}</strong>
                   </div>
+                  )}
                   {data.confidence_interval && (
                     <div>
                       <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
@@ -150,19 +152,14 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
                     border: '1px solid var(--border)',
                     fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)',
                   }}>
-                    {dep} · {data.inputs_used[dep] ?? 0} obs
+                    {dep}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Operations */}
-            <div style={{ marginBottom: 14 }}>
-              <div className="eyebrow" style={{ marginBottom: 6 }}>OPERACIONES APLICADAS</div>
-              <ol data-testid="explain-operations" style={{ margin: 0, paddingLeft: 20, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.7 }}>
-                {data.operations.map((op, i) => <li key={i}>{op}</li>)}
-              </ol>
-            </div>
+            {/* Operations (la fórmula EXACTA) — OCULTA al público (Option A · es el moat).
+                El público ve las FUENTES + descripción + tier (confianza), no la receta. */}
 
             {/* Sample IDs */}
             {data.observation_sample_ids?.length > 0 && (

@@ -57,6 +57,22 @@ class ScoreOut(BaseModel):
     residual_std: Optional[float] = None
 
 
+class PublicScoreOut(BaseModel):
+    """Titular PÚBLICO del score (Option A · founder 2026-06-27) — SIN los internos de cómputo
+    (inputs_used / model_version / training_window_days / residual_std = moat). El público ve
+    code/value/tier/confianza (vende + SEO); la receta de cómputo queda fuera."""
+    model_config = ConfigDict(protected_namespaces=())
+    zone_id: str
+    code: str
+    value: Optional[float]
+    tier: str
+    confidence: str
+    is_stub: bool
+    formula_version: str = "1.0"
+    computed_at: datetime
+    confidence_interval: Optional[Dict[str, float]] = None
+
+
 class RecomputeResult(BaseModel):
     zone_id: str
     requested: int
@@ -154,9 +170,11 @@ async def score_history(
 
 
 # ─── Public: zone scores ─────────────────────────────────────────────────────
-@pub_router.get("/zones/{zone_id}/scores", response_model=List[ScoreOut])
+@pub_router.get("/zones/{zone_id}/scores", response_model=List[PublicScoreOut])
 async def public_zone_scores(zone_id: str, request: Request):
-    """Public endpoint. Returns only non-stub scores so the UI never shows fake numbers as real."""
+    """Public endpoint. Returns only non-stub scores so the UI never shows fake numbers as real.
+    Option A (founder 2026-06-27): el TITULAR (code/value/tier/confianza) es público — vende y da SEO —
+    pero los INTERNOS de cómputo (inputs_used/model_version/training_window) = moat → fuera del público."""
     db = request.app.state.db
     docs = await db.ie_scores.find(
         {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
@@ -265,8 +283,12 @@ class ScoreExplainOut(BaseModel):
     prediction_date: Optional[datetime] = None
 
 
-@pub_router.get("/zones/{zone_id}/scores/explain", response_model=ScoreExplainOut)
+@pub_router.get("/zones/{zone_id}/scores/explain", response_model=ScoreExplainOut,
+                response_model_exclude={"operations", "observation_sample_ids", "inputs_used",
+                                        "model_version", "training_window_days", "residual_std"})
 async def explain_score(zone_id: str, code: str, request: Request):
+    # Option A: el público ve la CONFIANZA (descripción · fuentes/dependencies · tier_logic · confidence)
+    # pero NO la RECETA (operations=la fórmula exacta · observation_sample_ids=datos crudos · internos del modelo).
     """
     Public breakdown endpoint — alimenta el 'how we know' en la UI y la sección
     '97 indicadores detrás de cada precio' en /inteligencia.
