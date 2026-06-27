@@ -42,7 +42,7 @@ function LensToggle({ lens, setLens, invMode, setInvMode }) {
       {lens === 'invertir' && (
         <span style={{ display: 'inline-flex', gap: 6, marginLeft: 4 }}>
           <button onClick={() => setInvMode('individual')} style={pill(invMode === 'individual')}>Para ti</button>
-          <button onClick={() => setInvMode('institucional')} style={pill(invMode === 'institucional')}>Fondo</button>
+          <button onClick={() => setInvMode('institucional')} style={pill(invMode === 'institucional')}>Inversión Institucional</button>
         </span>
       )}
     </div>

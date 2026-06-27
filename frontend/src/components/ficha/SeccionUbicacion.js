@@ -43,7 +43,6 @@ export default function SeccionUbicacion({ dev }) {
   }, [col]);
 
   const lugares = (lug && lug.lugares) || {};
-  const metro = lug && lug.metro;
   // categorías con pins reales, en orden preferente
   const cats = CAT_ORDER.filter((k) => CAT[k] && Array.isArray(lugares[k]) && lugares[k].some((p) => p.loc && p.loc.latitude));
   const active = cat && cats.includes(cat) ? cat : cats[0];
@@ -58,77 +57,30 @@ export default function SeccionUbicacion({ dev }) {
     return [lng, lat];
   }, [items]);
 
-  // pin del desarrollo si tiene coords (build-for-endstate; hoy normalmente sin coords)
-  const home = (dev.lat && dev.lng) ? { loc: { latitude: dev.lat, longitude: dev.lng }, label: dev.name }
+  // pin del desarrollo — el dev trae coords en `dev.center` [lng, lat] (la dirección geocodificada). Antes se buscaba en
+  // dev.lat / dev.location (que no existen) → por eso nunca salía el pin. Ahora marca exactamente dónde está el desarrollo.
+  const home = (Array.isArray(dev.center) && dev.center.length === 2)
+    ? { loc: { latitude: dev.center[1], longitude: dev.center[0] }, label: dev.name }
+    : (dev.lat && dev.lng) ? { loc: { latitude: dev.lat, longitude: dev.lng }, label: dev.name }
     : (dev.location && dev.location.lat ? { loc: { latitude: dev.location.lat, longitude: dev.location.lng }, label: dev.name } : null);
 
   const vidaItems = vida && vida.amenidades
     ? Object.entries(vida.amenidades).filter(([k, v]) => VIDA_LABEL[k] && v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6)
     : [];
 
-  // ⭐ Qué tan caminable (mismo cálculo que la página de zona, en nuestro diseño): cobertura + densidad de lugares reales.
-  const WCATS = [['🍴', 'restaurante', 'Restaurantes'], ['☕', 'cafe', 'Cafés'], ['🌳', 'parque', 'Parques'], ['🛒', 'supermercado', 'Súper'], ['🏥', 'hospital', 'Salud'], ['🎓', 'escuela', 'Escuelas']];
-  const wcounts = WCATS.map(([ic, k, l]) => ({ ic, l, n: (lugares[k] || []).filter((p) => p && p.name).length }));
-  const cubiertas = wcounts.filter((c) => c.n > 0).length;
-  const densidad = Math.min(1, wcounts.reduce((s, c) => s + Math.min(c.n, 5), 0) / 30);
-  const score = Math.round(100 * (0.55 * (cubiertas / WCATS.length) + 0.45 * densidad));
-  const wlabel = score >= 80 ? 'Todo a pie' : score >= 55 ? 'Muy caminable' : score >= 30 ? 'Caminable' : 'Mejor con coche';
-  const wcolor = score >= 55 ? '#059669' : score >= 30 ? 'var(--theme)' : 'var(--cream-3)';
-  const hayWalk = wcounts.some((c) => c.n > 0);
-
   // "El finde perfecto" — arma un sábado con lugares reales (top por ★), editable.
   const byR = (arr) => (arr || []).filter((p) => p && p.name).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
   const fslots = [['☕', 'Café de la mañana', byR(lugares.cafe)], ['🍴', 'La comida', byR(lugares.restaurante)], ['🌳', 'Tarde de paseo', byR(lugares.parque)], ['🌙', 'La cena', byR(lugares.restaurante)]].filter((s) => s[2].length);
 
-  if (!metro && !cats.length && !vidaItems.length && !hayWalk) return null;
+  if (!cats.length && !vidaItems.length && !fslots.length) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* conectividad */}
-      {metro && metro.nombre && (
-        <Card>
-          <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Conectividad</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 26 }}>🚇</span>
-            <div>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: 'var(--cream)' }}>Metro {metro.nombre}</div>
-              <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)' }}>a {metro.min_caminando} min caminando{metro.metros ? ` · ${metro.metros} m` : ''}</div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* ¿Qué tan a pie se vive? (walkscore) */}
-      {hayWalk && (
-        <Card>
-          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 3 }}>¿Qué tan a pie se vive?</div>
-          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 16 }}>Lo que tienes caminando, sin subirte al coche para todo · Google</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(18px,3vw,36px)', alignItems: 'center' }}>
-            <div style={{ textAlign: 'center', minWidth: 120 }}>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(44px,7vw,64px)', lineHeight: 1, color: wcolor, letterSpacing: '-0.04em' }}>{score}</div>
-              <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>de 100 a pie</div>
-              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: wcolor, marginTop: 8 }}>{wlabel}</div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10 }}>
-              {wcounts.map((c) => (
-                <div key={c.l} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, background: c.n > 0 ? 'rgba(16,185,129,0.06)' : 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }}>
-                  <span style={{ fontSize: 19 }}>{c.ic}</span>
-                  <div>
-                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: c.n > 0 ? '#059669' : 'var(--cream-3)' }}>{c.n >= 5 ? '5+' : c.n}</div>
-                    <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{c.l}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* MAPA interactivo + tabs de categoría + lista */}
       {cats.length > 0 && active && (
         <Card>
           <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 3 }}>Explora la zona</div>
-          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 14 }}>Elige qué buscar y toca un lugar para verlo en el mapa · Google</div>
+          <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 14 }}>📍 {dev.address_full || dev.street || dev.name} · elige qué buscar y toca un lugar para verlo en el mapa · Google</div>
 
           {/* tabs categoría */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
