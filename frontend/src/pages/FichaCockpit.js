@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
-import { fetchDevelopment } from '../api/marketplace';
+import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
 import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import { Card, Stat, SERIF, SANS, HEAD } from '../components/ficha/ui';
@@ -349,6 +349,70 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   );
 }
 
+// Comparar proyectos: el comprador rara vez ve uno solo. Modal con el dev actual + un picker del 2do → lado a lado.
+function ComparaProyectos({ dev, onClose }) {
+  const [list, setList] = useState([]);
+  const [otherId, setOtherId] = useState('');
+  const [other, setOther] = useState(null);
+  useEffect(() => { let alive = true; fetchDevelopments({}).then((d) => { if (!alive) return; const arr = Array.isArray(d) ? d : (d.developments || d.items || d.results || []); setList(arr.filter((x) => x.id !== dev.id)); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
+  useEffect(() => { if (!otherId) { setOther(null); return undefined; } let alive = true; fetchDevelopment(otherId).then((d) => { if (alive) setOther((d && d.development) || d); }).catch(() => {}); return () => { alive = false; }; }, [otherId]);
+  const rng2 = (a) => (Array.isArray(a) && a.length ? (a[0] === a[1] ? `${a[0]}` : `${a[0]}–${a[1]}`) : null);
+  const ROWS = [
+    ['Precio desde', (d) => d.price_from, (v) => money(v), 'min'],
+    ['Superficie', (d) => (d.m2_range || [])[1] || (d.m2_range || [])[0], (v) => `${v} m²`, 'max'],
+    ['Recámaras', (d) => rng2(d.bedrooms_range), (v) => v, null],
+    ['Baños', (d) => rng2(d.bathrooms_range), (v) => v, null],
+    ['Estacionamientos', (d) => rng2(d.parking_range), (v) => v, null],
+    ['Niveles', (d) => d.max_level, (v) => v, 'max'],
+    ['Unidades', (d) => d.units_total, (v) => v, null],
+    ['Amenidades', (d) => (d.amenities || []).length, (v) => v, 'max'],
+    ['Avance de obra', (d) => (d.construction_progress || {}).percentage, (v) => (v != null ? `${v}%` : '—'), null],
+    ['Entrega', (d) => fechaCorta(d.delivery_estimate), (v) => v, null],
+    ['Zona', (d) => d.colonia, (v) => v, null],
+  ];
+  const cell = (d, get, fmt) => { if (!d) return '—'; const v = get(d); return (v == null || v === '') ? '—' : (fmt ? fmt(v) : v); };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(16,18,28,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface, #faf9f7)', borderRadius: 18, maxWidth: 700, width: '100%', maxHeight: '88vh', overflowY: 'auto', padding: '22px 24px', boxShadow: '0 24px 60px rgba(16,18,28,0.32)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>⚖️ Comparar proyectos</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--cream-3)', cursor: 'pointer' }}>✕</button>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13.5 }}>
+          <thead>
+            <tr>
+              <th />
+              <th style={{ textAlign: 'left', padding: '6px 12px', fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--theme)' }}>{dev.name}</th>
+              <th style={{ textAlign: 'left', padding: '6px 12px' }}>
+                <select value={otherId} onChange={(e) => setOtherId(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--card-border, var(--border))', fontFamily: HEAD, fontWeight: 700, fontSize: 13, color: 'var(--cream)', background: 'var(--surface-card)', cursor: 'pointer' }}>
+                  <option value="">Elige otro proyecto…</option>
+                  {list.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </select>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {ROWS.map(([label, get, fmt, dir], i) => {
+              const a = get(dev), b = other ? get(other) : null;
+              const na = typeof a === 'number' ? a : null, nb = typeof b === 'number' ? b : null;
+              const aWin = dir && na != null && nb != null && (dir === 'min' ? na < nb : na > nb);
+              const bWin = dir && na != null && nb != null && (dir === 'min' ? nb < na : nb > na);
+              return (
+                <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
+                  <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
+                  <td style={{ padding: '9px 12px', color: aWin ? '#059669' : 'var(--cream)', fontWeight: aWin ? 800 : 500 }}>{cell(dev, get, fmt)}{aWin ? ' ✓' : ''}</td>
+                  <td style={{ padding: '9px 12px', color: bWin ? '#059669' : 'var(--cream)', fontWeight: bWin ? 800 : 500 }}>{other ? `${cell(other, get, fmt)}${bWin ? ' ✓' : ''}` : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>✓ = mejor en esa fila (precio más bajo, más m²/niveles/amenidades). Referencia; cada proyecto tiene su propio contexto y calidad.</div>
+      </div>
+    </div>
+  );
+}
+
 export default function FichaCockpit({ user, onLogin }) {
   const { id } = useParams();
   const [dev, setDev] = useState(undefined);
@@ -362,6 +426,7 @@ export default function FichaCockpit({ user, onLogin }) {
   const [leadModal, setLeadModal] = useState(null);
   const HK_API = process.env.REACT_APP_BACKEND_URL;
   const secTimeRef = useRef({ tab: 'unidad', t: Date.now() });   // tiempo en cada sección (granularidad de interés)
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
@@ -446,6 +511,7 @@ export default function FichaCockpit({ user, onLogin }) {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                <button onClick={() => { setCompareOpen(true); try { sendBuyerSignal('compare', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } }} style={{ padding: '5px 12px', borderRadius: 9999, background: 'transparent', border: '1px solid var(--card-border, var(--border))', color: 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>⚖️ Comparar</button>
                 {dev.verified && <span style={badgeV}>✓ Verificado</span>}
                 <span style={badgeS}>{STAGE[dev.stage] || dev.stage}</span>
               </div>
@@ -530,6 +596,7 @@ export default function FichaCockpit({ user, onLogin }) {
         @keyframes dmxBar{ from{ transform:scaleY(0);} to{ transform:scaleY(1);} }
         @keyframes dmxProg{ from{ width:0;} }
       `}</style>
+      {compareOpen && <ComparaProyectos dev={dev} onClose={() => setCompareOpen(false)} />}
       {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
     </LightScope>
   );
