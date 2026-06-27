@@ -174,8 +174,8 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         <div>
           {h2('Amenidades')}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            {amen.map((a, i) => { const { icon, label } = amenInfo(a); return (
-              <span key={i} className="dmx-proj-card" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{icon} {label}</span>
+            {amen.map((a, i) => { const { label } = amenInfo(a); return (
+              <span key={i} className="dmx-proj-card" style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{label}</span>
             ); })}
           </div>
         </div>

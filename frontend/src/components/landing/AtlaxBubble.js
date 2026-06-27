@@ -585,10 +585,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             boxShadow: '0 12px 32px rgba(var(--theme-rgb),0.34)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            transition: 'box-shadow 0.2s ease, filter 0.2s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 18px 44px rgba(var(--theme-rgb),0.5)'; e.currentTarget.style.filter = 'brightness(1.07)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 12px 32px rgba(var(--theme-rgb),0.34)'; e.currentTarget.style.filter = 'none'; }}
           aria-label="Abrir chat Atlax"
         >
           <Sparkle size={22} />

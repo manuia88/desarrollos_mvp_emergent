@@ -266,7 +266,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
               <button onClick={() => setOpenType(open ? null : r.proto)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', padding: '18px 20px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ minWidth: 160 }}>
                   <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{protoName(r.proto)}</div>
-                  <div style={{ fontFamily: SANS, fontSize: 12.5, marginTop: 3, fontWeight: 700, color: esc.c }}>{esc.urgente ? '🔥 ' : ''}{esc.txt}<span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · de {r.total}</span></div>
+                  <div style={{ fontFamily: SANS, fontSize: 12.5, marginTop: 3, fontWeight: 700, color: esc.c }}>{esc.txt}<span style={{ color: 'var(--cream-3)', fontWeight: 400 }}> · de {r.total}</span></div>
                 </div>
                 <div style={{ display: 'flex', gap: 18, fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', flexWrap: 'wrap' }}>
                   {r.beds && <span>{rng(r.beds[0], r.beds[1])} rec</span>}
@@ -358,7 +358,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   <span style={{ position: 'absolute', left: 10, bottom: 10, padding: '4px 10px', borderRadius: 9999, background: 'rgba(16,18,28,0.62)', color: '#fff', fontFamily: SANS, fontSize: 11, fontWeight: 700 }}>{plano ? `Plano ${protoName(u.prototype)}` : `Render · ${dev.name}`}</span>
                 </div>
                 {!plano && (
-                  <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, intent: 'plano', unit: u.unit_number, prototype: u.prototype } }))} style={{ marginTop: 10, width: '100%', padding: '10px 14px', borderRadius: 11, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>📐 Pedir plano y ficha técnica del {protoName(u.prototype)}</button>
+                  <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, intent: 'plano', unit: u.unit_number, prototype: u.prototype } }))} style={{ marginTop: 10, width: '100%', padding: '10px 14px', borderRadius: 11, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: 'var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Pedir plano y ficha técnica del {protoName(u.prototype)}</button>
                 )}
               </div>
 
@@ -367,10 +367,10 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 26, color: 'var(--cream)', lineHeight: 1.05 }}>{protoName(u.prototype)} · {u.unit_number}</div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 10px' }}>{money(u.price)}</div>
                 {avmText(avm[u.id]) && (
-                  <div title="Comparado con el precio/m² real de la zona (nuestro AVM)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', marginBottom: 8, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: avmColor(avm[u.id]) }}>📊 {avmText(avm[u.id])} vs obra nueva</div>
+                  <div title="Comparado con el precio/m² real de la zona (nuestro AVM)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', marginBottom: 8, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: avmColor(avm[u.id]) }}>{avmText(avm[u.id])} vs obra nueva</div>
                 )}
                 {(() => { const v = avm[u.id]; const p = v && v.precio_m2 && v.mercado_usada_m2 ? Math.round((v.precio_m2 / v.mercado_usada_m2 - 1) * 100) : null; return p != null ? (
-                  <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', margin: '0 0 14px', lineHeight: 1.5 }}>🆕 <b style={{ color: 'var(--theme)' }}>{p > 0 ? '+' : ''}{p}% sobre un usado</b> de la zona (~{money(v.mercado_usada_m2)}/m²) — la prima de estrenar: amenidades, garantía, eficiencia, cero remodelación.</div>
+                  <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', margin: '0 0 14px', lineHeight: 1.5 }}><b style={{ color: 'var(--theme)' }}>{p > 0 ? '+' : ''}{p}% sobre un usado</b> de la zona (~{money(v.mercado_usada_m2)}/m²) — la prima de estrenar: amenidades, garantía, eficiencia, cero remodelación.</div>
                 ) : null; })()}
                 <div>
                   {specRows(u).map(([k, v], i) => (
@@ -396,8 +396,8 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
                   <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades del edificio</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {am.map((a, i) => { const { icon, label } = amenInfo(a); return (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}><span style={{ fontSize: 15 }}>{icon}</span> {label}</span>
+                    {am.map((a, i) => { const { label } = amenInfo(a); return (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 12px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{label}</span>
                     ); })}
                   </div>
                 </div>
@@ -416,7 +416,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
       {/* TRAY flotante de comparación: eliges hasta 3 sin que se abra solo; tú das 'Comparar' cuando quieras (founder) */}
       {compare.length >= 1 && !showCompare && (
         <div data-testid="compare-tray" style={{ position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 16, background: 'var(--surface-card, #fff)', border: '1px solid var(--card-border, var(--border))', boxShadow: '0 18px 44px rgba(16,18,28,0.22)', maxWidth: 'calc(100vw - 28px)', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap' }}>⚖️ Comparar {compare.length} de 3</span>
+          <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap' }}>Comparar {compare.length} de 3</span>
           <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220, whiteSpace: 'nowrap' }}>{compareUnits.map((u) => u.unit_number).join(' · ')}</span>
           <button onClick={() => setCompare([])} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>Limpiar</button>
           <button disabled={compare.length < 2} onClick={() => { setShowCompare(true); setTimeout(() => compareRef.current && compareRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' }), 130); }} style={{ padding: '10px 18px', borderRadius: 11, border: 'none', background: compare.length < 2 ? 'var(--card-border, #ddd)' : 'var(--grad)', color: compare.length < 2 ? 'var(--cream-3)' : '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, cursor: compare.length < 2 ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{compare.length < 2 ? 'Elige 1 más para comparar' : 'Comparar →'}</button>
@@ -427,7 +427,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
       {compareUnits.length >= 2 && showCompare && (
         <Card ref={compareRef} style={{ marginTop: 14, borderColor: 'var(--theme)', boxShadow: '0 0 0 2px rgba(99,102,241,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>⚖️ Comparar {compareUnits.length} unidades</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>Comparar {compareUnits.length} unidades</div>
             <button onClick={() => setCompare([])} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -461,7 +461,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const pv = plusvalia != null ? Number(plusvalia) : 8.7;            // %/año · zona (SHF Q1-2026 si el motor no dio dato)
                   const rows = [
                     ['Plano', (u) => { const p = planoOf(u) || (dev.photos || [])[0]; return p ? <a href={p} target="_blank" rel="noreferrer" title="Ver en grande"><img src={p} alt={`Plano ${u.unit_number}`} style={{ width: '100%', maxWidth: 160, height: 88, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--card-border, var(--border))', display: 'block' }} /></a> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
-                    { h: '💰 Precio y entrada' },
+                    { h: 'Precio y entrada' },
                     ['Precio', (u) => money(u.price), (u) => u.price === minPrice],
                     ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
                     ['Precio vs obra nueva', (u) => { const v = avm[u.id]; return avmText(v) ? <span style={{ color: avmColor(v), fontWeight: 700 }}>{avmText(v)}</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
@@ -469,7 +469,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     ['Enganche (20%)', (u) => money(enganche(u))],
                     ['Gastos de escrituración (~8%)', (u) => money(escrit(u))],
                     ['Inversión inicial (entrada)', (u) => money(entrada(u)), (u) => entrada(u) === minEntrada],
-                    { h: '📐 Características' },
+                    { h: 'Características' },
                     ['m² totales', (u) => (m2(u) || '—')],
                     ['Recámaras', (u) => u.bedrooms ?? '—'],
                     ['Baños', (u) => u.bathrooms ?? '—'],
@@ -478,7 +478,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     ['Orientación', (u) => u.orientation || '—'],
                     ['Vista', (u) => vistaLabel(u.vista) || '—'],
                     ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—'],
-                    { h: '📈 Rentabilidad estimada' },
+                    { h: 'Rentabilidad estimada' },
                     ['Renta estimada', (u) => `${money(renta(u))}/mes`],
                     ['Cap rate', (u) => (u.price ? `${(cap(u) * 100).toFixed(1)}%` : '—'), (u) => cap(u) === maxCap],
                     ['Plusvalía (zona)', () => `${pv.toFixed(1)}%/año`],
@@ -501,7 +501,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
           </div>
           {(() => { const um = compareUnits.map((u) => (avm[u.id] || {}).mercado_usada_m2).find((x) => x); return um ? (
             <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', marginTop: 12, padding: '11px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }}>
-              🆕 <b style={{ color: 'var(--cream)' }}>La prima de estrenar</b> es cuánto más cuesta esta obra nueva que un usado de la zona (~{money(um)}/m²). A cambio: estrenar · amenidades · garantía · mayor eficiencia · cero remodelación · plusvalía de obra nueva.
+              <b style={{ color: 'var(--cream)' }}>La prima de estrenar</b> es cuánto más cuesta esta obra nueva que un usado de la zona (~{money(um)}/m²). A cambio: estrenar · amenidades · garantía · mayor eficiencia · cero remodelación · plusvalía de obra nueva.
             </div>
           ) : null; })()}
           <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 10 }}>Enganche 20% y escrituración ~8% son estándar; renta, cap rate y plusvalía son estimados de zona (mismas bases que el motor). Para el número fino por unidad — TIR, fiscal, escenarios — abre la calculadora con "Elegir" abajo.</div>
