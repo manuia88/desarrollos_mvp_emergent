@@ -93,34 +93,142 @@ function EmptyHint({ text, onGo }) {
   );
 }
 
-// Pestaña "El proyecto": el brochure (galería + datos + amenidades + historia) — ya NO front-loaded, vive aquí.
-function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng }) {
+// Pestaña "El proyecto": contexto que SUMA valor — historia, avance de obra (fases+bitácora), disponibilidad, prototipos,
+// el precio desde el lanzamiento, amenidades y el desarrollador. Todo dato real del dev (hide-if-empty).
+function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnidades }) {
+  const cp = dev.construction_progress || {};
+  const pct = Math.max(0, Math.min(100, cp.percentage || 0));
+  const phases = Array.isArray(cp.phases) ? cp.phases : [];
+  const lastLog = (Array.isArray(cp.log) && cp.log[0]) || null;
+  const tot = dev.units_total || nUnits || 0;
+  const sold = dev.units_sold || 0, resv = dev.units_reserved || 0;
+  const avail = dev.units_available != null ? dev.units_available : Math.max(0, tot - sold - resv);
+  const protoMap = {};
+  (dev.units || []).forEach((u) => { const k = u.prototype || '—'; if (!protoMap[k]) protoMap[k] = { proto: k, n: 0, beds: u.bedrooms, m2: u.m2_total || u.m2_privative, min: Infinity }; protoMap[k].n++; if (u.price) protoMap[k].min = Math.min(protoMap[k].min, u.price); });
+  const protos = Object.values(protoMap).sort((a, b) => a.min - b.min);
+  const protoName = (p) => (p === 'PH' ? 'Penthouse' : `Tipo ${p}`);
+  const ph = Array.isArray(dev.price_history) ? dev.price_history.filter((x) => x && x.price) : [];
+  const phUp = ph.length >= 2 ? Math.round((ph[ph.length - 1].price / ph[0].price - 1) * 100) : null;
+  const developer = dev.developer || {};
+  const h2 = (t) => <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 4 }}>{t}</div>;
+  const eyebrow = (t) => <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>{t}</div>;
+
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <PhotoGallery dev={dev} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginTop: 18 }}>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={tipo} label="Tipo" /></Card>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(beds)} label="Recámaras" /></Card>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(m2r) ? `${rng(m2r)} m²` : null} label="Superficie" /></Card>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={rng(park)} label="Estac." /></Card>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={fechaCorta(dev.delivery_estimate)} label="Entrega" /></Card>
-        <Card style={{ padding: '16px 18px' }}><Stat sm value={nUnits} label="Unidades" /></Card>
-      </div>
+
+      {/* facts rápidos */}
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(108px,1fr))' }}>
+          {[['Tipo', tipo], ['Recámaras', rng(beds)], ['Superficie', rng(m2r) ? `${rng(m2r)} m²` : null], ['Niveles', dev.max_level], ['Estac.', rng(park)], ['Entrega', fechaCorta(dev.delivery_estimate)], ['Unidades', nUnits]].filter(([, v]) => v != null && v !== '').map(([l, v], i) => (
+            <div key={l} style={{ padding: '15px 18px', borderLeft: i ? '1px solid var(--card-border, var(--border))' : 'none' }}>
+              <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</div>
+              <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* la historia */}
+      {dev.description && (<div>{h2('La historia')}<p style={{ fontFamily: SANS, fontSize: 15, lineHeight: 1.65, color: 'var(--cream-2)', margin: '4px 0 0', maxWidth: 760 }}>{dev.description}</p></div>)}
+
+      {/* avance de obra */}
+      {(phases.length > 0 || pct > 0) && (
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            {h2('Avance de obra')}
+            {cp.status && <span style={{ padding: '4px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.28)', color: '#059669', fontFamily: SANS, fontSize: 11.5, fontWeight: 700 }}>● {cp.status}</span>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0 16px' }}>
+            <div style={{ flex: 1, height: 9, borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: 'var(--grad)' }} /></div>
+            <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--theme)' }}>{pct}%</span>
+            {dev.delivery_estimate && <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>entrega {fechaCorta(dev.delivery_estimate)}</span>}
+          </div>
+          {phases.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {phases.map((p) => { const done = pct >= (p.threshold || 0); const active = p.status === 'active'; return (
+                <span key={p.key} style={{ flex: '1 1 88px', textAlign: 'center', padding: '8px 6px', borderRadius: 9, fontFamily: SANS, fontSize: 11.5, fontWeight: 700, background: active ? 'rgba(99,102,241,0.10)' : done ? 'rgba(16,185,129,0.08)' : 'var(--surface-card)', border: `1px solid ${active ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, color: active ? 'var(--theme)' : done ? '#059669' : 'var(--cream-3)' }}>{done && !active ? '✓ ' : ''}{p.label}</span>
+              ); })}
+            </div>
+          )}
+          {lastLog && <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', marginTop: 14, lineHeight: 1.5 }}><b style={{ color: 'var(--cream)' }}>{lastLog.date}:</b> {lastLog.description}</div>}
+        </Card>
+      )}
+
+      {/* disponibilidad */}
+      {tot > 0 && (
+        <Card>
+          {h2('Disponibilidad')}
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 14px' }}>{avail} de {tot} disponibles hoy</div>
+          <div style={{ display: 'flex', height: 14, borderRadius: 9999, overflow: 'hidden', border: '1px solid var(--card-border, var(--border))' }}>
+            {avail > 0 && <div style={{ width: `${100 * avail / tot}%`, background: '#16a34a' }} />}
+            {resv > 0 && <div style={{ width: `${100 * resv / tot}%`, background: 'var(--theme)' }} />}
+            {sold > 0 && <div style={{ width: `${100 * sold / tot}%`, background: '#c2c6d6' }} />}
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', fontWeight: 600 }}>
+            <span style={{ color: '#16a34a' }}>● {avail} disponibles</span><span style={{ color: 'var(--theme)' }}>● {resv} apartadas</span><span style={{ color: 'var(--cream-3)' }}>● {sold} vendidas</span>
+          </div>
+        </Card>
+      )}
+
+      {/* prototipos */}
+      {protos.length > 0 && (
+        <div>
+          {h2('Lo que puedes comprar')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginTop: 12 }}>
+            {protos.map((p) => (
+              <Card key={p.proto} onClick={onVerUnidades} style={{ padding: '16px 18px', cursor: onVerUnidades ? 'pointer' : 'default' }}>
+                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)' }}>{protoName(p.proto)}</div>
+                <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 4 }}>{p.beds} rec · {p.m2} m² · {p.n} {p.n === 1 ? 'unidad' : 'unidades'}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--theme)', marginTop: 8 }}>desde {money(p.min)}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* el precio desde el lanzamiento */}
+      {phUp != null && phUp > 0 && (
+        <Card>
+          {h2('El precio desde el lanzamiento')}
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 16px' }}>En preventa el precio sube conforme avanza la obra. Entrar antes = mejor precio.</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {ph.map((x, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span style={{ color: 'var(--cream-3)', fontSize: 15 }}>→</span>}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: i === ph.length - 1 ? 'var(--theme)' : 'var(--cream-2)' }}>{money(x.price)}</div>
+                  <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>{x.date}</div>
+                </div>
+              </React.Fragment>
+            ))}
+            <span style={{ marginLeft: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', color: '#059669', fontFamily: HEAD, fontWeight: 800, fontSize: 13 }}>+{phUp}% desde el lanzamiento</span>
+          </div>
+        </Card>
+      )}
+
+      {/* amenidades */}
       {amen.length > 0 && (
-        <div style={{ marginTop: 22 }}>
-          <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Amenidades</div>
+        <div>
+          {eyebrow('Amenidades')}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {amen.map((a, i) => { const { icon, label } = amenInfo(a); return (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{icon} {label}</span>
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{icon} {label}</span>
             ); })}
           </div>
         </div>
       )}
-      {dev.description && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 8 }}>La historia</div>
-          <p style={{ fontFamily: SANS, fontSize: 15, lineHeight: 1.65, color: 'var(--cream-2)', margin: 0, maxWidth: 720 }}>{dev.description}</p>
-        </div>
+
+      {/* desarrollador (compacto · el detalle de confianza vive en su tab) */}
+      {developer.name && (
+        <Card style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: `hsl(${developer.logo_hue || 250} 60% 92%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 21, color: `hsl(${developer.logo_hue || 250} 55% 38%)`, flexShrink: 0 }}>{developer.name[0]}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desarrollado por</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)' }}>{developer.name}</div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>{[developer.founded_year && `Desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ') || 'Ve su track record en Confianza'}</div>
+          </div>
+        </Card>
       )}
     </div>
   );
@@ -228,7 +336,7 @@ export default function FichaCockpit({ user, onLogin }) {
         {/* ── BODY: contenido enfocado + sidebar fijo ── */}
         <div className="dmx-cockpit-grid" style={{ maxWidth: 1320, width: '94%', margin: '0 auto', padding: '24px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 28, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
-            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} />}
+            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} onVerUnidades={() => goTab('unidad')} />}
 
             {tab === 'unidad' && (
               <>
