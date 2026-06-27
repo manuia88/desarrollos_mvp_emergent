@@ -49,6 +49,7 @@ const Favoritos         = lazy(() => import('./pages/Favoritos'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
 const FichaDesarrollo = lazy(() => import('./pages/FichaDesarrollo'));   // rebuild limpio (preview con ?v2=1)
+const FichaCockpit = lazy(() => import('./pages/FichaCockpit'));         // rediseño UX cockpit (prototipo · preview con ?v3=1)
 const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
@@ -1154,8 +1155,9 @@ function SimuladorRoute() {
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
   // En la rama del rebuild, la ficha NUEVA es la default (ya no hay que recordar el flag). La VIEJA queda en ?v1=1 para comparar.
-  const v1 = new URLSearchParams(window.location.search).get('v1');
-  if (v1) return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('v1')) return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
+  if (params.get('v3')) return <FichaCockpit user={user} onLogin={openAuth} />;   // prototipo cockpit (rediseño UX)
   return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
