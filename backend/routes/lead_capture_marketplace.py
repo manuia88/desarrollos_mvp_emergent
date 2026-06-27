@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, validator
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_lead_capture_marketplace")
 router = APIRouter(tags=["lead-capture-marketplace"])
@@ -34,7 +35,7 @@ _RATE_WINDOW_S = 60
 
 
 def _client_ip(request: Request) -> str:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     return ip or "unknown"

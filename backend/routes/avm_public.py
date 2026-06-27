@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
 
 import avm_public_engine as eng
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ RL_WINDOW_S = 60
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    fwd =_dmx_canon_ip(request)
     if fwd:
         return fwd
     return request.client.host if request.client else "unknown"

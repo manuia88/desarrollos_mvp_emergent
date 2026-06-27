@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.atlax")
 
@@ -78,7 +79,7 @@ def _estimate_lead_score(query: str) -> int:
 
 
 def _extract_ip(request: Request) -> str:
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    forwarded = _dmx_canon_ip(request)
     return forwarded or (request.client.host if request.client else "unknown")
 
 

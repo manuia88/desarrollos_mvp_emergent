@@ -276,8 +276,8 @@ async def registrar_busqueda(b: GuardarBusquedaIn, request: Request):
     from datetime import datetime as _dt
     try:
         db = request.app.state.db
-        ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-              or (request.client.host if request.client else ""))
+        from ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
+        ip = _c(request)
         now = _dt.utcnow()
         cols = [_norm(c) for c in (b.colonias or []) if c]
         doc = {

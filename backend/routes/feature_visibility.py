@@ -24,6 +24,7 @@ import feature_gate_engine as fg
 import dmx_plans  # capa de planes/snapshots GoHighLevel (sobre el feature-gate)
 from permissions import require_superadmin
 from audit_immutable_engine import log as audit_log
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_feature_visibility")
 
@@ -41,7 +42,7 @@ _RATE_WINDOW_S = 60
 
 
 def _rate_limit(request: Request, limit: int = 60) -> None:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     ip = ip or "unknown"
@@ -436,7 +437,7 @@ _BULK_RATE_WINDOW_S = 3600
 
 
 def _bulk_rate_limit(request: Request, limit: int = 5) -> None:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     ip = ip or "unknown"

@@ -183,8 +183,8 @@ async def search_developments(request: Request, q: str = "", limit: int = 8):
                 _now = _dt.now(_tz.utc)
                 _cols = list({(it.get("colonia") or "").strip().lower().replace(" ", "-")
                               for it in items if it.get("colonia")})
-                _ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-                       or (request.client.host if request.client else ""))
+                from ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
+                _ip = _c(request)
                 await db.marketplace_searches.insert_one({
                     "id": f"mks_{_u.uuid4().hex[:12]}",
                     "query": q.strip()[:200],

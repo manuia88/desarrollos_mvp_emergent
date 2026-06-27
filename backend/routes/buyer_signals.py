@@ -83,8 +83,8 @@ async def buyer_signal(s: SignalIn, request: Request):
     try:
         db = request.app.state.db
         await _ensure_index(db)
-        ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-              or (request.client.host if request.client else ""))
+        from services.ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
+        ip = _c(request)
         now = datetime.now(timezone.utc)
         dwell = s.dwell_ms if (isinstance(s.dwell_ms, int) and 0 <= s.dwell_ms <= 600000) else None
         doc = {

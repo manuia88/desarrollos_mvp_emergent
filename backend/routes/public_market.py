@@ -11,6 +11,7 @@ from collections import defaultdict, deque
 from typing import Optional, Deque, Dict
 
 from fastapi import APIRouter, HTTPException, Request, Query
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ _WINDOW = 60.0
 
 
 def _ip(req: Request) -> str:
-    fwd = (req.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    fwd = _dmx_canon_ip(req)
     return fwd or (req.client.host if req.client else "unknown")
 
 

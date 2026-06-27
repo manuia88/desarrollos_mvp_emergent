@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from pydantic import BaseModel, Field, field_validator
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.dev_batch1")
 
@@ -1431,7 +1432,7 @@ async def receive_erp_event(provider: str, request: Request):
         "provider": provider,
         "payload": body,
         "ts": _now().isoformat(),
-        "ip": (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or getattr(request.client, "host", None),
+        "ip": _dmx_canon_ip(request) or getattr(request.client, "host", None),
         "user_agent": request.headers.get("user-agent"),
     }
     await db.erp_webhook_events.insert_one(dict(event_doc))

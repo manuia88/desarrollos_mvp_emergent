@@ -27,6 +27,7 @@ from fastapi.responses import JSONResponse
 
 import zone_cycle_engine as zce
 import dmx_indices_engine as ix
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 router = APIRouter()
 
@@ -35,7 +36,7 @@ RL_LIMIT, RL_WINDOW = 30, 60
 
 
 def _ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    fwd =_dmx_canon_ip(request)
     return fwd or (request.client.host if request.client else "unknown")
 
 

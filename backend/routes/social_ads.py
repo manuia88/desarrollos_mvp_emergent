@@ -24,6 +24,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_social_ads")
 
@@ -116,7 +117,7 @@ _RATE_WINDOW_S = 60
 
 
 def _rate_limit(request: Request, limit: int = 60) -> None:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     ip = ip or "unknown"

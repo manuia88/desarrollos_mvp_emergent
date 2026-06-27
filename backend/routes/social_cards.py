@@ -36,6 +36,7 @@ from social_cards_engine import (
 from social_cards_cache import disk_get, disk_set, disk_stats
 from permissions import require_superadmin
 from audit_immutable_engine import log as audit_log
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_social_cards")
 
@@ -53,7 +54,7 @@ _RENDER_LOG: deque = deque(maxlen=10000)  # (ts, layout, entity_type) tuples
 
 
 def _client_ip(request: Request) -> str:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     return ip or "unknown"

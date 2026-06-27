@@ -42,6 +42,7 @@ from insights_factcheck_engine import (
 )
 from permissions import require_superadmin
 from audit_immutable_engine import log as audit_log
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_external_insights")
 
@@ -56,7 +57,7 @@ _RATE_WINDOW_S = 60
 
 
 def _client_ip(request: Request) -> str:
-    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(request)
     if not ip and request.client:
         ip = request.client.host
     return ip or "unknown"

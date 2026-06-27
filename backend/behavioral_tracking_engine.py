@@ -12,6 +12,7 @@ import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.behavioral_tracking")
 
@@ -29,7 +30,7 @@ def _hash_ip(ip: str) -> str:
 
 def _extract_ip(request) -> str:
     """Extrae IP real ignorando proxies privados."""
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    forwarded = _dmx_canon_ip(request)
     return forwarded or request.client.host if request.client else "unknown"
 
 

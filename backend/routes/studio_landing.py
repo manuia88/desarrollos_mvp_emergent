@@ -53,10 +53,9 @@ def _db(request: Request):
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "anon"
+    # SEGURIDAD (pentest 2026-06-27): delega al canónico anti-spoofing (antes XFF[0]/x-real-ip = falsificables).
+    from ratelimit import client_ip as _c
+    return _c(request) or "anon"
 
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────

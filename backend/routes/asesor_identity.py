@@ -52,10 +52,9 @@ async def _auth_asesor(request: Request):
 
 
 def _client_ip(request: Request) -> str:
-    h = request.headers
-    return h.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else ""
-    )
+    # SEGURIDAD (pentest 2026-06-27): delega al canónico anti-spoofing (antes XFF[0] = falsificable).
+    from ratelimit import client_ip as _c
+    return _c(request)
 
 
 # ═══ Pydantic models ═════════════════════════════════════════════════════════

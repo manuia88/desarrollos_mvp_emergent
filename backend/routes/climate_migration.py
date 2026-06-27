@@ -41,10 +41,9 @@ RL_LIMIT_PATTERNS = 60
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    if fwd:
-        return fwd
-    return request.client.host if request.client else "unknown"
+    # SEGURIDAD (pentest 2026-06-27): delega al canónico anti-spoofing (antes XFF[0] = falsificable).
+    from ratelimit import client_ip as _c
+    return _c(request)
 
 
 def _rate_limit(

@@ -26,6 +26,7 @@ from pydantic import BaseModel
 
 from conversation_engine import ConversationEngine, ensure_indexes  # noqa: F401 (re-export)
 from conversation_channels import get_adapter
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_conversation")
 
@@ -52,7 +53,7 @@ _RL_CLEANUP_INTERVAL_S = 600     # cleanup global cada 10 min
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    fwd =_dmx_canon_ip(request)
     if fwd:
         return fwd
     return request.client.host if request.client else "unknown"

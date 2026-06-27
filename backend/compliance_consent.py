@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 # Versión del Aviso de Privacidad vigente. Subir cuando cambie el texto legal.
 PRIVACY_POLICY_VERSION = "2026-06"
@@ -29,7 +30,7 @@ def _now_iso() -> str:
 
 def _client_ip(request) -> str:
     try:
-        ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        ip = _dmx_canon_ip(request)
         if not ip and request.client:
             ip = request.client.host
         return ip or "unknown"

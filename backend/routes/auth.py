@@ -46,6 +46,14 @@ LOGIN_WINDOW_S = 300         # 5 minutos
 
 
 def _client_ip(request: Request) -> str:
+    # SEGURIDAD (pentest 2026-06-27): delega al helper canónico anti-spoofing. Antes tomaba XFF[0] = el valor que
+    # CONTROLA el cliente → rotando X-Forwarded-For se evadía el anti-brute-force del login (credential stuffing
+    # sin freno). El canónico usa el salto de confianza (ver ratelimit.client_ip).
+    try:
+        from ratelimit import client_ip as _canonical
+        return _canonical(request)
+    except Exception:
+        pass
     fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
     return fwd or (request.client.host if request.client else "unknown")
 

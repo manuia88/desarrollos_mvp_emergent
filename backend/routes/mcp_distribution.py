@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import mcp_distribution_engine as engine
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_mcp_distribution")
 router = APIRouter()
@@ -19,7 +20,7 @@ def _db(request: Request):
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    fwd =_dmx_canon_ip(request)
     return fwd or (request.client.host if request.client else "unknown")
 
 

@@ -61,8 +61,9 @@ sa_router = APIRouter(prefix="/api/superadmin/asistente", tags=["asistente-admin
 
 
 def _extract_ip(request: Request) -> str:
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    return forwarded or (request.client.host if request.client else "unknown")
+    # SEGURIDAD (pentest 2026-06-27): delega al canónico anti-spoofing (antes XFF[0] = falsificable).
+    from ratelimit import client_ip as _c
+    return _c(request)
 
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
@@ -243,7 +244,8 @@ async def capture_lead(session_token: str, body: CaptureLeadIn, request: Request
 
     # W4.4E.5.2 · Rate limit 3 leads/hora/ip_hash
     from behavioral_tracking_engine import _hash_ip
-    ip_raw = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    from ratelimit import client_ip as _canon_ip  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
+    ip_raw = _canon_ip(request)
     ip_hash = _hash_ip(ip_raw)
     if not _check_capture_rate(ip_hash, limit=3, window_s=3600):
         try:

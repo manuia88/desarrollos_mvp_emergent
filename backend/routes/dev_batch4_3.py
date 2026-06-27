@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, Field
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.batch4_3")
 router = APIRouter(tags=["batch4.3"])
@@ -368,7 +369,7 @@ def _client_action_entry(action: str, request: Request, extra: Optional[Dict] = 
     return {
         "action": action,
         "timestamp": _now().isoformat(),
-        "ip": (request.headers.get("x-forwarded-for", "") or "").split(",")[0].strip() or None,
+        "ip": _dmx_canon_ip(request) or None,
         "user_agent": request.headers.get("user-agent", ""),
         **(extra or {}),
     }

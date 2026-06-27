@@ -14,6 +14,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, validator
+from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
 
 log = logging.getLogger("dmx.routes_mood")
 router = APIRouter(tags=["mood"])
@@ -30,7 +31,7 @@ def _db(req: Request):
 
 
 def _client_ip(req: Request) -> str:
-    ip = (req.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = _dmx_canon_ip(req)
     if not ip and req.client:
         ip = req.client.host
     return ip or "unknown"
