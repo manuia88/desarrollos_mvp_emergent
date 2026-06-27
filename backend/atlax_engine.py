@@ -380,6 +380,14 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     tier = chat_res.get("tier")
     tool_calls = chat_res.get("tool_calls") or []
 
+    # F3 · Atlax generativo: convierte la intención de la consulta en UI inline (tabla comparativa / tarjetas) con
+    # datos REALES (DEVELOPMENTS). Best-effort: si no aplica o falla, queda vacío y la respuesta es solo texto.
+    try:
+        from atlax_blocks import build_generative_blocks
+        blocks = build_generative_blocks(payload.query)
+    except Exception:
+        blocks = []
+
     # ─── 7. Lead-score override + hand_off
     lead_score = _estimate_lead_score(payload.query)
     hand_off = suggested_capture or (lead_score >= 70)
@@ -471,6 +479,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "memory_hits": [],  # placeholder: AsistenteEngine no expone retrieve_memory en chat público
         "tool_calls": tool_calls,
         "intent_detected": chat_res.get("intent_detected"),
+        "blocks": blocks,  # F3 · UI generativa inline (tabla comparativa / tarjetas) con datos reales
     }
 
 

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../icons';
 import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
 import AtlaxVoiceButton from './AtlaxVoiceButton';
+import AtlaxBlocks from './AtlaxBlocks';  // F3: UI generativa inline (tabla comparativa / tarjetas)
 import { fetchBuySignal } from '../../api/marketplace';
 import { Z } from '../../styles/zIndex';
 
@@ -474,6 +475,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
         role: 'assistant',
         content: d.answer || 'Sin respuesta.',
         citations: d.citations || [],
+        blocks: d.blocks || [],  // F3: UI generativa inline
         top_results: d.top_results || [],
         hand_off: d.hand_off_recommended,
         hand_off_reason: d.hand_off_reason,
@@ -849,6 +851,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                 }}>
                   {renderRich(m.content)}
                 </div>
+
+                {m.role === 'assistant' && (m.blocks || []).length > 0 && (
+                  <AtlaxBlocks blocks={m.blocks} />
+                )}
 
                 {m.role === 'assistant' && (m.citations || []).length > 0 && (
                   <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap' }}>
