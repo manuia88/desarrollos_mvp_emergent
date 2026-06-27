@@ -27,7 +27,7 @@ const TAB_LABEL = Object.fromEntries(TABS.map(([k, l]) => [k, l]));
 
 const INTENT_TAB = { invertir: 'inversion', primera: 'credito', familia: 'rentobuy', vivir: 'rentobuy' };
 
-export default function SeccionDinero({ dev, unit, intent }) {
+export default function SeccionDinero({ dev, unit, intent, defaultTab }) {
   const cfg = dev.config || {};
   const base = unit
     ? { price: unit.price, m2: unit.m2_total || unit.m2_privative || 80, label: `Unidad ${unit.unit_number}` }
@@ -38,7 +38,7 @@ export default function SeccionDinero({ dev, unit, intent }) {
   const [tab, setTab] = useState(null);   // null = detalle colapsado (página corta); el dropdown lo abre
   const [openSel, setOpenSel] = useState(false);
   // el lente fija (y abre) la vía por defecto (invertir→inversión, primera→crédito…)
-  useEffect(() => { if (intent && INTENT_TAB[intent]) setTab(INTENT_TAB[intent]); }, [intent]);
+  useEffect(() => { const t = defaultTab || (intent && INTENT_TAB[intent]); if (t) setTab(t); }, [intent, defaultTab]);
   const [own, setOwn] = useState(null);
   const [ownLoading, setOwnLoading] = useState(true);
   const [ingreso, setIngreso] = useState('');   // "¿califico?"

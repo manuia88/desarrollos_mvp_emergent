@@ -16,7 +16,7 @@ import { Card, Stat, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionUnidades from '../components/ficha/SeccionUnidades';
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
-import SeccionPanorama from '../components/ficha/SeccionPanorama';
+import SeccionDinero from '../components/ficha/SeccionDinero';   // módulo unificado: ¿rento o compro? · crédito · PLAN de pagos · inversión
 import SeccionConfianza from '../components/ficha/SeccionConfianza';
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
@@ -242,9 +242,15 @@ export default function FichaCockpit({ user, onLogin }) {
               <>
                 <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />
                 {!unit && !multi && <EmptyHint text="Elige una unidad en “Tu unidad” para ver tus números exactos." onGo={() => goTab('unidad')} />}
-                {lens === 'invertir'
-                  ? <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
-                  : <SeccionPanorama dev={dev} unit={unit} onSelectUnit={pickUnit} />}
+                {/* Módulo unificado: para invertir abre en PLAN de pago (la inversión la lleva la calc a fondo, sin duplicar números) */}
+                <SeccionDinero dev={dev} unit={unit} intent={lens} defaultTab={lens === 'invertir' ? 'plan' : undefined} />
+                {/* Para invertir: la calculadora a FONDO (TIR · cap rate · escenarios · Monte Carlo) debajo */}
+                {lens === 'invertir' && (unit || multi) && (
+                  <div style={{ marginTop: 24 }}>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Análisis de inversión a fondo</div>
+                    <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
+                  </div>
+                )}
               </>
             )}
 
