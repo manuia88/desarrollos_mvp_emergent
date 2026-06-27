@@ -76,9 +76,9 @@ function CockpitCard({ dev, unit, lens, keyNum, hk, kM2, onVerDinero, onAgendar,
           )}
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 14 }}>
             <button onClick={onVerDinero} style={{ padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 10px 24px rgba(109,74,255,0.26)' }}>
-              {lens === 'invertir' ? '📈 Ver tu dinero a detalle →' : '🏠 Ver tu plan de pago →'}
+              {lens === 'invertir' ? 'Ver tu dinero a detalle →' : 'Ver tu plan de pago →'}
             </button>
-            <button onClick={onToggleSave} style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: saved ? '#e0463d' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>{saved ? '❤️ Guardada' : '🤍 Guardar'}</button>
+            <button onClick={onToggleSave} style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'transparent', color: saved ? '#e0463d' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>{saved ? '♥ Guardada' : 'Guardar'}</button>
           </div>
         </div>
       </div>
@@ -144,16 +144,14 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   useEffect(() => { let alive = true; fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setSchemes((d && d.schemes) || []); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
   const pctRange = (key) => { if (!schemes.length) return null; const v = schemes.map((s) => s[key] || 0); const mn = Math.min(...v), mx = Math.max(...v); return mn === mx ? `${mn}%` : `${mn}–${mx}%`; };
   const STAGE_PCT = { Apartado: schemes.length ? money(Math.min(...schemes.map((s) => s.apartado_mxn || 0))) : null, Enganche: pctRange('firma_pct'), Mensualidades: pctRange('mensualidades_pct'), Escrituración: pctRange('escritura_pct') };
-  const SERV_IC = { Gas: '🔥', Agua: '🚰', Energía: '⚡', Internet: '🌐', Drenaje: '🚿' };
-  const TEC_IC = { Niveles: '🏢', Elevadores: '🛗', Cisterna: '🪣', Estructura: '🏗️', Estacionamiento: '🅿️' };
-  const CARAC_IC = { Recámaras: '🛏️', Baños: '🚿', Estacionamientos: '🚗', Superficie: '📐', Niveles: '🏢', 'Depas por piso': '🚪', Prototipos: '🏠', Unidades: '🔢' };
+  // (sin emojis · diseño limpio)
   const h2 = (t, tip) => <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}><span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{titleCase(t)}</span><InfoTip text={tip} /></div>;
   const factCard = (rows) => (
     <Card style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))' }}>
         {rows.filter(([, v]) => v != null && v !== '').map(([l, v, tip], i) => (
           <div key={l} style={{ padding: '14px 16px', borderLeft: i ? '1px solid var(--card-border, var(--border))' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>{CARAC_IC[l] || ''}</span><span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</span></div>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}><span style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{l}</span><InfoTip text={tip} /></div>
           </div>
         ))}
@@ -188,7 +186,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         {h2('Ubicación')}
         <Card className="dmx-proj-card" onClick={onVerConfianza} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginTop: 12, cursor: onVerConfianza ? 'pointer' : 'default' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>📍 {dev.address_full || dev.street || dev.name}</div>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{dev.address_full || dev.street || dev.name}</div>
             <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 3 }}>{[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).join(' · ')}</div>
           </div>
           {onVerConfianza && <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Mapa, lugares y la zona →</span>}
@@ -232,8 +230,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
           {h2('Construcción y servicios', 'Cómo está hecho el edificio y qué servicios trae. Toca la ⓘ de cada punto para una explicación simple.')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 12 }}>
             {[...tecnica, ...servicios].map(([k, v]) => (
-              <Card key={k} className="dmx-proj-card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
-                <span style={{ fontSize: 20 }}>{TEC_IC[k] || SERV_IC[k] || '🔧'}</span>
+              <Card key={k} className="dmx-proj-card" style={{ padding: '13px 15px' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{v}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{k}</span><InfoTip text={TEC_TIP[k]} /></div>
@@ -293,8 +290,8 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
               <div style={{ marginBottom: creditos.length ? 16 : 4 }}>
                 <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 }}>El plan incluye</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {[['🔖', 'Apartado'], ['✍️', 'Enganche'], ['📅', 'Mensualidades'], ['🔑', 'Escrituración']].map(([ic, name]) => (
-                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{ic} {name}{STAGE_PCT[name] ? <b style={{ color: 'var(--theme)', marginLeft: 2 }}>· {STAGE_PCT[name]}</b> : null} <InfoTip text={PAGO_TIP[name]} /></span>
+                  {['Apartado', 'Enganche', 'Mensualidades', 'Escrituración'].map((name) => (
+                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{name}{STAGE_PCT[name] ? <b style={{ color: 'var(--theme)', marginLeft: 2 }}>· {STAGE_PCT[name]}</b> : null} <InfoTip text={PAGO_TIP[name]} /></span>
                   ))}
                 </div>
               </div>
@@ -584,13 +581,13 @@ export default function FichaCockpit({ user, onLogin }) {
                 {/* ② TU CRÉDITO + RENDIMIENTO a fondo — la calc ya trae el simulador de crédito (no se duplica) */}
                 {lens === 'invertir' && (unit || multi) && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Análisis de inversión a fondo</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Análisis de inversión a fondo</div>
                     <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                   </div>
                 )}
                 {lens === 'vivir' && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>🏠 ¿Rentar o comprar?</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>¿Rentar o comprar?</div>
                     <SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="rentobuy" />
                   </div>
                 )}
@@ -606,9 +603,9 @@ export default function FichaCockpit({ user, onLogin }) {
               <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
               <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 2px' }}>{money(unit ? unit.price : dev.price_from)}</div>
               {unit && keyNum && <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginBottom: 4 }}>{keyNum.l}: <b style={{ color: 'var(--theme)' }}>{keyNum.v}</b></div>}
-              <button onClick={agendar} style={sideBtn(true)}>📅 Agendar visita</button>
-              <button onClick={askAtlax} style={sideBtn(false)}>✨ Pregúntale a Atlax</button>
-              {unit && <button onClick={toggleSaveUnit} style={sideBtn(false)}>{savedUnits.has(unit.unit_number) ? '❤️ Guardada' : `🤍 Guardar la ${unit.unit_number}`}</button>}
+              <button onClick={agendar} style={sideBtn(true)}>Agendar visita</button>
+              <button onClick={askAtlax} style={sideBtn(false)}>Pregúntale a Atlax</button>
+              {unit && <button onClick={toggleSaveUnit} style={sideBtn(false)}>{savedUnits.has(unit.unit_number) ? '♥ Guardada' : `Guardar la ${unit.unit_number}`}</button>}
               <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 11, textAlign: 'center' }}>Datos reales, sin presión. Tu asesor recibe esto tal cual.</div>
             </Card>
           </aside>
@@ -620,7 +617,7 @@ export default function FichaCockpit({ user, onLogin }) {
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{money(unit ? unit.price : dev.price_from)}</div>
           {unit && keyNum && <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{keyNum.l}: {keyNum.v}</div>}
         </div>
-        <button onClick={agendar} style={{ padding: '11px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>📅 Agendar visita</button>
+        <button onClick={agendar} style={{ padding: '11px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>Agendar visita</button>
       </div>
       <style>{`
         @media (max-width: 920px){ .dmx-cockpit-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-cockpit-side{ position: static !important; } .dmx-cockpit-mobilebar{ display: flex !important; } }

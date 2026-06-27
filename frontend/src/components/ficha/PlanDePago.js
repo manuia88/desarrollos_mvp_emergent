@@ -51,10 +51,10 @@ export default function PlanDePago({ dev, unit }) {
   const phUp = ph.length >= 2 ? Math.round((ph[ph.length - 1].price / ph[0].price - 1) * 100) : null;
 
   const steps = [
-    { ic: '🔖', l: 'Apartado', amt: money(apartado), sub: 'Reservas tu unidad · se acredita a la firma' },
-    { ic: '✍️', l: `Enganche · ${sel.firma_pct}%`, amt: money(firma), sub: 'Al firmar el contrato' },
-    ...(sel.mensualidades_pct > 0 ? [{ ic: '📅', l: `Mensualidades · ${sel.mensualidades_pct}%`, amt: `${money(mensual)}/mes`, sub: `${meses} pagos durante la obra` }] : []),
-    { ic: '🔑', l: `Escrituración · ${sel.escritura_pct}%`, amt: money(escr), sub: 'Al recibir · financiable con crédito (abajo)' },
+    { l: 'Apartado', amt: money(apartado), sub: 'Reservas tu unidad · se acredita a la firma' },
+    { l: `Enganche · ${sel.firma_pct}%`, amt: money(firma), sub: 'Al firmar el contrato' },
+    ...(sel.mensualidades_pct > 0 ? [{ l: `Mensualidades · ${sel.mensualidades_pct}%`, amt: `${money(mensual)}/mes`, sub: `${meses} pagos durante la obra` }] : []),
+    { l: `Escrituración · ${sel.escritura_pct}%`, amt: money(escr), sub: 'Al recibir · financiable con crédito (abajo)' },
   ];
 
   return (
@@ -103,7 +103,7 @@ export default function PlanDePago({ dev, unit }) {
         {steps.map((s, i) => (
           <div key={i} style={{ display: 'flex', gap: 13, alignItems: 'stretch' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--grad)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{s.ic}</div>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--grad)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HEAD, fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{i + 1}</div>
               {i < steps.length - 1 && <div style={{ width: 2, flex: 1, background: 'var(--card-border, var(--border))', margin: '3px 0' }} />}
             </div>
             <div style={{ flex: 1, marginBottom: 11, padding: '11px 15px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -117,7 +117,6 @@ export default function PlanDePago({ dev, unit }) {
       {/* CRÉDITO HIPOTECARIO (movido aquí desde la calc): financiar la escrituración */}
       <div style={{ marginTop: 6, padding: '16px 18px', borderRadius: 14, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 18 }}>🏦</span>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>Crédito para la escrituración</div>
         </div>
         <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>El {sel.escritura_pct}% que pagas al recibir lo puedes financiar con crédito hipotecario.</div>
@@ -143,7 +142,7 @@ export default function PlanDePago({ dev, unit }) {
       {/* upgrade: esperar te cuesta (price_history) */}
       {phUp != null && phUp > 0 && (
         <div style={{ marginTop: 12, padding: '12px 15px', borderRadius: 12, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.20)', fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-          ⏳ <b style={{ color: 'var(--cream)' }}>Esperar te cuesta.</b> En preventa el precio ya subió <b style={{ color: '#b45309' }}>+{phUp}%</b> desde el lanzamiento y sigue subiendo conforme avanza la obra. Entrar antes = mejor precio.
+          <b style={{ color: 'var(--cream)' }}>Esperar te cuesta.</b> En preventa el precio ya subió <b style={{ color: '#b45309' }}>+{phUp}%</b> desde el lanzamiento y sigue subiendo conforme avanza la obra. Entrar antes = mejor precio.
         </div>
       )}
     </Card>
