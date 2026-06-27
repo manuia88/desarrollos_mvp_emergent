@@ -176,6 +176,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   return (
     <LightScope>
       <PublicNav />
+      <a href={`/desarrollo/${id}?v3=1`} title="Probar el rediseño (cockpit)" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(109,74,255,0.32)' }}>🆕 Probar rediseño →</a>
       <main style={{ paddingTop: 78 }}>
         <div style={{ maxWidth: 1600, width: '94%', margin: '0 auto', padding: '22px 0 90px' }}>
 

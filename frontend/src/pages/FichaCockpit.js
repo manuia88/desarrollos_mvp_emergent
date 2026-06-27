@@ -16,7 +16,8 @@ import { Card, Stat, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionUnidades from '../components/ficha/SeccionUnidades';
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
-import SeccionDinero from '../components/ficha/SeccionDinero';   // módulo unificado: ¿rento o compro? · crédito · PLAN de pagos · inversión
+import SeccionDinero from '../components/ficha/SeccionDinero';   // módulo unificado: ¿rento o compro? · crédito · inversión
+import PlanDePago from '../components/ficha/PlanDePago';         // simulador del esquema de pago al dev (apartado/enganche/mensualidades/escritura + gastos)
 import SeccionConfianza from '../components/ficha/SeccionConfianza';
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
@@ -308,6 +309,7 @@ export default function FichaCockpit({ user, onLogin }) {
   return (
     <LightScope>
       <PublicNav />
+      <a href={`/desarrollo/${id}`} title="Volver al diseño actual" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--cream)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(16,18,28,0.28)' }}>← Diseño actual</a>
       <main style={{ paddingTop: 64 }}>
         {/* ── HEADER COMPACTO + TABS (pegajoso) ── */}
         <div style={{ position: 'sticky', top: 56, zIndex: 30, background: 'var(--surface, #faf9f7)', borderBottom: '1px solid var(--card-border, var(--border))', backdropFilter: 'saturate(1.2) blur(6px)' }}>
@@ -350,13 +352,19 @@ export default function FichaCockpit({ user, onLogin }) {
               <>
                 <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />
                 {!unit && !multi && <EmptyHint text="Elige una unidad en “Tu unidad” para ver tus números exactos." onGo={() => goTab('unidad')} />}
-                {/* Módulo unificado: para invertir abre en PLAN de pago (la inversión la lleva la calc a fondo, sin duplicar números) */}
-                <SeccionDinero dev={dev} unit={unit} intent={lens} defaultTab={lens === 'invertir' ? 'plan' : undefined} />
-                {/* Para invertir: la calculadora a FONDO (TIR · cap rate · escenarios · Monte Carlo) debajo */}
+                {/* ① CÓMO PAGAS: el esquema de pago al desarrollador (apartado/enganche/mensualidades/escritura + gastos) */}
+                <PlanDePago dev={dev} unit={multi ? null : unit} />
+                {/* ② TU CRÉDITO + RENDIMIENTO a fondo — la calc ya trae el simulador de crédito (no se duplica) */}
                 {lens === 'invertir' && (unit || multi) && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Análisis de inversión a fondo</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Tu crédito y rendimiento a fondo</div>
                     <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
+                  </div>
+                )}
+                {lens === 'vivir' && (
+                  <div style={{ marginTop: 24 }}>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>🏦 Tu crédito y rentar-vs-comprar</div>
+                    <SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="credito" />
                   </div>
                 )}
               </>
