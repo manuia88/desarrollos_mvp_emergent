@@ -449,7 +449,9 @@ textarea:focus-visible,
 .cursor-glow {
   position: fixed;
   pointer-events: none;
-  z-index: 9999;
+  /* El aro del cursor SIEMPRE encima de todo (panel Atlax 9999, modales, FAB).
+     Tiene pointer-events:none → no intercepta clics. */
+  z-index: 2147483647;
   top: 0; left: 0;
   transform: translate(-50%, -50%);
 }
