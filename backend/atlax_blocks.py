@@ -1,15 +1,17 @@
 """Atlax F3 — bloques generativos.
 
-Convierte la INTENCIÓN de una consulta en UI estructurada (tabla comparativa, tarjetas, …) con DATOS REALES
-(DEVELOPMENTS / motores existentes). Cero dato inventado. El front (AtlaxBubble) renderiza message.blocks=[{type,data}].
+Convierte la INTENCIÓN de una consulta en UI estructurada (tabla comparativa, tarjetas, simulador de pagos, mapa) con
+DATOS REALES (DEVELOPMENTS + motores existentes: investment_simulator, natural_risk). Cero dato inventado. El front
+(AtlaxBlocks) renderiza message.blocks=[{type,data}]. Best-effort: vacío → la respuesta degrada a solo texto.
 
-Hoy:
-- `comparison_table` — cuando la consulta menciona ≥2 zonas (colonias con desarrollos), arma la comparativa real.
-- `development_cards` — cuando es una búsqueda con una zona + (opcional) presupuesto, arma las tarjetas de desarrollos.
-
-Reusa DEVELOPMENTS (la misma fuente que /api/zona/{slug}/inversion y el sitemap). Sin HTTP, sin simulate pesado.
+Bloques:
+- comparison_table   — ≥2 zonas mencionadas. Métricas: precio (desde/hasta/m²), recámaras, entrega, plusvalía, riesgo.
+- development_cards   — búsqueda en 1 zona.
+- payment_breakdown   — intención de financiamiento (enganche/hipoteca) + un precio (de la query o de la zona).
+- mini_map            — intención de ubicación ("en el mapa") → pins de los desarrollos.
 """
 import asyncio
+import re
 import unicodedata
 
 
@@ -27,7 +29,6 @@ def _devs():
 
 
 def _known_zones() -> dict:
-    """{slug: display_name} de las colonias CON desarrollos (zonas con contenido real)."""
     out = {}
     for d in _devs():
         slug = (d.get("colonia_id") or "").strip()
@@ -36,15 +37,21 @@ def _known_zones() -> dict:
     return out
 
 
-def _pm2(d) -> float | None:
+def _pm2(d):
     p = d.get("price_from")
     m2 = (d.get("m2_range") or [0])[0]
     return (p / m2) if (p and m2) else None
 
 
+def _zone_price(slug: str):
+    """Precio 'desde' de la zona (instantáneo, sin motor) — para el fallback del simulador."""
+    precios = [d.get("price_from") for d in _devs() if d.get("colonia_id") == slug and d.get("price_from")]
+    return min(precios) if precios else None
+
+
 async def _zone_row(db, slug: str, name: str):
-    """Métricas REALES de la zona: lo barato desde DEVELOPMENTS (precio/recámaras/etapa) + plusvalía del motor
-    investment_simulator (best-effort, mismo cálculo que /api/zona/{slug}/inversion). Cero dato inventado."""
+    """Métricas REALES de la zona: barato desde DEVELOPMENTS + plusvalía (investment_simulator) + riesgo (natural_risk).
+    Cero dato inventado; best-effort en los motores (no rompe si fallan)."""
     devs = [d for d in _devs() if d.get("colonia_id") == slug]
     if not devs:
         return None
@@ -62,8 +69,8 @@ async def _zone_row(db, slug: str, name: str):
         "recamaras": [int(min(beds)), int(max(beds))] if beds else None,
         "entrega_inmediata": sum(1 for d in devs if d.get("stage") == "entrega_inmediata"),
         "plusvalia_pct": None,
+        "sismic_zone": None,
     }
-    # Plusvalía REAL (motor) sobre un depto representativo de la zona — best-effort, no rompe si falla.
     try:
         rep = (round(sum(precios) / len(precios)) if precios else None) or ((row["precio_m2"] or 0) * 80) or None
         if rep and db is not None:
@@ -72,14 +79,20 @@ async def _zone_row(db, slug: str, name: str):
             row["plusvalia_pct"] = ((sim or {}).get("base") or {}).get("aprec_anual_pct")
     except Exception:
         pass
+    try:
+        if db is not None:
+            import natural_risk_engine as nre
+            risk = await nre.compute_natural_risk_zone(db, slug)
+            if risk and risk.get("available"):
+                row["sismic_zone"] = risk.get("sismic_zone")
+    except Exception:
+        pass
     return row
 
 
 def _detect_zones(query: str):
-    """[(slug, name)] de zonas mencionadas en la consulta (match normalizado contra colonias con datos)."""
     nq = _norm(query)
     out, seen = [], set()
-    # ordena por nombre más largo primero → "roma norte" gana sobre "roma"
     for slug, name in sorted(_known_zones().items(), key=lambda kv: -len(kv[1])):
         if slug in seen:
             continue
@@ -90,7 +103,6 @@ def _detect_zones(query: str):
 
 
 def _dev_card(d) -> dict:
-    """Tarjeta de desarrollo (datos reales) — el front la pinta con su componente."""
     return {
         "id": d.get("id"),
         "name": d.get("name"),
@@ -105,21 +117,81 @@ def _dev_card(d) -> dict:
     }
 
 
+def _extract_price(query: str):
+    """Saca un precio del texto: '4M' / '4 millones' / '4mdp' / '$4,500,000'. None si no hay."""
+    nq = _norm(query)
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:millones|millon|mdp|m\b)", nq)
+    if m:
+        return int(float(m.group(1)) * 1_000_000)
+    m = re.search(r"\$?\s*([\d,]{6,})", query)
+    if m:
+        try:
+            return int(m.group(1).replace(",", ""))
+        except ValueError:
+            pass
+    return None
+
+
+def _payment_block(precio):
+    """Desglose de pago REAL: enganche 20% + crédito + mensualidad (20 años, tasa ~10.5%). Fórmula estándar."""
+    if not precio or precio < 200_000 or precio > 1_000_000_000:
+        return None
+    rate, n = 0.105, 240
+    enganche = round(precio * 0.20)
+    credito = precio - enganche
+    rm = rate / 12.0
+    mensualidad = round(credito * rm / (1 - (1 + rm) ** -n)) if rm else round(credito / n)
+    return {"type": "payment_breakdown", "data": {
+        "precio": precio, "enganche": enganche, "enganche_pct": 20, "credito": credito,
+        "mensualidad": mensualidad, "tasa_pct": round(rate * 100, 1), "plazo_anios": 20,
+    }}
+
+
+def _map_block(zones):
+    """Pins (lng/lat) de los desarrollos de las zonas mencionadas (o todos). center = [lng, lat]."""
+    slugs = [s for s, _ in zones] if zones else None
+    pins = []
+    for d in _devs():
+        if slugs and d.get("colonia_id") not in slugs:
+            continue
+        c = d.get("center")
+        if isinstance(c, list) and len(c) == 2:
+            pins.append({"lng": c[0], "lat": c[1], "name": d.get("name"),
+                         "id": d.get("id"), "price": d.get("price_from")})
+    pins = pins[:12]
+    return {"type": "mini_map", "data": {"pins": pins}} if pins else None
+
+
 async def build_generative_blocks(db, query: str) -> list:
-    """Bloques generativos para una consulta. Cero dato inventado; vacío si no aplica (degrada a solo-texto)."""
+    """Bloques generativos para una consulta. Cero dato inventado; vacío si no aplica."""
     blocks = []
     try:
+        nq = _norm(query)
         zones = _detect_zones(query)
-        # 1) COMPARATIVA — ≥2 zonas mencionadas
+
+        # 1) PAGOS — intención de financiamiento (exclusivo)
+        if any(w in nq for w in ("enganche", "hipoteca", "mensualidad", "credito", "financ", "cuanto pago", "cuanto pagaria")):
+            precio = _extract_price(query) or (_zone_price(zones[0][0]) if zones else None)
+            pb = _payment_block(precio)
+            if pb:
+                return [pb]
+
+        # 2) MAPA — intención de ubicación (aditivo)
+        if any(w in nq for w in ("mapa", "donde estan", "ubicacion", "en el mapa", "donde queda")):
+            mb = _map_block(zones)
+            if mb:
+                blocks.append(mb)
+
+        # 3) COMPARATIVA — ≥2 zonas mencionadas
         if len(zones) >= 2:
             rows = [r for r in await asyncio.gather(*[_zone_row(db, s, n) for s, n in zones[:4]]) if r]
             if len(rows) >= 2:
                 blocks.append({"type": "comparison_table", "data": {"zones": rows}})
-                return blocks  # comparativa gana; no mezclamos con tarjetas
-        # 2) TARJETAS — 1 zona mencionada en una consulta de búsqueda
+                return blocks
+
+        # 4) TARJETAS — 1 zona en una búsqueda
         if len(zones) == 1:
             slug, _name = zones[0]
-            nq = _norm(query)
             looks_search = any(w in nq for w in (
                 "depa", "departamento", "casa", "propiedad", "desarrollo", "compr", "busc",
                 "muestr", "ensename", "ver ", "vivir", "preventa", "millones", "mdp", "presupuesto"))
