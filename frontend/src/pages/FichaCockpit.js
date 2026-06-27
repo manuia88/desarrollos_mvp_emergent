@@ -96,6 +96,23 @@ function EmptyHint({ text, onGo }) {
 
 // Pestaña "El proyecto": contexto que SUMA valor — historia, avance de obra (fases+bitácora), disponibilidad, prototipos,
 // el precio desde el lanzamiento, amenidades y el desarrollador. Todo dato real del dev (hide-if-empty).
+// Title case inteligente (capitaliza palabras importantes, deja minúsculas artículos/preposiciones).
+const TITLE_SMALL = new Set(['de', 'la', 'el', 'los', 'las', 'en', 'y', 'a', 'del', 'que', 'lo', 'con', 'por', 'o', 'desde', 'para', 'su', 'tu']);
+const titleCase = (s) => String(s || '').split(' ').map((w, i) => (i > 0 && TITLE_SMALL.has(w.toLowerCase()) ? w.toLowerCase() : (w ? w[0].toUpperCase() + w.slice(1) : w))).join(' ');
+// Globitos: explicación sencilla para alguien que no sabe nada de comprar inmuebles.
+const TEC_TIP = { Niveles: 'Cuántos pisos tiene la torre.', Elevadores: 'Cuántos elevadores hay. Más elevadores = menos espera.', Cisterna: 'Depósito de agua del edificio. Te da reserva si el suministro de la ciudad falla.', Estructura: 'Cómo está construido. “Antisísmico (NTC-2020)” = cumple la norma sísmica vigente de CDMX.', Estacionamiento: 'Dónde están los cajones. Subterráneo = no ocupan fachada ni vista.', Gas: 'Tipo de gas. Natural = por tubería, más barato y seguro que el de tanque.', Agua: 'De dónde viene el agua. Con cisterna hay reserva propia del edificio.', Energía: 'Suministro de luz. Planta de emergencia = no te quedas a oscuras en apagones.', Internet: 'Conexión. Fibra óptica = internet rápido y estable.' };
+const FACT_TIP = { 'Depas por piso': 'Cuántos departamentos comparten cada piso. Menos = más privacidad.', Prototipos: 'Cuántos modelos distintos de departamento hay (por tamaño y distribución).', Niveles: 'Cuántos pisos tiene la torre.' };
+const PAGO_TIP = { Apartado: 'Pago pequeño para reservar tu unidad. Luego se descuenta del enganche.', Enganche: 'El primer pago grande, al firmar el contrato. Suele ser 10-30% del precio.', Mensualidades: 'Pagos mensuales durante la construcción.', Escrituración: 'El pago final, al recibir tu depa. Aquí puedes usar crédito hipotecario.' };
+function InfoTip({ text }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <span onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }} style={{ cursor: 'help', fontSize: 9.5, fontWeight: 800, color: 'var(--cream-3)', border: '1px solid var(--card-border, var(--border))', borderRadius: '50%', width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: SANS, flexShrink: 0 }}>i</span>
+      {open && <span style={{ position: 'absolute', bottom: '165%', left: '50%', transform: 'translateX(-50%)', zIndex: 40, width: 188, padding: '9px 12px', borderRadius: 10, background: '#10121C', color: '#fff', fontFamily: SANS, fontSize: 11.5, fontWeight: 500, lineHeight: 1.45, boxShadow: '0 8px 24px rgba(16,18,28,0.32)', textTransform: 'none', letterSpacing: 0 }}>{text}</span>}
+    </span>
+  );
+}
 function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnidades, onVerDinero, onVerConfianza }) {
   const cfg = dev.config || {};
   const cp = dev.construction_progress || {};
@@ -113,6 +130,8 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   const depasPorPiso = lvls.size ? Math.round(nUnits / lvls.size) : null;
   const ph = Array.isArray(dev.price_history) ? dev.price_history.filter((x) => x && x.price) : [];
   const phUp = ph.length >= 2 ? Math.round((ph[ph.length - 1].price / ph[0].price - 1) * 100) : null;
+  const pMin = ph.length ? Math.min(...ph.map((x) => x.price)) : 0;
+  const pMax = ph.length ? Math.max(...ph.map((x) => x.price)) : 1;
   const developer = dev.developer || {};
   // OVERLAY-FIRST (#cableado portal→ficha): si el dev publicó servicios en su portal (dev.config), eso manda sobre el seed.
   const serviciosObj = (cfg.servicios && typeof cfg.servicios === 'object' && Object.keys(cfg.servicios).length) ? cfg.servicios : dev.servicios;
@@ -124,15 +143,14 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   useEffect(() => { let alive = true; fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setSchemes((d && d.schemes) || []); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
   const SERV_IC = { Gas: '🔥', Agua: '🚰', Energía: '⚡', Internet: '🌐', Drenaje: '🚿' };
   const TEC_IC = { Niveles: '🏢', Elevadores: '🛗', Cisterna: '🪣', Estructura: '🏗️', Estacionamiento: '🅿️' };
-  const h2 = (t) => <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 4 }}>{t}</div>;
-  const eyebrow = (t) => <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>{t}</div>;
+  const h2 = (t, tip) => <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}><span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{titleCase(t)}</span><InfoTip text={tip} /></div>;
   const factCard = (rows) => (
     <Card style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(105px,1fr))' }}>
-        {rows.filter(([, v]) => v != null && v !== '').map(([l, v], i) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))' }}>
+        {rows.filter(([, v]) => v != null && v !== '').map(([l, v, tip], i) => (
           <div key={l} style={{ padding: '14px 16px', borderLeft: i ? '1px solid var(--card-border, var(--border))' : 'none' }}>
             <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</div>
-            <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{l}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}><span style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{l}</span><InfoTip text={tip} /></div>
           </div>
         ))}
       </div>
@@ -140,38 +158,46 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+    <div className="dmx-proj" style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
       <PhotoGallery dev={dev} />
 
-      {/* ① QUIÉN — el desarrollador */}
-      {developer.name && (
-        <Card style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: `hsl(${developer.logo_hue || 250} 60% 92%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: `hsl(${developer.logo_hue || 250} 55% 38%)`, flexShrink: 0 }}>{developer.name[0]}</div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desarrollado por</div>
-            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>{developer.name}</div>
-            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>{[developer.founded_year && `Desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ') || 'Ve su track record en Confianza'}</div>
-          </div>
-          {onVerConfianza && <span onClick={onVerConfianza} style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: 'var(--theme)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Su track record →</span>}
-        </Card>
-      )}
-
-      {/* la historia */}
-      {dev.description && (<div>{h2('La historia')}<p style={{ fontFamily: SANS, fontSize: 15, lineHeight: 1.65, color: 'var(--cream-2)', margin: '4px 0 0', maxWidth: 760 }}>{dev.description}</p></div>)}
-
-      {/* ② EL DEPARTAMENTO — características */}
+      {/* ① LO PRIMERO QUE QUIERE VER — características del depa */}
       <div>
         {h2('Características')}
-        {factCard([['Recámaras', rng(beds)], ['Baños', rng(dev.bathrooms_range)], ['Estacionamientos', rng(park)], ['Superficie', rng(m2r) ? `${rng(m2r)} m²` : null], ['Niveles', dev.max_level], ['Depas por piso', depasPorPiso ? `≈ ${depasPorPiso}` : null], ['Prototipos', protos.length || null], ['Unidades', nUnits]])}
+        {factCard([['Recámaras', rng(beds)], ['Baños', rng(dev.bathrooms_range)], ['Estacionamientos', rng(park)], ['Superficie', rng(m2r) ? `${rng(m2r)} m²` : null], ['Niveles', dev.max_level, FACT_TIP.Niveles], ['Depas por piso', depasPorPiso ? `≈ ${depasPorPiso}` : null, FACT_TIP['Depas por piso']], ['Prototipos', protos.length || null, FACT_TIP.Prototipos], ['Unidades', nUnits]])}
       </div>
 
-      {/* prototipos */}
+      {/* amenidades */}
+      {amen.length > 0 && (
+        <div>
+          {h2('Amenidades')}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            {amen.map((a, i) => { const { icon, label } = amenInfo(a); return (
+              <span key={i} className="dmx-proj-card" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{icon} {label}</span>
+            ); })}
+          </div>
+        </div>
+      )}
+
+      {/* ubicación */}
+      <div>
+        {h2('Ubicación')}
+        <Card className="dmx-proj-card" onClick={onVerConfianza} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginTop: 12, cursor: onVerConfianza ? 'pointer' : 'default' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>📍 {dev.address_full || dev.street || dev.name}</div>
+            <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 3 }}>{[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).join(' · ')}</div>
+          </div>
+          {onVerConfianza && <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Mapa, lugares y la zona →</span>}
+        </Card>
+      </div>
+
+      {/* lo que puedes comprar */}
       {protos.length > 0 && (
         <div>
           {h2('Lo que puedes comprar')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginTop: 12 }}>
             {protos.map((p) => (
-              <Card key={p.proto} onClick={onVerUnidades} style={{ padding: '16px 18px', cursor: onVerUnidades ? 'pointer' : 'default' }}>
+              <Card key={p.proto} className="dmx-proj-card" onClick={onVerUnidades} style={{ padding: '16px 18px', cursor: onVerUnidades ? 'pointer' : 'default' }}>
                 <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 18, color: 'var(--cream)' }}>{protoName(p.proto)}</div>
                 <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 4 }}>{p.beds} rec · {p.m2} m² · {p.n} {p.n === 1 ? 'unidad' : 'unidades'}</div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--theme)', marginTop: 8 }}>desde {money(p.min)}</div>
@@ -184,11 +210,10 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
       {/* memoria de acabados (el interior del depa) */}
       {acabados.length > 0 && (
         <div>
-          {h2('Memoria de acabados')}
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 12px' }}>Lo que viene en tu departamento.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(255px,1fr))', gap: 10 }}>
+          {h2('Memoria de acabados', 'Los materiales y marcas que trae tu departamento por dentro.')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(255px,1fr))', gap: 10, marginTop: 12 }}>
             {acabados.map((a, i) => (
-              <Card key={i} style={{ padding: '13px 16px' }}>
+              <Card key={i} className="dmx-proj-card" style={{ padding: '13px 16px' }}>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{a.area}</div>
                 <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{a.detalle}</div>
               </Card>
@@ -197,54 +222,33 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         </div>
       )}
 
-      {/* ③ EL EDIFICIO — ficha técnica + servicios */}
+      {/* ficha técnica — CON GLOBITOS para el que no sabe de inmuebles */}
       {(tecnica.length > 0 || servicios.length > 0) && (
         <div>
-          {h2('Ficha técnica')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(215px,1fr))', gap: 12, marginTop: 12 }}>
+          {h2('Ficha técnica', 'Cómo está hecho el edificio y qué servicios trae. Toca la ⓘ de cada punto para una explicación simple.')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 12 }}>
             {[...tecnica, ...servicios].map(([k, v]) => (
-              <Card key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
+              <Card key={k} className="dmx-proj-card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
                 <span style={{ fontSize: 20 }}>{TEC_IC[k] || SERV_IC[k] || '🔧'}</span>
-                <div style={{ minWidth: 0 }}><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{v}</div><div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{k}</div></div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{v}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{k}</span><InfoTip text={TEC_TIP[k]} /></div>
+                </div>
               </Card>
             ))}
           </div>
         </div>
       )}
 
-      {/* amenidades */}
-      {amen.length > 0 && (
-        <div>
-          {eyebrow('Amenidades')}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {amen.map((a, i) => { const { icon, label } = amenInfo(a); return (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{icon} {label}</span>
-            ); })}
-          </div>
-        </div>
-      )}
-
-      {/* ④ DÓNDE — ubicación */}
-      <div>
-        {h2('Ubicación')}
-        <Card onClick={onVerConfianza} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginTop: 12, cursor: onVerConfianza ? 'pointer' : 'default' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>📍 {dev.address_full || dev.street || dev.name}</div>
-            <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 3 }}>{[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).join(' · ')}</div>
-          </div>
-          {onVerConfianza && <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Mapa, lugares y la zona →</span>}
-        </Card>
-      </div>
-
-      {/* ⑤ ESTADO + COMERCIAL — avance de obra */}
+      {/* avance de obra */}
       {(phases.length > 0 || pct > 0) && (
         <Card>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            {h2('Avance de obra')}
+            {h2('Avance de obra', 'En qué etapa va la construcción. La barra y las fases muestran el progreso reportado por el dev.')}
             {cp.status && <span style={{ padding: '4px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.28)', color: '#059669', fontFamily: SANS, fontSize: 11.5, fontWeight: 700 }}>● {cp.status}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '10px 0 16px' }}>
-            <div style={{ flex: 1, height: 9, borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: 'var(--grad)' }} /></div>
+            <div style={{ flex: 1, height: 9, borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', overflow: 'hidden' }}><div className="dmx-proj-prog" style={{ width: `${pct}%`, height: '100%', background: 'var(--grad)' }} /></div>
             <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--theme)' }}>{pct}%</span>
             {dev.fecha_lanzamiento && <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>lanzó {fechaCorta(dev.fecha_lanzamiento)}</span>}
             {dev.delivery_estimate && <span style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)' }}>· entrega {fechaCorta(dev.delivery_estimate)}</span>}
@@ -263,7 +267,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
       {/* disponibilidad */}
       {tot > 0 && (
         <Card>
-          {h2('Disponibilidad')}
+          {h2('Disponibilidad', 'Cuántas unidades quedan. Verde = libres · morado = apartadas · gris = ya vendidas.')}
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 14px' }}>{avail} de {tot} disponibles hoy</div>
           <div style={{ display: 'flex', height: 14, borderRadius: 9999, overflow: 'hidden', border: '1px solid var(--card-border, var(--border))' }}>
             {avail > 0 && <div style={{ width: `${100 * avail / tot}%`, background: '#16a34a' }} />}
@@ -276,7 +280,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         </Card>
       )}
 
-      {/* formas de pago — SIMPLE: conceptos + créditos (el desglose vive en Tu dinero) */}
+      {/* formas de pago — conceptos con globitos + créditos */}
       {(schemes.length > 0 || creditos.length > 0) && (
         <div>
           {h2('Formas de pago')}
@@ -285,8 +289,8 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
               <div style={{ marginBottom: creditos.length ? 16 : 4 }}>
                 <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 }}>El plan incluye</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {['🔖 Apartado', '✍️ Enganche', '📅 Mensualidades', '🔑 Escrituración'].map((c) => (
-                    <span key={c} style={{ padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{c}</span>
+                  {[['🔖', 'Apartado'], ['✍️', 'Enganche'], ['📅', 'Mensualidades'], ['🔑', 'Escrituración']].map(([ic, name]) => (
+                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{ic} {name} <InfoTip text={PAGO_TIP[name]} /></span>
                   ))}
                 </div>
               </div>
@@ -306,25 +310,38 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         </div>
       )}
 
-      {/* el precio desde el lanzamiento */}
+      {/* el precio desde el lanzamiento — mini gráfica de barras animada */}
       {phUp != null && phUp > 0 && (
         <Card>
-          {h2('El precio desde el lanzamiento')}
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 16px' }}>En preventa el precio sube conforme avanza la obra. Entrar antes = mejor precio.</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {ph.map((x, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <span style={{ color: 'var(--cream-3)', fontSize: 15 }}>→</span>}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: i === ph.length - 1 ? 'var(--theme)' : 'var(--cream-2)' }}>{money(x.price)}</div>
-                  <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>{x.date}</div>
-                </div>
-              </React.Fragment>
-            ))}
-            <span style={{ marginLeft: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', color: '#059669', fontFamily: HEAD, fontWeight: 800, fontSize: 13 }}>+{phUp}% desde el lanzamiento</span>
+          {h2('El precio desde el lanzamiento', 'En preventa el precio sube conforme avanza la obra. Entrar antes suele salir más barato.')}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(10px,4vw,40px)', height: 132, marginTop: 14, padding: '0 4px' }}>
+            {ph.map((x, i) => { const hb = 34 + 74 * ((x.price - pMin) / Math.max(1, pMax - pMin)); const last = i === ph.length - 1; return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minWidth: 0 }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, color: last ? 'var(--theme)' : 'var(--cream-2)', whiteSpace: 'nowrap' }}>{money(x.price)}</div>
+                <div className="dmx-proj-bar" style={{ width: '100%', maxWidth: 54, height: hb, borderRadius: '8px 8px 0 0', background: last ? 'var(--grad)' : 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }} />
+                <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', textAlign: 'center' }}>{x.date}</div>
+              </div>
+            ); })}
           </div>
+          <div style={{ marginTop: 12 }}><span style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', color: '#059669', fontFamily: HEAD, fontWeight: 800, fontSize: 13 }}>+{phUp}% desde el lanzamiento</span></div>
         </Card>
       )}
+
+      {/* ② QUIÉN LO CONSTRUYE — al final, como cierre de confianza */}
+      {developer.name && (
+        <Card className="dmx-proj-card" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: `hsl(${developer.logo_hue || 250} 60% 92%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: `hsl(${developer.logo_hue || 250} 55% 38%)`, flexShrink: 0 }}>{developer.name[0]}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desarrollado por</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>{developer.name}</div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>{[developer.founded_year && `Desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ') || 'Ve su track record en Confianza'}</div>
+          </div>
+          {onVerConfianza && <span onClick={onVerConfianza} style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: 'var(--theme)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Su track record →</span>}
+        </Card>
+      )}
+
+      {/* la historia */}
+      {dev.description && (<div>{h2('La historia')}<p style={{ fontFamily: SANS, fontSize: 15, lineHeight: 1.65, color: 'var(--cream-2)', margin: '4px 0 0', maxWidth: 760 }}>{dev.description}</p></div>)}
     </div>
   );
 }
@@ -386,7 +403,8 @@ export default function FichaCockpit({ user, onLogin }) {
   const lensLabel = lens === 'invertir' ? `Invertir · ${invMode === 'institucional' ? 'Institucional' : 'Para ti'}` : lens === 'vivir' ? 'Para vivir' : null;
 
   const pickUnit = (u) => { setUnit(u); if (u && u.unit_number) { try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } };
-  const goTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  // SENSOR (granularidad end-to-end): qué sección analiza el comprador → buyer_signals → lead score + embudo dev + cubo superadmin.
+  const goTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ } };
   const goTo = (anchor) => { if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
@@ -489,7 +507,17 @@ export default function FichaCockpit({ user, onLogin }) {
         </div>
         <button onClick={agendar} style={{ padding: '11px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>📅 Agendar visita</button>
       </div>
-      <style>{`@media (max-width: 920px){ .dmx-cockpit-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-cockpit-side{ position: static !important; } .dmx-cockpit-mobilebar{ display: flex !important; } }`}</style>
+      <style>{`
+        @media (max-width: 920px){ .dmx-cockpit-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-cockpit-side{ position: static !important; } .dmx-cockpit-mobilebar{ display: flex !important; } }
+        .dmx-proj-card{ transition: transform .16s ease, box-shadow .16s ease; }
+        .dmx-proj-card:hover{ transform: translateY(-2px); box-shadow: 0 12px 26px rgba(16,18,28,0.10); }
+        .dmx-proj > *{ animation: dmxFade .45s ease both; }
+        .dmx-proj-bar{ transform-origin: bottom; animation: dmxBar .55s cubic-bezier(.3,.7,.3,1) both; }
+        .dmx-proj-prog{ animation: dmxProg .7s ease both; }
+        @keyframes dmxFade{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+        @keyframes dmxBar{ from{ transform:scaleY(0);} to{ transform:scaleY(1);} }
+        @keyframes dmxProg{ from{ width:0;} }
+      `}</style>
       {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
     </LightScope>
   );
