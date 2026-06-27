@@ -117,6 +117,18 @@ class CierreIn(BaseModel):
 @router.post("/api/copiloto/cierre")
 async def cierre(b: CierreIn, request: Request):
     """Registra un cierre (demo/cron · en prod lo dispara on_deal_closed del asesor al marcar GANADO)."""
+    # SEGURIDAD (pentest 3ª ola): antes SIN AUTH → cualquiera escribía market_comps_closings (alimenta el AVM) con
+    # price_closed arbitrario = ENVENENAMIENTO del moat. Ahora exige sesión asesor/dev/superadmin o CRON_SECRET.
+    import os as _os, hmac as _hmac
+    from fastapi import HTTPException as _HTTPException
+    _cron = _os.environ.get("CRON_SECRET", "")
+    _hdr = request.headers.get("X-Cron-Secret", "")
+    if not (_cron and _hdr and _hmac.compare_digest(_hdr, _cron)):
+        from server import get_current_user
+        _u = await get_current_user(request)
+        _role = getattr(_u, "role", "") if _u else ""
+        if _role not in ("advisor", "asesor_admin", "developer_admin", "developer_director", "superadmin"):
+            raise _HTTPException(401, "No autorizado")
     try:
         db = request.app.state.db
         doc = await record_closing(db, lead_id=b.lead_id, visitor_id=b.visitor_id, dev_id=b.dev_id, price_closed=b.price_closed)

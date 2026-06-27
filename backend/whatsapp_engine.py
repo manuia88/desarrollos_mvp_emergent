@@ -180,12 +180,21 @@ class WAEngine:
         self, payload: Dict[str, Any], signature: str = "", url: str = ""
     ) -> Dict[str, Any]:
         """Procesa webhook inbound. Persiste + dispara Reply Classifier."""
-        # Verificación de firma Twilio
-        if PROVIDER == "twilio" and signature:
+        # SEGURIDAD (pentest 3ª ola): el inbound DEBE autenticar. Antes `and signature` → omitir el header (o
+        # PROVIDER=stub en prod) saltaba la validación = inyección ANÓNIMA de mensajes WA (dispara LLM/Atlax),
+        # abierto incluso en prod. Ahora: con twilio se exige firma SIEMPRE; en prod sin provider válido → fail-closed.
+        _prod = False
+        try:
+            from server import _is_prod
+            _prod = _is_prod()
+        except Exception:
+            _prod = False
+        if PROVIDER == "twilio":
             form_data = {k: str(v) for k, v in payload.items()}
-            valid = _verify_twilio_signature(url, form_data, signature)
-            if not valid:
+            if not _verify_twilio_signature(url, form_data, signature):
                 raise ValueError("Firma Twilio inválida")
+        elif _prod:
+            raise ValueError("Webhook WhatsApp no configurado para prod (PROVIDER != twilio)")
 
         from_num = payload.get("From", "").replace("whatsapp:", "")
         body = payload.get("Body", "") or ""

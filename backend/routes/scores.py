@@ -241,7 +241,7 @@ async def zone_coverage(zone_id: str, request: Request):
     return ZoneCoverageOut(
         zone_id=zone_id, real_count=len(real_docs),
         total_recipes=total, ui_mode=mode,
-        scores=[ScoreOut(**d) for d in real_docs],
+        scores=[PublicScoreOut(**d) for d in real_docs],  # FIX regresión (3ª ola): el campo es List[PublicScoreOut]; Pydantic v2 NO coacciona ScoreOut→PublicScoreOut → daba 500 en /coverage,/developments,/units
         pending=[PendingCategoryOut(**p) for p in pending],
     )
 

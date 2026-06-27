@@ -1448,9 +1448,15 @@ async def get_wa_template(apt_id: str, request: Request, type: str = Query("succ
     _u = await get_current_user(request)
     if not _u:
         raise HTTPException(401, "No autenticado")
-    if apt.get("asesor_id") != getattr(_u, "user_id", None) and getattr(_u, "role", "") not in (
-            "superadmin", "asesor_admin", "developer_admin", "developer_director", "inmobiliaria_admin"):
-        raise HTTPException(403, "Esta cita pertenece a otro asesor")
+    _role = getattr(_u, "role", "")
+    if apt.get("asesor_id") != getattr(_u, "user_id", None):
+        if _role not in ("superadmin", "asesor_admin", "developer_admin", "developer_director", "inmobiliaria_admin"):
+            raise HTTPException(403, "Esta cita pertenece a otro asesor")
+        # SEGURIDAD (pentest 3ª ola): un developer_admin/director solo ve la wa-template (PII del comprador) de citas
+        # de SU dev-org (antes CUALQUIER dev leía CUALQUIER cita). Mismo guard que patch_cita.
+        if _role in ("developer_admin", "developer_director"):
+            from tenant_scope import assert_dev_org
+            assert_dev_org(_u, apt.get("dev_org_id"))
     lead = await db.leads.find_one({"id": apt.get("lead_id")}, {"_id": 0}) if apt.get("lead_id") else None
     if not lead:
         raise HTTPException(404, "Lead asociado no encontrado")

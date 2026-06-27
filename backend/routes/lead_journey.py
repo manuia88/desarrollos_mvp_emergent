@@ -44,14 +44,25 @@ async def _caller_inmobiliaria(db, user: Dict[str, Any]) -> str:
 
 
 async def _check_lead_ownership(db, lead_id: str, user: Dict[str, Any]) -> None:
-    """Verify lead belongs to user's inmobiliaria. Superadmin bypasses."""
+    """SEGURIDAD (pentest 3ª ola): FAIL-CLOSED. Antes solo comparaba inmobiliaria_id → si el lead NO lo tenía (caso
+    común: leads de dev/marketplace), la comprobación PASABA → lectura+escritura cross-tenant. Ahora cubre todos los
+    campos de dueño (inmobiliaria_id/org_id/dev_org_id) y la asignación directa al usuario."""
     if (user.get("role") or "").lower() == "superadmin":
         return
-    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "inmobiliaria_id": 1})
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "inmobiliaria_id": 1, "org_id": 1, "dev_org_id": 1, "owner_id": 1,
+         "assigned_to": 1, "assigned_user_id": 1})
     if not lead:
         return  # No such lead → 404 deferred to caller
+    uid = user.get("user_id")
+    if uid and uid in {lead.get("owner_id"), lead.get("assigned_to"), lead.get("assigned_user_id")}:
+        return  # asignación directa al usuario
     user_inm = await _caller_inmobiliaria(db, user)
-    if lead.get("inmobiliaria_id") and user_inm and lead["inmobiliaria_id"] != user_inm:
+    mine = {x for x in (user_inm, user.get("tenant_id"), user.get("dev_org_id")) if x}
+    owners = {lead.get(k) for k in ("inmobiliaria_id", "org_id", "dev_org_id")}
+    owners.discard(None)
+    if owners and not (owners & mine):
         raise HTTPException(403, "lead_not_in_your_tenant")
 
 
@@ -74,7 +85,18 @@ class BulkRerouteIn(BaseModel):
 async def bulk_reroute(body: BulkRerouteIn, request: Request):
     u = await _require_advisor_or_admin(request)
     db = _db(request)
-    out = await eng.bulk_re_route(db, body.lead_ids, u["user_id"], await _caller_inmobiliaria(db, u))
+    # SEGURIDAD (pentest 3ª ola): verifica ownership de CADA lead (antes el engine confiaba solo en inmobiliaria_id →
+    # rerouteaba leads cross-tenant). Solo se rerutean los que el usuario realmente posee.
+    owned = []
+    for lid in body.lead_ids:
+        try:
+            await _check_lead_ownership(db, lid, u)
+            owned.append(lid)
+        except HTTPException:
+            continue
+    if not owned:
+        raise HTTPException(403, "Ninguno de los leads es de tu cuenta")
+    out = await eng.bulk_re_route(db, owned, u["user_id"], await _caller_inmobiliaria(db, u))
     return JSONResponse({"ok": True, **out})
 
 
