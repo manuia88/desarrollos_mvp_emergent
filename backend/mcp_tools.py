@@ -716,6 +716,12 @@ async def dispatch_tool(
     handler = _HANDLERS.get(name)
     if handler is None:
         raise ValueError(f"Tool desconocida: '{name}'. Disponibles: {list(_HANDLERS)}")
+    # SEGURIDAD (pentest 2026-06-27): los tools del MOAT (scores/diagnóstico) requieren plan de pago.
+    # Sin esto una key FREE extraía el moat crudo. El titular público vive en la web (Option A).
+    if name in {"get_zone_score", "get_dev_diagnostic", "get_unit_scores"}:
+        _t = (key_doc or {}).get("tier", "free")
+        if not _tier_gte(_t, "pro"):
+            raise McpToolError(f"'{name}' requiere plan pro o enterprise (tier actual: {_t})")
     if name in _KEY_DOC_TOOLS:
         return await handler(db, params, key_doc)
     return await handler(db, params)

@@ -73,6 +73,19 @@ async def _validate_mcp_key(request: Request) -> Dict[str, Any]:
     if doc.get("status") != "active":
         raise HTTPException(403, f"API key {doc.get('status')}")
 
+    # SEGURIDAD (pentest 2026-06-27): cuota mensual + metering. Sin esto el MCP permitía extracción
+    # ILIMITADA del moat (rodeaba la cuota que SÍ aplica la API v1). Reusa el bucket mensual de public_api_auth.
+    from public_api_auth import _now_month
+    if doc.get("month_bucket") != _now_month():
+        doc["calls_this_month"] = 0
+        await db.public_api_keys.update_one(
+            {"id": doc["id"]}, {"$set": {"calls_this_month": 0, "month_bucket": _now_month()}})
+    quota = doc.get("monthly_quota_calls") or 1000
+    if (doc.get("calls_this_month") or 0) >= quota:
+        raise HTTPException(429, "Cuota mensual del MCP agotada")
+    await db.public_api_keys.update_one(
+        {"id": doc["id"]}, {"$inc": {"calls_this_month": 1, "calls_total": 1}})
+
     return doc
 
 
