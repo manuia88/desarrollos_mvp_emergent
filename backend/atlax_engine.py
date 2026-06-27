@@ -32,7 +32,7 @@ router = APIRouter(tags=["atlax"])
 class AtlaxQueryIn(BaseModel):
     query: str = Field(..., min_length=2, max_length=500)
     session_id: Optional[str] = None
-    channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
+    channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble|web_surface)$")
     thread_id: Optional[str] = None  # W4.11a · null = creates new thread auto
     org_id: Optional[str] = None      # W4.7 Y.4A · persona org context (default "dmx")
     page_context: Optional[str] = None  # qué está viendo/buscando el usuario AHORA (filtros, colonia, página) → Atlax responde en contexto
@@ -384,7 +384,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     # datos REALES (DEVELOPMENTS). Best-effort: si no aplica o falla, queda vacío y la respuesta es solo texto.
     try:
         from atlax_blocks import build_generative_blocks
-        blocks = build_generative_blocks(payload.query)
+        blocks = await build_generative_blocks(db, payload.query)
     except Exception:
         blocks = []
 

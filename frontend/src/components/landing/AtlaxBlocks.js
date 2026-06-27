@@ -24,18 +24,29 @@ function ComparisonTable({ data }) {
   if (zones.length < 2) return null;
   const rows = [
     { label: 'Desde', get: (z) => fmtM(z.precio_desde) },
+    { label: 'Hasta', get: (z) => fmtM(z.precio_hasta) },
     { label: 'Precio / m²', get: (z) => fmtMXN(z.precio_m2) },
+    { label: 'Recámaras', get: (z) => (z.recamaras ? `${z.recamaras[0]}–${z.recamaras[1]}` : '—') },
+    { label: 'Plusvalía / año', get: (z) => (z.plusvalia_pct != null ? `${z.plusvalia_pct}%` : '—'), hot: true },
+    { label: 'Entrega inmediata', get: (z) => (z.entrega_inmediata ? `${z.entrega_inmediata}` : '—') },
     { label: 'Desarrollos', get: (z) => (z.n_desarrollos != null ? z.n_desarrollos : '—') },
   ];
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: `1.05fr ${zones.map(() => '1fr').join(' ')}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `1.15fr ${zones.map(() => '1fr').join(' ')}` }}>
         <div style={cell(true)} />
-        {zones.map((z) => <div key={z.slug} style={{ ...cell(true), fontWeight: 800 }}>{z.name}</div>)}
+        {zones.map((z) => (
+          <div key={z.slug} style={{ ...cell(true), fontWeight: 800 }}>
+            {z.name}
+            {z.alcaldia && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--cream-3)' }}>{z.alcaldia}</div>}
+          </div>
+        ))}
         {rows.map((r) => (
           <React.Fragment key={r.label}>
             <div style={{ ...cell(false), color: 'var(--cream-3)' }}>{r.label}</div>
-            {zones.map((z) => <div key={z.slug} style={cell(false)}>{r.get(z)}</div>)}
+            {zones.map((z) => (
+              <div key={z.slug} style={{ ...cell(false), ...(r.hot ? { color: '#10B981', fontWeight: 800 } : {}) }}>{r.get(z)}</div>
+            ))}
           </React.Fragment>
         ))}
       </div>

@@ -9,6 +9,7 @@ Hoy:
 
 Reusa DEVELOPMENTS (la misma fuente que /api/zona/{slug}/inversion y el sitemap). Sin HTTP, sin simulate pesado.
 """
+import asyncio
 import unicodedata
 
 
@@ -41,20 +42,37 @@ def _pm2(d) -> float | None:
     return (p / m2) if (p and m2) else None
 
 
-def _zone_row(slug: str, name: str):
-    """Métricas REALES de la zona desde DEVELOPMENTS. Sin simulate (rápido, inline en el chat)."""
+async def _zone_row(db, slug: str, name: str):
+    """Métricas REALES de la zona: lo barato desde DEVELOPMENTS (precio/recámaras/etapa) + plusvalía del motor
+    investment_simulator (best-effort, mismo cálculo que /api/zona/{slug}/inversion). Cero dato inventado."""
     devs = [d for d in _devs() if d.get("colonia_id") == slug]
     if not devs:
         return None
     precios = [d.get("price_from") for d in devs if d.get("price_from")]
+    precios_to = [(d.get("price_to") or d.get("price_from")) for d in devs if d.get("price_from")]
     pm2s = [v for v in (_pm2(d) for d in devs) if v]
-    return {
-        "slug": slug,
-        "name": name,
+    beds = [b for d in devs for b in (d.get("bedrooms_range") or []) if isinstance(b, (int, float))]
+    row = {
+        "slug": slug, "name": name,
+        "alcaldia": next((d.get("alcaldia") for d in devs if d.get("alcaldia")), None),
         "n_desarrollos": len(devs),
         "precio_desde": min(precios) if precios else None,
+        "precio_hasta": max(precios_to) if precios_to else None,
         "precio_m2": round(sum(pm2s) / len(pm2s)) if pm2s else None,
+        "recamaras": [int(min(beds)), int(max(beds))] if beds else None,
+        "entrega_inmediata": sum(1 for d in devs if d.get("stage") == "entrega_inmediata"),
+        "plusvalia_pct": None,
     }
+    # Plusvalía REAL (motor) sobre un depto representativo de la zona — best-effort, no rompe si falla.
+    try:
+        rep = (round(sum(precios) / len(precios)) if precios else None) or ((row["precio_m2"] or 0) * 80) or None
+        if rep and db is not None:
+            from investment_simulator_engine import simulate
+            sim = await simulate(db, rep, 60, 80, slug, financiamiento_pct=0.80)
+            row["plusvalia_pct"] = ((sim or {}).get("base") or {}).get("aprec_anual_pct")
+    except Exception:
+        pass
+    return row
 
 
 def _detect_zones(query: str):
@@ -87,14 +105,14 @@ def _dev_card(d) -> dict:
     }
 
 
-def build_generative_blocks(query: str) -> list:
+async def build_generative_blocks(db, query: str) -> list:
     """Bloques generativos para una consulta. Cero dato inventado; vacío si no aplica (degrada a solo-texto)."""
     blocks = []
     try:
         zones = _detect_zones(query)
         # 1) COMPARATIVA — ≥2 zonas mencionadas
         if len(zones) >= 2:
-            rows = [r for r in (_zone_row(s, n) for s, n in zones[:4]) if r]
+            rows = [r for r in await asyncio.gather(*[_zone_row(db, s, n) for s, n in zones[:4]]) if r]
             if len(rows) >= 2:
                 blocks.append({"type": "comparison_table", "data": {"zones": rows}})
                 return blocks  # comparativa gana; no mezclamos con tarjetas

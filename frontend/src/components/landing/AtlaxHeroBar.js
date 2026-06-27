@@ -3,6 +3,7 @@
 // al enviar, dispara el evento global `atlax:open` con detail.send=true → AtlaxBubble abre Y contesta.
 // Modo dual: la barra es la vía IA; la página que la monta provee la vía manual (browse) al lado.
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkle } from '../icons';
 
 const DEFAULT_EXAMPLES = [
@@ -17,6 +18,7 @@ export default function AtlaxHeroBar({ examples = DEFAULT_EXAMPLES, autoFocus = 
   const [q, setQ] = useState('');
   const [ph, setPh] = useState(0);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
 
   // Rota el placeholder con preguntas reales (solo se ve cuando el input está vacío).
   useEffect(() => {
@@ -28,8 +30,8 @@ export default function AtlaxHeroBar({ examples = DEFAULT_EXAMPLES, autoFocus = 
   const ask = (text) => {
     const query = (text || q).trim();
     if (!query) { inputRef.current?.focus(); return; }
-    // Query-first: abre Atlax (la IA ya viva) y dispara la respuesta de una.
-    window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query, send: true } }));
+    // Query-first: abre la SUPERFICIE Atlax (el lienzo de pantalla completa), no la burbuja.
+    navigate(`/atlax?q=${encodeURIComponent(query)}`);
   };
 
   return (
