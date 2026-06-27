@@ -50,7 +50,21 @@ export default function AtlaxSurface() {
     const q = String(text || '').trim();
     if (!q || busy) return;
     setBusy(true);
-    setMessages((prev) => [...prev, { role: 'user', content: q }]);
+    const aid = `a_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setMessages((prev) => [...prev,
+      { role: 'user', content: q },
+      { id: aid, role: 'assistant', content: '', blocks: [], pending: true },
+    ]);
+    const patchMsg = (patch) => setMessages((prev) => prev.map((m) => (m.id === aid ? { ...m, ...patch } : m)));
+
+    // FASE 1 · blocks-first: la UI (tabla/tarjetas) aparece AL INSTANTE, sin esperar al LLM.
+    fetch(`${API}/api/atlax/blocks`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }),
+    }).then((r) => r.json()).then((d) => {
+      if (d && Array.isArray(d.blocks) && d.blocks.length) patchMsg({ blocks: d.blocks });
+    }).catch(() => {});
+
+    // FASE 2 · el texto del LLM (más lento) — cuando llega, reemplaza el "pensando".
     try {
       const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -58,12 +72,11 @@ export default function AtlaxSurface() {
       });
       const d = await r.json();
       if (d && d.session_id) sessionRef.current = d.session_id;
-      setMessages((prev) => [...prev, {
-        role: 'assistant', content: (d && d.answer) || 'Sin respuesta.',
-        blocks: (d && d.blocks) || [], citations: (d && d.citations) || [],
-      }]);
+      const patch = { content: (d && d.answer) || 'Sin respuesta.', citations: (d && d.citations) || [], pending: false };
+      if (d && Array.isArray(d.blocks) && d.blocks.length) patch.blocks = d.blocks;
+      patchMsg(patch);
     } catch (_) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'No pude procesar eso ahora. Intenta de nuevo.', error: true }]);
+      patchMsg({ content: 'No pude procesar eso ahora. Intenta de nuevo.', error: true, pending: false });
     } finally {
       setBusy(false);
     }
@@ -123,7 +136,9 @@ export default function AtlaxSurface() {
                   ) : (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--theme)', fontWeight: 700, fontFamily: 'DM Sans', fontSize: 13 }}><Sparkle size={16} /> Atlax</div>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.62, color: m.error ? '#fca5a5' : 'var(--cream)', whiteSpace: 'pre-wrap' }}>{renderRich(m.content)}</div>
+                      {m.content
+                        ? <div style={{ fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.62, color: m.error ? '#fca5a5' : 'var(--cream)', whiteSpace: 'pre-wrap' }}>{renderRich(m.content)}</div>
+                        : (m.pending && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 14, fontStyle: 'italic' }}>Atlax está pensando…</div>)}
                       {(m.blocks || []).length > 0 && <AtlaxBlocks blocks={m.blocks} />}
                       {i === messages.length - 1 && !busy && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
@@ -134,12 +149,6 @@ export default function AtlaxSurface() {
                   )}
                 </div>
               ))}
-              {busy && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--theme)', fontWeight: 700, fontSize: 13 }}><Sparkle size={16} /> Atlax</div>
-                  <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 14, fontStyle: 'italic' }}>Atlax está pensando…</div>
-                </div>
-              )}
               <div ref={endRef} />
             </div>
           )}

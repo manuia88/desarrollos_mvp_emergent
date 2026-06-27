@@ -38,6 +38,10 @@ class AtlaxQueryIn(BaseModel):
     page_context: Optional[str] = None  # qué está viendo/buscando el usuario AHORA (filtros, colonia, página) → Atlax responde en contexto
 
 
+class AtlaxBlocksIn(BaseModel):
+    query: str = Field(..., min_length=2, max_length=500)
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -481,6 +485,19 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "intent_detected": chat_res.get("intent_detected"),
         "blocks": blocks,  # F3 · UI generativa inline (tabla comparativa / tarjetas) con datos reales
     }
+
+
+@router.post("/api/atlax/blocks")
+async def atlax_blocks_endpoint(payload: AtlaxBlocksIn, request: Request):
+    """F3 'blocks-first': devuelve SOLO los bloques generativos (rápido, SIN LLM) → el front los pinta al instante
+    mientras /api/atlax/query trae el texto. Reusa build_generative_blocks (datos reales). Best-effort."""
+    try:
+        db = request.app.state.db
+        from atlax_blocks import build_generative_blocks
+        blocks = await build_generative_blocks(db, payload.query)
+    except Exception:
+        blocks = []
+    return {"ok": True, "blocks": blocks}
 
 
 def _error_response(
