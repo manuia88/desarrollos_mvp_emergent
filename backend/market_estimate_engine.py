@@ -141,7 +141,7 @@ def avm_property(avm_base: float, m2: float, rec: Optional[int], ban: Optional[i
 
 
 def price_position(precio_total: float, m2: float, mercado_m2: Optional[float],
-                   es_nueva: bool = False, premium: Optional[float] = None, banda: float = 0.05,
+                   es_nueva: bool = False, premium: Optional[float] = None, banda: float = 0.12,
                    avm_base: Optional[float] = None, rec: Optional[int] = None,
                    ban: Optional[int] = None, anio: Optional[int] = None) -> Dict[str, Any]:
     """¿El precio está BAJO / JUSTO / ALTO vs el mercado de su zona? (método Monopolio: precio vs estimado,

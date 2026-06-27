@@ -1262,7 +1262,8 @@ async def precio_posicion_batch(payload: PrecioPosicionBatchIn, request: Request
                                      premium=mkt.get("premium_zona"), avm_base=mkt.get("avm_base"),
                                      rec=u.get("rec"), ban=u.get("ban"), anio=u.get("anio"))
                 out.append({"id": u.get("id"), "etiqueta": pos.get("etiqueta"), "color": pos.get("color"),
-                            "diff_pct": pos.get("diff_pct"), "disponible": pos.get("disponible", False)})
+                            "diff_pct": pos.get("diff_pct"), "disponible": pos.get("disponible", False),
+                            "mercado_usada_m2": pos.get("mercado_usada_m2"), "precio_m2": pos.get("precio_m2")})
             except Exception:
                 out.append({"id": u.get("id"), "disponible": False})
     except Exception:

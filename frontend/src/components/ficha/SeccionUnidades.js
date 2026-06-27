@@ -68,8 +68,8 @@ const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ?
 const PARKING_LABELS = { individual: 'Individual', battery_shared: 'En batería (compartido)', bateria_propia: 'Batería propia', bateria_vecino: 'Batería vecino', eleva_autos: 'Eleva-autos', compartido: 'Compartido' };
 const parkLabel = (t) => (t ? (PARKING_LABELS[t] || String(t)) : null);
 // AVM (precio vs mercado): el motor devuelve color por NOMBRE (rojo/verde…) y etiqueta tersa → a CSS + lenguaje claro.
-const AVM_COLOR = { rojo: '#dc2626', naranja: '#ea580c', amarillo: '#d97706', verde: '#059669', gris: 'var(--cream-3)' };
-const AVM_LABEL = { bajo: 'Buen precio', justo: 'Precio de mercado', alto: 'Sobre mercado' };
+const AVM_COLOR = { rojo: '#dc2626', naranja: '#ea580c', amarillo: '#d97706', ambar: '#d97706', verde: '#059669', gris: 'var(--cream-3)' };
+const AVM_LABEL = { bajo: 'Buen precio', justo: 'En línea', alto: 'Sobre mercado' };
 const avmText = (v) => (v && v.etiqueta ? `${AVM_LABEL[v.etiqueta] || v.etiqueta}${v.diff_pct != null ? ` · ${v.diff_pct > 0 ? '+' : ''}${v.diff_pct}%` : ''}` : null);
 const avmColor = (v) => (v ? (AVM_COLOR[v.color] || 'var(--cream)') : 'var(--cream)');
 const m2line = (u) => {
@@ -367,8 +367,11 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 26, color: 'var(--cream)', lineHeight: 1.05 }}>{protoName(u.prototype)} · {u.unit_number}</div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 10px' }}>{money(u.price)}</div>
                 {avmText(avm[u.id]) && (
-                  <div title="Comparado con el precio/m² real de la zona (nuestro AVM)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', marginBottom: 14, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: avmColor(avm[u.id]) }}>📊 {avmText(avm[u.id])} vs mercado</div>
+                  <div title="Comparado con el precio/m² real de la zona (nuestro AVM)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', marginBottom: 8, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: avmColor(avm[u.id]) }}>📊 {avmText(avm[u.id])} vs obra nueva</div>
                 )}
+                {(() => { const v = avm[u.id]; const p = v && v.precio_m2 && v.mercado_usada_m2 ? Math.round((v.precio_m2 / v.mercado_usada_m2 - 1) * 100) : null; return p != null ? (
+                  <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', margin: '0 0 14px', lineHeight: 1.5 }}>🆕 <b style={{ color: 'var(--theme)' }}>{p > 0 ? '+' : ''}{p}% sobre un usado</b> de la zona (~{money(v.mercado_usada_m2)}/m²) — la prima de estrenar: amenidades, garantía, eficiencia, cero remodelación.</div>
+                ) : null; })()}
                 <div>
                   {specRows(u).map(([k, v], i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: i ? '1px solid var(--card-border, var(--border))' : 'none', fontFamily: SANS, fontSize: 13.5 }}>
@@ -448,6 +451,9 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const escrit = (u) => Math.round((u.price || 0) * 0.08);            // gastos de escrituración del comprador (~8%, igual que el motor)
                   const entrada = (u) => enganche(u) + escrit(u);
                   const planoOf = (u) => u.plano_url || u.render_url || ((dev.config || {}).planos || {})[u.prototype] || null;
+                  // Prima de estrenar = cuánto más cuesta esta obra nueva vs un USADO de la zona (del AVM).
+                  const prima = (u) => { const v = avm[u.id]; return v && v.precio_m2 && v.mercado_usada_m2 ? Math.round((v.precio_m2 / v.mercado_usada_m2 - 1) * 100) : null; };
+                  const usadoM2 = (compareUnits.map((u) => (avm[u.id] || {}).mercado_usada_m2).find((x) => x) || null);
                   const minPm2 = Math.min(...compareUnits.map((u) => pm2(u) ?? Infinity));
                   const minPrice = Math.min(...compareUnits.map((u) => u.price || Infinity));
                   const minEntrada = Math.min(...compareUnits.map((u) => entrada(u) || Infinity));
@@ -458,7 +464,8 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     { h: '💰 Precio y entrada' },
                     ['Precio', (u) => money(u.price), (u) => u.price === minPrice],
                     ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
-                    ['Precio vs mercado', (u) => { const v = avm[u.id]; return avmText(v) ? <span style={{ color: avmColor(v), fontWeight: 700 }}>{avmText(v)}</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
+                    ['Precio vs obra nueva', (u) => { const v = avm[u.id]; return avmText(v) ? <span style={{ color: avmColor(v), fontWeight: 700 }}>{avmText(v)}</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
+                    ['Prima de estrenar (vs usado)', (u) => { const p = prima(u); return p != null ? <span style={{ fontWeight: 700, color: 'var(--theme)' }}>{p > 0 ? '+' : ''}{p}%</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
                     ['Enganche (20%)', (u) => money(enganche(u))],
                     ['Gastos de escrituración (~8%)', (u) => money(escrit(u))],
                     ['Inversión inicial (entrada)', (u) => money(entrada(u)), (u) => entrada(u) === minEntrada],
@@ -492,6 +499,11 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
               </tbody>
             </table>
           </div>
+          {(() => { const um = compareUnits.map((u) => (avm[u.id] || {}).mercado_usada_m2).find((x) => x); return um ? (
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', marginTop: 12, padding: '11px 14px', borderRadius: 11, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))' }}>
+              🆕 <b style={{ color: 'var(--cream)' }}>La prima de estrenar</b> es cuánto más cuesta esta obra nueva que un usado de la zona (~{money(um)}/m²). A cambio: estrenar · amenidades · garantía · mayor eficiencia · cero remodelación · plusvalía de obra nueva.
+            </div>
+          ) : null; })()}
           <div style={{ fontFamily: SANS, fontSize: 11, color: 'var(--cream-3)', marginTop: 10 }}>Enganche 20% y escrituración ~8% son estándar; renta, cap rate y plusvalía son estimados de zona (mismas bases que el motor). Para el número fino por unidad — TIR, fiscal, escenarios — abre la calculadora con "Elegir" abajo.</div>
           {/* avanzar: elegir una (o varias para fondo) y seguir con la calculadora */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border, var(--border))', alignItems: 'center' }}>

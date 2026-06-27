@@ -443,7 +443,7 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
       if (!vd || !vd.etiqueta) return <span style={{ color: 'var(--cream-3)' }}>—</span>;
       const c = vd.color === 'verde' ? '#86efac' : vd.color === 'rojo' ? '#fca5a5' : '#fcd34d';
       const bg = vd.color === 'verde' ? 'rgba(34,197,94,0.16)' : vd.color === 'rojo' ? 'rgba(239,68,68,0.16)' : 'rgba(245,158,11,0.16)';
-      const lbl = vd.etiqueta === 'bajo' ? 'Buen precio' : vd.etiqueta === 'alto' ? 'Alto' : 'Justo';
+      const lbl = vd.etiqueta === 'bajo' ? 'Buen precio' : vd.etiqueta === 'alto' ? 'Sobre mercado' : 'En línea';
       return (
         <span title={`${vd.diff_pct > 0 ? '+' : ''}${vd.diff_pct}% vs mercado de la zona (AVM DMX)`}
           style={{ padding: '2px 8px', borderRadius: 9999, background: bg, color: c,
