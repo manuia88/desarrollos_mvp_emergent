@@ -190,7 +190,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
         elif tool_name == "get_comparables":
             return await _tool_get_comparables(db, params.get("unit_id", ""), float(params.get("radius_km", 2.0)))
         elif tool_name == "get_org_kpis":
-            return await _tool_get_org_kpis(db, params.get("org_id", org_id), int(params.get("period_days", 30)))
+            # SEGURIDAD (pentest 2026-06-27): SIEMPRE el org de la SESIÓN, nunca params["org_id"] — antes el LLM (o un
+            # prompt-injection) pasaba el org_id de OTRO tenant y leía su funnel/KPIs (fuga de inteligencia de competidor).
+            return await _tool_get_org_kpis(db, org_id, int(params.get("period_days", 30)))
         elif tool_name == "retrieve_memory":
             return await _tool_retrieve_memory(
                 db, org_id,

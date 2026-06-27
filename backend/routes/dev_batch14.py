@@ -58,6 +58,28 @@ async def _require_developer(req: Request):
     return user
 
 
+async def _assert_health_access(user, entity_type: str, entity_id: str, db) -> None:
+    """SEGURIDAD (pentest 2026-06-27): el rol logueado NO basta — el entity debe ser del tenant del usuario.
+    Antes get/recompute health-score eran lectura+escritura cross-tenant (proyectos/asesores de otra cuenta)."""
+    from tenant_scope import assert_dev_project, is_superadmin, assert_lead_owner
+    if is_superadmin(user):
+        return
+    if entity_type == "project":
+        assert_dev_project(user, entity_id)
+    elif entity_type == "client":
+        await assert_lead_owner(db, user, entity_id)
+    elif entity_type == "asesor":
+        if entity_id == getattr(user, "user_id", None):
+            return
+        target = await db.users.find_one(
+            {"user_id": entity_id}, {"_id": 0, "tenant_id": 1, "dev_org_id": 1, "inmobiliaria_id": 1})
+        owners = {(target or {}).get("tenant_id"), (target or {}).get("dev_org_id"), (target or {}).get("inmobiliaria_id")}
+        owners.discard(None)
+        u_tenant = (getattr(user, "tenant_id", "") or getattr(user, "dev_org_id", "") or "")
+        if not (u_tenant and u_tenant in owners):
+            raise HTTPException(403, "Este asesor es de otra cuenta")
+
+
 # ─── Notification helper ──────────────────────────────────────────────────────
 
 async def create_notification(db, user_id: str, notif_type: str, title: str,
@@ -112,11 +134,12 @@ async def log_activity(db, actor_id: str, actor_type: str, action: str,
 @router.get("/api/health-score/{entity_type}/{entity_id}")
 async def get_health_score(entity_type: str, entity_id: str, request: Request):
     """Get (or compute and cache) health score for an entity."""
-    await _auth(request)
+    user = await _auth(request)
     db = _db(request)
 
     if entity_type not in ("project", "asesor", "client"):
         raise HTTPException(400, f"entity_type inválido: {entity_type}")
+    await _assert_health_access(user, entity_type, entity_id, db)
 
     from health_score import compute_health_score
     result = await compute_health_score(entity_type, entity_id, db)
@@ -130,11 +153,12 @@ async def get_health_score(entity_type: str, entity_id: str, request: Request):
 @router.post("/api/health-score/{entity_type}/{entity_id}/recompute")
 async def recompute_health_score(entity_type: str, entity_id: str, request: Request):
     """Force recompute health score, bypassing cache."""
-    await _auth(request)
+    user = await _auth(request)
     db = _db(request)
 
     if entity_type not in ("project", "asesor", "client"):
         raise HTTPException(400, f"entity_type inválido: {entity_type}")
+    await _assert_health_access(user, entity_type, entity_id, db)
 
     from health_score import compute_health_score
     result = await compute_health_score(entity_type, entity_id, db, force=True)
@@ -142,8 +166,10 @@ async def recompute_health_score(entity_type: str, entity_id: str, request: Requ
     # Trigger health-score notification if score < 50
     if result.get("score", 100) < 50 and entity_type == "project":
         try:
+            _t = (getattr(user, "tenant_id", "") or getattr(user, "dev_org_id", "") or "")
             devs = await db.users.find(
-                {"role": {"$in": ["developer_admin", "developer_director"]}},
+                {"role": {"$in": ["developer_admin", "developer_director"]},
+                 "$or": [{"tenant_id": _t}, {"dev_org_id": _t}]},  # SEGURIDAD: solo devs del MISMO tenant (pentest)
                 {"_id": 0, "user_id": 1},
             ).to_list(10)
             for dev in devs:
