@@ -1291,6 +1291,8 @@ async def get_argumentario(lead_id: str, request: Request, asesor_id: Optional[s
     """
     user = await _require_authorized(request)
     db = request.app.state.db
+    from tenant_scope import assert_lead_owner   # SEGURIDAD (pentest): ownership del lead (cierra el fail-open del engine)
+    await assert_lead_owner(db, user, lead_id)
     uid = getattr(user, "user_id", "anon")
     role = getattr(user, "role", "")
 
@@ -1316,6 +1318,8 @@ async def refresh_argumentario(lead_id: str, request: Request, asesor_id: Option
     """Fuerza re-generación del argumentario. Rate-limited: 1/12h/lead."""
     user = await _require_authorized(request)
     db = request.app.state.db
+    from tenant_scope import assert_lead_owner   # SEGURIDAD (pentest): ownership del lead (cierra el fail-open del engine)
+    await assert_lead_owner(db, user, lead_id)
     uid = getattr(user, "user_id", "anon")
 
     if not _check_arg_rate(uid):
@@ -1342,6 +1346,8 @@ async def mark_argumentario_used(lead_id: str, request: Request):
     """Asesor confirma que usó el argumentario. status=used · log_activity."""
     user = await _require_authorized(request)
     db = request.app.state.db
+    from tenant_scope import assert_lead_owner   # SEGURIDAD (pentest): ownership del lead (cierra el fail-open del engine)
+    await assert_lead_owner(db, user, lead_id)
     uid = getattr(user, "user_id", "anon")
     org_id = _resolve_org(user, None)
 
