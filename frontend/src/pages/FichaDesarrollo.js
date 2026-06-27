@@ -21,6 +21,7 @@ import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA
 import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD vivir (de zona) re-skineado + scoped a la unidad
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion'; // calculadora REAL de zona (InversionV4) traída a la ficha
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal'; // cierra el ciclo: alto intento → lead → asesor_contactos
+import DevStructuredData from '../components/seo/DevStructuredData';   // GEO: schema RealEstateListing + FAQPage (reconecta el structured data que ya existía)
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['lente', '¿Para qué?'], ['unidades', 'Unidades'], ['panorama', 'Tu panorama'], ['confianza', 'Confianza'],
@@ -175,6 +176,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
 
   return (
     <LightScope>
+      <DevStructuredData dev={dev} />
       <PublicNav />
       <a href={`/desarrollo/${id}?v3=1`} title="Probar el rediseño (cockpit)" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(109,74,255,0.32)' }}>🆕 Probar rediseño →</a>
       <main style={{ paddingTop: 78 }}>

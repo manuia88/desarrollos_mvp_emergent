@@ -22,6 +22,7 @@ import SeccionConfianza from '../components/ficha/SeccionConfianza';
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';   // asistente IA flotante — consciente de la unidad/lente/sección que ve el cliente
+import DevStructuredData from '../components/seo/DevStructuredData';   // GEO: schema RealEstateListing + FAQPage (reconecta el structured data que ya existía)
 
 const money = (n) => (n ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -562,6 +563,7 @@ export default function FichaCockpit({ user, onLogin }) {
 
   return (
     <LightScope>
+      <DevStructuredData dev={dev} />
       <PublicNav />
       <a href={`/desarrollo/${id}`} title="Volver al diseño actual" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--cream)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(16,18,28,0.28)' }}>← Diseño actual</a>
       <main style={{ paddingTop: 64 }}>
