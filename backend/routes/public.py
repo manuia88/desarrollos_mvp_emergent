@@ -1045,6 +1045,7 @@ async def get_colonias():
 async def colonias_geojson(request: Request, alcaldia: Optional[str] = None, limit: int = 2200):
     """FeatureCollection de las colonias REALES (db.colonias.geometry · 1,811 IECM) para el Mapa de
     Valores coroplético. Une precio/scores/momentum desde los seed (por nombre) donde exista el dato."""
+    limit = max(1, min(limit, 2200))   # SEGURIDAD: cap duro → no se baja todo el dataset geográfico de una
     db = request.app.state.db
     import unicodedata
 
@@ -1295,6 +1296,11 @@ async def public_payment_schemes(project_id: str, request: Request):
 async def predios_bbox(request: Request, w: float, s: float, e: float, n: float, limit: int = 2500):
     """Predios (POLÍGONOS del lote) dentro del recuadro visible → se cargan solo con zoom cercano.
     Así se ven las formas reales de los lotes (no puntitos) sin trabar el navegador (estilo propiedades.com)."""
+    # SEGURIDAD (pentest 2026-06-27): cap duro + tope de área del recuadro → evita el dump masivo del
+    # catastro (≈1.08M predios / 524MB en una request = exfiltración del moat + DoS del pool de Mongo).
+    limit = max(1, min(limit, 3000))
+    if (e - w) * (n - s) > 0.06:
+        raise HTTPException(400, "Acerca el mapa para ver los predios: el área es demasiado grande.")
     import json
     db = request.app.state.db
     box = {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}

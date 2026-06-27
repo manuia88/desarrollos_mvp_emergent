@@ -20,6 +20,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
+from tenant_scope import assert_dev_project   # IDOR: el dev solo ve SU dev_id (no cross-tenant)
 
 log = logging.getLogger("dmx.routes_buyer_signals")
 router = APIRouter(tags=["buyer-signals"])
@@ -148,7 +149,7 @@ async def registrar_elasticidad(b: ElasticidadIn, request: Request):
 @router.get("/api/desarrollo/{dev_id}/embudo-unidades")
 async def embudo_unidades(dev_id: str, request: Request):
     """D · Embudo POR UNIDAD para el dev: cuántos VIERON y GUARDARON cada unidad (#02A) — qué unidad mueve y cuál no."""
-    await _require_dev(request)   # MOAT privado del dev — no anónimo/crawler/IA
+    user = await _require_dev(request); assert_dev_project(user, dev_id)   # MOAT privado — rol dev + SOLO su dev_id (no anónimo/crawler/cross-tenant)
     try:
         db = request.app.state.db
         from collections import defaultdict
@@ -176,7 +177,7 @@ async def demanda_zona(dev_id: str, request: Request):
     """UPGRADE cierra-ciclo comprador→dev: HUECOS de producto en la zona de ESTE desarrollo. Búsquedas COMPLETAS de
     compradores en su colonia que NO encontraron nada que cumpla todo (demanda_insatisfecha) → qué construir / a qué
     precio. El mismo dato que ve el superadmin, aterrizado a la zona del dev."""
-    await _require_dev(request)   # MOAT privado del dev — no anónimo/crawler/IA
+    user = await _require_dev(request); assert_dev_project(user, dev_id)   # MOAT privado — rol dev + SOLO su dev_id (no anónimo/crawler/cross-tenant)
     try:
         db = request.app.state.db
         try:
