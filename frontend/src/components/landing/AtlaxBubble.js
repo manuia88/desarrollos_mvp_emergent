@@ -303,6 +303,12 @@ function nextOptions(messages) {
   return opts;
 }
 
+// Render mínimo de markdown en los mensajes: **negritas**. Evita que se vean los asteriscos literales (mala UI).
+function renderRich(text) {
+  const parts = String(text || '').split('**');
+  return parts.map((seg, i) => (i % 2 === 1 ? <strong key={i}>{seg}</strong> : <React.Fragment key={i}>{seg}</React.Fragment>));
+}
+
 export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null } = {}) {
   const light = theme === 'light';
   // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
@@ -674,8 +680,11 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
 
           {/* Messages */}
           <div ref={scrollRef} data-testid="caya-messages" style={{
-            flex: 1, overflowY: 'auto', padding: '14px 14px 8px',
+            flex: 1, overflowY: 'auto', padding: '16px 14px 8px',
             display: 'flex', flexDirection: 'column', gap: 10,
+            // fade suave en el borde superior: el mensaje que se recorta al scrollear se desvanece en vez de cortarse en seco
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 14px)',
+            maskImage: 'linear-gradient(to bottom, transparent 0, #000 14px)',
           }}>
             {messages.length === 0 && (
               <div style={{
@@ -802,7 +811,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                   fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>
-                  {m.content}
+                  {renderRich(m.content)}
                 </div>
 
                 {m.role === 'assistant' && (m.citations || []).length > 0 && (
@@ -903,7 +912,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           {/* Opciones ADAPTATIVAS — cambian según lo que el cliente escribió (asesor digital que guía).
               "Hablar con un asesor" es el ÚNICO camino al formulario, y solo si el cliente lo toca. */}
           {messages.length > 0 && !busy && (
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 12px 2px', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '10px 12px 2px' }}>
               {nextOptions(messages).map((o, i) => (
                 <button key={i} onClick={() => { if (o.human) { setShowLeadForm(true); setFormDismissed(false); } else { send(null, o.p); } }} style={{
                   flexShrink: 0, padding: '7px 13px', borderRadius: 9999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
