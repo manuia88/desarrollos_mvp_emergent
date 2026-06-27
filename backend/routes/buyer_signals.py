@@ -18,11 +18,23 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 
 log = logging.getLogger("dmx.routes_buyer_signals")
 router = APIRouter(tags=["buyer-signals"])
+
+# Inteligencia comercial PRIVADA del dev (embudo por unidad · demanda de zona) = MOAT.
+# Cierra la fuga anónima detectada en auditoría de seguridad 2026-06-27: robots/IAs/anónimos NO ven el moat.
+_DEV_ROLES = {"developer_admin", "developer_member", "developer_director", "superadmin"}
+
+
+async def _require_dev(request: Request):
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user or getattr(user, "role", None) not in _DEV_ROLES:
+        raise HTTPException(403, "Solo el desarrollador (o superadmin) puede ver esta inteligencia.")
+    return user
 
 VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "share", "dwell", "photo_dwell",
          "unit_view", "unit_save", "unit_unsave",
@@ -136,6 +148,7 @@ async def registrar_elasticidad(b: ElasticidadIn, request: Request):
 @router.get("/api/desarrollo/{dev_id}/embudo-unidades")
 async def embudo_unidades(dev_id: str, request: Request):
     """D · Embudo POR UNIDAD para el dev: cuántos VIERON y GUARDARON cada unidad (#02A) — qué unidad mueve y cuál no."""
+    await _require_dev(request)   # MOAT privado del dev — no anónimo/crawler/IA
     try:
         db = request.app.state.db
         from collections import defaultdict
@@ -163,6 +176,7 @@ async def demanda_zona(dev_id: str, request: Request):
     """UPGRADE cierra-ciclo comprador→dev: HUECOS de producto en la zona de ESTE desarrollo. Búsquedas COMPLETAS de
     compradores en su colonia que NO encontraron nada que cumpla todo (demanda_insatisfecha) → qué construir / a qué
     precio. El mismo dato que ve el superadmin, aterrizado a la zona del dev."""
+    await _require_dev(request)   # MOAT privado del dev — no anónimo/crawler/IA
     try:
         db = request.app.state.db
         try:

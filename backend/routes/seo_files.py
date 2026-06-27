@@ -59,7 +59,7 @@ Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
 ## Data offerings
 
 - **IE Engine** — 23+ scores per property (zone, project, unit scope). See /methodology
-- **DRPI Index** — hedonic regression price index per colonia (monthly). See /api/zones/{zone_id}/scores
+- **DRPI Index** — hedonic regression price index per colonia (monthly). See /methodology
 - **Risk Score** — 4-dim composite: crime (SESNSP) + natural hazards (CENAPRED) + perception (ENVIPE) + title heuristic
 - **700+ CDMX colonias** indexed with structured demographic + market data
 - **Comparable analytics** — absorption velocity, sold-out velocity, new-launch detection per colonia
@@ -68,8 +68,7 @@ Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
 
 - `/methodology` — full methodology, R², and data sources
 - `/inteligencia` — overview of 97 IE indicators
-- `/api/openapi.json` — OpenAPI v3 spec (full API surface)
-- `/api/mcp` — Model Context Protocol HTTP endpoint (5 tools, see tools/list)
+- `/api/mcp` — Model Context Protocol HTTP endpoint (5 tools · requiere API key)
 - `/connect/mcp` — Setup guide for Claude Desktop / Cursor / ChatGPT
 
 ## MCP tools available
