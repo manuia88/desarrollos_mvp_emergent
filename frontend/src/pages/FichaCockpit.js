@@ -6,7 +6,7 @@
  * (precio + acciones + asesor). El corazón es la pestaña "Tu unidad": al elegir, un COCKPIT enfocado (no se apila).
  * Reusa TODA la data (mismos fetches) y TODAS las secciones existentes (cero motor nuevo, cero dato inventado).
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment } from '../api/marketplace';
@@ -141,15 +141,18 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   const creditos = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
   const [schemes, setSchemes] = useState([]);
   useEffect(() => { let alive = true; fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setSchemes((d && d.schemes) || []); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
+  const pctRange = (key) => { if (!schemes.length) return null; const v = schemes.map((s) => s[key] || 0); const mn = Math.min(...v), mx = Math.max(...v); return mn === mx ? `${mn}%` : `${mn}–${mx}%`; };
+  const STAGE_PCT = { Apartado: schemes.length ? money(Math.min(...schemes.map((s) => s.apartado_mxn || 0))) : null, Enganche: pctRange('firma_pct'), Mensualidades: pctRange('mensualidades_pct'), Escrituración: pctRange('escritura_pct') };
   const SERV_IC = { Gas: '🔥', Agua: '🚰', Energía: '⚡', Internet: '🌐', Drenaje: '🚿' };
   const TEC_IC = { Niveles: '🏢', Elevadores: '🛗', Cisterna: '🪣', Estructura: '🏗️', Estacionamiento: '🅿️' };
+  const CARAC_IC = { Recámaras: '🛏️', Baños: '🚿', Estacionamientos: '🚗', Superficie: '📐', Niveles: '🏢', 'Depas por piso': '🚪', Prototipos: '🏠', Unidades: '🔢' };
   const h2 = (t, tip) => <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}><span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{titleCase(t)}</span><InfoTip text={tip} /></div>;
   const factCard = (rows) => (
     <Card style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(112px,1fr))' }}>
         {rows.filter(([, v]) => v != null && v !== '').map(([l, v, tip], i) => (
           <div key={l} style={{ padding: '14px 16px', borderLeft: i ? '1px solid var(--card-border, var(--border))' : 'none' }}>
-            <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 16 }}>{CARAC_IC[l] || ''}</span><span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</span></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}><span style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{l}</span><InfoTip text={tip} /></div>
           </div>
         ))}
@@ -225,7 +228,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
       {/* ficha técnica — CON GLOBITOS para el que no sabe de inmuebles */}
       {(tecnica.length > 0 || servicios.length > 0) && (
         <div>
-          {h2('Ficha técnica', 'Cómo está hecho el edificio y qué servicios trae. Toca la ⓘ de cada punto para una explicación simple.')}
+          {h2('Construcción y servicios', 'Cómo está hecho el edificio y qué servicios trae. Toca la ⓘ de cada punto para una explicación simple.')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 12 }}>
             {[...tecnica, ...servicios].map(([k, v]) => (
               <Card key={k} className="dmx-proj-card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
@@ -290,7 +293,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
                 <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 }}>El plan incluye</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {[['🔖', 'Apartado'], ['✍️', 'Enganche'], ['📅', 'Mensualidades'], ['🔑', 'Escrituración']].map(([ic, name]) => (
-                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{ic} {name} <InfoTip text={PAGO_TIP[name]} /></span>
+                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{ic} {name}{STAGE_PCT[name] ? <b style={{ color: 'var(--theme)', marginLeft: 2 }}>· {STAGE_PCT[name]}</b> : null} <InfoTip text={PAGO_TIP[name]} /></span>
                   ))}
                 </div>
               </div>
@@ -358,6 +361,7 @@ export default function FichaCockpit({ user, onLogin }) {
   const [savedUnits, setSavedUnits] = useState(() => new Set());
   const [leadModal, setLeadModal] = useState(null);
   const HK_API = process.env.REACT_APP_BACKEND_URL;
+  const secTimeRef = useRef({ tab: 'unidad', t: Date.now() });   // tiempo en cada sección (granularidad de interés)
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
@@ -403,8 +407,15 @@ export default function FichaCockpit({ user, onLogin }) {
   const lensLabel = lens === 'invertir' ? `Invertir · ${invMode === 'institucional' ? 'Institucional' : 'Para ti'}` : lens === 'vivir' ? 'Para vivir' : null;
 
   const pickUnit = (u) => { setUnit(u); if (u && u.unit_number) { try { sendBuyerSignal('unit_view', { entity_id: dev.id, unit_number: u.unit_number, colonia: dev.colonia }); } catch (e) { /* noop */ } } };
-  // SENSOR (granularidad end-to-end): qué sección analiza el comprador → buyer_signals → lead score + embudo dev + cubo superadmin.
-  const goTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ } };
+  // SENSOR (granularidad end-to-end): qué sección analiza el comprador Y CUÁNTO tiempo → buyer_signals → lead score + embudo dev + cubo superadmin.
+  const goTab = (t) => {
+    const prev = secTimeRef.current;
+    const secs = Math.round((Date.now() - prev.t) / 1000);
+    if (prev.tab && secs >= 2 && secs < 1800) { try { sendBuyerSignal('section_time', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: prev.tab, seconds: secs }); } catch (e) { /* noop */ } }
+    secTimeRef.current = { tab: t, t: Date.now() };
+    setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' });
+    try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ }
+  };
   const goTo = (anchor) => { if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
@@ -441,7 +452,7 @@ export default function FichaCockpit({ user, onLogin }) {
             </div>
             <div style={{ display: 'flex', gap: 4, marginTop: 11, overflowX: 'auto' }}>
               {TABS.map(([k, label]) => (
-                <button key={k} data-testid={`tab-${k}`} onClick={() => goTab(k)} style={{ padding: '10px 18px', borderRadius: '10px 10px 0 0', border: 'none', borderBottom: tab === k ? '2.5px solid var(--theme)' : '2.5px solid transparent', background: 'transparent', color: tab === k ? 'var(--theme)' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{label}</button>
+                <button key={k} data-testid={`tab-${k}`} onClick={() => goTab(k)} style={{ padding: '10px 18px', borderRadius: '10px 10px 0 0', border: 'none', borderBottom: tab === k ? '2.5px solid var(--theme)' : '2.5px solid transparent', background: 'transparent', color: tab === k ? 'var(--theme)' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>{titleCase(label)}</button>
               ))}
             </div>
           </div>
@@ -512,6 +523,7 @@ export default function FichaCockpit({ user, onLogin }) {
         .dmx-proj-card{ transition: transform .16s ease, box-shadow .16s ease; }
         .dmx-proj-card:hover{ transform: translateY(-2px); box-shadow: 0 12px 26px rgba(16,18,28,0.10); }
         .dmx-proj > *{ animation: dmxFade .45s ease both; }
+        .dmx-proj > *:nth-child(2){ animation-delay:.04s; } .dmx-proj > *:nth-child(3){ animation-delay:.08s; } .dmx-proj > *:nth-child(4){ animation-delay:.12s; } .dmx-proj > *:nth-child(5){ animation-delay:.16s; } .dmx-proj > *:nth-child(6){ animation-delay:.2s; } .dmx-proj > *:nth-child(7){ animation-delay:.24s; } .dmx-proj > *:nth-child(n+8){ animation-delay:.28s; }
         .dmx-proj-bar{ transform-origin: bottom; animation: dmxBar .55s cubic-bezier(.3,.7,.3,1) both; }
         .dmx-proj-prog{ animation: dmxProg .7s ease both; }
         @keyframes dmxFade{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
