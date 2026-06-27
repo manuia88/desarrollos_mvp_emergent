@@ -81,7 +81,8 @@ async def _validate_mcp_key(request: Request) -> Dict[str, Any]:
         await db.public_api_keys.update_one(
             {"id": doc["id"], "month_bucket": {"$ne": month}},
             {"$set": {"calls_this_month": 0, "month_bucket": month}})
-    quota = doc.get("monthly_quota_calls") or 1000
+    _q = doc.get("monthly_quota_calls")  # SEGURIDAD (3ª ola): quota=0 (suspendida) NO debe caer al default 1000
+    quota = _q if _q is not None else 1000
     # SEGURIDAD (pentest 2026-06-27): check+inc ATÓMICO (antes read→compare→inc en ops separadas → TOCTOU, 7× la cuota
     # por concurrencia). find_one_and_update incrementa SOLO si sigue bajo cuota; si no matchea → 429.
     bumped = await db.public_api_keys.find_one_and_update(

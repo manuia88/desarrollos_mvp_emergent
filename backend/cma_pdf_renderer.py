@@ -74,9 +74,14 @@ def _fetch_logo_bytes(url: Optional[str]) -> Optional[ImageReader]:
             import hashlib
             fn = os.path.join(cache_dir, hashlib.sha256(url.encode()).hexdigest()[:24] + ".img")
             if not os.path.exists(fn):
-                req = urllib.request.Request(url, headers={"User-Agent": "dmx-cma-pdf/1.0"})
-                with urllib.request.urlopen(req, timeout=6) as r:
-                    data = r.read()
+                # SEGURIDAD (3ª ola): httpx con follow_redirects=False — urllib SÍ seguía redirects → un 302 a una IP
+                # interna evadía el guard is_public_url_safe (SSRF por cadena de redirect).
+                import httpx as _httpx
+                with _httpx.Client(timeout=6, follow_redirects=False) as _c:
+                    _resp = _c.get(url, headers={"User-Agent": "dmx-cma-pdf/1.0"})
+                    if _resp.status_code >= 300:
+                        return None
+                    data = _resp.content
                 with open(fn, "wb") as f:
                     f.write(data)
             return ImageReader(fn)

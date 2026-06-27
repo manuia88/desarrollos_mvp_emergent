@@ -114,7 +114,8 @@ async def validate_api_key(request: Request) -> ApiKeyContext:
             {"$set": {"calls_this_month": 0, "month_bucket": month}},
         )
 
-    quota = doc.get("monthly_quota_calls") or DEFAULT_QUOTA.get(doc.get("tier", "free"), 1000)
+    _q = doc.get("monthly_quota_calls")  # SEGURIDAD (3ª ola): quota=0 (key suspendida) NO debe caer al default 1000
+    quota = _q if _q is not None else DEFAULT_QUOTA.get(doc.get("tier", "free"), 1000)
     # SEGURIDAD (pentest 2026-06-27): check de cuota + incremento ATÓMICO en UNA sola op. Antes el check (aquí) y el
     # incremento (track_api_call, después del request) eran 2 ops separadas → TOCTOU: N requests concurrentes pasaban
     # el check con el MISMO contador y excedían la cuota hasta 12×. Ahora find_one_and_update incrementa SOLO si sigue

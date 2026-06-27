@@ -44,12 +44,9 @@ def _check_rate_limit(ip: str) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+    # SEGURIDAD (3ª ola): delega al canónico anti-spoofing (antes XFF[0] = falsificable).
+    from ratelimit import client_ip as _c
+    return _c(request)
 
 
 # ─── Endpoint ─────────────────────────────────────────────────────────────────

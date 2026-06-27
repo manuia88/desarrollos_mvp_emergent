@@ -646,6 +646,11 @@ async def inversion_v4_analyze(request: Request):
         body = await request.json()
     except Exception:
         body = {}
+    # SEGURIDAD (3ª ola): descarta NaN/Infinity de los números del body (JSON de Python los acepta) — antes
+    # envenenaban el log de demanda revelada / AVM con valores no-finitos. Se tratan como ausentes.
+    import math as _math
+    if isinstance(body, dict):
+        body = {k: (None if isinstance(v, float) and not _math.isfinite(v) else v) for k, v in body.items()}
     try:
         from inversion_v4_finance import analyze
         from inversion_v4_tax import make_isr_fn
@@ -726,7 +731,7 @@ async def inversion_v4_analyze(request: Request):
             from datetime import datetime as _dt, timezone as _tz
             _ip = (request.client.host if request.client else "") or ""
             await db.inversion_v4_simulations.insert_one({
-                "zone_id": body.get("zone_id"), "precio": inp.get("valor_propiedad"),
+                "zone_id": (str(body.get("zone_id")).strip()[:80] if body.get("zone_id") else None), "precio": inp.get("valor_propiedad"),
                 "modo_renta": inp.get("modo_renta", "largo"), "con_credito": bool(inp.get("con_credito", True)),
                 "vista": "institucional" if body.get("incluir_sensibilidad") else "simple",
                 "tir_pct": res.get("tir_pct"), "cap_rate_pct": res.get("cap_rate_pct"),

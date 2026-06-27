@@ -95,9 +95,12 @@ async def check_robots_allows(url: str) -> bool:
     """True si robots.txt permite o no se puede determinar (FAIL-SOFT)."""
     try:
         import httpx
+        from services.ai_safety import is_public_url_safe
         parsed = urlparse(url)
         robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
-        async with httpx.AsyncClient(timeout=5.0, headers={"User-Agent": USER_AGENT}) as client:
+        if not is_public_url_safe(robots_url, label="studio_robots"):  # SEGURIDAD (3ª ola): mismo guard que fetch_html (el pre-fetch de robots no lo tenía)
+            return True  # fail-soft; el fetch real de fetch_html bloquea el SSRF de todas formas
+        async with httpx.AsyncClient(timeout=5.0, headers={"User-Agent": USER_AGENT}, follow_redirects=False) as client:
             r = await client.get(robots_url)
             if r.status_code != 200:
                 return True
