@@ -157,6 +157,17 @@ async def get_subscription_status(db, tenant_id: str) -> Dict[str, Any]:
 
 async def webhook_handler(db, event: Dict[str, Any]) -> Dict[str, Any]:
     etype = event.get("type", "")
+    # SEGURIDAD (4ª pasada): idempotencia por event.id — un replay del MISMO evento Stripe NO se reprocesa (evita
+    # re-aplicar cambios de billing). Los handlers son $set/upsert idempotentes, así que marcar arriba es seguro.
+    _eid = event.get("id") or ""
+    if _eid:
+        if await db.stripe_processed_events.find_one({"event_id": _eid}, {"_id": 1}):
+            return {"handled": False, "duplicate": True}
+        try:
+            await db.stripe_processed_events.update_one(
+                {"event_id": _eid}, {"$set": {"event_id": _eid, "type": etype, "at": _iso()}}, upsert=True)
+        except Exception:
+            pass
     data = ((event.get("data") or {}).get("object") or {})
     handled = False
 

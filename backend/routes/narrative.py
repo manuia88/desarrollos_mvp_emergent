@@ -42,10 +42,9 @@ def _client_key(request: Request) -> str:
             return f"u:{uid}"
     except Exception:
         pass
-    xff = request.headers.get("x-forwarded-for") if request.headers else None
-    if xff:
-        return f"ip:{xff.split(',')[0].strip()}"
-    return f"ip:{(request.client.host if request.client else 'anon')}"
+    # SEGURIDAD (4ª pasada): IP canónica anti-spoofing para la llave de rate-limit (antes XFF[0] falsificable).
+    from ratelimit import client_ip as _c
+    return f"ip:{_c(request)}"
 
 
 def _db(request: Request):

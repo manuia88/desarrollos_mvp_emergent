@@ -41,8 +41,8 @@ def _db(request: Request):
 
 
 def _ip_hash(request: Request) -> str:
-    fwd = request.headers.get("X-Forwarded-For")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    from ratelimit import client_ip as _c  # SEGURIDAD (4ª pasada): IP canónica anti-spoofing
+    ip = _c(request) or "unknown"
     return hashlib.sha256(ip.encode()).hexdigest()[:20]
 
 

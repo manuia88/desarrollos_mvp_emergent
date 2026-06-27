@@ -289,10 +289,8 @@ async def submit_landing_lead(body: LandingLeadIn, request: Request) -> Dict[str
 
 def _hash_ip(request: Request) -> str:
     import hashlib
-    ip = request.client.host if request.client else "0.0.0.0"
-    fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        ip = fwd.split(",")[0].strip()
+    from ratelimit import client_ip as _c  # SEGURIDAD (4ª pasada): IP canónica anti-spoofing
+    ip = _c(request) or "0.0.0.0"
     return hashlib.sha256(ip.encode()).hexdigest()[:20]
 
 

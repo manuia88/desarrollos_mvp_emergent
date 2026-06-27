@@ -84,11 +84,8 @@ def _extract_request_meta(request: Optional[Request]) -> Dict[str, Optional[str]
         return {"ip": None, "user_agent": None, "route": None}
     ip = None
     try:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            ip = forwarded.split(",")[0].strip()
-        elif request.client:
-            ip = request.client.host
+        from ratelimit import client_ip as _c  # SEGURIDAD (4ª pasada): IP canónica (auditoría fiable, no XFF[0] spoofeable)
+        ip = _c(request)
     except Exception:
         pass
     return {

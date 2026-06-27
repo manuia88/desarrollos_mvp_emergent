@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ─── Router + deps ────────────────────────────────────────────────────────────
@@ -153,6 +153,7 @@ class TareaIn(BaseModel):
     reminder: bool = False  # recordatorio (el cron de tareas lo recoge)
 
 class OperacionIn(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)  # SEGURIDAD (4ª pasada): NaN/Infinity → 422 limpio (antes 500)
     side: str  # ambos|vendedor|comprador
     contacto_id: Optional[str] = None
     desarrollo_id: Optional[str] = None

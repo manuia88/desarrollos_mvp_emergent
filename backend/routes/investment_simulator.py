@@ -16,7 +16,7 @@ from typing import Any, Deque, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 import investment_simulator_engine as eng
 from ratelimit import client_ip as _dmx_canon_ip  # SEGURIDAD: IP anti-spoofing (pentest 2026-06-27)
@@ -55,6 +55,7 @@ def _db(request: Request):
 # ─── POST /api/investment-simulator/simulate ─────────────────────────────────
 
 class SimulateBody(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)  # SEGURIDAD (4ª pasada): rechaza NaN/Infinity → no envenena el AVM
     precio_entrada: float
     plazo_meses: int = 120
     m2: float = 80.0
@@ -107,6 +108,7 @@ async def comparables_endpoint(slug: str, request: Request, precio: float = 3_00
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class AnalyzeBody(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)  # SEGURIDAD (4ª pasada): rechaza NaN/Infinity → no envenena el AVM
     precio: float
     colonia_slug: Optional[str] = None
     anios_tenencia: int = 10

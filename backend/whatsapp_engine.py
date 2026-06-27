@@ -220,6 +220,12 @@ class WAEngine:
             "conversation_thread_id": f"wa_{from_num[-6:]}",
             "created_at": _now(),
         }
+        # SEGURIDAD (4ª pasada): idempotencia — no reprocesar el mismo MessageSid (replay → mensajes duplicados +
+        # doble disparo del LLM/Atlax). Dedup por provider_message_id antes de insertar y clasificar.
+        if provider_id:
+            _dup = await self.db.whatsapp_messages.find_one({"provider_message_id": provider_id}, {"_id": 1})
+            if _dup:
+                return {"msg_id": str(_dup.get("_id")), "duplicate": True}
         await self.db.whatsapp_messages.insert_one(msg_doc)
 
         # Disparar Reply Classifier si hay cuerpo de texto
