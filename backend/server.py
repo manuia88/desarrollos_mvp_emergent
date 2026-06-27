@@ -38,18 +38,37 @@ def analytics_id_for(user_id: Optional[str]) -> Optional[str]:
     return hashlib.sha256(f"{user_id}:{LFPDPPP_SALT}".encode()).hexdigest()[:16]
 
 
-def _is_prod() -> bool:
-    """Único punto para saber si corremos en producción real."""
+def _is_dev() -> bool:
+    """¿Entorno de desarrollo/preview EXPLÍCITO? (DMX_ENV dev/local/preview/staging o DMX_DEV_MODE truthy)."""
+    env = os.environ.get("DMX_ENV", "").strip().lower()
+    if env in ("local", "dev", "development", "test", "testing", "ci", "preview", "staging"):
+        return True
+    return os.environ.get("DMX_DEV_MODE", "").strip().lower() in ("1", "true", "yes")
+
+
+def _is_explicit_prod() -> bool:
+    """DMX_ENV declarado EXPLÍCITAMENTE como producción (para el abort duro de secretos del guard)."""
     return os.environ.get("DMX_ENV", "").strip().lower() in ("prod", "production")
 
 
+def _is_prod() -> bool:
+    """Único punto para saber si corremos en producción. SEGURIDAD (pentest 2026-06-27): FAIL-CLOSED — asume PROD
+    (modo seguro: docs off, cookies Secure, webhook con firma, HSTS) salvo que se DECLARE dev/preview explícitamente.
+    Antes SOLO 'prod'/'production' activaba el modo seguro → un typo en DMX_ENV (p.ej. 'prodd', vacío) dejaba TODO en
+    modo dev ABIERTO (docs/superadmin expuestos, cookies inseguras, webhook de pagos sin firma)."""
+    return not _is_dev()
+
+
 def _prod_env_guard():
-    """Gate de prod fail-closed (Tanda 2 · P0.5/P0.7/P1.10). En prod ABORTA el arranque si faltan
-    secretos críticos; loguea fuerte los recomendados. En dev/preview solo advierte. Un solo lugar."""
-    if not _is_prod():
-        # dev/preview: avisos suaves, no bloquea
+    """Gate de prod fail-closed (Tanda 2 · P0.5/P0.7/P1.10). En prod EXPLÍCITO ABORTA el arranque si faltan secretos
+    críticos; loguea fuerte los recomendados. En dev/preview solo advierte (no rompe arranque). Un solo lugar."""
+    if not _is_explicit_prod():
+        # dev/preview/desconocido: avisos suaves, no bloquea el arranque (no rompe preview sin secretos)
         if not os.environ.get("JWT_SECRET"):
             logging.warning("[startup] JWT_SECRET no seteada — usando secreto efímero (OK en dev, NO en prod)")
+        if not _is_dev():
+            logging.error("[startup] DMX_ENV no es prod ni dev reconocido — se ASUME modo seguro (fail-closed). "
+                          "Setea DMX_ENV=production en prod, o DMX_ENV=local/preview en dev.")
         return
     fatal = []
     if not os.environ.get("JWT_SECRET"):
