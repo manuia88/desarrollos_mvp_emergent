@@ -31,8 +31,13 @@ def _verify_capture_secret(request: Request) -> bool:
     """Valida que el header X-Capture-Secret coincida con LEAD_CAPTURE_SECRET env var."""
     expected = os.environ.get("LEAD_CAPTURE_SECRET", "")
     if not expected:
-        # Secret no configurado → modo dev local · aceptar todo
-        return True
+        # SEGURIDAD (pentest 2026-06-27): sin secreto configurado → fail-OPEN SOLO en dev; en prod fail-CLOSED.
+        # Antes devolvía True siempre → cualquiera inyectaba leads en el CRM de cualquier asesor (alias/form_id del body).
+        try:
+            from server import _is_prod
+            return not _is_prod()
+        except Exception:
+            return False
     provided = request.headers.get("X-Capture-Secret", "")
     return hmac.compare_digest(expected, provided)
 

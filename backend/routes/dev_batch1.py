@@ -1418,6 +1418,23 @@ async def patch_erp_webhook(wid: str, payload: ERPWebhookConfig, request: Reques
 @router.post("/erp-webhooks/{provider}/event")
 async def receive_erp_event(provider: str, request: Request):
     """Stub webhook receiver — log incoming events, return 200 always."""
+    # SEGURIDAD (pentest 2026-06-27): antes era un POST SIN AUTH → cualquiera inyectaba eventos (flood de DB) y
+    # tocaba last_ping_ts. Ahora requiere un secreto compartido; fail-closed en prod si no está configurado.
+    import os as _os, hmac as _hmac
+    _expected = _os.environ.get("ERP_WEBHOOK_SECRET") or _os.environ.get("LEAD_CAPTURE_SECRET") or ""
+    _provided = request.headers.get("X-ERP-Secret") or request.headers.get("X-Capture-Secret") or ""
+    if _expected:
+        if not _hmac.compare_digest(_provided, _expected):
+            raise HTTPException(401, "Secreto inválido")
+    else:
+        try:
+            from server import _is_prod
+            if _is_prod():
+                raise HTTPException(503, "Webhook ERP no configurado (falta ERP_WEBHOOK_SECRET)")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
     if provider not in ERP_PROVIDERS:
         raise HTTPException(400, f"Provider desconocido: {provider}")
 
