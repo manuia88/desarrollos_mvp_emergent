@@ -129,8 +129,10 @@ async def get_audit_route(request: Request, audit_id: str):
     doc = await engine.get_audit(db, audit_id)
     if not doc:
         raise HTTPException(404, "audit_not_found")
+    # SEGURIDAD (pentest 2026-06-27): submitted_email (PII) NO va en la respuesta pública — el polling de estado/
+    # descarga no lo necesita y el audit_id, aunque es UUID, puede filtrarse por link/referrer compartido.
     out = {k: doc.get(k) for k in ("audit_id", "status", "generated_pdf_url", "generated_at",
-                                    "project_name", "colonia_slug", "submitted_email")}
+                                    "project_name", "colonia_slug")}
     return JSONResponse({"ok": True, "audit": out})
 
 

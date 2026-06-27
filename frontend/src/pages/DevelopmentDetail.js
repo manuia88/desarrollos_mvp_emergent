@@ -70,11 +70,10 @@ const STAGE_COLORS = {
 
 // Pricing Lab · lado VISITANTE (A/B). visitor_id anónimo persistente + aplicación segura del modificador.
 function _getVisitorId() {
-  try {
-    let v = localStorage.getItem('dmx_visitor_id');
-    if (!v) { v = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('dmx_visitor_id', v); }
-    return v;
-  } catch (_) { return 'v_anon'; }
+  // SEGURIDAD (pentest 2026-06-27): usa el id FUERTE (cripto, 128-bit) de buyerSignal.js — antes era
+  // Math.random()+Date.now() = ADIVINABLE → IDOR de favoritos/perfil de gusto. Reusa la MISMA llave
+  // dmx_visitor_id, así que ya no hay carrera entre un generador débil y uno fuerte.
+  try { return visitorId(); } catch (_) { return 'v_anon'; }
 }
 function _applyPriceMod(base, mod) {
   const n = Number(base);
