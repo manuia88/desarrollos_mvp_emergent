@@ -147,7 +147,11 @@ async def login(payload: LoginIn, response: Response, request: Request):
     ip = _client_ip(request)
     _login_guard(ip, payload.email)  # P1.9 · bloquea fuerza bruta
     user_doc = await db.users.find_one({"email": payload.email})
-    if not user_doc or not verify_password(payload.password, user_doc.get("password_hash", "")):
+    # SEGURIDAD (pentest 2026-06-27): corre bcrypt SIEMPRE — aun si el email no existe — contra un hash dummy válido,
+    # para que el tiempo de respuesta sea igual exista o no la cuenta (cierra la enumeración de cuentas por timing).
+    _hash = (user_doc or {}).get("password_hash") or "$2b$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+    _pw_ok = verify_password(payload.password, _hash)
+    if not user_doc or not _pw_ok:
         _login_fail(ip, payload.email)
         raise HTTPException(401, "Credenciales incorrectas")
     # W1.2 SA1.1 — Block suspended accounts before issuing session cookies

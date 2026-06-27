@@ -221,7 +221,7 @@ async def interes_desarrollo(dev_id: str, request: Request):
             "ok": True,
             "likes": likes if likes >= K else 0,
             "saves": saves if saves >= K else 0,
-            "views": views,
+            "views": (round(views / 10) * 10) if views >= K else 0,   # k-anon + redondeo: prueba social, no tráfico exacto del dev
             "interes": "alto" if likes >= 10 else "medio" if likes >= K else "bajo",
         }
     except Exception as e:  # noqa: BLE001
@@ -422,6 +422,10 @@ async def promote_buyer(b: PromoteIn, request: Request):
 async def registrar_lead(b: RegistrarLeadIn, request: Request):
     """E3 · El comprador deja sus datos en un momento de ALTO INTENTO → crea/actualiza el lead (wrapper sobre
     create_buyer_lead). Cierra el triángulo comprador↔asesor↔dev."""
+    # SEGURIDAD (pentest): rate-limit anti inyección/spam de leads (sin esto cualquiera inundaba el CRM del asesor).
+    from services.ratelimit import allow, client_ip
+    if not allow("buyer_registrar", client_ip(request), 8, 60):
+        raise HTTPException(429, "Demasiados registros seguidos. Intenta en un momento.")
     try:
         db = request.app.state.db
         lead_id, house_inm = await create_buyer_lead(db, b.visitor_id, b.name, b.email, b.phone, b.dev_id, b.source,

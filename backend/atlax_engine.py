@@ -498,10 +498,13 @@ def _error_response(
 
 
 @router.get("/api/atlax/sessions/{session_id}/history")
-async def atlax_history(session_id: str, request: Request):
-    """History endpoint legacy: retorna mensajes de caya_messages para back-compat."""
+async def atlax_history(session_id: str, request: Request, session_token: str = ""):
+    """History endpoint legacy (no usado por el front actual). SEGURIDAD (pentest 2026-06-27): exige el
+    session_token del dueño (asis_*) y filtra por él → cierra el IDOR de leer conversaciones ajenas."""
     db = request.app.state.db
-    cursor = db.caya_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1)
+    if not session_token or not session_token.startswith("asis_"):
+        return JSONResponse(status_code=403, content={"ok": False, "error": "session_token requerido (asis_*)"})
+    cursor = db.caya_messages.find({"session_id": session_id, "session_token": session_token}, {"_id": 0}).sort("created_at", 1)
     msgs = []
     async for m in cursor:
         if isinstance(m.get("created_at"), datetime):
