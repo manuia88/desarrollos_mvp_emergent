@@ -197,7 +197,7 @@ class ZoneCoverageOut(BaseModel):
     real_count: int
     total_recipes: int
     ui_mode: str  # "real" | "seed"
-    scores: List[ScoreOut]
+    scores: List[PublicScoreOut]  # SEGURIDAD (pentest 2026-06-27): subset PÚBLICO — sin inputs_used/model_version/training_window/residual_std (moat). Antes filtraba la receta por /coverage, /developments/{id}/scores y /units/{id}/scores.
     # Categorías de cara al usuario aún sin dato real → se muestran como "datos en camino"
     # (honesto, no hueco). Se autollenan cuando el operador conecta la fuente en superadmin.
     pending: List[PendingCategoryOut] = Field(default_factory=list)

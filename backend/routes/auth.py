@@ -338,21 +338,12 @@ async def request_magic_link(payload: MagicLinkRequestIn, request: Request):
         upsert=True,
     )
 
-    # Construir URL al frontend.
-    # Estrategia: 1) FRONTEND_BASE_URL/PUBLIC_BASE_URL env, 2) header Origin del request,
-    # 3) X-Forwarded-Host/Proto, 4) fallback al host del request (último recurso, puede
-    # ser interno detrás de un ingress y no funcionar para el usuario).
-    base = _ml_frontend_base()
-    if not base:
-        origin = request.headers.get("origin", "")
-        if origin and origin.startswith(("http://", "https://")):
-            base = origin.rstrip("/")
-    if not base:
-        proto = request.headers.get("X-Forwarded-Proto") or request.url.scheme
-        host = request.headers.get("X-Forwarded-Host") or request.headers.get("host", "")
-        if host:
-            base = f"{proto}://{host}"
-    link = f"{base}/login-comprador?token={token}" if base else f"/login-comprador?token={token}"
+    # Construir URL al frontend. SEGURIDAD (pentest 2026-06-27): NO confiar en headers controlados por el
+    # cliente (Origin / X-Forwarded-Host) — antes permitían host-header injection: el email del usuario llevaba
+    # un link al dominio del ATACANTE (phishing / robo del token). Solo FRONTEND_BASE_URL (env de confianza) o
+    # el dominio canónico de producción.
+    base = _ml_frontend_base() or "https://desarrollosmx.io"
+    link = f"{base}/login-comprador?token={token}"
 
     # Enviar email
     email_sent = False
@@ -383,13 +374,10 @@ async def request_magic_link(payload: MagicLinkRequestIn, request: Request):
     except Exception as ex:
         log.warning(f"[magic_link] email failed: {ex}")
 
-    # Devolver token raw cuando el email no se pudo enviar para que el frontend
-    # pueda construir el link con su propio origin (ingress puede reescribir host).
-    response = {"sent": True, "email_sent": email_sent, "expires_in_minutes": 15}
-    if not email_sent:
-        response["debug_token"] = token
-        response["debug_link"] = link  # legacy/fallback
-    return response
+    # SEGURIDAD (pentest 2026-06-27): NUNCA devolver el token en la respuesta HTTP. Antes, si el email fallaba se
+    # devolvía debug_token/debug_link = un token de login VÁLIDO → toma de control de CUALQUIER cuenta (bastaba con
+    # forzar el fallo de envío con un email que rebota). El token solo viaja por el correo.
+    return {"sent": True, "email_sent": email_sent, "expires_in_minutes": 15}
 
 
 @router.get("/api/auth/comprador/magic-link/verify")

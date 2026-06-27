@@ -181,29 +181,35 @@ def _user_can_edit(user, entity_type: str, doc: Dict[str, Any]) -> bool:
     if role == "superadmin":
         return True
     if entity_type == "unit" or entity_type == "project" or entity_type == "broker" or entity_type == "amenity":
-        # Developer roles can edit their own projects/units
         if role in ("developer_admin", "developer_director", "developer_member"):
-            doc_tenant = (doc.get("dev_org_id") or doc.get("developer_id") or "").lower()
-            # tenant match OR dev has same developer_id convention
-            return bool(doc_tenant) and (tenant.lower() in doc_tenant or doc_tenant in tenant.lower()
-                                            or doc.get("dev_org_id") == tenant)
+            # SEGURIDAD (pentest 2026-06-27): match EXACTO de tenant (antes substring `in` → dmx ⊂ dmx2 colaba).
+            dts = {str(doc.get(k) or "").lower() for k in ("dev_org_id", "developer_id")}
+            dts.discard("")
+            return bool(tenant) and tenant.lower() in dts
         return False
     if entity_type == "lead":
-        if role in ("developer_admin", "developer_director", "superadmin"):
-            return True
+        # SEGURIDAD (pentest 2026-06-27): el ROL admin NO basta — el lead debe ser de SU tenant/asignación.
+        # Antes developer_admin/director devolvía True sobre CUALQUIER lead → robo + escritura cross-tenant de PII.
+        owners = {str(doc.get(k) or "").lower() for k in ("dev_org_id", "org_id", "inmobiliaria_id", "developer_id")}
+        owners.discard("")
+        if role in ("developer_admin", "developer_director"):
+            return bool(tenant) and tenant.lower() in owners
         if role in ("advisor", "asesor_admin"):
-            return doc.get("assigned_to") == user.user_id or doc.get("assigned_user_id") == user.user_id
+            if doc.get("assigned_to") == user.user_id or doc.get("assigned_user_id") == user.user_id:
+                return True
+            return role == "asesor_admin" and bool(tenant) and tenant.lower() in owners
         return False
     if entity_type == "tarea":
-        if role == "superadmin":
-            return True
         return doc.get("owner_id") == user.user_id
     if entity_type == "comision":
-        if role in ("advisor", "asesor_admin", "superadmin"):
-            return doc.get("asesor_user_id") == user.user_id or role in ("asesor_admin", "superadmin")
+        # SEGURIDAD (pentest 2026-06-27): antes cualquier asesor_admin editaba CUALQUIER comisión (`or role in admin`).
+        if doc.get("asesor_user_id") == user.user_id:
+            return True
+        if role == "asesor_admin":
+            c_tenant = str(doc.get("inmobiliaria_id") or doc.get("org_id") or doc.get("tenant_id") or "").lower()
+            return bool(tenant) and bool(c_tenant) and tenant.lower() == c_tenant
         return False
     if entity_type == "asesor_profile":
-        # Users can edit their own profile; superadmin edits anyone
         return doc.get("user_id") == user.user_id
     return False
 
