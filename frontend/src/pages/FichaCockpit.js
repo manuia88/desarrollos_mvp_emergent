@@ -464,6 +464,21 @@ export default function FichaCockpit({ user, onLogin }) {
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
+  // Atlax AGÉNTICO: sus botones manejan la ficha (navegar tabs · agendar · guardar). navRef trae los últimos handlers (sin stale).
+  const navRef = useRef(null);
+  useEffect(() => {
+    const onAction = (e) => {
+      const nav = e && e.detail && e.detail.nav; const h = navRef.current; if (!nav || !h) return;
+      if (nav === 'dinero') h.goTab('dinero');
+      else if (nav === 'unidad' || nav === 'comparar') h.goTab('unidad');
+      else if (nav === 'confianza') h.goTab('confianza');
+      else if (nav === 'proyecto') h.goTab('proyecto');
+      else if (nav === 'agendar') h.agendar();
+      else if (nav === 'guardar') h.toggleSaveUnit();
+    };
+    window.addEventListener('dmx:atlax-action', onAction);
+    return () => window.removeEventListener('dmx:atlax-action', onAction);
+  }, []);
   useEffect(() => { let alive = true; fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); }); return () => { alive = false; }; }, [id]);
 
   useEffect(() => {
@@ -527,6 +542,19 @@ export default function FichaCockpit({ user, onLogin }) {
   // CONTEXTO VIVO para Atlax: la burbuja sabe la unidad/lente/sección que ve el cliente → responde en contexto + el lead al asesor lo lleva.
   const TAB_CTX = { proyecto: 'el proyecto', unidad: 'las unidades', dinero: 'sus números / Tu dinero', confianza: 'confianza y la zona' };
   const atlaxContext = `Ficha de ${dev.name} (${dev.colonia}${dev.alcaldia ? ', ' + dev.alcaldia : ''}). El cliente está en la sección "${TAB_CTX[tab] || tab}". ${unit ? `Tiene elegida la unidad ${unit.unit_number} — ${unit.bedrooms} rec, ${unit.m2_total || unit.m2_privative} m², ${money(unit.price)}. ` : 'Aún no elige una unidad. '}Intención: ${lens === 'invertir' ? `invertir (${invMode === 'institucional' ? 'institucional' : 'para sí mismo'})` : lens === 'vivir' ? 'para vivir' : 'sin definir'}.${unit && keyNum ? ` ${keyNum.l}: ${keyNum.v}${keyNum.sub ? ' (' + keyNum.sub + ')' : ''}.` : ''}`;
+
+  // Atlax PROACTIVO: saluda según lo que ves y ofrece botones que MUESTRAN (→ manual) o RESPONDEN con IA.
+  navRef.current = { goTab, agendar, toggleSaveUnit };
+  const atlaxWelcome = unit
+    ? `Estás viendo la ${unit.unit_number} de ${titleCase(dev.name)}, en ${titleCase(dev.colonia)}. ¿Por dónde quieres empezar?`
+    : `Estás viendo ${titleCase(dev.name)}, en ${titleCase(dev.colonia)}. ¿Te muestro las unidades, sus números o cómo es la zona?`;
+  const atlaxQuickActions = [
+    unit ? { label: 'Ver sus números', nav: 'dinero' } : { label: 'Ver las unidades', nav: 'unidad' },
+    { label: '¿Es buen precio?', ask: `¿Es buen precio ${unit ? `la unidad ${unit.unit_number} de ${dev.name}` : dev.name} comparado con el mercado de ${dev.colonia}? Sé concreto.` },
+    { label: 'Comparar unidades', nav: 'unidad' },
+    { label: '¿Cómo es vivir aquí?', nav: 'confianza' },
+    { label: 'Agendar una visita', nav: 'agendar', primary: true },
+  ];
 
   const badgeV = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)', color: '#059669', fontFamily: SANS, fontSize: 11, fontWeight: 700 };
   const badgeS = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: 'var(--theme)', fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' };
@@ -636,7 +664,7 @@ export default function FichaCockpit({ user, onLogin }) {
         @keyframes dmxProg{ from{ width:0;} }
       `}</style>
       {/* Atlax flotante — consciente de la unidad/lente/sección que ve el cliente (context vivo) */}
-      <AtlaxBubble theme="light" context={atlaxContext} />
+      <AtlaxBubble theme="light" context={atlaxContext} welcome={atlaxWelcome} quickActions={atlaxQuickActions} />
       {compareOpen && <ComparaProyectos dev={dev} onClose={() => setCompareOpen(false)} />}
       {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
     </LightScope>

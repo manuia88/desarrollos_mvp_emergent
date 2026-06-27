@@ -309,7 +309,7 @@ function renderRich(text) {
   return parts.map((seg, i) => (i % 2 === 1 ? <strong key={i}>{seg}</strong> : <React.Fragment key={i}>{seg}</React.Fragment>));
 }
 
-export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null } = {}) {
+export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null, welcome = null, quickActions = null } = {}) {
   const light = theme === 'light';
   // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
   const lightVars = light ? { '--cream': '#1E2230', '--cream-2': '#4A4F5E', '--cream-3': '#8A8F9E', '--border': '#ECECEC' } : {};
@@ -686,7 +686,34 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 14px)',
             maskImage: 'linear-gradient(to bottom, transparent 0, #000 14px)',
           }}>
-            {messages.length === 0 && (
+            {/* Opener PROACTIVO ficha-aware: Atlax saluda según lo que ves y te da botones que MUESTRAN (→ manual)
+                o RESPONDEN con IA. Es la semilla de "Atlax = sistema operativo de la ficha". */}
+            {messages.length === 0 && quickActions && quickActions.length > 0 && (
+              <div style={{ padding: '8px 4px', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9999, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}><Sparkle size={15} /></div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)' }}>Soy Atlax</div>
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream)', lineHeight: 1.5, marginBottom: 14 }}>{welcome || 'Te ayudo con esta propiedad. ¿Por dónde empezamos?'}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {quickActions.map((a, i) => (
+                    <button key={i} disabled={busy} onClick={() => { if (a.nav) { window.dispatchEvent(new CustomEvent('dmx:atlax-action', { detail: { nav: a.nav } })); } else if (a.ask) { send(null, a.ask); } }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '11px 14px', borderRadius: 12, cursor: busy ? 'not-allowed' : 'pointer',
+                        fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        background: a.primary ? 'var(--grad)' : (light ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(var(--theme-rgb),0.10)'),
+                        border: a.primary ? '1px solid transparent' : '1px solid rgba(var(--theme-rgb),0.25)',
+                        color: a.primary ? '#fff' : 'var(--cream)', opacity: busy ? 0.6 : 1,
+                      }}>
+                      <span>{a.label}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, opacity: a.primary ? 0.9 : 0.55, letterSpacing: '0.04em' }}>{a.ask ? 'IA' : '→'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 12, textAlign: 'center' }}>O escríbeme lo que quieras saber abajo.</div>
+              </div>
+            )}
+            {messages.length === 0 && !(quickActions && quickActions.length > 0) && (
               <div style={{
                 padding: 20, textAlign: 'center', color: 'var(--cream-3)',
                 fontFamily: 'DM Sans', fontSize: 12.5, lineHeight: 1.55,
