@@ -803,8 +803,11 @@ async def get_disc_profile(lead_id: str, request: Request):
     if not lead:
         raise HTTPException(404, f"Lead {lead_id} no encontrado")
     org_id = lead.get("dev_org_id")
-    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
-        raise HTTPException(403, "Lead pertenece a otra org")
+    # SEGURIDAD (pentest 2026-06-27): el check anterior fallaba ABIERTO si dev_org_id era null → un asesor leía
+    # data de CUALQUIER lead. Usa el helper de ownership (org/dev_org/inmobiliaria/owner/assigned_to → respeta el
+    # acceso legítimo del asesor a SUS leads · fail-closed en prod sobre leads sin dueño · tolera demo).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
     target_org = _resolve_org(user, org_id)
 
     try:
@@ -833,8 +836,11 @@ async def refresh_disc_profile(lead_id: str, request: Request,
     if not lead:
         raise HTTPException(404, f"Lead {lead_id} no encontrado")
     org_id = lead.get("dev_org_id")
-    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
-        raise HTTPException(403, "Lead pertenece a otra org")
+    # SEGURIDAD (pentest 2026-06-27): el check anterior fallaba ABIERTO si dev_org_id era null → un asesor leía
+    # data de CUALQUIER lead. Usa el helper de ownership (org/dev_org/inmobiliaria/owner/assigned_to → respeta el
+    # acceso legítimo del asesor a SUS leads · fail-closed en prod sobre leads sin dueño · tolera demo).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
     target_org = _resolve_org(user, org_id)
 
     sim_override = payload.simulation_override if payload else False
@@ -954,8 +960,11 @@ async def nurture_sequence_dry_run(lead_id: str, request: Request,
     if not lead:
         raise HTTPException(404, f"Lead {lead_id} no encontrado")
     org_id = lead.get("dev_org_id")
-    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
-        raise HTTPException(403, "Lead pertenece a otra org")
+    # SEGURIDAD (pentest 2026-06-27): el check anterior fallaba ABIERTO si dev_org_id era null → un asesor leía
+    # data de CUALQUIER lead. Usa el helper de ownership (org/dev_org/inmobiliaria/owner/assigned_to → respeta el
+    # acceso legítimo del asesor a SUS leads · fail-closed en prod sobre leads sin dueño · tolera demo).
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
     target_org = _resolve_org(user, org_id)
     sim_override = payload.simulation_override if payload else False
     try:
