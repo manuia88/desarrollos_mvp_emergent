@@ -96,7 +96,7 @@ function EmptyHint({ text, onGo }) {
 
 // Pestaña "El proyecto": contexto que SUMA valor — historia, avance de obra (fases+bitácora), disponibilidad, prototipos,
 // el precio desde el lanzamiento, amenidades y el desarrollador. Todo dato real del dev (hide-if-empty).
-function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnidades }) {
+function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnidades, onVerDinero }) {
   const cp = dev.construction_progress || {};
   const pct = Math.max(0, Math.min(100, cp.percentage || 0));
   const phases = Array.isArray(cp.phases) ? cp.phases : [];
@@ -111,6 +111,15 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   const ph = Array.isArray(dev.price_history) ? dev.price_history.filter((x) => x && x.price) : [];
   const phUp = ph.length >= 2 ? Math.round((ph[ph.length - 1].price / ph[0].price - 1) * 100) : null;
   const developer = dev.developer || {};
+  const servicios = dev.servicios && typeof dev.servicios === 'object' ? Object.entries(dev.servicios) : [];
+  const tecnica = dev.tecnica && typeof dev.tecnica === 'object' ? Object.entries(dev.tecnica) : [];
+  const acabados = Array.isArray(dev.memoria_acabados) ? dev.memoria_acabados : [];
+  const [schemes, setSchemes] = useState([]);
+  useEffect(() => { let alive = true; fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setSchemes((d && d.schemes) || []); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
+  const minEng = schemes.length ? Math.min(...schemes.map((s) => s.firma_pct || 0)) : null;
+  const maxDesc = schemes.length ? Math.max(...schemes.map((s) => s.descuento_pct || 0)) : 0;
+  const SERV_IC = { Gas: '🔥', Agua: '🚰', Energía: '⚡', Internet: '🌐', Drenaje: '🚿' };
+  const TEC_IC = { Niveles: '🏢', Elevadores: '🛗', Cisterna: '🪣', Estructura: '🏗️', Estacionamiento: '🅿️' };
   const h2 = (t) => <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 4 }}>{t}</div>;
   const eyebrow = (t) => <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>{t}</div>;
 
@@ -121,7 +130,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
       {/* facts rápidos */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(108px,1fr))' }}>
-          {[['Tipo', tipo], ['Recámaras', rng(beds)], ['Superficie', rng(m2r) ? `${rng(m2r)} m²` : null], ['Niveles', dev.max_level], ['Estac.', rng(park)], ['Entrega', fechaCorta(dev.delivery_estimate)], ['Unidades', nUnits]].filter(([, v]) => v != null && v !== '').map(([l, v], i) => (
+          {[['Tipo', tipo], ['Recámaras', rng(beds)], ['Superficie', rng(m2r) ? `${rng(m2r)} m²` : null], ['Niveles', dev.max_level], ['Estac.', rng(park)], ['Lanzamiento', fechaCorta(dev.fecha_lanzamiento)], ['Entrega', fechaCorta(dev.delivery_estimate)], ['Unidades', nUnits]].filter(([, v]) => v != null && v !== '').map(([l, v], i) => (
             <div key={l} style={{ padding: '15px 18px', borderLeft: i ? '1px solid var(--card-border, var(--border))' : 'none' }}>
               <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{v}</div>
               <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{l}</div>
@@ -188,6 +197,18 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         </div>
       )}
 
+      {/* formas de pago (resumen → Tu dinero) */}
+      {schemes.length > 0 && (
+        <Card onClick={onVerDinero} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', cursor: onVerDinero ? 'pointer' : 'default' }}>
+          <div>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Formas de pago</div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 19, color: 'var(--cream)', marginTop: 2 }}>{schemes.length} {schemes.length === 1 ? 'plan' : 'planes'} de pago{minEng != null ? ` · desde ${minEng}% de enganche` : ''}{maxDesc > 0 ? ` · hasta −${maxDesc}% de descuento` : ''}</div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', marginTop: 2 }}>{schemes.map((s) => s.nombre).join(' · ')}</div>
+          </div>
+          {onVerDinero && <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: 'var(--theme)', whiteSpace: 'nowrap' }}>Ver tu plan en Tu dinero →</span>}
+        </Card>
+      )}
+
       {/* el precio desde el lanzamiento */}
       {phUp != null && phUp > 0 && (
         <Card>
@@ -206,6 +227,37 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
             <span style={{ marginLeft: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', color: '#059669', fontFamily: HEAD, fontWeight: 800, fontSize: 13 }}>+{phUp}% desde el lanzamiento</span>
           </div>
         </Card>
+      )}
+
+      {/* ficha técnica + servicios */}
+      {(tecnica.length > 0 || servicios.length > 0) && (
+        <div>
+          {h2('Ficha técnica')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(215px,1fr))', gap: 12, marginTop: 12 }}>
+            {[...tecnica, ...servicios].map(([k, v]) => (
+              <Card key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px' }}>
+                <span style={{ fontSize: 20 }}>{TEC_IC[k] || SERV_IC[k] || '🔧'}</span>
+                <div style={{ minWidth: 0 }}><div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>{v}</div><div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{k}</div></div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* memoria de acabados */}
+      {acabados.length > 0 && (
+        <div>
+          {h2('Memoria de acabados')}
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 12px' }}>Lo que viene en tu departamento.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(255px,1fr))', gap: 10 }}>
+            {acabados.map((a, i) => (
+              <Card key={i} style={{ padding: '13px 16px' }}>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{a.area}</div>
+                <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{a.detalle}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* amenidades */}
@@ -338,7 +390,7 @@ export default function FichaCockpit({ user, onLogin }) {
         {/* ── BODY: contenido enfocado + sidebar fijo ── */}
         <div className="dmx-cockpit-grid" style={{ maxWidth: 1320, width: '94%', margin: '0 auto', padding: '24px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 28, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
-            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} onVerUnidades={() => goTab('unidad')} />}
+            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} onVerUnidades={() => goTab('unidad')} onVerDinero={() => goTab('dinero')} />}
 
             {tab === 'unidad' && (
               <>
