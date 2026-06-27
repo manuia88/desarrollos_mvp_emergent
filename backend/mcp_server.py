@@ -76,15 +76,20 @@ async def _validate_mcp_key(request: Request) -> Dict[str, Any]:
     # SEGURIDAD (pentest 2026-06-27): cuota mensual + metering. Sin esto el MCP permitía extracción
     # ILIMITADA del moat (rodeaba la cuota que SÍ aplica la API v1). Reusa el bucket mensual de public_api_auth.
     from public_api_auth import _now_month
-    if doc.get("month_bucket") != _now_month():
-        doc["calls_this_month"] = 0
+    month = _now_month()
+    if doc.get("month_bucket") != month:
         await db.public_api_keys.update_one(
-            {"id": doc["id"]}, {"$set": {"calls_this_month": 0, "month_bucket": _now_month()}})
+            {"id": doc["id"], "month_bucket": {"$ne": month}},
+            {"$set": {"calls_this_month": 0, "month_bucket": month}})
     quota = doc.get("monthly_quota_calls") or 1000
-    if (doc.get("calls_this_month") or 0) >= quota:
+    # SEGURIDAD (pentest 2026-06-27): check+inc ATÓMICO (antes read→compare→inc en ops separadas → TOCTOU, 7× la cuota
+    # por concurrencia). find_one_and_update incrementa SOLO si sigue bajo cuota; si no matchea → 429.
+    bumped = await db.public_api_keys.find_one_and_update(
+        {"id": doc["id"], "month_bucket": month,
+         "$expr": {"$lt": [{"$ifNull": ["$calls_this_month", 0]}, quota]}},
+        {"$inc": {"calls_this_month": 1, "calls_total": 1}})
+    if not bumped:
         raise HTTPException(429, "Cuota mensual del MCP agotada")
-    await db.public_api_keys.update_one(
-        {"id": doc["id"]}, {"$inc": {"calls_this_month": 1, "calls_total": 1}})
 
     return doc
 

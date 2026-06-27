@@ -106,19 +106,28 @@ async def validate_api_key(request: Request) -> ApiKeyContext:
         except (ValueError, TypeError):
             pass
 
-    # Reset month bucket if necessary
-    if doc.get("month_bucket") != _now_month():
-        doc["calls_this_month"] = 0
-        doc["month_bucket"] = _now_month()
+    month = _now_month()
+    # Reset atómico del bucket mensual (la condición va en el FILTRO → sin carrera entre requests concurrentes).
+    if doc.get("month_bucket") != month:
         await db.public_api_keys.update_one(
-            {"id": doc["id"]},
-            {"$set": {"calls_this_month": 0, "month_bucket": _now_month()}},
+            {"id": doc["id"], "month_bucket": {"$ne": month}},
+            {"$set": {"calls_this_month": 0, "month_bucket": month}},
         )
 
     quota = doc.get("monthly_quota_calls") or DEFAULT_QUOTA.get(doc.get("tier", "free"), 1000)
-    used = doc.get("calls_this_month") or 0
-    if used >= quota:
+    # SEGURIDAD (pentest 2026-06-27): check de cuota + incremento ATÓMICO en UNA sola op. Antes el check (aquí) y el
+    # incremento (track_api_call, después del request) eran 2 ops separadas → TOCTOU: N requests concurrentes pasaban
+    # el check con el MISMO contador y excedían la cuota hasta 12×. Ahora find_one_and_update incrementa SOLO si sigue
+    # bajo cuota; si el filtro no matchea (cuota llena) → 429.
+    bumped = await db.public_api_keys.find_one_and_update(
+        {"id": doc["id"], "month_bucket": month,
+         "$expr": {"$lt": [{"$ifNull": ["$calls_this_month", 0]}, quota]}},
+        {"$inc": {"calls_this_month": 1, "calls_total": 1}, "$set": {"last_used_at": _iso()}},
+        projection={"_id": 0, "calls_this_month": 1},
+    )
+    if not bumped:
         raise HTTPException(429, "Rate limit excedido (cuota mensual agotada)")
+    used = (bumped.get("calls_this_month") or 0) + 1
 
     return ApiKeyContext(
         id=doc["id"], tenant_id=doc.get("tenant_id", ""),
@@ -168,13 +177,9 @@ async def track_api_call(
             "billable": billable,
             "cost_usd_cents": 0,
         })
-        await db.public_api_keys.update_one(
-            {"id": ctx.id},
-            {
-                "$inc": {"calls_this_month": 1, "calls_total": 1},
-                "$set": {"last_used_at": _iso(), "month_bucket": _now_month()},
-            },
-        )
+        # SEGURIDAD (pentest 2026-06-27): el incremento de cuota ya se hace ATÓMICO en validate_api_key (al inicio del
+        # request). Aquí solo se registra el log de la llamada — NO se vuelve a incrementar (sería doble conteo y
+        # reabriría la carrera TOCTOU). last_used_at también lo setea validate.
     except Exception as e:
         log.warning(f"[apikey] track failed: {e}")
 
