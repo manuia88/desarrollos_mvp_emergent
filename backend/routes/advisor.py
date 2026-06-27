@@ -157,9 +157,9 @@ class OperacionIn(BaseModel):
     contacto_id: Optional[str] = None
     desarrollo_id: Optional[str] = None
     unidad_id: Optional[str] = None
-    valor_cierre: int
+    valor_cierre: int = Field(ge=0, le=10_000_000_000)  # SEGURIDAD (pentest): cota — sin ella, montos negativos/absurdos envenenaban el AVM/DRPI de la zona al cerrar
     currency: str = "MXN"
-    comision_pct: float = 4.0
+    comision_pct: float = Field(default=4.0, ge=0, le=100)
     fecha_cierre: Optional[str] = None
     notas: Optional[str] = ""
 

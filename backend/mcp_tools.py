@@ -28,7 +28,10 @@ class McpToolError(Exception):
 
 
 # Tier comparison helpers
-_TIER_ORDER = {"off": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4}
+# SEGURIDAD (pentest 2026-06-27): incluye el vocabulario de la API (free/pro/enterprise) ADEMÁS del de Phase Y
+# (off/T1-T4). Antes el gate de las tools del moat usaba "pro" como umbral, que NO estaba en el dict → get(...,99) →
+# 0>=99=False → bloqueaba HASTA a los que pagan (gate inútil). Ahora ambos vocabularios mapean al mismo rango.
+_TIER_ORDER = {"off": 0, "free": 0, "T1": 1, "pro": 1, "T2": 2, "enterprise": 2, "T3": 3, "T4": 4}
 
 
 def _tier_gte(tier: str, minimum: str) -> bool:

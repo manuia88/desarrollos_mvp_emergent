@@ -673,7 +673,7 @@ async def inversion_v4_analyze(request: Request):
         res["fuentes_fecha"] = {"banxico": fecha_banxico, "shf": "Q1-2026", "lisr": "2026", "airroi": "en vivo por zona"}
         # AirROI: expone el dato CACHEADO de la zona (NO llama a la API aquí — AirROI cuesta por llamada; el refresh es aparte)
         try:
-            zid = body.get("zone_id")
+            zid = str(body.get("zone_id") or "").strip()  # SEGURIDAD (pentest): str-cast evita inyección de operador NoSQL ($ne/$exists/$regex)
             if zid:
                 air = await db.airroi_cache.find_one({"zone_id": zid}, {"_id": 0})
                 if air:
