@@ -94,6 +94,7 @@ DEVELOPMENTS_RAW = [
         "street": "Moliere 245", "postal_code": "11570",
         "developer_id": "quattro",
         "stage": "preventa", "delivery_estimate": "2027-10", "fecha_lanzamiento": "2025-08",
+        "creditos_aceptados": ["Contado", "Crédito hipotecario bancario", "Cofinavit"],
         "servicios": {"Gas": "Natural", "Agua": "Red municipal + cisterna", "Energía": "CFE + planta de emergencia", "Internet": "Fibra óptica al departamento"},
         "tecnica": {"Niveles": "34", "Elevadores": "2 de alta velocidad", "Cisterna": "Sí · 2 días de autonomía", "Estructura": "Concreto antisísmico (NTC-2020)", "Estacionamiento": "Subterráneo, 4 niveles"},
         "memoria_acabados": [
@@ -657,6 +658,7 @@ def _build_dev(dev_raw: dict) -> dict:
         "unit_features": unit_features,
         # Contexto del proyecto (lo que el dev edita en su portal: Contenido/Amenidades/Ficha técnica). Pass-through del seed.
         "fecha_lanzamiento": dev_raw.get("fecha_lanzamiento"),
+        "creditos_aceptados": dev_raw.get("creditos_aceptados"),
         "servicios": dev_raw.get("servicios"),
         "memoria_acabados": dev_raw.get("memoria_acabados"),
         "tecnica": dev_raw.get("tecnica"),
