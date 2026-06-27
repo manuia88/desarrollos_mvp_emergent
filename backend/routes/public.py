@@ -1271,6 +1271,26 @@ async def precio_posicion_batch(payload: PrecioPosicionBatchIn, request: Request
     return {"unidades": out, "fuente": "mercado_real" if out else None}
 
 
+@router.get("/api/public/payment-schemes/{project_id}")
+async def public_payment_schemes(project_id: str, request: Request):
+    """Esquema(s) de pago del desarrollador para la ficha del comprador (lo que el dev configuró en su portal:
+    apartado · firma/enganche% · mensualidades% · escritura% · descuento por enganche). Lectura pública; si el dev no
+    configuró, devuelve el default del motor. El comprador solo elige el esquema (enganche); el resto es fijo del dev."""
+    db = request.app.state.db
+    try:
+        import payment_schemes as ps
+        from data_developments import DEVELOPMENTS_BY_ID
+        doc = await db.dev_payment_schemes.find_one({"project_id": project_id}, {"_id": 0})
+        dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+        schemes = (doc or {}).get("schemes") or ps.default_schemes()
+        fecha_inicio = (doc or {}).get("fecha_inicio")
+        fecha_entrega = (doc or {}).get("fecha_entrega") or dev.get("delivery_estimate")
+        return {"schemes": schemes, "fecha_inicio": fecha_inicio, "fecha_entrega": fecha_entrega,
+                "meses_auto": ps.auto_months(fecha_inicio, fecha_entrega), "configured": bool(doc)}
+    except Exception:
+        return {"schemes": [], "meses_auto": None, "configured": False}
+
+
 @router.get("/api/catastro/predios-bbox")
 async def predios_bbox(request: Request, w: float, s: float, e: float, n: float, limit: int = 2500):
     """Predios (POLÍGONOS del lote) dentro del recuadro visible → se cargan solo con zoom cercano.

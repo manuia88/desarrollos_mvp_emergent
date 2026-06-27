@@ -357,14 +357,14 @@ export default function FichaCockpit({ user, onLogin }) {
                 {/* ② TU CRÉDITO + RENDIMIENTO a fondo — la calc ya trae el simulador de crédito (no se duplica) */}
                 {lens === 'invertir' && (unit || multi) && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Tu crédito y rendimiento a fondo</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>📊 Análisis de inversión a fondo</div>
                     <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                   </div>
                 )}
                 {lens === 'vivir' && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>🏦 Tu crédito y rentar-vs-comprar</div>
-                    <SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="credito" />
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>🏠 ¿Rentar o comprar?</div>
+                    <SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="rentobuy" />
                   </div>
                 )}
               </>
