@@ -349,16 +349,31 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   );
 }
 
-// Comparar proyectos: el comprador rara vez ve uno solo. Modal con el dev actual + un picker del 2do → lado a lado.
+// Comparar hasta 5 proyectos lado a lado, incluyendo la parte FINANCIERA (precio/m², renta, TIR, cap rate, plusvalía).
 function ComparaProyectos({ dev, onClose }) {
   const [list, setList] = useState([]);
-  const [otherId, setOtherId] = useState('');
-  const [other, setOther] = useState(null);
-  useEffect(() => { let alive = true; fetchDevelopments({}).then((d) => { if (!alive) return; const arr = Array.isArray(d) ? d : (d.developments || d.items || d.results || []); setList(arr.filter((x) => x.id !== dev.id)); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
-  useEffect(() => { if (!otherId) { setOther(null); return undefined; } let alive = true; fetchDevelopment(otherId).then((d) => { if (alive) setOther((d && d.development) || d); }).catch(() => {}); return () => { alive = false; }; }, [otherId]);
+  const [picked, setPicked] = useState([]);          // IDs agregados (máx 4 → 5 columnas con el actual)
+  const [data, setData] = useState({ [dev.id]: dev });
+  const [fin, setFin] = useState({});                // id → {tir, cap, plus} del motor de inversión
+  const HK = process.env.REACT_APP_BACKEND_URL;
+  useEffect(() => { let alive = true; fetchDevelopments({}).then((d) => { if (!alive) return; const arr = Array.isArray(d) ? d : (d.developments || d.items || d.results || []); setList(arr); }).catch(() => {}); return () => { alive = false; }; }, []);
+  useEffect(() => {
+    let alive = true;
+    [dev.id, ...picked].forEach((id) => {
+      const d = data[id]; if (!d || fin[id]) return;
+      const col = d.colonia_id || d.colonia;
+      fetch(`${HK}/api/inversion-v4/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor_propiedad: d.price_from, enganche_pct: 0.20, plazo_anios: 20, horizonte_anios: 10, renta_mensual: Math.round((d.price_from || 0) * 0.0045), colonia: col }) })
+        .then((r) => r.json()).then((a) => { if (alive && a && a.ok) setFin((f) => ({ ...f, [id]: { tir: a.tir_pct, cap: a.cap_rate_pct, plus: a.apreciacion_return_pct } })); }).catch(() => {});
+    });
+    return () => { alive = false; };
+  }, [picked.join(','), Object.keys(data).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const addProject = (id) => { if (!id || picked.includes(id) || picked.length >= 4) return; fetchDevelopment(id).then((d) => { const full = (d && d.development) || d; setData((p) => ({ ...p, [id]: full })); setPicked((p) => [...p, id]); }).catch(() => {}); };
+  const removeProject = (id) => setPicked((p) => p.filter((x) => x !== id));
   const rng2 = (a) => (Array.isArray(a) && a.length ? (a[0] === a[1] ? `${a[0]}` : `${a[0]}–${a[1]}`) : null);
+  const m2avg = (d) => { const m = d.m2_range || []; return m.length ? Math.round((m[0] + (m[1] || m[0])) / 2) : null; };
   const ROWS = [
     ['Precio desde', (d) => d.price_from, (v) => money(v), 'min'],
+    ['Precio / m²', (d) => (d.price_from && m2avg(d) ? Math.round(d.price_from / m2avg(d)) : null), (v) => money(v), 'min'],
     ['Superficie', (d) => (d.m2_range || [])[1] || (d.m2_range || [])[0], (v) => `${v} m²`, 'max'],
     ['Recámaras', (d) => rng2(d.bedrooms_range), (v) => v, null],
     ['Baños', (d) => rng2(d.bathrooms_range), (v) => v, null],
@@ -369,45 +384,62 @@ function ComparaProyectos({ dev, onClose }) {
     ['Avance de obra', (d) => (d.construction_progress || {}).percentage, (v) => (v != null ? `${v}%` : '—'), null],
     ['Entrega', (d) => fechaCorta(d.delivery_estimate), (v) => v, null],
     ['Zona', (d) => d.colonia, (v) => v, null],
-  ];
-  const cell = (d, get, fmt) => { if (!d) return '—'; const v = get(d); return (v == null || v === '') ? '—' : (fmt ? fmt(v) : v); };
+    { fin: true, label: 'Renta estimada', get: (d) => Math.round((d.price_from || 0) * 0.0045), fmt: (v) => `${money(v)}/mes`, dir: 'max' },
+    { fin: true, label: 'Rendimiento (TIR)', get: (d, f) => (f ? f.tir : null), fmt: (v) => `${v}%`, dir: 'max' },
+    { fin: true, label: 'Cap rate', get: (d, f) => (f ? f.cap : null), fmt: (v) => `${v}%`, dir: 'max' },
+    { fin: true, label: 'Plusvalía/año', get: (d, f) => (f ? f.plus : null), fmt: (v) => `${v}%`, dir: 'max' },
+  ].map((r) => (Array.isArray(r) ? { label: r[0], get: r[1], fmt: r[2], dir: r[3] } : r));
+  const cols = [dev.id, ...picked];
+  const cell = (id, get, fmt) => { const d = data[id]; if (!d) return '—'; const v = get(d, fin[id]); return (v == null || v === '') ? '—' : (fmt ? fmt(v) : v); };
+
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(16,18,28,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface, #faf9f7)', borderRadius: 18, maxWidth: 700, width: '100%', maxHeight: '88vh', overflowY: 'auto', padding: '22px 24px', boxShadow: '0 24px 60px rgba(16,18,28,0.32)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>⚖️ Comparar proyectos</div>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface, #faf9f7)', borderRadius: 18, maxWidth: 1000, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '22px 24px', boxShadow: '0 24px 60px rgba(16,18,28,0.32)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>Comparar proyectos</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--cream-3)', cursor: 'pointer' }}>✕</button>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13.5 }}>
-          <thead>
-            <tr>
-              <th />
-              <th style={{ textAlign: 'left', padding: '6px 12px', fontFamily: HEAD, fontWeight: 800, fontSize: 14, color: 'var(--theme)' }}>{dev.name}</th>
-              <th style={{ textAlign: 'left', padding: '6px 12px' }}>
-                <select value={otherId} onChange={(e) => setOtherId(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--card-border, var(--border))', fontFamily: HEAD, fontWeight: 700, fontSize: 13, color: 'var(--cream)', background: 'var(--surface-card)', cursor: 'pointer' }}>
-                  <option value="">Elige otro proyecto…</option>
-                  {list.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                </select>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map(([label, get, fmt, dir], i) => {
-              const a = get(dev), b = other ? get(other) : null;
-              const na = typeof a === 'number' ? a : null, nb = typeof b === 'number' ? b : null;
-              const aWin = dir && na != null && nb != null && (dir === 'min' ? na < nb : na > nb);
-              const bWin = dir && na != null && nb != null && (dir === 'min' ? nb < na : nb > na);
-              return (
-                <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))' }}>
-                  <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
-                  <td style={{ padding: '9px 12px', color: aWin ? '#059669' : 'var(--cream)', fontWeight: aWin ? 800 : 500 }}>{cell(dev, get, fmt)}{aWin ? ' ✓' : ''}</td>
-                  <td style={{ padding: '9px 12px', color: bWin ? '#059669' : 'var(--cream)', fontWeight: bWin ? 800 : 500 }}>{other ? `${cell(other, get, fmt)}${bWin ? ' ✓' : ''}` : '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>✓ = mejor en esa fila (precio más bajo, más m²/niveles/amenidades). Referencia; cada proyecto tiene su propio contexto y calidad.</div>
+        <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 14 }}>Hasta 5 proyectos lado a lado, con su parte financiera. {picked.length < 4 && 'Agrega otro abajo.'}</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13, minWidth: 480 }}>
+            <thead>
+              <tr>
+                <th style={{ minWidth: 130 }} />
+                {cols.map((id, ci) => (
+                  <th key={id} style={{ textAlign: 'left', padding: '6px 12px', minWidth: 130, verticalAlign: 'top' }}>
+                    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, color: ci === 0 ? 'var(--theme)' : 'var(--cream)' }}>{(data[id] || {}).name || '—'}</div>
+                    {ci > 0 && <button onClick={() => removeProject(id)} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 2 }}>quitar ✕</button>}
+                  </th>
+                ))}
+                {picked.length < 4 && (
+                  <th style={{ padding: '6px 12px', minWidth: 150, verticalAlign: 'top' }}>
+                    <select value="" onChange={(e) => addProject(e.target.value)} style={{ width: '100%', padding: '7px 9px', borderRadius: 9, border: '1px dashed var(--theme)', fontFamily: HEAD, fontWeight: 700, fontSize: 12.5, color: 'var(--theme)', background: 'transparent', cursor: 'pointer' }}>
+                      <option value="">+ Agregar proyecto…</option>
+                      {list.filter((x) => x.id !== dev.id && !picked.includes(x.id)).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                    </select>
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {ROWS.map((r, i) => {
+                const nums = cols.map((id) => { const d = data[id]; const v = d ? r.get(d, fin[id]) : null; return typeof v === 'number' ? v : null; });
+                const valid = nums.filter((v) => v != null);
+                const best = r.dir && valid.length > 1 ? (r.dir === 'min' ? Math.min(...valid) : Math.max(...valid)) : null;
+                return (
+                  <tr key={i} style={{ borderTop: '1px solid var(--card-border, var(--border))', background: r.fin ? 'rgba(99,102,241,0.03)' : 'transparent' }}>
+                    <td style={{ padding: '9px 12px', color: 'var(--cream-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{r.label}</td>
+                    {cols.map((id, ci) => { const win = best != null && nums[ci] === best; return (
+                      <td key={id} style={{ padding: '9px 12px', color: win ? '#059669' : 'var(--cream)', fontWeight: win ? 800 : 500, whiteSpace: 'nowrap' }}>{cell(id, r.get, r.fmt)}{win ? ' ✓' : ''}</td>
+                    ); })}
+                    {picked.length < 4 && <td />}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ marginTop: 14, fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>✓ = mejor en esa fila. Financiero (TIR/cap/plusvalía) estimado por el motor con el precio “desde” de cada proyecto; referencia, no una recomendación.</div>
       </div>
     </div>
   );
@@ -511,7 +543,7 @@ export default function FichaCockpit({ user, onLogin }) {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-                <button onClick={() => { setCompareOpen(true); try { sendBuyerSignal('compare', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } }} style={{ padding: '5px 12px', borderRadius: 9999, background: 'transparent', border: '1px solid var(--card-border, var(--border))', color: 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>⚖️ Comparar</button>
+                <button onClick={() => { setCompareOpen(true); try { sendBuyerSignal('compare', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } }} style={{ padding: '5px 12px', borderRadius: 9999, background: 'transparent', border: '1px solid var(--card-border, var(--border))', color: 'var(--cream-2)', fontFamily: HEAD, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Comparar</button>
                 {dev.verified && <span style={badgeV}>✓ Verificado</span>}
                 <span style={badgeS}>{STAGE[dev.stage] || dev.stage}</span>
               </div>
@@ -527,11 +559,13 @@ export default function FichaCockpit({ user, onLogin }) {
         {/* ── BODY: contenido enfocado + sidebar fijo ── */}
         <div className="dmx-cockpit-grid" style={{ maxWidth: 1320, width: '94%', margin: '0 auto', padding: '24px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 28, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
+            {/* Lens UNO solo (founder: evitar el toggle duplicado entre Tu unidad y Tu dinero) — persistente en ambas. */}
+            {(tab === 'unidad' || tab === 'dinero') && <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />}
+
             {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} onVerUnidades={() => goTab('unidad')} onVerDinero={() => goTab('dinero')} onVerConfianza={() => goTab('confianza')} />}
 
             {tab === 'unidad' && (
               <>
-                <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />
                 {unit && <div style={{ marginBottom: 20 }}><CockpitCard dev={dev} unit={unit} lens={lens} keyNum={keyNum} hk={hk} kM2={kM2} onVerDinero={() => goTab('dinero')} onAgendar={agendar} saved={savedUnits.has(unit.unit_number)} onToggleSave={toggleSaveUnit} /></div>}
                 <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} plusvalia={hk.plusvalia} />
               </>
@@ -539,7 +573,6 @@ export default function FichaCockpit({ user, onLogin }) {
 
             {tab === 'dinero' && (
               <>
-                <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />
                 {!unit && !multi && <EmptyHint text="Elige una unidad en “Tu unidad” para ver tus números exactos." onGo={() => goTab('unidad')} />}
                 {/* ① CÓMO PAGAS: el esquema de pago al desarrollador (apartado/enganche/mensualidades/escritura + gastos) */}
                 <PlanDePago dev={dev} unit={multi ? null : unit} />
