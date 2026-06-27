@@ -967,6 +967,10 @@ async def inversion_v4_airroi(request: Request):
     """Trae renta corta REAL de AirROI para una zona (ADR, ocupación, revenue). AirROI COBRA por llamada, así que
     cacheamos por zona (TTL 30 días) y solo pegamos a la API en refresh explícito (este endpoint, por botón). Devuelve
     la tarifa/noche ya convertida a MXN con el FIX vivo. Reusa el conector real connectors_ie.AirRoiConnector."""
+    # SEGURIDAD (pentest): AirROI COBRA por llamada y force=true salta el caché → rate-limit anti cost-abuse anónimo.
+    from services.ratelimit import allow, client_ip
+    if not allow("airroi_refresh", client_ip(request), 3, 60):
+        raise HTTPException(429, "Demasiadas consultas seguidas. Intenta en un momento.")
     from datetime import datetime, timezone, timedelta
     try:
         body = await request.json()
