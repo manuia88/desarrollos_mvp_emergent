@@ -8,7 +8,7 @@ Correr en cada deploy (prebuild) para que el inventario esté al día. REUSA la 
 """
 import os
 
-from routes.seo_files import _LLMS_TXT, _dev_inventory_md, _SITEMAP_URLS, _all_dev_slugs, BASE_URL
+from routes.seo_files import _LLMS_TXT, _dev_inventory_md, _SITEMAP_URLS, _all_dev_slugs, _all_zone_slugs, BASE_URL
 
 PUBLIC_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public"))
 
@@ -20,6 +20,7 @@ def build_llms() -> str:
 def build_sitemap() -> str:
     entries = list(_SITEMAP_URLS)
     entries.extend(f"/desarrollo/{s}" for s in _all_dev_slugs())
+    entries.extend(f"/zona/{s}" for s in _all_zone_slugs())  # GEO: fichas de zona con JSON-LD Place + FAQPage
     try:
         from routes.seo_themed import all_theme_paths
         entries.extend(all_theme_paths())

@@ -18,6 +18,7 @@ import ZoneReviewsBlock from '../../components/zones/ZoneReviewsBlock';  // voz 
 import ZoneLivBlock from '../../components/zones/ZoneLivBlock';  // habitabilidad por perfil (motor LIV · hide-if-empty)
 import ZoneCycleBlock from '../../components/zones/ZoneCycleBlock';  // momento de la zona / ciclo (motor zone_cycle · hide-if-empty)
 import ZoneRiskBlock from '../../components/zones/ZoneRiskBlock';  // riesgo natural (Atlas CDMX · natural_risk · hide-if-empty)
+import ZoneStructuredData from '../../components/seo/ZoneStructuredData';  // GEO (Capa 2): JSON-LD Place + FAQPage → que las IAs de respuesta CITEN la zona
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const m1 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-MX')}`;   // formato completo $1,000,000 (pedido founder)
@@ -1037,8 +1038,20 @@ export default function ZonePageV2() {
     return () => { alive = false; };
   }, [calcDev]);
 
+  // GEO (Capa 2): JSON-LD schema.org Place + FAQPage para que las IAs de respuesta (ChatGPT/Perplexity/Claude) CITEN
+  // la zona con datos REALES. Hide-if-empty: solo cuando la zona existe. Sin inventar (drpi delta + risk omitidos si no hay).
+  const seoZone = (esReal && name) ? {
+    slug, name, alcaldia,
+    drpi: (inv && inv.precio_m2) ? { current_value: inv.precio_m2, delta_30d_pct: null } : null,
+    active_developments: Array.isArray(devs) ? devs.length : 0,
+    comparable_zones: (Array.isArray(similar) ? similar : [])
+      .map((s) => ({ name: s && (s.name || s.colonia || s.nombre || s.zona) }))
+      .filter((x) => x.name),
+  } : null;
+
   return (
     <LightScope>
+      {seoZone && <ZoneStructuredData zone={seoZone} />}
       <style>{`
         @keyframes zv2up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
         .zv2-up { animation: zv2up .5s cubic-bezier(.2,.8,.2,1) both }

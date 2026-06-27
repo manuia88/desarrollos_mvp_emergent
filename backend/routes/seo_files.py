@@ -24,6 +24,18 @@ def _all_dev_slugs():
         return []
 
 
+def _all_zone_slugs():
+    """Slugs de ZONA (colonias con desarrollos = contenido real) → /zona/{slug} en el sitemap, para que las fichas
+    de zona con JSON-LD (Place + FAQPage) se descubran. Cero dato inventado: sale de los colonia_id de DEVELOPMENTS."""
+    try:
+        from data_developments import DEVELOPMENTS
+        slugs = {(d.get("colonia_id") or "").strip() for d in DEVELOPMENTS}
+        slugs.discard("")
+        return sorted(slugs)
+    except Exception:
+        return []
+
+
 def _dev_inventory_md():
     """Inventario REAL en markdown para llms.txt — lo que los crawlers de IA leen y citan
     (nombre · colonia · desde $ · recámaras · etapa · URL). Cero dato inventado: sale de DEVELOPMENTS."""
@@ -121,6 +133,9 @@ async def serve_sitemap(request: Request):
 
     # TODOS los desarrollos reales (dinámico, ya no hardcodeado) → los nuevos aparecen solos
     entries.extend(f"/desarrollo/{s}" for s in _all_dev_slugs())
+
+    # Zonas reales (colonias con desarrollos) → /zona/{slug} con JSON-LD Place + FAQPage (GEO · que las IAs citen)
+    entries.extend(f"/zona/{s}" for s in _all_zone_slugs())
 
     # W5.2 — SEO themed landings
     try:
