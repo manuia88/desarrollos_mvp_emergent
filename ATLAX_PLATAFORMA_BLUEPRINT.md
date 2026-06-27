@@ -6,7 +6,7 @@ Une la noticia de Google (11 jun) con todo lo construido en `dev-redesign-tandas
 ---
 
 ## 0. En una frase
-**Atlax = el cerebro de inmuebles de México: delgado y citado en cada puerta de entrada (Google · Perplexity · ChatGPT · WhatsApp), profundo donde se cierra (DMX).** Un activo de datos, dos jobs.
+**Atlax = el cerebro de inmuebles de México: delgado y citado en cada puerta de entrada (Google · Perplexity · ChatGPT · WhatsApp), profundo donde se cierra (DMX), y —a mediano plazo— el sistema de registro de la vivienda mexicana: el primer MLS IA-nativo de nueva + usada.** Un activo de datos, varios jobs.
 
 ## 1. Por qué ahora
 - **Google (11 jun 2026):** llevó los listings al buscador en 50 estados (Home Discovery, sobre HouseCanary/ComeHome, **datos de MLS = reventa**). El comprador busca → ve → llama/agenda, **sin entrar a un portal**. Zillow/CoStar cayeron.
@@ -51,11 +51,13 @@ La distribución (ser visto) y la experiencia (el cierre profundo) **se separaro
 - Sitemap + feeds + render server-side de lo crítico (que el crawler/IA lo lea).
 **Por qué urgente:** real estate tiene solo **4.48%** de penetración de respuestas IA (virgen) · resultados en **4-8 semanas** · solo **11%** de dominios los citan ambos motores → **el primero que llega se queda la cita.** No-regret, defensivo + ofensivo. Nadie en MX lo corre.
 
-### Capa 3 — INFRAESTRUCTURA (el techo): Atlax como API que otros agentes llaman
-**Qué es:** el **"HouseCanary de México, pero IA-nativo"** — no un feed pasivo, sino una **inteligencia que agentes externos (Google · ChatGPT · bancos · devs) pueden *llamar*** para la verdad del mercado mexicano.
-**Reusa:** el cubo, el AVM, el grafo de demanda, los motores — el dato YA existe.
-**Falta:** exponerlo como **API/MCP** limpia, citada, con licenciamiento.
-**Por qué importa:** HouseCanary cobra por alimentar a Google. Este es el **negocio de infraestructura B2B** — el más durable y grande, en un asiento vacío.
+### Capa 3 — INFRAESTRUCTURA (el techo): el MLS IA-nativo de México (nueva + usada)
+**Qué es:** dejar de *repackagear* el dato de otros → **ownearlo siendo el sistema de registro** de la vivienda MX. No el "HouseCanary de México": **algo más grande** — el **primer MLS IA-nativo**, nacional, para comprador *y* agente, donde **no llenas formularios: le hablas a Atlax** y él lista, **deduplica**, pone **precio justo (AVM)** y **matchea**. De ahí caen, gratis, los dos sub-jobs: la **inteligencia que agentes externos (Google · ChatGPT · bancos · devs) pueden *llamar*** (API/MCP citada) y la **autoridad citada** (Capa 2).
+**Reusa:** el cubo, el AVM, el grafo de demanda, el knowledge graph property-centric, los motores — el dato y el dedup YA son piezas que tenemos.
+**Falta:** el **registro canónico** (una propiedad = un registro, con dedup IA), el onboarding de agentes, exponer la API/MCP, el modelo de cooperación.
+**Por qué importa:** los MLS de EE.UU. son software de los 90s, cerrados, regionales. **Nadie ha hecho uno IA-nativo.** Y en MX el asiento está **vacío** (no hay MLS nacional). Es el **negocio de infraestructura** — el más durable y grande.
+
+> **El norte de mediano plazo** (founder, 2026-06-26): incorporar propiedades de **corretaje** y ser el **MLS de vivienda nueva y usada**. Ver §10 — cómo se bootstrappea sin morir de liquidez.
 
 ---
 
@@ -65,13 +67,16 @@ La distribución (ser visto) y la experiencia (el cierre profundo) **se separaro
 3. **El cierre agéntico** (apartado + Infonavit) que Google estructuralmente no alcanza.
 4. **Flywheel de doble vía:** interno (cada interacción → cubo → Atlax más listo + inteligencia de demanda al dev) · externo (esa misma inteligencia, estructurada, te vuelve la autoridad citada → más compradores).
 5. **Disciplina cero-dato-inventado + citado** = confianza en una compra de millones. **El Perplexity de inmuebles.**
+6. **El registro canónico** (una propiedad = un registro): quien crea el grafo limpio de la vivienda MX **owna la infraestructura**. Es el activo más difícil de copiar (no es data, es *dedup + verdad de precio* a escala).
+7. **Red de 3 lados** (devs · agentes · compradores): efecto de red. Más oferta → mejor AVM/dedup → más compradores → la oferta DEBE estar ahí. Compuesto.
 
 ## 5. Monetización (el cambio)
-De **vender leads** (modelo muriendo) → a tres ingresos que el lead-resale no tiene:
+De **vender leads** (modelo muriendo) → a ingresos que el lead-resale no tiene:
 - **SaaS al dev** — su infraestructura de ventas IA (su propia puerta IA, que el dev tampoco dependa de Google).
-- **Datos / inteligencia B2B** — la capa "HouseCanary de MX".
-- **Transacción** — el apartado agéntico.
-El **Atlax del consumidor = el embudo** de adquisición + captura de dato que alimenta los tres.
+- **Membresía MLS al agente** — herramientas IA (listar por WhatsApp, AVM, dedup, matching) que ningún MLS de los 90s da. *El agente paga por la herramienta, no por el lead.*
+- **Datos / inteligencia B2B** — la capa "HouseCanary de MX" (ahora con el dato propio, porque somos el MLS).
+- **Transacción** — apartado agéntico + (a futuro) escrow/escrituración.
+El **Atlax del consumidor = el embudo** de adquisición + captura de dato que alimenta todo.
 
 ## 6. Qué se arranca YA vs la apuesta grande
 - **YA (no-regret):** **Capa 2 (GEO + datos estructurados).** Barato, rápido, virgen. Te vuelve la fuente citada antes de que se cierre la ventana.
@@ -99,8 +104,39 @@ El **Atlax del consumidor = el embudo** de adquisición + captura de dato que al
 ---
 
 ## 9. Siguiente paso sugerido
-1. **Arrancar Capa 2 (GEO):** schema `RealEstateListing` + `FAQPage` JSON-LD en ficha/zona + Q&A por colonia. ~1-2 semanas, mide cita en 4-8.
+1. **Arrancar Capa 2 (GEO):** schema `RealEstateListing` + `FAQPage` JSON-LD en ficha/zona + Q&A por colonia. ~1-2 semanas, mide cita en 4-8. *(También es el imán de oferta del MLS — §11.4.)*
 2. **Diseñar Capa 1 F2:** barra-héroe Atlax como primitivo de plataforma (home → ficha) + modo dual.
 3. **Prototipo Capa 3:** exponer 2-3 consultas del cubo como API citada (prueba de "otros agentes nos llaman").
 
+Todo esto **construye el wedge** (obra nueva → demanda + infra IA) que después bootstrappea el **MLS de nueva + usada** (§10). Orden sagrado: **demanda primero, oferta usada después.**
+
 > Regla de oro: **reusar motores, reescribir presentación, cero dato inventado.** El backend ya casi está; falta la capa que lo une y la cara que se arma sola.
+
+---
+
+## 10. El norte de mediano plazo: el MLS IA-nativo (nueva + usada)
+**Meta (founder):** incorporar propiedades de **corretaje** y ser el **MLS de vivienda nueva y usada**. Esto vuelve **literal** la Capa 3: no repackageas dato — eres el sistema de registro.
+
+**Por qué la IA hace que un MLS mexicano POR FIN funcione.** Todo intento de MLS en MX murió por dos cosas, y la IA + el modelo de Google resuelven ambas:
+- **Calidad de dato** (la misma casa listada 5 veces a 3 precios) → la IA da **dedup + registro canónico + AVM** (verdad de precio).
+- **Cooperación** (los agentes no comparten) → el modelo que ya íbamos a copiar de Google: **sin cobro por lead + atribución de marca + contacto directo**. El agente lista **porque no le robas el cliente**. *La noticia de Google fue el playbook de cómo bootstrappear.*
+
+**La secuencia (o mueres de liquidez — huevo y gallina):**
+1. **Wedge:** obra nueva (oferta que YA tenemos vía devs) → construir **demanda de comprador + la infra de IA** (AVM, dedup, Atlax, GEO).
+2. **Imán:** la demanda + las mejores herramientas IA (listar por WhatsApp, precio justo, matching) hacen que **el agente QUIERA estar**.
+3. **Apertura:** invitas a los agentes (usada) a un lugar **que ya tiene compradores** y donde **no les cobras el lead**. La oferta sigue a la demanda — nunca al revés.
+
+**Atlax gana una tercera cara profesional:** comprador · **agente** (listar/gestionar por voz/WhatsApp) · dev. Un cerebro, varias caras.
+
+**El killer que nadie más tiene:** comparar **nueva vs usada con verdad de precio (AVM en ambas)** — "esta usada en Polanco a $X vs esta preventa a $Y, este es el valor real de cada una". Hoy es imposible (no hay dato común). Con el MLS IA-nativo, es el default.
+
+**Lo honesto (el riesgo):** ser MLS es una **empresa más grande y distinta** a "herramientas IA para devs". Lo difícil **no es la tech** — es **liquidez + cooperación + reclutar agentes** (fuerza de ventas), **derechos del dato** y lo gremial (AMPI). Framing: la plataforma IA de **obra nueva es el caballo de Troya; el MLS es el destino.** No hervir el océano — **secuenciar**.
+
+## 11. Upgrades adicionales que suman
+1. **Onboarding por WhatsApp (el bootstrap real para MX).** El agente **manda fotos + audio** a Atlax y este **crea el listing estructurado, deduplica y le pone AVM**. Cero formularios, cero portal nuevo que aprender. México es WhatsApp-first; ahí se gana la oferta usada.
+2. **Capa de transacción (el moat más profundo).** Del apartado agéntico → **escrow + coordinación de escrituración/notario**. En MX el cierre es un dolor; quien lo suaviza captura la parte más alta y pegajosa. Atlax como **agente del comprador** de punta a punta (busca → evalúa → negocia → cierra), monetizado por la transacción, no por el lead.
+3. **Capa de confianza / anti-fraude.** MX es un mercado de baja confianza (listings falsos, agentes truchos, títulos sucios). Un MLS con **verificación IA** (¿el listing es real? ¿el agente es legítimo? ¿el título está limpio?) = **la razón por la que comprador y agente te eligen** sobre Marketplace/Facebook. La confianza es moat.
+4. **GEO ⟷ MLS se refuerzan.** GEO trae compradores desde las IAs → los compradores hacen que **el agente DEBA listar contigo** para ser encontrado → liquidez del MLS → más dato → mejor GEO. **Bucle que se alimenta solo.**
+5. **Financiamiento como attach.** Atlax precalifica (Infonavit/Cofinavit/banco) y matchea al mejor crédito dentro del flujo. Monetización + permanencia, sin sacar al usuario.
+
+> Estos upgrades NO cambian la regla de oro ni la secuencia: se construyen **encima** del wedge de obra nueva, por fases, reusando lo que ya hay. Nada se arranca antes de tener demanda.
