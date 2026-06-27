@@ -398,8 +398,17 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   useEffect(() => { saveHistory(messages); }, [messages]);
   // Permite abrir Atlax desde cualquier parte (ej. el hero del home) y opcionalmente sembrar una
   // pregunta: window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query } })).
+  // Capa 1 F2: la barra-héroe puede abrir Atlax Y disparar la respuesta (query-first) con detail.send=true.
+  const sendRef = useRef(null);
+  useEffect(() => { sendRef.current = send; });  // siempre la última versión de send (token/sesión al día)
   useEffect(() => {
-    const onOpen = (e) => { setOpen(true); const q = e && e.detail && e.detail.query; if (q) setInput(q); };
+    const onOpen = (e) => {
+      setOpen(true);
+      const q = e && e.detail && e.detail.query;
+      if (!q) return;
+      if (e.detail.send && sendRef.current) { setInput(''); sendRef.current(null, q); }  // abre Y responde
+      else setInput(q);  // solo siembra la pregunta (el usuario la edita y envía)
+    };
     window.addEventListener('atlax:open', onOpen);
     return () => window.removeEventListener('atlax:open', onOpen);
   }, []);

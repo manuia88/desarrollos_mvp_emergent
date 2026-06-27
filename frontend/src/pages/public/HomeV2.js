@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LightScope, Container, Section, Button, Card, Badge, PublicNav, Aurora } from '../../components/ui';
 import FadeUp from '../../components/animations/FadeUp';
 import AtlaxBubble from '../../components/landing/AtlaxBubble';
+import AtlaxHeroBar from '../../components/landing/AtlaxHeroBar';  // Capa 1 F2: barra-héroe query-first
 import { COLONIAS as COLONIAS_STATIC } from '../../data/colonias';
 import { fetchColonias } from '../../api/marketplace';
 
@@ -142,8 +143,6 @@ export default function HomeV2() {
   const [zona, setZona] = useState('');
   const [faq, setFaq] = useState(0);
   const go = () => nav(zona ? `/zona/${encodeURIComponent(zona)}?ver=propiedades` : '/marketplace');
-  // Abre Atlax (la IA, ya viva en /api/atlax/query) sembrando la pregunta del hero.
-  const askAI = () => window.dispatchEvent(new CustomEvent('atlax:open', { detail: { query: zona || '' } }));
 
   // Colonias del API real (/api/colonias) con fallback a la estática (resiliencia).
   const [colonias, setColonias] = useState(COLONIAS_STATIC);
@@ -184,16 +183,18 @@ export default function HomeV2() {
                 <p style={{ ...lead, margin: '22px 0 28px', maxWidth: 500 }}>
                   Vivienda nueva verificada — y por primera vez, sabes <b style={{ color: 'var(--cream)' }}>cómo se vive en cada colonia</b> antes de mudarte.
                 </p>
-                <div style={{ background: '#fff', border: '1px solid var(--card-border)', borderRadius: 18, boxShadow: '0 16px 44px rgba(var(--theme-rgb),0.14)', padding: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', maxWidth: 560 }}>
-                  <input value={zona} onChange={(e) => setZona(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()}
-                    placeholder="¿En Qué Colonia Quieres Vivir?"
-                    style={{ flex: 1, minWidth: 160, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 15.5, color: 'var(--cream)', padding: '10px 12px' }} />
-                  <Button size="lg" onClick={go} style={PILL}>Buscar</Button>
+                {/* BARRA-HÉROE ATLAX (Capa 1 F2) — query-first: escribes lo que buscas y la IA arma la respuesta */}
+                <AtlaxHeroBar />
+                {/* MODO DUAL — o explora por tu cuenta (manual, por colonia) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--cream-3)' }}>o explora por tu cuenta:</span>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', borderRadius: 999, padding: '4px 4px 4px 14px' }}>
+                    <input value={zona} onChange={(e) => setZona(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()}
+                      placeholder="¿en qué colonia?"
+                      style={{ minWidth: 130, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: 'var(--cream)', padding: '7px 4px' }} />
+                    <Button size="sm" onClick={go} style={PILL}>Buscar</Button>
+                  </div>
                 </div>
-                {/* Acceso a la IA (Atlax, ya viva) — convierte el hero en buscador conversacional */}
-                <button onClick={askAI} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)', color: 'var(--theme)', borderRadius: 999, padding: '9px 16px', fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                  ✨ O pregúntale a la IA: "¿Dónde me conviene vivir?"
-                </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28 }}>
                   <div style={{ display: 'flex' }}>
                     {FACES.map((f, i) => <img key={f} src={IMG(f, 80)} alt="" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', marginLeft: i ? -12 : 0 }} />)}
