@@ -120,7 +120,12 @@ async def fetch_image_bytes(url: str) -> bytes:
         except Exception as e:
             raise ValueError(f"data URL inválida: {e}")
 
-    # http(s)
+    # http(s) — SEGURIDAD (pentest 2026-06-27): valida anti-SSRF ANTES del fetch (era un escáner de la red interna /
+    # acceso a metadata de la nube vía la URL que mete el asesor) y NO sigue redirects (un redirect a una IP interna
+    # evadía cualquier allowlist de host).
+    from services.ai_safety import is_public_url_safe
+    if not is_public_url_safe(url, label="virtual_staging"):
+        raise ValueError("URL no permitida (anti-SSRF)")
     try:
         import httpx  # local import to keep startup light
     except ImportError as e:
@@ -130,14 +135,14 @@ async def fetch_image_bytes(url: str) -> bytes:
         async with httpx.AsyncClient(timeout=_FETCH_TIMEOUT_S) as client:
             # HEAD first to check content-length (best-effort; some hosts reject)
             try:
-                head = await client.head(url, follow_redirects=True)
+                head = await client.head(url, follow_redirects=False)
                 cl = head.headers.get("content-length")
                 if cl and int(cl) > _MAX_IMAGE_BYTES:
                     raise ValueError(f"Image >10MB (content-length={cl})")
             except Exception:
                 pass  # fall through to GET
 
-            r = await client.get(url, follow_redirects=True)
+            r = await client.get(url, follow_redirects=False)
             r.raise_for_status()
             data = r.content
             if len(data) > _MAX_IMAGE_BYTES:

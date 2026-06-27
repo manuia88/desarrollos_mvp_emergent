@@ -117,8 +117,11 @@ async def check_robots_allows(url: str) -> bool:
 async def fetch_html(url: str) -> Optional[str]:
     try:
         import httpx
+        from services.ai_safety import is_public_url_safe
+        if not is_public_url_safe(url, label="studio_importer"):  # SEGURIDAD anti-SSRF (pentest 2026-06-27)
+            return None
         async with httpx.AsyncClient(timeout=15.0, headers={"User-Agent": USER_AGENT},
-                                     follow_redirects=True) as client:
+                                     follow_redirects=False) as client:
             r = await client.get(url)
             if r.status_code >= 400:
                 return None

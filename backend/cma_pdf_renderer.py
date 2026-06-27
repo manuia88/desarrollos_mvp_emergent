@@ -66,6 +66,9 @@ def _fetch_logo_bytes(url: Optional[str]) -> Optional[ImageReader]:
         return None
     try:
         if url.startswith(("http://", "https://")):
+            from services.ai_safety import is_public_url_safe
+            if not is_public_url_safe(url, label="cma_logo"):  # SEGURIDAD anti-SSRF (pentest 2026-06-27)
+                return None
             cache_dir = "/tmp/dmx_cma_logos"
             os.makedirs(cache_dir, exist_ok=True)
             import hashlib

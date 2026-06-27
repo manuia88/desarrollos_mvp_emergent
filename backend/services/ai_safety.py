@@ -91,6 +91,21 @@ def is_public_url_safe(url, *, label: str = "") -> bool:
             _emit("ssrf_blocked", {"label": label, "reason": "private_ip", "host": host})
             return False
     except ValueError:
-        # host es un nombre, no una IP literal → pasa esta capa.
-        pass
+        # host es un nombre → resolver DNS y verificar que NINGUNA IP resuelta sea interna (anti-SSRF por hostname;
+        # antes "no resuelve DNS" quedaba como capa futura → ahora cerrada). FAIL-CLOSED si no resuelve.
+        try:
+            import socket
+            resolved = socket.getaddrinfo(host, None)
+        except Exception:
+            _emit("ssrf_blocked", {"label": label, "reason": "dns_fail", "host": host})
+            return False
+        for _info in resolved:
+            try:
+                rip = ipaddress.ip_address(_info[4][0])
+            except ValueError:
+                continue
+            if (rip.is_private or rip.is_loopback or rip.is_link_local
+                    or rip.is_reserved or rip.is_multicast or rip.is_unspecified):
+                _emit("ssrf_blocked", {"label": label, "reason": "dns_private", "host": host, "ip": str(rip)})
+                return False
     return True
