@@ -263,7 +263,9 @@ function StatusChip({ status }) {
 }
 
 // ─── Inventario Completo ────────────────────────────────────────────────────
-function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, priceAdjustPct = 0, schemes = [], selScheme = 'lista', setSelScheme = () => {}, onOpenQuoter = () => {} }) {
+// AVM (precio vs mercado): mismo vocabulario que el comprador. color por nombre (motor) → CSS · etiqueta clara.
+const AVM_DEV = { bajo: { lbl: 'Buen precio', c: '#16a34a' }, justo: { lbl: 'En línea', c: '#d4a72c' }, alto: { lbl: 'Sobre mercado', c: '#e0463d' } };
+function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, priceAdjustPct = 0, schemes = [], selScheme = 'lista', setSelScheme = () => {}, onOpenQuoter = () => {}, avm = {} }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [page, setPage] = useState(1);
@@ -917,16 +919,24 @@ function InventarioCompleto({ units, devId, user, onBulkUpload, onUnitPatched, p
                 <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-2)' }}>{editMode ? <EditableCell u={u} field="parking_spots" type="num" devId={devId} onPatched={onUnitPatched} width={46} /> : (u.parking_spots ?? '—')}</td>
                 {/* ADICIONALES (tipo cajón · bodega · vista) */}
                 <ExtraCells u={u} devId={devId} onPatched={onUnitPatched} editMode={editMode} />
-                {/* PRECIO */}
+                {/* PRECIO + posición vs mercado (AVM) */}
                 <td style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--cream)', fontWeight: 700, whiteSpace: 'nowrap', borderLeft: '1px solid rgba(var(--cream-rgb),0.06)' }}>
-                  {editMode
-                    ? <EditableCell u={u} field="price" type="num" devId={devId} onPatched={onUnitPatched} width={110} display={uu => <span style={{ fontWeight: 700 }}>{fmtFull(uu.price)}</span>} />
-                    : (priceAdjustPct > 0 ? (
-                        <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
-                          <span style={{ color: 'var(--theme-3)' }}>{fmtFull(appliedPrice(u.price, priceAdjustPct))}</span>
-                          <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtFull(u.price)}</span>
-                        </span>
-                      ) : fmtFull(u.price))}
+                  <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.25, alignItems: 'flex-start' }}>
+                    {editMode
+                      ? <EditableCell u={u} field="price" type="num" devId={devId} onPatched={onUnitPatched} width={110} display={uu => <span style={{ fontWeight: 700 }}>{fmtFull(uu.price)}</span>} />
+                      : (priceAdjustPct > 0 ? (
+                          <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                            <span style={{ color: 'var(--theme-3)' }}>{fmtFull(appliedPrice(u.price, priceAdjustPct))}</span>
+                            <span style={{ fontSize: 10, color: 'var(--cream-3)', textDecoration: 'line-through' }}>{fmtFull(u.price)}</span>
+                          </span>
+                        ) : fmtFull(u.price))}
+                    {avm[u.id] && AVM_DEV[avm[u.id].etiqueta] && (
+                      <span title={`Tu precio/m² vs el mercado real de la zona${avm[u.id].diff_pct != null ? ` · ${avm[u.id].diff_pct > 0 ? '+' : ''}${avm[u.id].diff_pct}%` : ''}`}
+                        style={{ marginTop: 3, fontSize: 10.5, fontWeight: 700, color: AVM_DEV[avm[u.id].etiqueta].c }}>
+                        ● {AVM_DEV[avm[u.id].etiqueta].lbl}{avm[u.id].diff_pct != null ? ` ${avm[u.id].diff_pct > 0 ? '+' : ''}${avm[u.id].diff_pct}%` : ''}
+                      </span>
+                    )}
+                  </span>
                 </td>
                 <td style={{ padding: '8px 12px' }}>
                   {editMode
@@ -1215,6 +1225,7 @@ function VistaDePlanta({ units, user, devId }) {
 export default function VentasTab({ devId, user, onBulkUpload }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [units, setUnits] = useState([]);
+  const [avm, setAvm] = useState({});   // posición de precio por unidad vs mercado (AVM, mismo motor que ve el comprador)
   const [loading, setLoading] = useState(true);
   const [protoFilter, setProtoFilter] = useState(null);
   const [schemes, setSchemes] = useState([]);
@@ -1252,6 +1263,15 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
       const data = await listInventory(devId);
       const dev = Array.isArray(data) ? data.find(d => d.id === devId) || data[0] : data;
       setUnits(dev?.units || []);
+      // AVM: posición de precio vs mercado por unidad (endpoint público, mismo veredicto que ve el comprador) — cierra el ciclo.
+      const colid = dev?.colonia_id || dev?.colonia;
+      const us = (dev?.units || []).filter(u => u.price && (u.m2_privative || u.m2_total));
+      if (colid && us.length) {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/precio-posicion-batch`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ colonia: colid, nueva: true, unidades: us.map(u => ({ id: u.id, precio: u.price, m2: u.m2_privative || u.m2_total, rec: u.bedrooms, ban: u.bathrooms })) }),
+        }).then(r => r.json()).then(d => { const m = {}; (d.unidades || []).forEach(v => { if (v.id && v.etiqueta) m[v.id] = v; }); setAvm(m); }).catch(() => {});
+      }
     } catch (e) {
       console.error('VentasTab load error:', e);
     } finally {
@@ -1327,7 +1347,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
         <>
           {activeSubTab === 'inventario' && (
             <InventarioCompleto units={filteredUnits} devId={devId} user={user} onBulkUpload={onBulkUpload} onUnitPatched={applyUnitPatch} priceAdjustPct={activeDescuento}
-              schemes={schemes} selScheme={selScheme} setSelScheme={setSelScheme} onOpenQuoter={openQuoter} />
+              schemes={schemes} selScheme={selScheme} setSelScheme={setSelScheme} onOpenQuoter={openQuoter} avm={avm} />
           )}
           {activeSubTab === 'prototipos' && (
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />

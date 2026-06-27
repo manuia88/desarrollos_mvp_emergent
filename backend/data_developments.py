@@ -550,7 +550,7 @@ def _generate_units(dev: dict) -> List[dict]:
             # Bodega: ~40% of units
             bodega = int(seed[2:4], 16) % 100 < 40
             # Parking type
-            park_type = "individual" if proto["parking"] >= 2 else ("battery_shared" if int(seed[4:6], 16) % 100 < 30 else "individual")
+            park_type = "individual" if proto["parking"] >= 2 else ("bateria_vecino" if int(seed[4:6], 16) % 100 < 30 else "individual")
             m2_terr = 0
             m2_roof = proto.get("m2_roof", 0)
             m2_total = proto["m2_priv"] + proto.get("m2_balcony", 0) + m2_terr + m2_roof
@@ -558,7 +558,8 @@ def _generate_units(dev: dict) -> List[dict]:
             has_terraza = m2_roof > 0 or m2_terr > 0
             has_balcon = proto.get("m2_balcony", 0) > 0
             estac_indep = park_type == "individual" and proto["parking"] >= 1
-            vista = ["Interior", "A la Calle", "Al Parque", "A la Ciudad", "Panorámica"][int(seed[8:10], 16) % 5]
+            # Vista = modelo canónico interior/exterior (lo que edita el dev y muestra la ficha). ~20% interior, resto exterior.
+            vista = "interior" if int(seed[8:10], 16) % 5 == 0 else "exterior"
             pet_ok = bool({"pet", "area_pets"} & set(dev.get("amenities", [])))
 
             units.append({
