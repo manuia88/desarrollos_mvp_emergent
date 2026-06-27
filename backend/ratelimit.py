@@ -37,6 +37,12 @@ def client_ip(request: Request) -> str:
     todo lo de la izquierda es controlado por el cliente → se ignora. Sin proxy de confianza (dev) → la IP del
     socket real (request.client.host). Antes tomaba el PRIMER hop = el falsificable (bug del pentest)."""
     hops = _trusted_hops()
+    # Detrás de Cloudflare (hops≥2): la IP real del cliente viene en CF-Connecting-IP (Cloudflare la pone y NO es
+    # falsificable, SIEMPRE QUE el origen solo acepte IPs de Cloudflare — ver el allowlist del ingress de K8s).
+    if hops >= 2:
+        cf = (request.headers.get("cf-connecting-ip") or "").strip()
+        if cf:
+            return cf
     if hops > 0:
         parts = [p.strip() for p in (request.headers.get("x-forwarded-for") or "").split(",") if p.strip()]
         if len(parts) >= hops:
