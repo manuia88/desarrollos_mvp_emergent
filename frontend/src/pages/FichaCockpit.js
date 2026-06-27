@@ -21,6 +21,7 @@ import PlanDePago from '../components/ficha/PlanDePago';         // simulador de
 import SeccionConfianza from '../components/ficha/SeccionConfianza';
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
+import AtlaxBubble from '../components/landing/AtlaxBubble';   // asistente IA flotante — consciente de la unidad/lente/sección que ve el cliente
 
 const money = (n) => (n ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -522,6 +523,10 @@ export default function FichaCockpit({ user, onLogin }) {
     ? (hk.tir != null ? { v: `${hk.tir.toFixed(1)}%`, l: 'Rendimiento (TIR)', sub: hk.cetes != null ? (hk.tir > hk.cetes ? 'le gana a CETES' : 'debajo de CETES') : null } : null)
     : (hk.mensual ? { v: `~${money(hk.mensual)}`, l: 'Tu mensualidad', sub: '20% enganche · 20 años' } : null);
 
+  // CONTEXTO VIVO para Atlax: la burbuja sabe la unidad/lente/sección que ve el cliente → responde en contexto + el lead al asesor lo lleva.
+  const TAB_CTX = { proyecto: 'el proyecto', unidad: 'las unidades', dinero: 'sus números / Tu dinero', confianza: 'confianza y la zona' };
+  const atlaxContext = `Ficha de ${dev.name} (${dev.colonia}${dev.alcaldia ? ', ' + dev.alcaldia : ''}). El cliente está en la sección "${TAB_CTX[tab] || tab}". ${unit ? `Tiene elegida la unidad ${unit.unit_number} — ${unit.bedrooms} rec, ${unit.m2_total || unit.m2_privative} m², ${money(unit.price)}. ` : 'Aún no elige una unidad. '}Intención: ${lens === 'invertir' ? `invertir (${invMode === 'institucional' ? 'institucional' : 'para sí mismo'})` : lens === 'vivir' ? 'para vivir' : 'sin definir'}.${unit && keyNum ? ` ${keyNum.l}: ${keyNum.v}${keyNum.sub ? ' (' + keyNum.sub + ')' : ''}.` : ''}`;
+
   const badgeV = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)', color: '#059669', fontFamily: SANS, fontSize: 11, fontWeight: 700 };
   const badgeS = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: 'var(--theme)', fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' };
   const sideBtn = (grad) => ({ width: '100%', padding: '12px 14px', borderRadius: 12, border: grad ? 'none' : '1px solid var(--card-border, var(--border))', background: grad ? 'var(--grad)' : 'transparent', color: grad ? '#fff' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginTop: 9, boxShadow: grad ? '0 10px 24px rgba(109,74,255,0.24)' : 'none' });
@@ -629,6 +634,8 @@ export default function FichaCockpit({ user, onLogin }) {
         @keyframes dmxBar{ from{ transform:scaleY(0);} to{ transform:scaleY(1);} }
         @keyframes dmxProg{ from{ width:0;} }
       `}</style>
+      {/* Atlax flotante — consciente de la unidad/lente/sección que ve el cliente (context vivo) */}
+      <AtlaxBubble theme="light" context={atlaxContext} />
       {compareOpen && <ComparaProyectos dev={dev} onClose={() => setCompareOpen(false)} />}
       {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
     </LightScope>
