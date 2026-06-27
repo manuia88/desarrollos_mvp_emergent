@@ -191,7 +191,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                 {/* fila 1 · bandas de categoría */}
                 <tr>
                   {CATS.map((g, i) => (
-                    <th key={i} colSpan={g.span} style={{ padding: g.label ? '7px 12px' : 0, textAlign: 'center', fontFamily: SANS, fontSize: 10, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.34)` : 'transparent', borderBottom: g.rgb ? `2px solid rgba(${g.rgb},0.8)` : '1px solid var(--card-border, var(--border))', borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(16,18,28,0.1)' : 'none' }}>{g.label}</th>
+                    <th key={i} colSpan={g.span} style={{ padding: g.label ? '7px 12px' : 0, textAlign: 'center', fontFamily: SANS, fontSize: 10, fontWeight: 800, letterSpacing: '0.09em', color: g.fg, background: g.rgb ? `rgba(${g.rgb},0.34)` : 'transparent', borderBottom: g.rgb ? `2px solid rgba(${g.rgb},0.8)` : '1px solid var(--card-border, var(--border))', borderLeft: (i > 0 && g.rgb) ? '1px solid rgba(16,18,28,0.1)' : 'none' }}>{g.label}</th>
                   ))}
                 </tr>
                 {/* fila 2 · columnas (ordenables) */}
@@ -200,7 +200,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     const c = colCats[idx] || {};
                     const active = sort.col === key;
                     return (
-                      <th key={idx} onClick={() => sortBy(key)} style={{ padding: '8px 9px', textAlign: num ? 'right' : 'left', fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: active ? 'var(--theme)' : (c.rgb ? c.fg : 'var(--cream-3)'), background: c.rgb ? `rgba(${c.rgb},0.11)` : 'transparent', borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.45)` : '1px solid var(--card-border, var(--border))', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: key ? 'pointer' : 'default', userSelect: 'none', borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none' }}>
+                      <th key={idx} onClick={() => sortBy(key)} style={{ padding: '8px 9px', textAlign: num ? 'right' : 'left', fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: active ? 'var(--theme)' : (c.rgb ? c.fg : 'var(--cream-3)'), background: c.rgb ? `rgba(${c.rgb},0.11)` : 'transparent', borderBottom: c.rgb ? `2px solid rgba(${c.rgb},0.45)` : '1px solid var(--card-border, var(--border))', whiteSpace: 'nowrap', letterSpacing: '0.04em', cursor: key ? 'pointer' : 'default', userSelect: 'none', borderLeft: (c.first && c.ci > 0 && c.rgb) ? `1px solid rgba(${c.rgb},0.3)` : 'none' }}>
                         {label}{active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
                       </th>
                     );
@@ -275,7 +275,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   {r.park && <span>{rng(r.park[0], r.park[1])} estac.</span>}
                 </div>
                 <div style={{ textAlign: 'right', minWidth: 120 }}>
-                  {r.from && <><div style={{ fontFamily: SANS, fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Desde</div>
+                  {r.from && <><div style={{ fontFamily: SANS, fontSize: 10.5, color: 'var(--cream-3)', letterSpacing: '0.05em' }}>Desde</div>
                     <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 19, color: 'var(--cream)' }}>{money(r.from)}</div></>}
                   <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--theme)', fontWeight: 700, marginTop: 4 }}>{open ? 'Ocultar ▲' : `Ver ${r.avail} ▾`}</div>
                 </div>
@@ -297,7 +297,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                           {multi && dispo && <span style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', border: `1.5px solid ${sel ? 'var(--theme)' : 'var(--card-border, var(--border))'}`, background: sel ? 'var(--theme)' : 'transparent', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{sel ? '✓' : ''}</span>}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{u.unit_number}</span>
-                            <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: st.c, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.l}</span>
+                            <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: st.c, letterSpacing: '0.04em' }}>{st.l}</span>
                           </div>
                           <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>Piso {u.level} · {u.m2_total || u.m2_privative} m²{vistaLabel(u.vista) ? ` · ${vistaLabel(u.vista)}` : ''}</div>
                           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)', marginTop: 6 }}>{money(u.price)}</div>
@@ -324,7 +324,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
         const total = sel.reduce((s, u) => s + (u.price || 0), 0);
         return (
           <Card style={{ marginTop: 16, borderColor: 'var(--theme)', background: 'rgba(99,102,241,0.04)' }}>
-            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>El fondo compra</div>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.08em' }}>El Fondo Compra</div>
             <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: 'var(--cream)', margin: '4px 0 2px' }}>{sel.length} {sel.length === 1 ? 'unidad' : 'unidades'} · {money(total)}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
               {sel.map((u) => <span key={u.id} style={{ padding: '5px 11px', borderRadius: 9, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12, fontWeight: 600, color: 'var(--cream)' }}>{u.unit_number} · {money(u.price)}</span>)}
@@ -342,7 +342,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
         return (
           <Card ref={detailRef} style={{ marginTop: 16, borderColor: 'var(--theme)', boxShadow: '0 0 0 3px rgba(99,102,241,0.12), 0 14px 34px rgba(16,18,28,0.06)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>✓ Tu unidad elegida</div>
+              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.08em' }}>✓ Tu Unidad Elegida</div>
               <button onClick={() => onSelectUnit && onSelectUnit(null)} style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', fontFamily: SANS, fontSize: 12, cursor: 'pointer' }}>Quitar ✕</button>
             </div>
 
@@ -394,7 +394,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
               if (!am.length) return null;
               return (
                 <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--card-border, var(--border))' }}>
-                  <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades del edificio</div>
+                  <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em', marginBottom: 10 }}>Amenidades del Edificio</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {am.map((a, i) => { const { label } = amenInfo(a); return (
                       <span key={i} style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 12px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{label}</span>
@@ -461,7 +461,7 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                   const pv = plusvalia != null ? Number(plusvalia) : 8.7;            // %/año · zona (SHF Q1-2026 si el motor no dio dato)
                   const rows = [
                     ['Plano', (u) => { const p = planoOf(u) || (dev.photos || [])[0]; return p ? <a href={p} target="_blank" rel="noreferrer" title="Ver en grande"><img src={p} alt={`Plano ${u.unit_number}`} style={{ width: '100%', maxWidth: 160, height: 88, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--card-border, var(--border))', display: 'block' }} /></a> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
-                    { h: 'Precio y entrada' },
+                    { h: 'Precio y Entrada' },
                     ['Precio', (u) => money(u.price), (u) => u.price === minPrice],
                     ['Precio / m²', (u) => (pm2(u) ? money(pm2(u)) : '—'), (u) => pm2(u) === minPm2],
                     ['Precio vs obra nueva', (u) => { const v = avm[u.id]; return avmText(v) ? <span style={{ color: avmColor(v), fontWeight: 700 }}>{avmText(v)}</span> : <span style={{ color: 'var(--cream-3)' }}>—</span>; }],
@@ -478,14 +478,14 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
                     ['Orientación', (u) => u.orientation || '—'],
                     ['Vista', (u) => vistaLabel(u.vista) || '—'],
                     ['Extras', (u) => [u.terraza && 'Terraza', u.balcon && 'Balcón', u.roof_garden && 'Roof garden', u.bodega && 'Bodega'].filter(Boolean).join(', ') || '—'],
-                    { h: 'Rentabilidad estimada' },
+                    { h: 'Rentabilidad Estimada' },
                     ['Renta estimada', (u) => `${money(renta(u))}/mes`],
                     ['Cap rate', (u) => (u.price ? `${(cap(u) * 100).toFixed(1)}%` : '—'), (u) => cap(u) === maxCap],
                     ['Plusvalía (zona)', () => `${pv.toFixed(1)}%/año`],
                   ];
                   return rows.map((row, i) => {
                     if (row.h) return (
-                      <tr key={i}><td colSpan={compareUnits.length + 1} style={{ padding: '15px 12px 5px', fontFamily: HEAD, fontWeight: 800, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--theme)' }}>{row.h}</td></tr>
+                      <tr key={i}><td colSpan={compareUnits.length + 1} style={{ padding: '15px 12px 5px', fontFamily: HEAD, fontWeight: 800, fontSize: 11, letterSpacing: 0.5, color: 'var(--theme)' }}>{row.h}</td></tr>
                     );
                     const [label, fn, best] = row;
                     return (
@@ -511,8 +511,8 @@ export default function SeccionUnidades({ dev, selectedUnit, onSelectUnit, onGoT
             {compareUnits.map((u) => {
               const chosen = multi ? selectedIds.includes(u.id) : (selectedUnit && selectedUnit.id === u.id);
               return (
-                <button key={u.id} onClick={() => cotizar(u)} style={{ padding: '10px 16px', borderRadius: 11, border: chosen ? '1.5px solid var(--theme)' : 'none', background: chosen ? 'rgba(99,102,241,0.1)' : 'var(--grad)', color: chosen ? 'var(--theme)' : '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-                  {chosen ? `✓ Elegida la ${u.unit_number}` : `Elegir la ${u.unit_number} →`}
+                <button key={u.id} onClick={() => { if (multi) { onToggleUnit && onToggleUnit(u.id); } else { onSelectUnit && onSelectUnit(u); onGoTo && onGoTo('inversion'); } }} style={{ padding: '10px 16px', borderRadius: 11, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                  {multi ? (chosen ? `✓ ${u.unit_number} en el fondo` : `Sumar la ${u.unit_number}`) : `Ver los números de la ${u.unit_number} →`}
                 </button>
               );
             })}

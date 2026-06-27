@@ -574,10 +574,10 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   return (
     <>
       {/* Bubble trigger — hidden in home mode (rendered inline by parent) */}
-      {!open && !isHome && (
+      {!isHome && (
         <button
           data-testid="caya-bubble"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen((o) => !o)}
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: Z.MODAL_CRITICAL,
             width: 60, height: 60, borderRadius: 9999,
@@ -589,9 +589,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           }}
           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 18px 44px rgba(var(--theme-rgb),0.5)'; e.currentTarget.style.filter = 'brightness(1.07)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 12px 32px rgba(var(--theme-rgb),0.34)'; e.currentTarget.style.filter = 'none'; }}
-          aria-label="Abrir chat Atlax"
+          aria-label={open ? 'Cerrar chat Atlax' : 'Abrir chat Atlax'}
         >
-          <Sparkle size={22} />
+          {open ? <X size={24} /> : <Sparkle size={22} />}
         </button>
       )}
 
@@ -599,11 +599,11 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
       {open && (
         <div data-testid={isHome ? "atlax-home-panel" : "caya-panel"} style={{
           position: isHome ? 'relative' : 'fixed',
-          bottom: isHome ? 'auto' : 24,
+          bottom: isHome ? 'auto' : 96,
           right: isHome ? 'auto' : 24,
           zIndex: isHome ? 'auto' : 9999,
           width: isHome ? '100%' : 'min(380px, calc(100vw - 24px))',
-          height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 48px))',
+          height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 132px))',
           ...lightVars,
           background: light ? '#FFFFFF' : 'linear-gradient(180deg, #0E1220, #0A0D16)',
           border: '1px solid var(--border)', borderRadius: 18,

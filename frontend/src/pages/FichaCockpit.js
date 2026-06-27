@@ -60,7 +60,7 @@ function CockpitCard({ dev, unit, lens, keyNum, hk, kM2, onVerDinero, onAgendar,
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,150px) minmax(0,1fr)', gap: 0 }}>
         {plano && <div style={{ background: 'var(--surface-card)' }}><img src={plano} alt={`Unidad ${unit.unit_number}`} style={{ width: '100%', height: '100%', minHeight: 150, objectFit: 'cover', display: 'block' }} /></div>}
         <div style={{ padding: '18px 20px' }}>
-          <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>✓ Tu unidad elegida</div>
+          <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.07em' }}>✓ Tu Unidad Elegida</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 3 }}>
             <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{unit.prototype ? `Tipo ${unit.prototype}` : 'Unidad'} · {unit.unit_number}</span>
             <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{money(unit.price)}</span>
@@ -142,8 +142,12 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   const creditos = Array.isArray(dev.creditos_aceptados) ? dev.creditos_aceptados : [];
   const [schemes, setSchemes] = useState([]);
   useEffect(() => { let alive = true; fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setSchemes((d && d.schemes) || []); }).catch(() => {}); return () => { alive = false; }; }, [dev.id]);
-  const pctRange = (key) => { if (!schemes.length) return null; const v = schemes.map((s) => s[key] || 0); const mn = Math.min(...v), mx = Math.max(...v); return mn === mx ? `${mn}%` : `${mn}–${mx}%`; };
-  const STAGE_PCT = { Apartado: schemes.length ? money(Math.min(...schemes.map((s) => s.apartado_mxn || 0))) : null, Enganche: pctRange('firma_pct'), Mensualidades: pctRange('mensualidades_pct'), Escrituración: pctRange('escritura_pct') };
+  // El dev define el plan de LISTA (el de menor descuento). Mostramos ESE valor exacto, no un rango. (founder)
+  const listScheme = schemes.length ? schemes.reduce((a, b) => ((a.descuento_pct || 0) <= (b.descuento_pct || 0) ? a : b), schemes[0]) : null;
+  const pctStr = (v) => (v || v === 0 ? `${v}%` : null);
+  const STAGE_PCT = listScheme
+    ? { Apartado: money(listScheme.apartado_mxn || 0), Enganche: pctStr(listScheme.firma_pct), Mensualidades: pctStr(listScheme.mensualidades_pct), Escrituración: pctStr(listScheme.escritura_pct) }
+    : { Apartado: null, Enganche: null, Mensualidades: null, Escrituración: null };
   // (sin emojis · diseño limpio)
   const h2 = (t, tip) => <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}><span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>{titleCase(t)}</span><InfoTip text={tip} /></div>;
   const factCard = (rows) => (
@@ -216,7 +220,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(255px,1fr))', gap: 10, marginTop: 12 }}>
             {acabados.map((a, i) => (
               <Card key={i} className="dmx-proj-card" style={{ padding: '13px 16px' }}>
-                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{a.area}</div>
+                <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, color: 'var(--theme)', letterSpacing: '0.04em' }}>{titleCase(a.area)}</div>
                 <div style={{ fontFamily: SANS, fontSize: 13.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{a.detalle}</div>
               </Card>
             ))}
@@ -288,7 +292,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
           <Card style={{ marginTop: 12 }}>
             {schemes.length > 0 && (
               <div style={{ marginBottom: creditos.length ? 16 : 4 }}>
-                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 }}>El plan incluye</div>
+                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em', marginBottom: 9 }}>El Plan Incluye</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {['Apartado', 'Enganche', 'Mensualidades', 'Escrituración'].map((name) => (
                     <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--card-border, var(--border))', fontFamily: SANS, fontSize: 13, color: 'var(--cream)', fontWeight: 600 }}>{name}{STAGE_PCT[name] ? <b style={{ color: 'var(--theme)', marginLeft: 2 }}>· {STAGE_PCT[name]}</b> : null} <InfoTip text={PAGO_TIP[name]} /></span>
@@ -298,7 +302,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
             )}
             {creditos.length > 0 && (
               <div style={{ marginBottom: 4 }}>
-                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 9 }}>Créditos que aceptan</div>
+                <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em', marginBottom: 9 }}>Créditos que Aceptan</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {creditos.map((c) => (
                     <span key={c} style={{ padding: '9px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)', fontFamily: SANS, fontSize: 13, color: '#059669', fontWeight: 700 }}>✓ {c}</span>
@@ -333,7 +337,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
         <Card className="dmx-proj-card" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: `hsl(${developer.logo_hue || 250} 60% 92%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: `hsl(${developer.logo_hue || 250} 55% 38%)`, flexShrink: 0 }}>{developer.name[0]}</div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desarrollado por</div>
+            <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em' }}>Desarrollado por</div>
             <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>{developer.name}</div>
             <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>{[developer.founded_year && `Desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ') || 'Ve su track record en Confianza'}</div>
           </div>
@@ -525,7 +529,7 @@ export default function FichaCockpit({ user, onLogin }) {
   const atlaxContext = `Ficha de ${dev.name} (${dev.colonia}${dev.alcaldia ? ', ' + dev.alcaldia : ''}). El cliente está en la sección "${TAB_CTX[tab] || tab}". ${unit ? `Tiene elegida la unidad ${unit.unit_number} — ${unit.bedrooms} rec, ${unit.m2_total || unit.m2_privative} m², ${money(unit.price)}. ` : 'Aún no elige una unidad. '}Intención: ${lens === 'invertir' ? `invertir (${invMode === 'institucional' ? 'institucional' : 'para sí mismo'})` : lens === 'vivir' ? 'para vivir' : 'sin definir'}.${unit && keyNum ? ` ${keyNum.l}: ${keyNum.v}${keyNum.sub ? ' (' + keyNum.sub + ')' : ''}.` : ''}`;
 
   const badgeV = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)', color: '#059669', fontFamily: SANS, fontSize: 11, fontWeight: 700 };
-  const badgeS = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: 'var(--theme)', fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const badgeS = { padding: '4px 11px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: 'var(--theme)', fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' };
   const sideBtn = (grad) => ({ width: '100%', padding: '12px 14px', borderRadius: 12, border: grad ? 'none' : '1px solid var(--card-border, var(--border))', background: grad ? 'var(--grad)' : 'transparent', color: grad ? '#fff' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginTop: 9, boxShadow: grad ? '0 10px 24px rgba(109,74,255,0.24)' : 'none' });
 
   return (
@@ -538,7 +542,7 @@ export default function FichaCockpit({ user, onLogin }) {
           <div style={{ maxWidth: 1320, width: '94%', margin: '0 auto', padding: '11px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{dev.colonia} · {dev.alcaldia} · CDMX</div>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cream-3)' }}>{titleCase(dev.colonia)} · {titleCase(dev.alcaldia)} · CDMX</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                   <h1 style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 'clamp(20px,2.8vw,30px)', color: 'var(--cream)', margin: '1px 0 0', lineHeight: 1.05 }}>{dev.name}</h1>
                   <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--theme)' }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</span>
@@ -581,13 +585,13 @@ export default function FichaCockpit({ user, onLogin }) {
                 {/* ② TU CRÉDITO + RENDIMIENTO a fondo — la calc ya trae el simulador de crédito (no se duplica) */}
                 {lens === 'invertir' && (unit || multi) && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Análisis de inversión a fondo</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.07em', marginBottom: 10 }}>Análisis de Inversión a Fondo</div>
                     <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                   </div>
                 )}
                 {lens === 'vivir' && (
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>¿Rentar o comprar?</div>
+                    <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.07em', marginBottom: 10 }}>¿Rentar o Comprar?</div>
                     <SeccionDinero dev={dev} unit={unit} intent="vivir" defaultTab="rentobuy" />
                   </div>
                 )}
@@ -600,7 +604,7 @@ export default function FichaCockpit({ user, onLogin }) {
           {/* SIDEBAR fijo: precio + número clave + acciones + asesor */}
           <aside className="dmx-cockpit-side" style={{ position: 'sticky', top: 130 }}>
             <Card style={{ padding: '18px 18px' }}>
-              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
+              <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', letterSpacing: '0.06em' }}>{unit ? `Unidad ${unit.unit_number}` : 'Desde'}</div>
               <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '2px 0 2px' }}>{money(unit ? unit.price : dev.price_from)}</div>
               {unit && keyNum && <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginBottom: 4 }}>{keyNum.l}: <b style={{ color: 'var(--theme)' }}>{keyNum.v}</b></div>}
               <button onClick={agendar} style={sideBtn(true)}>Agendar visita</button>
