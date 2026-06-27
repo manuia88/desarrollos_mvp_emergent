@@ -6,6 +6,7 @@ sin tocar al usuario legítimo. Para multi-instancia → mover a Redis.
 """
 from __future__ import annotations
 
+import os
 import time
 from collections import defaultdict, deque
 from typing import Deque, Dict
@@ -16,9 +17,31 @@ from fastapi import Request, HTTPException
 _BUCKETS: Dict[str, Dict[str, Deque[float]]] = defaultdict(lambda: defaultdict(deque))
 
 
+def _trusted_hops() -> int:
+    """Saltos de proxy DE CONFIANZA delante del backend. Default: 1 en prod (el ingress de K8s), 0 en dev
+    (acceso directo). Si se mete Cloudflare delante del ingress → poner TRUSTED_PROXY_HOPS=2 en el env."""
+    v = os.environ.get("TRUSTED_PROXY_HOPS")
+    if v is not None:
+        try:
+            return max(0, int(v))
+        except ValueError:
+            pass
+    return 1 if os.environ.get("DMX_ENV", "").lower() in ("prod", "production") else 0
+
+
 def client_ip(request: Request) -> str:
-    fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    return fwd or (request.client.host if request.client else "unknown")
+    """IP REAL del cliente, A PRUEBA DE SPOOFING (pentest 2026-06-27).
+
+    El cliente puede FALSIFICAR X-Forwarded-For prependiendo valores, pero NO controla el salto que añade
+    NUESTRO proxy de confianza. Tomamos la IP en la posición -hops (la que puso el proxy de confianza más externo);
+    todo lo de la izquierda es controlado por el cliente → se ignora. Sin proxy de confianza (dev) → la IP del
+    socket real (request.client.host). Antes tomaba el PRIMER hop = el falsificable (bug del pentest)."""
+    hops = _trusted_hops()
+    if hops > 0:
+        parts = [p.strip() for p in (request.headers.get("x-forwarded-for") or "").split(",") if p.strip()]
+        if len(parts) >= hops:
+            return parts[-hops]
+    return request.client.host if request.client else "unknown"
 
 
 def check(request: Request, *, scope: str = "default", limit: int = 60, window: int = 60) -> None:

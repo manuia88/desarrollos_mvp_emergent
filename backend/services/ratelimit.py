@@ -12,11 +12,17 @@ _BUCKETS: dict = defaultdict(lambda: defaultdict(deque))
 
 
 def client_ip(request) -> str:
-    """IP del socket real (no el header x-forwarded-for, que es spoofable)."""
+    """IP REAL del cliente a prueba de spoofing — reusa el helper canónico (XFF salto-de-confianza en prod,
+    socket en dev). Antes usaba SIEMPRE el socket → en prod agrupaba a TODOS por la IP del ingress (rate-limit
+    demasiado agresivo). Ahora distingue al cliente real sin ser falsificable."""
     try:
-        return (request.client.host if request and request.client else "") or "anon"
+        from ratelimit import client_ip as _canonical
+        return _canonical(request) or "anon"
     except Exception:
-        return "anon"
+        try:
+            return (request.client.host if request and request.client else "") or "anon"
+        except Exception:
+            return "anon"
 
 
 def allow(bucket: str, ip: str, limit: int, window: int = 60) -> bool:

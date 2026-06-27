@@ -21,10 +21,13 @@ _MAX_KEYS = 100_000  # backstop de memoria
 
 
 def client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    # SEGURIDAD (pentest 2026-06-27): reusa el helper canónico a prueba de spoofing (salto de confianza en prod,
+    # socket en dev). Antes tomaba el PRIMER hop de X-Forwarded-For = el falsificable por el cliente.
+    try:
+        from ratelimit import client_ip as _canonical
+        return _canonical(request)
+    except Exception:
+        return request.client.host if request.client else "unknown"
 
 
 def check_rate(request: Request, key: str, limit: int, window_sec: int = 60) -> None:
