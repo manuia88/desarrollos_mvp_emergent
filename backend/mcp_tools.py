@@ -348,7 +348,12 @@ async def handle_get_dev_diagnostic(db, params: Dict[str, Any]) -> Dict[str, Any
     from diagnostic_engine import analyze_dev
     try:
         report = await analyze_dev(db, dev_id)
-        return report.to_dict()
+        out = report.to_dict()
+        # SEGURIDAD (pentest 2026-06-27): el embudo PRIVADO del dev (R4 view→lead = comportamiento de SUS compradores)
+        # NO sale por la API a otros tenants. El diagnóstico por scores públicos sí; el funnel privado del dev, no.
+        if isinstance(out.get("findings"), list):
+            out["findings"] = [f for f in out["findings"] if not str(f.get("rule_id", "")).startswith("R4")]
+        return out
     except Exception as e:
         log.warning(f"[mcp] get_dev_diagnostic({dev_id}): {e}")
         return {"error": str(e), "dev_id": dev_id}
