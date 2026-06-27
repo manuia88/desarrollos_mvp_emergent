@@ -535,8 +535,10 @@ async def atlax_list_threads(request: Request, session_token: str, limit: int = 
 
 
 @router.get("/api/atlax/threads/{thread_id}/messages")
-async def atlax_thread_messages(thread_id: str, request: Request):
-    """Mensajes de un thread, en orden cronológico."""
+async def atlax_thread_messages(thread_id: str, request: Request, session_token: str = ""):
+    """Mensajes de un thread, en orden cronológico. SEGURIDAD (pentest 2026-06-27): solo el DUEÑO
+    (con su asis_ token) lee el thread → cierra el IDOR de leer conversaciones ajenas + la cadena
+    thread_id → session_token → todas las conversaciones. Y nunca se devuelve el token en el payload."""
     db = request.app.state.db
     thread = await db.atlax_threads.find_one({"thread_id": thread_id}, {"_id": 0})
     if not thread:
@@ -544,6 +546,9 @@ async def atlax_thread_messages(thread_id: str, request: Request):
             status_code=404,
             content={"ok": False, "error": "Thread no encontrado"},
         )
+    if not session_token or session_token != thread.get("session_token"):
+        return JSONResponse(status_code=403, content={"ok": False, "error": "No autorizado"})
+    thread.pop("session_token", None)   # nunca exponer el token en la respuesta
     for k in ("first_message_at", "last_message_at"):
         if isinstance(thread.get(k), datetime):
             thread[k] = thread[k].isoformat()

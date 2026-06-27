@@ -545,7 +545,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     if (!newThreadId || newThreadId === threadId) return;
     setBusy(true);
     try {
-      const r = await fetch(`${API}/api/atlax/threads/${newThreadId}/messages`);
+      const r = await fetch(`${API}/api/atlax/threads/${newThreadId}/messages?session_token=${encodeURIComponent(asistenteToken || '')}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
       const loaded = (d.messages || []).map(m => ({

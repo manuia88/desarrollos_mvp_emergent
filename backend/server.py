@@ -76,7 +76,14 @@ def _prod_env_guard():
     if not _dsn.startswith(("http://", "https://")):
         logging.error("[startup] PROD: SENTRY_DSN no es una URL DSN válida — observabilidad de errores APAGADA. Setea un DSN real.")
 
-app = FastAPI(title="DesarrollosMX API", version="2.0.0")
+# SEGURIDAD (pentest 2026-06-27): en PROD se apaga el "mapa del tesoro" (/openapi.json · /docs · /redoc)
+# que listaba 1,524 rutas, incl. 440 de superadmin. En dev sigue disponible para desarrollo.
+app = FastAPI(
+    title="DesarrollosMX API", version="2.0.0",
+    openapi_url=(None if _is_prod() else "/openapi.json"),
+    docs_url=(None if _is_prod() else "/docs"),
+    redoc_url=(None if _is_prod() else "/redoc"),
+)
 
 # Prod: orígenes explícitos vía CORS_ORIGINS (coma-separados, p.ej.
 # "https://desarrollosmx.io,https://www.desarrollosmx.io"). Dev: regex localhost.
