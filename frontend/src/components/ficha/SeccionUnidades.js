@@ -65,7 +65,7 @@ const pgBtn = (off) => ({ background: 'var(--surface-card)', color: off ? 'var(-
 // Vista = SOLO interior/exterior (alineado con la tabventas del portal dev; los valores granulares del seed se colapsan).
 const vistaLabel = (v) => (!v ? null : (String(v).toLowerCase() === 'interior' ? 'Interior' : 'Exterior'));
 // Tipos de cajón (misma nomenclatura del portal dev · VentasTab) — para que el comparador coincida.
-const PARKING_LABELS = { individual: 'Individual', battery_shared: 'En batería (compartido)', bateria_propia: 'Batería propia', bateria_vecino: 'Batería vecino', eleva_autos: 'Eleva-autos', compartido: 'Compartido' };
+const PARKING_LABELS = { individual: 'Individual', battery_shared: 'En batería', bateria_propia: 'Batería propia', bateria_vecino: 'Batería vecino', eleva_autos: 'Eleva-autos', compartido: 'Compartido' };
 const parkLabel = (t) => (t ? (PARKING_LABELS[t] || String(t)) : null);
 // AVM (precio vs mercado): el motor devuelve color por NOMBRE (rojo/verde…) y etiqueta tersa → a CSS + lenguaje claro.
 const AVM_COLOR = { rojo: '#dc2626', naranja: '#ea580c', amarillo: '#d97706', ambar: '#d97706', verde: '#059669', gris: 'var(--cream-3)' };

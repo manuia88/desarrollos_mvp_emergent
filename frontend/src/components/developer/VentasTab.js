@@ -21,12 +21,14 @@ const PARKING_TYPE_LABELS = {
   individual: 'Individual',
   bateria_propia: 'Batería propia',
   bateria_vecino: 'Batería vecino',
+  battery_shared: 'En batería',          // valor legacy del seed (= en batería compartido) — mismo label que la ficha
   eleva_autos: 'Eleva-autos',
 };
 const PARKING_TYPE_COLOR = {
   individual: '#22c55e',
   bateria_propia: '#d4a72c',
   bateria_vecino: '#e0463d',
+  battery_shared: '#d4a72c',
   eleva_autos: 'var(--theme-3)',
 };
 
@@ -192,7 +194,8 @@ function ExtraCells({ u, devId, onPatched, editMode }) {
   const ptColor = PARKING_TYPE_COLOR[u.parking_type] || 'var(--cream-2)';
   const tipoDisplay = (uu) => <span style={{ color: PARKING_TYPE_COLOR[uu.parking_type] || 'var(--cream-2)', fontWeight: 700, fontSize: 12 }}>{PARKING_TYPE_LABELS[uu.parking_type] || '—'}</span>;
   const bodegaDisplay = (uu) => <span style={{ color: uu.bodega ? '#16a34a' : 'var(--cream-3)', fontSize: 12, fontWeight: 700 }}>{uu.bodega ? '✓ Incl.' : '—'}</span>;
-  const vistaDisplay = (uu) => <span style={{ color: 'var(--cream-2)', fontSize: 12 }}>{uu.vista === 'interior' ? 'Interior' : uu.vista === 'exterior' ? 'Exterior' : '—'}</span>;
+  // Vista: misma lógica que la ficha (vistaLabel) — interior→Interior, cualquier otro valor real→Exterior, vacío→'—'. Así coinciden ficha y dev.
+  const vistaDisplay = (uu) => <span style={{ color: 'var(--cream-2)', fontSize: 12 }}>{!uu.vista ? '—' : (String(uu.vista).toLowerCase() === 'interior' ? 'Interior' : 'Exterior')}</span>;
   const PARKING_OPTS = Object.entries(PARKING_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
   if (!editMode) {
