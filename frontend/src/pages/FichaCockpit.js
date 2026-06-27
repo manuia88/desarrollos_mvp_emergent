@@ -439,7 +439,15 @@ export default function FichaCockpit({ user, onLogin }) {
           </aside>
         </div>
       </main>
-      <style>{`@media (max-width: 920px){ .dmx-cockpit-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-cockpit-side{ position: static !important; } }`}</style>
+      {/* barra de acción fija SOLO en móvil — cuando el sidebar se va abajo, el precio + Agendar siguen a la mano */}
+      <div className="dmx-cockpit-mobilebar" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 55, display: 'none', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px', background: 'var(--surface, #fff)', borderTop: '1px solid var(--card-border, var(--border))', boxShadow: '0 -6px 20px rgba(16,18,28,0.10)' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 17, color: 'var(--cream)' }}>{money(unit ? unit.price : dev.price_from)}</div>
+          {unit && keyNum && <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)' }}>{keyNum.l}: {keyNum.v}</div>}
+        </div>
+        <button onClick={agendar} style={{ padding: '11px 20px', borderRadius: 12, border: 'none', background: 'var(--grad)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>📅 Agendar visita</button>
+      </div>
+      <style>{`@media (max-width: 920px){ .dmx-cockpit-grid{ grid-template-columns: minmax(0,1fr) !important; } .dmx-cockpit-side{ position: static !important; } .dmx-cockpit-mobilebar{ display: flex !important; } }`}</style>
       {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
     </LightScope>
   );
