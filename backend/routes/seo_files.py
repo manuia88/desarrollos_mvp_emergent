@@ -12,6 +12,44 @@ router = APIRouter(tags=["seo"])
 
 BASE_URL = "https://desarrollosmx.io"
 
+_STAGE_LABEL = {"preventa": "Preventa", "construccion": "En construcción", "entrega_inmediata": "Entrega inmediata", "terminado": "Terminado"}
+
+
+def _all_dev_slugs():
+    """Slugs (=id) de TODOS los desarrollos reales → sitemap dinámico (ya no hardcodeado)."""
+    try:
+        from data_developments import DEVELOPMENTS
+        return [d["id"] for d in DEVELOPMENTS if d.get("id")]
+    except Exception:
+        return []
+
+
+def _dev_inventory_md():
+    """Inventario REAL en markdown para llms.txt — lo que los crawlers de IA leen y citan
+    (nombre · colonia · desde $ · recámaras · etapa · URL). Cero dato inventado: sale de DEVELOPMENTS."""
+    try:
+        from data_developments import DEVELOPMENTS
+    except Exception:
+        return ""
+    lines = []
+    for d in DEVELOPMENTS:
+        slug = d.get("id")
+        if not slug:
+            continue
+        name = d.get("name", slug)
+        loc = d.get("colonia") or d.get("colonia_id") or ""
+        if d.get("alcaldia"):
+            loc = f"{loc}, {d['alcaldia']}"
+        stage = _STAGE_LABEL.get(d.get("stage"), d.get("stage") or "")
+        prices = [u.get("price") for u in (d.get("units") or []) if u.get("price")]
+        desde = f" · desde ${min(prices):,.0f} MXN" if prices else ""
+        beds = [b for b in (d.get("bedrooms_range") or []) if isinstance(b, (int, float))]
+        rec = f" · {int(min(beds))}–{int(max(beds))} rec" if beds else ""
+        lines.append(f"- **{name}** — {loc}{desde}{rec} · {stage}. {BASE_URL}/desarrollo/{slug}")
+    if not lines:
+        return ""
+    return "## Desarrollos disponibles (obra nueva · CDMX)\n\n" + "\n".join(lines) + "\n\n"
+
 _LLMS_TXT = """\
 # DesarrollosMX (DMX)
 
@@ -63,24 +101,17 @@ _SITEMAP_URLS = [
     "/privacy/dsr",
     "/docs/api",
     "/boletin",
-    "/desarrollo/altavista-polanco",
-    "/desarrollo/polanco-moderno",
-    "/desarrollo/condesa-terraza",
-    "/desarrollo/roma-norte-orquidea",
-    "/desarrollo/santa-fe-one",
-    "/desarrollo/coyoacan-jardin",
-    "/desarrollo/narvarte-35",
-    "/desarrollo/napoles-loft",
-    "/desarrollo/doctores-68",
-    "/desarrollo/tamaulipas-89",
     "/widget/bank-avm",
     "/widget/insurance-risk",
 ]
+# Los /desarrollo/{slug} ya NO se hardcodean: se generan dinámicamente de DEVELOPMENTS (ver serve_sitemap).
 
 
 @router.get("/llms.txt", response_class=PlainTextResponse)
 async def serve_llms_txt():
-    return PlainTextResponse(_LLMS_TXT, media_type="text/plain; charset=utf-8")
+    # Inyecta el inventario REAL (desarrollos) antes de Contact → los crawlers de IA leen y citan listings reales.
+    body = _LLMS_TXT.replace("## Contact", _dev_inventory_md() + "## Contact")
+    return PlainTextResponse(body, media_type="text/plain; charset=utf-8")
 
 
 @router.get("/sitemap.xml")
@@ -88,6 +119,9 @@ async def serve_sitemap(request: Request):
     """Dynamic sitemap: base URLs + SEO filter combos from db.seo_filter_combos."""
     # Base static URLs
     entries = list(_SITEMAP_URLS)
+
+    # TODOS los desarrollos reales (dinámico, ya no hardcodeado) → los nuevos aparecen solos
+    entries.extend(f"/desarrollo/{s}" for s in _all_dev_slugs())
 
     # W5.2 — SEO themed landings
     try:
