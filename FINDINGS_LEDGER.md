@@ -500,3 +500,25 @@ front. photo_dwell→feature vía photo_tagger (foto[idx]→features reales). dw
 - Marketplace: wiring SANO (0 muerto/huérfano), 26 señales auditadas unitariamente (4 rotas→arregladas), captura
   granular verificada. Batería 66/66.
 - NO certifico dev/asesor/superadmin a esta profundidad aún — son los siguientes portales del plan.
+
+---
+
+## APLICADOS: los 4 upgrades + áreas + loops end-to-end
+
+1. ✅ **Cerrar demanda→acción** (el #1): /api/dev/market/demand-features (el dev ve demanda por FEATURE + qué construir +
+   no satisfecho + tendencias, scopeado a SUS colonias) + tarjeta en DesarrolladorDemanda. /api/asesor/contactos/{cid}/
+   recomendacion (el asesor ve qué ofrecerle según lo que el lead miró) + panel en el drawer de AsesorContactos.
+2. ✅ **Feature-demand al dev**: el motor rico (superadmin) ahora alimenta también al dev (mismo demand_intelligence,
+   scopeado por colonias).
+3. ✅ **Unmet demand**: unmet_demand() (búsquedas con unmet=True / results_count<=2) → qué construir que no existe.
+   Visible en superadmin + dev.
+4. ✅ **Anomalía/tendencia**: trend_alerts() (feature reciente vs ventana anterior) → qué sube rápido. Superadmin + dev.
+- ✅ refactor _attribute() (DRY, 3 niveles) + lead_engaged_features/recommend_for_lead.
+- Menores (honesto): photo_tags ya es rápido (parsea URL, sin visión → no necesita cache); dwell/zone_intent ya cuentan
+  vía colonia. No se fabricó trabajo marginal.
+
+**Loops ahora (actualizado):** demanda→dev = CERRADO (a nivel feature, no solo búsqueda). comprador→asesor = CERRADO
+(recomendación por señales reales). La inteligencia DEJÓ de ser dashboard-only.
+
+**Próximo nivel (anotado, no fabricado):** que la tendencia/unmet DISPARE acción proactiva (alerta al command-center del
+dev: 'terraza subiendo 3x, 0 oferta en tu colonia → constrúyelo') — toca el sistema agéntico, va con el portal Dev.
