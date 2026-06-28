@@ -104,7 +104,35 @@ async def record_closing(db, lead_id=None, visitor_id=None, dev_id=None, price_c
                           "price_m2": dev.get("price_m2_dev"), "closed_at_dt": now}}, upsert=True)
         except Exception:
             pass
+    # #3 cerrar el aprendizaje: cada cierre re-materializa "qué cierra" → el ranking del comprador mejora SOLO.
+    try:
+        await materialize_closing_lifts(db)
+    except Exception:
+        pass
     return doc
+
+
+async def materialize_closing_lifts(db) -> dict:
+    """#3 cerrar el aprendizaje: materializa 'qué cierra' (lifts de cerebro por recámaras) en db.closing_lifts → el
+    ranking del comprador (visitor_taste.score_devs) lo lee y empuja lo que de verdad VENDE. Tras cada cierre + cron.
+    Fail-open. REUSA cerebro_mercado_engine.lifts_por_factor (no duplica el cálculo)."""
+    out = {"_id": "global", "recamaras": {}}
+    try:
+        from cerebro_mercado_engine import lifts_por_factor
+        lf = await lifts_por_factor(db, "recamaras")
+        if lf.get("suficiente_dato"):
+            for o in (lf.get("opciones") or []):
+                try:
+                    rec = int(str(o["valor"]).split()[0])
+                    out["recamaras"][str(rec)] = round(o.get("lift_pp") or 0, 1)
+                except (ValueError, IndexError, KeyError):
+                    pass
+        from datetime import datetime as _dt
+        out["computed_at"] = _dt.utcnow().isoformat()
+        await db.closing_lifts.update_one({"_id": "global"}, {"$set": out}, upsert=True)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[flywheel] materialize_closing_lifts fail: {e}")
+    return out
 
 
 class CierreIn(BaseModel):

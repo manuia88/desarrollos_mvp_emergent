@@ -209,6 +209,14 @@ async def score_devs(db, visitor_id, devs):
         except Exception:  # noqa: BLE001
             tag_from_url = None
         out = {}
+        # #3 cerrar el aprendizaje: el ranking aprende de QUÉ CIERRA (lifts de cerebro materializados por el cierre).
+        # Devs con recámaras que históricamente cierran reciben un empujón → el marketplace mejora SOLO con cada venta.
+        rec_lift = {}
+        try:
+            cl = await db.closing_lifts.find_one({"_id": "global"}, {"_id": 0, "recamaras": 1})
+            rec_lift = (cl or {}).get("recamaras") or {}
+        except Exception:  # noqa: BLE001
+            pass
         for d in (devs or []):
             did = d.get("id")
             if not did:
@@ -236,6 +244,18 @@ async def score_devs(db, visitor_id, devs):
                         attrs.add(f)
                 s += min(15, 5 * len(attrs & liked_feat))
                 s -= 6 * len(attrs & evita_attr)
+            if rec_lift:   # #3 empujón por cierres reales (pequeño: el gusto manda, los cierres nudgean)
+                br = d.get("bedrooms_range") or d.get("recamaras_range") or []
+                vals = []
+                if isinstance(br, (list, tuple)) and br:
+                    try:
+                        vals = list(range(int(br[0]), int(br[-1]) + 1))
+                    except (ValueError, TypeError):
+                        vals = []
+                elif str(d.get("recamaras") or "").isdigit():
+                    vals = [int(d["recamaras"])]
+                best = max((rec_lift.get(str(v), 0) for v in vals), default=0)
+                s += max(-4.0, min(8.0, best * 0.3))
             out[did] = max(0.0, min(100.0, s))
         return out
     except Exception as e:  # noqa: BLE001
