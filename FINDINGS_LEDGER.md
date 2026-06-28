@@ -434,3 +434,30 @@ colonias; atributos; qué-construir demanda-vs-oferta; buckets day/week/month/qu
 4. ANOMALÍA/TENDENCIA: 'demanda de terraza en Del Valle 3x este mes' como alerta.
 
 **Higiene:** barrido 444 colecciones, 5 residuos limpiados. Limpio.
+
+---
+
+## AUDITORÍA PORTAL POR PORTAL (quirúrgica, no atajos) — PORTAL 1: MARKETPLACE/COMPRADOR ✅
+
+**Método:** 4 pasadas (inventario → cableado back↔front → captura/granularidad/visibilidad por interacción → arreglar).
+Herramienta reutilizable: scripts/portal_wiring_audit.py.
+
+**Pasada 1-2 (wiring): SANO.** 56 páginas (52 ruteadas + 4 V2 sí usadas), 143 endpoints backend, **0 huérfanos reales**,
+0 llamadas muertas. Las 2 'sin API' (Simulador/Barrios) son legítimas (calc client-side / página índice). El miedo de
+'front desconectado' NO aplica aquí tampoco.
+
+**Pasada 3 (granularidad): el verdadero hallazgo.** Mapeé las 30+ interacciones (sendBuyerSignal) y su payload:
+- ✅ La ficha captura BIEN unit_number (unit_view/section_time/intent/unit_save/compare).
+- ✅ atlax_profile captura meta.amenidades = el feature EXPLÍCITO que pide el comprador.
+- 🔴 CABLES MUERTOS: section_time / section_view / module_open (tiempo+engagement por sección/módulo de la ficha) →
+  capturados y NADIE los consumía. atlax_profile (amenidades) NO alimentaba el motor de demanda.
+
+**Pasada 4 (arreglado):**
+- Las amenidades explícitas (atlax_profile/zone_profile) ahora alimentan demanda-por-feature (+_as_feature_list para
+  strings). 41 señales precisas.
+- engagement_by_content() RESUCITA section_time/view/module_open → 'qué contenido de la ficha engancha' (nuevo). Endpoint
+  + tarjeta en 'Demanda de mercado'.
+
+**Follow-up notado:** photo_dwell captura photo_idx, no el feature de la foto → necesita persistir photo_tagger (próximo).
+
+SIGUE: Portal 2 = DEV (oferta + proyectos + métricas).
