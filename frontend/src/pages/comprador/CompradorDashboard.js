@@ -12,6 +12,7 @@ import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
 // W3.8 — Cross-sell
 import CompradorCrossSellSection from '../../components/comprador/CompradorCrossSellSection';
 import DondeVivirCard from '../../components/comprador/DondeVivirCard';   // lente espacial: ¿dónde vivirías feliz?
+import DemandaMapaComprador from '../../components/comprador/DemandaMapaComprador';   // lente espacial: mapa de calor de la demanda (L55)
 import { tc } from '../../lib/titleCase';
 import { claimVisitor } from '../../lib/buyerSignal';   // Fix #2: vincula la actividad anónima si llega logueado
 
@@ -264,8 +265,9 @@ export default function CompradorDashboard() {
           </div>
         )}
 
-        {/* Lente espacial del comprador: ¿dónde vivirías feliz? (cuña brújula) */}
+        {/* Lente espacial del comprador: ¿dónde vivirías feliz? (lista) + el mapa de calor de la demanda (L55) */}
         <DondeVivirCard />
+        <DemandaMapaComprador />
 
         {/* W3.8 — Servicios para tu compra (solo si hay partners activos) */}
         <CompradorCrossSellSection />

@@ -14,7 +14,9 @@ const SOURCE_ID = 'dmx_demand';
 const FILL_LAYER = 'dmx_demand_fill';
 const LINE_LAYER = 'dmx_demand_line';
 
-export default function DemandHeatmapMap({ geojson, height = 460, onSelectColonia }) {
+// renderCta(props) → HTML string para el popup pegajoso al hacer click (opcional). Si no se pasa, usa el CTA del dev
+// (viabilidad → site-selection). Permite reusar el mapa para el comprador (CTA → ficha de zona) sin tocar el dev.
+export default function DemandHeatmapMap({ geojson, height = 460, onSelectColonia, renderCta }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
@@ -102,10 +104,9 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
             if (!f) return;
             const p = f.properties || {};
             if (onSelectColonia) onSelectColonia(p.colonia_id, p);
-            // Sticky CTA popup → site-selection wizard prefill
+            // Sticky CTA popup. Por defecto (dev) → site-selection; renderCta lo sobreescribe (p.ej. comprador → ficha de zona).
             try { popupRef.current.remove(); } catch (er) { /* noop */ }
-            const sticky = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: 8, className: 'dmx-cta-popup' });
-            const html = `
+            const html = renderCta ? renderCta(p) : `
               <div style="font-family:DM Sans;color:#06080F;padding:8px 6px;min-width:200px;">
                 <div style="font-family:Outfit;font-weight:700;font-size:13px;">${p.colonia}</div>
                 <div style="font-size:11px;opacity:0.7;text-transform:uppercase;margin-bottom:8px;">${p.alcaldia || ''} · score ${p.demand_score}</div>
@@ -115,6 +116,8 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
                   Ver viabilidad para nuevo proyecto →
                 </a>
               </div>`;
+            if (!html) return;
+            const sticky = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: 8, className: 'dmx-cta-popup' });
             sticky.setLngLat(e.lngLat).setHTML(html).addTo(map);
           });
         }
@@ -130,7 +133,7 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
     };
     if (map.isStyleLoaded()) apply();
     else map.once('load', apply);
-  }, [geojson, onSelectColonia]);
+  }, [geojson, onSelectColonia, renderCta]);
 
   if (!TOKEN) {
     return (

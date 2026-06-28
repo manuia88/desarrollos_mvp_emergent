@@ -52,7 +52,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 - [x] **Taste** — gusto+rechazo de cada lead (lead_match.match_for con match% + taste_compact "Le gusta" en Ficha360, Fix #3) — YA cableado
 - [x] **Generative** — argumentario IA por lead (FAB + endpoints + RAG) ✅ · _gap marginal: landing por-LEAD (hay por-dev)_
 - [x] **Agentic** — recomendador por lead + `copilot-ask` por contacto + argumentario FAB ✅ (verificado 2026-06-28: el lente del asesor estaba mayormente construido)
-- [ ] **Spatial** — mapa de calor de SU demanda (del cubo) 🆕
+- [x] **Spatial** — mapa de calor de SU demanda (del cubo) ✅ 2026-06-28 · GET /api/buyer/demanda-mapa (FeatureCollection: demanda anónima/colonia + resalta tus zonas) · DemandaMapaComprador reusa DemandHeatmapMap (mapbox parametrizado CTA→ficha de zona, sin tocar el dev) · tras "¿dónde vivirías?" en el dashboard comprador
 - [x] **Personal** — memoria de cada relación (Ficha360)
 
 ### 🏗️ Dev

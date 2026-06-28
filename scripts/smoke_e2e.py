@@ -43,6 +43,7 @@ async def main():
     check("health 200", http_code("/api/health") == 200)
     check("donde-vivir 200 (público)", http_code("/api/buyer/donde-vivir?limit=2") == 200)
     check("experiencia-fotos 200", http_code("/api/buyer/experiencia-fotos/tamaulipas-89") == 200)
+    check("demanda-mapa 200 (mapa de demanda comprador · L55)", http_code("/api/buyer/demanda-mapa") == 200)
     check("demand-twin guardado (401 sin auth)", http_code("/api/superadmin/founder-console/demand-twin") in (401, 403))
 
     print("\n— Flywheel: el dato del comprador se materializa —")

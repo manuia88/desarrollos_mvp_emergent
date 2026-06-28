@@ -519,6 +519,73 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
         return {"ok": True, "colonias": []}
 
 
+@router.get("/api/buyer/demanda-mapa")
+async def demanda_mapa(request: Request, visitor_id: str = ""):
+    """L55 · lente ESPACIAL del comprador — MAPA de calor de la DEMANDA del mercado por colonia (dónde está buscando la
+    gente) y resalta las zonas que A TI te laten (de tu última búsqueda). Reusa la geometría (data_seed COLONIAS +
+    _build_polygon de dev_batch6) y la señal anónima y agregada de marketplace_searches. Devuelve un FeatureCollection
+    con el MISMO shape que el heatmap del dev → reusa el componente de mapa. Público · rate-limit · anónimo."""
+    import datetime as _dt
+    from collections import Counter
+    try:
+        from services.ratelimit import allow, client_ip
+        if not allow("demanda_mapa", client_ip(request), limit=20, window=60):
+            return {"type": "FeatureCollection", "features": []}
+        db = request.app.state.db
+        from data_seed import COLONIAS
+        from routes.dev_batch6 import _build_polygon
+
+        since = _dt.datetime.utcnow() - _dt.timedelta(days=90)
+        demanda = Counter()
+        try:
+            async for r in db.marketplace_searches.find({"created_at_dt": {"$gte": since}},
+                                                        {"_id": 0, "colonia_id": 1, "colonias": 1}):
+                zs = [str(z).strip().lower() for z in (r.get("colonias") or []) if z]
+                if not zs and r.get("colonia_id"):
+                    zs = [str(r["colonia_id"]).strip().lower()]
+                for z in zs:
+                    demanda[z] += 1
+        except Exception:  # noqa: BLE001
+            pass
+
+        mine = set()
+        if visitor_id:
+            try:
+                from services.visitor_identity import resolve_visitors
+                vids = await resolve_visitors(db, visitor_id)
+                s = await db.marketplace_searches.find_one({"visitor_id": {"$in": vids}}, {"_id": 0, "colonias": 1},
+                                                           sort=[("created_at_dt", -1)])
+                for z in ((s or {}).get("colonias") or []):
+                    mine.add(str(z).strip().lower())
+            except Exception:  # noqa: BLE001
+                pass
+
+        max_raw = max(demanda.values()) if demanda else 1
+        features = []
+        for col in COLONIAS:
+            cid = col.get("id")
+            key = str(cid).strip().lower()
+            raw = demanda.get(key, 0)
+            if raw == 0 and key not in mine:
+                continue   # mapa limpio: solo colonias con demanda real o que le laten al comprador
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "colonia_id": cid, "colonia": col.get("name", cid), "alcaldia": col.get("alcaldia"),
+                    "searches_count": raw, "demand_score": round(100 * raw / max_raw, 1) if max_raw else 0,
+                    "mine": key in mine, "center": col.get("center", [-99.16, 19.41]),
+                },
+                "geometry": {"type": "Polygon", "coordinates": [_build_polygon(col)]},
+            })
+        top = sorted(features, key=lambda f: -f["properties"]["demand_score"])[:8]
+        return {"type": "FeatureCollection", "features": features,
+                "top": [{"colonia_id": f["properties"]["colonia_id"], "colonia": f["properties"]["colonia"],
+                         "demand_score": f["properties"]["demand_score"], "mine": f["properties"]["mine"]} for f in top]}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] demanda-mapa fail-open: {e}")
+        return {"type": "FeatureCollection", "features": []}
+
+
 @router.get("/api/desarrollo/{dev_id}/percepcion")
 async def percepcion_desarrollo(dev_id: str, request: Request):
     """Cómo VEN los compradores este desarrollo (SOLO el dev dueño): interés + EL PORQUÉ DEL NO (rechazo por motivo) +
