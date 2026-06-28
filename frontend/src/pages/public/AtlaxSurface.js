@@ -12,8 +12,10 @@ import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import AtlaxResults from '../../components/landing/AtlaxResults';
 import AtlaxQuickView from '../../components/landing/AtlaxQuickView';
 import AtlaxLeadModal from '../../components/landing/AtlaxLeadModal';
+import AtlaxMyList from '../../components/landing/AtlaxMyList';
+import { getSavedIds } from '../../lib/atlaxPrefs';
 import { LightScope } from '../../components/ui';
-import { Sparkle } from '../../components/icons';
+import { Sparkle, Heart } from '../../components/icons';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
@@ -72,6 +74,8 @@ export default function AtlaxSurface() {
   const [prof, setProf] = useState(null);
   const [quick, setQuick] = useState(null);
   const [lead, setLead] = useState(null);
+  const [showList, setShowList] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
   const endRef = useRef(null);
   const askedRef = useRef(false);
   const [toast, setToast] = useState('');
@@ -133,6 +137,7 @@ export default function AtlaxSurface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { try { sessionStorage.setItem(CHAT_KEY, JSON.stringify(messages.slice(-12))); } catch (_) { /* noop */ } }, [messages]);
+  useEffect(() => { const u = () => setSavedCount(getSavedIds().length); u(); window.addEventListener('dmx:prefs', u); return () => window.removeEventListener('dmx:prefs', u); }, []);
   useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy, prof]);
 
   const submit = (e) => { if (e && e.preventDefault) e.preventDefault(); const q = input.trim(); if (q) { setInput(''); runSearch(q); } };
@@ -147,8 +152,9 @@ export default function AtlaxSurface() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--card-border)' }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'var(--cream)', fontFamily: HEAD, fontWeight: 800, fontSize: 16 }}>Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span></Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {messages.length > 0 && <button onClick={newChat} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600 }}>Nueva Búsqueda</button>}
+          {savedCount > 0 && <button onClick={() => setShowList(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--card-border)', background: '#fff', cursor: 'pointer', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, borderRadius: 999, padding: '5px 12px' }}><Heart size={14} filled color="#DB2777" /> Mi Lista ({savedCount})</button>}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--theme)', fontWeight: 700, fontFamily: 'DM Sans', fontSize: 13 }}><Sparkle size={16} /> Atlax</span>
         </div>
       </div>
@@ -255,6 +261,7 @@ export default function AtlaxSurface() {
 
       {quick && <AtlaxQuickView list={quick.list} start={quick.index} onClose={() => setQuick(null)} onAdvisor={wantAdvisor} />}
       {lead && <AtlaxLeadModal ctx={lead} onClose={() => setLead(null)} />}
+      {showList && <AtlaxMyList onClose={() => setShowList(false)} onAdvisor={() => { setShowList(false); wantAdvisor(); }} />}
     </LightScope>
   );
 }

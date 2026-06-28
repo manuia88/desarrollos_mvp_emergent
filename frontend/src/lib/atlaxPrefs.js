@@ -18,6 +18,8 @@ const SAVED = 'dmx_atlax_saved';
 const DISM = 'dmx_atlax_dismissed';
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}'); } catch (_) { return {}; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* noop */ } };
+// avisa a la UI (contador de "Mi Lista", tarjetas) que cambió una preferencia.
+const ping = () => { try { window.dispatchEvent(new Event('dmx:prefs')); } catch (_) { /* noop */ } };
 const colSlug = (d) => String((d && (d.colonia_id || d.colonia)) || '').toLowerCase() || undefined;
 
 export function isSaved(id) { return !!read(SAVED)[id]; }
@@ -32,13 +34,14 @@ export function toggleSave(dev) {
   if (on) m[dev.id] = { id: dev.id, name: dev.name, ts: Date.now() }; else delete m[dev.id];
   write(SAVED, m);
   try { sendBuyerSignal(on ? 'save' : 'unsave', { entity_id: dev.id, colonia: colSlug(dev) }); } catch (_) { /* noop */ }
+  ping();
   return on;
 }
 
 // 👎 descartar + MOTIVO — el porqué del NO (la data privilegiada). No-repetir local + señal al espinazo.
 export function dismiss(dev, reason, ctx) {
   if (!dev || !dev.id) return;
-  const m = read(DISM); m[dev.id] = { reason, ts: Date.now() }; write(DISM, m);
+  const m = read(DISM); m[dev.id] = { reason, ts: Date.now() }; write(DISM, m); ping();
   try {
     sendBuyerSignal('dismiss', {
       entity_id: dev.id, colonia: colSlug(dev), value: reason,
