@@ -33,6 +33,22 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
         sub="Búsquedas reales en DesarrollosMX, demanda no atendida y pronóstico a 30/60/90 días con IA."
       />
 
+      {/* JUGADAS PROACTIVAS: qué construir YA (presión + tendencia). Lo proactivo — el dev lo ve sin escarbar. */}
+      {feat && feat.alertas && (feat.alertas.jugadas || []).length > 0 && (
+        <Card style={{ marginBottom: 20, border: '1px solid rgba(34,197,94,0.35)', background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))' }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: '#22c55e' }}>🔥 QUÉ CONSTRUIR YA — el mercado te lo está pidiendo</div>
+          {(feat.alertas.jugadas || []).slice(0, 4).map((j) => (
+            <div key={j.feature} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <Badge tone={j.accion === 'construir' ? 'bad' : 'warn'}>{j.accion}</Badge>
+              <span style={{ fontSize: 13 }}>{j.mensaje}</span>
+            </div>
+          ))}
+          {feat.alertas.busquedas_no_satisfechas > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>+ {fmt0(feat.alertas.busquedas_no_satisfechas)} búsquedas sin buen match en tus zonas = demanda esperando oferta.</div>
+          )}
+        </Card>
+      )}
+
       {/* Demanda a nivel FEATURE en tus colonias (cierra el loop demanda→dev: no solo recámaras/precio, sino qué FEATURES) */}
       {feat && !feat._err && !feat.vacio && (
         <Card style={{ marginBottom: 20, border: '1px solid rgba(99,102,241,0.28)' }}>
@@ -57,7 +73,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26 }}>{fmt0(feat.no_satisfecha?.busquedas_insatisfechas || 0)}</div>
               <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>búsquedas sin buen match en tus zonas</div>
               {(feat.tendencias?.tendencias || []).slice(0, 3).map((t) => (
-                <div key={t.feature} style={{ fontSize: 12, color: t.crecimiento_pct > 0 ? '#16a34a' : 'var(--cream-3)', marginTop: 4 }}>↑ {t.feature} {t.crecimiento_pct > 0 ? '+' : ''}{t.crecimiento_pct}%</div>
+                <div key={t.feature} style={{ fontSize: 12, color: '#16a34a', marginTop: 4 }}>↑ {t.feature} {t.nuevo ? 'nuevo' : `${t.crecimiento_pct > 0 ? '+' : ''}${t.crecimiento_pct}%`}</div>
               ))}
             </div>
           </div>

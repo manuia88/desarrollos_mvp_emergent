@@ -17,6 +17,7 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
     import demand_intelligence as di
     db = request.app.state.db
     return {
+        "alertas": await di.demand_alerts(db, since_days=since_days),   # jugadas proactivas globales
         "by_feature": await di.demand_by_feature(db, colonia=colonia, period=period, since_days=since_days),
         "by_colonia": await di.demand_by_colonia(db, period=period, since_days=since_days),
         "by_attribute": await di.demand_by_attribute(db, since_days=since_days),

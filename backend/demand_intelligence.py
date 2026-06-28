@@ -276,12 +276,42 @@ async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] 
         if rc < min_recent:
             continue
         pc = prior.get(f, 0)
-        growth = (rc - pc) / max(pc, 1)
-        alerts.append({"feature": f, "reciente": rc, "anterior": pc, "crecimiento_pct": round(growth * 100),
-                       "x": round(rc / pc, 1) if pc else None})
-    alerts.sort(key=lambda x: -x["crecimiento_pct"])
+        # anterior=0 → NO inventamos % (sería 'subió 3600%' engañoso). Es 'nuevo' en la ventana reciente.
+        if pc == 0:
+            alerts.append({"feature": f, "reciente": rc, "anterior": 0, "crecimiento_pct": None, "nuevo": True, "x": None})
+        else:
+            alerts.append({"feature": f, "reciente": rc, "anterior": pc, "crecimiento_pct": round((rc - pc) / pc * 100),
+                           "nuevo": False, "x": round(rc / pc, 1)})
+    alerts.sort(key=lambda x: -(x["crecimiento_pct"] if x["crecimiento_pct"] is not None else (10 ** 6 + x["reciente"])))
     return {"ventana_dias": window_days, "tendencias": alerts[:15],
             "lectura": "feature creciendo rápido + poca oferta = constrúyelo YA"}
+
+
+async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: int = 90, top: int = 5) -> Dict[str, Any]:
+    """JUGADAS PROACTIVAS de demanda — combina presión (demanda vs oferta) + tendencia (qué sube) + no-satisfecho →
+    '¿qué construir YA?'. Lo proactivo: el dev/superadmin lo ve de un vistazo, sin escarbar la tabla."""
+    wtb = await what_to_build(db, colonias=colonias, since_days=since_days)
+    trends = await trend_alerts(db, colonias=colonias)
+    unmet = await unmet_demand(db, colonias=colonias, since_days=since_days)
+    trend_map = {t["feature"]: t for t in trends.get("tendencias", [])}
+    jugadas = []
+    for o in wtb.get("oportunidades", []):
+        if o["presion"] < 0.5 and o["demanda"] < 5:
+            continue
+        t = trend_map.get(o["feature"])
+        sube = (t or {}).get("crecimiento_pct")
+        nuevo = bool((t or {}).get("nuevo"))
+        urgencia = round(o["presion"] + (1.0 if ((sube and sube > 50) or nuevo) else 0.0), 2)
+        msg = f"{o['feature']}: {o['demanda']} lo buscan vs {o['oferta_unidades']} unidades en oferta (presión ×{o['presion']})"
+        if nuevo:
+            msg += " · nuevo en demanda reciente"
+        elif sube and sube > 0:
+            msg += f" · subiendo {sube:+d}%"
+        jugadas.append({"feature": o["feature"], "mensaje": msg, "presion": o["presion"], "tendencia_pct": sube,
+                        "nuevo": nuevo, "urgencia": urgencia, "accion": "construir" if o["presion"] >= 0.7 else "considerar"})
+    jugadas.sort(key=lambda x: -x["urgencia"])
+    return {"jugadas": jugadas[:top], "busquedas_no_satisfechas": unmet.get("busquedas_insatisfechas", 0),
+            "lectura": "ordenado por urgencia (presión + tendencia) — construye lo de arriba"}
 
 
 async def lead_engaged_features(db, visitor_id: str, since_days: int = 365, top: int = 8) -> Dict[str, Any]:

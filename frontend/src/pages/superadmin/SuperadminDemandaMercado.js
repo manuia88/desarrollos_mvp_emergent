@@ -61,6 +61,19 @@ export default function SuperadminDemandaMercado() {
 
       {err && <Card style={{ padding: 20, color: '#dc2626' }}>Error: {err}</Card>}
 
+      {/* JUGADAS PROACTIVAS: qué construir YA */}
+      {data?.alertas && (data.alertas.jugadas || []).length > 0 && (
+        <Card style={{ padding: '14px 18px', marginBottom: 18, border: '1px solid rgba(34,197,94,0.35)' }}>
+          <div style={{ fontWeight: 600, marginBottom: 8, color: '#22c55e' }}>🔥 Qué construir YA — el mercado lo pide</div>
+          {(data.alertas.jugadas || []).slice(0, 5).map((j) => (
+            <div key={j.feature} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <Badge tone={j.accion === 'construir' ? 'bad' : 'warn'}>{j.accion}</Badge>
+              <span style={{ fontSize: 13 }}>{j.mensaje}</span>
+            </div>
+          ))}
+        </Card>
+      )}
+
       {/* QUERY ASESINO */}
       <Card style={{ padding: '14px 18px', marginBottom: 18, border: '1px solid rgba(var(--theme-rgb),0.3)' }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Pregunta directa al mercado</div>
@@ -196,7 +209,7 @@ export default function SuperadminDemandaMercado() {
             (data?.tendencias?.tendencias || []).slice(0, 8).map((t) => (
               <div key={t.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                 <span>{t.feature}</span>
-                <span><strong style={{ color: t.crecimiento_pct > 0 ? '#16a34a' : '#999' }}>{t.crecimiento_pct > 0 ? '+' : ''}{t.crecimiento_pct}%</strong> <span style={{ color: '#888', fontSize: 11 }}>({t.anterior}→{t.reciente})</span></span>
+                <span><strong style={{ color: '#16a34a' }}>{t.nuevo ? 'nuevo' : `${t.crecimiento_pct > 0 ? '+' : ''}${t.crecimiento_pct}%`}</strong> <span style={{ color: '#888', fontSize: 11 }}>({t.anterior}→{t.reciente})</span></span>
               </div>
             ))
           )}

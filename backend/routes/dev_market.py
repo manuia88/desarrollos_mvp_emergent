@@ -90,6 +90,7 @@ async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365))
     import demand_intelligence as di
     return {
         "ok": True, "colonias": cols,
+        "alertas": await di.demand_alerts(db, colonias=cols, since_days=dias),   # jugadas proactivas: qué construir YA
         "por_feature": await di.demand_by_feature(db, colonias=cols, since_days=dias),
         "que_construir": await di.what_to_build(db, colonias=cols, since_days=dias),
         "no_satisfecha": await di.unmet_demand(db, colonias=cols, since_days=dias),
