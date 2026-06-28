@@ -216,7 +216,14 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             "dev_org_id": lead.get("dev_org_id"),
             "created_at": lead.get("created_at"),
         }
-        await db.asesor_contactos.insert_one(doc)
+        from pymongo.errors import DuplicateKeyError
+        try:
+            await db.asesor_contactos.insert_one(doc)
+        except DuplicateKeyError:
+            # CONCURRENCIA: otro espejo del MISMO (owner, lead) ganó la carrera (ac_owner_lead_uniq) → reusa ese contacto
+            # (idempotente; el ganador ya registró la actividad).
+            won = await db.asesor_contactos.find_one({"owner_id": owner, "source_lead_id": lead_id}, {"_id": 0, "id": 1})
+            return (won or {}).get("id") or cid
         # E0.8 · primer evento en el hilo de actividad canónico (FAIL-OPEN) — con el contexto real del comprador.
         try:
             from services.lead_activity import record_activity

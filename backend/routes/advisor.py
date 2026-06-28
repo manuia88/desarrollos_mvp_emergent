@@ -316,6 +316,14 @@ async def ensure_command_center_indexes(db):
         await db.command_center_actions.create_index("expires_at", expireAfterSeconds=0)
         # B5.1 · Tablero de propiedades por lead: lectura por dueño + lead.
         await db.asesor_lead_properties.create_index([("owner_id", 1), ("contacto_id", 1), ("updated_at", -1)])
+        # Concurrencia: 1 (asesor, lead) = 1 contacto. Único PARCIAL → cierra la race del mirror (espejos concurrentes
+        # del mismo lead duplicaban el contacto). El mirror captura DuplicateKeyError y reusa el contacto ganador.
+        try:
+            await db.asesor_contactos.create_index([("owner_id", 1), ("source_lead_id", 1)], unique=True,
+                                                   name="ac_owner_lead_uniq",
+                                                   partialFilterExpression={"source_lead_id": {"$type": "string"}})
+        except Exception:  # noqa: BLE001 — dups históricos no rompen el ensure
+            pass
     except Exception as _e:
         import logging
         logging.getLogger("dmx.advisor").warning(f"[command_center] ensure_indexes: {_e}")

@@ -953,6 +953,14 @@ async def revoke_broker(project_id: str, row_id: str, request: Request):
 # ═════════════════════════════════════════════════════════════════════════════
 async def ensure_dev_batch4_indexes(db) -> None:
     await db.leads.create_index([("id", 1)], unique=True, background=True)
+    # Concurrencia: 1 visitor_id = 1 lead. Único PARCIAL (solo visitor_id string → no choca con los leads sin visitor,
+    # p.ej. captura por email). Cierra la race del check-then-act en create_buyer_lead (registros concurrentes del MISMO
+    # visitante creaban N leads). El insert captura DuplicateKeyError y reusa el lead ganador.
+    try:
+        await db.leads.create_index([("visitor_id", 1)], unique=True, name="leads_vid_uniq",
+                                    partialFilterExpression={"visitor_id": {"$type": "string"}}, background=True)
+    except Exception:  # noqa: BLE001 — si hay dups históricos, no romper el arranque (dedup aparte)
+        pass
     await db.leads.create_index(
         [("dev_org_id", 1), ("status", 1), ("last_activity_at", -1)], background=True,
     )

@@ -764,7 +764,16 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             "created_at": now.isoformat(), "updated_at": now.isoformat(), "last_activity_at": now.isoformat(),
             "created_by": "_copiloto", **_eng, **_ctx,
         }
-        await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
+        from pymongo.errors import DuplicateKeyError
+        try:
+            await db.leads.insert_one(dict(lead)); lead.pop("_id", None)
+        except DuplicateKeyError:
+            # CONCURRENCIA: otra request del MISMO visitor ganó la carrera (índice único parcial leads_vid_uniq) → reusa
+            # ese lead (idempotente). De aquí se trata como 'ya existía': mismo lead_id, espejo idempotente, sin doble-aviso.
+            existing = await db.leads.find_one({"visitor_id": visitor_id}, {"_id": 0})
+            if not existing:
+                raise
+            lead, lead_id = existing, existing["id"]
     # 4. Espeja al CRM del asesor (idempotente, aislamiento). Si no se puede aún → mirror_pending (auto-reparable).
     try:
         from services.lead_bridge import mirror_lead_to_asesor_contacto
