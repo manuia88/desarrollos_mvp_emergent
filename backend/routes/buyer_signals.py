@@ -266,11 +266,36 @@ async def mi_gusto(request: Request, visitor_id: str):
         return {"ok": True, "gusto": None}
 
 
+_AMEN_TO_FEAT = {"terraza": "terraza", "balcon": "terraza", "roof garden": "terraza", "roof": "terraza",
+                 "vista": "vista_ciudad", "areas verdes": "vista_area_verde", "jardin": "vista_area_verde",
+                 "ventanales": "ventanal", "ventanal": "ventanal", "luz": "luz_natural", "luminoso": "luz_natural"}
+
+
+async def _coldstart_feats(db, visitor_id):
+    """#6 cold-start: sin gusto de fotos aún, siembra prefs de FEATURE desde lo que el visitante PIDIÓ en Atlax
+    (amenidades → features de foto). Light, fail-open."""
+    feats = []
+    try:
+        async for s in db.buyer_signals.find(
+            {"visitor_id": visitor_id, "type": {"$in": ["atlax_query", "atlax_profile"]}},
+            {"_id": 0, "meta": 1}).limit(40):
+            am = (s.get("meta") or {}).get("amenidades") or []
+            if isinstance(am, str):
+                am = [am]
+            for a in am:
+                f = _AMEN_TO_FEAT.get(str(a).strip().lower())
+                if f and f not in feats:
+                    feats.append(f)
+    except Exception:  # noqa: BLE001
+        pass
+    return feats
+
+
 @router.get("/api/buyer/experiencia-fotos/{dev_id}")
 async def experiencia_fotos(dev_id: str, request: Request, visitor_id: str = ""):
-    """P2 ficha-experiencia: reordena las fotos del dev por el GUSTO del comprador → el recorrido EMPIEZA por el espacio
-    que le importa (si se clava en cocinas, abre en la cocina). Reusa photo_tagger (room por foto) + visitor_taste
-    (rooms preferidos). Sin gusto → orden original. Fail-open."""
+    """P2 ficha-experiencia personalizada: reordena las fotos del dev por el GUSTO del comprador (CUARTO + FEATURE) → el
+    recorrido abre por el espacio/atributo que le importa, con caption a su medida. Reusa photo_tagger + visitor_taste.
+    Cold-start: siembra de lo que pidió en Atlax. Sin gusto → orden original. Fail-open."""
     try:
         from data_developments import DEVELOPMENTS_BY_ID
         dev = DEVELOPMENTS_BY_ID.get(dev_id) or {}
@@ -278,18 +303,49 @@ async def experiencia_fotos(dev_id: str, request: Request, visitor_id: str = "")
         if not photos:
             return {"ok": True, "photos": [], "personalized": False}
         from photo_tagger import tag_from_url
-        tagged = [{"url": u, "room": (tag_from_url(u) or {}).get("room") or "interior"} for u in photos]
-        pref = []
+        tagged = []
+        for u in photos:
+            t = tag_from_url(u) or {}
+            tagged.append({"url": u, "room": t.get("room") or "interior",
+                           "room_label": t.get("room_label") or "Interior", "features": t.get("features") or []})
+        db = request.app.state.db
+        pref_rooms, pref_feats, basis = [], [], None
         if visitor_id:
             from visitor_taste import get_visitor_taste_cached
-            tp = await get_visitor_taste_cached(request.app.state.db, visitor_id)
-            pref = ((tp or {}).get("keys") or {}).get("rooms") or []
-        if pref:
-            rank = {r: i for i, r in enumerate(pref)}
-            tagged.sort(key=lambda t: rank.get(t["room"], 999))   # estable: preferidos primero, resto en su orden
+            k = ((await get_visitor_taste_cached(db, visitor_id)) or {}).get("keys") or {}
+            pref_rooms = k.get("rooms") or []
+            pref_feats = k.get("features") or []
+            if pref_rooms or pref_feats:
+                basis = "gusto"
+            else:   # #6 cold-start
+                pref_feats = await _coldstart_feats(db, visitor_id)
+                if pref_feats:
+                    basis = "coldstart"
+        personalized = bool(pref_rooms or pref_feats)
+        rrank = {r: i for i, r in enumerate(pref_rooms)}
+        pfset = set(pref_feats)
+        if personalized:   # #1 score: cuarto preferido (peso, decae) + cada FEATURE que ama suma
+            def _score(t):
+                s = (3.0 - rrank[t["room"]] * 0.4) if t["room"] in rrank else 0.0
+                s += sum(1.0 for f in t["features"] if f in pfset)
+                return -s
+            tagged.sort(key=_score)   # estable
+        from visitor_taste import FEAT_LABEL
+
+        def _cap(t):   # #2 caption grounded (solo features detectados)
+            mf = [FEAT_LABEL.get(f, f.replace("_", " ")) for f in t["features"] if f in pfset]
+            if mf:
+                return f"{t['room_label']} · {mf[0]} como buscas"
+            if t["room"] in rrank:
+                return f"{t['room_label']} — tu espacio favorito"
+            return t["room_label"]
         return {
-            "ok": True, "photos": [t["url"] for t in tagged], "rooms": [t["room"] for t in tagged],
-            "personalized": bool(pref), "pref_rooms": pref[:5],
+            "ok": True,
+            "photos": [t["url"] for t in tagged],
+            "rooms": [t["room"] for t in tagged],
+            "captions": [(_cap(t) if personalized else t["room_label"]) for t in tagged],
+            "personalized": personalized, "basis": basis,
+            "pref_rooms": pref_rooms[:5], "pref_features": pref_feats[:5],
         }
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] experiencia-fotos fail-open: {e}")

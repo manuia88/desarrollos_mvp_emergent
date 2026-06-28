@@ -64,11 +64,11 @@ export default function AtlaxExperiencia() {
   const exp = resolveExperienceMode(dev, modo);   // ROUTER: detecta assets → plan de acción (modo=parallax para comparar)
   if (exp.mode === 'ficha') return <Fallback id={id} />;   // <2 fotos y sin video → a la ficha (cero invento)
   const personalized = !!(pers && pers.personalized);
-  const expFinal = personalized ? { ...exp, photos: pers.photos } : exp;   // P2: el recorrido abre por el cuarto que te importa
+  const expFinal = personalized ? { ...exp, photos: pers.photos, captions: pers.captions } : exp;   // P2: orden + caption por gusto
 
   return (
     <div style={{ background: '#0A0A0F', color: '#fff', fontFamily: 'DM Sans' }}>
-      <Hero dev={dev} photos={expFinal.photos} personalized={personalized} />
+      <Hero dev={dev} photos={expFinal.photos} personalized={personalized} caption={personalized ? (pers.captions || [])[0] : null} />
       <Walkthrough dev={dev} exp={expFinal} />
       <Cierre dev={dev} saved={saved} setSaved={setSaved} navigate={navigate} />
       <Link to={`/desarrollo/${id}`} aria-label="Cerrar" style={{ position: 'fixed', top: 16, right: 18, zIndex: 50, width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(6px)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 700 }}>×</Link>
@@ -77,7 +77,7 @@ export default function AtlaxExperiencia() {
 }
 
 // ── 1 · HERO image-reveal (cursor revela la 2ª foto bajo la 1ª) ───────────────
-function Hero({ dev, photos, personalized }) {
+function Hero({ dev, photos, personalized, caption }) {
   const ref = useRef(null);
   const [pos, setPos] = useState({ x: -999, y: -999, on: false });
   const move = (clientX, clientY) => {
@@ -100,7 +100,8 @@ function Hero({ dev, photos, personalized }) {
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 64, textAlign: 'center', pointerEvents: 'none' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#fff', opacity: 0.85, fontSize: 13, fontWeight: 700, marginBottom: 10 }}><Sparkle size={15} /> {dev.stage === 'preventa' ? 'Preventa' : 'Disponible'} · {tc(dev.colonia || '')}</div>
         <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(34px,6vw,64px)', letterSpacing: '-0.03em', margin: 0, textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}>{dev.name}</h1>
-        <div style={{ marginTop: 18, fontSize: 13, opacity: 0.7 }}>Pasa el cursor para mirar dentro · baja para recorrerlo ↓</div>
+        {caption && <div style={{ marginTop: 10, fontSize: 13.5, color: '#A5B4FC', fontWeight: 600 }}>Abre en {caption}</div>}
+        <div style={{ marginTop: 14, fontSize: 13, opacity: 0.7 }}>Pasa el cursor para mirar dentro · baja para recorrerlo ↓</div>
       </div>
     </section>
   );
@@ -110,7 +111,7 @@ function Hero({ dev, photos, personalized }) {
 function Walkthrough({ dev, exp }) {
   return exp.mode === 'video'
     ? <VideoScrub dev={dev} src={exp.src} badge={exp.badge} />
-    : <PhotoScrub dev={dev} photos={exp.photos} />;
+    : <PhotoScrub dev={dev} photos={exp.photos} captions={exp.captions} />;
 }
 
 // El recorrido REAL: el scroll mueve video.currentTime cuadro por cuadro (no se reproduce solo). rAF con easing →
@@ -183,7 +184,7 @@ function VideoScrub({ dev, src, badge }) {
 }
 
 // Fallback sin video: foto-secuencia (cruces suaves). No es recorrido-video, pero degrada con gracia.
-function PhotoScrub({ dev, photos }) {
+function PhotoScrub({ dev, photos, captions }) {
   const wrapRef = useRef(null);
   const [idx, setIdx] = useState(0);
   const idxRef = useRef(0);
@@ -223,7 +224,7 @@ function PhotoScrub({ dev, photos }) {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 55%, rgba(10,10,15,0.8) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', left: 28, bottom: 36, pointerEvents: 'none' }}>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22 }}>{dev.name}</div>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>Recorrido {idx + 1} de {photos.length}</div>
+          <div style={{ fontSize: 13, opacity: 0.75 }}>{(captions && captions[idx]) ? captions[idx] : `Recorrido ${idx + 1} de ${photos.length}`}</div>
         </div>
         <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 7, pointerEvents: 'none' }}>
           {photos.map((_, i) => <span key={i} style={{ width: 4, height: i === idx ? 22 : 12, borderRadius: 999, background: i === idx ? '#fff' : 'rgba(255,255,255,0.35)', transition: 'all 0.3s' }} />)}
