@@ -44,6 +44,7 @@ export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose,
   const onReason = (key) => { dismiss(dev, key); setAsking(false); if (hasNav && idx < items.length - 1) go(1); else onClose(); };
 
   const photos = (dev.photos || []).filter(Boolean);
+  const weakImg = photos.length < 2;   // image-health: framing honesto para que la imagen no mate un buen match
   const ver = buy && buy.veredicto;
   const pos = buy && buy.precio_contexto && buy.precio_contexto.posicion;
   const plus = buy && buy.valuacion_zona && buy.valuacion_zona.plusvalia_oficial;
@@ -93,6 +94,7 @@ export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose,
           <div style={{ fontSize: 13, color: 'var(--cream-3)', marginTop: 2 }}>{tc(dev.colonia || '')}{dev.alcaldia ? ` · ${tc(dev.alcaldia)}` : ''}</div>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 21, color: 'var(--theme)', marginTop: 8 }}>{dev.price_from_display || fmtM(dev.price_from)}{dev.price_to && dev.price_to !== dev.price_from ? <span style={{ fontSize: 13, color: 'var(--cream-3)', fontWeight: 600 }}> — {fmtM(dev.price_to)}</span> : null}</div>
           {mensualidadEstim(dev.price_from) && <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 4 }}>Desde <b style={{ color: 'var(--cream)' }}>~{fmtM(mensualidadEstim(dev.price_from))}/mes</b> <span style={{ color: 'var(--cream-3)' }}>· enganche 20%, 20 años (estimado)</span></div>}
+          {weakImg && <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 11, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.18)', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.45 }}>Las fotos son <b style={{ color: 'var(--cream)' }}>preliminares</b> (preventa). Júzgalo por los números — en métricas encaja muy bien con lo que buscas.</div>}
 
           <div style={{ display: 'flex', gap: 7, marginTop: 13 }}>
             <Spec k="Recámaras" v={range(dev.bedrooms_range)} />

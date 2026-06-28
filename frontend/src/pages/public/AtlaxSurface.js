@@ -6,7 +6,7 @@
 // REAL (AtlaxLeadModal → /api/buyer/registrar → asesor). Copy siempre accionable; cada búsqueda se registra granular.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { sendBuyerSignal } from '../../lib/buyerSignal';
+import { sendBuyerSignal, visitorId } from '../../lib/buyerSignal';
 import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';
 import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import AtlaxResults from '../../components/landing/AtlaxResults';
@@ -82,7 +82,15 @@ export default function AtlaxSurface() {
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
 
   const lastUserQ = () => { const u = [...messages].reverse().find((m) => m.role === 'user'); return u ? u.text : ''; };
-  const saveSearch = () => { try { sendBuyerSignal('atlax_query', { value: lastUserQ().slice(0, 120), meta: { saved: true } }); } catch (_) { /* noop */ } flash('Búsqueda Guardada ✓'); };
+  const lastFilters = () => { const m = [...messages].reverse().find((x) => x.kind === 'results' && x.r && x.r.filters); return (m && m.r.filters) || {}; };
+  const lastResultCount = () => { const m = [...messages].reverse().find((x) => x.kind === 'results' && x.r); return m ? ((m.r.exact || []).length + (m.r.casi || []).length) : 0; };
+  // Guardar = ARMAR ALERTA: registra la búsqueda con alert:true → casamentera avisa cuando entre inventario que cuadre.
+  const saveSearch = () => {
+    const f = lastFilters(); const cols = Array.isArray(f.colonia) ? f.colonia : (f.colonia ? [f.colonia] : []);
+    try { fetch(`${API}/api/perfil/registrar-busqueda`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitor_id: visitorId(), alert: true, colonias: cols, presupuesto_max: f.max_price, recamaras_min: f.beds, found_count: lastResultCount() }) }).catch(() => {}); } catch (_) { /* noop */ }
+    try { sendBuyerSignal('atlax_query', { value: lastUserQ().slice(0, 120), meta: { saved: true, alert: true } }); } catch (_) { /* noop */ }
+    flash('Guardada ✓ Te aviso cuando entre algo que te cuadre.');
+  };
   const wantAdvisor = (dev) => { setQuick(null); setLead({ dev: dev || null, query: lastUserQ() }); };
 
   const runSearch = useCallback(async (text) => {

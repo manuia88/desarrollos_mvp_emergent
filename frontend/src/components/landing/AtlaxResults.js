@@ -38,6 +38,7 @@ function ResultCard({ dev, onQuick, compact }) {
   const img = (dev.photos || [])[0];
   const specs = [range(dev.bedrooms_range, ' rec'), range(dev.bathrooms_range, ' baños'), range(dev.m2_range, ' m²')].filter(Boolean).join(' · ');
   const sig = signal(dev);
+  const weakImg = (dev.photos || []).filter(Boolean).length < 2;   // image-health: pocas/ninguna foto → no dejar que la imagen mate un buen match
   const falta = dev.match_falta || [];
   const isExact = falta.length === 0 && dev.match_total > 0;
   const amen = (dev.amenities || []).map((a) => AMEN[a] || tc(String(a))).slice(0, 3);
@@ -59,6 +60,7 @@ function ResultCard({ dev, onQuick, compact }) {
         {!compact && amen.length > 0 && <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{amen.join(' · ')}</div>}
         {sig && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, padding: '4px 9px', borderRadius: 8, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.26)', fontSize: 11.5, fontWeight: 700, color: '#0F9D6E' }}>◆ {sig}</div>}
         {falta.length > 0 && <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--cream-2)' }}>Le falta: <b style={{ color: '#B9822E' }}>{falta.map((x) => tc(x)).join(', ')}</b></div>}
+        {weakImg && <div style={{ marginTop: 6, fontSize: 11, color: 'var(--cream-3)', fontStyle: 'italic' }}>Fotos preliminares · júzgalo por los números</div>}
       </div>
       <div style={{ marginTop: 'auto', display: 'flex', gap: 7, padding: '10px 13px 13px' }}>
         <button onClick={quick} style={{ flex: 1, cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', borderRadius: 9, padding: '8px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700 }}>Vista Rápida</button>
