@@ -71,7 +71,7 @@ export default function AtlaxApartado() {
         }),
       });
       if (!r.ok) throw new Error('fail');
-      try { sendBuyerSignal('atlax_apartado', { dev_id: dev.id, credito, enganche: engancheDisp }); } catch (_) { /* noop */ }
+      try { sendBuyerSignal('atlax_apartado', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, value: credito, meta: { credito, enganche: engancheDisp } }); } catch (_) { /* noop */ }
       setDone(true);
     } catch (_) {
       setErr('No se pudo enviar. Intenta de nuevo en un momento.');

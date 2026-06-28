@@ -49,7 +49,12 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "atlax_query",   # escribió requisitos en el buscador (meta = filtros parseados + #resultados)
          "atlax_profile", # respondió el perfilador guiado (meta = paso/respuesta o perfil completo)
          "dismiss",       # 👎 descartó una opción (value/meta.reason = fotos·precio·zona·tamaño·amenidad·entrega) = el porqué del NO
-         "photo_zoom"}    # hizo zoom a una foto (entity_id + value=photo_idx) — interés visual granular
+         "photo_zoom",    # hizo zoom a una foto (entity_id + value=photo_idx) — interés visual granular
+         # El front YA disparaba estos 4; el back los RECHAZABA (tipo inválido) → se perdían. Re-conectados:
+         "section_time",  # tiempo en una sección de la ficha (value=sección, seconds, unit_number) — engagement de contenido
+         "section_view",  # vio una sección de la ficha (value=sección) — qué contenido capta atención
+         "zone_profile",  # declaró su perfil en una zona (meta = familia/primera/vivir + respuestas) — demanda declarada
+         "atlax_apartado"}  # intentó APARTAR con enganche (meta = credito/enganche) — señal casi-compra, la más caliente
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -85,6 +90,7 @@ class SignalIn(BaseModel):
     colonia: Optional[str] = None    # nombre o slug (para el Grafo por colonia)
     value: Optional[str] = None      # libre (ej. sección leída, estilo)
     dwell_ms: Optional[int] = None
+    seconds: Optional[int] = None    # tiempo en una sección (section_time) — engagement de contenido
     meta: Optional[Dict[str, Any]] = None  # granular (Atlax): {recamaras, precio_max, intent, amenidades, n_exact, n_casi, cross_zone…}
 
 
@@ -113,11 +119,12 @@ async def buyer_signal(s: SignalIn, request: Request):
             "colonia": (s.colonia or "").strip().lower() or None,
             "value": (s.value or "")[:120] or None,
             "dwell_ms": dwell,
+            "seconds": (s.seconds if (isinstance(s.seconds, int) and 0 <= s.seconds <= 86400) else None),
             "ip_hash": hashlib.sha256(f"{ip}:dmx_bs".encode()).hexdigest()[:16] if ip else None,
             "created_at_dt": now,
         }
-        # meta granular (Atlax): sólo se guarda en señales atlax_*, sanitizado y acotado (anti-abuso del espinazo).
-        if s.type in ("atlax_query", "atlax_profile", "dismiss") and isinstance(s.meta, dict):
+        # meta granular: se guarda en las señales que la traen (Atlax + perfil de zona + apartado), sanitizado y acotado.
+        if s.type in ("atlax_query", "atlax_profile", "dismiss", "zone_profile", "atlax_apartado") and isinstance(s.meta, dict):
             clean = {}
             for k, v in list(s.meta.items())[:20]:
                 if isinstance(v, (str, int, float, bool)) or v is None:

@@ -59,6 +59,28 @@ def _unit_features(unit: Dict[str, Any]) -> set:
     return out
 
 
+def _photo_features(dev: Dict[str, Any], value) -> set:
+    """photo_dwell/photo_zoom: el `value` es el ÍNDICE de la foto → tagea esa foto (photo_tagger) → features REALES que
+    el comprador estuvo mirando. Cierra el gap 'foto de terraza = interés en terraza'."""
+    try:
+        idx = int(value)
+    except (TypeError, ValueError):
+        return set()
+    photos = dev.get("photos") or []
+    if not (0 <= idx < len(photos)):
+        return set()
+    try:
+        from photo_tagger import tag_from_url
+        tg = tag_from_url(photos[idx]) or {}
+        out = {str(f).strip().lower() for f in (tg.get("features") or []) if f}
+        room = tg.get("room")
+        if room and room not in ("interior", "otro"):
+            out.add(str(room).strip().lower())
+        return out
+    except Exception:
+        return set()
+
+
 async def demand_by_feature(db, colonia: Optional[str] = None, period: str = "month",
                             since_days: int = 365, top: int = 25) -> Dict[str, Any]:
     """Demanda por FEATURE × colonia × tiempo (señales de engagement → features del dev/unidad)."""
@@ -70,7 +92,7 @@ async def demand_by_feature(db, colonia: Optional[str] = None, period: str = "mo
     by_feature = defaultdict(int)
     series = defaultdict(lambda: defaultdict(int))   # feature -> bucket -> count
     precise = 0
-    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "unit_number": 1, "meta": 1}):
+    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "unit_number": 1, "meta": 1, "type": 1, "value": 1}):
         dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
         # PRECISIÓN en 3 niveles (mejor → peor):
         # 1) meta.amenidades = el comprador pidió EXPLÍCITAMENTE esas features (Atlax/búsqueda) → máxima precisión.
@@ -89,6 +111,12 @@ async def demand_by_feature(db, colonia: Optional[str] = None, period: str = "mo
                 unit = next((u for u in (dev.get("units") or []) if u.get("unit_number") == un or str(u.get("id", "")).endswith(f"-{un}")), None)
                 if unit:
                     feats = _unit_features(unit)
+                    precise += 1
+            # photo_dwell/photo_zoom: value = ÍNDICE de foto → features de ESA foto (lo que el comprador miró de verdad).
+            if feats is None and s.get("type") in ("photo_dwell", "photo_zoom"):
+                pf = _photo_features(dev, s.get("value"))
+                if pf:
+                    feats = pf
                     precise += 1
             if feats is None:
                 feats = _dev_features(dev)

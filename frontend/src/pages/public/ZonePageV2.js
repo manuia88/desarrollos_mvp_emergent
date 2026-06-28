@@ -1435,7 +1435,7 @@ export default function ZonePageV2() {
               )}
 
               {/* CAP 2.7 · PERFILA TU FAMILIA (cuestionario 6Q · fusiona espacio+quiz · match con desarrollos + feed superadmin) */}
-              {devs.length > 0 && <PerfilFamilia name={name} devs={devs} allDevs={allDevs} zoneId={slug} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'familia', ...a })} />}
+              {devs.length > 0 && <PerfilFamilia name={name} devs={devs} allDevs={allDevs} zoneId={slug} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, value: 'familia', meta: { profile: 'familia', ...a } })} />}
 
               {/* CAP 3 · LO QUE GANA TU FAMILIA (oscuro · beneficios, sin números) */}
               <section style={{ width: '100%', background: 'linear-gradient(180deg,#15132E,#0C0B1E)', color: '#fff', padding: 'clamp(56px,8vw,92px) 0' }}>
@@ -1555,7 +1555,7 @@ export default function ZonePageV2() {
         {/* WIZARD PRIMERA (TANDA C · fusiona rentar-vs-comprar + pon-tus-números + renta-vs-crédito + meta-enganche + prioridad
             + quiz en 1 cuestionario 8Q → reporte: alcance + rentar-vs-comprar 1/3/5/10 años + enganche + 2 propuestas) */}
         {profile === 'primera' && tieneMercado && (
-          <WizardPrimera name={name} devs={devs} allDevs={allDevs} zoneId={slug} inv={inv} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'primera', ...a })} />
+          <WizardPrimera name={name} devs={devs} allDevs={allDevs} zoneId={slug} inv={inv} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, value: 'primera', meta: { profile: 'primera', ...a } })} />
         )}
 
         {/* CAP 6 · AQUÍ DEJAS DE RENTAR (cierre + urgencia · primera) */}
@@ -1656,7 +1656,7 @@ export default function ZonePageV2() {
               )}
 
               {/* CAP 4.5 · WIZARD VIVIR (fusiona arma-prioridad + quiz → 8Q → reporte con 2 propuestas a tu medida) */}
-              <WizardVivir name={name} devs={devs} allDevs={allDevs} zoneId={slug} lugares={lugares} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, profile: 'vivir', ...a })} />
+              <WizardVivir name={name} devs={devs} allDevs={allDevs} zoneId={slug} lugares={lugares} onCTA={() => setSaveOpen(true)} onProfile={(a) => sendBuyerSignal('zone_profile', { colonia: slug, value: 'vivir', meta: { profile: 'vivir', ...a } })} />
 
               {/* CAP 5 · TU SIGUIENTE NIVEL (cierre · vivir) */}
               <section style={{ width: '100%', background: 'linear-gradient(135deg,#1B1448 0%,#2A1B5E 52%,#3A1F63 100%)', color: '#fff', padding: 'clamp(60px,9vw,108px) 0', position: 'relative', overflow: 'hidden' }}>
