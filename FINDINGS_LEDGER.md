@@ -242,3 +242,16 @@ DUPLICADO completo (página+ruta+nav). El compile lo cazó (doble declaración) 
 **Conclusión:** el inventario de huérfanos de F0 estaba completamente inflado — los 6 ya tienen UI. No hay rescate que
 hacer. Lección: el grep de huérfanos debe buscar la RUTA/feature ('kb-gaps'), no el nombre del motor — los F0 agents
 (y yo) buscaron el motor y reportaron falsos huérfanos. (Mismo patrón de imprecisión que B4/B2-A2.)
+
+---
+
+## FASE A — E2E de cohorte (journey real a escala)
+`scripts/e2e_cohort.py`: siembra N=20 visitantes tagueados, corre el JOURNEY real (señales anónimas + búsqueda →
+`create_buyer_lead` → ruteo → espejo CRM → re-atribución de señales), reconcilia, prueba aislamiento a escala, y hace
+teardown con prueba de cero-residuo (diff vs baseline).
+
+**Resultado: 8/8 PASS** — 20/20 leads creados→ruteados→espejados→señales re-atribuidas; reconciliación cuadra
+(leads==registrados, contactos==leads); aislamiento 13/13 a escala; cero-residuo. **El journey completo es sólido a
+escala; no surgieron bugs** (el único fue de mi test: `create_buyer_lead` devuelve `(lead_id, house_inm)` tupla, no dict).
+
+Queda como prueba E2E repetible del journey, complementaria al smoke harness (17/17).
