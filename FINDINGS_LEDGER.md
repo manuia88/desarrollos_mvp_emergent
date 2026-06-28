@@ -546,3 +546,18 @@ dev: 'terraza subiendo 3x, 0 oferta en tu colonia → constrúyelo') — toca el
 3. financial_intent agrega payment/roi (sin página dedicada aún — se ve como línea en superadmin).
 
 Cero cable-muerto: todas las señales nuevas se consumen (financial_intent) o alimentan demanda/colonia.
+
+---
+
+## GAPS DE GRANULARIDAD CERRADOS — marketplace al máximo
+
+Los 2 gaps que faltaban (ambos de ANÁLISIS, el dato ya existía):
+- **GEO sub-colonia**: demand_by_geo() → demanda por CALLE → CP(≈manzana) → COLONIA → ALCALDÍA → CIUDAD (la unidad hereda
+  la dirección del dev). Real: 'Moliere 245': 92, CP '11570': 92, Miguel Hidalgo: 97. Ya no es solo colonia.
+- **CONVERSACIÓN Atlax turno-por-turno**: conversation_intel() lee asistente_messages (145 turnos persistidos) → features/
+  colonias/OBJECIONES que el comprador dice en el ida-y-vuelta (pet/seguridad/spa · plusvalía/precio/enganche). 73 analizados.
+Ambos wired a superadmin + visibles. 
+
+**VEREDICTO marketplace:** granularidad máxima alcanzada en las dimensiones del founder — geo (calle→ciudad), propiedad
+(internas/externas/amenidades/fichas/fotos), financiero (pago/crédito/ROI), demanda, preguntas+conversación, formularios.
+Toda interacción es rastreable y se agrega. Cero cable-muerto. PORTAL 1 = MARKETPLACE cerrado a fondo.
