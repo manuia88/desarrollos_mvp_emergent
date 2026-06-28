@@ -255,3 +255,30 @@ teardown con prueba de cero-residuo (diff vs baseline).
 escala; no surgieron bugs** (el único fue de mi test: `create_buyer_lead` devuelve `(lead_id, house_inm)` tupla, no dict).
 
 Queda como prueba E2E repetible del journey, complementaria al smoke harness (17/17).
+
+---
+
+## Auditoría nueva: propagación cross-portal + concurrencia 1000 (evidencia ejecutable)
+
+### Matriz de propagación (`scripts/propagation_matrix.py`) — 12/12
+Un journey de marketplace → verificado VISIBLE en cada portal/engine:
+- marketplace (señales/búsqueda/lead) · asesor (CRM+temperatura) · dev (sus leads + DEMANDA + PERCEPCIÓN) ·
+  superadmin (cubo + auditoría) · engines (gusto, gemelo de demanda).
+- **GAP REAL cazado:** `create_buyer_lead` (el camino de lead más común) era **audit-dark** → superadmin no veía las
+  creaciones/ruteos de lead de marketplace. **FIX:** log_mutation actor 'marketplace' (system, by_ai=False).
+
+### Concurrencia 1000 (`scripts/concurrent_load.py`) — 8/8 (tras fix)
+1000 señales (8522/s) + 50 registros del MISMO visitante + 100 distintos + lecturas cross-portal, todo concurrente.
+- **2 RACES CRÍTICAS cazadas (check-then-act):** 50 registros concurrentes del MISMO visitante → **50 leads + 16
+  contactos** (debía ser 1). En prod: doble-click / ráfaga → leads y contactos duplicados, asesor inundado.
+- **FIX (defensa en profundidad):** índices ÚNICOS PARCIALES `leads_vid_uniq` (visitor_id) + `ac_owner_lead_uniq`
+  (owner_id, source_lead_id) + manejo de `DuplicateKeyError` en create_buyer_lead y mirror → la perdedora reusa al
+  ganador (idempotente). Resultado: 50 → 1 lead + 1 contacto. Lecturas cross-portal sin error bajo carga.
+
+### Áreas de oportunidad restantes (honesto)
+- 🔴 **Deuda RLS** (la grande, nombrada): aislamiento opt-in; el probe (C) es la red, la cura es enforced.
+- 🔵 Extender la matriz de propagación a las OTRAS direcciones (dev publica→todos, asesor cierra→todos) — el journey de
+  marketplace ya está 12/12; las otras direcciones las cubrieron B1 (cierre→ranking) y los flujos existentes, falta
+  formalizarlas en el harness.
+- 🔵 Otras escrituras multi-paso usan upsert atómico (cube, closing_lifts, visitor_identity, routing) → ya idempotentes;
+  la ruta de registro era la única con check-then-act sin proteger.
