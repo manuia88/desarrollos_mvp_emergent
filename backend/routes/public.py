@@ -1865,7 +1865,16 @@ async def casi_cumple(
         scored.append({"d": d, "met": met, "total": len(crit), "falta": [l for l, ok in crit if not ok]})
     # rankea: más criterios cumplidos primero; descarta los que no cumplen casi nada
     scored = [s for s in scored if s["met"] > 0]
-    scored.sort(key=lambda s: (-s["met"], len(s["falta"])))
+    # GUSTO como secundario: entre igual match, primero lo que encaja con lo que el visitante ha LIKEADO (taste_scores
+    # reusa el motor de 'parecidos'). Fail-open: sin likes → orden normal. No anula el match explícito (es desempate).
+    _taste = {}
+    if visitor_id:
+        try:
+            from routes.buyer_signals import taste_scores as _ts
+            _taste = await _ts(request.app.state.db, visitor_id) or {}
+        except Exception:  # noqa: BLE001
+            _taste = {}
+    scored.sort(key=lambda s: (-s["met"], -_taste.get(s["d"].get("id"), 0), len(s["falta"])))
     top = scored[:limit]
     cards = await _enrich_listing(request.app.state.db, [s["d"] for s in top])
     by_id = {c.get("id"): c for c in cards}
