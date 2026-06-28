@@ -31,6 +31,8 @@ export const getSecuritySummary = () => j('/api/desarrollador/security/summary')
 export const getDashboard = () => j('/api/desarrollador/dashboard');
 // Demanda insatisfecha en TUS zonas (qué busca la gente y no encuentra · a dónde se va · brecha · esquema) — el moat del dev.
 export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dias=${dias}`);
+// TU ZONA CAMBIÓ (conciencia ambiental · proactivo) — el MOVIMIENTO de la demanda (no el nivel): ventana reciente vs anterior.
+export const getZonaCambios = (dias = 30) => j(`/api/dev/market/zona-cambios?dias=${dias}`);
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
 export const getDevPlays = () => j('/api/dev/projects/plays');
 // Inicio upgrade · "La Lectura del Portafolio" (cada número con su lectura + salud explicada + pulso)

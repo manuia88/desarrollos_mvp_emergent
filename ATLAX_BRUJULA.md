@@ -60,7 +60,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 - [~] **Generative** — diseño generativo del terreno: motor `generar_producto` ✅ (ya existía, reusado) + ahora **cableado al FOUNDER** (tarjeta demanda → "¿qué construir aquí?": mezcla óptima + rationale + evidencia del hueco). Falta: renders que venden
 - [ ] **Spatial** — qué quiere cada zona + brecha demanda-oferta (demanda-zona ✅, profundizar) 🟡
 - [ ] **Agentic** — agente de ventas (pricing-lab ✅ + ruteo/jugada por unidad) 🟡
-- [ ] **Personal** — conciencia ambiental del portafolio ("tu zona cambió") 🆕
+- [x] **Personal** — conciencia ambiental del portafolio ("tu zona cambió") ✅ 2026-06-28 · /api/dev/market/zona-cambios (movimiento de demanda: ventana adaptativa reciente vs anterior, mediana robusta) + panel ZonaCambios hide-if-empty en Inicio del dev
 
 ### 👁️ Superadmin
 - [x] **Taste/rechazo** — el grafo del SÍ y del NO (F4: rechazo_por_motivo + gap_presentacion)

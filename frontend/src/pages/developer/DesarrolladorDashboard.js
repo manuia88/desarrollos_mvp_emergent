@@ -18,6 +18,7 @@ import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 import PortfolioReading from '../../components/developer/PortfolioReading';
+import ZonaCambios from '../../components/developer/ZonaCambios';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -460,6 +461,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
             {/* TABLERO CENTRAL — la lectura (interpreta los números) precede a los signos vitales */}
             <PortfolioReading />
+            <ZonaCambios />
             <PortfolioCockpit />
 
             {/* MERCADO — Inicio ligero: una puerta con un dato real al terminal de Inteligencia.
