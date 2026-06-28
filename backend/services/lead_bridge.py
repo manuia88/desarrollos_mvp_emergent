@@ -376,6 +376,64 @@ async def retry_pending_mirrors(db, limit: int = 500) -> int:
     return n
 
 
+async def route_orphan_leads(db, limit: int = 500) -> int:
+    """B2-A2: leads REALES sin asesor (creados antes de que hubiera asesores activos, o por un flujo que no ruteó) →
+    los rutea con resolve_public_lead_owner (afinidad/round-robin) y los espeja al CRM. SOLO leads de FUENTE REAL
+    (excluye seed source=None y _demo_home) para no inundar el CRM con datos de ejemplo. Idempotente · fail-open.
+    Cierra B2-A2: ningún lead real queda invisible aunque se haya creado antes de activar un asesor."""
+    n = 0
+    try:
+        q = {
+            "$or": [{"assigned_to": {"$in": [None, ""]}}, {"assigned_to": {"$exists": False}}],
+            "asesor_id": {"$in": [None, ""]},
+            # Audit B 🔴 anti-fuga cross-tenant: SOLO leads de la casa PÚBLICA/default. Un lead de un dev/inmobiliaria
+            # B2B (su propio dev_org_id) NO se rutea aquí → su org lo rutea por su cuenta; nunca cruza al asesor ajeno.
+            "dev_org_id": {"$in": ["default", None]},
+            "source": {"$nin": [None, ""]},        # excluye seed (source None)
+            "_demo_home": {"$ne": True},            # excluye datos de ejemplo
+            "activo": {"$ne": False},               # incluye activos y legacy sin el campo (no perder leads reales)
+        }
+        async for ld in db.leads.find(q, {"_id": 0}).limit(limit):
+            try:
+                rid, inm = await resolve_public_lead_owner(
+                    db, ld.get("liked_devs"), ld.get("viewed_devs"),
+                    (ld.get("buyer_profile") or {}).get("colonias"))
+                if not rid:
+                    continue   # aún no hay asesor activo en la casa → queda reclamable (no se pierde)
+                upd = {"assigned_to": rid}
+                if inm:
+                    upd["inmobiliaria_id"] = inm
+                await db.leads.update_one({"id": ld.get("id")}, {"$set": upd})
+                ld.update(upd)
+                if await mirror_lead_to_asesor_contacto(db, ld):
+                    await db.leads.update_one({"id": ld.get("id")}, {"$unset": {"mirror_pending": ""}})
+                    await _replay_favoritos(db, ld)
+                else:
+                    # Audit B 🟠: si el espejo falla DESPUÉS de asignar, marca pendiente → retry_pending_mirrors lo recoge
+                    # (ya tiene asesor → no se pierde en la siguiente barrida).
+                    await db.leads.update_one({"id": ld.get("id")}, {"$set": {"mirror_pending": True}})
+                try:   # Audit B 🟠: avisa al asesor/casa del lead recién asignado (audit + visibilidad)
+                    await notify_house_admin_new_lead(db, ld, assigned_to=rid)
+                except Exception:  # noqa: BLE001
+                    pass
+                n += 1
+            except Exception:
+                continue
+        if n:
+            log.info(f"[lead_bridge] route_orphan_leads ruteó {n} leads huérfanos a un asesor")
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] route_orphan_leads fail-open: {e}")
+    return n
+
+
+async def lead_completeness_sweep(db) -> dict:
+    """B2: barrido de integridad de leads — (1) rutea huérfanos REALES a un asesor, (2) reintenta espejos pendientes.
+    Corre en arranque + cada hora. Así ningún lead real queda sin asesor ni invisible en el CRM."""
+    routed = await route_orphan_leads(db)
+    mirrored = await retry_pending_mirrors(db)
+    return {"routed": routed, "mirrored": mirrored}
+
+
 async def backfill_owner(db, owner_user_id: str, limit: int = 2000) -> int:
     """Materializa todos los leads YA asignados a un asesor (idempotente). Para cuando
     un asesor activa su cuenta / one-shot. Devuelve cuántos materializó/enlazó."""
@@ -490,16 +548,16 @@ def schedule_temp_refresh_cron(scheduler, db) -> None:
 
 
 def schedule_mirror_retry_cron(scheduler, db) -> None:
-    """Cron `lead_mirror_retry` cada hora. B2: retry_pending_mirrors SOLO corría en arranque (sus hermanos reconcile/
-    temp SÍ tenían cron) → un lead cuyo espejo al CRM falló quedaba INVISIBLE para el asesor hasta el próximo reinicio
-    (horas/días). Ahora se auto-repara cada hora. Idempotente · fail-open."""
+    """Cron `lead_completeness` cada hora :15. B2: antes el retry del espejo SOLO corría en arranque → leads invisibles
+    hasta reiniciar. Ahora el barrido (1) rutea huérfanos REALES a un asesor (B2-A2) y (2) reintenta espejos pendientes,
+    cada hora. Idempotente · fail-open."""
     try:
         from cron_heartbeat import wrap_apscheduler_job
         from apscheduler.triggers.cron import CronTrigger
         scheduler.add_job(
-            wrap_apscheduler_job(retry_pending_mirrors, "lead_mirror_retry"),
+            wrap_apscheduler_job(lead_completeness_sweep, "lead_completeness"),
             CronTrigger(minute=15, hour="*", timezone="America/Mexico_City"),
-            args=[db], id="lead_mirror_retry", replace_existing=True, misfire_grace_time=1800,
+            args=[db], id="lead_completeness", replace_existing=True, misfire_grace_time=1800,
         )
     except Exception as e:  # noqa: BLE001
-        log.warning(f"[lead_bridge] schedule mirror retry cron failed: {e}")
+        log.warning(f"[lead_bridge] schedule lead completeness cron failed: {e}")

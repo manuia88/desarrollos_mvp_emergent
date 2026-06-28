@@ -74,3 +74,30 @@ Baseline de datos: `scratchpad/baseline_20260628.json` (439 colecciones) · back
 - **Triangulación**: reproducción tagueada — ASIGNADO se espeja+limpia bandera; SIN-ASIGNAR queda quieto (no spin) y no se espeja; cero-residuo; harness 13/13.
 
 **B2 CERRADO.** Archivos: `lead_bridge.py`, `scheduler_ie.py`, `dev_batch4_1.py`. Pendiente: B2-A2 (routing de leads sin asignar) → batch propio.
+
+---
+
+## B2-A2 — Leads sin asignar (routing de huérfanos) — CERRADO
+**Founder: "termina de corregir lo pendiente antes del siguiente batch."**
+
+### Audit A (reproducido)
+- 46/51 leads sin asesor, pero **42 son seed** (`source=None`, `_demo_home`); solo **4 reales**. `resolve_public_lead_owner` AHORA asigna bien (round-robin → asesor activo) → los 2 fantasma son **huérfanos históricos** (creados antes de activar asesor). Routing correcto; faltaba (a) re-rutear huérfanos, (b) auto-rutear futuros.
+
+### Fix
+- `route_orphan_leads`: rutea leads REALES sin asesor (excluye seed/demo) vía resolve_public_lead_owner + espeja.
+- `lead_completeness_sweep` (route + retry) en arranque + cron horario.
+
+### Audit B (independiente) — refutó/convergió
+| id | sev | hallazgo | acción | re-verificado |
+|----|-----|----------|--------|---------------|
+| 🔴 #5 | crítico | **fuga cross-tenant**: un lead de otra org se rutearía al asesor de la casa-default | filtro `dev_org_id ∈ [default,None]` | lead org_B queda None ✅; default se rutea ✅ |
+| 🟠 #1 | alto | si el espejo falla post-asignación, queda sin bandera (invisible) | set `mirror_pending=True` en fallo → retry lo recoge | ✅ |
+| 🟠 #6 | alto | no avisaba al asesor del lead auto-asignado | `notify_house_admin_new_lead` tras rutear | ✅ |
+| 🟠 #2 | alto | sin índice → COLLSCAN horario | **refutado**: índice `(dev_org_id, assigned_to)` (dev_batch4.py:959) ya cubre la query | ✅ |
+| 🟡 #3/#4/#7 | medio | activo $ne / round-robin sesgo / sin tests | `activo $ne False` defendible (no perder legacy); round-robin es de resolve (existente); cubierto por reproducción+harness | documentado |
+
+**Verificado**: los 2 fantasma quedaron asignados+en CRM; 0 huérfanos reales; 42 seed intactos; lead de otra org NO cruza; harness 13/13; teardown cero-residuo. Archivos: `lead_bridge.py`, `server.py`.
+
+### Pendientes restantes (de toda la sesión)
+- B1-B3 🟡 índice `copiloto_closings.closed_at_dt` → siguiente.
+- B1-A4 🟡 revisar wontfix → siguiente.

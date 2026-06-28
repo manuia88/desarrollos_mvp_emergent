@@ -1642,12 +1642,12 @@ async def startup():
         await ensure_cerebro_all_indexes(db)
     except Exception as _e:
         logging.warning(f"[startup] cerebro indexes: {_e}")
-    # Auto-reparable · reintenta el espejo de leads que no llegaron a "Mis Leads"
+    # Auto-reparable (B2) · rutea huérfanos REALES a un asesor + reintenta el espejo de leads que no llegaron a "Mis Leads"
     try:
-        from services.lead_bridge import retry_pending_mirrors
-        await retry_pending_mirrors(db)
+        from services.lead_bridge import lead_completeness_sweep
+        await lead_completeness_sweep(db)
     except Exception as _e:
-        logging.warning(f"[startup] retry_pending_mirrors: {_e}")
+        logging.warning(f"[startup] lead_completeness_sweep: {_e}")
     # Canoniza inmobiliaria_id de los leads (campo único de inmobiliaria) desde el asesor
     try:
         from services.lead_bridge import backfill_lead_inmobiliaria
