@@ -14,6 +14,9 @@ const patch = (url, body) => j(url, { method: 'PATCH', headers: { 'Content-Type'
 const put = (url, body) => j(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const del = (url) => j(url, { method: 'DELETE' });
 
+// Percepción del comprador (Atlax): interés + el porqué del NO + gap de presentación (fotos que matan un buen match).
+export const getPercepcion = (devId) => j(`/api/desarrollo/${devId}/percepcion`);
+
 // Formas de pago (esquemas R3) por proyecto
 export const getPaymentSchemes = (projectId) => j(`/api/dev/projects/${projectId}/payment-schemes`);
 export const putPaymentSchemes = (projectId, body) => put(`/api/dev/projects/${projectId}/payment-schemes`, body);

@@ -4,10 +4,60 @@
  * Claude-powered AI recommendations and a per-unit timeline drill-down drawer.
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Badge, fmt0 } from '../advisor/primitives';
 import { Sparkle, Activity, TrendUp, ArrowRight, X } from '../icons';
 import * as api from '../../api/developer';
 import { Z } from '../../styles/zIndex';
+
+// Cómo te ven los compradores (Atlax) — el porqué del NO + gap de presentación (fotos que matan un buen match).
+const MOT_LABEL = { fotos: 'Las fotos / el render', precio: 'El precio', zona: 'La zona', tamano: 'El tamaño', amenidades: 'Las amenidades', entrega: 'La entrega' };
+
+function PercepcionCard({ devId }) {
+  const [p, setP] = useState(null);
+  const navigate = useNavigate();
+  useEffect(() => { let ok = true; api.getPercepcion(devId).then((d) => { if (ok) setP(d); }).catch(() => {}); return () => { ok = false; }; }, [devId]);
+  if (!p || !p.ok) return null;
+  const it = p.interes || {};
+  const hasInteres = (it.likes || 0) + (it.guardados || 0) + (it.vistas_rapidas || 0) > 0;
+  if (!hasInteres && (p.rechazos || 0) === 0) return null;
+  const maxV = Math.max(1, ...(p.rechazo_por_motivo || []).map((r) => r.veces));
+  return (
+    <Card data-testid="percepcion-comprador" style={p.gap_presentacion ? { border: '1px solid rgba(224,163,62,0.42)', background: 'linear-gradient(140deg, rgba(224,163,62,0.09), transparent 62%)' } : {}}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <Sparkle size={14} color="#f9a8d4" />
+        <div className="eyebrow" style={{ color: 'var(--rose)' }}>CÓMO TE VEN LOS COMPRADORES · ATLAX</div>
+      </div>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: (p.rechazos || 0) > 0 ? 14 : 0 }}>
+        {[['Me interesa', it.likes], ['Guardados', it.guardados], ['Vista rápida', it.vistas_rapidas]].map(([l, v]) => (
+          <div key={l}><div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{fmt0(v || 0)}</div><div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>{l}</div></div>
+        ))}
+      </div>
+      {(p.rechazos || 0) > 0 && (
+        <div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', marginBottom: 8 }}><b style={{ color: 'var(--cream)' }}>{p.rechazos}</b> lo descartaron · por qué:</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(p.rechazo_por_motivo || []).map((r) => (
+              <div key={r.motivo} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 130, flexShrink: 0, fontFamily: 'DM Sans', fontSize: 12, color: r.motivo === 'fotos' ? '#E0A33E' : 'var(--cream-2)', fontWeight: r.motivo === 'fotos' ? 700 : 500 }}>{MOT_LABEL[r.motivo] || r.motivo}</span>
+                <div style={{ flex: 1, height: 7, background: 'rgba(var(--cream-rgb),0.08)', borderRadius: 9999, overflow: 'hidden' }}><div style={{ width: `${Math.round(100 * r.veces / maxV)}%`, height: '100%', background: r.motivo === 'fotos' ? '#E0A33E' : 'var(--theme)', borderRadius: 9999 }} /></div>
+                <span style={{ width: 24, textAlign: 'right', fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: 'var(--cream-2)' }}>{r.veces}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {p.recomendacion && (
+        <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: p.gap_presentacion ? 'rgba(224,163,62,0.12)' : 'rgba(var(--theme-rgb),0.08)', border: `1px solid ${p.gap_presentacion ? 'rgba(224,163,62,0.32)' : 'var(--border)'}` }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.5, color: 'var(--cream)' }}>{p.recomendacion}</div>
+          {p.gap_presentacion && (
+            <button onClick={() => navigate('/portal/studio/staging')} style={{ marginTop: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))', color: '#fff', borderRadius: 9999, padding: '9px 16px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>Mejorar Mis Renders con Studio <ArrowRight size={12} /></button>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 const STATUS_TONE = {
   disponible: 'ok', vendido: 'neutral', reservado: 'brand', apartado: 'brand',
@@ -129,6 +179,9 @@ export default function EngagementTab({ devId }) {
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{totals.slowest || '—'}</div>
         </Card>
       </div>
+
+      {/* Cómo te ven los compradores (Atlax) — interés + el porqué del NO + gap de presentación → Studio */}
+      <PercepcionCard devId={devId} />
 
       {/* AI Recommendations */}
       {(data.recommendations || []).length > 0 && (

@@ -244,6 +244,40 @@ async def interes_desarrollo(dev_id: str, request: Request):
         return {"ok": True, "likes": 0, "saves": 0, "views": 0, "interes": "bajo"}
 
 
+@router.get("/api/desarrollo/{dev_id}/percepcion")
+async def percepcion_desarrollo(dev_id: str, request: Request):
+    """Cómo VEN los compradores este desarrollo (SOLO el dev dueño): interés + EL PORQUÉ DEL NO (rechazo por motivo) +
+    GAP DE PRESENTACIÓN (si lo rechazan sobre todo por las FOTOS → el producto encaja pero la imagen MATA → Studio).
+    Reusa las señales like/save/dismiss de Atlax. MOAT privado: rol dev + su propio dev_id (no cross-tenant)."""
+    user = await _require_dev(request); assert_dev_project(user, dev_id)
+    try:
+        from collections import Counter
+        db = request.app.state.db
+        likes = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "like", "active": True})
+        saves = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "save", "active": True})
+        quickviews = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "view", "value": "atlax_quickview"})
+        motivos, total = Counter(), 0
+        async for x in db.buyer_signals.find({"entity_id": dev_id, "type": "dismiss"}, {"_id": 0, "value": 1}):
+            r = (x.get("value") or "").strip().lower()
+            if r:
+                motivos[r] += 1; total += 1
+        rechazo_por_motivo = [{"motivo": m, "veces": n} for m, n in motivos.most_common(8)]
+        fotos = motivos.get("fotos", 0)
+        pct_fotos = round(100 * fotos / total) if total else 0
+        gap = total >= 3 and pct_fotos >= 40
+        reco = None
+        if gap:
+            reco = "Tu producto encaja con la demanda, pero las FOTOS están frenando a los compradores. Mejora tus renders con Studio."
+        elif total >= 3 and rechazo_por_motivo:
+            reco = f"El motivo #1 por el que descartan este desarrollo es: {rechazo_por_motivo[0]['motivo']}."
+        return {"ok": True, "interes": {"likes": likes, "guardados": saves, "vistas_rapidas": quickviews},
+                "rechazos": total, "rechazo_por_motivo": rechazo_por_motivo, "gap_presentacion": gap,
+                "pct_fotos": pct_fotos, "recomendacion": reco}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] percepcion fail: {e}")
+        return {"ok": True, "interes": {}, "rechazos": 0, "rechazo_por_motivo": [], "gap_presentacion": False, "recomendacion": None}
+
+
 class RegistrarLeadIn(BaseModel):
     visitor_id: str
     name: str
