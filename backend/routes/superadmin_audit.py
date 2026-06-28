@@ -80,6 +80,20 @@ def _filters_from_query(
 
 # ─── 1) GET /entries ──────────────────────────────────────────────────────────
 
+@router.get(PREFIX + "/unified")
+async def unified_audit_entries(request: Request, source: Optional[str] = None, entity_type: Optional[str] = None,
+                                actor_user_id: Optional[str] = None, by_ai: Optional[bool] = None,
+                                limit: int = 50, skip: int = 0):
+    """Timeline UNIFICADO de los 3 portales: audit_log + developer_audit + lead_events + price_events +
+    engagement_events, normalizado y mezclado por tiempo, tagueado por fuente. Cierra la fragmentación de trails."""
+    await _require_superadmin(request)
+    from unified_audit import unified_entries, SOURCE_NAMES
+    data = await unified_entries(request.app.state.db, source=source, entity_type=entity_type,
+                                 actor_user_id=actor_user_id, by_ai=by_ai, limit=min(limit, 200), skip=skip)
+    data["available_sources"] = SOURCE_NAMES
+    return data
+
+
 @router.get(PREFIX + "/entries")
 async def list_entries(
     request: Request,

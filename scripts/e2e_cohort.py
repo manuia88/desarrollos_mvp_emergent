@@ -47,6 +47,11 @@ async def _teardown(db, lead_ids):
             except Exception:
                 pass
     await db.visitor_identity.delete_many({"visitors": rx})
+    # audit_log del lead (create_buyer_lead loguea a audit_log; prefija el source con 'copiloto_' → regex) + lead_ids.
+    _aq = [{"after.source": {"$regex": "test_e2e"}}]
+    if lead_ids:
+        _aq.append({"entity_id": {"$in": lead_ids}})
+    await db.audit_log.delete_many({"$or": _aq})
 
 
 async def main():

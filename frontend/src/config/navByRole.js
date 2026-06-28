@@ -271,6 +271,7 @@ const SUPERADMIN_NAV = [
       { key: 'observability',          to: '/superadmin/observability',          label: 'Observabilidad',         Icon: Eye },
       { key: 'phase-y-observability',  to: '/superadmin/phase-y-observability',  label: 'Phase Y Observability',  Icon: BarChart2 },
       // ─ Audit & compliance ─
+      { key: 'actividad-unificada',    to: '/superadmin/actividad-unificada',    label: 'Actividad unificada',    Icon: FileText },
       { key: 'audit-log',              to: '/superadmin/audit-log',              label: 'Audit log',              Icon: FileText },
       { key: 'audit-chain',            to: '/superadmin/audit-chain',            label: 'Audit Chain (SHA-256)',  Icon: ShieldCheck },
       { key: 'compliance',             to: '/superadmin/compliance',             label: 'Compliance',             Icon: Shield },

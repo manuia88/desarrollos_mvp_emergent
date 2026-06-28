@@ -28,6 +28,10 @@ function _qs(params) {
 export async function listEntries(filters = {}) {
   return _j(await fetch(`${BASE}/entries?${_qs(filters)}`, { headers: h(), credentials: 'include' }));
 }
+// Timeline UNIFICADO de los 3 portales (audit_log + developer_audit + lead_events + price_events + engagement_events).
+export async function listUnified(filters = {}) {
+  return _j(await fetch(`${BASE}/unified?${_qs(filters)}`, { headers: h(), credentials: 'include' }));
+}
 
 export async function getEntry(id) {
   return _j(await fetch(`${BASE}/entries/${encodeURIComponent(id)}`, {

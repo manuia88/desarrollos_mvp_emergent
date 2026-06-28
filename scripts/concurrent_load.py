@@ -35,7 +35,9 @@ async def _teardown(db):
     await db.leads.delete_many({"visitor_id": rx})
     await db.asesor_contactos.delete_many({"emails": {"$regex": "@conc.local"}})
     await db.visitor_identity.delete_many({"visitors": rx})
-    await db.audit_log.delete_many({"entity_id": rx})
+    # audit_log del lead usa entity_id=lead_xxx (no TEST-conc-) → limpiar por el source del test (after.source, que
+    # create_buyer_lead prefija con 'copiloto_' → usar regex).
+    await db.audit_log.delete_many({"$or": [{"entity_id": rx}, {"after.source": {"$regex": "test_conc"}}]})
 
 
 async def main():

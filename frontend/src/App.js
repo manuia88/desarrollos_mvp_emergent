@@ -303,6 +303,7 @@ const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/Sup
 const SuperadminDataSourcesHub       = lazy(() => import('./pages/superadmin/SuperadminDataSourcesHub'));
 // W2.2 SA3 — Audit Log Viewer (cross-org)
 const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
+const SuperadminAuditUnified         = lazy(() => import('./pages/superadmin/SuperadminAuditUnified'));
 // W2.3 SA4 — AI Cost Observatory
 const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
 // W5.x F2 — RAG Inspector
@@ -972,6 +973,7 @@ function AppRouter() {
       <Route path="/superadmin/phase-y-observability" element={<SuperadminRoute Page={SuperadminPhaseYObservability} />} />
       <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
       <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
+      <Route path="/superadmin/actividad-unificada" element={<SuperadminRoute Page={SuperadminAuditUnified} />} />
       <Route path="/superadmin/audit-log-legacy" element={<SuperadminRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/ai-cost" element={<SuperadminRoute Page={SuperadminAiCost} />} />
       <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
