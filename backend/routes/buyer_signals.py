@@ -61,6 +61,9 @@ async def _ensure_index(db):
         await db.buyer_signals.create_index("created_at_dt", expireAfterSeconds=_TTL_DAYS * 86400)
         await db.buyer_signals.create_index([("visitor_id", 1), ("type", 1)])
         await db.buyer_signals.create_index([("entity_id", 1), ("type", 1)])
+        # Oportunidad #1: cache del taste · TTL 24h (red de seguridad si nunca se invalida explícitamente)
+        await db.visitor_taste_materialized.create_index("visitor_id", unique=True, name="vtm_vid_uniq")
+        await db.visitor_taste_materialized.create_index("computed_at_dt", expireAfterSeconds=86400, name="vtm_ttl")
         _indexed["done"] = True
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] index: {e}")
@@ -129,6 +132,13 @@ async def buyer_signal(s: SignalIn, request: Request):
                 {"$set": {**doc, "type": "unit_save", "active": on}}, upsert=True)
         else:
             await db.buyer_signals.insert_one(doc)
+        # Oportunidad #1: invalida el taste materializado SÓLO cuando la señal cambia el gusto (no en view/dwell de página)
+        if s.type in ("like", "unlike", "save", "unsave", "unit_save", "unit_unsave", "dismiss", "photo_dwell", "photo_zoom"):
+            try:
+                from visitor_taste import invalidate_visitor_taste
+                await invalidate_visitor_taste(db, doc["visitor_id"])
+            except Exception:  # noqa: BLE001
+                pass
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] fail-open: {e}")

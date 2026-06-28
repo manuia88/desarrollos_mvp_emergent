@@ -152,8 +152,10 @@ function EquipoEnRiesgoPanel() {
 
 // Oportunidad #3 — Demanda → "¿Dónde construir?": interés real por zona (buyer_signals K-anon≥3) + qué NO encontraron.
 function DemandWhereToBuildCard() {
-  const [rows, setRows] = useState(null);
-  useEffect(() => { getDemandInsights(12).then((d) => setRows(d.zonas || [])).catch(() => setRows([])); }, []);
+  const [data, setData] = useState(null);
+  useEffect(() => { getDemandInsights(12).then(setData).catch(() => setData({ zonas: [] })); }, []);
+  const rows = data ? (data.zonas || []) : null;
+  const conces = (data && data.concesiones) || [];
   if (rows && rows.length === 0) return null;
   return (
     <div data-testid="founder-demand-insights" style={{ marginBottom: 18, padding: 16, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -175,6 +177,11 @@ function DemandWhereToBuildCard() {
               </span>
             </div>
           ))}
+        </div>
+      )}
+      {conces.length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)' }}>
+          <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>El mercado transige antes en:</span> {conces.map((c) => c.cedio).join(' · ')}
         </div>
       )}
     </div>

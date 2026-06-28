@@ -240,9 +240,19 @@ async def demand_insights(request: Request, limit: int = 12):
             ft = d.get("falta_top") or []
             zonas[z]["falta"] = ft[:5] if isinstance(ft, list) else []
     rows = sorted(zonas.values(), key=lambda r: -r["interes"])[:max(1, min(int(limit or 12), 40))]
+    # Oportunidad #4: en qué TRANSIGE el mercado cuando no encuentra todo (buyer_elasticidad) → señal de producto/precio.
+    concesiones = []
+    try:
+        async for r in db.buyer_elasticidad.aggregate([
+            {"$group": {"_id": "$cedio", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 5},
+        ]):
+            if r.get("_id"):
+                concesiones.append({"cedio": r["_id"], "n": r["n"]})
+    except Exception:
+        pass
     return {
-        "ok": True, "zonas": rows, "n": len(rows),
-        "fuente": "buyer_signals (K-anon≥3) + demanda_insatisfecha", "computed_at": _iso(),
+        "ok": True, "zonas": rows, "n": len(rows), "concesiones": concesiones,
+        "fuente": "buyer_signals (K-anon≥3) + demanda_insatisfecha + buyer_elasticidad", "computed_at": _iso(),
     }
 
 

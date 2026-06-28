@@ -150,12 +150,52 @@ def _resumen(p):
     return ("Atlax ya te conoce: " + " · ".join(bits) + ".") if bits else None
 
 
+async def get_visitor_taste_cached(db, visitor_id):
+    """Oportunidad #1: taste materializado (cache ~24h) en vez de recomputarlo en CADA ranking. Se invalida en cada
+    señal que cambia el gusto → siempre fresco. Reusa resolve_visitors (la persona). Fail-open al cómputo directo."""
+    from datetime import datetime as _dt
+    try:
+        from services.visitor_identity import resolve_visitors
+        key = (await resolve_visitors(db, visitor_id) or [visitor_id])[0]
+    except Exception:  # noqa: BLE001
+        key = visitor_id
+    try:
+        doc = await db.visitor_taste_materialized.find_one({"visitor_id": key}, {"_id": 0, "taste": 1})
+        if doc and "taste" in doc:
+            return doc["taste"]
+    except Exception:  # noqa: BLE001
+        pass
+    taste = await build_visitor_taste(db, visitor_id)
+    try:
+        # sanitiza: quita el campo 'visitor_id' (lleva {$in:...} = clave $ no almacenable); nada lo consume.
+        store = {kk: vv for kk, vv in (taste or {}).items() if kk != "visitor_id"} if taste else None
+        await db.visitor_taste_materialized.update_one(
+            {"visitor_id": key},
+            {"$set": {"visitor_id": key, "taste": store, "computed_at_dt": _dt.utcnow()}}, upsert=True)
+    except Exception:  # noqa: BLE001
+        pass
+    return taste
+
+
+async def invalidate_visitor_taste(db, visitor_id):
+    """Borra el taste materializado de la persona (todos sus visitor_id) → fresco a la próxima."""
+    try:
+        from services.visitor_identity import resolve_visitors
+        vids = await resolve_visitors(db, visitor_id) or [visitor_id]
+    except Exception:  # noqa: BLE001
+        vids = [visitor_id]
+    try:
+        await db.visitor_taste_materialized.delete_many({"visitor_id": {"$in": vids}})
+    except Exception:  # noqa: BLE001
+        pass
+
+
 async def score_devs(db, visitor_id, devs):
     """Rankea una lista de desarrollos por el GUSTO HIPERGRANULAR del visitante: zona (gustada/evitada) · amenidades ·
     precio vs su techo · FEATURES de las fotos (luz/vista/terraza, vía photo_tagger) + perfil NEGATIVO. {dev_id: 0-100}.
     Vacío si no hay gusto → el caller cae al orden normal. Fail-open. Usado por /api/developments/casi para reordenar."""
     try:
-        p = await build_visitor_taste(db, visitor_id)
+        p = await get_visitor_taste_cached(db, visitor_id)   # #1: cache (recomputaba en cada búsqueda)
         if not p:
             return {}
         k = p.get("keys") or {}

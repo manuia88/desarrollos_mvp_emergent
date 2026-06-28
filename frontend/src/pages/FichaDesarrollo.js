@@ -15,6 +15,7 @@ import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
+import PlanDePago from '../components/ficha/PlanDePago';           // #7: esquemas de pago REALES del dev (hide-if-empty)
 import SeccionLente from '../components/ficha/SeccionLente';       // UI NUEVA (de cero) — el lente, hechos reales del dev
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion'; // UI NUEVA (de cero) — lugares Google + vida OSM
 import SeccionConfianza from '../components/ficha/SeccionConfianza'; // UI NUEVA (de cero) — dev + sellos + riesgos honestos
@@ -345,6 +346,8 @@ export default function FichaDesarrollo({ user, onLogin }) {
                         </Modulo>
                         <Modulo onOpen={() => signalModule('vivir_pago')} eyebrow="Tu dinero" title="Cómo lo pagas" hook={hookPago}>
                           <SeccionDinero dev={dev} unit={unit} intent="vivir" />
+                          {/* Oportunidad #7: las formas de pago REALES que definió el dev (hide-if-empty), no etiquetas genéricas */}
+                          <PlanDePago dev={dev} />
                         </Modulo>
                         <Modulo onOpen={() => signalModule('vivir_zona')} eyebrow="El entorno" title="La zona y el estilo de vida" hook={hookZona}>
                           <SeccionUbicacion dev={dev} />

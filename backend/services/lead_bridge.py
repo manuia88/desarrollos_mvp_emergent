@@ -431,3 +431,52 @@ def schedule_reconcile_cron(scheduler, db) -> None:
         )
     except Exception as e:  # noqa: BLE001
         log.warning(f"[lead_bridge] schedule reconcile cron failed: {e}")
+
+
+# ─── Re-entrenar temperatura del lead (oportunidad #6) ──────────────────────────
+# La temperatura se congelaba al espejar. Este job (cada 6h) la "descongela": si el comprador VOLVIÓ y subió su
+# actividad, el contacto SE CALIENTA para que el asesor lo vea re-engancharse. Sólo SUBE (nunca baja → respeta el
+# juicio del asesor); no toca cerrados. Reusa compute_engagement (conducta real). Idempotente.
+_TEMP_RANK = {"frio": 0, "tibio": 1, "caliente": 2}
+
+
+async def refresh_lead_temperatures(db, limit: int = 6000) -> dict:
+    scanned = 0
+    bumped = 0
+    try:
+        from routes.buyer_signals import compute_engagement
+        cur = db.asesor_contactos.find(
+            {"source_lead_id": {"$ne": None},
+             "etapa": {"$nin": ["cerrado", "perdido", "cerrado_ganado", "cerrado_perdido"]}},
+            {"_id": 0, "id": 1, "source_lead_id": 1, "temperatura": 1},
+        ).limit(limit)
+        async for c in cur:
+            scanned += 1
+            lead = await db.leads.find_one({"id": c["source_lead_id"]}, {"_id": 0, "visitor_id": 1})
+            vid = (lead or {}).get("visitor_id")
+            if not vid:
+                continue
+            eng = await compute_engagement(db, vid)
+            upd = {"engagement_score": eng.get("score"), "engagement_factores": eng.get("factores") or []}
+            if _TEMP_RANK.get(eng.get("temperatura"), 0) > _TEMP_RANK.get(c.get("temperatura"), 0):
+                upd["temperatura"] = eng["temperatura"]   # sólo sube (re-engagement)
+                bumped += 1
+            await db.asesor_contactos.update_one({"id": c["id"]}, {"$set": upd})
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] refresh temperaturas fail-open: {e}")
+    log.info(f"[lead_bridge] refresh temperaturas — scanned={scanned} bumped={bumped}")
+    return {"ok": True, "scanned": scanned, "bumped": bumped}
+
+
+def schedule_temp_refresh_cron(scheduler, db) -> None:
+    """Cron `lead_temp_refresh` cada 6h."""
+    try:
+        from cron_heartbeat import wrap_apscheduler_job
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler.add_job(
+            wrap_apscheduler_job(refresh_lead_temperatures, "lead_temp_refresh"),
+            CronTrigger(hour="*/6", timezone="America/Mexico_City"),
+            args=[db], id="lead_temp_refresh", replace_existing=True, misfire_grace_time=1800,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] schedule temp refresh cron failed: {e}")

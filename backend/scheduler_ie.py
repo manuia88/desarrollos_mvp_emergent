@@ -563,6 +563,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_reconcile_error", error=str(e))
 
+    # Oportunidad #6 — Re-entrenar temperatura del lead cada 6h (descongela leads que vuelven)
+    try:
+        from services.lead_bridge import schedule_temp_refresh_cron
+        schedule_temp_refresh_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_lead_temp_refresh_error", error=str(e))
+
     # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
     try:
         from intelligence_insights_engine import schedule_intelligence_insights_cron
