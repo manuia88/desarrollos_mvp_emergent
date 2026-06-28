@@ -1,7 +1,8 @@
 // AtlaxExperiencia — la ficha como EXPERIENCIA cinemática (no una tabla). Pilot de los módulos ATOMS portados a React
 // con assets REALES del desarrollo (cero generación falsa · regla anti-alucinación):
 //   1) Hero IMAGE-REVEAL: el cursor revela una 2ª foto bajo la 1ª.
-//   2) WALKTHROUGH scroll-scrub: el scroll recorre las fotos del depa (o el video real si hay video_url).
+//   2) WALKTHROUGH scroll-scrub (Módulo 4 ATOMS): si hay VIDEO, el scroll mueve `video.currentTime` cuadro por cuadro
+//      (rAF con easing) = recorrido continuo, NO fotos que saltan. Sin video → fallback foto-secuencia.
 //   3) CTA: me interesa / ver ficha / asesor.
 // Y es SENSOR: el tiempo por foto + el avance alimentan el gusto (visitor_taste vía buyer_signals). La experiencia que
 // enamora también te aprende. Degrada con gracia (si no hay fotos, manda a la ficha). Reusa fetchDevelopment + photos.
@@ -16,6 +17,10 @@ import { Sparkle, Heart, ArrowRight } from '../../components/icons';
 const HEAD = "'Outfit',sans-serif";
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
 const fmtM = (n) => (n == null ? '' : (n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M` : `$${Math.round(n).toLocaleString('es-MX')}`));
+
+// PILOT: en prod el recorrido sale de `dev.video_url` (lo sube el dev en Studio / 3DGS). Mientras tanto, demo generado
+// desde las FOTOS REALES del dev (Ken Burns continuo) para mostrar el mecanismo correcto del Módulo 4 (scrub de video).
+const DEMO_VIDEOS = { 'tamaulipas-89': '/demo/walkthrough-tamaulipas-89.mp4' };
 
 export default function AtlaxExperiencia() {
   const { id } = useParams();
@@ -35,11 +40,12 @@ export default function AtlaxExperiencia() {
   if (!dev) return <div style={{ minHeight: '100vh', background: '#0A0A0F', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans' }}>Cargando experiencia…</div>;
   const photos = (dev.photos || []).filter(Boolean);
   if (photos.length < 2) return <Fallback id={id} />;   // sin assets reales suficientes → a la ficha (cero invento)
+  const videoSrc = dev.video_url || DEMO_VIDEOS[dev.id] || null;   // recorrido real si existe; si no, fallback fotos
 
   return (
     <div style={{ background: '#0A0A0F', color: '#fff', fontFamily: 'DM Sans' }}>
       <Hero dev={dev} photos={photos} />
-      <Walkthrough dev={dev} photos={photos} />
+      <Walkthrough dev={dev} photos={photos} videoSrc={videoSrc} />
       <Cierre dev={dev} saved={saved} setSaved={setSaved} navigate={navigate} />
       <Link to={`/desarrollo/${id}`} aria-label="Cerrar" style={{ position: 'fixed', top: 16, right: 18, zIndex: 50, width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(6px)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 700 }}>×</Link>
     </div>
@@ -73,8 +79,80 @@ function Hero({ dev, photos }) {
   );
 }
 
-// ── 2 · WALKTHROUGH scroll-scrub (el scroll recorre las fotos del depa) ────────
-function Walkthrough({ dev, photos }) {
+// ── 2 · WALKTHROUGH (Módulo 4 ATOMS) — video real scrubbeado por scroll, o fallback fotos ──
+function Walkthrough({ dev, photos, videoSrc }) {
+  return videoSrc ? <VideoScrub dev={dev} src={videoSrc} /> : <PhotoScrub dev={dev} photos={photos} />;
+}
+
+// El recorrido REAL: el scroll mueve video.currentTime cuadro por cuadro (no se reproduce solo). rAF con easing →
+// continuo y suave. Espera loadedmetadata para la duración. Sensor: profundidad máxima recorrida + tiempo.
+function VideoScrub({ dev, src }) {
+  const wrapRef = useRef(null), vidRef = useRef(null);
+  const target = useRef(0), shown = useRef(0), dur = useRef(0), rafId = useRef(0);
+  const maxProg = useRef(0), startedAt = useRef(0);
+  const [pct, setPct] = useState(0);
+  const [ready, setReady] = useState(false);
+
+  const tick = useCallback(() => {
+    const v = vidRef.current;
+    if (v && dur.current) {
+      const d = target.current - shown.current;
+      if (Math.abs(d) > 0.004) {
+        shown.current += d * 0.16;                       // easing hacia el frame objetivo
+        try { v.currentTime = shown.current; } catch (_) { /* noop */ }   // un solo write por frame (sin jitter)
+        rafId.current = requestAnimationFrame(tick);
+      } else { rafId.current = 0; }
+    } else { rafId.current = 0; }
+  }, []);
+
+  const onScroll = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el || !dur.current) return;
+    const r = el.getBoundingClientRect();
+    const total = r.height - window.innerHeight;
+    const prog = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;   // scroll-progress → tiempo (Módulo 4)
+    target.current = prog * dur.current;
+    if (prog > maxProg.current) maxProg.current = prog;
+    setPct(Math.round(prog * 100));
+    if (!rafId.current) rafId.current = requestAnimationFrame(tick);
+  }, [tick]);
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+    let ticking = false;
+    const h = () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { onScroll(); ticking = false; }); } };
+    window.addEventListener('scroll', h, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', h);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      // SENSOR: qué tan a fondo recorrió + cuánto tiempo → engagement real (alimenta visitor_taste).
+      const dt = startedAt.current ? Date.now() - startedAt.current : 0;
+      try { sendBuyerSignal('photo_dwell', { entity_id: dev.id, value: String(Math.round(maxProg.current * 100)), dwell_ms: Math.min(600000, dt) }); } catch (_) { /* noop */ }
+    };
+  }, [onScroll, dev.id]);
+
+  return (
+    <section ref={wrapRef} style={{ height: '620vh', position: 'relative' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#000' }}>
+        <video ref={vidRef} src={src} muted playsInline preload="auto"
+          onLoadedMetadata={(e) => { dur.current = e.currentTarget.duration || 0; try { e.currentTarget.pause(); } catch (_) { /* noop */ } setReady(true); onScroll(); }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,15,0.25) 0%, transparent 35%, transparent 60%, rgba(10,10,15,0.85) 100%)', pointerEvents: 'none' }} />
+        {!ready && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', opacity: 0.7, fontSize: 14 }}>Cargando recorrido…</div>}
+        <div style={{ position: 'absolute', left: 28, bottom: 40, pointerEvents: 'none' }}>
+          <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22 }}>Recorre {dev.name}</div>
+          <div style={{ fontSize: 13, opacity: 0.75 }}>Desliza para avanzar por cada espacio</div>
+        </div>
+        <div style={{ position: 'absolute', left: 28, right: 28, bottom: 24, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.2)', pointerEvents: 'none' }}>
+          <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: '#fff', transition: 'width 0.1s linear' }} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Fallback sin video: foto-secuencia (cruces suaves). No es recorrido-video, pero degrada con gracia.
+function PhotoScrub({ dev, photos }) {
   const wrapRef = useRef(null);
   const [idx, setIdx] = useState(0);
   const idxRef = useRef(0);
@@ -88,7 +166,6 @@ function Walkthrough({ dev, photos }) {
     const prog = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;
     const next = Math.min(photos.length - 1, Math.floor(prog * photos.length));
     if (next !== idxRef.current) {
-      // SENSOR: tiempo en la foto que dejamos → alimenta el gusto (qué espacio le importa).
       const dt = shownAt.current ? Date.now() - shownAt.current : 0;
       if (dt > 600) { try { sendBuyerSignal('photo_dwell', { entity_id: dev.id, value: String(idxRef.current), dwell_ms: Math.min(600000, dt) }); } catch (_) { /* noop */ } }
       shownAt.current = Date.now();
