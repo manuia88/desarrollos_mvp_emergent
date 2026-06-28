@@ -850,6 +850,25 @@ async def get_contacto(cid: str, request: Request):
     return c
 
 
+@router.get("/contactos/{cid}/recomendacion")
+async def recomendacion_contacto(cid: str, request: Request):
+    """Cierra el loop comprador→asesor: con las señales REALES del lead (features/colonias que miró), le dice al asesor
+    QUÉ desarrollos ofrecerle. Resuelve contacto → lead → visitor_id → recommend_for_lead."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "source_lead_id": 1})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+    vid = None
+    if c.get("source_lead_id"):
+        lead = await db.leads.find_one({"id": c["source_lead_id"]}, {"_id": 0, "visitor_id": 1})
+        vid = (lead or {}).get("visitor_id")
+    if not vid:
+        return {"ok": True, "sin_senales": True, "lectura": "Este lead aún no tiene comportamiento rastreado en el marketplace."}
+    import demand_intelligence as di
+    return {"ok": True, **(await di.recommend_for_lead(db, vid))}
+
+
 @router.get("/contactos/{cid}/close-probability")
 async def get_close_probability(cid: str, request: Request):
     """P3.A · Probabilidad de cierre de un lead. Reusa close_probability (P2) ·

@@ -77,6 +77,26 @@ async def _dev_colonias(db, user) -> list:
     return sorted(c for c in cols if c)
 
 
+@router.get("/demand-features")
+async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365)):
+    """QUÉ QUIERE EL MERCADO EN TUS ZONAS, A NIVEL FEATURE — cierra el loop demanda→dev. No solo recámaras/precio (eso es
+    /demand-intel) sino qué FEATURES busca la gente (terraza/gym/vista), qué construir (demanda vs tu oferta), qué SUBE,
+    y lo que se busca y NO existe. La misma inteligencia del superadmin, scopeada a TUS colonias."""
+    user = await _auth(request)
+    db = _db(request)
+    cols = await _dev_colonias(db, user)
+    if not cols:
+        return {"ok": True, "vacio": True, "lectura": "Publica un desarrollo y verás la demanda real por feature de tu colonia."}
+    import demand_intelligence as di
+    return {
+        "ok": True, "colonias": cols,
+        "por_feature": await di.demand_by_feature(db, colonias=cols, since_days=dias),
+        "que_construir": await di.what_to_build(db, colonias=cols, since_days=dias),
+        "no_satisfecha": await di.unmet_demand(db, colonias=cols, since_days=dias),
+        "tendencias": await di.trend_alerts(db, colonias=cols),
+    }
+
+
 @router.get("/demand-intel")
 async def demand_intel(request: Request, dias: int = Query(60, ge=7, le=365)):
     """DEMANDA INSATISFECHA EN TUS ZONAS (el moat para el dev): qué busca la gente y NO encuentra, a dónde se va, la brecha

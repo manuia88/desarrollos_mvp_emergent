@@ -172,6 +172,36 @@ export default function SuperadminDemandaMercado() {
           ))}
         </div>
       </Card>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16, marginTop: 16 }}>
+        {/* DEMANDA NO SATISFECHA */}
+        <Card style={{ padding: '14px 18px' }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Demanda no satisfecha
+            <span style={{ fontSize: 11, color: '#888' }}> ({data?.no_satisfecha?.busquedas_insatisfechas || 0} búsquedas sin buen match)</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Lo que la gente busca y casi no encuentra = qué construir que no existe.</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {(data?.no_satisfecha?.por_colonia || []).slice(0, 8).map((c) => <Badge key={c.colonia} tone="warn">{c.colonia}: {c.n}</Badge>)}
+            {(data?.no_satisfecha?.por_colonia || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+          </div>
+          <div style={{ fontSize: 12, color: '#888' }}>Recámaras: {Object.entries(data?.no_satisfecha?.por_recamaras || {}).map(([k, v]) => `${k} (${v})`).join(' · ') || '—'}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>Precio: {Object.entries(data?.no_satisfecha?.por_precio || {}).map(([k, v]) => `${k} (${v})`).join(' · ') || '—'}</div>
+        </Card>
+
+        {/* TENDENCIAS */}
+        <Card style={{ padding: '14px 18px' }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Tendencias <span style={{ fontSize: 11, color: '#888' }}>(ventana {data?.tendencias?.ventana_dias || 30}d vs anterior)</span></div>
+          <div style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Qué feature sube rápido = muévete antes que la competencia.</div>
+          {(data?.tendencias?.tendencias || []).length === 0 ? <span style={{ color: '#666', fontSize: 12 }}>Sin movimiento aún (se necesitan 2 ventanas con datos).</span> : (
+            (data?.tendencias?.tendencias || []).slice(0, 8).map((t) => (
+              <div key={t.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <span>{t.feature}</span>
+                <span><strong style={{ color: t.crecimiento_pct > 0 ? '#16a34a' : '#999' }}>{t.crecimiento_pct > 0 ? '+' : ''}{t.crecimiento_pct}%</strong> <span style={{ color: '#888', fontSize: 11 }}>({t.anterior}→{t.reciente})</span></span>
+              </div>
+            ))
+          )}
+        </Card>
+      </div>
     </SuperadminLayout>
   );
 }
