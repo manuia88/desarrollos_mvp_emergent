@@ -11,10 +11,11 @@ const STUB_STATUS_LABEL = {
   dato_interno: 'Dato interno aún no capturado',
   resource_id: 'Falta resource_id CKAN (gratis, configurable)',
   token_gratis: 'Falta token gratis (NOAA/Banxico/INEGI)',
+  token_listo: 'Token listo (AirROI) — correr ingesta',
   sin_fuente: 'Sin fuente real (conector stub)',
-  pago: 'Fuente de pago (AirROI)',
+  pago: 'Fuente de pago',
 };
-const STUB_STATUS_TONE = { datos_escasos: 'neutral', dato_interno: 'neutral', resource_id: 'warn', token_gratis: 'warn', sin_fuente: 'bad', pago: 'bad' };
+const STUB_STATUS_TONE = { datos_escasos: 'neutral', dato_interno: 'neutral', resource_id: 'warn', token_gratis: 'warn', token_listo: 'ok', sin_fuente: 'bad', pago: 'bad' };
 
 const ESTADO_COLOR = { vivo: '#16a34a', apagado: '#dc2626', cache: '#6b7280', error: '#a16207' };
 const ESTADO_TONE = { vivo: 'ok', apagado: 'bad', cache: 'neutral', error: 'warn' };

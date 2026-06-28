@@ -1011,6 +1011,16 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
         "user_id": user.user_id, "action": "unit_status_change",
         "payload": payload.model_dump(), "ts": _now(),
     })
+    # CROSS-PORTAL: registra TAMBIÉN en el audit_log CENTRAL → el superadmin VE el cambio de estado de unidad del dev en
+    # su auditoría unificada (antes solo quedaba en developer_audit, invisible para el superadmin). Fail-open.
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, {"user_id": user.user_id, "role": "developer", "name": getattr(user, "name", None)},
+                           "update", "unit", entity_id=payload.unit_id,
+                           before={"status": old_status},
+                           after={"status": payload.status, "dev": payload.dev_id, "reason": payload.reason or ""})
+    except Exception:
+        pass
     # Phase 7.9 — units_history trigger
     try:
         from units_history import record_unit_change
@@ -1130,6 +1140,13 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
         "user_id": user.user_id, "action": "unit_fields_change",
         "payload": fields, "ts": _now(),
     })
+    # CROSS-PORTAL: el superadmin VE la edición de campos (precio/m²/…) del dev en el audit_log central. Fail-open.
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, {"user_id": user.user_id, "role": "developer", "name": getattr(user, "name", None)},
+                           "update", "unit", entity_id=payload.unit_id, after={"campos": fields, "dev": payload.dev_id})
+    except Exception:
+        pass
     return {"ok": True, "unit_id": payload.unit_id, **fields}
 
 

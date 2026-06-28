@@ -105,7 +105,7 @@ _UNIT_GROUPS = ("position", "interior", "areas", "storage", "parking", "security
 
 # Diagnóstico de STUBS — qué fuente necesita cada receta y su estatus REAL (honesto, sin inventar).
 SOURCE_STATUS = {
-    "osm_overpass":       ("datos_escasos",   "OSM ya sincronizado (gratis, radio 700m). Stub = colonia periférica con pocos POIs reales — no se fabrica densidad."),
+    "osm_overpass":       ("datos_escasos",   "Densidad de POIs (OSM + Google Places en ingesta masiva, varias colonias/mes para cubrir free tier). Stub = colonia aún sin cobertura — se llena con cada ingesta, no se fabrica."),
     "noaa":               ("token_gratis",    "Registrar token gratis NOAA CDO → env IE_NOAA_API_KEY."),
     "banxico":            ("token_gratis",    "Token gratis Banxico SIE → env IE_BANXICO_TOKEN."),
     "inegi":              ("token_gratis",    "Token gratis INEGI → env IE_INEGI_TOKEN."),
@@ -117,9 +117,9 @@ SOURCE_STATUS = {
     "cenapred":           ("sin_fuente",      "CENAPRED — falta fuente real (riesgo sísmico/inundación)."),
     "atlas_riesgos_cdmx": ("sin_fuente",      "Atlas de Riesgos CDMX — falta fuente real."),
     "gtfs_cdmx":          ("sin_fuente",      "GTFS CDMX — conector aún stub, falta feed real."),
-    "airroi":             ("pago",            "AirROI — fuente DE PAGO (cobra por llamada)."),
+    "airroi":             ("token_listo",     "AirROI — free tier, token YA en env.local (IE_AIRROI_API_KEY). Si hay stub: correr ingesta AirROI para las zonas."),
 }
-_STATUS_PRIORITY = ["pago", "sin_fuente", "token_gratis", "resource_id", "datos_escasos", "dato_interno"]
+_STATUS_PRIORITY = ["pago", "sin_fuente", "token_gratis", "token_listo", "resource_id", "datos_escasos", "dato_interno"]
 
 
 async def stub_diagnosis(db) -> Dict[str, Any]:
