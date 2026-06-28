@@ -24,3 +24,18 @@ anti-alucinación: etiquetar "amueblado virtual").
 
 **Costo aprox:** ~3 estilos × N fotos clave × por dev (Replicate). Controlable: solo el cuarto del hero, solo devs
 activos, trigger manual del dev/founder.
+
+---
+
+## Áreas de oportunidad diferidas (sesión 2026-06-28)
+**Tras solucionar #1 (harness e2e), #3 (loop de aprendizaje), #4 (cold-start), #8 (seguridad/rate-limit).**
+
+- **#5 — Lift readout (¿la personalización sube el engagement?):** la instrumentación YA está (`experiencia_views`
+  {personalized,basis} + conteo en el intel del founder). El READOUT comparativo (dwell personalizada vs estándar) se
+  difiere: con datos semilla es ruidoso + el join experiencia↔dwell es flojo. Construir cuando haya volumen real.
+- **#6 — Performance a escala:** materializar `demand-twin` + `donde-vivir` en cron (como el cache de taste). Diferido:
+  PREMATURO al scale actual (dashboard calls, ~100ms). Hacer cuando el tráfico lo pida.
+- **#2 — Deploy + validar con datos reales:** ACCIÓN DEL FOUNDER (memoria: "tú prendes; yo dejo listo"). Correr
+  `scripts/smoke_e2e.py` pre-deploy.
+- **#7 — Pipeline de video real del dev (Studio/3DGS) + gate de calidad de foto:** el "wow" depende de contenido real.
+  Build mayor (subida + storage + el gate). Backlog.
