@@ -8,6 +8,10 @@ import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../
 import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
 import AtlaxVoiceButton from './AtlaxVoiceButton';
 import AtlaxBlocks from './AtlaxBlocks';  // F3: UI generativa inline (tabla comparativa / tarjetas)
+import AtlaxResults from './AtlaxResults';      // motor FUERTE compartido con la superficie (casi-cumple + persuasión)
+import AtlaxQuickView from './AtlaxQuickView';  // ficha en vista rápida (misma que la superficie)
+import AtlaxLeadModal from './AtlaxLeadModal';  // "Hablar con un Asesor" → lead REAL
+import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';  // un solo buscador en todas las ventanas
 import { fetchBuySignal } from '../../api/marketplace';
 import { Z } from '../../styles/zIndex';
 
@@ -332,6 +336,8 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState(() => loadHistory());
+  const [quickDev, setQuickDev] = useState(null);   // ficha en vista rápida (motor fuerte compartido)
+  const [leadCtx, setLeadCtx] = useState(null);      // "Hablar con un Asesor" → lead real
   const [sessionId, setSessionId] = useState(() => getSession());
   const [asistenteToken, setAsistenteToken] = useState(() => {
     try { return localStorage.getItem(SS_TOKEN) || null; } catch { return null; }
@@ -441,58 +447,40 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     setBusy(true);
     if (!overrideQuery) setInput('');
     const userMsg = { role: 'user', content: q, ts: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
+    const aid = `b_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    setMessages(prev => [...prev, userMsg, { id: aid, role: 'assistant', content: '', pending: true, ts: Date.now() }]);
+    const patch = (p) => setMessages(prev => prev.map(m => (m.id === aid ? { ...m, ...p } : m)));
+
+    // FASE 1 · motor FUERTE (rápido, blocks-first): si es una búsqueda real, pinta los resultados ricos (exactos +
+    // casi-cumple + otras colonias) SIN esperar al LLM — el MISMO motor que la superficie /atlax.
+    if (!isCompareQuery(q)) {
+      searchAtlax(q).then((search) => { if (search && search.isSearch) patch({ results: { ...search, query: q } }); }).catch(() => {});
+    }
+
+    // FASE 2 · el LLM (más lento): texto conversacional + bloques (comparativa/pagos/mapa). Quita las dev_cards flojas.
     try {
       const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: q,
-          session_id: sessionId,
-          channel: 'web_bubble',
-          thread_id: threadId || null,
-          page_context: contextRef.current || null,   // lo que el usuario ve/busca ahora → Atlax responde en contexto
-        }),
+        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble', thread_id: threadId || null, page_context: contextRef.current || null }),
       });
       const d = await r.json();
-      // Persist asistente_session_token for /asistente expand link
-      if (d.asistente_session_token) {
-        setAsistenteToken(d.asistente_session_token);
-        try { localStorage.setItem(SS_TOKEN, d.asistente_session_token); } catch (_) { /* ignore */ }
-      }
-      // Sync session_id with backend (may have generated new dmx_caya_* if we sent null)
-      if (d.session_id && d.session_id !== sessionId) {
-        setSessionId(d.session_id);
-        try { localStorage.setItem(SS_KEY, d.session_id); } catch (_) { /* ignore */ }
-      }
-      // W4.11a · sync thread_id (backend may auto-create one)
-      if (d.thread_id && d.thread_id !== threadId) {
-        setThreadId(d.thread_id);
-        try { localStorage.setItem(SS_THREAD, d.thread_id); } catch (_) { /* ignore */ }
-      }
+      if (d.asistente_session_token) { setAsistenteToken(d.asistente_session_token); try { localStorage.setItem(SS_TOKEN, d.asistente_session_token); } catch (_) { /* ignore */ } }
+      if (d.session_id && d.session_id !== sessionId) { setSessionId(d.session_id); try { localStorage.setItem(SS_KEY, d.session_id); } catch (_) { /* ignore */ } }
+      if (d.thread_id && d.thread_id !== threadId) { setThreadId(d.thread_id); try { localStorage.setItem(SS_THREAD, d.thread_id); } catch (_) { /* ignore */ } }
       if (d.tier) setTier(d.tier);
-      const assistantMsg = {
-        role: 'assistant',
+      patch({
         content: d.answer || 'Sin respuesta.',
         citations: d.citations || [],
-        blocks: d.blocks || [],  // F3: UI generativa inline
+        blocks: (d.blocks || []).filter((b) => b.type !== 'development_cards'),  // los resultados fuertes reemplazan las dev_cards flojas
         top_results: d.top_results || [],
-        hand_off: d.hand_off_recommended,
-        hand_off_reason: d.hand_off_reason,
-        memory_hits: d.memory_hits || [],
-        tool_calls: d.tool_calls || [],
+        hand_off: d.hand_off_recommended, hand_off_reason: d.hand_off_reason,
+        memory_hits: d.memory_hits || [], tool_calls: d.tool_calls || [],
         suggested_capture: d.intent_detected === 'cita' || d.intent_detected === 'presupuesto',
-        simulated: d.simulated,
-        ts: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+        simulated: d.simulated, pending: false,
+      });
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'No pude conectarme. Intenta de nuevo.',
-        error: true,
-        ts: Date.now(),
-      }]);
+      patch({ content: 'No pude conectarme. Intenta de nuevo.', error: true, pending: false });
     }
     setBusy(false);
   };
@@ -839,21 +827,31 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                 maxWidth: '92%',
               }}>
-                <div style={{
-                  padding: '10px 13px', borderRadius: 14,
-                  background: m.role === 'user'
-                    ? 'rgba(var(--theme-rgb),0.20)'
-                    : (m.error ? 'rgba(239,68,68,0.10)' : (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)')),
-                  border: `1px solid ${m.role === 'user' ? 'rgba(var(--theme-rgb),0.32)' : (m.error ? 'rgba(239,68,68,0.32)' : 'var(--border)')}`,
-                  color: m.error ? '#fca5a5' : 'var(--cream)',
-                  fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                }}>
-                  {renderRich(m.content)}
-                </div>
+                {(m.role === 'user' || m.content || (m.pending && !m.results)) && (
+                  <div style={{
+                    padding: '10px 13px', borderRadius: 14,
+                    background: m.role === 'user'
+                      ? 'rgba(var(--theme-rgb),0.20)'
+                      : (m.error ? 'rgba(239,68,68,0.10)' : (light ? 'rgba(16,24,40,0.05)' : 'rgba(255,255,255,0.04)')),
+                    border: `1px solid ${m.role === 'user' ? 'rgba(var(--theme-rgb),0.32)' : (m.error ? 'rgba(239,68,68,0.32)' : 'var(--border)')}`,
+                    color: m.error ? '#fca5a5' : 'var(--cream)',
+                    fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55,
+                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  }}>
+                    {m.content ? renderRich(m.content) : <span style={{ opacity: 0.6, fontStyle: 'italic' }}>Atlax está buscando…</span>}
+                  </div>
+                )}
 
                 {m.role === 'assistant' && (m.blocks || []).length > 0 && (
                   <AtlaxBlocks blocks={m.blocks} />
+                )}
+
+                {m.role === 'assistant' && m.results && (
+                  <div style={{ marginTop: 8 }}>
+                    <AtlaxResults r={m.results} compact onQuick={setQuickDev}
+                      onRefine={(suf) => send(null, `${(m.results.query || '')} ${suf}`)}
+                      onAdvisor={() => setLeadCtx({ dev: null, query: m.results.query || '' })} />
+                  </div>
                 )}
 
                 {m.role === 'assistant' && (m.citations || []).length > 0 && (
@@ -1048,6 +1046,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           [data-testid="caya-bubble"] { right: 12px !important; bottom: 12px !important; }
         }
       `}</style>
+
+      {quickDev && <AtlaxQuickView dev={quickDev} onClose={() => setQuickDev(null)} onAdvisor={(dev) => { setQuickDev(null); setLeadCtx({ dev: dev || null, query: '' }); }} />}
+      {leadCtx && <AtlaxLeadModal ctx={leadCtx} onClose={() => setLeadCtx(null)} />}
     </>
   );
 }

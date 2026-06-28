@@ -11,6 +11,8 @@ const HEAD = "'Outfit',sans-serif";
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
 const fmtM = (n) => (n == null ? '—' : (n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M` : `$${Math.round(n).toLocaleString('es-MX')}`));
 const range = (r, suf = '') => (Array.isArray(r) && r.length ? (r[0] === r[1] ? `${r[0]}${suf}` : `${r[0]}–${r[1]}${suf}`) : null);
+// "¿Cuánto al mes?" — estimado estándar (enganche 20% · 20 años · tasa ~10.5%). El real depende del banco/perfil.
+const mensualidadEstim = (price) => { if (!price || price < 200000) return null; const credito = price * 0.8, rm = 0.105 / 12, n = 240; return Math.round(credito * rm / (1 - Math.pow(1 + rm, -n))); };
 const TONE = { verde: { bg: 'rgba(16,185,129,0.10)', bd: 'rgba(16,185,129,0.30)', fg: '#0F9D6E' }, ambar: { bg: 'rgba(224,163,62,0.10)', bd: 'rgba(224,163,62,0.30)', fg: '#B9822E' }, rojo: { bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.28)', fg: '#DC4D4D' } };
 const AMEN = { roof: 'Roof Garden', gym: 'Gym', alberca: 'Alberca', pet: 'Pet Friendly', cowork: 'Coworking', bicicletas: 'Biciestacionamiento', seguridad: 'Seguridad 24h', jardines: 'Áreas Verdes' };
 
@@ -45,7 +47,7 @@ export default function AtlaxQuickView({ dev, onClose, onAdvisor }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1800, background: 'rgba(20,18,30,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 22, border: '1px solid var(--card-border)', boxShadow: '0 30px 80px rgba(20,18,30,0.4)' }}>
+      <div onClick={(e) => e.stopPropagation()} className="theme-light-scope" style={{ width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 22, border: '1px solid var(--card-border)', boxShadow: '0 30px 80px rgba(20,18,30,0.4)' }}>
         {/* Galería */}
         <div style={{ position: 'relative' }}>
           <div style={{ height: 250, background: 'var(--surface-card)', borderRadius: '22px 22px 0 0', overflow: 'hidden' }}>
@@ -69,6 +71,7 @@ export default function AtlaxQuickView({ dev, onClose, onAdvisor }) {
           <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em', color: 'var(--cream)', margin: 0 }}>{dev.name}</h2>
           <div style={{ fontSize: 13, color: 'var(--cream-3)', marginTop: 2 }}>{tc(dev.colonia || '')}{dev.alcaldia ? ` · ${tc(dev.alcaldia)}` : ''}</div>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 21, color: 'var(--theme)', marginTop: 8 }}>{dev.price_from_display || fmtM(dev.price_from)}{dev.price_to && dev.price_to !== dev.price_from ? <span style={{ fontSize: 13, color: 'var(--cream-3)', fontWeight: 600 }}> — {fmtM(dev.price_to)}</span> : null}</div>
+          {mensualidadEstim(dev.price_from) && <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 4 }}>Desde <b style={{ color: 'var(--cream)' }}>~{fmtM(mensualidadEstim(dev.price_from))}/mes</b> <span style={{ color: 'var(--cream-3)' }}>· enganche 20%, 20 años (estimado)</span></div>}
 
           <div style={{ display: 'flex', gap: 7, marginTop: 13 }}>
             <Spec k="Recámaras" v={range(dev.bedrooms_range)} />

@@ -87,7 +87,12 @@ async def parse_query(text: str, language: str = "es-MX") -> Dict[str, Any]:
         return fallback
 
     session_id = f"reverse_search_{uuid.uuid4().hex[:12]}"
-    user_prompt = f"Query ({language}):\n{text.strip()}\n\nDevuelve solo el JSON."
+    try:
+        from llm_safety import sanitize_user_input  # SEGURIDAD: cap + anti prompt-injection en el 2º LLM
+        safe_text = sanitize_user_input((text or "").strip(), max_len=500)
+    except Exception:  # noqa: BLE001
+        safe_text = (text or "").strip()[:500]
+    user_prompt = f"Query ({language}):\n{safe_text}\n\nDevuelve solo el JSON."
 
     try:
         chat = (

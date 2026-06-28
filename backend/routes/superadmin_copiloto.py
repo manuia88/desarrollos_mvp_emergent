@@ -216,7 +216,27 @@ async def buyer_cycle_intel(db, dias: int = 30):
         "lectura": "Zonas donde la gente quiere comprar pero su mensualidad no llega ni a lo más barato. Demanda real a un precio que el mercado no ofrece (oportunidad de producto accesible).",
     }
 
+    # Atlax (buscador IA · superficie + burbuja) — ANTES estas señales eran write-only (dark a superadmin). Ahora el
+    # cubo lee el embudo del perfilador guiado + las búsquedas sin match exacto (hueco de producto) + la intención.
+    atlax_busquedas = await _count(db.buyer_signals, {"type": "atlax_query", **F})
+    atlax_perfil_pasos = await _count(db.buyer_signals, {"type": "atlax_profile", **F})
+    atlax_perfil_completos = await _count(db.buyer_signals, {"type": "atlax_profile", "value": "completo", **F})
+    atlax_sin_match = await _count(db.buyer_signals, {"type": "atlax_query", "meta.n_exact": 0, **F})
+    atlax_intent = await _agg(db.buyer_signals, [
+        {"$match": {"type": "atlax_query", "meta.intent": {"$nin": [None, ""]}, **F}},
+        {"$group": {"_id": "$meta.intent", "n": {"$sum": 1}}},
+        {"$sort": {"n": -1}}, {"$limit": 6},
+    ])
+
     return {
+        "atlax": {
+            "busquedas": atlax_busquedas,
+            "perfilador_completados": atlax_perfil_completos,
+            "perfilador_pasos_respondidos": atlax_perfil_pasos,
+            "busquedas_sin_match_exacto": atlax_sin_match,
+            "intencion_top": [{"intent": x["_id"], "veces": x["n"]} for x in atlax_intent if x.get("_id")],
+            "lectura": "Lo que la gente le pide a Atlax: uso del perfilador guiado, búsquedas SIN match exacto (hueco de producto a surtir) e intención dominante (vivir/invertir).",
+        },
         "sustitucion": sustitucion,
         "esquema_demanda": esquema_demanda,
         "brecha_pago": brecha_pago,

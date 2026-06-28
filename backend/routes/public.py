@@ -2397,8 +2397,9 @@ async def registro_interes(payload: RegistroInteresIn, request: Request):
 @router.post("/api/properties/search-ai")
 async def ai_search_parser(payload: AISearchIn, request: Request):
     import json as _json
+    from llm_safety import sanitize_user_input  # SEGURIDAD (pentest 2026-06-27): cap + anti prompt-injection
     db = request.app.state.db
-    q = (payload.query or "").strip()
+    q = sanitize_user_input((payload.query or "").strip(), max_len=500)
     if not q:
         return {"filters": {}, "query": q, "cached": False}
     cache_key = ("v2_" + q.lower())[:500]   # v2 = mensualidad por esquema real + cruce con fallback (invalida caché viejo)
