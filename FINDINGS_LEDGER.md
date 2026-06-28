@@ -392,3 +392,23 @@ operacion/contacto/appointment; dev: document/construction/unit_hold/developer_a
 - Patrón a futuro: trails fragmentados (developer_audit vs audit_log) — unificar lectura del superadmin o mirror.
 
 Herramienta de auditoría reutilizable: scratchpad/superadmin_audit.py (re-corrible cuando se agregue UI/endpoints).
+
+---
+
+## Lectura UNIFICADA de auditoría del superadmin (cierra la fragmentación de trails)
+
+La auditoría detectó que la actividad estaba fragmentada en trails por-portal con esquemas distintos y el superadmin
+solo leía audit_log. Construido:
+- `unified_audit.py` — normaliza 5 trails (audit_log + developer_audit + lead_events + price_events +
+  engagement_events) a una forma común (actor anidado compatible con la página existente) + merge por tiempo, tagueado
+  por `source`. audit_immutable queda fuera (su propia página Audit Chain).
+- Endpoint `GET /api/superadmin/audit/unified` (filtros source/entity_type/actor/by_ai) + página 'Actividad unificada'
+  (timeline + chips de fuente + IA/humano) + ruta + nav.
+
+### Bug de higiene (efecto colateral del fix marketplace-lead→audit_log) — encontrado+arreglado
+El lector unificado destapó que los harness de test dejaban residuo EN CADENA: crear leads → el espejo a asesor puebla
+lead_events + asesor_lead_properties + notifications + audit_log, y los teardowns no los limpiaban (o usaban la llave
+equivocada: asesor_lead_properties se enllava por contacto_id, no lead_id; el audit usa after.source='copiloto_<src>').
+**~3,100 huérfanos acumulados** (audit_log inflado 1,251→97 real · lead_events 1,341 · asesor_lead_properties 1,310).
+Fix: teardowns capturan lead_ids+contacto_ids antes de borrar y limpian todos los trails derivados. Verificado Δ=0 en
+9 colecciones tras 2 corridas. Lección: cada trail que el superadmin lee debe tener teardown de test cero-residuo.
