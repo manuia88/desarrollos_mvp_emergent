@@ -52,17 +52,23 @@ async def listar_favoritos(request: Request, visitor_id: str):
     """Los favoritos del comprador: lo que likeó/guardó (espinazo, activos) + su cita/nota (buyer_favoritos)."""
     try:
         db = request.app.state.db
+        # IDENTIDAD (U1): une los dispositivos de la misma persona → la lista la sigue cross-device.
+        try:
+            from services.visitor_identity import resolve_visitors
+            vids = await resolve_visitors(db, visitor_id)
+        except Exception:  # noqa: BLE001
+            vids = [visitor_id]
         # 1. Set guardado = like/save activos en el espinazo (dedup por dev).
         ids = []
         async for s in db.buyer_signals.find(
-            {"visitor_id": visitor_id, "type": {"$in": ["like", "save"]}, "active": True},
+            {"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save"]}, "active": True},
             {"_id": 0, "entity_id": 1, "created_at_dt": 1}, sort=[("created_at_dt", -1)]):
             if s.get("entity_id") and s["entity_id"] not in ids:
                 ids.append(s["entity_id"])
         # 2. UNIDADES guardadas (unidad como átomo) → por dev. Un dev con unidad guardada también es favorito.
         unidades = {}
         async for s in db.buyer_signals.find(
-            {"visitor_id": visitor_id, "type": "unit_save", "active": True},
+            {"visitor_id": {"$in": vids}, "type": "unit_save", "active": True},
             {"_id": 0, "entity_id": 1, "unit_number": 1}):
             if s.get("entity_id") and s.get("unit_number"):
                 unidades.setdefault(s["entity_id"], []).append(s["unit_number"])
@@ -207,15 +213,20 @@ async def mirror_favoritos_to_board(db, visitor_id, lead_id):
     """E3 · al registrarse, TODOS los favoritos del comprador caen al tablero de su asesor (status le_gusto + cita/
     nota si las dejó). El asesor ve lo que el comprador eligió solo, en el mismo Ficha360 que su link Tinder."""
     try:
+        try:
+            from services.visitor_identity import resolve_visitors
+            vids = await resolve_visitors(db, visitor_id)
+        except Exception:  # noqa: BLE001
+            vids = [visitor_id]
         ids = []
         async for s in db.buyer_signals.find(
-            {"visitor_id": visitor_id, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1}):
+            {"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1}):
             if s.get("entity_id") and s["entity_id"] not in ids:
                 ids.append(s["entity_id"])
         # Unidades guardadas (♥ en una unidad): el dev también es favorito y el asesor debe ver QUÉ unidad guardó.
         units_by_dev = {}
         async for s in db.buyer_signals.find(
-            {"visitor_id": visitor_id, "type": "unit_save", "active": True}, {"_id": 0, "entity_id": 1, "unit_number": 1}):
+            {"visitor_id": {"$in": vids}, "type": "unit_save", "active": True}, {"_id": 0, "entity_id": 1, "unit_number": 1}):
             if s.get("entity_id") and s.get("unit_number"):
                 units_by_dev.setdefault(s["entity_id"], []).append(s["unit_number"])
                 if s["entity_id"] not in ids:

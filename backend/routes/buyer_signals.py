@@ -451,6 +451,12 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             await notify_house_admin_new_lead(db, lead, assigned_to=lead.get("assigned_to"))
         except Exception:
             pass
+    # 8. IDENTIDAD: pega este visitor_id a la persona (email/teléfono) → su gusto/lista la siguen cross-device.
+    try:
+        from services.visitor_identity import link as _link_visitor
+        await _link_visitor(db, email, phone, visitor_id)
+    except Exception:
+        pass
     return lead_id, house_inm
 
 

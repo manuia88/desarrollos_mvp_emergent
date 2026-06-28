@@ -35,12 +35,18 @@ async def build_visitor_taste(db, visitor_id: str):
         return None
     try:
         devs = _devs_by_id()
+        # IDENTIDAD: une los dispositivos de la misma persona → el gusto la sigue cross-device (U1).
+        try:
+            from services.visitor_identity import resolve_visitors
+            vids = await resolve_visitors(db, visitor_id)
+        except Exception:  # noqa: BLE001
+            vids = [visitor_id]
         liked, saved, dismissed = set(), set(), {}
-        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1, "type": 1}):
+        async for s in db.buyer_signals.find({"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1, "type": 1}):
             if s.get("entity_id"):
                 (liked if s["type"] == "like" else saved).add(s["entity_id"])
         pos_devs = liked | saved
-        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "dismiss"}, {"_id": 0, "entity_id": 1, "value": 1}):
+        async for s in db.buyer_signals.find({"visitor_id": {"$in": vids}, "type": "dismiss"}, {"_id": 0, "entity_id": 1, "value": 1}):
             if s.get("entity_id"):
                 dismissed[s["entity_id"]] = (s.get("value") or "").lower()
 
@@ -51,7 +57,7 @@ async def build_visitor_taste(db, visitor_id: str):
         except Exception:  # noqa: BLE001
             tag_from_url = None
         if tag_from_url:
-            async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": {"$in": ["photo_dwell", "photo_zoom"]}}, {"_id": 0, "entity_id": 1, "value": 1, "dwell_ms": 1, "type": 1}):
+            async for s in db.buyer_signals.find({"visitor_id": {"$in": vids}, "type": {"$in": ["photo_dwell", "photo_zoom"]}}, {"_id": 0, "entity_id": 1, "value": 1, "dwell_ms": 1, "type": 1}):
                 dev = devs.get(s.get("entity_id"))
                 if not dev:
                     continue
@@ -101,7 +107,7 @@ async def build_visitor_taste(db, visitor_id: str):
             evita.append(FEAT_LABEL.get(k) or ROOM_LABEL.get(k) or k.replace("_", " "))
 
         profile = {
-            "visitor_id": visitor_id,
+            "visitor_id": {"$in": vids},
             "rooms": [{"k": k, "label": ROOM_LABEL.get(k, k), "score": round(v, 1)} for k, v in room_score.most_common(4)],
             "features": [{"k": k, "label": FEAT_LABEL.get(k, k.replace("_", " ")), "score": round(v, 1)} for k, v in feat_score.most_common(4)],
             "zonas_gustan": [c for c, _ in liked_col.most_common(3)],
