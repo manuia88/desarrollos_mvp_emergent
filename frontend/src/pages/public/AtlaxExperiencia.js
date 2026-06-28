@@ -9,7 +9,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchDevelopment } from '../../api/marketplace';
-import { sendBuyerSignal } from '../../lib/buyerSignal';
+import { sendBuyerSignal, visitorId } from '../../lib/buyerSignal';
 import { toggleSave, isSaved } from '../../lib/atlaxPrefs';
 import { tc } from '../../lib/titleCase';
 import { Sparkle, Heart, ArrowRight } from '../../components/icons';
@@ -44,11 +44,17 @@ export default function AtlaxExperiencia() {
   const [dev, setDev] = useState(null);
   const [err, setErr] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [pers, setPers] = useState(null);   // P2: fotos reordenadas por TU gusto (recorrido abre por el cuarto que te importa)
 
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) { setDev(d); setSaved(isSaved(id)); try { sendBuyerSignal('view', { entity_id: id, colonia: String((d && (d.colonia_id || d.colonia)) || '').toLowerCase(), value: 'atlax_experiencia' }); } catch (_) { /* noop */ } } })
       .catch(() => { if (alive) setErr(true); });
+    // P2 — orden personalizado por gusto (fail-silent: si no hay gusto, se usa el orden original)
+    try {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/experiencia-fotos/${id}?visitor_id=${encodeURIComponent(visitorId())}`)
+        .then((r) => r.json()).then((p) => { if (alive && p && p.personalized && (p.photos || []).length) setPers(p); }).catch(() => {});
+    } catch (_) { /* noop */ }
     return () => { alive = false; };
   }, [id]);
 
@@ -57,11 +63,13 @@ export default function AtlaxExperiencia() {
   const modo = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search).get('modo') : null;
   const exp = resolveExperienceMode(dev, modo);   // ROUTER: detecta assets → plan de acción (modo=parallax para comparar)
   if (exp.mode === 'ficha') return <Fallback id={id} />;   // <2 fotos y sin video → a la ficha (cero invento)
+  const personalized = !!(pers && pers.personalized);
+  const expFinal = personalized ? { ...exp, photos: pers.photos } : exp;   // P2: el recorrido abre por el cuarto que te importa
 
   return (
     <div style={{ background: '#0A0A0F', color: '#fff', fontFamily: 'DM Sans' }}>
-      <Hero dev={dev} photos={exp.photos} />
-      <Walkthrough dev={dev} exp={exp} />
+      <Hero dev={dev} photos={expFinal.photos} personalized={personalized} />
+      <Walkthrough dev={dev} exp={expFinal} />
       <Cierre dev={dev} saved={saved} setSaved={setSaved} navigate={navigate} />
       <Link to={`/desarrollo/${id}`} aria-label="Cerrar" style={{ position: 'fixed', top: 16, right: 18, zIndex: 50, width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(6px)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 700 }}>×</Link>
     </div>
@@ -69,7 +77,7 @@ export default function AtlaxExperiencia() {
 }
 
 // ── 1 · HERO image-reveal (cursor revela la 2ª foto bajo la 1ª) ───────────────
-function Hero({ dev, photos }) {
+function Hero({ dev, photos, personalized }) {
   const ref = useRef(null);
   const [pos, setPos] = useState({ x: -999, y: -999, on: false });
   const move = (clientX, clientY) => {
@@ -86,6 +94,9 @@ function Hero({ dev, photos }) {
       <img src={photos[1]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       <img src={photos[0]} alt={dev.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', WebkitMaskImage: mask, maskImage: mask }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,15,0.45) 0%, transparent 30%, transparent 60%, rgba(10,10,15,0.85) 100%)', pointerEvents: 'none' }} />
+      {personalized && (
+        <div style={{ position: 'absolute', top: 18, left: 18, padding: '5px 12px', borderRadius: 999, background: 'rgba(99,102,241,0.30)', backdropFilter: 'blur(6px)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', display: 'inline-flex', alignItems: 'center', gap: 5, pointerEvents: 'none' }}><Sparkle size={12} /> Ordenado a tu gusto</div>
+      )}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 64, textAlign: 'center', pointerEvents: 'none' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#fff', opacity: 0.85, fontSize: 13, fontWeight: 700, marginBottom: 10 }}><Sparkle size={15} /> {dev.stage === 'preventa' ? 'Preventa' : 'Disponible'} · {tc(dev.colonia || '')}</div>
         <h1 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 'clamp(34px,6vw,64px)', letterSpacing: '-0.03em', margin: 0, textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}>{dev.name}</h1>

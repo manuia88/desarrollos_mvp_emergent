@@ -63,10 +63,12 @@ def _keywords_from_url(url: str):
     try:
         p = urlparse(url)
         kws = []
-        # query unsplash: solo el PRIMER segmento (?living-room,modern,interior) — el resto (&sig=) se ignora
+        # query: PRIMER segmento — unsplash (?living-room,modern) o picsum/seed (?kw=bedroom,suite). Toma el valor tras
+        # '=' (kw=…), pero NUNCA el slug del dev (&sig=… → 'altavista' contiene 'vista' y ensucia el match).
         first = (p.query or "").split("&")[0]
-        if first and "=" not in first:
-            kws += first.lower().split(",")
+        if first and not first.startswith("sig="):
+            val = first.split("=", 1)[1] if "=" in first else first
+            kws += val.lower().split(",")
         # path de fotos reales (kitchen-modern.jpg) — sin dimensiones/extensión/ruido
         toks = p.path.lower().replace("/", " ").replace("-", " ").replace("_", " ").replace(".", " ").split()
         skip = {"featured", "jpg", "jpeg", "png", "webp", "photo", "image", "img"}

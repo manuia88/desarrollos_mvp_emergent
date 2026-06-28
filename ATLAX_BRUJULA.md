@@ -44,7 +44,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 ### 🛒 Comprador
 - [x] **Taste** — swipe 👍/👎 + motivo (porqué del NO) · no-repetir · rank por gusto · "Atlax ya te conoce" · cross-device (F1-F5, U1-U6)
 - [ ] **Spatial** — "mapa de dónde vivirías feliz" (cubo × tu gusto → zonas que te quedan) 🆕
-- [~] **Generative** — ficha-experiencia cinemática 🚧 **P1 ✅** (`/experiencia/:id`: image-reveal + scroll-scrub + sensor) · falta video de zona + staged a tu gusto (ver §4)
+- [~] **Generative** — ficha-experiencia cinemática 🚧 **P1 ✅** (image-reveal + scroll-scrub + sensor + router + parallax local) · **P2 ✅** (personalización por gusto: el recorrido abre por el cuarto que te importa) · falta video de zona + staged a tu gusto (ver §4)
 - [ ] **Agentic** — agente que busca→vetea→negocia→aparta (Cerebro find_home + buy-signal + apartado) 🟡
 - [ ] **Personal** — gusto por etapas de vida (rentar→comprar→invertir) + alertas proactivas 🟡 (casamentera ✅)
 
@@ -158,4 +158,4 @@ ScrollTrigger / rAF). (c) Móvil: video corto + keyframes densos + precarga + fa
 - **2026-06-28** — ✅ **Oportunidad #7**: `PlanDePago` (esquemas REALES del dev, hide-if-empty) agregado a la ficha viva (FichaDesarrollo, módulo "Cómo lo pagas") — antes mostraba etiquetas genéricas.
 - _**LAS 7 OPORTUNIDADES CERRADAS** (+ los 8 issues de auditoría). Patrón: 4 falsos positivos; el valor estaba en cablear lo muerto._
 - **2026-06-28** — ✅ **Cuña brújula #1: Diseño generativo de producto** — REUSADO `generador_producto_engine.generar_producto` (mezcla óptima por demanda real del Grafo del Comprador; ya existía + cableado en Estudio de Mercado del dev). **Nuevo:** `GET /founder-console/product-brief` (reusa el motor + enriquece con `demanda_insatisfecha`) + la tarjeta de demanda del founder ahora es **clickable → "¿qué construir aquí?"** (mezcla: tipología·unidades·m²·precio·amenidades + rationale). Cierra demanda→producto para el founder. Verificado (Polanco 24u, 94% 2-rec; endpoint 401; compila). _(otra vez: el motor existía — el valor fue surfacearlo al founder + conectarlo a la demanda)_
-- _SIGUIENTE: **P2 de la brújula** — ficha-experiencia con personalización por gusto._
+- **2026-06-28** — ✅ **P2 brújula: ficha-experiencia personalizada por gusto** — `GET /api/buyer/experiencia-fotos/{dev}` (reusa `photo_tagger` para el room por foto + `visitor_taste` para los rooms preferidos → reordena: el recorrido ABRE por el cuarto que te importa). `AtlaxExperiencia` consume el orden + badge "Ordenado a tu gusto" (fail-silent al orden original sin gusto). **Bonus:** arreglé un bug de `photo_tagger` (ignoraba el query `?kw=…` → todo caía a "interior") → ahora aprende rooms del seed (también mejora visitor_taste). Verificado: visitante que prefiere recámaras ve las 3 fotos de recámara primero; endpoint 200; compila. _(otra vez reuso: el motor de tags + el gusto ya existían — el valor fue conectarlos a la experiencia + el fix del tagger)_

@@ -266,6 +266,36 @@ async def mi_gusto(request: Request, visitor_id: str):
         return {"ok": True, "gusto": None}
 
 
+@router.get("/api/buyer/experiencia-fotos/{dev_id}")
+async def experiencia_fotos(dev_id: str, request: Request, visitor_id: str = ""):
+    """P2 ficha-experiencia: reordena las fotos del dev por el GUSTO del comprador → el recorrido EMPIEZA por el espacio
+    que le importa (si se clava en cocinas, abre en la cocina). Reusa photo_tagger (room por foto) + visitor_taste
+    (rooms preferidos). Sin gusto → orden original. Fail-open."""
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(dev_id) or {}
+        photos = [p for p in (dev.get("photos") or []) if p]
+        if not photos:
+            return {"ok": True, "photos": [], "personalized": False}
+        from photo_tagger import tag_from_url
+        tagged = [{"url": u, "room": (tag_from_url(u) or {}).get("room") or "interior"} for u in photos]
+        pref = []
+        if visitor_id:
+            from visitor_taste import get_visitor_taste_cached
+            tp = await get_visitor_taste_cached(request.app.state.db, visitor_id)
+            pref = ((tp or {}).get("keys") or {}).get("rooms") or []
+        if pref:
+            rank = {r: i for i, r in enumerate(pref)}
+            tagged.sort(key=lambda t: rank.get(t["room"], 999))   # estable: preferidos primero, resto en su orden
+        return {
+            "ok": True, "photos": [t["url"] for t in tagged], "rooms": [t["room"] for t in tagged],
+            "personalized": bool(pref), "pref_rooms": pref[:5],
+        }
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] experiencia-fotos fail-open: {e}")
+        return {"ok": True, "photos": [], "personalized": False}
+
+
 @router.get("/api/desarrollo/{dev_id}/percepcion")
 async def percepcion_desarrollo(dev_id: str, request: Request):
     """Cómo VEN los compradores este desarrollo (SOLO el dev dueño): interés + EL PORQUÉ DEL NO (rechazo por motivo) +
