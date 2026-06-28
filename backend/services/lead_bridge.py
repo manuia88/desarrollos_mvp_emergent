@@ -353,7 +353,14 @@ async def retry_pending_mirrors(db, limit: int = 500) -> int:
     Idempotente · acotado · FAIL-OPEN · corre en cada arranque."""
     n = 0
     try:
-        cur = db.leads.find({"mirror_pending": True}, {"_id": 0}).limit(limit)
+        # B2 (Audit B 🟠): solo reintenta los que SÍ pueden espejarse (tienen asesor: assigned_to o asesor_id). Un lead
+        # sin asesor no se puede espejar a nadie → no re-escanearlo cada hora (evita spin infinito); conserva su
+        # mirror_pending y se espeja cuando se le asigne asesor. Los sin-asignar quedan como hallazgo de routing (B2-A2).
+        cur = db.leads.find(
+            {"mirror_pending": True,
+             "$or": [{"assigned_to": {"$nin": [None, ""]}}, {"asesor_id": {"$nin": [None, ""]}}]},
+            {"_id": 0},
+        ).limit(limit)
         async for ld in cur:
             try:
                 if await mirror_lead_to_asesor_contacto(db, ld):
@@ -480,3 +487,19 @@ def schedule_temp_refresh_cron(scheduler, db) -> None:
         )
     except Exception as e:  # noqa: BLE001
         log.warning(f"[lead_bridge] schedule temp refresh cron failed: {e}")
+
+
+def schedule_mirror_retry_cron(scheduler, db) -> None:
+    """Cron `lead_mirror_retry` cada hora. B2: retry_pending_mirrors SOLO corría en arranque (sus hermanos reconcile/
+    temp SÍ tenían cron) → un lead cuyo espejo al CRM falló quedaba INVISIBLE para el asesor hasta el próximo reinicio
+    (horas/días). Ahora se auto-repara cada hora. Idempotente · fail-open."""
+    try:
+        from cron_heartbeat import wrap_apscheduler_job
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler.add_job(
+            wrap_apscheduler_job(retry_pending_mirrors, "lead_mirror_retry"),
+            CronTrigger(minute=15, hour="*", timezone="America/Mexico_City"),
+            args=[db], id="lead_mirror_retry", replace_existing=True, misfire_grace_time=1800,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] schedule mirror retry cron failed: {e}")

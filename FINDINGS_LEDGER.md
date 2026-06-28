@@ -50,3 +50,27 @@ Baseline de datos: `scratchpad/baseline_20260628.json` (439 colecciones) · back
 | B1-B3 | 🟡 | perf: `materialize` escanea TODO `copiloto_closings` por cierre+cron (blocker a 10k+) | **ventana de recencia 18m** (mejora señal + acota scan) · índice `closed_at_dt` → **B4** | scan acotado ✅ · índice deferred(B4) |
 
 **B1 CERRADO.** F0-1 resuelto: el flywheel ahora aprende de cierres reales (recámaras+precio), acotado para que el gusto siga mandando. Archivos: `copiloto_flywheel.py` (materialize), `visitor_taste.py` (score_devs). Verificación triangulada: código + reproducción-dato + harness. Pendiente a B4: índice `copiloto_closings.closed_at_dt`.
+
+---
+
+## B2 — Leads fantasma / espejo al CRM (F0-2, F0-6)
+
+### Definition-of-Done (congelado)
+1. **DoD-1**: reproducir por qué un lead `mirror_pending` no llega al CRM.
+2. **DoD-2**: el espejo se auto-repara SIN reinicio (cron), no solo en arranque.
+3. **DoD-3 (lateral)**: sin COLLSCAN horario; sin spin infinito; harness 13/13.
+
+### Audit A (pre)
+| id | sev | hallazgo | evidencia | estado |
+|----|-----|----------|-----------|--------|
+| B2-A1 | 🟠 | `retry_pending_mirrors` corría SOLO en arranque (server.py:1648); hermanos reconcile/temp SÍ tenían cron → lead con espejo fallido invisible hasta reiniciar | grep schedulers | **fixed** ✅ |
+| B2-A2 | 🔵 | Los 2 leads fantasma reales tienen `assigned_to=None` → no es fallo de espejo, es **falta de routing/asignación** (lead sin asesor = invisible) | query: ambos assigned_to=None, contacto_espejo=0 | **deferred** (batch de routing; recomendación: cola de "sin asignar" para el admin de inmobiliaria) |
+
+### Ejecución + Audit B (independiente) + convergencia
+- **Fix**: `schedule_mirror_retry_cron` (lead_bridge.py) cada hora :15, registrado en scheduler_ie.py (paridad con hermanos).
+- **Audit B refutó 2** → convergidos + re-verificados:
+  - 🔴 sin índice → `db.leads.create_index([("mirror_pending",1)], sparse=True)` (dev_batch4_1.py). Verificado: `mirror_pending_1` existe.
+  - 🟠 spin infinito (unassigned nunca limpian) → el retry filtra a `$or:[assigned_to, asesor_id] ≠ null` → no re-escanea sin-asignar. Verificado.
+- **Triangulación**: reproducción tagueada — ASIGNADO se espeja+limpia bandera; SIN-ASIGNAR queda quieto (no spin) y no se espeja; cero-residuo; harness 13/13.
+
+**B2 CERRADO.** Archivos: `lead_bridge.py`, `scheduler_ie.py`, `dev_batch4_1.py`. Pendiente: B2-A2 (routing de leads sin asignar) → batch propio.

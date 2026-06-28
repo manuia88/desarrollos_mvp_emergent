@@ -570,6 +570,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_temp_refresh_error", error=str(e))
 
+    # B2 — Auto-reparar leads invisibles (mirror_pending) cada hora (antes: solo en arranque → leads ocultos por horas)
+    try:
+        from services.lead_bridge import schedule_mirror_retry_cron
+        schedule_mirror_retry_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_lead_mirror_retry_error", error=str(e))
+
     # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
     try:
         from intelligence_insights_engine import schedule_intelligence_insights_cron

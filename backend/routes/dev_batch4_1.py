@@ -1802,6 +1802,8 @@ async def ensure_batch4_1_indexes(db) -> None:
     await db.leads.create_index([("client_global_id", 1)], background=True)
     await db.leads.create_index([("inmobiliaria_id", 1), ("status", 1)], background=True)
     await db.leads.create_index([("asesor_id", 1), ("created_at", -1)], background=True)
+    # B2 · sparse: el cron horario lead_mirror_retry escanea {mirror_pending:True} (set chico) → evita COLLSCAN de leads
+    await db.leads.create_index([("mirror_pending", 1)], sparse=True, background=True)
     # inmobiliarias
     await db.inmobiliarias.create_index([("id", 1)], unique=True, background=True)
     await db.inmobiliarias.create_index([("is_system_default", 1)], background=True)
