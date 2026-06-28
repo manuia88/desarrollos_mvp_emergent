@@ -165,3 +165,23 @@ Cada uno self-cleaning (cero-residuo verificado). `scripts/smoke_e2e.py`.
 - **C 🔴** — harness adversarial de aislamiento: probar TODAS las escrituras clave con ids cross-tenant (dado que no hay RLS). El de mayor valor de riesgo.
 - **B 🟡** — censo de self-healing: auditar todos los jobs de reconcile/repair por cobertura de cron + generalizar el completeness-sweep.
 - **D 🟡** — vista superadmin "Actividad de IA" (visualiza el by_ai; clave antes de prender Cerebro).
+
+---
+
+## Upgrade C — Cross-tenant: por qué recurría + la red sistémica
+
+**Causa raíz (no era el mismo bug 10 veces — es estructural):** NO hay RLS. El aislamiento depende de que CADA acceso
+use la guardia central `tenant_scope.tenant_filter` (opt-in). Cada función nueva que toca datos es una fuga potencial
+nueva. Las fugas pasan en funciones que NO llaman la guardia (como casi pasó en `route_orphan_leads`).
+
+**Hecho:**
+- `scripts/tenant_isolation_probe.py`: prueba SISTEMÁTICAMENTE las 13 colecciones tenant-scoped (`_OWNER_FIELDS`) —
+  para cada una: la guardia (a) NO es god-view para no-superadmin, (b) excluye otra org, (c) incluye la propia.
+  Resultado: **13/13 OK** → la guardia central es sólida (el riesgo es el USO, no la guardia).
+- Integrado al harness (check #15) → corre en CADA batch. Si alguien rompe el mapeo/guard → falla automático.
+- + el check function-level (route_orphan_leads no cruza org) ya estaba.
+
+**Honesto (lo que falta para cerrarlo del todo):** la cura completa es pasar de opt-in a ENFORCED (RLS real en Postgres,
+o un middleware Mongo que auto-inyecte el tenant_filter). Es un proyecto de arquitectura (la "deuda RLS"). Mientras tanto:
+probe (guard) + checks de función en el harness + disciplina (toda escritura nueva usa tenant_filter + su check). El
+harness convierte "se descubre a mano" → "se atrapa antes de shipear".

@@ -136,6 +136,16 @@ async def main():
         await db.leads.delete_many({"id": "TEST-harness-orgB"})
         await db.asesor_contactos.delete_many({"source_lead_id": "TEST-harness-orgB"})
 
+    # C · AISLAMIENTO SISTÉMICO: la guardia central (tenant_filter) rechaza cross-tenant en TODAS las colecciones scoped
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from tenant_isolation_probe import run_probe
+        pr = await run_probe(db)
+        check(f"aislamiento de tenant: {pr['passed']}/{pr['total']} colecciones rechazan cross-tenant (C)",
+              pr["ok"], f"fugas={len(pr['leaks'])}" + (f" · skip={len(pr['skipped'])}" if pr.get("skipped") else ""))
+    except Exception as e:  # noqa: BLE001
+        check("aislamiento de tenant sistémico (C)", False, str(e)[:60])
+
     # B3 · COMPLETITUD DE AUDITORÍA: una acción de agente DEBE dejar rastro con by_ai=True (no audit-dark)
     try:
         from audit_log import log_agent_action
