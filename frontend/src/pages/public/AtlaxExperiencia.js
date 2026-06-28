@@ -22,6 +22,19 @@ const fmtM = (n) => (n == null ? '' : (n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 
 // desde las FOTOS REALES del dev (Ken Burns continuo) para mostrar el mecanismo correcto del Módulo 4 (scrub de video).
 const DEMO_VIDEOS = { 'tamaulipas-89': '/demo/walkthrough-tamaulipas-89.mp4' };
 
+// ROUTER de experiencia: detecta qué assets tiene la unidad y elige el MEJOR recorrido (plan de acción automático).
+// Escalera: video real (lo subió el dev) > 3DGS/360 (futuro) > parallax 3D generado (gratis/local) > foto-secuencia > ficha.
+// "Detecta quién y qué sube": al subir, el dev fija video_url (→video) o solo fotos (→genera parallax) o 3DGS (→flythrough).
+function resolveExperienceMode(dev) {
+  const photos = (dev.photos || []).filter(Boolean);
+  if (dev.video_url)        return { mode: 'video',  src: dev.video_url,        badge: null,                   photos }; // 1· recorrido real
+  // 2· 3DGS/360 → flythrough (cuando exista dev.gsplat_url / dev.tour360_url)
+  if (dev.parallax_url)     return { mode: 'video',  src: dev.parallax_url,     badge: 'Render animado',       photos }; // 3· parallax generado
+  if (DEMO_VIDEOS[dev.id])  return { mode: 'video',  src: DEMO_VIDEOS[dev.id],  badge: 'Recorrido de muestra', photos }; // pilot demo
+  if (photos.length >= 2)   return { mode: 'photos', photos };                                                            // 4· fallback fotos
+  return { mode: 'ficha', photos };                                                                                      // 5· nada → ficha
+}
+
 export default function AtlaxExperiencia() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -38,15 +51,13 @@ export default function AtlaxExperiencia() {
 
   if (err) return <Fallback id={id} />;
   if (!dev) return <div style={{ minHeight: '100vh', background: '#0A0A0F', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans' }}>Cargando experiencia…</div>;
-  const photos = (dev.photos || []).filter(Boolean);
-  if (photos.length < 2) return <Fallback id={id} />;   // sin assets reales suficientes → a la ficha (cero invento)
-  const videoSrc = dev.video_url || DEMO_VIDEOS[dev.id] || null;   // recorrido real si existe; si no, fallback fotos
-  const isDemoVideo = !dev.video_url && !!DEMO_VIDEOS[dev.id];     // footage de muestra (no es el depa real) → etiquetar
+  const exp = resolveExperienceMode(dev);   // ROUTER: detecta assets → plan de acción
+  if (exp.mode === 'ficha') return <Fallback id={id} />;   // <2 fotos y sin video → a la ficha (cero invento)
 
   return (
     <div style={{ background: '#0A0A0F', color: '#fff', fontFamily: 'DM Sans' }}>
-      <Hero dev={dev} photos={photos} />
-      <Walkthrough dev={dev} photos={photos} videoSrc={videoSrc} demo={isDemoVideo} />
+      <Hero dev={dev} photos={exp.photos} />
+      <Walkthrough dev={dev} exp={exp} />
       <Cierre dev={dev} saved={saved} setSaved={setSaved} navigate={navigate} />
       <Link to={`/desarrollo/${id}`} aria-label="Cerrar" style={{ position: 'fixed', top: 16, right: 18, zIndex: 50, width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(6px)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 700 }}>×</Link>
     </div>
@@ -81,13 +92,15 @@ function Hero({ dev, photos }) {
 }
 
 // ── 2 · WALKTHROUGH (Módulo 4 ATOMS) — video real scrubbeado por scroll, o fallback fotos ──
-function Walkthrough({ dev, photos, videoSrc, demo }) {
-  return videoSrc ? <VideoScrub dev={dev} src={videoSrc} demo={demo} /> : <PhotoScrub dev={dev} photos={photos} />;
+function Walkthrough({ dev, exp }) {
+  return exp.mode === 'video'
+    ? <VideoScrub dev={dev} src={exp.src} badge={exp.badge} />
+    : <PhotoScrub dev={dev} photos={exp.photos} />;
 }
 
 // El recorrido REAL: el scroll mueve video.currentTime cuadro por cuadro (no se reproduce solo). rAF con easing →
 // continuo y suave. Espera loadedmetadata para la duración. Sensor: profundidad máxima recorrida + tiempo.
-function VideoScrub({ dev, src, demo }) {
+function VideoScrub({ dev, src, badge }) {
   const wrapRef = useRef(null), vidRef = useRef(null);
   const target = useRef(0), shown = useRef(0), dur = useRef(0), rafId = useRef(0);
   const maxProg = useRef(0), startedAt = useRef(0);
@@ -140,7 +153,7 @@ function VideoScrub({ dev, src, demo }) {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,15,0.25) 0%, transparent 35%, transparent 60%, rgba(10,10,15,0.85) 100%)', pointerEvents: 'none' }} />
         {!ready && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', opacity: 0.7, fontSize: 14 }}>Cargando recorrido…</div>}
-        {demo && <div style={{ position: 'absolute', top: 16, left: 18, padding: '5px 11px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', color: '#fff', opacity: 0.85, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', pointerEvents: 'none' }}>Recorrido de muestra</div>}
+        {badge && <div style={{ position: 'absolute', top: 16, left: 18, padding: '5px 11px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', color: '#fff', opacity: 0.85, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', pointerEvents: 'none' }}>{badge}</div>}
         <div style={{ position: 'absolute', left: 28, bottom: 40, pointerEvents: 'none' }}>
           <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22 }}>Recorre {dev.name}</div>
           <div style={{ fontSize: 13, opacity: 0.75 }}>Desliza para avanzar por cada espacio</div>
