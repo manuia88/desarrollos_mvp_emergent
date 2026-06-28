@@ -397,7 +397,11 @@ async def experiencia_parallax(dev_id: str, request: Request, background: Backgr
         url = cached_url(dev_id, urls)
         if url:
             return {"ok": True, "ready": True, "url": url, "personalized": personalized}
-        background.add_task(generate, dev_id, urls)   # generación local en background (gratis)
+        # #8 seguridad: la generación es CPU-CARA → rate-limit por IP (anti-abuso). Si se pasa, NO genera (usa el default
+        # esta vez, no rompe nada). Reusa services.ratelimit.
+        from services.ratelimit import allow, client_ip
+        if allow("parallax_gen", client_ip(request), limit=5, window=300):
+            background.add_task(generate, dev_id, urls)   # generación local en background (gratis)
         return {"ok": True, "ready": False, "personalized": personalized}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] experiencia-parallax fail-open: {e}")
@@ -449,6 +453,9 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
     """Mapa personal '¿dónde vivirías feliz?': rankea colonias por calidad de vida + tu presupuesto + afinidad con las
     zonas que te gustan (excluye las que evitas). Reusa visitor_taste + db.colonias (scores reales). Fail-open."""
     try:
+        from services.ratelimit import allow, client_ip
+        if not allow("donde_vivir", client_ip(request), limit=30, window=60):   # #8 anti-abuso (recorre 2788 colonias)
+            return {"ok": True, "colonias": []}
         db = request.app.state.db
         liked, evita, techo, basis = [], set(), None, None
         if visitor_id:
