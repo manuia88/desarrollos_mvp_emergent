@@ -4,9 +4,9 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import ExecutiveKpiGrid from '../../components/superadmin/ExecutiveKpiGrid';
 import AnomalyFeed from '../../components/superadmin/AnomalyFeed';
 import QuickActionsToolbar from '../../components/superadmin/QuickActionsToolbar';
-import { LayoutDashboard, RefreshCw, Sparkles, Command, TrendingDown } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Sparkles, Command, TrendingDown, TrendingUp } from 'lucide-react';
 import {
-  getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow,
+  getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow, getDemandInsights,
 } from '../../api/superadminFounderConsole';
 import { fetchEquipoEnRiesgo } from '../../api/superadminDevmaster';
 import { useFounderPrefetch } from '../../contexts/FounderPrefetchContext';
@@ -142,6 +142,37 @@ function EquipoEnRiesgoPanel() {
                 fontFamily: 'DM Mono, monospace', fontSize: 13, fontWeight: 700,
                 color: band(u.churn_risk_score || 0), flexShrink: 0,
               }}>{Math.round(u.churn_risk_score || 0)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Oportunidad #3 — Demanda → "¿Dónde construir?": interés real por zona (buyer_signals K-anon≥3) + qué NO encontraron.
+function DemandWhereToBuildCard() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { getDemandInsights(12).then((d) => setRows(d.zonas || [])).catch(() => setRows([])); }, []);
+  if (rows && rows.length === 0) return null;
+  return (
+    <div data-testid="founder-demand-insights" style={{ marginBottom: 18, padding: 16, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <TrendingUp size={15} color="var(--theme)" />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>Demanda · ¿dónde construir?</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>interés real por zona + qué no encontraron</span>
+      </div>
+      {!rows ? (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', padding: 8 }}>Cargando demanda…</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {rows.slice(0, 8).map((z, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 70px 2fr', gap: 12, alignItems: 'center', padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.02)' }}>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream)', textTransform: 'capitalize' }}>{z.colonia}</span>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--theme)' }} title={`${z.visitantes} compradores distintos`}>{z.interes}</span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>
+                {(z.falta && z.falta.length) ? <>falta: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{z.falta.join(' · ')}</span></> : <span style={{ color: 'rgba(240,235,224,0.4)' }}>la oferta cubre la demanda</span>}
+              </span>
             </div>
           ))}
         </div>
@@ -327,6 +358,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             color: 'rgba(240, 235, 224, 0.70)', marginBottom: 18,
           }}>Cargando KPIs ejecutivos…</div>
         )}
+
+        {/* Demanda → ¿dónde construir? (oportunidad #3) */}
+        <DemandWhereToBuildCard />
 
         {/* 2-col: anomalies + quick actions */}
         <div className="founder-2col" style={{

@@ -215,6 +215,37 @@ async def dashboard_route(request: Request):
     }
 
 
+# ─── Demand Insights (oportunidad #3): demanda → superadmin ("¿dónde construir?") ──
+# Cruza facts_buyer_signals (interés por zona, ya K-anon≥3) con demanda_insatisfecha (qué NO encontraron) → el founder
+# ve dónde hay demanda Y qué falta = dónde conviene construir. Hace VISIBLE el cubo de demanda (cierra el ciclo #1).
+@router.get(PREFIX + "/demand-insights")
+async def demand_insights(request: Request, limit: int = 12):
+    await _require_superadmin(request)
+    db = _db(request)
+    zonas: Dict[str, Any] = {}
+    async for f in db.facts_buyer_signals.find({"scope": "colonia"}, {"_id": 0}).sort("interest_score", -1).limit(80):
+        col = f.get("colonia")
+        if not col:
+            continue
+        zonas[str(col).lower()] = {
+            "colonia": col,
+            "interes": round(f.get("interest_score") or 0, 1),
+            "visitantes": f.get("distinct_visitors") or 0,
+            "signals": f.get("signals") or {},
+            "falta": [],
+        }
+    async for d in db.demanda_insatisfecha.find({}, {"_id": 0, "zona": 1, "falta_top": 1}):
+        z = str(d.get("zona") or "").lower()
+        if z in zonas:
+            ft = d.get("falta_top") or []
+            zonas[z]["falta"] = ft[:5] if isinstance(ft, list) else []
+    rows = sorted(zonas.values(), key=lambda r: -r["interes"])[:max(1, min(int(limit or 12), 40))]
+    return {
+        "ok": True, "zonas": rows, "n": len(rows),
+        "fuente": "buyer_signals (K-anon≥3) + demanda_insatisfecha", "computed_at": _iso(),
+    }
+
+
 # ─── 2) GET /anomalies ────────────────────────────────────────────────────────
 @router.get(PREFIX + "/anomalies")
 async def list_anomalies(

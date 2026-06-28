@@ -21,6 +21,11 @@ export async function getDashboard() {
   return _j(await fetch(`${BASE}/dashboard`, { headers: h(), credentials: 'include' }));
 }
 
+// Oportunidad #3: demanda → "¿dónde construir?" (interés por zona + qué no encontraron)
+export async function getDemandInsights(limit = 12) {
+  return _j(await fetch(`${BASE}/demand-insights?limit=${limit}`, { headers: h(), credentials: 'include' }));
+}
+
 export async function listAnomalies({ status, severity, source, limit, skip } = {}) {
   const p = new URLSearchParams();
   if (status) p.set('status', status);
