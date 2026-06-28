@@ -1343,6 +1343,21 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
                     deal={"follow_ups": len(c.get("timeline") or [])})
     except Exception as e:
         logging.getLogger("dmx.advisor").info(f"[cerebro] hook on_deal_closed no aplicó: {e}")
+    # Prueba social (oportunidad #2): al CERRAR ganado, registra el viaje completo en copiloto_closings → alimenta
+    # "compradores como tú ya cerraron aquí" (marketplace) + el AVM con el precio real. record_closing existía pero
+    # NUNCA se invocaba (cable muerto): ahora se dispara en el cierre. FAIL-OPEN, independiente del Cerebro.
+    try:
+        if "etapa" in patch:
+            _WON2 = {"cerrado", "ganada", "cerrado_ganado", "ganado"}
+            _ne, _oe = patch.get("etapa"), (old_c or {}).get("etapa")
+            if _ne in _WON2 and _oe not in _WON2:
+                _lid = (c or {}).get("source_lead_id")
+                _did = (c or {}).get("development_id") or (c or {}).get("project_id")
+                if _lid and _did:
+                    from routes.copiloto_flywheel import record_closing
+                    await record_closing(db, lead_id=_lid, dev_id=_did)
+    except Exception as e:
+        logging.getLogger("dmx.advisor").info(f"[flywheel] record_closing no aplicó: {e}")
     return c
 
 
