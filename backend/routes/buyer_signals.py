@@ -772,6 +772,17 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
             await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
     except Exception:
         await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
+    # 4.5 · PROPAGACIÓN/AUDITORÍA: el superadmin ve la creación/ruteo del lead vía MARKETPLACE (antes audit-dark — el
+    # camino de lead más común no dejaba rastro). Actor 'marketplace' (system, by_ai=False) → distinto de staff humano
+    # y de agente IA. Fail-open.
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, {"user_id": "marketplace", "role": "system", "name": "Marketplace"},
+                           ("update" if existing else "create"), "lead", entity_id=lead_id,
+                           after={"assigned_to": lead.get("assigned_to"), "source": lead.get("source"),
+                                  "temperatura": temperatura, "dev": dev_id}, by_ai=False)
+    except Exception:
+        pass
     # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
     await db.buyer_signals.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})
     await db.marketplace_searches.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})
