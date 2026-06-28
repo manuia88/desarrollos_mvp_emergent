@@ -4,9 +4,10 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty, Badge } from '../../components/advisor/primitives';
-import { getCoverage, getEntity } from '../../api/superadminGranularity';
+import { getCoverage, getEntity, runBackfill } from '../../api/superadminGranularity';
 
-const ESTADO_COLOR = { vivo: '#16a34a', apagado: '#dc2626', error: '#a16207' };
+const ESTADO_COLOR = { vivo: '#16a34a', apagado: '#dc2626', cache: '#6b7280', error: '#a16207' };
+const ESTADO_TONE = { vivo: 'ok', apagado: 'bad', cache: 'neutral', error: 'warn' };
 
 function StatCard({ label, value, color }) {
   return (
@@ -25,10 +26,22 @@ export default function SuperadminGranularidad() {
   const [eid, setEid] = useState('');
   const [insp, setInsp] = useState(null);
   const [inspLoading, setInspLoading] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState(null);
 
-  useEffect(() => {
-    getCoverage().then(setCov).catch((e) => setErr(e.message)).finally(() => setLoading(false));
-  }, []);
+  const load = () => getCoverage().then(setCov).catch((e) => setErr(e.message)).finally(() => setLoading(false));
+  useEffect(() => { load(); }, []);
+
+  const encender = async () => {
+    setBackfilling(true); setBackfillMsg(null);
+    try {
+      const r = await runBackfill('default');
+      const tot = (r.results || []).reduce((a, x) => a + (x.persisted || 0), 0);
+      setBackfillMsg(`Encendidas: ${tot} registros persistidos en ${(r.ran || []).join(', ')}.`);
+      await load();
+    } catch (e) { setBackfillMsg(`Error: ${e.message}`); }
+    finally { setBackfilling(false); }
+  };
 
   const inspect = async () => {
     if (!eid.trim()) return;
@@ -52,11 +65,20 @@ export default function SuperadminGranularidad() {
 
       {cov && (
         <>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             <StatCard label="Familias persistidas" value={r.familias_persistidas} />
             <StatCard label="Vivas (fluyen)" value={r.persistidas_vivas} color={ESTADO_COLOR.vivo} />
             <StatCard label="Apagadas (no persisten)" value={r.persistidas_apagadas} color={ESTADO_COLOR.apagado} />
-            <StatCard label="Efímeras (se calculan y se tiran)" value={r.familias_efimeras} color="#a16207" />
+            <StatCard label="Cache / efímeras" value={(r.familias_cache || 0) + r.familias_efimeras} color="#6b7280" />
+            <StatCard label="Recetas IE (scores por zona)" value={r.ie_recetas} />
+            <StatCard label="Grupos de features (unidad)" value={r.grupos_features_unidad} />
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
+            <button onClick={encender} disabled={backfilling}
+              style={{ padding: '9px 16px', borderRadius: 6, border: 'none', background: backfilling ? '#999' : '#16a34a', color: '#fff', cursor: backfilling ? 'wait' : 'pointer', fontWeight: 600 }}>
+              {backfilling ? 'Encendiendo…' : 'Encender familias apagadas (backfill)'}
+            </button>
+            {backfillMsg && <span style={{ fontSize: 13, color: '#444' }}>{backfillMsg}</span>}
           </div>
 
           <Card style={{ padding: 0, marginBottom: 20 }}>
@@ -80,7 +102,7 @@ export default function SuperadminGranularidad() {
                   {cov.familias.map((f) => (
                     <tr key={f.key} style={{ borderTop: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '8px 12px' }}>
-                        <Badge tone={f.estado === 'vivo' ? 'ok' : f.estado === 'apagado' ? 'bad' : 'warn'}>{f.estado}</Badge>
+                        <Badge tone={ESTADO_TONE[f.estado] || 'neutral'}>{f.estado}</Badge>
                       </td>
                       <td style={{ padding: '8px 12px', fontWeight: 500 }}>{f.label}</td>
                       <td style={{ padding: '8px 12px', color: '#666' }}>{f.portal}</td>
@@ -136,9 +158,29 @@ export default function SuperadminGranularidad() {
                       <span style={{ marginRight: 8 }}><Badge tone="ok">{fa.registros}</Badge></span>
                       {fa.label} <span style={{ color: '#999', fontFamily: 'monospace', fontSize: 12 }}>· {fa.collection}</span>
                     </summary>
-                    <pre style={{ margin: 0, padding: 14, background: '#0b1021', color: '#cde', fontSize: 11, overflowX: 'auto', borderRadius: '0 0 8px 8px' }}>
-                      {JSON.stringify(fa.datos, null, 2)}
-                    </pre>
+                    {fa.drill?.tipo === 'recetas' ? (
+                      <div style={{ padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6 }}>
+                        {fa.drill.items.map((it) => (
+                          <div key={it.receta} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 8px', background: '#f7f7f8', borderRadius: 4 }}>
+                            <span style={{ fontFamily: 'monospace', color: it.stub ? '#aaa' : '#333' }}>{it.receta}{it.stub ? ' (stub)' : ''}</span>
+                            <strong>{it.valor != null ? Number(it.valor).toFixed(0) : '—'}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : fa.drill?.tipo === 'features' ? (
+                      <div style={{ padding: 14 }}>
+                        <div style={{ marginBottom: 8, fontSize: 13 }}>Completitud del átomo: <strong>{fa.drill.completitud != null ? `${Math.round(fa.drill.completitud * 100)}%` : '—'}</strong> · {fa.drill.total_features} features poblados</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {Object.entries(fa.drill.grupos_poblados).map(([g, n]) => (
+                            <Badge key={g} tone={n > 0 ? 'ok' : 'neutral'}>{g}: {n}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <pre style={{ margin: 0, padding: 14, background: '#0b1021', color: '#cde', fontSize: 11, overflowX: 'auto', borderRadius: '0 0 8px 8px' }}>
+                        {JSON.stringify(fa.datos, null, 2)}
+                      </pre>
+                    )}
                   </details>
                 ))}
                 {insp.sin_dato?.length > 0 && (

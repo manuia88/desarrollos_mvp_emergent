@@ -24,3 +24,14 @@ async def granularity_entity(entity_type: str, entity_id: str, request: Request)
     await require_superadmin(request)
     from granularity_registry import inspect_entity
     return await inspect_entity(request.app.state.db, entity_type, entity_id)
+
+
+@router.post("/backfill")
+async def granularity_backfill(request: Request, family: str = "default"):
+    """ENCENDER familias apagadas: corre el cómputo+persistencia para las entidades existentes. family ∈
+    {default, all, buyer_scores, asesor_trust_scores, lead_match_scores, avm_predictions, score_snapshots}."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    from granularity_backfill import run_backfill
+    fam = None if family == "default" else family
+    return await run_backfill(request.app.state.db, fam)

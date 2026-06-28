@@ -427,6 +427,15 @@ def start_scheduler(db):
         args=[db], id="market_index_snapshot", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # Granularidad: ENCIENDE las familias de scores apagadas (buyer_scores/trust/lead_match/score_snapshots) corriendo
+    # su cómputo+persistencia para las entidades existentes. Diario 03:30 MX. NO corre avm (por-propiedad/costoso → manual).
+    from granularity_backfill import run_backfill
+    _scheduler.add_job(
+        wrap_apscheduler_job(run_backfill, "granularity_backfill"),
+        CronTrigger(hour=3, minute=30, timezone=TZ),
+        args=[db], id="granularity_backfill", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     # Tasas de inversión — CETES vivo de Banxico, DIARIO (01:07 MX). Fuentes oficiales: Banxico/cetesdirecto/BMV/GBM/investing.
     _scheduler.add_job(
         wrap_apscheduler_job(run_rates_update, "rates_update"),

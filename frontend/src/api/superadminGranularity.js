@@ -23,3 +23,6 @@ export async function getCoverage() {
 export async function getEntity(entityType, entityId) {
   return _j(await fetch(`${BASE}/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`, { headers: h(), credentials: 'include' }));
 }
+export async function runBackfill(family = 'default') {
+  return _j(await fetch(`${BASE}/backfill?family=${encodeURIComponent(family)}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
