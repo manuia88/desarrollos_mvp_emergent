@@ -67,6 +67,11 @@ async def _ensure_index(db):
         await db.experiencia_views.create_index("created_at_dt", expireAfterSeconds=_TTL_DAYS * 86400, name="ev_ttl")
         # B1: el flywheel escanea copiloto_closings por ventana de recencia (18m) en cada cierre + cron → índice por fecha
         await db.copiloto_closings.create_index("closed_at_dt", name="cc_closed_at")
+        # B4: marketplace_searches NO tenía índices (solo _id) → COLLSCAN en demand-intel/zona-cambios/demanda-mapa/donde-vivir
+        await db.marketplace_searches.create_index([("colonia_id", 1), ("created_at_dt", -1)], name="ms_colonia_dt")
+        await db.marketplace_searches.create_index([("visitor_id", 1), ("created_at_dt", -1)], name="ms_vid_dt")
+        # B4: timeline de señales de un visitante (record_closing 'primera señal' + dwell) — antes solo (visitor_id, type)
+        await db.buyer_signals.create_index([("visitor_id", 1), ("created_at_dt", -1)], name="bs_vid_dt")
         _indexed["done"] = True
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] index: {e}")

@@ -209,3 +209,15 @@ harness reforzado (upgrade A/C) lo **atrapó al instante** (12/17). El doble-loo
 - Frontend: panel en SuperadminAuditChain (`getAiActivity`). Compila; harness 17/17.
 - Hoy 0% IA (la capa agéntica casi apagada) → la vista se enciende sola cuando los agentes actúen. Es justo el tablero
   "¿qué decide/muta la IA?" que hace falta ANTES de prender Cerebro.
+
+---
+
+## B4 — Índices compuestos faltantes
+**Verificado vs inventario F0 (impreciso otra vez):** `leads` y `asesor_contactos` YA están bien indexados (los
+"faltantes" de F0 están cubiertos por variantes tenant-scoped: `(dev_org_id, source)`, `(assigned_to, status)`,
+`(owner_id, created_at)`). `facts_buyer_signals` (5 docs) con índices que matchean su schema.
+
+**Lo REAL (alto valor):** `marketplace_searches` tenía SOLO `_id` → COLLSCAN en demand-intel / zona-cambios / demanda-mapa
+/ donde-vivir (consultan por colonia+fecha y visitor+fecha). Agregados: `(colonia_id, created_at_dt)`,
+`(visitor_id, created_at_dt)`. + `buyer_signals (visitor_id, created_at_dt)` (timeline / 'primera señal' del flywheel).
+Verificado: los 4 índices (ms_colonia_dt, ms_vid_dt, bs_vid_dt, cc_closed_at) existen; harness 17/17.
