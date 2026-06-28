@@ -366,3 +366,29 @@ Investigado el framework de recetas IE: 72 recetas, **87% ya reales**, 13% stub 
 
 **Para el founder (acciones libres que des-stubean más):** registrar tokens gratis (NOAA CDO, Banxico SIE, INEGI) +
 configurar resource_ids CKAN de datos.cdmx (FGJ/Locatel/SACMEX/uso-suelo) en la UI 'Conectar'. AirROI queda fuera (paga).
+
+---
+
+## Auditoría profunda del portal SUPERADMIN (Tareas 4 + 5)
+
+**Método:** cruce programático back↔front (openapi.json = verdad, NO regex que se infla). 3 iteraciones quitando falsos
+positivos del análisis estático de URLs dinámicas (BASE-const, bases-función `base(scope)`, `${qs}` colgante).
+
+**Tarea 4 — veredicto: el miedo es INFUNDADO.** El superadmin SÍ está bien cableado:
+- 449 endpoints backend · **0 llamadas frontend muertas** (todo lo que el front llama existe en back).
+- **Solo 8 huérfanos REALES** (de 62 que marcó el parser crudo): ai-usage, commercial/trials/run-check,
+  conversation-cost/tenant-cost, data-sources-gov-mx/banxico/series-list, google-places/ingest-lugares,
+  maps/cache-refresh, narratives/batch-generate, seed-historic-from-upload. TODOS son acciones de cron/admin/ingesta —
+  NO features de UI perdidas.
+- 93 páginas, TODAS en uso: 84 ruteadas + 9 "sin ruta" que en realidad están ANIDADAS como tabs
+  (SuperadminDesarrollos / SuperadminCatalogPulse).
+
+**Tarea 5 — cross-portal registration:** audit_log central cubre las mutaciones clave de los 3 portales (asesor:
+operacion/contacto/appointment; dev: document/construction/unit_hold/developer_admin; marketplace: lead). Buyer behavior
+(señales/búsquedas/favoritos) va a behavioral_events (1,942) — por diseño, visible vía copiloto funnel.
+- **GAP encontrado+arreglado:** ediciones de unidad del dev (estado + precio/campos) registraban SOLO en
+  `developer_audit` (trail del portal dev), no en el `audit_log` CENTRAL → el superadmin no las veía. Cableado
+  log_mutation(entity=unit) en developer.py (unit-status-change + patch_unit_fields). Verificado.
+- Patrón a futuro: trails fragmentados (developer_audit vs audit_log) — unificar lectura del superadmin o mirror.
+
+Herramienta de auditoría reutilizable: scratchpad/superadmin_audit.py (re-corrible cuando se agregue UI/endpoints).
