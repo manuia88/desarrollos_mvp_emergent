@@ -461,3 +461,42 @@ Herramienta reutilizable: scripts/portal_wiring_audit.py.
 **Follow-up notado:** photo_dwell captura photo_idx, no el feature de la foto → necesita persistir photo_tagger (próximo).
 
 SIGUE: Portal 2 = DEV (oferta + proyectos + métricas).
+
+---
+
+## 2ª AUDITORÍA PROFUNDA MARKETPLACE (directos + laterales) + CICLOS + OPORTUNIDADES + UPGRADES
+
+### Mapa COMPLETO de los 26 tipos de señal (no muestra) — hallazgo lateral grande
+4 tipos los DISPARABA el front y el back los RECHAZABA (tipo inválido) → 100% perdidos. RECONECTADOS:
+section_time, section_view, zone_profile, **atlax_apartado** (casi-compra). + SignalIn.seconds + meta-whitelist + contrato
+front. photo_dwell→feature vía photo_tagger (foto[idx]→features reales). dwell sin consumidor directo (vía colonia sí).
+
+### ¿Cerramos ciclos o standalone? (evidencia)
+- ✅ CERRADO: señal→gusto→RE-RANKEA marketplace (/api/para-ti, sort=taste).
+- ✅ CERRADO: cierre→re-entrena ranking (flywheel B1: record_closing→closing_lifts→visitor_taste).
+- ✅ CERRADO: dismiss (el porqué del NO)→perfil negativo del gusto.
+- ✅ CERRADO: lead→asesor→cierre→vuelve a dev/superadmin (propagación verificada).
+- 🟡 PARCIAL: demanda→dev — el dev ve demanda a nivel BÚSQUEDA (recámaras/precio/plan, dev_market /demand-intel) pero
+  NO a nivel FEATURE (terraza/amenidades) — eso vive solo en superadmin.
+- 🟡 ABIERTO: la inteligencia granular nueva (feature×colonia×tiempo, engagement de contenido) es DASHBOARD de superadmin
+  — todavía no ACTÚA sola (no le dice al dev 'construye terraza' ni al asesor 'ofrece unidades con terraza').
+
+### ÁREAS DE OPORTUNIDAD (explícitas)
+1. 🟡 demanda→dev solo a nivel búsqueda — falta llevar la demanda por FEATURE al dev.
+2. 🟡 inteligencia granular = dashboard, no loop-a-acción (no es proactiva).
+3. 🟡 unmet demand (búsquedas con 0 resultados = lo que se quiere y no existe) — no se captura/muestra.
+4. 🟡 dwell sin consumidor directo · zone_intent.value (perfil declarado) subusado.
+5. 🟡 photo_tags se calculan en vivo (tag_from_url) cada query — cacheables.
+
+### UPGRADES PROPUESTOS (priorizados)
+1. **Cerrar demanda→acción**: la demanda proactiva le dice al DEV 'construye terraza en Del Valle (N buscan, 0 oferta)'
+   y al ASESOR 'ofrece unidades con terraza a este lead'. Convierte dashboard en ciclo. ← el de mayor impacto.
+2. **Feature-demand al dev**: el motor rico (superadmin) alimenta también el /demand-intel del dev.
+3. **Unmet demand**: capturar searches results_count=0 → 'qué construir que no existe'.
+4. **Anomalía/tendencia**: 'demanda de terraza en Del Valle 3x este mes' como alerta.
+5. **Persistir photo_tags** (cache) + explotar section_time/zone_profile ya capturados.
+
+### CERTIFICACIÓN HONESTA (no 100%, con evidencia)
+- Marketplace: wiring SANO (0 muerto/huérfano), 26 señales auditadas unitariamente (4 rotas→arregladas), captura
+  granular verificada. Batería 66/66.
+- NO certifico dev/asesor/superadmin a esta profundidad aún — son los siguientes portales del plan.
