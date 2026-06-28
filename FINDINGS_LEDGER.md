@@ -185,3 +185,19 @@ nueva. Las fugas pasan en funciones que NO llaman la guardia (como casi pasó en
 o un middleware Mongo que auto-inyecte el tenant_filter). Es un proyecto de arquitectura (la "deuda RLS"). Mientras tanto:
 probe (guard) + checks de función en el harness + disciplina (toda escritura nueva usa tenant_filter + su check). El
 harness convierte "se descubre a mano" → "se atrapa antes de shipear".
+
+---
+
+## Upgrade B — Censo de self-healing (cobertura de cron)
+
+**Censo de jobs de reparación/reconciliación:** la mayoría son migraciones one-shot (OK en arranque) o ya tienen cron.
+**Hallazgo (misma clase que B2):** 2 reparaciones ONGOING corrían SOLO en arranque →
+- `reconcile_pending_xp` (advisor.py): si el grant de XP falla al cerrar una venta (`xp_pending`), el asesor PIERDE su
+  XP/cierre hasta el próximo reinicio. **Cron diario 04:30.**
+- `reconcile_lead_activo` (pipeline_engine.py): red de seguridad del índice de dedup (deriva `activo` del status). **Cron 04:35.**
+
+Registrados en scheduler_ie.py. **Verificado**: reproducción tagueada — una operación `xp_pending` se repara (xp=250,
+cierres=1, flag limpia), teardown cero-residuo; backend arranca limpio; harness 17/17.
+
+**Nota de proceso:** mi primer intento rompió el arranque (re-import local de `CronTrigger` → UnboundLocalError); el
+harness reforzado (upgrade A/C) lo **atrapó al instante** (12/17). El doble-loop funcionando.

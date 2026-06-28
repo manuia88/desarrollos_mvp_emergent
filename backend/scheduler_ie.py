@@ -577,6 +577,21 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_mirror_retry_error", error=str(e))
 
+    # B (censo self-healing) — reparaciones ONGOING que solo corrían en arranque → cron diario (misma clase que B2):
+    #   reconcile_pending_xp (asesor pierde XP si el grant falló) · reconcile_lead_activo (red de seguridad del dedup).
+    try:
+        # wrap_apscheduler_job + CronTrigger ya están en scope (import local arriba + module-level) — NO re-importar (shadow).
+        from routes.advisor import reconcile_pending_xp
+        from pipeline_engine import reconcile_lead_activo
+        _scheduler.add_job(wrap_apscheduler_job(reconcile_pending_xp, "reconcile_pending_xp"),
+                           CronTrigger(hour=4, minute=30, timezone="America/Mexico_City"),
+                           args=[db], id="reconcile_pending_xp", replace_existing=True, misfire_grace_time=1800)
+        _scheduler.add_job(wrap_apscheduler_job(reconcile_lead_activo, "reconcile_lead_activo"),
+                           CronTrigger(hour=4, minute=35, timezone="America/Mexico_City"),
+                           args=[db], id="reconcile_lead_activo", replace_existing=True, misfire_grace_time=1800)
+    except Exception as e:
+        _emit("scheduler_selfheal_error", error=str(e))
+
     # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
     try:
         from intelligence_insights_engine import schedule_intelligence_insights_cron
