@@ -42,6 +42,8 @@ export const listContactos = (q = {}) => {
 };
 export const createContacto = (b) => post('/api/asesor/contactos', b);
 export const getContacto = (id) => j(`/api/asesor/contactos/${id}`);
+// Recomendación basada en las señales REALES del lead (qué miró) → qué desarrollos ofrecerle (cierra loop comprador→asesor).
+export const getRecomendacion = (id) => j(`/api/asesor/contactos/${id}/recomendacion`);
 export const patchContacto = (id, b) => patch(`/api/asesor/contactos/${id}`, b);
 export const addTimelineEntry = (id, b) => post(`/api/asesor/contactos/${id}/timeline`, b);
 // B1 · Agregador de actividad del lead (timeline unificado · alimenta el tab Actividad del perfil-hub).

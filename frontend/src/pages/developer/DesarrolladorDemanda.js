@@ -13,9 +13,11 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
   const [period, setPeriod] = useState('30d');
   const [selectedColonia, setSelectedColonia] = useState(null);
   const [intel, setIntel] = useState(null);   // demanda insatisfecha en TUS zonas (el moat)
+  const [feat, setFeat] = useState(null);     // demanda a nivel FEATURE en tus colonias (cierra loop demanda→dev)
 
   useEffect(() => { api.getDemand().then(setLegacy).catch(() => setLegacy({ _err: true })); }, []);
   useEffect(() => { api.getDemandIntel(60).then(setIntel).catch(() => setIntel({ _err: true })); }, []);
+  useEffect(() => { api.getDemandFeatures(90).then(setFeat).catch(() => setFeat({ _err: true })); }, []);
 
   useEffect(() => {
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
@@ -30,6 +32,37 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
         title="Demanda de mercado"
         sub="Búsquedas reales en DesarrollosMX, demanda no atendida y pronóstico a 30/60/90 días con IA."
       />
+
+      {/* Demanda a nivel FEATURE en tus colonias (cierra el loop demanda→dev: no solo recámaras/precio, sino qué FEATURES) */}
+      {feat && !feat._err && !feat.vacio && (
+        <Card style={{ marginBottom: 20, border: '1px solid rgba(99,102,241,0.28)' }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--theme)' }}>QUÉ FEATURES PIDE EL MERCADO EN TUS COLONIAS</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, marginBottom: 6 }}>MÁS BUSCADOS</div>
+              {(feat.por_feature?.top_features || []).slice(0, 7).map((f) => (
+                <div key={f.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
+                  <span>{f.feature}</span><strong style={{ color: 'var(--theme)' }}>{f.demanda}</strong></div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, marginBottom: 6 }}>QUÉ CONSTRUIR (demanda vs oferta)</div>
+              {(feat.que_construir?.oportunidades || []).slice(0, 7).map((o) => (
+                <div key={o.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
+                  <span>{o.feature}</span><Badge tone={o.presion >= 0.7 ? 'bad' : o.presion >= 0.4 ? 'warn' : 'neutral'}>×{o.presion}</Badge></div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, marginBottom: 6 }}>NO SATISFECHO</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26 }}>{fmt0(feat.no_satisfecha?.busquedas_insatisfechas || 0)}</div>
+              <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>búsquedas sin buen match en tus zonas</div>
+              {(feat.tendencias?.tendencias || []).slice(0, 3).map((t) => (
+                <div key={t.feature} style={{ fontSize: 12, color: t.crecimiento_pct > 0 ? '#16a34a' : 'var(--cream-3)', marginTop: 4 }}>↑ {t.feature} {t.crecimiento_pct > 0 ? '+' : ''}{t.crecimiento_pct}%</div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* B.2 · Demanda Viva honesta: dice si el dato es real o aún por confirmar */}
       {legacy && legacy.lectura && (

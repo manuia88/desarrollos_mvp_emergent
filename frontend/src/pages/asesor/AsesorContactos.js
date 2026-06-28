@@ -105,10 +105,13 @@ function AsesorContactosLegacy({ user, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
 
+  const [reco, setReco] = useState(null);   // recomendación por señales reales del lead (cierra loop comprador→asesor)
   useEffect(() => {
     if (id) {
       api.getContacto(id).then(setSelected).catch(() => {});
-    } else { setSelected(null); }
+      setReco(null);
+      api.getRecomendacion(id).then(setReco).catch(() => {});
+    } else { setSelected(null); setReco(null); }
   }, [id]);
 
   useEffect(() => {
@@ -396,6 +399,20 @@ function AsesorContactosLegacy({ user, onLogout }) {
             onOpenArg={() => setShowArg(true)}
             onReload={async () => { const c = await api.getContacto(selected.id); setSelected(c); }}
             onNote={() => setToast({ kind: 'success', text: 'Nota registrada' })} />
+        )}
+        {selected && reco && !reco.sin_senales && (reco.recomendaciones || []).length > 0 && (
+          <div style={{ margin: '14px 16px', padding: 14, borderRadius: 12, border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(124,92,255,0.05)' }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Qué ofrecerle <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(según lo que este lead miró)</span></div>
+            {(reco.features_del_lead || []).length > 0 && (
+              <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Le interesa: {(reco.features_del_lead || []).slice(0, 5).map((f) => f.feature).join(' · ')}</div>
+            )}
+            {(reco.recomendaciones || []).slice(0, 4).map((r) => (
+              <div key={r.dev} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <span><strong>{r.name}</strong> <span style={{ color: '#888' }}>· {r.colonia}</span></span>
+                <span style={{ fontSize: 11, color: 'var(--theme)' }}>{(r.features_match || []).slice(0, 3).join(', ')}</span>
+              </div>
+            ))}
+          </div>
         )}
       </Drawer>
 

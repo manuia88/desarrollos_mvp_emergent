@@ -31,6 +31,8 @@ export const getSecuritySummary = () => j('/api/desarrollador/security/summary')
 export const getDashboard = () => j('/api/desarrollador/dashboard');
 // Demanda insatisfecha en TUS zonas (qué busca la gente y no encuentra · a dónde se va · brecha · esquema) — el moat del dev.
 export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dias=${dias}`);
+// Demanda a nivel FEATURE en TUS colonias (terraza/gym/...) + qué construir + tendencias (cierra el loop demanda→dev).
+export const getDemandFeatures = (dias = 90) => j(`/api/dev/market/demand-features?dias=${dias}`);
 // TU ZONA CAMBIÓ (conciencia ambiental · proactivo) — el MOVIMIENTO de la demanda (no el nivel): ventana reciente vs anterior.
 export const getZonaCambios = (dias = 30) => j(`/api/dev/market/zona-cambios?dias=${dias}`);
 // L68 · what-if DEFENSIVO — "¿y si un competidor construye en tu zona?" → impacto en tu tiempo de venta + poder de precio.
