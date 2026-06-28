@@ -736,6 +736,13 @@ class SmartRoutingEngine:
                 {"$set": {"assigned_to": target_asesor, "assigned_at": now,
                           "last_activity_at": now, "updated_at": now.isoformat()}},
             )
+            # B3: la IA cambió el DUEÑO del lead → audit_log con by_ai=True (antes audit-dark). El superadmin lo distingue.
+            try:
+                from audit_log import log_agent_action
+                await log_agent_action(self.db, "smart_routing", "update", "lead", entity_id=doc["lead_id"],
+                                       after={"assigned_to": target_asesor}, org_id=doc.get("dev_org_id"))
+            except Exception:  # noqa: BLE001
+                pass
         await self.db.lead_routings.update_one(
             {"_id": routing_id},
             {"$set": {"status": "accepted", "accepted_at": now,

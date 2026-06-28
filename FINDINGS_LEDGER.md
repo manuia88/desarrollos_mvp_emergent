@@ -113,3 +113,33 @@ Baseline de datos: `scratchpad/baseline_20260628.json` (439 colecciones) · back
 | B1-A4 | 🟡 | contacto→cerrado exige `_lid AND _did` | **CONFIRMADO wontfix**: no es defecto — un cierre sin propiedad (`_did` None) tendría `comprado` vacío → inflaría `real.n` SIN aportar señal de bucket (recámaras/precio) → DILUIRÍA el aprendizaje de B1. Requerir `_did` es correcto. La ruta de operaciones (cierre canónico con precio+dev) cubre los cierres reales. | decidido |
 
 **TODOS los pendientes de la sesión cerrados.** Abiertos como BATCHES FUTUROS (no pendientes sueltos): B3 (audit-dark agentes), B4 (otros índices compuestos), FASE R (huérfanos de alto valor), FASE A (E2E cohorte).
+
+---
+
+## B3 — Agentes IA "audit-dark" (F0-3) — CERRADO
+
+### Audit A (reproducido)
+- `audit_log`: 101 entradas, **27 con actor vacío/role=None** (crons f02 logueaban sin actor), **0 con by_ai**.
+- `smart_routing_engine.route_lead` muta `lead.assigned_to` SIN loguear → IA cambia dueño y nadie lo ve.
+- Mi propio `route_orphan_leads` (B2-A2) igual: audit-dark.
+
+### Definition-of-Done
+1. Distinguir humano vs IA en audit_log (campo `by_ai`, queryable). 2. Acciones de sistema/cron nunca con actor vacío. 3. Acciones-clave de IA (ruteo) logueadas con by_ai. 4. Superadmin PUEDE filtrar/exportar por by_ai. 5. Backward-compat (50+ call sites) + harness verde.
+
+### Fix
+- `AuditActor.by_ai`; `log_mutation` deriva by_ai (rol system / user_id de agente·motor) + **sintetiza actor de sistema cuando viene vacío** (nunca audit-dark). Helper `log_agent_action`.
+- `scheduler_f02._audit`, `smart_routing.route_lead`, `route_orphan_leads` → ahora logean (by_ai=True).
+- Superadmin: `/entries?by_ai=` + `/export?by_ai=` + columna CSV `actor_by_ai` (IA/humano).
+
+### Audit B (independiente) — convergencia
+| id | sev | hallazgo | acción | re-verificado |
+|----|-----|----------|--------|---------------|
+| #1 | 🔴 | heurística by_ai podría dejar fuera un motor sin ':' | ampliada: + `"engine"`/`"agent"` substring (rol system sigue siendo primario) | kg_consumer→by_ai ✅ |
+| #2 | 🟠 | f02 insert directo = schema inconsistente | usa `log_agent_action` → entity_type+id+by_ai consistentes | f02 con schema completo ✅ |
+| #4 | 🔵 | by_ai existía pero superadmin no lo filtraba | filtro + CSV `actor_by_ai` | endpoint acepta by_ai (no 422) ✅ |
+| #5 | 🟡 | actor `{user_id:"", role:"developer"}` se sintetizaría mal | **REFUTADO**: la condición exige user_id Y role vacíos | — |
+| #7 | 🔴→ok | org_id→tenant_id naming | **REFUTADO** por el propio verificador (correcto) | — |
+| (extra) | 🟡 | `_safe_strip` crasheaba con before/after no-dict (silent audit loss) | endurecido (`{"value": doc}`) | f02 con payload dict ✅ |
+
+**Decisión**: NO se reescriben las 27 entradas históricas sin actor (integridad de auditoría = append-only; el fix es forward).
+**Verificado**: derivación humano/IA correcta; f02 schema-consistente; filtro by_ai a nivel dato + endpoint; cero-residuo; harness 13/13. Archivos: `audit_log.py`, `scheduler_f02.py`, `superadmin_audit.py`, `smart_routing_engine.py`, `lead_bridge.py`.

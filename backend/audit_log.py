@@ -34,6 +34,7 @@ class AuditActor(BaseModel):
     org_id: Optional[str] = None
     tenant_id: Optional[str] = None
     name: Optional[str] = None
+    by_ai: bool = False   # B3: distingue acción de AGENTE/IA vs humano (superadmin lo filtra)
 
 
 class AuditEntry(BaseModel):
@@ -75,6 +76,8 @@ def _safe_strip(doc: Optional[Dict]) -> Optional[Dict]:
     """Remove _id and binary fields from a MongoDB document before storing."""
     if doc is None:
         return None
+    if not isinstance(doc, dict):   # B3 robustez: un before/after no-dict no debe tirar el audit (antes: silent-fail)
+        return {"value": doc}
     return {k: v for k, v in doc.items() if k != "_id" and not isinstance(v, bytes)}
 
 
@@ -105,11 +108,14 @@ async def log_mutation(
     before: Optional[Dict[str, Any]] = None,
     after: Optional[Dict[str, Any]] = None,
     request: Optional[Request] = None,
+    by_ai: Optional[bool] = None,   # B3: marca explícita acción de agente/IA. None → se deriva (rol system / user_id de motor).
 ) -> None:
     """Fire-and-forget audit log insert. Never raises."""
     try:
-        # Build actor dict
-        if hasattr(actor, "user_id"):
+        # Build actor dict — B3: NUNCA vacío (si no hay actor → sistema/IA, no se pierde la atribución).
+        if actor is None or (isinstance(actor, dict) and not actor.get("user_id") and not actor.get("role")):
+            actor_dict = {"user_id": "system", "role": "system", "org_id": None, "tenant_id": None, "name": "Sistema"}
+        elif hasattr(actor, "user_id"):
             actor_dict = {
                 "user_id": actor.user_id,
                 "role": getattr(actor, "role", "unknown"),
@@ -125,6 +131,12 @@ async def log_mutation(
                 "tenant_id": actor.get("tenant_id"),
                 "name": actor.get("name"),
             }
+        # B3: deriva by_ai si no es explícito — rol 'system' o user_id de motor/agente ('agent:...', 'kg_consumer:...', '*_engine')
+        if by_ai is None:
+            _uid_s = str(actor_dict.get("user_id") or "").lower()
+            # rol 'system' (señal primaria) · 'agent:'/'kg_consumer:' (':') · cualquier motor ('engine' en el id) — Audit B 🔴 defensivo
+            by_ai = (actor_dict.get("role") == "system") or (":" in _uid_s) or ("engine" in _uid_s) or ("agent" in _uid_s)
+        actor_dict["by_ai"] = bool(by_ai)
 
         meta = _extract_request_meta(request)
         before_clean = _safe_strip(before)
@@ -157,6 +169,16 @@ async def log_mutation(
 
     except Exception as exc:
         log.warning(f"[audit] log_mutation failed (silent): {exc}")
+
+
+async def log_agent_action(db, agent: str, action: str, entity_type: str,
+                           entity_id: Optional[str] = None, before: Optional[Dict[str, Any]] = None,
+                           after: Optional[Dict[str, Any]] = None, org_id: Optional[str] = None) -> None:
+    """B3: loguea una acción de un AGENTE/IA en audit_log con by_ai=True, atribuida a 'agent:<agent>'. Para que el
+    superadmin SÍ distinga lo que decidió la IA (ruteo, nurture, pricing…) de lo que hizo un humano. Fire-and-forget."""
+    await log_mutation(
+        db, {"user_id": f"agent:{agent}", "role": "system", "tenant_id": org_id, "name": agent},
+        action, entity_type, entity_id=entity_id, before=before, after=after, by_ai=True)
 
 
 # ─── Multi-tenant scope filter ─────────────────────────────────────────────────

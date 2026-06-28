@@ -93,6 +93,7 @@ async def list_entries(
     from_ts: Optional[str] = None,
     to_ts: Optional[str] = None,
     q: Optional[str] = None,
+    by_ai: Optional[bool] = None,   # B3: filtra acciones de IA/agente vs humano (None=todas)
     limit: int = Query(50, ge=1, le=200),
     skip: int = Query(0, ge=0),
 ):
@@ -102,6 +103,8 @@ async def list_entries(
     filters = _filters_from_query(actor_user_id, actor_role, entity_type, entity_id,
                                   action, tenant_id, severity, from_ts, to_ts, q)
     query = build_filter_query(filters)
+    if by_ai is not None:
+        query["actor.by_ai"] = by_ai   # B3: humano vs IA
 
     total = await db.audit_log.count_documents(query)
     cursor = db.audit_log.find(query, {"_id": 0}).sort("ts", -1).skip(skip).limit(limit)
@@ -197,6 +200,7 @@ async def export_entries(
     from_ts: Optional[str] = None,
     to_ts: Optional[str] = None,
     q: Optional[str] = None,
+    by_ai: Optional[bool] = None,   # B3: exporta solo IA / solo humano / todas
 ):
     await _require_superadmin(request)
     db = _db(request)
@@ -204,6 +208,8 @@ async def export_entries(
     filters = _filters_from_query(actor_user_id, actor_role, entity_type, entity_id,
                                   action, tenant_id, severity, from_ts, to_ts, q)
     query = build_filter_query(filters)
+    if by_ai is not None:
+        query["actor.by_ai"] = by_ai
 
     total = await db.audit_log.count_documents(query)
     if total > EXPORT_MAX_ROWS:
@@ -229,7 +235,7 @@ async def export_entries(
 
     # CSV
     cols = ["ts", "action", "entity_type", "entity_id",
-            "actor_user_id", "actor_role", "actor_tenant",
+            "actor_user_id", "actor_role", "actor_by_ai", "actor_tenant",
             "severity", "before_json", "after_json"]
 
     async def _csv_gen():
@@ -247,6 +253,7 @@ async def export_entries(
                 d.get("entity_id") or "",
                 actor.get("user_id") or "",
                 actor.get("role") or "",
+                "IA" if actor.get("by_ai") else "humano",
                 actor.get("tenant_id") or "",
                 d.get("severity") or "",
                 json.dumps(d.get("before"), default=str, ensure_ascii=False) if d.get("before") else "",

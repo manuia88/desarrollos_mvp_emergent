@@ -20,13 +20,11 @@ _BACKOFF = 4  # seconds
 
 
 async def _audit(db, action: str, payload: Dict[str, Any]) -> None:
+    # B3: usa log_agent_action (schema consistente con el resto de audit_log + actor de sistema + by_ai=True). Antes
+    # insertaba directo SIN actor (audit-dark) y con shape distinto (Audit B 🟠).
     try:
-        await db.audit_log.insert_one({
-            "action": action,
-            "resource": "scheduler_f02",
-            "payload": payload,
-            "ts": datetime.now(timezone.utc).isoformat(),
-        })
+        from audit_log import log_agent_action
+        await log_agent_action(db, "scheduler_f02", action, "scheduled_job", entity_id=action, after=payload)
     except Exception as exc:
         log.warning(f"[f02] audit failed action={action} · {exc}")
 

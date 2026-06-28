@@ -416,6 +416,12 @@ async def route_orphan_leads(db, limit: int = 500) -> int:
                     await notify_house_admin_new_lead(db, ld, assigned_to=rid)
                 except Exception:  # noqa: BLE001
                     pass
+                try:   # B3: la auto-asignación la decidió el sistema → audit_log con by_ai=True (no audit-dark)
+                    from audit_log import log_agent_action
+                    await log_agent_action(db, "lead_router", "update", "lead", entity_id=ld.get("id"),
+                                           after={"assigned_to": rid}, org_id=inm)
+                except Exception:  # noqa: BLE001
+                    pass
                 n += 1
             except Exception:
                 continue
