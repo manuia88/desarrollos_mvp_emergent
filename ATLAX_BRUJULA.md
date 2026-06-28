@@ -49,9 +49,9 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 - [ ] **Personal** — gusto por etapas de vida (rentar→comprar→invertir) + alertas proactivas 🟡 (casamentera ✅)
 
 ### 🤝 Asesor
-- [ ] **Taste** — gusto+rechazo de cada lead sin re-preguntar (lead_match ✅, exponerlo) 🟡
-- [ ] **Generative** — pitch/comparativa/landing por cliente (Studio ✅, cablear por-lead) 🟡
-- [ ] **Agentic** — copiloto que cierra el pipeline (39 tools ✅, cablear) 🟡
+- [x] **Taste** — gusto+rechazo de cada lead (lead_match.match_for con match% + taste_compact "Le gusta" en Ficha360, Fix #3) — YA cableado
+- [x] **Generative** — argumentario IA por lead (FAB + endpoints + RAG) ✅ · _gap marginal: landing por-LEAD (hay por-dev)_
+- [x] **Agentic** — recomendador por lead + `copilot-ask` por contacto + argumentario FAB ✅ (verificado 2026-06-28: el lente del asesor estaba mayormente construido)
 - [ ] **Spatial** — mapa de calor de SU demanda (del cubo) 🆕
 - [x] **Personal** — memoria de cada relación (Ficha360)
 
