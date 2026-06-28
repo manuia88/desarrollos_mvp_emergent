@@ -16,7 +16,7 @@ import logging
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
@@ -44,7 +44,10 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "lens",          # eligió un lente (vivir/invertir) — intención declarada (value = lente)
          "intent",        # alto intento sobre una unidad — agendar (value = acción)
          "module_open",   # abrió un módulo de análisis — engagement profundo (value = módulo)
-         "lead"}          # pidió hablar con Atlax sobre una unidad (value = origen)
+         "lead",          # pidió hablar con Atlax sobre una unidad (value = origen)
+         # Atlax (superficie LLM) · TODA búsqueda/perfilado se registra GRANULAR (meta) → demanda para superadmin:
+         "atlax_query",   # escribió requisitos en el buscador (meta = filtros parseados + #resultados)
+         "atlax_profile"} # respondió el perfilador guiado (meta = paso/respuesta o perfil completo)
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -69,6 +72,7 @@ class SignalIn(BaseModel):
     colonia: Optional[str] = None    # nombre o slug (para el Grafo por colonia)
     value: Optional[str] = None      # libre (ej. sección leída, estilo)
     dwell_ms: Optional[int] = None
+    meta: Optional[Dict[str, Any]] = None  # granular (Atlax): {recamaras, precio_max, intent, amenidades, n_exact, n_casi, cross_zone…}
 
 
 @router.post("/api/buyer/signal")
@@ -99,6 +103,15 @@ async def buyer_signal(s: SignalIn, request: Request):
             "ip_hash": hashlib.sha256(f"{ip}:dmx_bs".encode()).hexdigest()[:16] if ip else None,
             "created_at_dt": now,
         }
+        # meta granular (Atlax): sólo se guarda en señales atlax_*, sanitizado y acotado (anti-abuso del espinazo).
+        if s.type in ("atlax_query", "atlax_profile") and isinstance(s.meta, dict):
+            clean = {}
+            for k, v in list(s.meta.items())[:20]:
+                if isinstance(v, (str, int, float, bool)) or v is None:
+                    clean[str(k)[:40]] = (v[:120] if isinstance(v, str) else v)
+                elif isinstance(v, list):
+                    clean[str(k)[:40]] = [str(x)[:60] for x in v[:15]]
+            doc["meta"] = clean
         # like/save/unlike → upsert por (visitor, type, entity) para no duplicar el estado; el resto = append.
         if s.type in ("like", "unlike", "save", "unsave"):
             base = s.type.replace("un", "") if s.type.startswith("un") else s.type  # like/save

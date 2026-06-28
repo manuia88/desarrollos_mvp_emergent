@@ -29,10 +29,10 @@ function ComparisonTable({ data }) {
     { label: 'Hasta', get: (z) => fmtM(z.precio_hasta) },
     { label: 'Precio / m²', get: (z) => fmtMXN(z.precio_m2) },
     { label: 'Recámaras', get: (z) => (z.recamaras ? `${z.recamaras[0]}–${z.recamaras[1]}` : '—') },
-    { label: 'Plusvalía / año', get: (z) => (z.plusvalia_pct != null ? `${z.plusvalia_pct}%` : '—'), hot: true },
-    { label: 'Riesgo sísmico', get: (z) => (z.sismic_zone ? (SISMIC[z.sismic_zone] || z.sismic_zone) : '—') },
-    { label: 'Vida de barrio', get: (z) => (z.vida || '—') },
-    { label: 'Entrega inmediata', get: (z) => (z.entrega_inmediata ? `${z.entrega_inmediata}` : '—') },
+    { label: 'Plusvalía / Año', get: (z) => (z.plusvalia_pct != null ? `${z.plusvalia_pct}%` : '—'), hot: true },
+    { label: 'Riesgo Sísmico', get: (z) => (z.sismic_zone ? (SISMIC[z.sismic_zone] || z.sismic_zone) : '—') },
+    { label: 'Vida de Colonia', get: (z) => (z.vida || '—') },
+    { label: 'Entrega Inmediata', get: (z) => (z.entrega_inmediata ? `${z.entrega_inmediata}` : '—') },
     { label: 'Desarrollos', get: (z) => (z.n_desarrollos != null ? z.n_desarrollos : '—') },
   ];
   return (
