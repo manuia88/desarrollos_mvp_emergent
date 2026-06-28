@@ -72,18 +72,18 @@ const SectionLabel = ({ children, hint }) => (
   </div>
 );
 
-const TIERS = [
-  { lo: 1, hi: 1, title: 'Casi Perfectas', sub: 'solo les falta un detalle' },
-  { lo: 2, hi: 2, title: 'Muy Buenas', sub: 'les faltan dos cosas' },
-  { lo: 3, hi: 99, title: 'Cercanas', sub: 'les faltan algunas' },
-];
-
 export default function AtlaxResults({ r, onQuick, onRefine, onAdvisor, compact }) {
+  const [reveal, setReveal] = React.useState(0);
+  const exact = (r && r.exact) || [], casi = (r && r.casi) || [], cross = (r && r.crossZone) || [];
   if (!r) return null;
-  const exact = r.exact || [], casi = r.casi || [], cross = r.crossZone || [];
   const flat = [...exact, ...casi, ...cross];  // set completo → la vista rápida navega entre TODOS sin cerrar
   const quickWith = (d) => onQuick && onQuick(d, flat);
-  const nada = exact.length === 0 && casi.length === 0 && cross.length === 0 && !r.pending;
+  // Al inicio POCAS: 3-5 que se ajustan (exact) + 3 similares. "Ver más" revela bloques de 3 (founder: no abrumar).
+  const exactShown = exact.slice(0, 5);
+  const similar = [...casi, ...cross];
+  const similarShown = similar.slice(0, 3 + reveal * 3);
+  const hayMas = similar.length > similarShown.length;
+  const nada = exact.length === 0 && similar.length === 0 && !r.pending;
   return (
     <div>
       {r.zonaNoDisp && (
@@ -93,22 +93,14 @@ export default function AtlaxResults({ r, onQuick, onRefine, onAdvisor, compact 
         </div>
       )}
 
-      {exact.length > 0 && (<><SectionLabel hint={exact.length === 1 ? '1 encaja con lo que buscas' : `${exact.length} encajan con lo que buscas`}>Para Ti</SectionLabel><Grid compact={compact}>{exact.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>)}
+      {exactShown.length > 0 && (<><SectionLabel hint={exact.length === 1 ? '1 encaja con lo que buscas' : `${exact.length > 5 ? '5+' : exact.length} encajan con lo que buscas`}>Para Ti</SectionLabel><Grid compact={compact}>{exactShown.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>)}
 
-      {casi.length > 0 && TIERS.map((t) => {
-        const grp = casi.filter((d) => { const n = (d.match_falta || []).length; return n >= t.lo && n <= t.hi; });
-        if (!grp.length) return null;
-        return (
-          <div key={t.title}>
-            <SectionLabel hint={`${t.sub} (${grp.length})`}>{exact.length ? t.title : `Se Acercan Mucho · ${t.title}`}</SectionLabel>
-            <Grid compact={compact}>{grp.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid>
-          </div>
-        );
-      })}
+      {similarShown.length > 0 && (<><SectionLabel hint="se acercan a lo que pides">{exact.length ? 'Se Acercan a Lo Que Buscas' : 'Lo Más Cercano'}</SectionLabel><Grid compact={compact}>{similarShown.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>)}
 
-      {cross.length > 0 && (
-        <><SectionLabel hint={r.crossRelax === 'amplio' ? 'más opciones que se acercan a lo que pides' : 'tu presupuesto rinde más aquí'}>{r.crossRelax === 'esquema' ? 'Con Otro Esquema, en Otras Colonias' : r.crossRelax === 'amplio' ? 'También Te Pueden Servir · Otras Colonias' : 'Tu Presupuesto Rinde Más en Otras Colonias'}</SectionLabel>
-          <Grid compact={compact}>{cross.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>
+      {hayMas && (
+        <button onClick={() => setReveal((x) => x + 1)} style={{ marginTop: 14, width: '100%', cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.26)', color: 'var(--theme)', borderRadius: 12, padding: '11px', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5 }}>
+          Ver Más Opciones (+{Math.min(3, similar.length - similarShown.length)})
+        </button>
       )}
 
       {nada && (

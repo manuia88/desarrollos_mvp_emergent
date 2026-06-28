@@ -48,12 +48,13 @@ export async function searchAtlax(query) {
     hasColonia ? fetchCasiCumple({ ...broadFilters, visitor_id: vid, limit: 16 }).catch(() => ({ casi: [] })) : Promise.resolve({ casi: [] }),
   ]);
   const inAll = (inResp && inResp.casi) || [];
-  const exact = inAll.filter((d) => (d.match_falta || []).length === 0).slice(0, 6);
-  const casi = inAll.filter((d) => (d.match_falta || []).length > 0).slice(0, 6);
+  // Pool generoso; el componente muestra POCAS al inicio (3-5 que ajustan + 3 similares) y revela más en bloques.
+  const exact = inAll.filter((d) => (d.match_falta || []).length === 0).slice(0, 8);
+  const casi = inAll.filter((d) => (d.match_falta || []).length > 0).slice(0, 12);
 
   // "Otras colonias que se acercan": de la bolsa amplia, las que NO están en la colonia pedida (con su match real).
   const inIds = new Set(inAll.map((d) => d.id));
-  let otras = ((broadResp && broadResp.casi) || []).filter((d) => !inIds.has(d.id) && !colonias.includes(String(d.colonia_id || d.colonia || '').toLowerCase())).slice(0, 6);
+  let otras = ((broadResp && broadResp.casi) || []).filter((d) => !inIds.has(d.id) && !colonias.includes(String(d.colonia_id || d.colonia || '').toLowerCase())).slice(0, 12);
   if (crossZone.length > otras.length) { otras = crossZone; }   // si search-ai dio un cross mejor (otro presupuesto/esquema), úsalo
   else if (otras.length && !crossRelax) { crossRelax = 'amplio'; }
   crossZone = otras;

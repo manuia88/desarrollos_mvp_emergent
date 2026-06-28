@@ -608,7 +608,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           right: isHome ? 'auto' : 24,
           zIndex: isHome ? 'auto' : 9999,
           width: isHome ? '100%' : 'min(440px, calc(100vw - 24px))',
-          height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 132px))',
+          height: isHome ? 'min(560px, 70vh)' : 'min(700px, calc(100vh - 96px))',
           ...lightVars,
           background: light ? '#FFFFFF' : 'linear-gradient(180deg, #0E1220, #0A0D16)',
           border: '1px solid var(--border)', borderRadius: 18,
