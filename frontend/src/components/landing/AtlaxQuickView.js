@@ -1,11 +1,12 @@
 // AtlaxQuickView — vista rápida DENTRO de Atlax: el cliente ve fotos + datos + "¿es buena compra?" SIN salir del chat
 // (no lo expulsamos del LLM). Reusa el motor de buy-signal (AVM + plusvalía SHF + momento de ciclo) para PERSUADIR con
 // datos reales. "Ver Ficha Completa" sí navega — pero el chat de Atlax se conserva (sessionStorage en AtlaxSurface).
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBuySignal } from '../../api/marketplace';
 import { tc } from '../../lib/titleCase';
-import { Sparkle, X } from '../icons';
+import { toggleSave, isSaved, dismiss, logPhotoDwell, logPhotoZoom, REJECT_REASONS } from '../../lib/atlaxPrefs';
+import { Sparkle, X, Heart } from '../icons';
 
 const HEAD = "'Outfit',sans-serif";
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
@@ -23,16 +24,24 @@ export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose,
   const [i, setI] = useState(0);
   const [buy, setBuy] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [asking, setAsking] = useState(false);   // mostrando los motivos del 👎 (el porqué del NO)
   useEffect(() => {
-    let alive = true; setI(0); setBuy(null); setLoading(true);
+    let alive = true; setI(0); setBuy(null); setLoading(true); setAsking(false);
+    setSaved(isSaved(dev && dev.id));
     if (dev && dev.id) {
       fetchBuySignal(dev.id).then((b) => { if (alive) { setBuy(b && b.ok ? b : null); setLoading(false); } }).catch(() => { if (alive) setLoading(false); });
     } else setLoading(false);
     return () => { alive = false; };
   }, [dev]);
+  // Engagement por FOTO: tiempo en cada foto (dwell) → inferimos si la imagen vende o mata (sin IA-juez).
+  const shownAt = useRef(0);
+  useEffect(() => { shownAt.current = Date.now(); return () => { if (shownAt.current && dev) logPhotoDwell(dev, i, Date.now() - shownAt.current); }; }, [i, dev]);
   if (!dev) return null;
   const hasNav = items.length > 1;
   const go = (delta) => setIdx((x) => Math.max(0, Math.min(items.length - 1, x + delta)));
+  const onLike = () => { const on = toggleSave(dev); setSaved(on); if (on && hasNav && idx < items.length - 1) setTimeout(() => go(1), 280); };
+  const onReason = (key) => { dismiss(dev, key); setAsking(false); if (hasNav && idx < items.length - 1) go(1); else onClose(); };
 
   const photos = (dev.photos || []).filter(Boolean);
   const ver = buy && buy.veredicto;
@@ -55,7 +64,7 @@ export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose,
       <div onClick={(e) => e.stopPropagation()} className="theme-light-scope" style={{ width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 22, border: '1px solid var(--card-border)', boxShadow: '0 30px 80px rgba(20,18,30,0.4)' }}>
         {/* Galería */}
         <div style={{ position: 'relative' }}>
-          <div style={{ height: 250, background: 'var(--surface-card)', borderRadius: '22px 22px 0 0', overflow: 'hidden' }}>
+          <div onClick={() => logPhotoZoom(dev, i)} style={{ height: 250, background: 'var(--surface-card)', borderRadius: '22px 22px 0 0', overflow: 'hidden', cursor: 'zoom-in' }}>
             {photos[i] && <img src={photos[i]} alt={dev.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
           </div>
           <button onClick={onClose} aria-label="Cerrar" style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.92)', color: '#1E2230', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}><X size={18} /></button>
@@ -117,9 +126,24 @@ export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose,
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 9, marginTop: 18 }}>
+          {/* Veredicto tipo Tinder → alimenta el GUSTO + el porqué del NO (la data privilegiada) */}
+          {!asking ? (
+            <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
+              <button onClick={() => setAsking(true)} style={{ flex: 1, cursor: 'pointer', background: 'var(--surface-card)', border: '1px solid var(--card-border)', color: 'var(--cream-2)', borderRadius: 12, padding: '11px', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5 }}>👎 No Me Gusta</button>
+              <button onClick={onLike} style={{ flex: 1, cursor: 'pointer', background: saved ? 'rgba(236,72,153,0.12)' : 'rgba(var(--theme-rgb),0.10)', border: `1px solid ${saved ? 'rgba(236,72,153,0.40)' : 'rgba(var(--theme-rgb),0.28)'}`, color: saved ? '#DB2777' : 'var(--theme)', borderRadius: 12, padding: '11px', fontFamily: HEAD, fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Heart size={15} filled={saved} /> {saved ? 'Guardado' : 'Me Interesa'}</button>
+            </div>
+          ) : (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 13, color: 'var(--cream-2)', marginBottom: 8, fontFamily: 'DM Sans' }}>¿Qué no te convenció? <span style={{ color: 'var(--cream-3)' }}>(nos ayuda a mostrarte mejor)</span></div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {REJECT_REASONS.map((rr) => <button key={rr.key} onClick={() => onReason(rr.key)} style={{ cursor: 'pointer', background: 'var(--surface-card)', border: '1px solid var(--card-border)', color: 'var(--cream)', borderRadius: 999, padding: '8px 13px', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600 }}>{rr.label}</button>)}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 9, marginTop: 12 }}>
             <Link to={url} style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: GRAD, color: '#fff', borderRadius: 999, padding: '12px', fontFamily: HEAD, fontWeight: 700, fontSize: 14 }}>Ver Ficha Completa →</Link>
-            <button onClick={() => { if (onAdvisor) onAdvisor(dev); }} style={{ flexShrink: 0, cursor: 'pointer', background: '#fff', color: 'var(--cream)', border: '1px solid var(--card-border)', borderRadius: 999, padding: '12px 16px', fontFamily: HEAD, fontWeight: 700, fontSize: 14 }}>Hablar con un Asesor</button>
+            <button onClick={() => { if (onAdvisor) onAdvisor(dev); }} style={{ flexShrink: 0, cursor: 'pointer', background: '#fff', color: 'var(--cream)', border: '1px solid var(--card-border)', borderRadius: 999, padding: '12px 16px', fontFamily: HEAD, fontWeight: 700, fontSize: 14 }}>Asesor</button>
           </div>
         </div>
       </div>

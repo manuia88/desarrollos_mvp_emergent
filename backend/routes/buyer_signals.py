@@ -45,9 +45,11 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "intent",        # alto intento sobre una unidad — agendar (value = acción)
          "module_open",   # abrió un módulo de análisis — engagement profundo (value = módulo)
          "lead",          # pidió hablar con Atlax sobre una unidad (value = origen)
-         # Atlax (superficie LLM) · TODA búsqueda/perfilado se registra GRANULAR (meta) → demanda para superadmin:
+         # Atlax (superficie LLM) · TODA búsqueda/perfilado/veredicto se registra GRANULAR → aprendizaje + superadmin:
          "atlax_query",   # escribió requisitos en el buscador (meta = filtros parseados + #resultados)
-         "atlax_profile"} # respondió el perfilador guiado (meta = paso/respuesta o perfil completo)
+         "atlax_profile", # respondió el perfilador guiado (meta = paso/respuesta o perfil completo)
+         "dismiss",       # 👎 descartó una opción (value/meta.reason = fotos·precio·zona·tamaño·amenidad·entrega) = el porqué del NO
+         "photo_zoom"}    # hizo zoom a una foto (entity_id + value=photo_idx) — interés visual granular
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -104,7 +106,7 @@ async def buyer_signal(s: SignalIn, request: Request):
             "created_at_dt": now,
         }
         # meta granular (Atlax): sólo se guarda en señales atlax_*, sanitizado y acotado (anti-abuso del espinazo).
-        if s.type in ("atlax_query", "atlax_profile") and isinstance(s.meta, dict):
+        if s.type in ("atlax_query", "atlax_profile", "dismiss") and isinstance(s.meta, dict):
             clean = {}
             for k, v in list(s.meta.items())[:20]:
                 if isinstance(v, (str, int, float, bool)) or v is None:

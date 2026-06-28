@@ -2,10 +2,12 @@
 // mismo componente → un solo Atlax en todas las ventanas). Pinta: exactos ("Para Ti") + "casi cumple" en tiers
 // humanos (Cumple X/Y · le falta Z) + fallback a otras colonias + zona-no-cubierta + SIEMPRE una salida accionable
 // (cero callejones). Tarjeta persuasiva + match-first; CTA = Vista Rápida / Ver Ficha (NUNCA Apartar — discovery).
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { tc } from '../../lib/titleCase';
 import { sendBuyerSignal } from '../../lib/buyerSignal';  // captura granular: cada click de tarjeta → superadmin
+import { isSaved, toggleSave } from '../../lib/atlaxPrefs';
+import { Heart } from '../icons';
 
 const colSlug = (d) => String(d.colonia_id || d.colonia || '').toLowerCase() || undefined;
 
@@ -29,8 +31,10 @@ const chip = { background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgb
 const ctaPrimary = { background: GRAD, border: 'none', color: '#fff', borderRadius: 999, padding: '8px 15px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 
 function ResultCard({ dev, onQuick, compact }) {
+  const [saved, setSaved] = useState(isSaved(dev.id));
   const quick = () => { try { sendBuyerSignal('view', { entity_id: dev.id, colonia: colSlug(dev), value: 'atlax_quickview' }); } catch (_) { /* noop */ } if (onQuick) onQuick(dev); };
   const ficha = () => { try { sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: colSlug(dev), value: 'atlax' }); } catch (_) { /* noop */ } };
+  const onHeart = (e) => { e.stopPropagation(); e.preventDefault(); setSaved(toggleSave(dev)); };
   const img = (dev.photos || [])[0];
   const specs = [range(dev.bedrooms_range, ' rec'), range(dev.bathrooms_range, ' baños'), range(dev.m2_range, ' m²')].filter(Boolean).join(' · ');
   const sig = signal(dev);
@@ -45,6 +49,7 @@ function ResultCard({ dev, onQuick, compact }) {
         </div>
         {dev.stage === 'preventa' && <span style={{ position: 'absolute', top: 9, left: 9, background: GRAD, color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 10.5, padding: '4px 9px', borderRadius: 999 }}>Preventa</span>}
         {dev.match_total > 0 && <span style={{ position: 'absolute', top: 9, right: 9, fontFamily: HEAD, fontWeight: 800, fontSize: 10.5, padding: '4px 9px', borderRadius: 999, background: isExact ? 'rgba(16,185,129,0.92)' : 'rgba(224,163,62,0.94)', color: '#fff' }}>{isExact ? 'Cumple Todo' : `Cumple ${dev.match_met}/${dev.match_total}`}</span>}
+        <span role="button" onClick={onHeart} title={saved ? 'Guardado' : 'Guardar'} style={{ position: 'absolute', bottom: 9, right: 9, width: 32, height: 32, borderRadius: 999, background: saved ? '#DB2777' : 'rgba(255,255,255,0.92)', color: saved ? '#fff' : '#1E2230', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}><Heart size={16} filled={saved} color={saved ? '#fff' : '#1E2230'} /></span>
       </button>
       <div style={{ padding: '11px 13px 4px' }}>
         <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: compact ? 14 : 15, color: 'var(--cream)', lineHeight: 1.2 }}>{dev.name}</div>
