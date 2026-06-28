@@ -201,3 +201,11 @@ cierres=1, flag limpia), teardown cero-residuo; backend arranca limpio; harness 
 
 **Nota de proceso:** mi primer intento rompió el arranque (re-import local de `CronTrigger` → UnboundLocalError); el
 harness reforzado (upgrade A/C) lo **atrapó al instante** (12/17). El doble-loop funcionando.
+
+---
+
+## Upgrade D — Vista superadmin "Actividad de IA" (consume by_ai de B3)
+- Backend: `GET /api/superadmin/audit/ai-activity?days=` → IA vs humano (conteo + %), por agente, recientes. Reusa audit_log.
+- Frontend: panel en SuperadminAuditChain (`getAiActivity`). Compila; harness 17/17.
+- Hoy 0% IA (la capa agéntica casi apagada) → la vista se enciende sola cuando los agentes actúen. Es justo el tablero
+  "¿qué decide/muta la IA?" que hace falta ANTES de prender Cerebro.

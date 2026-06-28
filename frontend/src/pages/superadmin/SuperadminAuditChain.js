@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import SuperadminLayout from "../../components/superadmin/SuperadminLayout";
 import { PageHeader, Card, Empty, Badge } from '../../components/advisor/primitives';
 import { verifyAuditChain, queryAuditLog, exportAuditLog } from '../../api/entity_resolution';
+import { getAiActivity } from '../../api/superadminAudit';   // D (B3): actividad de IA vs humano
 import {
   AlertTriangle,
   CheckCircle2,
@@ -119,7 +120,8 @@ export default function SuperadminAuditChain({ user, onLogout }) {
   };
 
   // Auto-verificar al entrar
-  useEffect(() => { handleVerify(); /* eslint-disable-next-line */ }, []);
+  const [aiAct, setAiAct] = useState(null);
+  useEffect(() => { handleVerify(); getAiActivity(7).then(setAiAct).catch(() => setAiAct(false)); /* eslint-disable-next-line */ }, []);
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
@@ -148,6 +150,31 @@ export default function SuperadminAuditChain({ user, onLogout }) {
           </div>
         }
       />
+
+      {/* D (B3) · Actividad de IA — qué decide/muta la IA vs humanos (clave antes de prender la capa agéntica) */}
+      {aiAct && (
+        <Card style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>Actividad de IA</span>
+            <span style={{ fontSize: 12, color: 'var(--cream-3)' }}>últimos {aiAct.ventana_dias} días · agentes que deciden/mutan vs humanos</span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono,monospace', fontSize: 13, fontWeight: 700, color: 'var(--theme,#6D4AFF)' }}>{aiAct.ia_pct}% IA</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10 }}>
+            <div><div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Acciones IA</div><div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>{aiAct.ia}</div></div>
+            <div><div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Acciones humanas</div><div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: 20, color: 'var(--cream)' }}>{aiAct.humano}</div></div>
+          </div>
+          {(aiAct.por_agente || []).length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Por agente</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {aiAct.por_agente.map((a, i) => (
+                  <span key={i} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', background: 'rgba(var(--cream-rgb),0.06)', borderRadius: 9999, padding: '3px 10px' }}>{a.agente} · {a.acciones}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Verification panel */}
       <Card style={{ marginBottom: 20 }}>

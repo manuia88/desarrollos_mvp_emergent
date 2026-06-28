@@ -365,6 +365,34 @@ async def audit_stats(request: Request):
     }
 
 
+@router.get(PREFIX + "/ai-activity")
+async def ai_activity(request: Request, days: int = Query(7, ge=1, le=90)):
+    """D (B3): qué hizo la IA — actividad de agentes vs humanos. Consume actor.by_ai del audit_log. Clave antes de
+    prender la capa agéntica: ver QUÉ decide/muta cada agente, no solo que existe."""
+    await _require_superadmin(request)
+    db = _db(request)
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    base = {"ts": {"$gte": since}}
+    ia = await db.audit_log.count_documents({**base, "actor.by_ai": True})
+    humano = await db.audit_log.count_documents({**base, "actor.by_ai": {"$ne": True}})
+    por_agente = await db.audit_log.aggregate([
+        {"$match": {**base, "actor.by_ai": True}},
+        {"$group": {"_id": "$actor.user_id", "n": {"$sum": 1}}},
+        {"$sort": {"n": -1}}, {"$limit": 12},
+    ]).to_list(12)
+    recientes = await db.audit_log.find(
+        {**base, "actor.by_ai": True},
+        {"_id": 0, "ts": 1, "action": 1, "entity_type": 1, "entity_id": 1, "actor": 1},
+    ).sort("ts", -1).limit(20).to_list(20)
+    return {
+        "ok": True, "ventana_dias": days, "ia": ia, "humano": humano,
+        "ia_pct": round(100 * ia / (ia + humano)) if (ia + humano) else 0,
+        "por_agente": [{"agente": a["_id"], "acciones": a["n"]} for a in por_agente if a.get("_id")],
+        "recientes": [{"ts": r.get("ts"), "accion": r.get("action"), "entidad": r.get("entity_type"),
+                       "entidad_id": r.get("entity_id"), "agente": (r.get("actor") or {}).get("user_id")} for r in recientes],
+    }
+
+
 # ─── Indexes ──────────────────────────────────────────────────────────────────
 
 async def ensure_superadmin_audit_indexes(db) -> None:

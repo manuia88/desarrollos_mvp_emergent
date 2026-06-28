@@ -50,6 +50,11 @@ export async function distinctEntityTypes() {
   return _j(await fetch(`${BASE}/distinct/entity-types`, { headers: h(), credentials: 'include' }));
 }
 
+// D (B3) — Actividad de IA: qué decidió/mutó cada agente vs humanos (consume actor.by_ai)
+export async function getAiActivity(days = 7) {
+  return _j(await fetch(`${BASE}/ai-activity?days=${days}`, { headers: h(), credentials: 'include' }));
+}
+
 export async function getStats() {
   return _j(await fetch(`${BASE}/stats`, { headers: h(), credentials: 'include' }));
 }
