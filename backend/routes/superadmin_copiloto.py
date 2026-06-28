@@ -229,6 +229,36 @@ async def buyer_cycle_intel(db, dias: int = 30):
         {"$group": {"_id": "$meta.intent", "n": {"$sum": 1}}},
         {"$sort": {"n": -1}}, {"$limit": 6},
     ])
+    # GRAFO DEL RECHAZO (el porqué del NO) — la data privilegiada que NADIE más tiene: por qué dicen que no.
+    atlax_saves = await _count(db.buyer_signals, {"type": "save", "active": True, **F})
+    atlax_rechazo_motivo = await _agg(db.buyer_signals, [
+        {"$match": {"type": "dismiss", "value": {"$nin": [None, ""]}, **F}},
+        {"$group": {"_id": "$value", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 8},
+    ])
+    atlax_rechazo_dev = await _agg(db.buyer_signals, [
+        {"$match": {"type": "dismiss", "entity_id": {"$nin": [None, ""]}, **F}},
+        {"$group": {"_id": {"dev": "$entity_id", "motivo": "$value"}, "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 60},
+    ])
+    atlax_foto_dwell = await _count(db.buyer_signals, {"type": "photo_dwell", **F})
+    atlax_foto_zoom = await _count(db.buyer_signals, {"type": "photo_zoom", **F})
+    # GAP DE PRESENTACIÓN: desarrollos rechazados sobre todo por FOTOS → el producto puede encajar pero la imagen mata
+    # (insumo del loop al dev: "tu producto encaja, tus renders no venden — Studio").
+    _devmot = {}
+    for r in (atlax_rechazo_dev or []):
+        k = r.get("_id") or {}
+        dev = k.get("dev")
+        if not dev:
+            continue
+        d = _devmot.setdefault(dev, {})
+        d[k.get("motivo") or "?"] = d.get(k.get("motivo") or "?", 0) + r.get("n", 0)
+    gap_pres = []
+    for dev, mots in _devmot.items():
+        tot = sum(mots.values()) or 1
+        fotos = mots.get("fotos", 0)
+        if fotos and fotos / tot >= 0.4:
+            gap_pres.append({"dev_id": dev, "rechazos": tot, "por_fotos": fotos, "pct_fotos": round(100 * fotos / tot)})
+    gap_pres.sort(key=lambda x: -x["por_fotos"])
+    gap_pres = gap_pres[:10]
 
     return {
         "atlax": {
@@ -238,8 +268,12 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "busquedas_sin_match_exacto": atlax_sin_match,
             "vistas_rapidas": atlax_quickviews,
             "clicks_a_ficha": atlax_ficha_clicks,
+            "guardados": atlax_saves,
             "intencion_top": [{"intent": x["_id"], "veces": x["n"]} for x in atlax_intent if x.get("_id")],
-            "lectura": "Lo que la gente le pide a Atlax y qué hace: búsquedas, uso del perfilador guiado, búsquedas SIN match exacto (hueco de producto a surtir), vistas rápidas y clicks a ficha (engagement), e intención dominante (vivir/invertir).",
+            "rechazo_por_motivo": [{"motivo": x["_id"], "veces": x["n"]} for x in (atlax_rechazo_motivo or []) if x.get("_id")],
+            "gap_presentacion": gap_pres,
+            "engagement_fotos": {"vistas_de_foto": atlax_foto_dwell, "zooms": atlax_foto_zoom},
+            "lectura": "Lo que la gente le pide a Atlax y qué hace: búsquedas, perfilador, búsquedas SIN match (hueco de producto), engagement (vistas rápidas/ficha/foto/zoom), guardados, intención — y EL PORQUÉ DEL NO: rechazo_por_motivo (fotos/precio/zona/…) + gap_presentacion (desarrollos que la demanda rechaza por las FOTOS aunque encajen → ofrecer Studio). Data que ningún portal tiene.",
         },
         "sustitucion": sustitucion,
         "esquema_demanda": esquema_demanda,
