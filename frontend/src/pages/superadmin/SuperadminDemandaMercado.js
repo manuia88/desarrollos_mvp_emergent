@@ -220,6 +220,42 @@ export default function SuperadminDemandaMercado() {
           )}
         </Card>
       </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16, marginTop: 16 }}>
+        {/* GEO FINO: calle / CP / alcaldía */}
+        <Card style={{ padding: '14px 18px' }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Demanda por geo fino</div>
+          <div style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Hasta nivel calle y CP (la unidad hereda la dirección del desarrollo).</div>
+          {[['calle', 'Calle'], ['cp', 'CP (≈manzana)'], ['alcaldia', 'Alcaldía']].map(([key, label]) => (
+            <div key={key} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>{label}</div>
+              {(data?.por_geo?.[key] || []).slice(0, 4).map((g) => (
+                <div key={g.geo} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                  <span>{g.geo}</span><strong style={{ color: 'var(--theme)' }}>{g.demanda}</strong></div>
+              ))}
+              {(data?.por_geo?.[key] || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </div>
+          ))}
+        </Card>
+
+        {/* CONVERSACIÓN ATLAX (turno-por-turno) */}
+        <Card style={{ padding: '14px 18px' }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Qué dice el comprador con Atlax
+            <span style={{ fontSize: 11, color: '#888' }}> ({data?.conversacion?.mensajes_analizados || 0} mensajes)</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Analizado turno por turno: lo que pide y lo que le preocupa, más allá de los filtros.</div>
+          <div style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>Features que menciona</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {(data?.conversacion?.features_mencionados || []).slice(0, 8).map((f) => <Badge key={f.k} tone="ok">{f.k}: {f.n}</Badge>)}
+            {(data?.conversacion?.features_mencionados || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+          </div>
+          <div style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>Objeciones / preocupaciones</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(data?.conversacion?.objeciones || []).slice(0, 8).map((o) => <Badge key={o.k} tone="bad">{o.k}: {o.n}</Badge>)}
+            {(data?.conversacion?.objeciones || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+          </div>
+        </Card>
+      </div>
     </SuperadminLayout>
   );
 }

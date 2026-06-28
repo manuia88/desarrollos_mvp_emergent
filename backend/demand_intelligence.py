@@ -288,6 +288,64 @@ async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] 
             "lectura": "feature creciendo rápido + poca oferta = constrúyelo YA"}
 
 
+_CONV_FEATURES = ("terraza", "balcón", "balcon", "roof", "gym", "alberca", "jardín", "jardin", "vista", "bodega",
+                  "estacionamiento", "pet", "mascota", "amueblado", "sky", "spa", "jacuzzi", "cava", "seguridad", "elevador")
+_CONV_CONCERNS = {"precio": "precio", "caro": "precio", "presupuesto": "precio", "crédito": "crédito", "credito": "crédito",
+                  "enganche": "enganche", "mensualidad": "mensualidad", "escritura": "escritura", "entrega": "entrega",
+                  "plusvalía": "plusvalía", "plusvalia": "plusvalía", "ruido": "ruido", "mantenimiento": "mantenimiento"}
+
+
+async def conversation_intel(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
+    """Analiza la conversación con Atlax TURNO POR TURNO (asistente_messages role=user) → qué FEATURES, COLONIAS y
+    OBJECIONES aparecen en el ida-y-vuelta, más allá de la query inicial. Cierra el gap 'conversación no analizada'."""
+    from data_developments import DEVELOPMENTS
+    cutoff = (dt.datetime.utcnow() - dt.timedelta(days=since_days)).isoformat()
+    known = {d.get("colonia_id"): (d.get("colonia") or "") for d in DEVELOPMENTS if d.get("colonia_id")}
+    feats = defaultdict(int); concerns = defaultdict(int); cols = defaultdict(int)
+    n = 0
+    async for m in db.asistente_messages.find({"role": "user"}, {"_id": 0, "content": 1, "created_at": 1}):
+        if str(m.get("created_at") or "") < cutoff:
+            continue
+        txt = (m.get("content") or "").lower()
+        if not txt:
+            continue
+        n += 1
+        for f in _CONV_FEATURES:
+            if f in txt:
+                feats[f.replace("balcón", "balcon").replace("jardín", "jardin")] += 1
+        for k, label in _CONV_CONCERNS.items():
+            if k in txt:
+                concerns[label] += 1
+        for cid, cname in known.items():
+            if (cid.replace("-", " ") in txt) or (cname and cname.lower() in txt):
+                cols[cid] += 1
+    _rank = lambda d: [{"k": k, "n": v} for k, v in sorted(d.items(), key=lambda x: -x[1])[:top]]
+    return {"mensajes_analizados": n, "features_mencionados": _rank(feats), "objeciones": _rank(concerns),
+            "colonias_mencionadas": _rank(cols),
+            "lectura": "lo que el comprador realmente DICE en la conversación (intención + objeciones), no solo lo que filtra"}
+
+
+async def demand_by_geo(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
+    """Demanda al GEO MÁS FINO posible: CALLE → CP(≈manzana) → COLONIA → ALCALDÍA → CIUDAD. La calle/CP vienen del dev
+    (la unidad hereda su dirección). Cierra el gap sub-colonia: 'cuántos exploran propiedades en Moliere 245 / CP 11570'."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    levels = {"calle": "street", "cp": "postal_code", "colonia": "colonia_id", "alcaldia": "alcaldia", "ciudad": "city"}
+    agg = {lvl: defaultdict(int) for lvl in levels}
+    async for s in db.buyer_signals.find(
+            {"created_at_dt": {"$gte": cutoff}, "type": {"$in": _ENGAGE}, "entity_id": {"$nin": [None, ""]}},
+            {"_id": 0, "entity_id": 1}):
+        dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+        if not dev:
+            continue
+        for lvl, field in levels.items():
+            v = dev.get(field) or ("CDMX" if lvl == "ciudad" else None)
+            if v:
+                agg[lvl][str(v)] += 1
+    return {lvl: [{"geo": g, "demanda": n} for g, n in sorted(d.items(), key=lambda x: -x[1])[:top]]
+            for lvl, d in agg.items()}
+
+
 async def financial_intent(db, colonias: Optional[List[str]] = None, since_days: int = 365) -> Dict[str, Any]:
     """INTENCIÓN FINANCIERA (antes invisible) — cuántos exploran PAGO (qué enganche/mensualidad/esquema) y RENTABILIDAD
     (qué ROI). Señal de ALTO intento. Que payment_explore/roi_explore no queden capturados-y-muertos."""

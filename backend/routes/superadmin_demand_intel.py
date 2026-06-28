@@ -26,6 +26,8 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
         "no_satisfecha": await di.unmet_demand(db, since_days=since_days),
         "tendencias": await di.trend_alerts(db),
         "intencion_financiera": await di.financial_intent(db, since_days=since_days),
+        "por_geo": await di.demand_by_geo(db, since_days=since_days),                # calle/CP/colonia/alcaldía/ciudad
+        "conversacion": await di.conversation_intel(db, since_days=since_days),      # qué dice el comprador con Atlax
     }
 
 
