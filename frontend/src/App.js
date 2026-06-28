@@ -39,6 +39,7 @@ import AuthModal from './components/landing/AuthModal';
 import RolePicker from './components/landing/RolePicker';
 import AtlaxBubble from './components/landing/AtlaxBubble';
 import AtlaxApartado from './components/landing/AtlaxApartado';  // F4: modal global de apartado (lo dispara cualquier tarjeta)
+import AtlaxBackButton from './components/landing/AtlaxBackButton';  // "← Volver a Atlax" en fichas abiertas desde el buscador
 const DrpiHeroWidget = lazy(() => import('./components/public/DrpiHeroWidget'));
 
 const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
@@ -1071,6 +1072,7 @@ function AppRouter() {
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
     <AtlaxApartado />{/* F4 · modal global de apartado — disponible en TODA ruta (surface, fichas, etc.) */}
+    <AtlaxBackButton />{/* "← Volver a Atlax" en fichas abiertas desde el buscador (conserva el chat) */}
     </Suspense>
   );
 }
