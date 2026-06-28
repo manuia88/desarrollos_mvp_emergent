@@ -34,6 +34,19 @@ export function sendBuyerSignal(type, opts = {}) {
   } catch { /* noop */ }
 }
 
+// U1 cross-device: si el usuario está LOGUEADO, vincula este visitor_id a su cuenta → su gusto/lista lo siguen en
+// cualquier dispositivo donde inicie sesión. Una vez por sesión, fail-silent (sin sesión = no-op en el backend).
+export function claimVisitor() {
+  try {
+    if (sessionStorage.getItem('dmx_claimed')) return;
+    sessionStorage.setItem('dmx_claimed', '1');
+    fetch(`${API}/api/buyer/claim`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', keepalive: true,
+      body: JSON.stringify({ visitor_id: visitorId() }),
+    }).catch(() => {});
+  } catch { /* noop */ }
+}
+
 /** Lee el interés agregado de un desarrollo (likes/saves/views · k-anon ≥3) para prueba social en la ficha. */
 export async function fetchInteres(devId) {
   try {

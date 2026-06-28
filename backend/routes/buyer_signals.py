@@ -503,6 +503,28 @@ async def registrar_lead(b: RegistrarLeadIn, request: Request):
         return {"ok": False}
 
 
+class ClaimIn(BaseModel):
+    visitor_id: str
+
+
+@router.post("/api/buyer/claim")
+async def claim_visitor(b: ClaimIn, request: Request):
+    """U1 cross-device para usuario LOGUEADO: vincula este visitor_id a la identidad del usuario autenticado
+    (email/teléfono) → su gusto y su lista lo siguen en CUALQUIER dispositivo donde inicie sesión, sin tener que
+    re-registrarse. Idempotente, fail-open. Sin sesión = no-op (200, claimed:false), no rompe el flujo anónimo."""
+    try:
+        from server import get_current_user
+        u = await get_current_user(request)
+        if not u or not b.visitor_id:
+            return {"ok": True, "claimed": False}
+        from services.visitor_identity import link
+        await link(request.app.state.db, getattr(u, "email", None), getattr(u, "phone", None), b.visitor_id)
+        return {"ok": True, "claimed": True}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] claim fail-open: {e}")
+        return {"ok": True, "claimed": False}
+
+
 def _amen_set(dev):
     return {str(a).strip().lower() for a in (dev.get("amenities") or []) if a}
 

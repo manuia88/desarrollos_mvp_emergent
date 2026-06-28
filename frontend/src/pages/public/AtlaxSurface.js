@@ -6,7 +6,7 @@
 // REAL (AtlaxLeadModal → /api/buyer/registrar → asesor). Copy siempre accionable; cada búsqueda se registra granular.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { sendBuyerSignal, visitorId } from '../../lib/buyerSignal';
+import { sendBuyerSignal, visitorId, claimVisitor } from '../../lib/buyerSignal';
 import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';
 import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import AtlaxResults from '../../components/landing/AtlaxResults';
@@ -139,6 +139,7 @@ export default function AtlaxSurface() {
   // ── Persistencia del chat + ?q= ───────────────────────────────────────────
   useEffect(() => {
     if (askedRef.current) return; askedRef.current = true;
+    claimVisitor();   // U1: si está logueado, pega su visitor_id a su cuenta (cross-device)
     try { const saved = sessionStorage.getItem(CHAT_KEY); if (saved) { const m = JSON.parse(saved); if (Array.isArray(m) && m.length) setMessages(m); } } catch (_) { /* noop */ }
     const q = params.get('q');
     if (q) { runSearch(q); setParams({}, { replace: true }); }

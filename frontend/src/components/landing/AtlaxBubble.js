@@ -12,6 +12,7 @@ import AtlaxResults from './AtlaxResults';      // motor FUERTE compartido con l
 import AtlaxQuickView from './AtlaxQuickView';  // ficha en vista rápida (misma que la superficie)
 import AtlaxLeadModal from './AtlaxLeadModal';  // "Hablar con un Asesor" → lead REAL
 import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';  // un solo buscador en todas las ventanas
+import { claimVisitor } from '../../lib/buyerSignal';                 // U1: pega visitor_id al usuario logueado (cross-device)
 import { fetchBuySignal } from '../../api/marketplace';
 import { Z } from '../../styles/zIndex';
 
@@ -345,6 +346,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
   // Contexto de página (lo que el usuario ve/busca ahora) en un ref → siempre el último valor al enviar, sin cerrar stale.
   const contextRef = useRef(context);
   useEffect(() => { contextRef.current = context; }, [context]);
+  useEffect(() => { claimVisitor(); }, []);   // U1: una vez por sesión, vincula al usuario logueado (cross-device)
   const [threadId, setThreadId] = useState(() => {
     try { return localStorage.getItem(SS_THREAD) || null; } catch { return null; }
   });
