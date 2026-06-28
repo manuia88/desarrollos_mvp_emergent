@@ -503,7 +503,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               );
             })()}
             {finTab === 'rento' && <OwnershipCalculator devId={dev.id} />}
-            {finTab === 'plan' && <PublicCotizador formasPago={dev.config?.formas_pago} basePrice={dev.price_from} fechaInicio={dev.config?.fecha_inicio} fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate} />}
+            {finTab === 'plan' && <PublicCotizador formasPago={dev.config?.formas_pago} basePrice={dev.price_from} fechaInicio={dev.config?.fecha_inicio} fechaEntrega={dev.config?.fecha_entrega || dev.delivery_estimate} devId={dev.id} colonia={dev.colonia_id || dev.colonia} />}
             {finTab === 'credito' && <MortgageCalculator variant="inline" propiedadId={dev.id} propiedadNombre={dev.name} precioInicial={dev.price_from || 0} />}
             {finTab === 'inversion' && <InvestmentSimulator compact light prefilled={{ precio: dev.price_from, m2: dev.m2_from || 80, colonia: dev.zone_id || 'del-valle' }} />}
           </section>

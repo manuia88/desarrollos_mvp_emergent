@@ -3,7 +3,8 @@
  * Ya NO trae selector de unidades (las unidades se eligen ARRIBA, en el Paso 2) — toma la unidad elegida de la ficha. Toggle
  * 👤 Para ti (1 unidad = la elegida) / 🏛️ Institucional (un fondo: N unidades disponibles). Re-skineado a nuestro diseño.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { Card, Stat, SERIF, SANS, HEAD } from './ui';
 import InversionV4Calculator from '../investment/InversionV4Calculator';
 import ComparadorInversion from './ComparadorInversion';
@@ -25,6 +26,19 @@ export default function SeccionCalcInversion({ dev, unit, mode = 'individual', u
     fetch(`${API}/api/zona/${encodeURIComponent(col)}/inversion`).then((r) => r.json()).then((d) => { if (alive) setInv(d); }).catch(() => {});
     return () => { alive = false; };
   }, [dev.colonia_id, dev.colonia]);
+
+  // Captura la EXPLORACIÓN de rentabilidad/ROI (antes invisible): lente inversionista + el retorno que mira.
+  const roiFired = useRef(false);
+  useEffect(() => {
+    if (!result || roiFired.current) return;
+    roiFired.current = true;
+    try {
+      sendBuyerSignal('roi_explore', {
+        entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: mode,
+        meta: { tir_pct: result.tir_pct, cap_rate: inv && inv.cap_rate, modo: mode, precio: unit && unit.price },
+      });
+    } catch (_) { /* noop */ }
+  }, [result, dev.id, dev.colonia_id, dev.colonia, unit, mode, inv]);
 
   const fondoUnits = units || [];   // unidades del fondo (institucional), elegidas ARRIBA en el Paso 2
   const mounted = (mode === 'individual' && unit) || (mode === 'institucional' && fondoUnits.length >= 1);

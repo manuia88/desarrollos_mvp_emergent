@@ -2,8 +2,9 @@
 // El comprador elige un plan y ve enganche / mensualidades / escritura / precio con descuento.
 // Cálculo 100% client-side con la fórmula oficial (utils/paymentSchemes.breakdown).
 // Fail-open: sin formas_pago, no renderiza nada.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { breakdown } from '../../utils/paymentSchemes';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 
 const mxn = (n) => {
   const v = Number(n);
@@ -32,7 +33,7 @@ function Row({ label, value, hint, strong, tone }) {
   );
 }
 
-export default function PublicCotizador({ formasPago, basePrice, fechaInicio, fechaEntrega }) {
+export default function PublicCotizador({ formasPago, basePrice, fechaInicio, fechaEntrega, devId, colonia }) {
   const schemes = Array.isArray(formasPago) ? formasPago : [];
   const [idx, setIdx] = useState(0);
   const base = Number(basePrice) || 0;
@@ -45,6 +46,21 @@ export default function PublicCotizador({ formasPago, basePrice, fechaInicio, fe
     if (!selected || !base) return null;
     return breakdown(base, selected, fIni, fechaEntrega);
   }, [selected, base, fIni, fechaEntrega]);
+
+  // Captura la EXPLORACIÓN financiera (antes invisible): qué esquema/enganche/mensualidad explora el comprador.
+  const fired = useRef(new Set());
+  useEffect(() => {
+    if (!bd || !selected) return;
+    const k = `${devId || ''}|${idx}`;
+    if (fired.current.has(k)) return;
+    fired.current.add(k);
+    try {
+      sendBuyerSignal('payment_explore', {
+        entity_id: devId, colonia, value: String(selected.nombre || selected.label || idx),
+        meta: { esquema: selected.nombre || selected.label, enganche_pct: bd.firma_pct, mensualidad: bd.mensualidad, meses: bd.meses, precio: base },
+      });
+    } catch (_) { /* noop */ }
+  }, [bd, selected, idx, devId, colonia, base]);
 
   if (!schemes.length || !base) return null;
 

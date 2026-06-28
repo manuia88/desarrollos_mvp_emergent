@@ -17,7 +17,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 _ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwell", "photo_zoom", "intent", "save",
-           "atlax_profile", "zone_profile", "lens", "module_open", "section_view"]   # + señales explícitas (amenidades)
+           "atlax_profile", "zone_profile", "lens", "module_open", "section_view",
+           "atlax_query", "atlax_apartado"]   # + señales explícitas (amenidades/filtros de CADA pregunta a Atlax)
 
 
 def _as_feature_list(v):

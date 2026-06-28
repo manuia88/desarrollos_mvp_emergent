@@ -54,7 +54,10 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "section_time",  # tiempo en una sección de la ficha (value=sección, seconds, unit_number) — engagement de contenido
          "section_view",  # vio una sección de la ficha (value=sección) — qué contenido capta atención
          "zone_profile",  # declaró su perfil en una zona (meta = familia/primera/vivir + respuestas) — demanda declarada
-         "atlax_apartado"}  # intentó APARTAR con enganche (meta = credito/enganche) — señal casi-compra, la más caliente
+         "atlax_apartado",  # intentó APARTAR con enganche (meta = credito/enganche) — señal casi-compra, la más caliente
+         # Exploración financiera (antes invisible) → intención alta + qué pide en dinero:
+         "payment_explore",  # exploró el cotizador/plan de pago (meta = enganche/mensualidad/esquema/plazo)
+         "roi_explore"}    # exploró rentabilidad/ROI (meta = escenario/yield/plusvalía) — lente inversionista
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -124,7 +127,7 @@ async def buyer_signal(s: SignalIn, request: Request):
             "created_at_dt": now,
         }
         # meta granular: se guarda en las señales que la traen (Atlax + perfil de zona + apartado), sanitizado y acotado.
-        if s.type in ("atlax_query", "atlax_profile", "dismiss", "zone_profile", "atlax_apartado") and isinstance(s.meta, dict):
+        if s.type in ("atlax_query", "atlax_profile", "dismiss", "zone_profile", "atlax_apartado", "payment_explore", "roi_explore") and isinstance(s.meta, dict):
             clean = {}
             for k, v in list(s.meta.items())[:20]:
                 if isinstance(v, (str, int, float, bool)) or v is None:
