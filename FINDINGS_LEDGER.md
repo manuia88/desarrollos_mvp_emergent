@@ -282,3 +282,25 @@ Un journey de marketplace → verificado VISIBLE en cada portal/engine:
   formalizarlas en el harness.
 - 🔵 Otras escrituras multi-paso usan upsert atómico (cube, closing_lifts, visitor_identity, routing) → ya idempotentes;
   la ruta de registro era la única con check-then-act sin proteger.
+
+---
+
+## Propagación · OTRAS direcciones (asesor-cierra→todos, dev-publica→internos) — 8/8
+
+`scripts/propagation_directions.py` — formaliza las direcciones que faltaban (la de marketplace→todos ya estaba 12/12):
+- **ASESOR CIERRA → SUPERADMIN:** la venta entra a `db.transactions` (DRPI). ✓
+- **ASESOR CIERRA → FLYWHEEL → RANKING:** cierre→`copiloto_closings`→`closing_lifts`(real.n=3)→`score_devs` lo consume
+  VIVO (5 devs rankeados, altavista-polanco=94.3). El marketplace mejora solo con cada venta. ✓
+- **ASESOR CIERRA → DEV:** unidad→`units_history` + `developer_unit_overrides` marca VENDIDA (ritmo de venta/ficha). ✓
+- **DEV PUBLICA → INTERNOS:** el proyecto del wizard (`db.projects`) es visible a dev/superadmin/asesor/insights/
+  auto-approve (12 readers). ✓
+
+**Nota de producto (no es bug):** el marketplace PÚBLICO es catálogo CURADO (`DEVELOPMENTS` estático). Que los
+proyectos del wizard (`db.projects`) salgan AUTO al marketplace público es DECISIÓN DE PRODUCTO (¿gate de aprobación?),
+no un cable roto — hay un `auto_approve_engine` que sería el punto de arranque si se decide hacerlo.
+
+**Verificación de frescura:** el cache de gusto (`visitor_taste_materialized`) SÍ se invalida en cada señal
+(buyer_signals.py:146-147 → `invalidate_visitor_taste`) → el ranking del comprador se refresca con cada like. Sin bug.
+
+### Batería completa (un comando: `bash scripts/audit_all.sh`) — 66/66 verde
+smoke 17/17 · aislamiento 13/13 · journey 8/8 · propagación→todos 12/12 · propagación direcciones 8/8 · concurrencia 8/8.
