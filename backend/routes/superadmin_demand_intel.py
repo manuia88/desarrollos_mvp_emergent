@@ -21,6 +21,7 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
         "by_colonia": await di.demand_by_colonia(db, period=period, since_days=since_days),
         "by_attribute": await di.demand_by_attribute(db, since_days=since_days),
         "what_to_build": await di.what_to_build(db, colonia=colonia, since_days=since_days),
+        "engagement_contenido": await di.engagement_by_content(db, since_days=since_days),
     }
 
 

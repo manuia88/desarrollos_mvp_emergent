@@ -149,6 +149,29 @@ export default function SuperadminDemandaMercado() {
           ))}
         </Card>
       </div>
+
+      {/* ENGAGEMENT DE CONTENIDO (señales antes muertas: section_time/section_view/module_open) */}
+      <Card style={{ padding: '14px 18px', marginTop: 16 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Qué contenido engancha
+          <span style={{ fontSize: 11, color: '#888' }}> ({data?.engagement_contenido?.['señales_de_contenido'] || 0} señales de sección/módulo)</span>
+        </div>
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>Qué secciones y módulos de la ficha capturan la atención del comprador — le dice al dev qué destacar.</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          {[['secciones_por_tiempo', 'Secciones por tiempo', 'seccion', 'segundos_total', 's'],
+            ['secciones_por_vistas', 'Secciones por vistas', 'seccion', 'vistas', ''],
+            ['modulos_abiertos', 'Módulos abiertos', 'modulo', 'aperturas', '']].map(([key, title, kf, vf, suf]) => (
+            <div key={key}>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>{title}</div>
+              {(data?.engagement_contenido?.[key] || []).slice(0, 6).map((r) => (
+                <div key={r[kf]} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0' }}>
+                  <span>{r[kf]}</span><strong style={{ color: 'var(--theme)' }}>{r[vf]}{suf}</strong>
+                </div>
+              ))}
+              {(data?.engagement_contenido?.[key] || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </div>
+          ))}
+        </div>
+      </Card>
     </SuperadminLayout>
   );
 }

@@ -16,7 +16,17 @@ import datetime as dt
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-_ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwell", "photo_zoom", "intent", "save"]
+_ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwell", "photo_zoom", "intent", "save",
+           "atlax_profile", "zone_profile", "lens", "module_open", "section_view"]   # + señales explícitas (amenidades)
+
+
+def _as_feature_list(v):
+    """meta.amenidades llega como lista O como string 'gym, alberca' (atlax_profile) → normaliza a lista."""
+    if isinstance(v, list):
+        return [str(x).strip().lower() for x in v if x]
+    if isinstance(v, str) and v.strip():
+        return [p.strip().lower() for p in v.split(",") if p.strip()]
+    return []
 
 
 def bucket(d: dt.datetime, period: str) -> str:
@@ -68,10 +78,10 @@ async def demand_by_feature(db, colonia: Optional[str] = None, period: str = "mo
         # 3) features del dev (proxy) — todas las del dev que vio.
         feats = None
         meta = s.get("meta") or {}
-        ame = meta.get("amenidades") or meta.get("features")
-        col = s.get("colonia") or (dev or {}).get("colonia_id")
-        if isinstance(ame, list) and ame:
-            feats = {str(f).strip().lower() for f in ame if f}
+        ame = _as_feature_list(meta.get("amenidades") or meta.get("features"))
+        col = s.get("colonia") or (dev or {}).get("colonia_id") or (meta.get("zona") or "").strip().lower() or None
+        if ame:
+            feats = set(ame)
             precise += 1
         elif dev:
             un = s.get("unit_number")
@@ -154,6 +164,34 @@ async def what_to_build(db, colonia: Optional[str] = None, since_days: int = 365
     gaps.sort(key=lambda x: -x["presion"])
     return {"colonia": colonia or "todas", "oportunidades": gaps[:15],
             "lectura": "presion alta = mucha demanda, poca oferta → construir esto"}
+
+
+async def engagement_by_content(db, since_days: int = 365, top: int = 20) -> Dict[str, Any]:
+    """RESUCITA señales que se capturaban y morían: section_time/section_view/module_open → qué CONTENIDO de la ficha
+    engancha al comprador (secciones, módulos, tiempo). Le dice al dev qué destacar y al superadmin qué le importa al mercado."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    sec_time = defaultdict(float); sec_views = defaultdict(int); mod_open = defaultdict(int)
+    n = 0
+    async for s in db.buyer_signals.find(
+            {"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["section_time", "section_view", "module_open"]}},
+            {"_id": 0, "type": 1, "value": 1, "seconds": 1, "meta": 1}):
+        n += 1
+        v = (s.get("value") or "").strip().lower()
+        if not v:
+            continue
+        if s["type"] == "section_time":
+            secs = s.get("seconds") or (s.get("meta") or {}).get("seconds") or 0
+            sec_time[v] += float(secs or 0)
+        elif s["type"] == "section_view":
+            sec_views[v] += 1
+        else:
+            mod_open[v] += 1
+    return {
+        "señales_de_contenido": n,
+        "secciones_por_tiempo": [{"seccion": k, "segundos_total": round(t)} for k, t in sorted(sec_time.items(), key=lambda x: -x[1])[:top]],
+        "secciones_por_vistas": [{"seccion": k, "vistas": v} for k, v in sorted(sec_views.items(), key=lambda x: -x[1])[:top]],
+        "modulos_abiertos": [{"modulo": k, "aperturas": v} for k, v in sorted(mod_open.items(), key=lambda x: -x[1])[:top]],
+    }
 
 
 async def killer_query(db, feature: str, colonia: str, period: str = "month") -> Dict[str, Any]:
