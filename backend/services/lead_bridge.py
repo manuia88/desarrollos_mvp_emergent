@@ -120,6 +120,29 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
         phone = contact.get("phone") or lead.get("phone")
         np = _digits10(phone)
 
+        # GUSTO → Ficha360 (auditoría Fix #3): el asesor NO debe hablar a ciegas. Al espejar, adjuntamos un resumen
+        # COMPACTO del gusto del comprador (qué ama / evita / techo de precio / espacios / motivos del NO) leído de
+        # visitor_taste. FAIL-OPEN: si no hay señal, el contacto se crea igual.
+        taste_compact = None
+        _vid = lead.get("visitor_id")
+        if _vid:
+            try:
+                from visitor_taste import build_visitor_taste
+                _tp = await build_visitor_taste(db, _vid)
+                if _tp:
+                    taste_compact = {
+                        "resumen": _tp.get("resumen"),
+                        "amenidades": (_tp.get("amenidades") or [])[:5],
+                        "zonas_gustan": (_tp.get("zonas_gustan") or [])[:3],
+                        "evita": (_tp.get("evita") or [])[:3],
+                        "precio_techo": _tp.get("precio_techo"),
+                        "espacios": [r.get("label") for r in (_tp.get("rooms") or [])][:3],
+                        "motivos_no": (_tp.get("motivos_no") or [])[:3],
+                        "confianza": _tp.get("confianza"),
+                    }
+            except Exception:  # noqa: BLE001
+                pass
+
         # 1) ¿ya materializado este lead? → idempotente
         existing = await db.asesor_contactos.find_one(
             {"owner_id": owner, "source_lead_id": lead_id}, {"_id": 0, "id": 1}
@@ -128,11 +151,14 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             # Re-engagement: el comprador volvió y subió su interés → refresca temperatura + factores para que el
             # asesor lo vea CALENTARSE en su lista (no se queda frío de la primera vez). FAIL-OPEN.
             try:
-                await db.asesor_contactos.update_one({"id": existing["id"]}, {"$set": {
+                _upd = {
                     "temperatura": lead.get("temperatura") or "frio",
                     "engagement_score": lead.get("engagement_score"),
                     "engagement_factores": lead.get("engagement_factores") or [],
-                }})
+                }
+                if taste_compact:
+                    _upd["taste_compact"] = taste_compact   # refresca el gusto al re-engancharse
+                await db.asesor_contactos.update_one({"id": existing["id"]}, {"$set": _upd})
             except Exception:  # noqa: BLE001
                 pass
             return existing["id"]
@@ -148,10 +174,10 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
                 {"owner_id": owner, "$or": ident_or}, {"_id": 0, "id": 1}
             )
             if dup:
-                await db.asesor_contactos.update_one(
-                    {"id": dup["id"]},
-                    {"$set": {"source_lead_id": lead_id, "origin": "marketplace"}},
-                )
+                _dupset = {"source_lead_id": lead_id, "origin": "marketplace"}
+                if taste_compact:
+                    _dupset["taste_compact"] = taste_compact   # alta manual ahora con gusto del comprador
+                await db.asesor_contactos.update_one({"id": dup["id"]}, {"$set": _dupset})
                 return dup["id"]
 
         # 3) crear contacto materializado
@@ -176,6 +202,7 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             # el asesor prioriza por interés real y abre con contexto, no a ciegas.
             "engagement_score": lead.get("engagement_score"),
             "engagement_factores": lead.get("engagement_factores") or [],
+            "taste_compact": taste_compact,   # gusto del comprador → Ficha360 (asesor no habla a ciegas)
             "etapa": _STATUS_TO_ETAPA.get(lead.get("status"), "nuevo"),
             "tags": [],
             "fuente": "Marketplace",

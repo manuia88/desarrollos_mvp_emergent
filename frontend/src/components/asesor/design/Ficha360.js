@@ -776,6 +776,20 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>Por qué:</span> {c.engagement_factores.join(' · ')}
                 </div>
               )}
+              {/* LO QUE LE GUSTA (auditoría Fix #3): el gusto del comprador viaja al asesor → abre con contexto, no a ciegas */}
+              {c.taste_compact && (() => {
+                const t = c.taste_compact, bits = [];
+                if ((t.amenidades || []).length) bits.push(t.amenidades.slice(0, 4).join(', '));
+                if ((t.zonas_gustan || []).length) bits.push(`zonas: ${t.zonas_gustan.slice(0, 2).join(', ')}`);
+                if (t.precio_techo) bits.push(`hasta $${(t.precio_techo / 1e6).toFixed(t.precio_techo % 1e6 ? 1 : 0)}M`);
+                if (!bits.length) return null;
+                return (
+                  <div data-testid="asr-taste-compact" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--cream-3)', marginTop: 5, lineHeight: 1.5 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--cream-2)' }}>Le gusta:</span> {bits.join(' · ')}
+                    {(t.evita || []).length > 0 && <span> · evita {t.evita.slice(0, 2).join(', ')}</span>}
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {waUrl && (
