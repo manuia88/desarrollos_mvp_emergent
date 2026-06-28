@@ -88,6 +88,64 @@ async def main():
     rv = await resolve_visitors(db, vid or "x")
     check("resolve_visitors devuelve lista", isinstance(rv, list) and len(rv) >= 1)
 
+    # ── Integridad PROFUNDA (lo que destaparon los 5 batches: no basta con "responde 200") ──
+    print("\n— Integridad profunda: funciona · aislado · auditado —")
+    probe_dev = {"id": "TEST-harness-dev", "colonia": "zz", "bedrooms_range": [5, 5],
+                 "price_from": 12_000_000, "amenities": [], "photos": []}
+
+    # B1 · FLYWHEEL LIVENESS: un cierre real de un perfil DEBE mover el ranking de un dev de ese perfil (aprende de verdad)
+    try:
+        from routes.copiloto_flywheel import materialize_closing_lifts
+        from visitor_taste import score_devs
+        tvid = None
+        async for s in db.buyer_signals.aggregate([{"$match": {"type": {"$in": ["like", "save"]}}},
+                                                   {"$group": {"_id": "$visitor_id", "n": {"$sum": 1}}},
+                                                   {"$sort": {"n": -1}}, {"$limit": 6}]):
+            if (await score_devs(db, s["_id"], [probe_dev])).get("TEST-harness-dev") is not None:
+                tvid = s["_id"]
+                break
+        if tvid:
+            await materialize_closing_lifts(db)
+            base = (await score_devs(db, tvid, [probe_dev]))["TEST-harness-dev"]
+            for i in range(3):
+                await db.copiloto_closings.update_one({"id": f"TEST-harness-cls-{i}"},
+                    {"$set": {"id": f"TEST-harness-cls-{i}", "comprado": {"recamaras": [5, 5], "price_from": 12_000_000}}}, upsert=True)
+            await materialize_closing_lifts(db)
+            learned = (await score_devs(db, tvid, [probe_dev]))["TEST-harness-dev"]
+            check("flywheel LIVENESS: un cierre real mueve el ranking (B1)", learned > base, f"{base}→{learned}")
+        else:
+            check("flywheel LIVENESS (B1)", True, "skip: sin visitante con gusto")
+    finally:
+        await db.copiloto_closings.delete_many({"id": {"$regex": "^TEST-harness-cls-"}})
+        try:
+            from routes.copiloto_flywheel import materialize_closing_lifts as _mcl
+            await _mcl(db)
+        except Exception:
+            pass
+
+    # B2-A2/#5 · AISLAMIENTO DE TENANT (sin RLS): un lead de OTRA org NO debe ser ruteado por el barrido de la casa-default
+    try:
+        from services.lead_bridge import route_orphan_leads
+        await db.leads.update_one({"id": "TEST-harness-orgB"}, {"$set": {
+            "id": "TEST-harness-orgB", "dev_org_id": "org_harness_x", "source": "test_harness",
+            "assigned_to": None, "asesor_id": None, "activo": True}}, upsert=True)
+        await route_orphan_leads(db)
+        leak = (await db.leads.find_one({"id": "TEST-harness-orgB"}, {"_id": 0, "assigned_to": 1}) or {}).get("assigned_to")
+        check("aislamiento de tenant: lead de otra org NO se rutea (B2-A2, sin RLS)", not leak)
+    finally:
+        await db.leads.delete_many({"id": "TEST-harness-orgB"})
+        await db.asesor_contactos.delete_many({"source_lead_id": "TEST-harness-orgB"})
+
+    # B3 · COMPLETITUD DE AUDITORÍA: una acción de agente DEBE dejar rastro con by_ai=True (no audit-dark)
+    try:
+        from audit_log import log_agent_action
+        await log_agent_action(db, "harness_probe", "update", "TEST-harness", entity_id="TEST-harness-audit")
+        await asyncio.sleep(0.6)
+        ae = await db.audit_log.find_one({"entity_id": "TEST-harness-audit"}, {"_id": 0, "actor": 1})
+        check("auditoría: acción de agente → by_ai=True (B3)", bool(ae) and (ae.get("actor") or {}).get("by_ai") is True)
+    finally:
+        await db.audit_log.delete_many({"entity_type": "TEST-harness"})
+
     n_pass = sum(1 for x in _results if x)
     print(f"\n{'='*48}\nRESULTADO: {n_pass}/{len(_results)} checks PASS")
     sys.exit(0 if n_pass == len(_results) else 1)

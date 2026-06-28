@@ -143,3 +143,25 @@ Baseline de datos: `scratchpad/baseline_20260628.json` (439 colecciones) · back
 
 **Decisión**: NO se reescriben las 27 entradas históricas sin actor (integridad de auditoría = append-only; el fix es forward).
 **Verificado**: derivación humano/IA correcta; f02 schema-consistente; filtro by_ai a nivel dato + endpoint; cero-residuo; harness 13/13. Archivos: `audit_log.py`, `scheduler_f02.py`, `superadmin_audit.py`, `smart_routing_engine.py`, `lead_bridge.py`.
+
+---
+
+## Meta-análisis de los 5 batches — áreas de oportunidad + upgrade aplicado
+
+**Patrones de fondo (no fixes sueltos):**
+1. 🔵 "Cableado por fuera, roto por dentro" (B1) — parece conectado, el dato no fluye.
+2. 🔵 Auto-reparación incompleta (B2: retry solo en arranque) — puede haber más jobs sin cron.
+3. 🔵 Sin garantía de "cero callejones" (B2-A2) — entidades caen en grietas; el patrón `*_completeness_sweep` se puede generalizar.
+4. 🔵 Agentes audit-dark (B3) — y la capa agéntica (Cerebro) mutará mucho más; falta vista "qué hizo la IA".
+5. 🔴 **Sin RLS → cada escritura es fuga potencial** (B2-A2 casi se fuga) — el riesgo sistémico mayor.
+
+**Upgrade APLICADO (suma directo al método):** el harness era superficial (verifica "responde", no "funciona/aislado/auditado"). Como es el gate de regresión de CADA batch, lo profundicé: ahora 16 checks, +3 invariantes que los batches probaron faltantes —
+- **flywheel LIVENESS** (B1): un cierre real mueve el ranking (59.8→64.3).
+- **aislamiento de tenant** (B2-A2/#5, sin RLS): un lead de otra org NO se rutea.
+- **completitud de auditoría** (B3): acción de agente → by_ai=True.
+Cada uno self-cleaning (cero-residuo verificado). `scripts/smoke_e2e.py`.
+
+**Próximos upgrades propuestos (priorizados):**
+- **C 🔴** — harness adversarial de aislamiento: probar TODAS las escrituras clave con ids cross-tenant (dado que no hay RLS). El de mayor valor de riesgo.
+- **B 🟡** — censo de self-healing: auditar todos los jobs de reconcile/repair por cobertura de cron + generalizar el completeness-sweep.
+- **D 🟡** — vista superadmin "Actividad de IA" (visualiza el by_ai; clave antes de prender Cerebro).
