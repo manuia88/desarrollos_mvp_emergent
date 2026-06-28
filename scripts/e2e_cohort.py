@@ -35,17 +35,20 @@ async def _teardown(db, lead_ids):
     await db.buyer_signals.delete_many({"$or": [{"visitor_id": rx}, {"id": {"$regex": f"^{TAG}-sig-"}}]})
     await db.marketplace_searches.delete_many({"visitor_id": rx})
     await db.leads.delete_many({"visitor_id": rx})
-    # contactos: por source_lead_id Y por el email de prueba (robusto ante crash mid-run)
+    # contactos: por source_lead_id Y por el email de prueba (robusto ante crash mid-run). Captura ids antes de borrar.
     q = [{"emails": {"$regex": "@e2e.local"}}]
     if lead_ids:
         q.append({"source_lead_id": {"$in": lead_ids}})
+    cont_ids = [d["id"] async for d in db.asesor_contactos.find({"$or": q}, {"id": 1})]
     await db.asesor_contactos.delete_many({"$or": q})
     if lead_ids:
-        for c in ("notifications", "asesor_lead_properties", "favoritos_board"):
-            try:
-                await db[c].delete_many({"$or": [{"lead_id": {"$in": lead_ids}}, {"entity_id": {"$in": lead_ids}}]})
-            except Exception:
-                pass
+        await db.lead_events.delete_many({"ref_id": {"$in": lead_ids}})
+        await db.notifications.delete_many({"$or": [{"lead_id": {"$in": lead_ids}}, {"entity_id": {"$in": lead_ids}}]})
+        await db.favoritos_board.delete_many({"$or": [{"lead_id": {"$in": lead_ids}}, {"entity_id": {"$in": lead_ids}}]})
+    if cont_ids:
+        # asesor_lead_properties + lead_events se enllavan por contacto_id (no lead_id) → este era el cable que faltaba.
+        await db.asesor_lead_properties.delete_many({"contacto_id": {"$in": cont_ids}})
+        await db.lead_events.delete_many({"contacto_id": {"$in": cont_ids}})
     await db.visitor_identity.delete_many({"visitors": rx})
     # audit_log del lead (create_buyer_lead loguea a audit_log; prefija el source con 'copiloto_' → regex) + lead_ids.
     _aq = [{"after.source": {"$regex": "test_e2e"}}]

@@ -30,11 +30,20 @@ def chk(name, ok, detail=""):
 
 async def _teardown(db):
     rx = {"$regex": f"^{TAG}-"}
+    # captura ids ANTES de borrar → para limpiar los trails derivados del espejo (cero-residuo en TODAS las colecciones).
+    lead_ids = [d["id"] async for d in db.leads.find({"visitor_id": rx}, {"id": 1})]
+    cont_ids = [d["id"] async for d in db.asesor_contactos.find({"emails": {"$regex": "@conc.local"}}, {"id": 1})]
     await db.buyer_signals.delete_many({"$or": [{"visitor_id": rx}, {"id": rx}]})
     await db.marketplace_searches.delete_many({"visitor_id": rx})
     await db.leads.delete_many({"visitor_id": rx})
     await db.asesor_contactos.delete_many({"emails": {"$regex": "@conc.local"}})
     await db.visitor_identity.delete_many({"visitors": rx})
+    if lead_ids:
+        await db.lead_events.delete_many({"ref_id": {"$in": lead_ids}})
+        await db.notifications.delete_many({"$or": [{"lead_id": {"$in": lead_ids}}, {"entity_id": {"$in": lead_ids}}]})
+    if cont_ids:
+        await db.lead_events.delete_many({"contacto_id": {"$in": cont_ids}})
+        await db.asesor_lead_properties.delete_many({"contacto_id": {"$in": cont_ids}})
     # audit_log del lead usa entity_id=lead_xxx (no TEST-conc-) → limpiar por el source del test (after.source, que
     # create_buyer_lead prefija con 'copiloto_' → usar regex).
     await db.audit_log.delete_many({"$or": [{"entity_id": rx}, {"after.source": {"$regex": "test_conc"}}]})
