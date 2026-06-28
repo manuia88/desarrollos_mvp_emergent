@@ -43,7 +43,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 
 ### 🛒 Comprador
 - [x] **Taste** — swipe 👍/👎 + motivo (porqué del NO) · no-repetir · rank por gusto · "Atlax ya te conoce" · cross-device (F1-F5, U1-U6)
-- [ ] **Spatial** — "mapa de dónde vivirías feliz" (cubo × tu gusto → zonas que te quedan) 🆕
+- [x] **Spatial** — "mapa de dónde vivirías feliz" (`GET /api/buyer/donde-vivir`: rankea las 2788 colonias por calidad de vida + presupuesto + afinidad con tus zonas, excluye las que evitas · reusa visitor_taste + db.colonias scores reales · `DondeVivirCard` en el dashboard, hide-if-empty). Espejo de comprador de "¿dónde construir?" del founder.
 - [~] **Generative** — ficha-experiencia cinemática 🚧 **P1 ✅** (image-reveal + scroll-scrub + sensor + router + parallax local) · **P2 ✅** (personalización por gusto: el recorrido abre por el cuarto que te importa) · falta video de zona + staged a tu gusto (ver §4)
 - [ ] **Agentic** — agente que busca→vetea→negocia→aparta (Cerebro find_home + buy-signal + apartado) 🟡
 - [ ] **Personal** — gusto por etapas de vida (rentar→comprar→invertir) + alertas proactivas 🟡 (casamentera ✅)

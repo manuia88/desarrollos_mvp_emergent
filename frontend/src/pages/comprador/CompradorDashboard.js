@@ -11,6 +11,7 @@ import SmartMatchWidget from '../../components/comprador/SmartMatchWidget';
 import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
 // W3.8 — Cross-sell
 import CompradorCrossSellSection from '../../components/comprador/CompradorCrossSellSection';
+import DondeVivirCard from '../../components/comprador/DondeVivirCard';   // lente espacial: ¿dónde vivirías feliz?
 import { tc } from '../../lib/titleCase';
 import { claimVisitor } from '../../lib/buyerSignal';   // Fix #2: vincula la actividad anónima si llega logueado
 
@@ -262,6 +263,9 @@ export default function CompradorDashboard() {
             </div>
           </div>
         )}
+
+        {/* Lente espacial del comprador: ¿dónde vivirías feliz? (cuña brújula) */}
+        <DondeVivirCard />
 
         {/* W3.8 — Servicios para tu compra (solo si hay partners activos) */}
         <CompradorCrossSellSection />

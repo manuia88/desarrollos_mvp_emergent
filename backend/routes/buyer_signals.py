@@ -404,6 +404,98 @@ async def experiencia_parallax(dev_id: str, request: Request, background: Backgr
         return {"ok": True, "ready": False, "personalized": False}
 
 
+# ─── "¿Dónde vivirías feliz?" (cuña brújula · lente espacial del comprador) ──────
+# El espejo de comprador de la tarjeta del founder: dado el GUSTO (zonas que te gustan · presupuesto · qué evitas),
+# rankea las colonias que te quedan por calidad de vida + presupuesto + afinidad de zona. Reusa visitor_taste + db.colonias.
+_VIDA_W = {"vida": 0.30, "seguridad": 0.25, "movilidad": 0.18, "comercio": 0.12, "educacion": 0.10, "riesgo": -0.15}
+
+
+def _vida_score(sr):
+    if not isinstance(sr, dict):
+        return 50.0
+    s = wsum = 0.0
+    for k, w in _VIDA_W.items():
+        v = sr.get(k)
+        if v is None:
+            continue
+        s += (v if w > 0 else (100 - v)) * abs(w)
+        wsum += abs(w)
+    return round(s / wsum, 1) if wsum else 50.0
+
+
+def _budget_fit(pm2, target):
+    if not pm2 or not target:
+        return 0.6
+    r = pm2 / target
+    return min(1.0, 0.7 + 0.3 * r) if r <= 1.0 else max(0.0, 1.0 - (r - 1.0) * 1.5)
+
+
+def _donde_why(r, target, liked_tiers):
+    sr = r.get("vida") or {}
+    bits = []
+    if target and r.get("precio_pm2") and r["precio_pm2"] <= target * 1.05:
+        bits.append("dentro de tu presupuesto")
+    if r.get("tier") in liked_tiers:
+        bits.append("zona como las que te gustan")
+    for k, lbl in (("seguridad", "segura"), ("movilidad", "bien conectada"), ("comercio", "con todo cerca"), ("educacion", "buenas escuelas")):
+        if (sr.get(k) or 0) >= 65:
+            bits.append(lbl)
+            break
+    return " · ".join(bits[:3]) or "buena calidad de vida"
+
+
+@router.get("/api/buyer/donde-vivir")
+async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
+    """Mapa personal '¿dónde vivirías feliz?': rankea colonias por calidad de vida + tu presupuesto + afinidad con las
+    zonas que te gustan (excluye las que evitas). Reusa visitor_taste + db.colonias (scores reales). Fail-open."""
+    try:
+        db = request.app.state.db
+        liked, evita, techo = [], set(), None
+        if visitor_id:
+            from visitor_taste import get_visitor_taste_cached
+            tp = await get_visitor_taste_cached(db, visitor_id) or {}
+            k = tp.get("keys") or {}
+            liked = [str(z).lower() for z in (k.get("zonas_gustan") or [])]
+            evita = {str(z).lower() for z in (k.get("zonas_evita") or [])}
+            techo = tp.get("precio_techo")
+        target_pm2, liked_tiers = None, set()
+        if liked:
+            pms = []
+            async for c in db.colonias.find({"id": {"$in": liked}}, {"_id": 0, "precio_pm2": 1, "tier": 1}):
+                if c.get("precio_pm2"):
+                    pms.append(c["precio_pm2"])
+                if c.get("tier"):
+                    liked_tiers.add(c["tier"])
+            if pms:
+                target_pm2 = sorted(pms)[len(pms) // 2]
+        if not target_pm2 and techo:
+            target_pm2 = techo / 80.0
+        rows = []
+        async for c in db.colonias.find(
+            {"scores_reales": {"$exists": True}},
+            {"_id": 0, "id": 1, "name": 1, "alcaldia": 1, "tier": 1, "precio_pm2": 1, "scores_reales": 1}):
+            cid = c.get("id")
+            if not cid or cid in evita:
+                continue
+            sr = c.get("scores_reales") or {}
+            vida = _vida_score(sr)
+            budget = _budget_fit(c.get("precio_pm2"), target_pm2)
+            tier_m = 1.0 if (c.get("tier") in liked_tiers) else 0.55
+            score = 0.45 * vida + 0.35 * (budget * 100) + 0.20 * (tier_m * 100)
+            rows.append({"id": cid, "nombre": c.get("name") or cid, "alcaldia": c.get("alcaldia"),
+                         "score": round(score), "precio_pm2": c.get("precio_pm2"), "tier": c.get("tier"), "vida": sr})
+        rows.sort(key=lambda r: -r["score"])
+        top = rows[:max(1, min(int(limit or 8), 20))]
+        for r in top:
+            r["por_que"] = _donde_why(r, target_pm2, liked_tiers)
+            r.pop("vida", None)
+        return {"ok": True, "colonias": top, "personalizado": bool(liked or techo),
+                "presupuesto_m2": round(target_pm2) if target_pm2 else None}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] donde-vivir fail-open: {e}")
+        return {"ok": True, "colonias": []}
+
+
 @router.get("/api/desarrollo/{dev_id}/percepcion")
 async def percepcion_desarrollo(dev_id: str, request: Request):
     """Cómo VEN los compradores este desarrollo (SOLO el dev dueño): interés + EL PORQUÉ DEL NO (rechazo por motivo) +
