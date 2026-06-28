@@ -28,6 +28,15 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
     }
 
 
+@router.post("/notify")
+async def demand_notify(request: Request):
+    """Dispara YA el push proactivo (normalmente cron semanal): notifica a cada dev qué construir en sus colonias."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import demand_intelligence as di
+    return await di.notify_demand_alerts(request.app.state.db)
+
+
 @router.get("/feature")
 async def demand_feature(request: Request, feature: str, colonia: str, period: str = "month"):
     """El query asesino: '¿cuántos clientes engancharon con [feature] en [colonia], y cuándo?' (serie de tiempo)."""

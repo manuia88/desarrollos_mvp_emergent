@@ -314,6 +314,44 @@ async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: in
             "lectura": "ordenado por urgencia (presión + tendencia) — construye lo de arriba"}
 
 
+async def notify_demand_alerts(db) -> Dict[str, Any]:
+    """CRON · PUSH proactivo (cierra la deuda del 'dispara solo alerta'): por cada dev, si hay una jugada de 'construir'
+    en sus colonias, le manda una NOTIFICACIÓN real (campana/email), no solo el dashboard. Deduped: máx 1 por
+    (dev, feature) cada 7 días. Idempotente, fail-soft."""
+    from types import SimpleNamespace
+    from notifications_engine import emit_notification
+    from tenant_scope import user_dev_ids
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = (dt.datetime.utcnow() - dt.timedelta(days=7)).isoformat()
+    sent = att = 0
+    async for u in db.users.find({"role": "developer_admin"}, {"_id": 0}):
+        att += 1
+        try:
+            uid = u.get("id") or u.get("user_id")
+            dev_ids = list(user_dev_ids(SimpleNamespace(**u)) or [])
+            cols = sorted({DEVELOPMENTS_BY_ID[d]["colonia_id"] for d in dev_ids
+                           if d in DEVELOPMENTS_BY_ID and DEVELOPMENTS_BY_ID[d].get("colonia_id")})
+            if not uid or not cols:
+                continue
+            alerts = await demand_alerts(db, colonias=cols)
+            top = next((j for j in alerts.get("jugadas", []) if j.get("accion") == "construir"), None)
+            if not top:
+                continue
+            # dedup: ¿ya le mandé esta jugada en 7 días?
+            dup = await db.notifications.find_one({"user_id": uid, "type": "demand_build_alert",
+                                                   "payload.feature": top["feature"], "created_at": {"$gte": cutoff}})
+            if dup:
+                continue
+            await emit_notification(db, user_id=uid, type="demand_build_alert", severity="high",
+                                    title="Qué construir: el mercado lo está pidiendo", body=top["mensaje"],
+                                    payload={"feature": top["feature"], "urgencia": top["urgencia"], "colonias": cols},
+                                    action_url="/desarrollador/demanda")
+            sent += 1
+        except Exception:
+            continue
+    return {"devs": att, "notificaciones_enviadas": sent}
+
+
 async def lead_engaged_features(db, visitor_id: str, since_days: int = 365, top: int = 8) -> Dict[str, Any]:
     """Las FEATURES y COLONIAS con las que un lead/visitante ENGANCHÓ (sus propias señales) → para que el ASESOR le
     ofrezca lo correcto. Cierra el loop comprador→asesor: 'este lead miró terraza/gym en Polanco → ofrécele eso'."""

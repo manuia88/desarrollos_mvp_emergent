@@ -25,6 +25,7 @@ NOTIF_TYPES = {
     "listing_view_repeat", "comparable_price_drop", "drop_off_pico",
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
     "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump",
+    "demand_build_alert",   # demanda proactiva: 'qué construir YA' en tus colonias (push real, no solo dashboard)
     "lead_captured_auto", "dispute_resolved", "kg_alert", "kg_relational_alert",
     "live_pulse_alert", "readiness_ready",
     "lead_close_accuracy", "accuracy_drift_alert",

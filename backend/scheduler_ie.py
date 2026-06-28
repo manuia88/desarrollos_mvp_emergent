@@ -436,6 +436,14 @@ def start_scheduler(db):
         args=[db], id="granularity_backfill", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # Demanda proactiva: notifica a cada dev 'qué construir' en sus colonias (PUSH real, no solo dashboard). Semanal.
+    from demand_intelligence import notify_demand_alerts
+    _scheduler.add_job(
+        wrap_apscheduler_job(notify_demand_alerts, "demand_alert_notifications"),
+        CronTrigger(day_of_week="mon", hour=8, minute=0, timezone=TZ),
+        args=[db], id="demand_alert_notifications", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     # Tasas de inversión — CETES vivo de Banxico, DIARIO (01:07 MX). Fuentes oficiales: Banxico/cetesdirecto/BMV/GBM/investing.
     _scheduler.add_job(
         wrap_apscheduler_job(run_rates_update, "rates_update"),
