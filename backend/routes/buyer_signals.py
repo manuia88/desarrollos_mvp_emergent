@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from tenant_scope import assert_dev_project   # IDOR: el dev solo ve SU dev_id (no cross-tenant)
 
@@ -360,6 +360,48 @@ async def experiencia_fotos(dev_id: str, request: Request, visitor_id: str = "")
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] experiencia-fotos fail-open: {e}")
         return {"ok": True, "photos": [], "personalized": False}
+
+
+@router.get("/api/buyer/experiencia-parallax/{dev_id}")
+async def experiencia_parallax(dev_id: str, request: Request, background: BackgroundTasks, visitor_id: str = ""):
+    """P2 #4: parallax 3D LOCAL (gratis) generado en el ORDEN del gusto del comprador. Cacheado por (dev, orden). Listo →
+    URL; si no → lo genera en BACKGROUND y devuelve ready:false (la experiencia usa el default esta vez, el personalizado
+    la próxima visita). Mismo orden que experiencia-fotos (cuarto + feature). Fail-open."""
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        photos = [p for p in ((DEVELOPMENTS_BY_ID.get(dev_id) or {}).get("photos") or []) if p]
+        if len(photos) < 2:
+            return {"ok": True, "ready": False, "personalized": False}
+        db = request.app.state.db
+        from photo_tagger import tag_from_url
+        tagged = []
+        for u in photos:
+            t = tag_from_url(u) or {}
+            tagged.append({"url": u, "room": t.get("room") or "interior", "features": t.get("features") or []})
+        pref_rooms, pref_feats = [], []
+        if visitor_id:
+            from visitor_taste import get_visitor_taste_cached
+            k = ((await get_visitor_taste_cached(db, visitor_id)) or {}).get("keys") or {}
+            pref_rooms = k.get("rooms") or []
+            pref_feats = k.get("features") or []
+            if not (pref_rooms or pref_feats):
+                pref_feats = await _coldstart_feats(db, visitor_id)
+        personalized = bool(pref_rooms or pref_feats)
+        if personalized:
+            rrank = {r: i for i, r in enumerate(pref_rooms)}
+            pfset = set(pref_feats)
+            tagged.sort(key=lambda t: -((3.0 - rrank[t["room"]] * 0.4) if t["room"] in rrank else 0.0)
+                        - sum(1.0 for f in t["features"] if f in pfset))
+        urls = [t["url"] for t in tagged][:6]
+        from parallax_engine import cached_url, generate
+        url = cached_url(dev_id, urls)
+        if url:
+            return {"ok": True, "ready": True, "url": url, "personalized": personalized}
+        background.add_task(generate, dev_id, urls)   # generación local en background (gratis)
+        return {"ok": True, "ready": False, "personalized": personalized}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] experiencia-parallax fail-open: {e}")
+        return {"ok": True, "ready": False, "personalized": False}
 
 
 @router.get("/api/desarrollo/{dev_id}/percepcion")

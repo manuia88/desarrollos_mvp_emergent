@@ -190,6 +190,12 @@ from fastapi.staticfiles import StaticFiles
 from dev_assets import ASSET_UPLOAD_DIR
 app.mount("/api/assets-static", StaticFiles(directory=str(ASSET_UPLOAD_DIR)), name="assets-static")
 
+# P2 #4 — Parallax personalizado generado (público): static_parallax/{key}.mp4
+import os as _os_pll
+_PARALLAX_DIR = _os_pll.path.join(_os_pll.path.dirname(__file__), "static_parallax")
+_os_pll.makedirs(_PARALLAX_DIR, exist_ok=True)
+app.mount("/api/parallax-cache", StaticFiles(directory=_PARALLAX_DIR), name="parallax-cache")
+
 # Phase D1 — RAG semantic search routers
 from rag_engine import (
     public_router as rag_public_router,

@@ -1596,3 +1596,5 @@ credentials.json
 # Datos runtime de Mongo local — nunca versionar (binarios pesados)
 scripts/dev-data/mongo/
 .playwright-mcp/
+backend/.cache/
+backend/static_parallax/

@@ -45,6 +45,7 @@ export default function AtlaxExperiencia() {
   const [err, setErr] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pers, setPers] = useState(null);   // P2: fotos reordenadas por TU gusto (recorrido abre por el cuarto que te importa)
+  const [persPar, setPersPar] = useState(null);   // P2 #4: parallax 3D generado en TU orden (background, gratis)
 
   useEffect(() => {
     let alive = true;
@@ -52,8 +53,12 @@ export default function AtlaxExperiencia() {
       .catch(() => { if (alive) setErr(true); });
     // P2 — orden personalizado por gusto (fail-silent: si no hay gusto, se usa el orden original)
     try {
-      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/experiencia-fotos/${id}?visitor_id=${encodeURIComponent(visitorId())}`)
+      const vid = encodeURIComponent(visitorId());
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/experiencia-fotos/${id}?visitor_id=${vid}`)
         .then((r) => r.json()).then((p) => { if (alive && p && p.personalized && (p.photos || []).length) setPers(p); }).catch(() => {});
+      // #4 — parallax 3D en TU orden (se genera en background; listo a la próxima visita)
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/buyer/experiencia-parallax/${id}?visitor_id=${vid}`)
+        .then((r) => r.json()).then((p) => { if (alive && p && p.ready && p.url) setPersPar(p); }).catch(() => {});
     } catch (_) { /* noop */ }
     return () => { alive = false; };
   }, [id]);
@@ -64,7 +69,10 @@ export default function AtlaxExperiencia() {
   const exp = resolveExperienceMode(dev, modo);   // ROUTER: detecta assets → plan de acción (modo=parallax para comparar)
   if (exp.mode === 'ficha') return <Fallback id={id} />;   // <2 fotos y sin video → a la ficha (cero invento)
   const personalized = !!(pers && pers.personalized);
-  const expFinal = personalized ? { ...exp, photos: pers.photos, captions: pers.captions } : exp;   // P2: orden + caption por gusto
+  let expFinal = personalized ? { ...exp, photos: pers.photos, captions: pers.captions } : exp;   // P2: orden + caption por gusto
+  if (persPar && persPar.ready && persPar.url) {   // #4: si el parallax en TU orden ya está, ES el recorrido
+    expFinal = { ...expFinal, mode: 'video', src: `${process.env.REACT_APP_BACKEND_URL}${persPar.url}`, badge: 'Recorrido a tu gusto' };
+  }
 
   return (
     <div style={{ background: '#0A0A0F', color: '#fff', fontFamily: 'DM Sans' }}>
