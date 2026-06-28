@@ -549,6 +549,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_cube_materialized_error", error=str(e))
 
+    # Auditoría Fase 0 — Demanda al cubo: buyer_signals -> facts_buyer_signals (4:00am MX, post cubo de oferta)
+    try:
+        from cube_olap_engine import schedule_buyer_signals_cron
+        schedule_buyer_signals_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_cube_buyer_signals_error", error=str(e))
+
     # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
     try:
         from intelligence_insights_engine import schedule_intelligence_insights_cron

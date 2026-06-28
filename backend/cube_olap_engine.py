@@ -550,6 +550,105 @@ def schedule_materialized_views_cron(scheduler, db) -> None:
         log.warning(f"[olap] schedule cron failed: {e}")
 
 
+# ─── Demanda: materializar buyer_signals al cubo (cierre del ciclo flywheel #1) ──
+# Auditoría Fase 0: el cubo era CIEGO a la demanda. Leemos db.buyer_signals (conducta del comprador) y
+# materializamos facts_buyer_signals por desarrollo y por colonia, con K-anonimato (>=3 visitantes distintos)
+# para no exponer individuos. Lo consumen recomendaciones, superadmin (demanda) y el taste persistido.
+
+_INTEREST_WEIGHTS = {
+    "save": 3.0, "unit_save": 3.0, "like": 2.0, "compare": 1.5, "share": 1.5,
+    "ficha_view": 1.2, "unit_view": 1.0, "view": 0.6,
+    "dismiss": -2.0, "unlike": -1.0, "unsave": -1.5,
+}
+_KANON_MIN = 3
+
+
+async def _agg_demand(db, group_field: str, cutoff) -> Dict[str, Dict[str, Any]]:
+    """Agrega buyer_signals por <group_field> (entity_id o colonia): conteos por tipo + visitantes distintos."""
+    out: Dict[str, Dict[str, Any]] = {}
+    match = {group_field: {"$ne": None}, "created_at_dt": {"$gte": cutoff}}
+    async for r in db.buyer_signals.aggregate([
+        {"$match": match},
+        {"$group": {"_id": {"g": f"${group_field}", "t": "$type"}, "n": {"$sum": 1}}},
+    ]):
+        g = r["_id"].get("g"); t = r["_id"].get("t")
+        if not g:
+            continue
+        out.setdefault(g, {"signals": {}, "distinct": 0})
+        out[g]["signals"][t] = int(r["n"])
+    async for r in db.buyer_signals.aggregate([
+        {"$match": match},
+        {"$group": {"_id": f"${group_field}", "v": {"$addToSet": "$visitor_id"}}},
+    ]):
+        g = r["_id"]
+        if not g or g not in out:
+            continue
+        out[g]["distinct"] = len([x for x in (r.get("v") or []) if x])
+    return out
+
+
+def _interest_score(signals: Dict[str, int]) -> float:
+    return round(sum(_INTEREST_WEIGHTS.get(t, 0.0) * n for t, n in signals.items()), 2)
+
+
+async def materialize_buyer_signals_to_cube(db, window_days: int = 90) -> Dict[str, Any]:
+    """Cierra el ciclo #1 del flywheel: la conducta del comprador (buyer_signals) entra al analitico.
+    Materializa facts_buyer_signals por desarrollo y por colonia con K-anonimato (>=3 visitantes). Idempotente."""
+    started = datetime.now(timezone.utc)
+    cutoff = started - timedelta(days=window_days)
+    devs = await _agg_demand(db, "entity_id", cutoff)
+    colonias = await _agg_demand(db, "colonia", cutoff)
+    materialized = 0
+    suppressed = 0
+    for scope, groups in (("development", devs), ("colonia", colonias)):
+        for gid, agg in groups.items():
+            distinct = int(agg.get("distinct", 0))
+            if distinct < _KANON_MIN:   # K-anon: no materializar grupos chicos (privacidad)
+                suppressed += 1
+                continue
+            signals = agg["signals"]
+            await db.facts_buyer_signals.update_one(
+                {"fact_key": f"{scope}:{gid}"},
+                {"$set": {
+                    "fact_key": f"{scope}:{gid}",
+                    "scope": scope,
+                    ("entity_id" if scope == "development" else "colonia"): gid,
+                    "window_days": window_days,
+                    "signals": signals,
+                    "total_signals": int(sum(signals.values())),
+                    "distinct_visitors": distinct,
+                    "interest_score": _interest_score(signals),
+                    "computed_at": _iso(),
+                }},
+                upsert=True,
+            )
+            materialized += 1
+    elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+    summary = {
+        "ok": True, "materialized": materialized, "suppressed_kanon": suppressed,
+        "devs": len(devs), "colonias": len(colonias), "window_days": window_days,
+        "elapsed_s": round(elapsed, 2), "completed_at": _iso(),
+    }
+    log.info(f"[olap] buyer_signals -> cubo — {summary}")
+    return summary
+
+
+def schedule_buyer_signals_cron(scheduler, db) -> None:
+    """Cron `cube_buyer_signals_refresh` 04:00 MX (despues del cubo de oferta 03:30)."""
+    try:
+        from cron_heartbeat import wrap_apscheduler_job
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler.add_job(
+            wrap_apscheduler_job(materialize_buyer_signals_to_cube,
+                                  "cube_buyer_signals_refresh"),
+            CronTrigger(hour=4, minute=0, timezone="America/Mexico_City"),
+            args=[db], id="cube_buyer_signals_refresh",
+            replace_existing=True, misfire_grace_time=1800,
+        )
+    except Exception as e:
+        log.warning(f"[olap] schedule buyer_signals cron failed: {e}")
+
+
 # ─── Indexes ──────────────────────────────────────────────────────────────────
 
 async def ensure_consolidated_indexes(db) -> None:
@@ -571,3 +670,12 @@ async def ensure_consolidated_indexes(db) -> None:
         )
     except Exception as e:
         log.warning(f"[olap] cube_backfill_jobs indexes failed: {e}")
+    try:
+        await db.facts_buyer_signals.create_index(
+            "fact_key", unique=True, name="fbs_key_uniq",
+        )
+        await db.facts_buyer_signals.create_index(
+            [("scope", 1), ("interest_score", -1)], name="fbs_scope_score",
+        )
+    except Exception as e:
+        log.warning(f"[olap] facts_buyer_signals indexes failed: {e}")
