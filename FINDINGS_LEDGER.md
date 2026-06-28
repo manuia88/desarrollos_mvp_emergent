@@ -304,3 +304,28 @@ no un cable roto — hay un `auto_approve_engine` que sería el punto de arranqu
 
 ### Batería completa (un comando: `bash scripts/audit_all.sh`) — 66/66 verde
 smoke 17/17 · aislamiento 13/13 · journey 8/8 · propagación→todos 12/12 · propagación direcciones 8/8 · concurrencia 8/8.
+
+---
+
+## DEV PUBLICA → MARKETPLACE + VISIBILIDAD TOTAL DE GRANULARIDAD
+
+### Dev publica → marketplace (7/7 + live)
+Antes los proyectos del wizard (`db.projects`) nunca llegaban al comprador. Ahora se publican: convertidor →
+tarjeta, merge en `/api/developments`, fallback en el detalle, gate (marketplace_published + colonia + precio),
+control superadmin (publicar/despublicar con auditoría). Marcados `source='wizard'`/`verified=False`.
+
+### Visibilidad de granularidad (respuesta a "¿se refleja todo en superadmin?")
+**Verificado contra BD — la respuesta era NO.** El cubo refleja ~13 medidas; los scores estaban fragmentados
+(colecciones sueltas, **6 vacías**: buyer_scores/fit_cache/lead_match_scores/asesor_trust_scores/zone_subscores/
+avm_predictions) o **efímeros** (se calculan y se tiran). No había vista unificada por entidad.
+
+Construido: `granularity_registry.py` (16 familias persistidas + 5 efímeras, campos verificados) → `coverage` (el MAPA:
+estado vivo/apagado/efímero por familia) + `inspect_entity` (la FICHA: todos los scores de una entidad). Endpoints
+superadmin + página `/superadmin/granularidad`. Hoy: 10 vivas · 6 apagadas · 5 efímeras.
+
+**Capas siguientes (honesto, no-RLS):**
+- 🔵 Drill por-score/por-feature: el mapa es a nivel FAMILIA; expandir `ie_scores` en sus recetas (2050 zonas×recetas)
+  y `dmx_units` en sus 160 features sería el siguiente nivel de detalle.
+- 🔵 Persistir las 5 efímeras (dmx_project_score, lead_score, churn, hook, absorción) para histórico/auditoría — decisión
+  por-motor; hoy ya son VISIBLES como 'efímeras' en el mapa.
+- 🔵 Encender las 6 familias apagadas (motores que existen pero no persisten en este entorno).
