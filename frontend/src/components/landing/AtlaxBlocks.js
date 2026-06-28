@@ -35,7 +35,7 @@ function ComparisonTable({ data }) {
     { label: 'Desarrollos', get: (z) => (z.n_desarrollos != null ? z.n_desarrollos : '—') },
   ];
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface-card)' }}>
       <div style={{ display: 'grid', gridTemplateColumns: `1.15fr ${zones.map(() => '1fr').join(' ')}` }}>
         <div style={cell(true)} />
         {zones.map((z) => (
@@ -69,9 +69,9 @@ function DevelopmentCards({ data }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {data.zona && <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream-3)' }}>Desarrollos en {data.zona}</div>}
       {cards.map((c) => (
-        <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
+        <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface-card)' }}>
           <a href={c.url || '#'} style={{ display: 'flex', gap: 10, textDecoration: 'none' }}>
-            <div style={{ width: 72, height: 72, flexShrink: 0, background: '#1a1d2b' }}>
+            <div style={{ width: 72, height: 72, flexShrink: 0, background: 'var(--surface-card)' }}>
               {c.image && <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
             </div>
             <div style={{ padding: '8px 10px 8px 0', minWidth: 0, flex: 1 }}>
@@ -101,7 +101,7 @@ function PaymentBreakdown({ data }) {
     </div>
   );
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '4px 14px 12px', background: 'rgba(255,255,255,0.03)' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '4px 14px 12px', background: 'var(--surface-card)' }}>
       <Row label="Precio" value={fmtM(d.precio)} />
       <Row label={`Enganche (${d.enganche_pct}%)`} value={fmtMXN(d.enganche)} />
       <Row label="Crédito" value={fmtMXN(d.credito)} />
@@ -119,9 +119,9 @@ function MiniMap({ data }) {
   if (!pins.length || !token) return null;
   const markers = pins.map((p) => `pin-s+6366f1(${p.lng},${p.lat})`).join(',');
   const view = pins.length === 1 ? `${pins[0].lng},${pins[0].lat},13` : 'auto';
-  const url = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${markers}/${view}/640x300@2x?access_token=${token}&padding=44`;
+  const url = `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/${markers}/${view}/640x300@2x?access_token=${token}&padding=44`;
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface-card)' }}>
       <img src={url} alt="Mapa de desarrollos" style={{ width: '100%', display: 'block' }} />
       <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--cream-3)' }}>{pins.length} desarrollo{pins.length > 1 ? 's' : ''} en el mapa</div>
     </div>

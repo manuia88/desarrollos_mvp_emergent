@@ -1,7 +1,7 @@
 // AtlaxApartado — Capa 1 F4 · cierre agéntico a venta (apartado).
 // Modal GLOBAL: cualquier tarjeta de desarrollo (AtlaxBlocks) dispara `dmx:apartar` con {dev} → abre el flujo:
 // términos reales (enganche/mensualidad) + precalificación corta (crédito/enganche) + contacto → crea un LEAD
-// CALIFICADO vía /api/lead-capture (el asesor confirma el hold real). Reusa lib/buyerSignal (flywheel). Tema oscuro propio.
+// CALIFICADO vía /api/lead-capture (el asesor confirma el hold real). Reusa lib/buyerSignal (flywheel). Tema CLARO v2.
 import React, { useEffect, useState } from 'react';
 import { Sparkle, X } from '../icons';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
@@ -24,10 +24,10 @@ const CREDITOS = ['Infonavit', 'Crédito bancario', 'Contado'];
 const ENGANCHES = ['Menos de $500K', '$500K – $1M', 'Más de $1M'];
 
 const ov = { position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(4,6,12,0.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 };
-const card = { width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', background: '#0E1118', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, boxShadow: '0 30px 80px rgba(0,0,0,0.6)', color: '#F0EBE0', fontFamily: "'DM Sans',sans-serif" };
-const labelS = { fontSize: 12.5, fontWeight: 700, color: 'rgba(240,235,224,0.6)', margin: '16px 0 8px' };
-const chip = (on) => ({ borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? 'rgba(99,102,241,0.55)' : 'rgba(255,255,255,0.12)'}`, background: on ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)', color: on ? '#A5B4FC' : '#F0EBE0' });
-const inp = { width: '100%', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '11px 13px', color: '#F0EBE0', fontFamily: "'DM Sans',sans-serif", fontSize: 14.5, outline: 'none' };
+const card = { width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, boxShadow: '0 30px 80px rgba(0,0,0,0.6)', color: '#1E2230', fontFamily: "'DM Sans',sans-serif" };
+const labelS = { fontSize: 12.5, fontWeight: 700, color: 'rgba(30,34,48,0.6)', margin: '16px 0 8px' };
+const chip = (on) => ({ borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? 'rgba(99,102,241,0.55)' : 'rgba(0,0,0,0.10)'}`, background: on ? 'rgba(99,102,241,0.18)' : 'rgba(0,0,0,0.03)', color: on ? '#6366F1' : '#1E2230' });
+const inp = { width: '100%', border: '1px solid rgba(0,0,0,0.10)', background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '11px 13px', color: '#1E2230', fontFamily: "'DM Sans',sans-serif", fontSize: 14.5, outline: 'none' };
 
 export default function AtlaxApartado() {
   const [dev, setDev] = useState(null);
@@ -84,30 +84,30 @@ export default function AtlaxApartado() {
     <div style={ov} onClick={close}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px 0' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#A5B4FC', fontWeight: 700, fontSize: 13 }}><Sparkle size={16} /> Apartar con Atlax</span>
-          <button onClick={close} aria-label="Cerrar" style={{ border: 'none', background: 'transparent', color: 'rgba(240,235,224,0.6)', cursor: 'pointer', display: 'flex' }}><X size={20} /></button>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#6366F1', fontWeight: 700, fontSize: 13 }}><Sparkle size={16} /> Apartar con Atlax</span>
+          <button onClick={close} aria-label="Cerrar" style={{ border: 'none', background: 'transparent', color: 'rgba(30,34,48,0.6)', cursor: 'pointer', display: 'flex' }}><X size={20} /></button>
         </div>
 
         {done ? (
           <div style={{ padding: '18px 22px 26px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>🎉</div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, margin: '0 0 8px' }}>¡Apartaste tu lugar!</h2>
-            <p style={{ color: 'rgba(240,235,224,0.7)', fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>
-              Reservamos tu interés en <b style={{ color: '#F0EBE0' }}>{dev.name}</b>. Un asesor te contacta por WhatsApp <b style={{ color: '#F0EBE0' }}>hoy</b> para confirmar el apartado y resolver tu crédito.
+            <p style={{ color: 'rgba(30,34,48,0.7)', fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>
+              Reservamos tu interés en <b style={{ color: '#1E2230' }}>{dev.name}</b>. Un asesor te contacta por WhatsApp <b style={{ color: '#1E2230' }}>hoy</b> para confirmar el apartado y resolver tu crédito.
             </p>
             <button onClick={close} style={{ marginTop: 20, border: 'none', cursor: 'pointer', background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', borderRadius: 999, padding: '12px 26px', fontWeight: 700, fontSize: 14.5 }}>Listo</button>
           </div>
         ) : (
           <div style={{ padding: '12px 22px 24px' }}>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 21, letterSpacing: '-0.02em', margin: '6px 0 2px' }}>{dev.name}</h2>
-            <div style={{ color: 'rgba(240,235,224,0.6)', fontSize: 13 }}>{dev.colonia}{dev.alcaldia ? ` · ${dev.alcaldia}` : ''}</div>
+            <div style={{ color: 'rgba(30,34,48,0.6)', fontSize: 13 }}>{dev.colonia}{dev.alcaldia ? ` · ${dev.alcaldia}` : ''}</div>
 
             {terms && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 14 }}>
                 {[['Apartas con', fmtMXN(terms.apartado)], ['Enganche (20%)', fmtM(terms.enganche)], ['Mensualidad', fmtMXN(terms.mensualidad)]].map(([l, v], i) => (
-                  <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12, padding: '10px 11px' }}>
-                    <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginBottom: 3 }}>{l}</div>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: i === 2 ? '#10B981' : '#F0EBE0' }}>{v}</div>
+                  <div key={i} style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '10px 11px' }}>
+                    <div style={{ fontSize: 10.5, color: 'rgba(30,34,48,0.55)', marginBottom: 3 }}>{l}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: i === 2 ? '#10B981' : '#1E2230' }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -131,7 +131,7 @@ export default function AtlaxApartado() {
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14, cursor: 'pointer' }}>
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: 'rgba(240,235,224,0.65)', lineHeight: 1.45 }}>Acepto que un asesor me contacte y el <a href="/privacy/dsr" target="_blank" rel="noreferrer" style={{ color: '#A5B4FC' }}>aviso de privacidad</a>.</span>
+              <span style={{ fontSize: 12, color: 'rgba(30,34,48,0.65)', lineHeight: 1.45 }}>Acepto que un asesor me contacte y el <a href="/privacy/dsr" target="_blank" rel="noreferrer" style={{ color: '#6366F1' }}>aviso de privacidad</a>.</span>
             </label>
 
             {err && <div style={{ color: '#fca5a5', fontSize: 12.5, marginTop: 10 }}>{err}</div>}
@@ -139,7 +139,7 @@ export default function AtlaxApartado() {
             <button onClick={submit} disabled={busy} style={{ width: '100%', marginTop: 16, border: 'none', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', borderRadius: 999, padding: '13px', fontWeight: 700, fontSize: 15 }}>
               {busy ? 'Enviando…' : 'Apartar mi lugar'}
             </button>
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 10 }}>Sin costo · sin compromiso · un asesor confirma contigo</div>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(30,34,48,0.45)', marginTop: 10 }}>Sin costo · sin compromiso · un asesor confirma contigo</div>
           </div>
         )}
       </div>

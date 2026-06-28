@@ -7,6 +7,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { sendBuyerSignal } from '../../lib/buyerSignal';
 import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import { Sparkle, ArrowRight } from '../../components/icons';
+import { LightScope } from '../../components/ui';  // v2: tema CLARO del rediseño
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
@@ -50,7 +51,7 @@ function TypewriterText({ text }) {
 
 const exBtn = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textAlign: 'left',
-  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--cream)',
+  background: '#fff', border: '1px solid var(--border)', color: 'var(--cream)',
   borderRadius: 12, padding: '13px 16px', fontFamily: 'DM Sans', fontSize: 14.5, cursor: 'pointer',
 };
 const chip = {
@@ -58,7 +59,7 @@ const chip = {
   borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 };
 const cta = {
-  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)',
+  background: '#fff', border: '1px solid var(--border)', color: 'var(--cream)',
   borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 };
 const ctaPrimary = { ...cta, background: 'rgba(var(--theme-rgb),0.16)', border: '1px solid rgba(var(--theme-rgb),0.40)', color: 'var(--theme)' };
@@ -129,7 +130,7 @@ export default function AtlaxSurface() {
   const empty = messages.length === 0 && !busy;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
+    <LightScope full style={{ display: 'flex', flexDirection: 'column' }}>
       {toast && (
         <div style={{ position: 'fixed', bottom: 92, left: '50%', transform: 'translateX(-50%)', background: 'var(--theme)', color: '#fff', padding: '10px 18px', borderRadius: 999, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>{toast}</div>
       )}
@@ -199,13 +200,13 @@ export default function AtlaxSurface() {
       </div>
 
       <div style={{ position: 'sticky', bottom: 0, background: 'linear-gradient(transparent, var(--bg) 32%)', padding: '14px 16px 22px' }}>
-        <form onSubmit={submit} style={{ maxWidth: 780, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 7px 7px 18px' }}>
+        <form onSubmit={submit} style={{ maxWidth: 780, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid var(--card-border)', borderRadius: 999, padding: '7px 7px 7px 18px', boxShadow: '0 12px 36px rgba(var(--theme-rgb),0.14)' }}>
           <span style={{ display: 'flex', color: 'var(--theme)', flexShrink: 0 }}><Sparkle size={18} /></span>
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pregúntale a Atlax lo que buscas…" autoFocus
             style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 15.5, padding: '11px 4px' }} />
           <button type="submit" disabled={busy || !input.trim()} style={{ flexShrink: 0, border: 'none', cursor: (busy || !input.trim()) ? 'default' : 'pointer', opacity: (busy || !input.trim()) ? 0.5 : 1, background: GRAD, color: '#fff', borderRadius: 999, padding: '11px 20px', fontFamily: 'DM Sans', fontSize: 14.5, fontWeight: 700 }}>Preguntar</button>
         </form>
       </div>
-    </div>
+    </LightScope>
   );
 }
