@@ -28,6 +28,26 @@ function renderRich(text) {
   ));
 }
 
+// "Se escribe solo": revela el texto progresivamente (efecto typewriter). El texto completo ya llegó (el LLM no
+// hace streaming token-a-token sin reescribir su core), pero esto da la sensación de que Atlax escribe en vivo.
+function TypewriterText({ text }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const full = String(text || '');
+    setN(0);
+    if (!full) return undefined;
+    const id = setInterval(() => {
+      setN((x) => {
+        if (x >= full.length) { clearInterval(id); return x; }
+        return Math.min(full.length, x + 3);  // 3 chars/tick
+      });
+    }, 16);
+    return () => clearInterval(id);
+  }, [text]);
+  const shown = String(text || '').slice(0, n);
+  return <>{renderRich(shown)}</>;
+}
+
 const exBtn = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, textAlign: 'left',
   background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--cream)',
@@ -153,7 +173,7 @@ export default function AtlaxSurface() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--theme)', fontWeight: 700, fontFamily: 'DM Sans', fontSize: 13 }}><Sparkle size={16} /> Atlax</div>
                       {m.content
-                        ? <div style={{ fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.62, color: m.error ? '#fca5a5' : 'var(--cream)', whiteSpace: 'pre-wrap' }}>{renderRich(m.content)}</div>
+                        ? <div style={{ fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.62, color: m.error ? '#fca5a5' : 'var(--cream)', whiteSpace: 'pre-wrap' }}>{m.error ? renderRich(m.content) : <TypewriterText text={m.content} />}</div>
                         : (m.pending && <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 14, fontStyle: 'italic' }}>Atlax está pensando…</div>)}
                       {(m.blocks || []).length > 0 && <AtlaxBlocks blocks={m.blocks} />}
                       {i === messages.length - 1 && !busy && (

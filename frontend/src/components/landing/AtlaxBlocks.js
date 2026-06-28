@@ -69,19 +69,24 @@ function DevelopmentCards({ data }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {data.zona && <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--cream-3)' }}>Desarrollos en {data.zona}</div>}
       {cards.map((c) => (
-        <a key={c.id} href={c.url || '#'} style={{
-          display: 'flex', gap: 10, textDecoration: 'none', border: '1px solid var(--border)',
-          borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)',
-        }}>
-          <div style={{ width: 72, height: 72, flexShrink: 0, background: '#1a1d2b' }}>
-            {c.image && <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
+          <a href={c.url || '#'} style={{ display: 'flex', gap: 10, textDecoration: 'none' }}>
+            <div style={{ width: 72, height: 72, flexShrink: 0, background: '#1a1d2b' }}>
+              {c.image && <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+            </div>
+            <div style={{ padding: '8px 10px 8px 0', minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 800, color: 'var(--cream)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+              <div style={{ color: 'var(--cream-3)', fontSize: 11.5 }}>{c.colonia}{c.alcaldia ? ` · ${c.alcaldia}` : ''}</div>
+              <div style={{ color: 'var(--theme)', fontWeight: 800, fontSize: 12.5, marginTop: 2 }}>{c.price_display || fmtM(c.price_from)}</div>
+            </div>
+          </a>
+          <div style={{ padding: '0 10px 10px' }}>
+            <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:apartar', { detail: { dev: c } }))}
+              style={{ width: '100%', border: 'none', cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)', borderRadius: 8, padding: '8px', fontFamily: "'DM Sans',sans-serif", fontSize: 12.5, fontWeight: 700 }}>
+              💳 Apartar
+            </button>
           </div>
-          <div style={{ padding: '8px 10px 8px 0', minWidth: 0 }}>
-            <div style={{ fontWeight: 800, color: 'var(--cream)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
-            <div style={{ color: 'var(--cream-3)', fontSize: 11.5 }}>{c.colonia}{c.alcaldia ? ` · ${c.alcaldia}` : ''}</div>
-            <div style={{ color: 'var(--theme)', fontWeight: 800, fontSize: 12.5, marginTop: 2 }}>{c.price_display || fmtM(c.price_from)}</div>
-          </div>
-        </a>
+        </div>
       ))}
     </div>
   );

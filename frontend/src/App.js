@@ -38,6 +38,7 @@ import CtaFooter from './components/landing/CtaFooter';
 import AuthModal from './components/landing/AuthModal';
 import RolePicker from './components/landing/RolePicker';
 import AtlaxBubble from './components/landing/AtlaxBubble';
+import AtlaxApartado from './components/landing/AtlaxApartado';  // F4: modal global de apartado (lo dispara cualquier tarjeta)
 const DrpiHeroWidget = lazy(() => import('./components/public/DrpiHeroWidget'));
 
 const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
@@ -1069,6 +1070,7 @@ function AppRouter() {
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
+    <AtlaxApartado />{/* F4 · modal global de apartado — disponible en TODA ruta (surface, fichas, etc.) */}
     </Suspense>
   );
 }
