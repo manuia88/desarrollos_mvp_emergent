@@ -260,6 +260,17 @@ async def buyer_cycle_intel(db, dias: int = 30):
     gap_pres.sort(key=lambda x: -x["por_fotos"])
     gap_pres = gap_pres[:10]
 
+    # #5 medir: adopción de la ficha-experiencia personalizada (personalizada vs estándar)
+    exp_personal = exp_std = 0
+    try:
+        async for r in db.experiencia_views.aggregate([{"$group": {"_id": "$personalized", "n": {"$sum": 1}}}]):
+            if r.get("_id"):
+                exp_personal = r.get("n", 0)
+            else:
+                exp_std = r.get("n", 0)
+    except Exception:  # noqa: BLE001
+        pass
+
     return {
         "atlax": {
             "busquedas": atlax_busquedas,
@@ -272,6 +283,8 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "intencion_top": [{"intent": x["_id"], "veces": x["n"]} for x in atlax_intent if x.get("_id")],
             "rechazo_por_motivo": [{"motivo": x["_id"], "veces": x["n"]} for x in (atlax_rechazo_motivo or []) if x.get("_id")],
             "gap_presentacion": gap_pres,
+            "experiencia": {"personalizadas": exp_personal, "estandar": exp_std,
+                            "pct_personalizadas": round(100 * exp_personal / max(1, exp_personal + exp_std))},
             "engagement_fotos": {"vistas_de_foto": atlax_foto_dwell, "zooms": atlax_foto_zoom},
             "lectura": "Lo que la gente le pide a Atlax y qué hace: búsquedas, perfilador, búsquedas SIN match (hueco de producto), engagement (vistas rápidas/ficha/foto/zoom), guardados, intención — y EL PORQUÉ DEL NO: rechazo_por_motivo (fotos/precio/zona/…) + gap_presentacion (desarrollos que la demanda rechaza por las FOTOS aunque encajen → ofrecer Studio). Data que ningún portal tiene.",
         },

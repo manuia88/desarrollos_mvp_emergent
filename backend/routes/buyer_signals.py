@@ -64,6 +64,7 @@ async def _ensure_index(db):
         # Oportunidad #1: cache del taste · TTL 24h (red de seguridad si nunca se invalida explícitamente)
         await db.visitor_taste_materialized.create_index("visitor_id", unique=True, name="vtm_vid_uniq")
         await db.visitor_taste_materialized.create_index("computed_at_dt", expireAfterSeconds=86400, name="vtm_ttl")
+        await db.experiencia_views.create_index("created_at_dt", expireAfterSeconds=_TTL_DAYS * 86400, name="ev_ttl")
         _indexed["done"] = True
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] index: {e}")
@@ -322,6 +323,15 @@ async def experiencia_fotos(dev_id: str, request: Request, visitor_id: str = "")
                 if pref_feats:
                     basis = "coldstart"
         personalized = bool(pref_rooms or pref_feats)
+        # #5 medir: registra cada experiencia con su flag (personalizada vs estándar) → se cruza con photo_dwell para el lift
+        try:
+            from datetime import datetime as _dt
+            await db.experiencia_views.insert_one({
+                "dev_id": dev_id, "visitor_id": visitor_id or None,
+                "personalized": personalized, "basis": basis, "created_at_dt": _dt.utcnow(),
+            })
+        except Exception:  # noqa: BLE001
+            pass
         rrank = {r: i for i, r in enumerate(pref_rooms)}
         pfset = set(pref_feats)
         if personalized:   # #1 score: cuarto preferido (peso, decae) + cada FEATURE que ama suma
