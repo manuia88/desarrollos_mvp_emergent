@@ -57,7 +57,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 
 ### 🏗️ Dev
 - [x] **Taste/rechazo** — por qué rechazan mi producto (percepción F5) + gap de presentación
-- [ ] **Generative** — diseño generativo del terreno (mezcla óptima) + renders que venden 🆕 *(la cuña que monetiza)*
+- [~] **Generative** — diseño generativo del terreno: motor `generar_producto` ✅ (ya existía, reusado) + ahora **cableado al FOUNDER** (tarjeta demanda → "¿qué construir aquí?": mezcla óptima + rationale + evidencia del hueco). Falta: renders que venden
 - [ ] **Spatial** — qué quiere cada zona + brecha demanda-oferta (demanda-zona ✅, profundizar) 🟡
 - [ ] **Agentic** — agente de ventas (pricing-lab ✅ + ruteo/jugada por unidad) 🟡
 - [ ] **Personal** — conciencia ambiental del portafolio ("tu zona cambió") 🆕
@@ -156,4 +156,6 @@ ScrollTrigger / rAF). (c) Móvil: video corto + keyframes densos + precarga + fa
 - **2026-06-28** — ✅ **Oportunidad #4**: `buyer_elasticidad` al founder (era casi falso positivo: el dev ya lo leía) — línea "El mercado transige antes en: …" en la tarjeta de demanda.
 - **2026-06-28** — ✅ **Oportunidad #1**: cache del taste (`visitor_taste_materialized`, TTL 24h, `get_visitor_taste_cached`) — `score_devs` (hot path del ranking) ya no recomputa en cada búsqueda; invalida sólo en señales que cambian el gusto. Verificado (escribe sanitizado→hit→invalida, sin error de claves $).
 - **2026-06-28** — ✅ **Oportunidad #7**: `PlanDePago` (esquemas REALES del dev, hide-if-empty) agregado a la ficha viva (FichaDesarrollo, módulo "Cómo lo pagas") — antes mostraba etiquetas genéricas.
-- _**LAS 7 OPORTUNIDADES CERRADAS** (+ los 8 issues de auditoría). Backend reinicia limpio · frontend compila. Patrón confirmado: 4 de los hallazgos eran falsos positivos; el valor real estaba en cablear lo muerto. **SIGUIENTE: la brújula** (cuñas grandes: diseño generativo dev, gemelo de demanda)._
+- _**LAS 7 OPORTUNIDADES CERRADAS** (+ los 8 issues de auditoría). Patrón: 4 falsos positivos; el valor estaba en cablear lo muerto._
+- **2026-06-28** — ✅ **Cuña brújula #1: Diseño generativo de producto** — REUSADO `generador_producto_engine.generar_producto` (mezcla óptima por demanda real del Grafo del Comprador; ya existía + cableado en Estudio de Mercado del dev). **Nuevo:** `GET /founder-console/product-brief` (reusa el motor + enriquece con `demanda_insatisfecha`) + la tarjeta de demanda del founder ahora es **clickable → "¿qué construir aquí?"** (mezcla: tipología·unidades·m²·precio·amenidades + rationale). Cierra demanda→producto para el founder. Verificado (Polanco 24u, 94% 2-rec; endpoint 401; compila). _(otra vez: el motor existía — el valor fue surfacearlo al founder + conectarlo a la demanda)_
+- _SIGUIENTE: **P2 de la brújula** — ficha-experiencia con personalización por gusto._

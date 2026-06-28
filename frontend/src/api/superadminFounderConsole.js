@@ -31,6 +31,11 @@ export async function getStudioOpportunities() {
   return _j(await fetch(`${BASE}/studio-opportunities`, { headers: h(), credentials: 'include' }));
 }
 
+// Diseño generativo de producto: dada una colonia → la mezcla óptima que la demanda quiere
+export async function getProductBrief(colonia, terrenoM2 = 1000) {
+  return _j(await fetch(`${BASE}/product-brief?colonia=${encodeURIComponent(colonia)}&terreno_m2=${terrenoM2}`, { headers: h(), credentials: 'include' }));
+}
+
 export async function listAnomalies({ status, severity, source, limit, skip } = {}) {
   const p = new URLSearchParams();
   if (status) p.set('status', status);

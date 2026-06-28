@@ -277,6 +277,29 @@ async def studio_opportunities(request: Request, dias: int = 30):
         return {"ok": True, "gap_presentacion": [], "rechazo_por_motivo": [], "error": str(e)[:120]}
 
 
+# ─── Diseño generativo de producto (cuña brújula): demanda → "¿qué construir aquí?" ──
+# Conecta la tarjeta de demanda con el motor generador_producto_engine (REUSO, no se duplica): dada una colonia, la
+# mezcla óptima de unidades/amenidades/precio que la demanda SÍ quiere + la evidencia del hueco (demanda_insatisfecha).
+@router.get(PREFIX + "/product-brief")
+async def product_brief(request: Request, colonia: str, terreno_m2: float = 1000):
+    await _require_superadmin(request)
+    db = _db(request)
+    col = str(colonia or "").strip().lower()
+    out: Dict[str, Any] = {"ok": True, "colonia": col, "terreno_m2": terreno_m2}
+    try:
+        from generador_producto_engine import generar_producto
+        out["brief"] = await generar_producto(db, col, float(terreno_m2 or 1000), "media")
+    except Exception as e:  # noqa: BLE001
+        out["brief"] = None
+        out["error"] = str(e)[:120]
+    try:
+        d = await db.demanda_insatisfecha.find_one({"zona": col}, {"_id": 0, "falta_top": 1})
+        out["falta"] = (d or {}).get("falta_top") or []
+    except Exception:  # noqa: BLE001
+        out["falta"] = []
+    return out
+
+
 # ─── 2) GET /anomalies ────────────────────────────────────────────────────────
 @router.get(PREFIX + "/anomalies")
 async def list_anomalies(
