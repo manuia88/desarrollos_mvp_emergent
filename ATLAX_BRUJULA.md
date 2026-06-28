@@ -65,7 +65,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 ### 👁️ Superadmin
 - [x] **Taste/rechazo** — el grafo del SÍ y del NO (F4: rechazo_por_motivo + gap_presentacion)
 - [x] **Spatial** — **Gemelo de Demanda v1** ✅ (`demand_twin_engine` cruza marketplace_searches + facts_buyer_signals + DEVELOPMENTS + demanda_insatisfecha → por zona: qué se pide·cuánto·oferta·hueco·**oportunidad** · `/api/superadmin/founder-console/demand-twin` · página explorable `/superadmin/gemelo-demanda`, enlazada desde el Founder Console). El "SimCity de la demanda de MX" consultable.
-- [ ] **Generative** — simulador what-if ("¿qué pasa si X construye Y en Z?") 🆕
+- [x] **Generative** — simulador what-if ("¿qué pasa si X construye Y en Z?") ✅ 2026-06-28 · what-if DEFENSIVO (un competidor lanza oferta en TU zona) · POST /api/dev/market/competidor-whatif aterrizado en inventario+demanda real + absorción/elasticidad MX · simulador interactivo en Mercado→Competencia (reusa constantes dev_batch7, no duplica)
 - [ ] **Agentic** — el orquestador del marketplace (Cerebro E0-E6 ✅, prender) 🟡
 - [x] **Personal** — la memoria institucional (el dato que compone el moat)
 

@@ -9,6 +9,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/dev/market", tags=["dev_market"])
 log = logging.getLogger("dmx.routes_dev_market")
@@ -269,3 +270,115 @@ async def zona_cambios(request: Request, dias: int = Query(30, ge=7, le=90)):
     return {"ok": True, "vacio": False, "ventana_dias": eff, "ventana_pedida": dias, "colonias": cols,
             "n_reciente": A["n"], "n_previo": B.get("n", 0), "confianza": conf,
             "cambios": cambios, "lectura": lectura}
+
+
+# ── L68 · Generative — "¿Y si un competidor construye en TU zona?" (what-if DEFENSIVO) ────────────────────────────────
+def _norm_col(s):
+    import unicodedata
+    s = str(s or "").strip().lower()
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+
+class CompetidorWhatIf(BaseModel):
+    colonia: Optional[str] = None
+    unidades_nuevas: int = Field(40, ge=1, le=2000)
+    precio_m2: Optional[float] = None       # del competidor; default = precio mediano de la zona
+    segmento: str = "NSE_C+"
+
+
+@router.post("/competidor-whatif")
+async def competidor_whatif(b: CompetidorWhatIf, request: Request):
+    """L68 · Generative — el what-if DEFENSIVO que ninguna herramienta cubre (whatif_engine = TUS palancas; site-selection
+    = TU expansión). Estima cómo te pega que un COMPETIDOR lance oferta en tu zona. Aterrizado en dato real: inventario
+    disponible de la zona (units_available), tus unidades, demanda real (marketplace_searches) + absorción/elasticidad
+    benchmark MX. Devuelve impacto en tiempo de venta + poder de precio + la respuesta recomendada. Fail-open."""
+    import datetime as _dt
+    from data_developments import DEVELOPMENTS
+    from routes.dev_batch7 import BASELINE_ABSORPTION_BY_STATE, ELASTICITY_BY_SEGMENT  # constantes benchmark MX (reusa)
+    user = await _auth(request)
+    db = _db(request)
+    mis_cols = await _dev_colonias(db, user)
+    col = (b.colonia or (mis_cols[0] if mis_cols else "")).strip().lower()
+    if not col:
+        raise HTTPException(400, "Indica una colonia (o publica un desarrollo para autodetectarla).")
+    coln = _norm_col(col)
+
+    mis_dev_ids = set()
+    try:
+        from tenant_scope import user_dev_ids
+        mis_dev_ids = set(user_dev_ids(user) or [])
+    except Exception:  # noqa: BLE001
+        pass
+
+    def _pm2(d):   # precio/m² derivado (DEVELOPMENTS no trae price_m2; se calcula price_from / m2 mínimo, como el resto del código)
+        try:
+            mr = d.get("m2_range") or []
+            pf = d.get("price_from")
+            return (pf / mr[0]) if (pf and mr and mr[0]) else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    zona_devs = [d for d in DEVELOPMENTS if _norm_col(d.get("colonia_id") or d.get("colonia")) == coln]
+    S = sum(int(d.get("units_available") or 0) for d in zona_devs)
+    mias = sum(int(d.get("units_available") or 0) for d in zona_devs if d.get("id") in mis_dev_ids)
+    precios = sorted([p for d in zona_devs if (p := _pm2(d))])
+    precio_zona = precios[len(precios) // 2] if precios else None
+    if S <= 0:
+        return {"ok": True, "vacio": True, "colonia": col,
+                "lectura": "No hay inventario disponible registrado en esta zona para simular el impacto."}
+
+    N = b.unidades_nuevas
+    since = _dt.datetime.utcnow() - _dt.timedelta(days=90)
+    try:
+        d90 = await db.marketplace_searches.count_documents({"colonia_id": col, "created_at_dt": {"$gte": since}})
+    except Exception:  # noqa: BLE001
+        d90 = 0
+    d_month = round(d90 / 3, 1)
+
+    # Absorción benchmark MX (anual → mensual) → meses para vaciar inventario; la nueva oferta lo alarga proporcional N/S.
+    r_month = BASELINE_ABSORPTION_BY_STATE.get("CDMX", 0.40) / 12.0
+    meses_antes = round(1 / r_month, 1)
+    meses_despues = round((1 + N / S) / r_month, 1)
+    supply_up_pct = round(N / S * 100, 1)
+
+    # Presión de precio (elasticidad por NSE): si el competidor lista bajo el precio de zona, demanda sensible voltea.
+    e = ELASTICITY_BY_SEGMENT.get(b.segmento, -0.9)
+    P = b.precio_m2 or precio_zona
+    gap_pct = share_riesgo = None
+    if P and precio_zona and P < precio_zona:
+        gap_pct = round((precio_zona - P) / precio_zona * 100, 1)
+        share_riesgo = round(min(45.0, abs(e) * gap_pct), 1)   # cap 45% — sensible al precio, no toda la demanda
+
+    score = supply_up_pct + (share_riesgo or 0)
+    veredicto = "alto" if score >= 50 else ("medio" if score >= 20 else "bajo")
+
+    recs = []
+    if supply_up_pct >= 25:
+        recs.append("Acelera la venta de tus unidades disponibles ANTES del lanzamiento del competidor — asegura tus leads calientes ya.")
+    if share_riesgo and share_riesgo >= 15:
+        recs.append("No bajes precio de lista: diferénciate (amenidad / fecha de entrega / esquema). Recortar regala margen sin frenarlo.")
+    if d_month >= 5:
+        recs.append(f"La demanda viva de tu zona (~{d_month:.0f} búsquedas/mes) ayuda a absorber la nueva oferta — el golpe es manejable con ritmo comercial.")
+    if not recs:
+        recs.append("Impacto bajo: mantén el plan. Vigila el precio del competidor por si recorta y re-simula.")
+
+    lectura = (f"Si un competidor lanza {N} unidades en {col.title()}: el inventario de la zona sube {supply_up_pct:.0f}% y "
+               f"el tiempo de venta pasaría de ~{meses_antes:.0f} a ~{meses_despues:.0f} meses. "
+               + (f"A {gap_pct:.0f}% bajo el precio de zona, ~{share_riesgo:.0f}% de la demanda sensible al precio voltearía a verlos. " if share_riesgo else "")
+               + f"Impacto {veredicto}.")
+
+    return {
+        "ok": True, "vacio": False, "colonia": col, "veredicto": veredicto,
+        "supuestos": {"unidades_nuevas": N, "precio_m2_competidor": round(P) if P else None, "segmento": b.segmento},
+        "zona": {"inventario_disponible": S, "tus_unidades": mias, "precio_m2_zona": round(precio_zona) if precio_zona else None,
+                 "demanda_mensual": d_month},
+        "impacto": {
+            "inventario_sube_pct": supply_up_pct,
+            "meses_venta_antes": meses_antes, "meses_venta_despues": meses_despues,
+            "meses_extra": round(meses_despues - meses_antes, 1),
+            "competencia_directa_antes": max(0, S - mias), "competencia_directa_despues": max(0, S - mias) + N,
+            "demanda_en_riesgo_pct": share_riesgo, "gap_precio_pct": gap_pct,
+        },
+        "recomendaciones": recs, "lectura": lectura,
+        "disclaimer": "Estimación: absorción base CDMX 0.40/año + elasticidad por NSE. Se afina con tu histórico de cierres.",
+    }

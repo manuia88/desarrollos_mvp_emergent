@@ -33,6 +33,8 @@ export const getDashboard = () => j('/api/desarrollador/dashboard');
 export const getDemandIntel = (dias = 60) => j(`/api/dev/market/demand-intel?dias=${dias}`);
 // TU ZONA CAMBIÓ (conciencia ambiental · proactivo) — el MOVIMIENTO de la demanda (no el nivel): ventana reciente vs anterior.
 export const getZonaCambios = (dias = 30) => j(`/api/dev/market/zona-cambios?dias=${dias}`);
+// L68 · what-if DEFENSIVO — "¿y si un competidor construye en tu zona?" → impacto en tu tiempo de venta + poder de precio.
+export const postCompetidorWhatIf = (body) => post('/api/dev/market/competidor-whatif', body);
 // Inicio upgrade · "Tus jugadas de hoy" (fusión datos+mercado, rankeadas por $ en juego)
 export const getDevPlays = () => j('/api/dev/projects/plays');
 // Inicio upgrade · "La Lectura del Portafolio" (cada número con su lectura + salud explicada + pulso)

@@ -12,6 +12,7 @@ import MarketIntelligence from '../../components/developer/MarketIntelligence';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import DesarrolladorDemanda from './DesarrolladorDemanda';
 import DesarrolladorCompetidores from './DesarrolladorCompetidores';
+import CompetidorWhatIf from '../../components/developer/CompetidorWhatIf';
 import DesarrolladorReportes from './DesarrolladorReportes';
 import DesarrolladorSiteSelection from './DesarrolladorSiteSelection';
 import DevComportamiento from '../../components/developer/DevComportamiento';
@@ -98,7 +99,12 @@ export default function DesarrolladorMercado({ user, onLogout }) {
       {DEV_V2 && area === 'precios' && <DevPricingArea user={user} />}
       {DEV_V2 && area === 'ciclo' && <DevCicloRenta />}
       {DEV_V2 && area === 'indices' && <DevIndicesDMX />}
-      {DEV_V2 && area === 'competencia' && <DesarrolladorCompetidores user={user} embedded />}
+      {DEV_V2 && area === 'competencia' && (
+        <>
+          <CompetidorWhatIf colonias={colonias} zonaSel={colonia} />
+          <DesarrolladorCompetidores user={user} embedded />
+        </>
+      )}
       {DEV_V2 && area === 'reportes' && <DesarrolladorReportes user={user} embedded />}
       {DEV_V2 && area === 'site' && <DesarrolladorSiteSelection user={user} embedded />}
 
