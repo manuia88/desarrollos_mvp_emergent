@@ -362,6 +362,7 @@ const AsistentePage                  = lazy(() => import('./pages/public/Asisten
 // W4.2D2 — Programmatic SEO zone landing pages
 const ZonePageV2                     = lazy(() => import('./pages/public/ZonePageV2'));  // rebuild claro (formato marketplace · reemplaza ZonePage oscura)
 const AtlaxSurface                   = lazy(() => import('./pages/public/AtlaxSurface'));  // Capa 1: el "LLM inmobiliario" — superficie conversacional (no burbuja)
+const AtlaxExperiencia               = lazy(() => import('./pages/public/AtlaxExperiencia')); // ficha-experiencia cinemática (módulos ATOMS) — pilot
 // W4.2D3 — Programmatic SEO Tier 1+2 (alcaldías + intents)
 const AlcaldiaPage                   = lazy(() => import('./pages/public/AlcaldiaPage'));
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
@@ -680,6 +681,7 @@ function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/v2" element={<HomeV2 />} />{/* rediseño · preview fondo claro */}
       <Route path="/atlax" element={<AtlaxSurface />} />{/* el "LLM inmobiliario" — superficie conversacional */}
+      <Route path="/experiencia/:id" element={<AtlaxExperiencia />} />{/* ficha-experiencia cinemática (ATOMS) */}
       <Route path="/p/:token" element={<SwipeLinkRoute />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/favoritos" element={<Suspense fallback={null}><Favoritos /></Suspense>} />

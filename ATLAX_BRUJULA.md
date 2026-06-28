@@ -44,7 +44,7 @@ en ciclo cerrado, en un mercado real (MX primary-market). **Eso ya lo tenemos.**
 ### 🛒 Comprador
 - [x] **Taste** — swipe 👍/👎 + motivo (porqué del NO) · no-repetir · rank por gusto · "Atlax ya te conoce" · cross-device (F1-F5, U1-U6)
 - [ ] **Spatial** — "mapa de dónde vivirías feliz" (cubo × tu gusto → zonas que te quedan) 🆕
-- [ ] **Generative** — ficha-experiencia cinemática / video de zona / staged a tu gusto 🟡 (ver §4)
+- [~] **Generative** — ficha-experiencia cinemática 🚧 **P1 ✅** (`/experiencia/:id`: image-reveal + scroll-scrub + sensor) · falta video de zona + staged a tu gusto (ver §4)
 - [ ] **Agentic** — agente que busca→vetea→negocia→aparta (Cerebro find_home + buy-signal + apartado) 🟡
 - [ ] **Personal** — gusto por etapas de vida (rentar→comprar→invertir) + alertas proactivas 🟡 (casamentera ✅)
 
@@ -136,4 +136,5 @@ ScrollTrigger / rAF). (c) Móvil: video corto + keyframes densos + precarga + fa
 - **2026-06-27** — ✅ Espinazo de Aprendizaje **F1-F5** (swipe+motivo · no-repetir · Mi Lista+handoff · grafo rechazo superadmin · loop dev fotos→Studio). Ver `ATLAX_LEARNING_SPINE_SPEC.md`.
 - **2026-06-27** — ✅ **U1-U6** (restart+verify · gusto hipergranular `visitor_taste` + "Atlax ya te conoce" · impresión cubierta · image-health · alertas casamentera · identidad cross-device por registro Y login).
 - **2026-06-27** — ✅ **Ranking hipergranular** (`/casi` ordena por `score_devs`: zona·amenidades·precio·features de foto + perfil negativo).
+- **2026-06-27** — 🚧 **Ficha-experiencia P1** (cuña #2): `pages/public/AtlaxExperiencia.js` + ruta `/experiencia/:id`. Hero **image-reveal** (Módulo 1, cursor revela 2ª foto) + walkthrough **scroll-scrub** (Módulo 4, recorre fotos del depa) + **sensor** (`photo_dwell` por foto → `visitor_taste`) + CTA (me interesa / ver números / asesor). **Solo assets REALES** (fallback a ficha si <2 fotos). Verificado en vivo (tamaulipas-89): compila · scroll avanza foto 0→1→3→5 · `photo_dwell` dispara con índice+dwell_ms. **Falta:** P2 (personalización por gusto + usar `video_url`/360 real cuando exista) · P3 (hero video de zona Módulo 2 + disparadores "Vívelo" desde tarjeta/vista-rápida + móvil/perf).
 - _(siguiente: marcar aquí lo que se complete)_
