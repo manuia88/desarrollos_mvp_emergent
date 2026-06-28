@@ -1870,10 +1870,16 @@ async def casi_cumple(
     _taste = {}
     if visitor_id:
         try:
-            from routes.buyer_signals import taste_scores as _ts
-            _taste = await _ts(request.app.state.db, visitor_id) or {}
+            from visitor_taste import score_devs as _sd  # gusto HIPERGRANULAR: zona·amenidades·precio·features de foto + perfil negativo
+            _taste = await _sd(request.app.state.db, visitor_id, [s["d"] for s in scored]) or {}
         except Exception:  # noqa: BLE001
             _taste = {}
+        if not _taste:  # sin señal granular → cae al taste simple (amenidad/precio, reusa parecidos)
+            try:
+                from routes.buyer_signals import taste_scores as _ts
+                _taste = await _ts(request.app.state.db, visitor_id) or {}
+            except Exception:  # noqa: BLE001
+                _taste = {}
     scored.sort(key=lambda s: (-s["met"], -_taste.get(s["d"].get("id"), 0), len(s["falta"])))
     top = scored[:limit]
     cards = await _enrich_listing(request.app.state.db, [s["d"] for s in top])

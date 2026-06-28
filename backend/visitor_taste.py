@@ -115,6 +115,15 @@ async def build_visitor_taste(db, visitor_id: str):
             "precio_techo": max(prices) if prices else None,
             "amenidades": [AMEN_LABEL.get(a, a) for a, _ in amen.most_common(4)],
             "evita": evita,
+            # claves CRUDAS para el ranking (no para mostrar) — el gusto hipergranular que ordena los resultados.
+            "keys": {
+                "rooms": [k for k, _ in room_score.most_common(5)],
+                "features": [k for k, _ in feat_score.most_common(5)],
+                "amenities": [a for a, _ in amen.most_common(6)],
+                "evita": [k for k, _ in neg_attr.most_common(4)],
+                "zonas_gustan": [str(c).lower() for c, _ in liked_col.most_common(4)],
+                "zonas_evita": [str(c).lower() for c, _ in rejected_col.most_common(3)],
+            },
             "motivos_no": [r for r, _ in reasons.most_common(3)],
             "n_gustadas": len(pos_devs), "n_descartadas": len(dismissed),
             "confianza": int(min(92, len(pos_devs) * 16 + sum(feat_score.values()) / 6 + sum(room_score.values()) / 6)),
@@ -139,3 +148,56 @@ def _resumen(p):
     if p.get("evita"):
         bits.append("evitas " + p["evita"][0])
     return ("Atlax ya te conoce: " + " · ".join(bits) + ".") if bits else None
+
+
+async def score_devs(db, visitor_id, devs):
+    """Rankea una lista de desarrollos por el GUSTO HIPERGRANULAR del visitante: zona (gustada/evitada) · amenidades ·
+    precio vs su techo · FEATURES de las fotos (luz/vista/terraza, vía photo_tagger) + perfil NEGATIVO. {dev_id: 0-100}.
+    Vacío si no hay gusto → el caller cae al orden normal. Fail-open. Usado por /api/developments/casi para reordenar."""
+    try:
+        p = await build_visitor_taste(db, visitor_id)
+        if not p:
+            return {}
+        k = p.get("keys") or {}
+        gustan, evita_z = set(k.get("zonas_gustan") or []), set(k.get("zonas_evita") or [])
+        liked_amen = set(k.get("amenities") or [])
+        liked_feat = set(k.get("features") or []) | set(k.get("rooms") or [])
+        evita_attr = set(k.get("evita") or [])
+        techo = p.get("precio_techo")
+        try:
+            from photo_tagger import tag_from_url
+        except Exception:  # noqa: BLE001
+            tag_from_url = None
+        out = {}
+        for d in (devs or []):
+            did = d.get("id")
+            if not did:
+                continue
+            s = 50.0
+            col = (d.get("colonia") or "").lower()
+            if col and col in gustan:
+                s += 18
+            elif col and col in evita_z:
+                s -= 22
+            s += min(18, 6 * len(set(d.get("amenities") or []) & liked_amen))
+            pf = d.get("price_from")
+            if techo and pf:
+                if pf <= techo * 1.05:
+                    s += 8
+                elif pf > techo * 1.2:
+                    s -= 10
+            if tag_from_url and (liked_feat or evita_attr):
+                attrs = set()
+                for ph in (d.get("photos") or [])[:6]:
+                    t = tag_from_url(ph) or {}
+                    if t.get("room"):
+                        attrs.add(t["room"])
+                    for f in (t.get("features") or []):
+                        attrs.add(f)
+                s += min(15, 5 * len(attrs & liked_feat))
+                s -= 6 * len(attrs & evita_attr)
+            out[did] = max(0.0, min(100.0, s))
+        return out
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[visitor_taste] score_devs fail: {e}")
+        return {}
