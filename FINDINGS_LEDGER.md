@@ -522,3 +522,27 @@ front. photo_dwell→feature vía photo_tagger (foto[idx]→features reales). dw
 
 **Próximo nivel (anotado, no fabricado):** que la tendencia/unmet DISPARE acción proactiva (alerta al command-center del
 dev: 'terraza subiendo 3x, 0 oferta en tu colonia → constrúyelo') — toca el sistema agéntico, va con el portal Dev.
+
+---
+
+## AUDITORÍA DE GRANULARIDAD MÁXIMA DEL MARKETPLACE — mapa honesto (post-fixes)
+
+**Push proactivo (DEUDA pagada):** notify_demand_alerts() cron semanal + endpoint /notify → notificación real al dev
+('qué construir') con dedup 7d. Probado end-to-end. Ya no es dashboard/pull-only.
+
+**Granularidad por dimensión (lo que pidió el founder):**
+- GEO: ciudad ✅ · alcaldía ✅ (cubo) · zona/colonia ✅ · **manzana ❌ · calle ❌ en demanda** (las unidades tienen calle;
+  derivable vía unit_view→unidad pero no agregado — la demanda es a nivel COLONIA, que es como busca el comprador).
+- PROPIEDAD: internas (rec/baños/m²) ✅ · externas (orientación/vista) ✅ · amenidades ✅ (atlax_profile+query+foto+proxy)
+  · fichas técnicas ✅ (section_view/module_open) · fotos ✅ (photo_dwell→feature vía photo_tagger).
+- FINANCIERO: formas de pago ✅ (payment_explore NUEVO) · crédito/mensualidad ✅ · rentabilidad/ROI ✅ (roi_explore NUEVO).
+- DEMANDA ✅ · PREGUNTAS a Atlax ✅ (atlax_query con filtros parseados → ahora alimenta demanda, precisas 41→88).
+- FORMULARIOS: lead ✅ · perfilador ✅ · cotizador ✅ · ROI calc ✅.
+
+**Respuesta honesta:** MUY cerca del máximo, NO 100%. Lo que falta para 'máximo absoluto':
+1. Geo sub-colonia (calle/manzana) — la demanda es a nivel colonia (nivel correcto para búsqueda; calle derivable).
+2. Conversación Atlax mensaje-por-mensaje — se guardan preguntas (atlax_query) + sesiones (59), pero no se analiza cada
+   turno del ida-y-vuelta para extraer intent adicional.
+3. financial_intent agrega payment/roi (sin página dedicada aún — se ve como línea en superadmin).
+
+Cero cable-muerto: todas las señales nuevas se consumen (financial_intent) o alimentan demanda/colonia.
