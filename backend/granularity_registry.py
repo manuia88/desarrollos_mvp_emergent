@@ -103,6 +103,59 @@ async def coverage(db) -> Dict[str, Any]:
 _UNIT_GROUPS = ("position", "interior", "areas", "storage", "parking", "security", "finishes",
                 "sustainability", "legal", "commercial", "demand", "investment", "geo", "amenity_keys")
 
+# Diagnóstico de STUBS — qué fuente necesita cada receta y su estatus REAL (honesto, sin inventar).
+SOURCE_STATUS = {
+    "osm_overpass":       ("datos_escasos",   "OSM ya sincronizado (gratis, radio 700m). Stub = colonia periférica con pocos POIs reales — no se fabrica densidad."),
+    "noaa":               ("token_gratis",    "Registrar token gratis NOAA CDO → env IE_NOAA_API_KEY."),
+    "banxico":            ("token_gratis",    "Token gratis Banxico SIE → env IE_BANXICO_TOKEN."),
+    "inegi":              ("token_gratis",    "Token gratis INEGI → env IE_INEGI_TOKEN."),
+    "fgj_cdmx":           ("resource_id",     "resource_id CKAN datos.cdmx (FGJ carpetas) → env IE_FGJ_CDMX_RESOURCE_ID."),
+    "locatel":            ("resource_id",     "resource_id CKAN (Locatel 0311) → env IE_LOCATEL_RESOURCE_ID."),
+    "sacmex":             ("resource_id",     "resource_id CKAN (SACMEX cortes de agua) → env IE_SACMEX_RESOURCE_ID."),
+    "datos_cdmx":         ("resource_id",     "resource_id CKAN (uso de suelo / fibra) → configurar en datos.cdmx."),
+    "conagua_smn":        ("sin_fuente",      "CONAGUA SMN — conector aún stub, falta fuente real."),
+    "cenapred":           ("sin_fuente",      "CENAPRED — falta fuente real (riesgo sísmico/inundación)."),
+    "atlas_riesgos_cdmx": ("sin_fuente",      "Atlas de Riesgos CDMX — falta fuente real."),
+    "gtfs_cdmx":          ("sin_fuente",      "GTFS CDMX — conector aún stub, falta feed real."),
+    "airroi":             ("pago",            "AirROI — fuente DE PAGO (cobra por llamada)."),
+}
+_STATUS_PRIORITY = ["pago", "sin_fuente", "token_gratis", "resource_id", "datos_escasos", "dato_interno"]
+
+
+async def stub_diagnosis(db) -> Dict[str, Any]:
+    """Por cada receta IE STUB: qué fuente necesita y su estatus accionable (token gratis / resource_id / dato escaso /
+    sin fuente / pago / dato interno). Honesto: no fabrica. Es el mapa de 'qué falta para des-stubear'."""
+    try:
+        from score_engine import all_recipes
+        recs = all_recipes()
+    except Exception:
+        recs = {}
+    rows = await db.ie_scores.aggregate(
+        [{"$match": {"is_stub": True}}, {"$group": {"_id": "$code", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}]
+    ).to_list(300)
+    items = []
+    for r in rows:
+        code, n = r["_id"], r["n"]
+        rec = recs.get(code)
+        deps = list(getattr(rec, "dependencies", []) or []) if rec else []
+        needs_denue = bool(getattr(rec, "needs_denue", False)) if rec else False
+        if needs_denue and "osm_overpass" not in deps:
+            deps = deps + ["osm_overpass"]
+        if not deps:
+            status, accion, fuentes = "dato_interno", "Computa de datos DMX internos — stub = la entidad aún no tiene ese dato capturado.", []
+        else:
+            cand = [(SOURCE_STATUS.get(d, ("sin_fuente", d))[0], SOURCE_STATUS.get(d, ("sin_fuente", d))[1], d) for d in deps]
+            cand.sort(key=lambda c: _STATUS_PRIORITY.index(c[0]) if c[0] in _STATUS_PRIORITY else 99)
+            status, accion = cand[0][0], cand[0][1]
+            fuentes = deps
+        items.append({"code": code, "zonas_stub": n, "fuentes": fuentes, "status": status, "accion": accion})
+    resumen = {}
+    for it in items:
+        resumen.setdefault(it["status"], {"recetas": 0, "zonas_stub": 0})
+        resumen[it["status"]]["recetas"] += 1
+        resumen[it["status"]]["zonas_stub"] += it["zonas_stub"]
+    return {"total_recetas_stub": len(items), "por_status": resumen, "detalle": items}
+
 
 def _drill(key: str, docs: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """CAPA 3 · drill por-score / por-feature: expande las familias gruesas en su detalle granular."""

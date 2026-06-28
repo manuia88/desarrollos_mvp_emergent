@@ -4,7 +4,17 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty, Badge } from '../../components/advisor/primitives';
-import { getCoverage, getEntity, runBackfill } from '../../api/superadminGranularity';
+import { getCoverage, getEntity, runBackfill, getStubDiagnosis } from '../../api/superadminGranularity';
+
+const STUB_STATUS_LABEL = {
+  datos_escasos: 'Datos escasos (OSM real, no se inventa)',
+  dato_interno: 'Dato interno aún no capturado',
+  resource_id: 'Falta resource_id CKAN (gratis, configurable)',
+  token_gratis: 'Falta token gratis (NOAA/Banxico/INEGI)',
+  sin_fuente: 'Sin fuente real (conector stub)',
+  pago: 'Fuente de pago (AirROI)',
+};
+const STUB_STATUS_TONE = { datos_escasos: 'neutral', dato_interno: 'neutral', resource_id: 'warn', token_gratis: 'warn', sin_fuente: 'bad', pago: 'bad' };
 
 const ESTADO_COLOR = { vivo: '#16a34a', apagado: '#dc2626', cache: '#6b7280', error: '#a16207' };
 const ESTADO_TONE = { vivo: 'ok', apagado: 'bad', cache: 'neutral', error: 'warn' };
@@ -29,8 +39,9 @@ export default function SuperadminGranularidad() {
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMsg, setBackfillMsg] = useState(null);
 
+  const [stubDx, setStubDx] = useState(null);
   const load = () => getCoverage().then(setCov).catch((e) => setErr(e.message)).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); getStubDiagnosis().then(setStubDx).catch(() => {}); }, []);
 
   const encender = async () => {
     setBackfilling(true); setBackfillMsg(null);
@@ -39,6 +50,7 @@ export default function SuperadminGranularidad() {
       const tot = (r.results || []).reduce((a, x) => a + (x.persisted || 0), 0);
       setBackfillMsg(`Encendidas: ${tot} registros persistidos en ${(r.ran || []).join(', ')}.`);
       await load();
+      getStubDiagnosis().then(setStubDx).catch(() => {});
     } catch (e) { setBackfillMsg(`Error: ${e.message}`); }
     finally { setBackfilling(false); }
   };
@@ -125,6 +137,25 @@ export default function SuperadminGranularidad() {
                   <Badge key={e.key} tone="warn">{e.label} · {e.engine}</Badge>
                 ))}
               </div>
+            </Card>
+          )}
+
+          {stubDx && (
+            <Card style={{ padding: '14px 18px', marginBottom: 20 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Diagnóstico de stubs IE — qué falta para des-stubear ({stubDx.total_recetas_stub} recetas)</div>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>El botón de arriba recomputa las stub STALE (dato ya existe). El resto necesita la acción de abajo — honesto, no se fabrica dato.</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <tbody>
+                  {Object.entries(stubDx.por_status).sort((a, b) => b[1].zonas_stub - a[1].zonas_stub).map(([st, v]) => (
+                    <tr key={st} style={{ borderTop: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '8px 10px', width: 1 }}><Badge tone={STUB_STATUS_TONE[st] || 'neutral'}>{v.recetas}</Badge></td>
+                      <td style={{ padding: '8px 10px', fontWeight: 500 }}>{STUB_STATUS_LABEL[st] || st}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', color: '#666' }}>{v.zonas_stub.toLocaleString()} zonas-stub</td>
+                      <td style={{ padding: '8px 10px', color: '#888', fontSize: 12 }}>{(stubDx.detalle.find((d) => d.status === st) || {}).accion}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </Card>
           )}
 

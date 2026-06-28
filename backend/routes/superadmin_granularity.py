@@ -26,6 +26,15 @@ async def granularity_entity(entity_type: str, entity_id: str, request: Request)
     return await inspect_entity(request.app.state.db, entity_type, entity_id)
 
 
+@router.get("/stub-diagnosis")
+async def granularity_stub_diagnosis(request: Request):
+    """Mapa de 'qué falta para des-stubear': por receta IE stub, la fuente que necesita y su estatus accionable."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    from granularity_registry import stub_diagnosis
+    return await stub_diagnosis(request.app.state.db)
+
+
 @router.post("/backfill")
 async def granularity_backfill(request: Request, family: str = "default"):
     """ENCENDER familias apagadas: corre el cómputo+persistencia para las entidades existentes. family ∈

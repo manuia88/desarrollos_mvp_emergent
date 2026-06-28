@@ -123,15 +123,40 @@ async def backfill_project_scores(db, limit: int = 200) -> Dict[str, Any]:
     return {"family": "score_snapshots:project", "attempted": att, "persisted": ok, "errors": err}
 
 
+async def backfill_ie_stubs(db, limit: int = 600) -> Dict[str, Any]:
+    """DES-STUBEAR recetas IE STALE — muchas quedaron stub porque se computaron ANTES de sincronizar su fuente (p.ej.
+    denue_zone_density de OSM ya existe para 3,166 zonas) y el cron solo recomputa zonas con obs nuevas en 24h. El dato
+    YA existe → recomputar las flipea stub→real. Cero fuentes externas, cero fake. Las que sí carecen de dato siguen stub."""
+    from score_engine import ScoreEngine
+    eng = ScoreEngine(db)
+    pipe = [{"$match": {"is_stub": True, "zone_id": {"$nin": [None, "None", ""]}}},
+            {"$group": {"_id": "$zone_id", "codes": {"$addToSet": "$code"}}}, {"$limit": limit}]
+    zonas = recompute = flipped = err = 0
+    async for row in db.ie_scores.aggregate(pipe):
+        z, codes = row["_id"], row["codes"]
+        zonas += 1
+        try:
+            before = await db.ie_scores.count_documents({"zone_id": z, "code": {"$in": codes}, "is_stub": True})
+            res = await eng.compute_many(z, codes, allow_paid=False)
+            recompute += len(res)
+            after = await db.ie_scores.count_documents({"zone_id": z, "code": {"$in": codes}, "is_stub": True})
+            flipped += max(0, before - after)
+        except Exception:
+            err += 1
+    return {"family": "ie_scores_stubs", "zonas": zonas, "recomputadas": recompute, "stub_a_real": flipped, "errors": err}
+
+
 _FAMILIES = {
+    "ie_scores_stubs": backfill_ie_stubs,
     "buyer_scores": backfill_buyer_scores,
     "asesor_trust_scores": backfill_trust,
     "lead_match_scores": backfill_lead_match,
     "avm_predictions": backfill_avm,
     "score_snapshots": backfill_project_scores,
 }
-# El cron diario corre las baratas (no avm, que es por-propiedad y costoso).
-_CRON_FAMILIES = ["buyer_scores", "asesor_trust_scores", "lead_match_scores", "score_snapshots"]
+# El cron diario corre las baratas (no avm, que es por-propiedad y costoso). Incluye ie_scores_stubs → arregla el bug de
+# staleness (el recompute diario base solo toca zonas con obs nuevas en 24h, dejando stubs stale para siempre).
+_CRON_FAMILIES = ["ie_scores_stubs", "buyer_scores", "asesor_trust_scores", "lead_match_scores", "score_snapshots"]
 
 
 async def run_backfill(db, family: Optional[str] = None) -> Dict[str, Any]:
