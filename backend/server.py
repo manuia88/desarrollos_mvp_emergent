@@ -267,6 +267,9 @@ app.include_router(superadmin_audit_router)
 from routes.superadmin_ai_cost import router as superadmin_ai_cost_router
 app.include_router(superadmin_ai_cost_router)
 
+from routes.superadmin_granularity import router as superadmin_granularity_router
+app.include_router(superadmin_granularity_router)
+
 # W2.4 SA5 — Commercial Foundation (feature flags + plan templates + snapshots)
 from routes.superadmin_commercial import (
     router as superadmin_commercial_router,

@@ -195,6 +195,7 @@ const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLe
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
 const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
 const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
+const SuperadminGranularidad  = lazy(() => import('./pages/superadmin/SuperadminGranularidad'));
 // W5.FF3 — UI Visibility Matrix
 const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/SuperadminFeatureVisibility'));
 // W5.25 — Widget Embed Analytics
@@ -747,6 +748,7 @@ function AppRouter() {
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
       <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
       <Route path="/superadmin/kg" element={<SuperadminRoute Page={SuperadminKG} />} />
+      <Route path="/superadmin/granularidad" element={<SuperadminRoute Page={SuperadminGranularidad} />} />
       <Route path="/superadmin/gemelo-demanda" element={<SuperadminRoute Page={SuperadminGemeloDemanda} />} />{/* moonshot */}
       {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
       <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
