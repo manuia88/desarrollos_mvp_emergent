@@ -221,3 +221,24 @@ harness reforzado (upgrade A/C) lo **atrapó al instante** (12/17). El doble-loo
 / donde-vivir (consultan por colonia+fecha y visitor+fecha). Agregados: `(colonia_id, created_at_dt)`,
 `(visitor_id, created_at_dt)`. + `buyer_signals (visitor_id, created_at_dt)` (timeline / 'primera señal' del flywheel).
 Verificado: los 4 índices (ms_colonia_dt, ms_vid_dt, bs_vid_dt, cc_closed_at) existen; harness 17/17.
+
+---
+
+## FASE R — Rescate de huérfanos: NO hay (F0 inventario equivocado)
+
+Verificación honesta de los 6 "huérfanos de alto valor" de F0 (importado en rutas? superficie frontend?):
+| motor | rutas | frontend | veredicto |
+|-------|-------|----------|-----------|
+| battle_card | 5 | 7 archivos | **cableado** |
+| forecast/FSD | 17 | 33 | **cableado** |
+| churn_prediction | 4 | 1 | cableado |
+| asesor_digest | 2 | 1 | cableado |
+| conversation_cost | 4 | 2 | cableado |
+| conversation_kb_gaps | 2 | (mi grep dijo 0) | **CABLEADO** — componente `SuperadminKbGaps` (188 líneas) + ruta App.js:790 + nav:253 |
+
+**conversation_kb_gaps**: empecé a rescatarlo (mi grep buscó el nombre del ENGINE, no "kb-gaps") y casi shipeo un
+DUPLICADO completo (página+ruta+nav). El compile lo cazó (doble declaración) → **revertido** (regla: no duplicar).
+
+**Conclusión:** el inventario de huérfanos de F0 estaba completamente inflado — los 6 ya tienen UI. No hay rescate que
+hacer. Lección: el grep de huérfanos debe buscar la RUTA/feature ('kb-gaps'), no el nombre del motor — los F0 agents
+(y yo) buscaron el motor y reportaron falsos huérfanos. (Mismo patrón de imprecisión que B4/B2-A2.)
