@@ -450,7 +450,7 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
     zonas que te gustan (excluye las que evitas). Reusa visitor_taste + db.colonias (scores reales). Fail-open."""
     try:
         db = request.app.state.db
-        liked, evita, techo = [], set(), None
+        liked, evita, techo, basis = [], set(), None, None
         if visitor_id:
             from visitor_taste import get_visitor_taste_cached
             tp = await get_visitor_taste_cached(db, visitor_id) or {}
@@ -458,6 +458,22 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
             liked = [str(z).lower() for z in (k.get("zonas_gustan") or [])]
             evita = {str(z).lower() for z in (k.get("zonas_evita") or [])}
             techo = tp.get("precio_techo")
+            if liked or techo:
+                basis = "gusto"
+            else:
+                # #4 cold-start: sin gusto aún → personaliza desde su ÚLTIMA BÚSQUEDA (zona+presupuesto que escribió)
+                try:
+                    from services.visitor_identity import resolve_visitors
+                    vids = await resolve_visitors(db, visitor_id) or [visitor_id]
+                except Exception:  # noqa: BLE001
+                    vids = [visitor_id]
+                s = await db.marketplace_searches.find_one(
+                    {"visitor_id": {"$in": vids}}, {"_id": 0, "precio_max": 1, "colonias": 1}, sort=[("created_at_dt", -1)])
+                if s:
+                    techo = s.get("precio_max") or techo
+                    liked = [str(z).lower() for z in (s.get("colonias") or [])]
+                    if liked or techo:
+                        basis = "coldstart"
         target_pm2, liked_tiers = None, set()
         if liked:
             pms = []
@@ -489,7 +505,7 @@ async def donde_vivir(request: Request, visitor_id: str = "", limit: int = 8):
         for r in top:
             r["por_que"] = _donde_why(r, target_pm2, liked_tiers)
             r.pop("vida", None)
-        return {"ok": True, "colonias": top, "personalizado": bool(liked or techo),
+        return {"ok": True, "colonias": top, "personalizado": bool(liked or techo), "basis": basis,
                 "presupuesto_m2": round(target_pm2) if target_pm2 else None}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] donde-vivir fail-open: {e}")

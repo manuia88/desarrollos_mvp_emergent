@@ -26,7 +26,9 @@ export default function DondeVivirCard() {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
         <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 18, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>¿Dónde vivirías feliz?</h2>
         <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
-          {data?.personalizado ? 'según tu gusto y presupuesto' : 'mejor calidad de vida — se afina conforme exploras'}
+          {data?.basis === 'gusto' ? 'según tu gusto y presupuesto'
+            : data?.basis === 'coldstart' ? 'según lo que buscaste'
+              : 'mejor calidad de vida — se afina conforme exploras'}
         </span>
       </div>
       {!cols ? (
