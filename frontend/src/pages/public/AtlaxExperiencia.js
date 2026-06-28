@@ -110,6 +110,7 @@ function VideoScrub({ dev, src, badge }) {
   const maxProg = useRef(0), startedAt = useRef(0);
   const [pct, setPct] = useState(0);
   const [ready, setReady] = useState(false);
+  const [secH, setSecH] = useState('760vh');   // alto del scroll ∝ duración → recorrido gentil (más tiempo por espacio)
 
   const tick = useCallback(() => {
     const v = vidRef.current;
@@ -150,10 +151,10 @@ function VideoScrub({ dev, src, badge }) {
   }, [onScroll, dev.id]);
 
   return (
-    <section ref={wrapRef} style={{ height: '620vh', position: 'relative' }}>
+    <section ref={wrapRef} style={{ height: secH, position: 'relative' }}>
       <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#000' }}>
         <video ref={vidRef} src={src} muted playsInline preload="auto"
-          onLoadedMetadata={(e) => { dur.current = e.currentTarget.duration || 0; try { e.currentTarget.pause(); } catch (_) { /* noop */ } setReady(true); onScroll(); }}
+          onLoadedMetadata={(e) => { const d = e.currentTarget.duration || 0; dur.current = d; setSecH(`${Math.round(Math.min(1400, Math.max(640, (d || 14) * 52)))}vh`); try { e.currentTarget.pause(); } catch (_) { /* noop */ } setReady(true); onScroll(); }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,15,0.25) 0%, transparent 35%, transparent 60%, rgba(10,10,15,0.85) 100%)', pointerEvents: 'none' }} />
         {!ready && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', opacity: 0.7, fontSize: 14 }}>Cargando recorrido…</div>}
