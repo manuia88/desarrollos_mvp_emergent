@@ -3,7 +3,8 @@
 // con preguntas de seguimiento y cierre. Reusa /api/atlax/query + AtlaxBlocks (mismos bloques que la burbuja).
 // La burbuja (AtlaxBubble) se queda para preguntas EN CONTEXTO (en una ficha); esta superficie es la búsqueda profunda.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import AtlaxBlocks from '../../components/landing/AtlaxBlocks';
 import { Sparkle, ArrowRight } from '../../components/icons';
 
@@ -36,6 +37,11 @@ const chip = {
   background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.24)', color: 'var(--theme)',
   borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 };
+const cta = {
+  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)',
+  borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+};
+const ctaPrimary = { ...cta, background: 'rgba(var(--theme-rgb),0.16)', border: '1px solid rgba(var(--theme-rgb),0.40)', color: 'var(--theme)' };
 
 export default function AtlaxSurface() {
   const [params, setParams] = useSearchParams();
@@ -45,6 +51,13 @@ export default function AtlaxSurface() {
   const sessionRef = useRef(null);
   const endRef = useRef(null);
   const askedRef = useRef(false);
+  const navigate = useNavigate();
+  const [toast, setToast] = useState('');
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
+  const lastUserQ = () => { const u = [...messages].reverse().find((m) => m.role === 'user'); return u ? u.content : ''; };
+  // Cierre agéntico: cada conversación puede convertirse en señal de demanda / lead (cierra el ciclo del flywheel).
+  const saveSearch = () => { try { sendBuyerSignal('atlax_search_saved', { query: lastUserQ() }); } catch (_) { /* noop */ } flash('Búsqueda guardada ✓'); };
+  const wantAdvisor = () => { try { sendBuyerSignal('atlax_lead_intent', { query: lastUserQ() }); } catch (_) { /* noop */ } flash('Listo — un asesor revisará tu búsqueda ✓'); };
 
   const send = useCallback(async (text) => {
     const q = String(text || '').trim();
@@ -97,6 +110,9 @@ export default function AtlaxSurface() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 92, left: '50%', transform: 'translateX(-50%)', background: 'var(--theme)', color: '#fff', padding: '10px 18px', borderRadius: 999, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5, zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>{toast}</div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'var(--cream)', fontFamily: 'Outfit', fontWeight: 800, fontSize: 16 }}>
           Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span>
@@ -143,6 +159,13 @@ export default function AtlaxSurface() {
                       {i === messages.length - 1 && !busy && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
                           {FOLLOWUPS.map((f) => <button key={f} onClick={() => send(f)} style={chip}>{f}</button>)}
+                        </div>
+                      )}
+                      {i === messages.length - 1 && !busy && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                          <button onClick={saveSearch} style={cta}>💾 Guardar búsqueda</button>
+                          <button onClick={() => navigate('/marketplace')} style={cta}>🏠 Ver en el marketplace</button>
+                          <button onClick={wantAdvisor} style={ctaPrimary}>👤 Que un asesor me contacte</button>
                         </div>
                       )}
                     </div>

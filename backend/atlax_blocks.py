@@ -70,6 +70,7 @@ async def _zone_row(db, slug: str, name: str):
         "entrega_inmediata": sum(1 for d in devs if d.get("stage") == "entrega_inmediata"),
         "plusvalia_pct": None,
         "sismic_zone": None,
+        "vida": None,
     }
     try:
         rep = (round(sum(precios) / len(precios)) if precios else None) or ((row["precio_m2"] or 0) * 80) or None
@@ -85,6 +86,15 @@ async def _zone_row(db, slug: str, name: str):
             risk = await nre.compute_natural_risk_zone(db, slug)
             if risk and risk.get("available"):
                 row["sismic_zone"] = risk.get("sismic_zone")
+    except Exception:
+        pass
+    # Vida de barrio (densidad de amenidades REAL · denue_zone_density) — señal de "qué tan animada está la zona".
+    try:
+        if db is not None:
+            vd = await db.denue_zone_density.find_one({"zone_id": slug}, {"_id": 0, "businesses_count_total": 1})
+            tot = (vd or {}).get("businesses_count_total")
+            if tot is not None:
+                row["vida"] = "Muy animada" if tot >= 800 else "Animada" if tot >= 350 else "Tranquila"
     except Exception:
         pass
     return row
