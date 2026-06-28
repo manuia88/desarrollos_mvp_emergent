@@ -410,7 +410,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
     setEtapaVida(null); setMemo(null); setEnrich(null);
-    if (demo) return;
+    // Guard demo robusto: un contacto demo (prop `demo` O id 'demo-…') NUNCA llama la API real (evita 404 en consola
+    // si se abre por URL directa sin el objeto demo).
+    if (demo || (typeof cid === 'string' && cid.startsWith('demo-'))) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getEtapaVida(cid).then(setEtapaVida).catch(() => setEtapaVida(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
@@ -422,7 +424,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
 
   // Lazy-load por tab.
   useEffect(() => {
-    if (!open || !cid || demo) return;
+    if (!open || !cid || demo || (typeof cid === 'string' && cid.startsWith('demo-'))) return;
     if (tab === 'act' && overview === null && !actLoading) {
       setActLoading(true);
       api.getContactoOverview(cid)
