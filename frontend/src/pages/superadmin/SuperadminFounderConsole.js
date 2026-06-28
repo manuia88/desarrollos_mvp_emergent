@@ -173,6 +173,7 @@ function DemandWhereToBuildCard() {
         <TrendingUp size={15} color="var(--theme)" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>Demanda · ¿dónde construir?</span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>interés real por zona + qué no encontraron</span>
+        <a href="/superadmin/gemelo-demanda" style={{ marginLeft: 'auto', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: 'var(--theme, #6D4AFF)', textDecoration: 'none' }}>Gemelo de demanda →</a>
       </div>
       {!rows ? (
         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', padding: 8 }}>Cargando demanda…</div>

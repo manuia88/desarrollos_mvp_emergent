@@ -324,6 +324,7 @@ const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/Proper
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
+const SuperadminGemeloDemanda        = lazy(() => import('./pages/superadmin/SuperadminGemeloDemanda')); // moonshot: gemelo de demanda
 const SuperadminCatalogPulse         = lazy(() => import('./pages/superadmin/SuperadminCatalogPulse'));
 const SuperadminDesarrollos          = lazy(() => import('./pages/superadmin/SuperadminDesarrollos'));
 const SuperadminDesarrolloFicha      = lazy(() => import('./pages/superadmin/SuperadminDesarrolloFicha'));
@@ -746,6 +747,7 @@ function AppRouter() {
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
       <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
       <Route path="/superadmin/kg" element={<SuperadminRoute Page={SuperadminKG} />} />
+      <Route path="/superadmin/gemelo-demanda" element={<SuperadminRoute Page={SuperadminGemeloDemanda} />} />{/* moonshot */}
       {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
       <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
       {/* W6.MOV.2 — Gov Data MX External Sources (Superadmin) */}

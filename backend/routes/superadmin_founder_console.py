@@ -300,6 +300,15 @@ async def product_brief(request: Request, colonia: str, terreno_m2: float = 1000
     return out
 
 
+# ─── Gemelo de Demanda (moonshot): el "SimCity de la demanda de MX" consultable ──
+@router.get(PREFIX + "/demand-twin")
+async def demand_twin(request: Request, limit: int = 60):
+    await _require_superadmin(request)
+    from demand_twin_engine import build_demand_twin
+    rows = await build_demand_twin(_db(request), limit)
+    return {"ok": True, "zonas": rows, "n": len(rows), "computed_at": _iso()}
+
+
 # ─── 2) GET /anomalies ────────────────────────────────────────────────────────
 @router.get(PREFIX + "/anomalies")
 async def list_anomalies(

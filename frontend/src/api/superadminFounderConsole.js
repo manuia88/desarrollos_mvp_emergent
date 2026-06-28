@@ -36,6 +36,11 @@ export async function getProductBrief(colonia, terrenoM2 = 1000) {
   return _j(await fetch(`${BASE}/product-brief?colonia=${encodeURIComponent(colonia)}&terreno_m2=${terrenoM2}`, { headers: h(), credentials: 'include' }));
 }
 
+// Gemelo de Demanda — el "SimCity de la demanda de MX": por zona, demanda+oferta+hueco+oportunidad
+export async function getDemandTwin(limit = 60) {
+  return _j(await fetch(`${BASE}/demand-twin?limit=${limit}`, { headers: h(), credentials: 'include' }));
+}
+
 export async function listAnomalies({ status, severity, source, limit, skip } = {}) {
   const p = new URLSearchParams();
   if (status) p.set('status', status);
