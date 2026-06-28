@@ -244,6 +244,18 @@ async def interes_desarrollo(dev_id: str, request: Request):
         return {"ok": True, "likes": 0, "saves": 0, "views": 0, "interes": "bajo"}
 
 
+@router.get("/api/buyer/mi-gusto")
+async def mi_gusto(request: Request, visitor_id: str):
+    """El GUSTO granular del visitante (cuartos·features·zonas·precio + qué evita) para mostrárselo: 'Atlax ya te
+    conoce'. Da VISIBILIDAD al comprador (y lo puede corregir). Anónimo (visitor_id) · fail-open."""
+    try:
+        from visitor_taste import build_visitor_taste
+        return {"ok": True, "gusto": await build_visitor_taste(request.app.state.db, visitor_id)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] mi-gusto fail-open: {e}")
+        return {"ok": True, "gusto": None}
+
+
 @router.get("/api/desarrollo/{dev_id}/percepcion")
 async def percepcion_desarrollo(dev_id: str, request: Request):
     """Cómo VEN los compradores este desarrollo (SOLO el dev dueño): interés + EL PORQUÉ DEL NO (rechazo por motivo) +

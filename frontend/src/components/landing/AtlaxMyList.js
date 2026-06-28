@@ -15,10 +15,12 @@ const fmtM = (n) => (n == null ? '' : (n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 
 
 export default function AtlaxMyList({ onClose, onAdvisor }) {
   const [items, setItems] = useState(null);
+  const [gusto, setGusto] = useState(null);   // "Atlax ya te conoce" — el gusto granular aprendido
   useEffect(() => {
     let alive = true;
-    fetch(`${API}/api/buyer/favoritos?visitor_id=${encodeURIComponent(visitorId())}`).then((r) => r.json())
-      .then((d) => { if (alive) setItems((d && d.favoritos) || []); }).catch(() => { if (alive) setItems([]); });
+    const vid = encodeURIComponent(visitorId());
+    fetch(`${API}/api/buyer/favoritos?visitor_id=${vid}`).then((r) => r.json()).then((d) => { if (alive) setItems((d && d.favoritos) || []); }).catch(() => { if (alive) setItems([]); });
+    fetch(`${API}/api/buyer/mi-gusto?visitor_id=${vid}`).then((r) => r.json()).then((d) => { if (alive) setGusto((d && d.gusto) || null); }).catch(() => { /* noop */ });
     return () => { alive = false; };
   }, []);
   const remove = (it) => { toggleSave({ id: it.dev_id, name: it.name, colonia_id: it.colonia }); setItems((prev) => (prev || []).filter((x) => x.dev_id !== it.dev_id)); };
@@ -34,6 +36,14 @@ export default function AtlaxMyList({ onClose, onAdvisor }) {
         <div style={{ padding: '8px 20px 20px' }}>
           <h2 style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: '0 0 4px' }}>Lo Que Te Interesa</h2>
           <p style={{ fontSize: 13.5, color: 'var(--cream-3)', margin: '0 0 16px' }}>Tus opciones guardadas, en un solo lugar. Un asesor les da seguimiento contigo.</p>
+
+          {gusto && gusto.resumen && (
+            <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 14, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.20)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}><Sparkle size={14} color="var(--theme)" /><span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, color: 'var(--theme)' }}>Atlax Ya Te Conoce</span></div>
+              <div style={{ fontSize: 13.5, color: 'var(--cream)', lineHeight: 1.5 }}>{gusto.resumen.replace('Atlax ya te conoce: ', '')}</div>
+              {(gusto.evita || []).length > 0 && <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>Evitas: {gusto.evita.join(', ')}</div>}
+            </div>
+          )}
 
           {items === null ? (
             <div style={{ color: 'var(--cream-3)', fontStyle: 'italic', padding: '20px 0' }}>Cargando…</div>
