@@ -113,12 +113,14 @@ async def record_closing(db, lead_id=None, visitor_id=None, dev_id=None, price_c
 
 
 async def materialize_closing_lifts(db) -> dict:
-    """#3 cerrar el aprendizaje: materializa 'qué cierra' (lifts de cerebro por recámaras) en db.closing_lifts → el
-    ranking del comprador (visitor_taste.score_devs) lo lee y empuja lo que de verdad VENDE. Tras cada cierre + cron.
-    Fail-open. REUSA cerebro_mercado_engine.lifts_por_factor (no duplica el cálculo)."""
+    """#3/#B1 cerrar el aprendizaje: materializa 'qué cierra' en db.closing_lifts → el ranking del comprador
+    (visitor_taste.score_devs) lo lee EN VIVO y empuja lo que de verdad VENDE. Tras cada cierre + cron. Fail-open.
+    Dos señales: (a) `recamaras` = lift del CATÁLOGO (cerebro_mercado_engine.lifts_por_factor) para cold-start;
+    (b) `real` = distribución de los CIERRES REALES (copiloto_closings) por recámaras+banda de precio → el moat aprende
+    de cada venta de verdad (antes solo recomputaba el catálogo estático = no aprendía). Reusa el motor, no duplica."""
     out = {"_id": "global", "recamaras": {}}
     try:
-        from cerebro_mercado_engine import lifts_por_factor
+        from cerebro_mercado_engine import lifts_por_factor, _precio_band
         lf = await lifts_por_factor(db, "recamaras")
         if lf.get("suficiente_dato"):
             for o in (lf.get("opciones") or []):
@@ -127,6 +129,32 @@ async def materialize_closing_lifts(db) -> dict:
                     out["recamaras"][str(rec)] = round(o.get("lift_pp") or 0, 1)
                 except (ValueError, IndexError, KeyError):
                     pass
+        # #B1 · aprender de CIERRES REALES (no del catálogo estático): distribución por factor desde copiloto_closings.
+        # Ventana de recencia 18m: lo que cierra HOY pesa (no ventas de hace años) + acota el scan a escala (índice
+        # closed_at_dt pendiente en B4). Incluye docs sin fecha (legacy/demo) por seguridad.
+        from datetime import datetime as _dt, timedelta as _td
+        _cut = _dt.utcnow() - _td(days=548)
+        real = {"n": 0, "recamaras": {}, "precio": {}}
+        async for cl in db.copiloto_closings.find(
+                {"$or": [{"closed_at_dt": {"$gte": _cut}}, {"closed_at_dt": {"$exists": False}}]},
+                {"_id": 0, "comprado": 1}):
+            comp = cl.get("comprado") or {}
+            real["n"] += 1
+            br = comp.get("recamaras")
+            vals = []
+            if isinstance(br, (list, tuple)) and br:
+                try:
+                    vals = list(range(int(br[0]), int(br[-1]) + 1))
+                except (ValueError, TypeError):
+                    vals = []
+            elif str(br or "").strip().isdigit():
+                vals = [int(br)]
+            for v in set(vals):   # cada cierre cuenta ≤1 por valor → share ≤ 1
+                real["recamaras"][str(v)] = real["recamaras"].get(str(v), 0) + 1
+            band = _precio_band(comp.get("price_from"))
+            if band:
+                real["precio"][band] = real["precio"].get(band, 0) + 1
+        out["real"] = real
         from datetime import datetime as _dt
         out["computed_at"] = _dt.utcnow().isoformat()
         await db.closing_lifts.update_one({"_id": "global"}, {"$set": out}, upsert=True)

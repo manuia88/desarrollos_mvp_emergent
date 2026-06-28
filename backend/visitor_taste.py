@@ -211,12 +211,22 @@ async def score_devs(db, visitor_id, devs):
         out = {}
         # #3 cerrar el aprendizaje: el ranking aprende de QUÉ CIERRA (lifts de cerebro materializados por el cierre).
         # Devs con recámaras que históricamente cierran reciben un empujón → el marketplace mejora SOLO con cada venta.
-        rec_lift = {}
+        rec_lift, real = {}, {}
         try:
-            cl = await db.closing_lifts.find_one({"_id": "global"}, {"_id": 0, "recamaras": 1})
+            cl = await db.closing_lifts.find_one({"_id": "global"}, {"_id": 0, "recamaras": 1, "real": 1})
             rec_lift = (cl or {}).get("recamaras") or {}
+            real = (cl or {}).get("real") or {}
         except Exception:  # noqa: BLE001
             pass
+        real_n = int(real.get("n") or 0)
+        real_rec = real.get("recamaras") or {}
+        real_pre = real.get("precio") or {}
+        _band = None
+        if real_n >= 3:   # solo aprende de cierres reales cuando ya hay señal (≥3) — abajo de eso, ruido
+            try:
+                from cerebro_mercado_engine import _precio_band as _band
+            except Exception:  # noqa: BLE001
+                _band = None
         for d in (devs or []):
             did = d.get("id")
             if not did:
@@ -244,18 +254,27 @@ async def score_devs(db, visitor_id, devs):
                         attrs.add(f)
                 s += min(15, 5 * len(attrs & liked_feat))
                 s -= 6 * len(attrs & evita_attr)
-            if rec_lift:   # #3 empujón por cierres reales (pequeño: el gusto manda, los cierres nudgean)
-                br = d.get("bedrooms_range") or d.get("recamaras_range") or []
-                vals = []
-                if isinstance(br, (list, tuple)) and br:
-                    try:
-                        vals = list(range(int(br[0]), int(br[-1]) + 1))
-                    except (ValueError, TypeError):
-                        vals = []
-                elif str(d.get("recamaras") or "").isdigit():
-                    vals = [int(d["recamaras"])]
-                best = max((rec_lift.get(str(v), 0) for v in vals), default=0)
-                s += max(-4.0, min(8.0, best * 0.3))
+            # recámaras del dev (rango) — base de los empujones por cierre. El gusto manda; los cierres nudgean.
+            br = d.get("bedrooms_range") or d.get("recamaras_range") or []
+            bvals = []
+            if isinstance(br, (list, tuple)) and br:
+                try:
+                    bvals = list(range(int(br[0]), int(br[-1]) + 1))
+                except (ValueError, TypeError):
+                    bvals = []
+            elif str(d.get("recamaras") or "").isdigit():
+                bvals = [int(d["recamaras"])]
+            if rec_lift:   # #3 catálogo-proxy (cold-start). Cuando ya hay cierres REALES (≥3) pesa la MITAD: la verdad
+                # de campo (real, abajo) manda y el catálogo solo apoya → evita doble conteo (Audit B 🟠).
+                best = max((rec_lift.get(str(v), 0) for v in bvals), default=0)
+                s += max(-4.0, min(8.0, best * 0.3)) * (0.5 if real_n >= 3 else 1.0)
+            if real_n >= 3:   # #B1 CIERRES REALES (ground truth): share por recámaras + banda de precio que de verdad cerró
+                rshare = max((real_rec.get(str(v), 0) / real_n for v in bvals), default=0.0)
+                s += max(-3.0, min(5.0, rshare * 5.0))
+                if _band:
+                    band = _band(d.get("price_from") or d.get("price"))
+                    if band:
+                        s += max(-2.0, min(3.0, (real_pre.get(band, 0) / real_n) * 3.0))
             out[did] = max(0.0, min(100.0, s))
         return out
     except Exception as e:  # noqa: BLE001
