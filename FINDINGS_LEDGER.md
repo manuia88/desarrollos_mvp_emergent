@@ -347,3 +347,22 @@ Resultado: mapa **10 → 15 familias vivas** (de 17). `granularity_backfill.py` 
 
 Capa 2: `dmx_project_score` (efímero de valor) → `score_snapshots` (histórico). Otros 4 efímeros por diseño (etiquetados).
 Capa 3: drill — ie_scores→70 recetas (score/receta/stub), dmx_units→14 grupos de features (poblados+completitud).
+
+---
+
+## Conectar fuentes IE / des-stubear (honesto, evidencia)
+
+Investigado el framework de recetas IE: 72 recetas, **87% ya reales**, 13% stub (1,560). Cada receta declara
+`dependencies` (source_ids) y es stub cuando su fuente no tiene obs para esa zona.
+
+- **BUG sistémico encontrado+arreglado:** el recompute diario solo toca zonas con obs nuevas en 24h → los stubs STALE
+  (fuente ya sincronizada, p.ej. `denue_zone_density` de OSM para 3,166 zonas) nunca se recomputaban. `backfill_ie_stubs`
+  los recomputa (dato ya existe → flip). Corrida: **27 flipearon**; añadido al cron diario.
+- **El resto es GENUINAMENTE stub** (verificado contra BD, NO se fabrica): 1,028 zonas = OSM escaso real (colonias
+  periféricas con pocos POIs, ej. 2 negocios); 261 = dato interno no capturado (proyectos/unidades); 144 = resource_id
+  CKAN gratis (founder configura en 'Conectar'); 96 = sin fuente real (CONAGUA/CENAPRED/Atlas/GTFS son conectores stub).
+- `stub_diagnosis` + `/stub-diagnosis` + sección en la página: por receta stub → fuente + ACCIÓN exacta. El founder ve
+  el camino preciso. Honesto: lo que no se puede des-stubear sin inventar, queda stub y dice por qué.
+
+**Para el founder (acciones libres que des-stubean más):** registrar tokens gratis (NOAA CDO, Banxico SIE, INEGI) +
+configurar resource_ids CKAN de datos.cdmx (FGJ/Locatel/SACMEX/uso-suelo) en la UI 'Conectar'. AirROI queda fuera (paga).
