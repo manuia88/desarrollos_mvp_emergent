@@ -36,6 +36,9 @@ export default function AtlaxHeroBar({ examples = DEFAULT_EXAMPLES, autoFocus = 
 
   return (
     <div style={{ maxWidth: 640 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 11, color: 'var(--theme)', fontFamily: "'DM Sans',sans-serif", fontWeight: 700, fontSize: 13.5 }}>
+        <Sparkle size={16} /> Pregúntale a Atlax — el buscador con IA
+      </div>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid var(--card-border)',
         borderRadius: 999, boxShadow: '0 16px 44px rgba(var(--theme-rgb),0.16)', padding: '7px 7px 7px 18px',
@@ -67,7 +70,7 @@ export default function AtlaxHeroBar({ examples = DEFAULT_EXAMPLES, autoFocus = 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
           {examples.slice(0, 3).map((ex, i) => (
             <button key={i} onClick={() => ask(ex)} style={{
-              background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.18)',
+              background: 'rgba(var(--theme-rgb),0.11)', border: '1px solid rgba(var(--theme-rgb),0.28)',
               color: 'var(--theme)', borderRadius: 999, padding: '7px 13px', fontFamily: "'DM Sans',sans-serif",
               fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
             }}>

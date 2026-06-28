@@ -55,14 +55,14 @@ const exBtn = {
   borderRadius: 12, padding: '13px 16px', fontFamily: 'DM Sans', fontSize: 14.5, cursor: 'pointer',
 };
 const chip = {
-  background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.24)', color: 'var(--theme)',
+  background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)',
   borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 };
 const cta = {
-  background: '#fff', border: '1px solid var(--border)', color: 'var(--cream)',
+  background: '#fff', border: '1px solid var(--card-border)', color: 'var(--cream)',
   borderRadius: 999, padding: '8px 14px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
 };
-const ctaPrimary = { ...cta, background: 'rgba(var(--theme-rgb),0.16)', border: '1px solid rgba(var(--theme-rgb),0.40)', color: 'var(--theme)' };
+const ctaPrimary = { ...cta, background: GRAD, border: 'none', color: '#fff', fontWeight: 700 };
 
 export default function AtlaxSurface() {
   const [params, setParams] = useSearchParams();
@@ -184,9 +184,9 @@ export default function AtlaxSurface() {
                       )}
                       {i === messages.length - 1 && !busy && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                          <button onClick={saveSearch} style={cta}>💾 Guardar búsqueda</button>
-                          <button onClick={() => navigate('/marketplace')} style={cta}>🏠 Ver en el marketplace</button>
-                          <button onClick={wantAdvisor} style={ctaPrimary}>👤 Que un asesor me contacte</button>
+                          <button onClick={saveSearch} style={cta}>Guardar búsqueda</button>
+                          <button onClick={() => navigate('/marketplace')} style={cta}>Ver en el marketplace</button>
+                          <button onClick={wantAdvisor} style={ctaPrimary}>Que un asesor me contacte</button>
                         </div>
                       )}
                     </div>
@@ -204,7 +204,7 @@ export default function AtlaxSurface() {
           <span style={{ display: 'flex', color: 'var(--theme)', flexShrink: 0 }}><Sparkle size={18} /></span>
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pregúntale a Atlax lo que buscas…" autoFocus
             style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 15.5, padding: '11px 4px' }} />
-          <button type="submit" disabled={busy || !input.trim()} style={{ flexShrink: 0, border: 'none', cursor: (busy || !input.trim()) ? 'default' : 'pointer', opacity: (busy || !input.trim()) ? 0.5 : 1, background: GRAD, color: '#fff', borderRadius: 999, padding: '11px 20px', fontFamily: 'DM Sans', fontSize: 14.5, fontWeight: 700 }}>Preguntar</button>
+          <button type="submit" disabled={busy || !input.trim()} style={{ flexShrink: 0, border: 'none', cursor: (busy || !input.trim()) ? 'default' : 'pointer', background: (busy || !input.trim()) ? '#EAEBEF' : GRAD, color: (busy || !input.trim()) ? '#9AA0AD' : '#fff', borderRadius: 999, padding: '11px 20px', fontFamily: 'DM Sans', fontSize: 14.5, fontWeight: 700 }}>Preguntar</button>
         </form>
       </div>
     </LightScope>

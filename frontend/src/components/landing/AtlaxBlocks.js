@@ -16,7 +16,8 @@ const cell = (head) => ({
   color: 'var(--cream)', textAlign: head ? 'center' : 'left',
 });
 const linkBtn = {
-  flex: 1, textAlign: 'center', textDecoration: 'none', background: 'rgba(var(--theme-rgb),0.12)',
+  flex: 1, textAlign: 'center', textDecoration: 'none', background: 'rgba(var(--theme-rgb),0.14)',
+  border: '1px solid rgba(var(--theme-rgb),0.30)',
   color: 'var(--theme)', borderRadius: 8, padding: '7px 8px', fontSize: 11.5, fontWeight: 700,
 };
 
@@ -82,8 +83,8 @@ function DevelopmentCards({ data }) {
           </a>
           <div style={{ padding: '0 10px 10px' }}>
             <button onClick={() => window.dispatchEvent(new CustomEvent('dmx:apartar', { detail: { dev: c } }))}
-              style={{ width: '100%', border: 'none', cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)', borderRadius: 8, padding: '8px', fontFamily: "'DM Sans',sans-serif", fontSize: 12.5, fontWeight: 700 }}>
-              💳 Apartar
+              style={{ width: '100%', border: 'none', cursor: 'pointer', background: 'var(--theme)', color: '#fff', borderRadius: 8, padding: '9px', fontFamily: "'DM Sans',sans-serif", fontSize: 12.5, fontWeight: 700 }}>
+              Apartar
             </button>
           </div>
         </div>
