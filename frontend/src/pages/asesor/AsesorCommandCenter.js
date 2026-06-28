@@ -168,7 +168,15 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         if (!alive) return;
         setData(dash);
         setQueue(dash.action_queue || []);
-        setLeaders(Array.isArray(lb) ? lb.slice(0, 5) : []);
+        // Dedup por user_id: el leaderboard a veces repite a un asesor (se mostraba 2 veces + React duplicate-key warning).
+        const _seen = new Set();
+        const _lb = (Array.isArray(lb) ? lb : []).filter((p) => {
+          const k = p.user_id || '';
+          if (k && _seen.has(k)) return false;
+          if (k) _seen.add(k);
+          return true;
+        });
+        setLeaders(_lb.slice(0, 5));
         if (wcfg?.order) {
           setWidgetCfg(wcfg);
           try { localStorage.setItem(WIDGETS_LS_KEY, JSON.stringify(wcfg)); } catch { /* no-op */ }
@@ -316,7 +324,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         </h2>
         <div className="space-y-1.5">
           {leaders.map((p, i) => (
-            <div key={p.user_id || i} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-2)]">
+            <div key={`${p.user_id || 'lb'}-${i}`} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--surface-2)]">
               <span className="w-5 text-center text-[var(--cream-3)] text-xs font-bold">{i + 1}</span>
               <span className="text-[var(--cream-2)] text-sm truncate flex-1">{p.full_name || '—'}</span>
               <span className="text-[var(--cream)] text-xs font-semibold">{p.score_elo ?? 1000}</span>
