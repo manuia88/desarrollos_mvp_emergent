@@ -26,6 +26,11 @@ export async function getDemandInsights(limit = 12) {
   return _j(await fetch(`${BASE}/demand-insights?limit=${limit}`, { headers: h(), credentials: 'include' }));
 }
 
+// Oportunidad #5: devs rechazados por sus FOTOS → pipeline de venta de Studio
+export async function getStudioOpportunities() {
+  return _j(await fetch(`${BASE}/studio-opportunities`, { headers: h(), credentials: 'include' }));
+}
+
 export async function listAnomalies({ status, severity, source, limit, skip } = {}) {
   const p = new URLSearchParams();
   if (status) p.set('status', status);

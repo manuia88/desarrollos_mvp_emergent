@@ -246,6 +246,27 @@ async def demand_insights(request: Request, limit: int = 12):
     }
 
 
+# ─── Studio Opportunities (oportunidad #5): el porqué del NO → venta de Studio ──
+# Surfacea gap_presentacion (devs que la demanda rechaza por las FOTOS aunque encajen) al founder = pipeline de venta
+# de Studio/staging. Reusa buyer_cycle_intel (no duplica la lógica del grafo de rechazo del Fix F4).
+@router.get(PREFIX + "/studio-opportunities")
+async def studio_opportunities(request: Request, dias: int = 30):
+    await _require_superadmin(request)
+    db = _db(request)
+    try:
+        from routes.superadmin_copiloto import buyer_cycle_intel
+        intel = await buyer_cycle_intel(db, dias)
+        atlax = (intel or {}).get("atlax") or {}
+        return {
+            "ok": True,
+            "gap_presentacion": atlax.get("gap_presentacion") or [],
+            "rechazo_por_motivo": atlax.get("rechazo_por_motivo") or [],
+            "computed_at": _iso(),
+        }
+    except Exception as e:  # noqa: BLE001
+        return {"ok": True, "gap_presentacion": [], "rechazo_por_motivo": [], "error": str(e)[:120]}
+
+
 # ─── 2) GET /anomalies ────────────────────────────────────────────────────────
 @router.get(PREFIX + "/anomalies")
 async def list_anomalies(

@@ -6,7 +6,7 @@ import AnomalyFeed from '../../components/superadmin/AnomalyFeed';
 import QuickActionsToolbar from '../../components/superadmin/QuickActionsToolbar';
 import { LayoutDashboard, RefreshCw, Sparkles, Command, TrendingDown, TrendingUp } from 'lucide-react';
 import {
-  getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow, getDemandInsights,
+  getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow, getDemandInsights, getStudioOpportunities,
 } from '../../api/superadminFounderConsole';
 import { fetchEquipoEnRiesgo } from '../../api/superadminDevmaster';
 import { useFounderPrefetch } from '../../contexts/FounderPrefetchContext';
@@ -173,6 +173,35 @@ function DemandWhereToBuildCard() {
               <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>
                 {(z.falta && z.falta.length) ? <>falta: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{z.falta.join(' · ')}</span></> : <span style={{ color: 'rgba(240,235,224,0.4)' }}>la oferta cubre la demanda</span>}
               </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Oportunidad #5 — Studio Opportunity: devs que la demanda rechaza por sus FOTOS (aunque encajen) → pipeline de Studio.
+function StudioOpportunityCard() {
+  const [gaps, setGaps] = useState(null);
+  useEffect(() => { getStudioOpportunities().then((d) => setGaps(d.gap_presentacion || [])).catch(() => setGaps([])); }, []);
+  if (gaps && gaps.length === 0) return null;
+  const title = (id) => String(id || '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return (
+    <div data-testid="founder-studio-opps" style={{ marginBottom: 18, padding: 16, borderRadius: 14, background: 'rgba(224,163,62,0.07)', border: '1px solid rgba(224,163,62,0.30)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <Sparkles size={15} color="#E0A33E" />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>Studio Opportunity</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>la demanda los rechaza por las FOTOS, no por el producto → vender Studio</span>
+      </div>
+      {!gaps ? (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.5)', padding: 8 }}>Cargando…</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {gaps.slice(0, 8).map((g, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 12, alignItems: 'center', padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.02)' }}>
+              <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{title(g.dev_id)}</span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#E0A33E', fontWeight: 600 }}>{g.pct_fotos}% de rechazos son por fotos <span style={{ color: 'rgba(240,235,224,0.45)', fontWeight: 400 }}>({g.por_fotos})</span></span>
             </div>
           ))}
         </div>
@@ -359,8 +388,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
           }}>Cargando KPIs ejecutivos…</div>
         )}
 
-        {/* Demanda → ¿dónde construir? (oportunidad #3) */}
+        {/* Demanda → ¿dónde construir? (oportunidad #3) + Studio Opportunity (#5) */}
         <DemandWhereToBuildCard />
+        <StudioOpportunityCard />
 
         {/* 2-col: anomalies + quick actions */}
         <div className="founder-2col" style={{
