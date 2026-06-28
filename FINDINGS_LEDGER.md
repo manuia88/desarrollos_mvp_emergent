@@ -412,3 +412,25 @@ equivocada: asesor_lead_properties se enllava por contacto_id, no lead_id; el au
 **~3,100 huérfanos acumulados** (audit_log inflado 1,251→97 real · lead_events 1,341 · asesor_lead_properties 1,310).
 Fix: teardowns capturan lead_ids+contacto_ids antes de borrar y limpian todos los trails derivados. Verificado Δ=0 en
 9 colecciones tras 2 corridas. Lección: cada trail que el superadmin lee debe tener teardown de test cero-residuo.
+
+---
+
+## Inteligencia de demanda — ¿la plataforma convierte interacciones en data de mercado? (la pregunta núcleo)
+
+**Diagnóstico (evidencia):** el query asesino del founder NO se podía responder. La cadena interacción→inteligencia se
+rompía en la AGREGACIÓN+VISIBILIDAD: las señales capturan dev+colonia+tiempo (y el backend YA acepta unit_number +
+meta.amenidades), pero no había motor que agregara por FEATURE ni vista que lo mostrara. Tienes 160 features de OFERTA
+por unidad pero la DEMANDA era ciega al feature.
+
+**Construido:** demand_intelligence.py (demanda por feature×colonia×tiempo, precisión 3-niveles meta>unit>dev-proxy;
+colonias; atributos; qué-construir demanda-vs-oferta; buckets day/week/month/quarter/year; killer_query). Endpoint
+/api/superadmin/demand-intel + página 'Demanda de mercado'. Verificado: 'terraza/polanco'=26.
+
+**Gaps que siguen (para PRECISIÓN total — el próximo upgrade):**
+1. CAPTURA: el front solo manda unit_number en unit_view/unit_save (39 señales). Enriquecer para mandarlo + meta.amenidades
+   en MÁS interacciones (foto de terraza, comparador, filtros) → feature-demand preciso en todo, no proxy.
+2. UNMET DEMAND: marketplace_searches.results_count=0 = lo que se busca y NO existe → capturar y mostrar (oro puro).
+3. LOOP demanda→dev/asesor: el dev ve 'el mercado quiere terraza en Del Valle, tú tienes 0'; el asesor pitchea lo que se busca.
+4. ANOMALÍA/TENDENCIA: 'demanda de terraza en Del Valle 3x este mes' como alerta.
+
+**Higiene:** barrido 444 colecciones, 5 residuos limpiados. Limpio.
