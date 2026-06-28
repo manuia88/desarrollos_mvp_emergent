@@ -329,3 +329,21 @@ superadmin + página `/superadmin/granularidad`. Hoy: 10 vivas · 6 apagadas · 
 - 🔵 Persistir las 5 efímeras (dmx_project_score, lead_score, churn, hook, absorción) para histórico/auditoría — decisión
   por-motor; hoy ya son VISIBLES como 'efímeras' en el mapa.
 - 🔵 Encender las 6 familias apagadas (motores que existen pero no persisten en este entorno).
+
+---
+
+## Granularidad · 3 capas (encender apagadas + persistir efímero + drill)
+
+Investigada CADA familia apagada con evidencia (no asumir). Hallazgos:
+- **buyer_scores**: motor HUÉRFANO — compute_user_score solo calcula, upsert_score persiste, nadie los encadenaba. Fix=backfill.
+- **asesor_trust_scores / lead_match_scores**: on-demand sin backfill → backfill.
+- **zone_subscores**: NO era dark — el dato vive en `zone_scores.subscores_real` (430 zonas). Fix=mi registro.
+- **fit_cache**: cache 30 min POR DISEÑO (sí escribe, fsd_engine:673). Marcado kind=cache.
+- **avm_predictions**: apagado por DEPENDENCIA DE DATOS (persist_avm_prediction exige fsd.available; el modelo FSD no
+  tiene comparables). Backfill listo para cuando haya datos. Honesto — no se fuerza.
+
+Resultado: mapa **10 → 15 familias vivas** (de 17). `granularity_backfill.py` (idempotente, acotado) + cron diario 03:30
++ endpoint POST /backfill + botón en la página.
+
+Capa 2: `dmx_project_score` (efímero de valor) → `score_snapshots` (histórico). Otros 4 efímeros por diseño (etiquetados).
+Capa 3: drill — ie_scores→70 recetas (score/receta/stub), dmx_units→14 grupos de features (poblados+completitud).
