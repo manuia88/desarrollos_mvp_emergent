@@ -222,6 +222,8 @@ async def buyer_cycle_intel(db, dias: int = 30):
     atlax_perfil_pasos = await _count(db.buyer_signals, {"type": "atlax_profile", **F})
     atlax_perfil_completos = await _count(db.buyer_signals, {"type": "atlax_profile", "value": "completo", **F})
     atlax_sin_match = await _count(db.buyer_signals, {"type": "atlax_query", "meta.n_exact": 0, **F})
+    atlax_quickviews = await _count(db.buyer_signals, {"type": "view", "value": "atlax_quickview", **F})
+    atlax_ficha_clicks = await _count(db.buyer_signals, {"type": "ficha_view", "value": "atlax", **F})
     atlax_intent = await _agg(db.buyer_signals, [
         {"$match": {"type": "atlax_query", "meta.intent": {"$nin": [None, ""]}, **F}},
         {"$group": {"_id": "$meta.intent", "n": {"$sum": 1}}},
@@ -234,8 +236,10 @@ async def buyer_cycle_intel(db, dias: int = 30):
             "perfilador_completados": atlax_perfil_completos,
             "perfilador_pasos_respondidos": atlax_perfil_pasos,
             "busquedas_sin_match_exacto": atlax_sin_match,
+            "vistas_rapidas": atlax_quickviews,
+            "clicks_a_ficha": atlax_ficha_clicks,
             "intencion_top": [{"intent": x["_id"], "veces": x["n"]} for x in atlax_intent if x.get("_id")],
-            "lectura": "Lo que la gente le pide a Atlax: uso del perfilador guiado, búsquedas SIN match exacto (hueco de producto a surtir) e intención dominante (vivir/invertir).",
+            "lectura": "Lo que la gente le pide a Atlax y qué hace: búsquedas, uso del perfilador guiado, búsquedas SIN match exacto (hueco de producto a surtir), vistas rápidas y clicks a ficha (engagement), e intención dominante (vivir/invertir).",
         },
         "sustitucion": sustitucion,
         "esquema_demanda": esquema_demanda,

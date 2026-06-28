@@ -36,10 +36,27 @@ export async function searchAtlax(query) {
   } catch (_) { /* fail-soft: sin filtros */ }
 
   let vid = ''; try { vid = localStorage.getItem('dmx_visitor_id') || ''; } catch (_) { /* noop */ }
-  const casiResp = await fetchCasiCumple({ ...filters, visitor_id: vid, limit: 12 }).catch(() => ({ casi: [] }));
-  const all = (casiResp && casiResp.casi) || [];
-  const exact = all.filter((d) => (d.match_falta || []).length === 0).slice(0, 6);
-  const casi = all.filter((d) => (d.match_falta || []).length > 0).slice(0, 9);
+  const colonias = (filters.colonia || []).map((c) => String(c).toLowerCase());
+  const hasColonia = colonias.length > 0;
+
+  // En la colonia pedida (la zona es sagrada) + EN PARALELO una bolsa amplia en OTRAS colonias, para SIEMPRE ofrecer
+  // ~5 que ajustan + ~5 que se acercan (founder: nunca dejar al cliente con 2 resultados y que se vaya a otro lado).
+  // TODO sale de /api/developments/casi = DEVELOPMENTS reales → cero alucinación, datos anclados al marketplace/dev.
+  const broadFilters = { ...filters }; delete broadFilters.colonia;
+  const [inResp, broadResp] = await Promise.all([
+    fetchCasiCumple({ ...filters, visitor_id: vid, limit: 16 }).catch(() => ({ casi: [] })),
+    hasColonia ? fetchCasiCumple({ ...broadFilters, visitor_id: vid, limit: 16 }).catch(() => ({ casi: [] })) : Promise.resolve({ casi: [] }),
+  ]);
+  const inAll = (inResp && inResp.casi) || [];
+  const exact = inAll.filter((d) => (d.match_falta || []).length === 0).slice(0, 6);
+  const casi = inAll.filter((d) => (d.match_falta || []).length > 0).slice(0, 6);
+
+  // "Otras colonias que se acercan": de la bolsa amplia, las que NO están en la colonia pedida (con su match real).
+  const inIds = new Set(inAll.map((d) => d.id));
+  let otras = ((broadResp && broadResp.casi) || []).filter((d) => !inIds.has(d.id) && !colonias.includes(String(d.colonia_id || d.colonia || '').toLowerCase())).slice(0, 6);
+  if (crossZone.length > otras.length) { otras = crossZone; }   // si search-ai dio un cross mejor (otro presupuesto/esquema), úsalo
+  else if (otras.length && !crossRelax) { crossRelax = 'amplio'; }
+  crossZone = otras;
   const colonia = firstStr(filters.colonia || filters.zona);
   const intro = buildIntro({ colonia, nExact: exact.length, nCasi: casi.length, nCross: crossZone.length, zonaNoDisp });
 
@@ -47,7 +64,7 @@ export async function searchAtlax(query) {
   try {
     sendBuyerSignal('atlax_query', {
       colonia: String(colonia || '').toLowerCase() || undefined, value: q.slice(0, 120),
-      meta: { beds: filters.beds, max_price: filters.max_price, min_price: filters.min_price, tipo: firstStr(filters.tipo) || undefined, intent: filters.buyer_intent || filters.intent, amenidades: Array.isArray(filters.amenity) ? filters.amenity.join(',') : filters.amenity, n_exact: exact.length, n_casi: casi.length, cross_zone: crossZone.length, zona_no_disponible: zonaNoDisp || undefined },
+      meta: { beds: filters.beds, baths: filters.baths, max_price: filters.max_price, min_price: filters.min_price, min_sqm: filters.min_sqm, max_sqm: filters.max_sqm, tipo: firstStr(filters.tipo) || undefined, intent: filters.buyer_intent || filters.intent, amenidades: Array.isArray(filters.amenity) ? filters.amenity.join(',') : filters.amenity, n_exact: exact.length, n_casi: casi.length, cross_zone: crossZone.length, zona_no_disponible: zonaNoDisp || undefined, shown: [...exact, ...casi, ...crossZone].slice(0, 10).map((d) => d.id) },
     });
   } catch (_) { /* noop */ }
 

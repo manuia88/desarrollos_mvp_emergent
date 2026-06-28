@@ -196,7 +196,7 @@ export default function AtlaxSurface() {
                 ) : (
                   <>
                     {m.intro && <div style={{ color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{last ? <Typewriter text={m.intro} /> : renderRich(m.intro)}</div>}
-                    {m.kind === 'results' && m.r && !m.r.pending && <AtlaxResults r={m.r} onQuick={setQuick} onRefine={(suf) => runSearch(`${lastUserQ()} ${suf}`)} onAdvisor={() => wantAdvisor()} />}
+                    {m.kind === 'results' && m.r && !m.r.pending && <AtlaxResults r={m.r} onQuick={(dev, list) => setQuick({ list: list || [dev], index: Math.max(0, (list || [dev]).findIndex((d) => d.id === dev.id)) })} onRefine={(suf) => runSearch(`${lastUserQ()} ${suf}`)} onAdvisor={() => wantAdvisor()} />}
                     {m.kind === 'compare' && m.blocks && m.blocks.length > 0 && <AtlaxBlocks blocks={m.blocks} />}
                     {last && !m.pending && (m.kind === 'results' || m.kind === 'compare') && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--card-border)' }}>
@@ -253,7 +253,7 @@ export default function AtlaxSurface() {
         </form>
       </div>
 
-      {quick && <AtlaxQuickView dev={quick} onClose={() => setQuick(null)} onAdvisor={wantAdvisor} />}
+      {quick && <AtlaxQuickView list={quick.list} start={quick.index} onClose={() => setQuick(null)} onAdvisor={wantAdvisor} />}
       {lead && <AtlaxLeadModal ctx={lead} onClose={() => setLead(null)} />}
     </LightScope>
   );

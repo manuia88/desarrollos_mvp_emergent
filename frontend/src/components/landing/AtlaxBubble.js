@@ -607,7 +607,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
           bottom: isHome ? 'auto' : 96,
           right: isHome ? 'auto' : 24,
           zIndex: isHome ? 'auto' : 9999,
-          width: isHome ? '100%' : 'min(380px, calc(100vw - 24px))',
+          width: isHome ? '100%' : 'min(440px, calc(100vw - 24px))',
           height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 132px))',
           ...lightVars,
           background: light ? '#FFFFFF' : 'linear-gradient(180deg, #0E1220, #0A0D16)',
@@ -848,7 +848,8 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
 
                 {m.role === 'assistant' && m.results && (
                   <div style={{ marginTop: 8 }}>
-                    <AtlaxResults r={m.results} compact onQuick={setQuickDev}
+                    <AtlaxResults r={m.results} compact
+                      onQuick={(dev, list) => setQuickDev({ list: list || [dev], index: Math.max(0, (list || [dev]).findIndex((d) => d.id === dev.id)) })}
                       onRefine={(suf) => send(null, `${(m.results.query || '')} ${suf}`)}
                       onAdvisor={() => setLeadCtx({ dev: null, query: m.results.query || '' })} />
                   </div>
@@ -1047,7 +1048,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
         }
       `}</style>
 
-      {quickDev && <AtlaxQuickView dev={quickDev} onClose={() => setQuickDev(null)} onAdvisor={(dev) => { setQuickDev(null); setLeadCtx({ dev: dev || null, query: '' }); }} />}
+      {quickDev && <AtlaxQuickView list={quickDev.list} start={quickDev.index} onClose={() => setQuickDev(null)} onAdvisor={(dev) => { setQuickDev(null); setLeadCtx({ dev: dev || null, query: '' }); }} />}
       {leadCtx && <AtlaxLeadModal ctx={leadCtx} onClose={() => setLeadCtx(null)} />}
     </>
   );

@@ -5,6 +5,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { tc } from '../../lib/titleCase';
+import { sendBuyerSignal } from '../../lib/buyerSignal';  // captura granular: cada click de tarjeta → superadmin
+
+const colSlug = (d) => String(d.colonia_id || d.colonia || '').toLowerCase() || undefined;
 
 const HEAD = "'Outfit',sans-serif";
 const GRAD = 'linear-gradient(90deg,#6366F1,#EC4899)';
@@ -26,6 +29,8 @@ const chip = { background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgb
 const ctaPrimary = { background: GRAD, border: 'none', color: '#fff', borderRadius: 999, padding: '8px 15px', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 
 function ResultCard({ dev, onQuick, compact }) {
+  const quick = () => { try { sendBuyerSignal('view', { entity_id: dev.id, colonia: colSlug(dev), value: 'atlax_quickview' }); } catch (_) { /* noop */ } if (onQuick) onQuick(dev); };
+  const ficha = () => { try { sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: colSlug(dev), value: 'atlax' }); } catch (_) { /* noop */ } };
   const img = (dev.photos || [])[0];
   const specs = [range(dev.bedrooms_range, ' rec'), range(dev.bathrooms_range, ' baños'), range(dev.m2_range, ' m²')].filter(Boolean).join(' · ');
   const sig = signal(dev);
@@ -34,7 +39,7 @@ function ResultCard({ dev, onQuick, compact }) {
   const amen = (dev.amenities || []).map((a) => AMEN[a] || tc(String(a))).slice(0, 3);
   return (
     <div style={{ border: '1px solid var(--card-border)', borderRadius: 16, overflow: 'hidden', background: 'var(--bg-2)', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-      <button onClick={() => onQuick && onQuick(dev)} style={{ position: 'relative', border: 'none', padding: 0, cursor: 'pointer', background: 'var(--surface-card)', display: 'block' }}>
+      <button onClick={quick} style={{ position: 'relative', border: 'none', padding: 0, cursor: 'pointer', background: 'var(--surface-card)', display: 'block' }}>
         <div style={{ height: compact ? 120 : 150, background: 'var(--surface-card)' }}>
           {img && <img src={img} alt={dev.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
         </div>
@@ -51,14 +56,15 @@ function ResultCard({ dev, onQuick, compact }) {
         {falta.length > 0 && <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--cream-2)' }}>Le falta: <b style={{ color: '#B9822E' }}>{falta.map((x) => tc(x)).join(', ')}</b></div>}
       </div>
       <div style={{ marginTop: 'auto', display: 'flex', gap: 7, padding: '10px 13px 13px' }}>
-        <button onClick={() => onQuick && onQuick(dev)} style={{ flex: 1, cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', borderRadius: 9, padding: '8px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700 }}>Vista Rápida</button>
-        <Link to={`/desarrollo/${dev.id}?from=atlax`} style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: 'var(--bg-2)', border: '1px solid var(--card-border)', color: 'var(--cream)', borderRadius: 9, padding: '8px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700 }}>Ver Ficha →</Link>
+        <button onClick={quick} style={{ flex: 1, cursor: 'pointer', background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', borderRadius: 9, padding: '8px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700 }}>Vista Rápida</button>
+        <Link to={`/desarrollo/${dev.id}?from=atlax`} onClick={ficha} style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: 'var(--bg-2)', border: '1px solid var(--card-border)', color: 'var(--cream)', borderRadius: 9, padding: '8px', fontFamily: HEAD, fontSize: 12.5, fontWeight: 700 }}>Ver Ficha →</Link>
       </div>
     </div>
   );
 }
 
-const Grid = ({ children, compact }) => <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${compact ? 168 : 216}px, 1fr))`, gap: compact ? 10 : 12 }}>{children}</div>;
+// En la burbuja (compact) las tarjetas van a 1 COLUMNA full-width — así no se corta la info (feedback founder).
+const Grid = ({ children, compact }) => <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill, minmax(216px, 1fr))', gap: compact ? 10 : 12 }}>{children}</div>;
 const SectionLabel = ({ children, hint }) => (
   <div style={{ marginTop: 18, marginBottom: 10 }}>
     <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>{children}</span>
@@ -75,6 +81,8 @@ const TIERS = [
 export default function AtlaxResults({ r, onQuick, onRefine, onAdvisor, compact }) {
   if (!r) return null;
   const exact = r.exact || [], casi = r.casi || [], cross = r.crossZone || [];
+  const flat = [...exact, ...casi, ...cross];  // set completo → la vista rápida navega entre TODOS sin cerrar
+  const quickWith = (d) => onQuick && onQuick(d, flat);
   const nada = exact.length === 0 && casi.length === 0 && cross.length === 0 && !r.pending;
   return (
     <div>
@@ -85,7 +93,7 @@ export default function AtlaxResults({ r, onQuick, onRefine, onAdvisor, compact 
         </div>
       )}
 
-      {exact.length > 0 && (<><SectionLabel hint={exact.length === 1 ? '1 encaja con lo que buscas' : `${exact.length} encajan con lo que buscas`}>Para Ti</SectionLabel><Grid compact={compact}>{exact.map((d) => <ResultCard key={d.id} dev={d} onQuick={onQuick} compact={compact} />)}</Grid></>)}
+      {exact.length > 0 && (<><SectionLabel hint={exact.length === 1 ? '1 encaja con lo que buscas' : `${exact.length} encajan con lo que buscas`}>Para Ti</SectionLabel><Grid compact={compact}>{exact.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>)}
 
       {casi.length > 0 && TIERS.map((t) => {
         const grp = casi.filter((d) => { const n = (d.match_falta || []).length; return n >= t.lo && n <= t.hi; });
@@ -93,14 +101,14 @@ export default function AtlaxResults({ r, onQuick, onRefine, onAdvisor, compact 
         return (
           <div key={t.title}>
             <SectionLabel hint={`${t.sub} (${grp.length})`}>{exact.length ? t.title : `Se Acercan Mucho · ${t.title}`}</SectionLabel>
-            <Grid compact={compact}>{grp.map((d) => <ResultCard key={d.id} dev={d} onQuick={onQuick} compact={compact} />)}</Grid>
+            <Grid compact={compact}>{grp.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid>
           </div>
         );
       })}
 
       {cross.length > 0 && (
-        <><SectionLabel hint="tu presupuesto rinde más aquí">{r.crossRelax === 'esquema' ? 'Con Otro Esquema, en Otras Colonias' : 'Tu Presupuesto Rinde Más en Otras Colonias'}</SectionLabel>
-          <Grid compact={compact}>{cross.map((d) => <ResultCard key={d.id} dev={d} onQuick={onQuick} compact={compact} />)}</Grid></>
+        <><SectionLabel hint={r.crossRelax === 'amplio' ? 'más opciones que se acercan a lo que pides' : 'tu presupuesto rinde más aquí'}>{r.crossRelax === 'esquema' ? 'Con Otro Esquema, en Otras Colonias' : r.crossRelax === 'amplio' ? 'También Te Pueden Servir · Otras Colonias' : 'Tu Presupuesto Rinde Más en Otras Colonias'}</SectionLabel>
+          <Grid compact={compact}>{cross.map((d) => <ResultCard key={d.id} dev={d} onQuick={quickWith} compact={compact} />)}</Grid></>
       )}
 
       {nada && (

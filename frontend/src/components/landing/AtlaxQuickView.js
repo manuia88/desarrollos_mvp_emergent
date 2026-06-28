@@ -16,7 +16,10 @@ const mensualidadEstim = (price) => { if (!price || price < 200000) return null;
 const TONE = { verde: { bg: 'rgba(16,185,129,0.10)', bd: 'rgba(16,185,129,0.30)', fg: '#0F9D6E' }, ambar: { bg: 'rgba(224,163,62,0.10)', bd: 'rgba(224,163,62,0.30)', fg: '#B9822E' }, rojo: { bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.28)', fg: '#DC4D4D' } };
 const AMEN = { roof: 'Roof Garden', gym: 'Gym', alberca: 'Alberca', pet: 'Pet Friendly', cowork: 'Coworking', bicicletas: 'Biciestacionamiento', seguridad: 'Seguridad 24h', jardines: 'Áreas Verdes' };
 
-export default function AtlaxQuickView({ dev, onClose, onAdvisor }) {
+export default function AtlaxQuickView({ list, start = 0, dev: devProp, onClose, onAdvisor }) {
+  const items = (list && list.length) ? list : (devProp ? [devProp] : []);
+  const [idx, setIdx] = useState(start);
+  const dev = items[Math.min(idx, Math.max(0, items.length - 1))] || null;
   const [i, setI] = useState(0);
   const [buy, setBuy] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,8 @@ export default function AtlaxQuickView({ dev, onClose, onAdvisor }) {
     return () => { alive = false; };
   }, [dev]);
   if (!dev) return null;
+  const hasNav = items.length > 1;
+  const go = (delta) => setIdx((x) => Math.max(0, Math.min(items.length - 1, x + delta)));
 
   const photos = (dev.photos || []).filter(Boolean);
   const ver = buy && buy.veredicto;
@@ -55,6 +60,13 @@ export default function AtlaxQuickView({ dev, onClose, onAdvisor }) {
           </div>
           <button onClick={onClose} aria-label="Cerrar" style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.92)', color: '#1E2230', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}><X size={18} /></button>
           {dev.stage === 'preventa' && <span style={{ position: 'absolute', top: 12, left: 12, background: GRAD, color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 11.5, padding: '5px 11px', borderRadius: 999 }}>Preventa</span>}
+          {hasNav && (
+            <>
+              <button onClick={() => go(-1)} disabled={idx === 0} aria-label="Anterior" style={{ position: 'absolute', left: 10, top: 105, width: 38, height: 38, borderRadius: 999, border: 'none', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.35 : 1, background: 'rgba(255,255,255,0.94)', color: '#1E2230', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontSize: 20, fontWeight: 800, lineHeight: 1 }}>‹</button>
+              <button onClick={() => go(1)} disabled={idx === items.length - 1} aria-label="Siguiente" style={{ position: 'absolute', right: 10, top: 105, width: 38, height: 38, borderRadius: 999, border: 'none', cursor: idx === items.length - 1 ? 'default' : 'pointer', opacity: idx === items.length - 1 ? 0.35 : 1, background: 'rgba(255,255,255,0.94)', color: '#1E2230', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontSize: 20, fontWeight: 800, lineHeight: 1 }}>›</button>
+              <span style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(20,18,30,0.7)', color: '#fff', fontFamily: HEAD, fontWeight: 700, fontSize: 11, padding: '3px 11px', borderRadius: 999 }}>{idx + 1} de {items.length}</span>
+            </>
+          )}
           {photos.length > 1 && (
             <div style={{ display: 'flex', gap: 6, padding: '8px 14px 0', flexWrap: 'wrap' }}>
               {photos.slice(0, 6).map((p, k) => (
