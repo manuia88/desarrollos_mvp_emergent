@@ -288,6 +288,35 @@ async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] 
             "lectura": "feature creciendo rápido + poca oferta = constrúyelo YA"}
 
 
+async def financial_intent(db, colonias: Optional[List[str]] = None, since_days: int = 365) -> Dict[str, Any]:
+    """INTENCIÓN FINANCIERA (antes invisible) — cuántos exploran PAGO (qué enganche/mensualidad/esquema) y RENTABILIDAD
+    (qué ROI). Señal de ALTO intento. Que payment_explore/roi_explore no queden capturados-y-muertos."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    q = {"created_at_dt": {"$gte": cutoff}}
+    if colonias:
+        q["colonia"] = {"$in": colonias}
+    pay = roi = 0
+    enganches = []; tirs = []; esquemas = defaultdict(int)
+    async for s in db.buyer_signals.find({**q, "type": {"$in": ["payment_explore", "roi_explore"]}},
+                                         {"_id": 0, "type": 1, "meta": 1}):
+        meta = s.get("meta") or {}
+        if s["type"] == "payment_explore":
+            pay += 1
+            if isinstance(meta.get("enganche_pct"), (int, float)):
+                enganches.append(meta["enganche_pct"])
+            if meta.get("esquema"):
+                esquemas[str(meta["esquema"])] += 1
+        else:
+            roi += 1
+            if isinstance(meta.get("tir_pct"), (int, float)):
+                tirs.append(meta["tir_pct"])
+    return {"exploraron_pago": pay, "exploraron_roi": roi,
+            "enganche_promedio_pct": round(sum(enganches) / len(enganches), 1) if enganches else None,
+            "tir_buscado_promedio_pct": round(sum(tirs) / len(tirs), 1) if tirs else None,
+            "esquemas_preferidos": dict(sorted(esquemas.items(), key=lambda x: -x[1])[:5]),
+            "lectura": "alto intento de compra — están corriendo números"}
+
+
 async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: int = 90, top: int = 5) -> Dict[str, Any]:
     """JUGADAS PROACTIVAS de demanda — combina presión (demanda vs oferta) + tendencia (qué sube) + no-satisfecho →
     '¿qué construir YA?'. Lo proactivo: el dev/superadmin lo ve de un vistazo, sin escarbar la tabla."""

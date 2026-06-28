@@ -25,6 +25,7 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
         "engagement_contenido": await di.engagement_by_content(db, since_days=since_days),
         "no_satisfecha": await di.unmet_demand(db, since_days=since_days),
         "tendencias": await di.trend_alerts(db),
+        "intencion_financiera": await di.financial_intent(db, since_days=since_days),
     }
 
 

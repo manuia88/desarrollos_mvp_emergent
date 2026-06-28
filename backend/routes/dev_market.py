@@ -95,6 +95,7 @@ async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365))
         "que_construir": await di.what_to_build(db, colonias=cols, since_days=dias),
         "no_satisfecha": await di.unmet_demand(db, colonias=cols, since_days=dias),
         "tendencias": await di.trend_alerts(db, colonias=cols),
+        "intencion_financiera": await di.financial_intent(db, colonias=cols, since_days=dias),
     }
 
 

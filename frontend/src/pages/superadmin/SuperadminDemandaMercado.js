@@ -199,6 +199,11 @@ export default function SuperadminDemandaMercado() {
           </div>
           <div style={{ fontSize: 12, color: '#888' }}>Recámaras: {Object.entries(data?.no_satisfecha?.por_recamaras || {}).map(([k, v]) => `${k} (${v})`).join(' · ') || '—'}</div>
           <div style={{ fontSize: 12, color: '#888' }}>Precio: {Object.entries(data?.no_satisfecha?.por_precio || {}).map(([k, v]) => `${k} (${v})`).join(' · ') || '—'}</div>
+          {data?.intencion_financiera && (
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: '#888' }}>
+              <strong style={{ color: 'var(--theme)' }}>Intención financiera (alto intento):</strong> {data.intencion_financiera.exploraron_pago} exploraron pago{data.intencion_financiera.enganche_promedio_pct != null ? ` (enganche prom ${data.intencion_financiera.enganche_promedio_pct}%)` : ''} · {data.intencion_financiera.exploraron_roi} exploraron ROI{data.intencion_financiera.tir_buscado_promedio_pct != null ? ` (TIR prom ${data.intencion_financiera.tir_buscado_promedio_pct}%)` : ''}
+            </div>
+          )}
         </Card>
 
         {/* TENDENCIAS */}
