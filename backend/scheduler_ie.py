@@ -556,6 +556,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_cube_buyer_signals_error", error=str(e))
 
+    # Auditoría Fix #4 — Reconciliación etapa(asesor)→status(db.leads) (4:20am MX) para KPIs consistentes
+    try:
+        from services.lead_bridge import schedule_reconcile_cron
+        schedule_reconcile_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_lead_reconcile_error", error=str(e))
+
     # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
     try:
         from intelligence_insights_engine import schedule_intelligence_insights_cron

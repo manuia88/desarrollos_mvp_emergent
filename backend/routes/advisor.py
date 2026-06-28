@@ -802,6 +802,30 @@ async def create_contacto(payload: ContactoIn, request: Request):
         **payload.model_dump(),
     }
     await db.asesor_contactos.insert_one(dict(item))
+    # Consistencia de KPIs (auditoría Fix #4): el alta MANUAL no llevaba source_lead_id → quedaba INVISIBLE a las
+    # métricas de dev/superadmin (pipeline/conversión). Sintetizamos un lead 'asesor_manual' en db.leads y lo enlazamos
+    # → el contacto manual cuenta como lead real y el bridge inverso (etapa→status) lo sincroniza. Sólo ocurre para
+    # personas NUEVAS (el dedup por teléfono ya bloqueó las que vienen del marketplace) → sin doble conteo. FAIL-OPEN.
+    try:
+        _e2s = {"nuevo": "nuevo", "contactado": "contactado", "visita": "cita",
+                "negociacion": "negociacion", "cerrado": "cerrado_ganado"}
+        _st = _e2s.get(payload.etapa, "nuevo")
+        _lid = f"lead_{item['id']}"
+        try:
+            from services.lead_bridge import resolve_user_inmobiliaria
+            _inm = await resolve_user_inmobiliaria(db, user.user_id)
+        except Exception:
+            _inm = None
+        await db.leads.update_one({"id": _lid}, {"$setOnInsert": {
+            "id": _lid, "origin": "asesor_manual", "source": "asesor_manual",
+            "assigned_to": user.user_id, "asesor_id": user.user_id, "inmobiliaria_id": _inm,
+            "name": (f"{payload.first_name or ''} {payload.last_name or ''}").strip() or None,
+            "email": (payload.emails or [None])[0], "phone": (payload.phones or [None])[0],
+            "status": _st, "lead_stage": _st, "created_at": _now(), "updated_at": _now(),
+        }}, upsert=True)
+        await db.asesor_contactos.update_one({"id": item["id"]}, {"$set": {"source_lead_id": _lid}})
+    except Exception as _e:
+        logging.getLogger("dmx.advisor").warning(f"[bridge] sintetizar lead manual falló (cid={item.get('id')}): {_e}")
     item.pop("_id", None)
     return item
 
@@ -1294,8 +1318,10 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
             _st = _ETAPA_TO_STATUS.get(patch["etapa"], "contactado")
             await db.leads.update_one({"id": _lid}, {"$set": {
                 "status": _st, "lead_stage": _st, "last_activity_at": _now(), "updated_at": _now()}})
-    except Exception:
-        pass
+    except Exception as _be:
+        # Auditoría Fix #4: NO silencioso. Si el bridge inverso falla, las métricas de dev/superadmin quedan stale →
+        # hay que VERLO en logs (+ el job de reconciliación 04:20 lo recupera). Fail-open para no romper el guardado.
+        logging.getLogger("dmx.advisor").warning(f"[bridge inverso] etapa→status falló (cid={cid}): {_be}")
     # F0.1 — Audit log
     try:
         from audit_log import log_mutation

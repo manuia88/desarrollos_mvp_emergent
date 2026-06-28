@@ -166,9 +166,9 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
         # 2) ¿el dueño ya tiene un contacto del mismo cliente (alta manual)? → enlazar
         ident_or = []
         if email:
-            ident_or.append({"emails": email})
+            ident_or.append({"emails": {"$in": [email]}})
         if np:
-            ident_or.append({"phones_norm": np})
+            ident_or.append({"phones_norm": {"$in": [np]}})
         if ident_or:
             dup = await db.asesor_contactos.find_one(
                 {"owner_id": owner, "$or": ident_or}, {"_id": 0, "id": 1}
@@ -385,3 +385,49 @@ async def backfill_owner(db, owner_user_id: str, limit: int = 2000) -> int:
     except Exception as e:
         log.warning(f"[lead_bridge] backfill_owner fail-open: {e}")
     return n
+
+
+# ─── Reconciliación etapa→status (auditoría Fix #4) ─────────────────────────────
+# El bridge inverso (advisor.patch_contacto) sincroniza al instante, pero si alguna vez falla, las métricas de
+# dev/superadmin quedan stale. Este job diario re-sincroniza TODOS los contactos con source_lead_id. Idempotente.
+_ETAPA_TO_STATUS = {"nuevo": "nuevo", "contactado": "contactado", "visita": "cita",
+                    "negociacion": "negociacion", "cerrado": "cerrado_ganado"}
+
+
+async def reconcile_etapa_to_leads(db, limit: int = 8000) -> dict:
+    scanned = 0
+    fixed = 0
+    try:
+        cur = db.asesor_contactos.find(
+            {"source_lead_id": {"$ne": None}, "etapa": {"$ne": None}},
+            {"_id": 0, "source_lead_id": 1, "etapa": 1},
+        ).limit(limit)
+        async for c in cur:
+            scanned += 1
+            st = _ETAPA_TO_STATUS.get(c.get("etapa"))
+            if not st:
+                continue
+            r = await db.leads.update_one(
+                {"id": c["source_lead_id"], "status": {"$ne": st}},
+                {"$set": {"status": st, "lead_stage": st}},
+            )
+            if r.modified_count:
+                fixed += 1
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] reconcile fail-open: {e}")
+    log.info(f"[lead_bridge] reconcile etapa→status — scanned={scanned} fixed={fixed}")
+    return {"ok": True, "scanned": scanned, "fixed": fixed}
+
+
+def schedule_reconcile_cron(scheduler, db) -> None:
+    """Cron `lead_etapa_reconcile` 04:20 MX (tras el cubo de demanda)."""
+    try:
+        from cron_heartbeat import wrap_apscheduler_job
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler.add_job(
+            wrap_apscheduler_job(reconcile_etapa_to_leads, "lead_etapa_reconcile"),
+            CronTrigger(hour=4, minute=20, timezone="America/Mexico_City"),
+            args=[db], id="lead_etapa_reconcile", replace_existing=True, misfire_grace_time=1800,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_bridge] schedule reconcile cron failed: {e}")
