@@ -630,8 +630,8 @@ async def compute_fit_score(
     if (lead_signals.get("interactions_count") or 0) == 0:
         overall = 0
         confidence = "tentativa"
-        explanation = f"Sin datos suficientes del lead para evaluar fit con {prop.get('name')}"
-        reasons: List[str] = ["No hay interacciones registradas del lead"]
+        explanation = f"Aún sin actividad suficiente para evaluar la compatibilidad con {prop.get('name')}"
+        reasons: List[str] = ["Aún no hay actividad registrada"]
     else:
         overall_base = _compute_overall(scores)
         # Apply cross-batch adjustments with clamp

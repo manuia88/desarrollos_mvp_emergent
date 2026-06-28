@@ -101,3 +101,15 @@ Baseline de datos: `scratchpad/baseline_20260628.json` (439 colecciones) · back
 ### Pendientes restantes (de toda la sesión)
 - B1-B3 🟡 índice `copiloto_closings.closed_at_dt` → siguiente.
 - B1-A4 🟡 revisar wontfix → siguiente.
+
+---
+
+## Pendientes barridos (antes del siguiente batch)
+
+| id | sev | qué | resolución | verificado |
+|----|-----|-----|------------|------------|
+| B1-B3 | 🟡 | índice `copiloto_closings.closed_at_dt` (el flywheel escanea por recencia) | creado en el ensure de buyer_signals.py (`cc_closed_at`) | índice presente ✅ |
+| UI-jerga | 🟡 | "interacciones registradas del lead" / "evaluar fit con" mostrado al COMPRADOR (regla: cero jerga) | reescrito a lenguaje humano: "Aún no hay actividad registrada" / "evaluar la compatibilidad con" (sirve comprador+dev) | strings fuera ✅ · harness 13/13 |
+| B1-A4 | 🟡 | contacto→cerrado exige `_lid AND _did` | **CONFIRMADO wontfix**: no es defecto — un cierre sin propiedad (`_did` None) tendría `comprado` vacío → inflaría `real.n` SIN aportar señal de bucket (recámaras/precio) → DILUIRÍA el aprendizaje de B1. Requerir `_did` es correcto. La ruta de operaciones (cierre canónico con precio+dev) cubre los cierres reales. | decidido |
+
+**TODOS los pendientes de la sesión cerrados.** Abiertos como BATCHES FUTUROS (no pendientes sueltos): B3 (audit-dark agentes), B4 (otros índices compuestos), FASE R (huérfanos de alto valor), FASE A (E2E cohorte).

@@ -65,6 +65,8 @@ async def _ensure_index(db):
         await db.visitor_taste_materialized.create_index("visitor_id", unique=True, name="vtm_vid_uniq")
         await db.visitor_taste_materialized.create_index("computed_at_dt", expireAfterSeconds=86400, name="vtm_ttl")
         await db.experiencia_views.create_index("created_at_dt", expireAfterSeconds=_TTL_DAYS * 86400, name="ev_ttl")
+        # B1: el flywheel escanea copiloto_closings por ventana de recencia (18m) en cada cierre + cron → índice por fecha
+        await db.copiloto_closings.create_index("closed_at_dt", name="cc_closed_at")
         _indexed["done"] = True
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] index: {e}")
