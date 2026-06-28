@@ -411,7 +411,8 @@ async def leads_cockpit(request: Request):
             temp, score = _lead_temp_score(l)
             # Si el comprador detrás del lead tiene buyer_score real, prevalece sobre la heurística.
             bs = l.get("buyer_score")
-            if isinstance(bs, dict) and bs.get("value") is not None:
+            _row_real = isinstance(bs, dict) and bs.get("value") is not None
+            if _row_real:
                 buyer_real = True
                 score = int(bs.get("value") or 0)
                 temp = _TIER_TEMP.get((bs.get("tier") or "").lower(), temp)
@@ -424,7 +425,7 @@ async def leads_cockpit(request: Request):
                 "fuente": l.get("source") or l.get("channel") or "—",
                 "canal": l.get("channel") or "inhouse",
                 "asesor": l.get("assignee_name") or ("Directo" if not l.get("assignee_id") else l.get("assignee_id")),
-                "temperatura": temp, "score": score,
+                "temperatura": temp, "score": score, "score_real": _row_real,
                 "siguiente_accion": _next_action_dev(l),
                 "dias_sin_actividad": _days_since(l.get("last_activity_at")),
                 "presupuesto": l.get("budget_mxn"),

@@ -109,7 +109,7 @@ function ListaView() {
               style={{ display: 'grid', gridTemplateColumns: '108px 1.3fr 1fr 1fr 2fr 18px', gap: 12, padding: '12px 16px', minWidth: 860, alignItems: 'center', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(var(--cream-rgb),0.05)', cursor: 'pointer' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: t.color }}>
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.color, flexShrink: 0 }} />{t.label}
-                <span style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700 }}>{l.score}</span>
+                <span title={l.score_real ? 'Score por conducta REAL del comprador' : 'Score estimado'} style={{ fontSize: 10, color: l.score_real ? 'var(--theme, #6D4AFF)' : 'var(--cream-3)', fontWeight: 700 }}>{l.score}{l.score_real ? ' •' : ''}</span>
               </span>
               <span style={{ fontWeight: 700, color: 'var(--cream)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.nombre}<span style={{ fontWeight: 400, color: 'var(--cream-3)', fontSize: 11 }}> · {l.canal}</span></span>
               <span style={{ fontSize: 12.5, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.proyecto}</span>

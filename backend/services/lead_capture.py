@@ -92,6 +92,25 @@ async def capture_lead(
     if colonia_id:
         await attribute_to_dev(db, capture_id, colonia_id)
 
+    # Auditoría Fix #5: el lead capture debe ser un LEAD de primera clase vía create_buyer_lead (FUENTE ÚNICA) →
+    # visible a dev/superadmin/asesor, no sólo en lead_captures. Sólo si hay visitor_id (idempotente por visitor_id →
+    # un comprador = un lead, sin duplicar). FAIL-OPEN: nunca rompe la captura ni el email.
+    _vid = payload.get("visitor_id")
+    if _vid:
+        try:
+            from routes.buyer_signals import create_buyer_lead
+            await create_buyer_lead(
+                db, _vid,
+                name=payload.get("name") or payload.get("nombre"),
+                email=email,
+                phone=payload.get("phone") or payload.get("telefono"),
+                dev_id=payload.get("development_id") or payload.get("dev_id"),
+                source=f"capture_{doc['source']}",
+                contexto={"capture_id": capture_id, "colonia_id": colonia_id, "via": doc["source"]},
+            )
+        except Exception as ex:
+            log.warning(f"[lead_capture] create_buyer_lead falló (capture={capture_id}): {ex}")
+
     return {k: v for k, v in doc.items() if k != "_id"}
 
 
