@@ -201,6 +201,32 @@ def _group(rows, key):
     return out
 
 
+@router.post("/project/{project_id}/marketplace")
+async def toggle_project_marketplace(project_id: str, request: Request):
+    """DEV PUBLICA → MARKETPLACE · control del superadmin: publica/despublica un proyecto del wizard en el marketplace
+    público. Body {published: bool}. Loguea el cambio (auditoría). Idempotente."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    body = await request.json()
+    published = bool(body.get("published", True))
+    proj = await db.projects.find_one({"id": project_id}, {"_id": 0, "id": 1, "name": 1, "colonia_id": 1, "price_from": 1})
+    if not proj:
+        raise HTTPException(404, "Proyecto no encontrado")
+    if published and not (proj.get("colonia_id") and (proj.get("price_from") or 0) > 0):
+        raise HTTPException(400, "El proyecto necesita colonia y precio para publicarse en el marketplace")
+    await db.projects.update_one({"id": project_id}, {"$set": {"marketplace_published": published}})
+    try:
+        from audit_log import log_mutation
+        actor = getattr(request.state, "user", None)
+        await log_mutation(db, {"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"},
+                           "update", "project", entity_id=project_id,
+                           after={"marketplace_published": published, "name": proj.get("name")})
+    except Exception:
+        pass
+    return {"ok": True, "project_id": project_id, "marketplace_published": published}
+
+
 @router.get("/home")
 async def home(request: Request, zona: Optional[str] = None, segmento: Optional[str] = None,
                etapa: Optional[str] = None, dev: Optional[str] = None):

@@ -1551,6 +1551,54 @@ async def generate_property_briefing(prop_id: str, request: Request):
 
 
 # ─── Developments ──────────────────────────────────────────────────────────────
+def _project_to_dev_card(p):
+    """DEV PUBLICA → MARKETPLACE: convierte un proyecto del wizard (db.projects) a la forma de TARJETA del marketplace,
+    con TODOS los campos que tocan el listado y los filtros (defaults seguros → nunca KeyError). Marcado source='wizard'
+    + verified=False para que la UI lo distinga del catálogo curado/verificado por DMX."""
+    pid = p.get("id") or p.get("slug")
+    if not pid:
+        return None
+    _tipo = (p.get("tipo_proyecto") or "").lower()
+    ptype = "casa" if "casa" in _tipo else ("terreno" if "terreno" in _tipo else "departamento")
+    pf = p.get("price_from") or 0
+    pt = p.get("price_to") or pf
+    ut = p.get("total_units") or p.get("units_total") or 0
+    lat, lng = p.get("lat"), p.get("lng")
+    return {
+        "id": pid, "slug": p.get("slug") or pid, "name": p.get("name") or "Desarrollo",
+        "colonia_id": p.get("colonia_id") or "", "colonia": p.get("colonia") or "",
+        "alcaldia": p.get("municipio") or p.get("alcaldia") or "", "city": p.get("estado") or "CDMX",
+        "stage": p.get("stage") or "preventa", "property_type": ptype,
+        "price_from": pf, "price_to": pt, "price_from_display": None, "price_to_display": None,
+        "units": [], "units_total": ut, "units_available": ut, "units_sold": 0, "units_reserved": 0,
+        "amenities": [], "unit_features": [], "servicios": {}, "creditos_aceptados": [],
+        "photos": p.get("photos") or [], "center": ({"lat": lat, "lng": lng} if lat and lng else None),
+        "address_full": p.get("calle") or "", "street": p.get("calle") or "", "postal_code": p.get("cp") or "",
+        "delivery_estimate": p.get("delivery_estimate") or "", "fecha_lanzamiento": p.get("created_at") or "",
+        "description": p.get("description") or "", "developer_id": p.get("developer_id") or p.get("dev_org_id"),
+        "contact_phone": "", "m2_range": p.get("m2_range") or "", "bedrooms_range": "", "bathrooms_range": "",
+        "parking_range": "", "orientations": [], "max_level": None, "construction_progress": None,
+        "memoria_acabados": None, "tecnica": None, "tour360_url": None, "video_url": None,
+        "featured": False, "verified": False, "source": "wizard", "price_history": [],
+    }
+
+
+async def _published_wizard_cards(db):
+    """Proyectos del wizard listos para el marketplace: gate marketplace_published != False (se publica al estar listo;
+    el superadmin puede despublicar) + colonia_id + price_from (calidad). Listado PÚBLICO → cross-dev a propósito."""
+    out = []
+    try:
+        async for p in db.projects.find(
+            {"marketplace_published": {"$ne": False}, "colonia_id": {"$nin": [None, ""]}, "price_from": {"$gt": 0}},
+            {"_id": 0}).limit(500):
+            c = _project_to_dev_card(p)
+            if c:
+                out.append(c)
+    except Exception:
+        pass  # fail-open: si la lectura de proyectos falla, el listado sigue con el catálogo curado
+    return out
+
+
 @router.get("/api/developments")
 async def list_developments(
     request: Request,
@@ -1582,6 +1630,9 @@ async def list_developments(
     visitor_id: Optional[str] = None,   # 'Para ti' (sort=taste): reordena por el gusto del visitante (sus likes)
 ):
     results = list(DEVELOPMENTS)
+    # DEV PUBLICA → MARKETPLACE: suma los proyectos del wizard ya publicados (gate + calidad). Los filtros de abajo
+    # operan igual sobre ellos (la tarjeta trae todos los campos). Fail-open.
+    results += await _published_wizard_cards(request.app.state.db)
     if colonia:
         cset = {c.lower() for c in colonia}
         results = [d for d in results if d["colonia_id"].lower() in cset]
@@ -1934,6 +1985,11 @@ async def get_development(dev_id: str, request: Request):
     else:
         # B0.3 · Proyecto creado/publicado por el dev → leer la tienda unificada (no solo el seed)
         pub = await db.developments.find_one({"id": dev_id}, {"_id": 0})
+        if not pub:
+            # DEV PUBLICA → MARKETPLACE: ficha de un proyecto del wizard (db.projects) convertido a tarjeta.
+            _proj = await db.projects.find_one({"id": dev_id, "marketplace_published": {"$ne": False}}, {"_id": 0})
+            if _proj:
+                pub = _project_to_dev_card(_proj)
         if not pub:
             raise HTTPException(404, "Desarrollo no encontrado")
         out = {k: v for k, v in pub.items() if k != "config"}
