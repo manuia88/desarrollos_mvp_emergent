@@ -21,12 +21,15 @@ const fmtM = (n) => (n == null ? '' : (n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 
 // PILOT: en prod el recorrido sale de `dev.video_url` (lo sube el dev en Studio / 3DGS). Mientras tanto, demo generado
 // desde las FOTOS REALES del dev (Ken Burns continuo) para mostrar el mecanismo correcto del Módulo 4 (scrub de video).
 const DEMO_VIDEOS = { 'tamaulipas-89': '/demo/walkthrough-tamaulipas-89.mp4' };
+// Demo del generador parallax 3D LOCAL (gratis, sin API): MiDaS depth + ffmpeg/cv2 remap sobre fotos reales de cuartos.
+const DEMO_PARALLAX = { 'tamaulipas-89': '/demo/walkthrough-parallax-tamaulipas-89.mp4' };
 
 // ROUTER de experiencia: detecta qué assets tiene la unidad y elige el MEJOR recorrido (plan de acción automático).
 // Escalera: video real (lo subió el dev) > 3DGS/360 (futuro) > parallax 3D generado (gratis/local) > foto-secuencia > ficha.
 // "Detecta quién y qué sube": al subir, el dev fija video_url (→video) o solo fotos (→genera parallax) o 3DGS (→flythrough).
-function resolveExperienceMode(dev) {
+function resolveExperienceMode(dev, prefer) {
   const photos = (dev.photos || []).filter(Boolean);
+  if (prefer === 'parallax' && DEMO_PARALLAX[dev.id]) return { mode: 'video', src: DEMO_PARALLAX[dev.id], badge: 'Render animado', photos }; // demo: parallax local desde fotos
   if (dev.video_url)        return { mode: 'video',  src: dev.video_url,        badge: null,                   photos }; // 1· recorrido real
   // 2· 3DGS/360 → flythrough (cuando exista dev.gsplat_url / dev.tour360_url)
   if (dev.parallax_url)     return { mode: 'video',  src: dev.parallax_url,     badge: 'Render animado',       photos }; // 3· parallax generado
@@ -51,7 +54,8 @@ export default function AtlaxExperiencia() {
 
   if (err) return <Fallback id={id} />;
   if (!dev) return <div style={{ minHeight: '100vh', background: '#0A0A0F', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans' }}>Cargando experiencia…</div>;
-  const exp = resolveExperienceMode(dev);   // ROUTER: detecta assets → plan de acción
+  const modo = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search).get('modo') : null;
+  const exp = resolveExperienceMode(dev, modo);   // ROUTER: detecta assets → plan de acción (modo=parallax para comparar)
   if (exp.mode === 'ficha') return <Fallback id={id} />;   // <2 fotos y sin video → a la ficha (cero invento)
 
   return (
