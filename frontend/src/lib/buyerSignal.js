@@ -38,12 +38,16 @@ export function sendBuyerSignal(type, opts = {}) {
 // cualquier dispositivo donde inicie sesión. Una vez por sesión, fail-silent (sin sesión = no-op en el backend).
 export function claimVisitor() {
   try {
-    if (sessionStorage.getItem('dmx_claimed')) return;
-    sessionStorage.setItem('dmx_claimed', '1');
+    if (sessionStorage.getItem('dmx_claimed')) return;   // ya vinculado en esta sesión
     fetch(`${API}/api/buyer/claim`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', keepalive: true,
       body: JSON.stringify({ visitor_id: visitorId() }),
-    }).catch(() => {});
+    })
+      .then((r) => r.json())
+      // Solo marca como hecho cuando REALMENTE vinculó (usuario logueado). Si se llamó anónimo (claimed:false), NO
+      // marca → se re-dispara después del login. Fix #2 auditoría (antes marcaba siempre → nunca vinculaba al loguear).
+      .then((d) => { if (d && d.claimed) sessionStorage.setItem('dmx_claimed', '1'); })
+      .catch(() => {});
   } catch { /* noop */ }
 }
 

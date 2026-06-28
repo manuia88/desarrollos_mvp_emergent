@@ -517,8 +517,25 @@ async def claim_visitor(b: ClaimIn, request: Request):
         u = await get_current_user(request)
         if not u or not b.visitor_id:
             return {"ok": True, "claimed": False}
+        db = request.app.state.db
         from services.visitor_identity import link
-        await link(request.app.state.db, getattr(u, "email", None), getattr(u, "phone", None), b.visitor_id)
+        await link(db, getattr(u, "email", None), getattr(u, "phone", None), b.visitor_id)
+        # Cierre de ciclo (auditoría Fix #2): si el usuario ya tiene un lead, refresca su tablero con los favoritos
+        # recién VINCULADOS → el asesor ve la actividad real, no un lead "vacío". mirror_favoritos_to_board ya une
+        # todos los visitor_id de la persona (resolve_visitors). FAIL-OPEN.
+        try:
+            uid = getattr(u, "user_id", None); uemail = getattr(u, "email", None)
+            lead = None
+            if uid or uemail:
+                lead = await db.leads.find_one(
+                    {"$or": [q for q in ({"user_id": uid} if uid else None, {"email": uemail} if uemail else None) if q]},
+                    {"_id": 0, "id": 1},
+                )
+            if lead and lead.get("id"):
+                from routes.favoritos import mirror_favoritos_to_board
+                await mirror_favoritos_to_board(db, b.visitor_id, lead["id"])
+        except Exception:  # noqa: BLE001
+            pass
         return {"ok": True, "claimed": True}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[buyer_signals] claim fail-open: {e}")

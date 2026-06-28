@@ -12,6 +12,7 @@ import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
 // W3.8 — Cross-sell
 import CompradorCrossSellSection from '../../components/comprador/CompradorCrossSellSection';
 import { tc } from '../../lib/titleCase';
+import { claimVisitor } from '../../lib/buyerSignal';   // Fix #2: vincula la actividad anónima si llega logueado
 
 function fmtMxn(n) {
   if (!n) return '—';
@@ -79,6 +80,7 @@ export default function CompradorDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    claimVisitor();   // usuario logueado en su dashboard → ata su actividad anónima a la cuenta (asesor ve la actividad)
     fetchDashboard()
       .then(d => { setData(d); setLoading(false); })
       .catch(e => {

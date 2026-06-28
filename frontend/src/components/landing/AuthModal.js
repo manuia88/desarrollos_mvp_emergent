@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { MapPin } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { claimVisitor } from '../../lib/buyerSignal';   // Fix #2: vincula el visitor_id anónimo al loguear/registrar
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -46,6 +47,7 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
         throw new Error(b.detail || 'Credenciales inválidas');
       }
       const data = await r.json();
+      claimVisitor();   // ya hay sesión → vincula la actividad anónima de esta sesión a su cuenta
       onSuccess?.(data.user);
       onClose();
     } catch (e) { setErr(e.message); }
@@ -67,6 +69,7 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
         throw new Error(b.detail || 'No se pudo registrar');
       }
       const data = await r.json();
+      claimVisitor();   // tras registrarse, su actividad anónima queda atada a la cuenta (cross-device)
       onSuccess?.(data.user);
       onClose();
     } catch (e) { setErr(e.message); }
