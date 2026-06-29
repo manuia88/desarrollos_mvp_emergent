@@ -426,7 +426,9 @@ async def compute_all(db, since_days: int = 180, top: int = 20) -> Dict[str, Any
             if v is not None and v != "—":
                 real_count += 1
         por_zona.append({"zona": z.get("zona"), "nombre": z.get("nombre"), "tier": z.get("tier"), "valores": vals})
-    catalogo = [{"n": n, "pack": P[pack], "nombre": nombre, "descubre": descubre} for (n, pack, nombre, descubre, fn) in COMPOSITES]
+    catalogo = [{"n": n, "pack": P[pack], "nombre": nombre, "descubre": descubre,
+                 "uso": descubre, "dimension": f"compuesta · {P[pack]}", "fuente": "composite_metrics (comportamiento × mercado, motores fusionados)"}
+                for (n, pack, nombre, descubre, fn) in COMPOSITES]
     cobertura_pct = round(100 * real_count / max(total_count, 1))
     return {"catalogo": catalogo, "por_zona": por_zona,
             "cobertura": {"reales": real_count, "total": total_count, "pct": cobertura_pct,

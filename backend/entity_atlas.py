@@ -180,7 +180,8 @@ async def entity_panel(db, tipo: str, eid: str, ventana: str = "90d") -> Dict[st
         c = await ge.compute(db, meta["id"], dims)
         temas[meta["lado"]].append({"id": meta["id"], "medida": c.get("medida"), "valor": c.get("valor"),
                                     "unidad": c.get("unidad"), "n": c.get("n"), "confianza": c.get("confianza"),
-                                    "latente": c.get("latente"), "procedencia": c.get("procedencia")})
+                                    "latente": c.get("latente"), "uso": c.get("uso"), "comparativo": c.get("comparativo"),
+                                    "procedencia": c.get("procedencia")})
 
     # 2) FUSIÓN institucional (zone_intelligence / development_intelligence)
     fusion = None

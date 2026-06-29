@@ -588,9 +588,10 @@ def _confianza(n):
     return "alta" if n >= 30 else "media" if n >= 10 else "baja"
 
 
-async def compute(db, measure_id: str, dims: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def compute(db, measure_id: str, dims: Optional[Dict[str, Any]] = None, with_comparativo: bool = True) -> Dict[str, Any]:
     """Computa UNA celda con PROCEDENCIA completa. dims: {geo:(nivel,valor), tipologia, rango_m2, tier_precio, atributo,
-    vista, etapa, ventana}. Devuelve valor + fuente + almacén + n + cohorte + actualizado + confianza + latente."""
+    vista, etapa, ventana}. Devuelve valor + USO + COMPARATIVO(vs ciudad) + fuente + almacén + n + cohorte + confianza."""
+    import metric_uso as mu
     meta = REGISTRY_BY_ID.get(measure_id)
     if not meta:
         return {"error": f"medida desconocida: {measure_id}"}
@@ -603,11 +604,22 @@ async def compute(db, measure_id: str, dims: Optional[Dict[str, Any]] = None) ->
         except Exception as e:  # noqa: BLE001
             return {"id": measure_id, "error": str(e)[:120], "procedencia": {"fuente": meta["fuente"]}}
     latente = n < meta["n_minimo"]
+    # COMPARATIVO vs ciudad — ¿esta cifra está alta o baja respecto al promedio CDMX? (solo si hay geo sub-ciudad)
+    comparativo = {"vs_ciudad": None, "señal": "—", "texto": "comparativo a nivel ciudad" if not dims.get("geo") else "sin base ciudad"}
+    geo = dims.get("geo")
+    if with_comparativo and not latente and isinstance(valor, (int, float)) and geo and (geo[0] if isinstance(geo, tuple) else None) != "ciudad":
+        city = await compute(db, measure_id, {k: v for k, v in dims.items() if k != "geo"}, with_comparativo=False)
+        cv = city.get("valor")
+        if isinstance(cv, (int, float)) and cv:
+            diff = round(100 * (valor - cv) / cv)
+            comparativo = {"vs_ciudad": diff, "señal": "alta" if diff > 3 else "baja" if diff < -3 else "igual",
+                           "texto": f"{'+' if diff > 0 else ''}{diff}% vs ciudad"}
     cell_id = measure_id + "@" + "|".join(f"{k}={v[1] if isinstance(v, tuple) else v}" for k, v in dims.items() if v)
     return {
         "id": cell_id, "medida": meta["medida"], "lado": meta["lado"], "unidad": meta["unidad"],
         "valor": None if latente else valor, "dims": {k: (v[1] if isinstance(v, tuple) else v) for k, v in dims.items() if v},
         "latente": latente, "n": n, "confianza": _confianza(n),
+        "uso": mu.uso_de(meta), "comparativo": comparativo,
         "procedencia": {
             "fuente": meta["fuente"], "almacen_entrada": meta["almacen_entrada"], "almacen_salida": meta["almacen_salida"],
             "formula": meta["formula"], "cohorte": meta["cohorte_comparacion"],
