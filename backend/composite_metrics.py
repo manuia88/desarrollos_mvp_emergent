@@ -434,7 +434,7 @@ async def compute_all(db, since_days: int = 180, top: int = 20) -> Dict[str, Any
 async def for_dev(db, colonias: List[str], since_days: int = 180) -> Dict[str, Any]:
     """Subconjunto DEV (packs Pricing/Absorption/Underwriting/Competitive) scopeado a sus colonias."""
     full = await compute_all(db, since_days=since_days, top=40)
-    dev_packs = {"Pricing", "Absorption", "Underwriting", "Competitive"}
+    dev_packs = {"Pricing", "Absorption", "Underwriting", "Competitive", "Suelo&Construcción"}
     ns = {c["n"] for c in full["catalogo"] if c["pack"] in dev_packs}
     cl = {(c or "").lower() for c in (colonias or [])}
     rows = [{**pz, "valores": {k: v for k, v in pz["valores"].items() if k in ns}}
@@ -443,8 +443,9 @@ async def for_dev(db, colonias: List[str], since_days: int = 180) -> Dict[str, A
 
 
 async def for_asesor(db, since_days: int = 180) -> Dict[str, Any]:
-    """Subconjunto ASESOR (pack Lead) — calidad/fit/pitch/timing por zona."""
+    """Subconjunto ASESOR (Lead + STR/Airbnb para leads inversionistas) — calidad/fit/pitch/timing + yield Airbnb por zona."""
     full = await compute_all(db, since_days=since_days, top=40)
-    ns = {c["n"] for c in full["catalogo"] if c["pack"] == "Lead"}
+    packs = {"Lead", "STR/Airbnb"}
+    ns = {c["n"] for c in full["catalogo"] if c["pack"] in packs}
     rows = [{**pz, "valores": {k: v for k, v in pz["valores"].items() if k in ns}} for pz in full["por_zona"]]
-    return {"catalogo": [c for c in full["catalogo"] if c["pack"] == "Lead"], "por_zona": rows}
+    return {"catalogo": [c for c in full["catalogo"] if c["pack"] in packs], "por_zona": rows}
