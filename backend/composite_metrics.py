@@ -173,14 +173,14 @@ COMPOSITES: List = [
      lambda z, g: z.get("demanda")),
 
     # ── PACK 3 · INVESTOR ──
-    (21, 3, "Demanda-inversor × yield", "demanda inversionista que coincide con yield",
-     lambda z, g: None),  # feeder cap_rate
+    (21, 3, "Demanda-inversor × yield", "demanda inversionista que coincide con yield (cap rate local)",
+     lambda z, g: round(z.get("demanda", 0) * (z.get("cap_rate_est") or 0) / 100, 1) if z.get("cap_rate_est") else None),
     (22, 3, "Demanda grado-inversión", "donde demanda y retorno coinciden",
      lambda z, g: round(z.get("demanda", 0) * (_inv(z) / 100), 1) if _inv(z) is not None else None),
     (23, 3, "Sharpe de la colonia", "retorno ajustado por riesgo, con demanda",
      lambda z, g: round((_inv(z) or 0) / 100 * (_risk(z) or 0) / 100 * min(z.get("demanda", 0) / 100, 1.5), 2) if _inv(z) is not None and _risk(z) is not None else None),
-    (24, 3, "Spread vs CETES por zona", "prima sobre la tasa libre de riesgo",
-     lambda z, g: None),  # feeder cetes+cap_rate
+    (24, 3, "Spread vs CETES por zona", "yield bruto − CETES (real estate suele rendir menos que la tasa libre)",
+     lambda z, g: round((z.get("cap_rate_est") or 0) - (g.get("cetes") or 10.0), 1) if z.get("cap_rate_est") else None),
     (25, 3, "ROI ponderado por absorción", "retorno real considerando velocidad de salida",
      lambda z, g: round((_inv(z) or 0) * min((_ab(z, "velocidad_mensual") or 0) / 2, 1.5)) if _inv(z) is not None and _ab(z, "velocidad_mensual") else None),
     (26, 3, "Yield renta-corta vs larga", "dónde Airbnb supera renta tradicional",
@@ -191,8 +191,8 @@ COMPOSITES: List = [
      lambda z, g: z.get("cambio_pct")),  # proxy hasta DRPI
     (29, 3, "Liquidez (entrada-salida)", "qué tan rápido entras y sales",
      lambda z, g: _ab(z, "meses_agotar")),
-    (30, 3, "Cap rate ajustado a riesgo", "yield neto de riesgo físico",
-     lambda z, g: None),  # feeder cap_rate
+    (30, 3, "Cap rate ajustado a riesgo", "yield neto de riesgo físico/seguridad",
+     lambda z, g: round((z.get("cap_rate_est") or 0) * (_risk(z) or 0) / 100, 2) if z.get("cap_rate_est") and _risk(z) is not None else None),
 
     # ── PACK 4 · RISK ──
     (31, 4, "Demanda ajustada a riesgo", "caliente pero riesgosa vs caliente segura",

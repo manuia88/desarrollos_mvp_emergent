@@ -1102,6 +1102,13 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
             prof["costo_construccion_m2"] = await _construccion_m2(cid, tier_cc)
         except Exception:
             pass
+        # FEEDER LOCAL (sin AirROI): cap rate bruto estimado por tier (RENTAL_YIELDS de investment_simulator)
+        try:
+            _t = (prof.get("tier") or "").lower()
+            yld = 4.0 if ("premium" in _t or "lux" in _t or "corp" in _t) else 5.0 if ("emerg" in _t or "trendy" in _t or "revival" in _t) else 4.5
+            prof["cap_rate_est"] = yld  # % anual bruto (estimado local, no AirROI)
+        except Exception:
+            pass
         out.append(prof)
     return {"zonas": out,
             "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
