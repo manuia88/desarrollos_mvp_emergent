@@ -3,12 +3,11 @@
 // FICHA COMPLETA de métricas: conductual + oferta/demanda/cruce (con procedencia) + fusión + insights.
 import React, { useEffect, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
+import Indicador from './Indicador';
 import { getAtlasEntity } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
 const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 };
-const th = { fontSize: 11, color: '#888', textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
-const td = { fontSize: 12.5, padding: '5px 8px', borderTop: '1px solid rgba(255,255,255,0.05)' };
 
 const VENTANAS = [
   { key: 'live', label: 'Live' },
@@ -24,19 +23,6 @@ const TIPO_LABEL = {
   atributo: 'Atributo', tipologia: 'Tipología', tier: 'Tier', perfil: 'Perfil', desarrollador: 'Desarrollador',
 };
 
-const confTone = (c) => {
-  const v = String(c || '').toLowerCase();
-  if (v.startsWith('alta')) return '#22c55e';
-  if (v.startsWith('media')) return '#f59e0b';
-  if (v.startsWith('baja')) return '#dc2626';
-  return '#888';
-};
-
-const fmtVal = (v) => {
-  if (v == null) return '—';
-  if (typeof v === 'number') return v.toLocaleString('es-MX');
-  return String(v);
-};
 const fmtMX = (n) => (n == null ? '—' : `$${Math.round(n).toLocaleString('es-MX')}`);
 const kv = (o) => Object.entries(o || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—';
 
@@ -147,9 +133,9 @@ export default function AtlasPanel() {
             <ConductualSection cond={cond} />
 
             {/* OFERTA · DEMANDA · CRUCE */}
-            <TemaSection title="Oferta · lo que existe" tone="ok" medidas={temas.oferta} />
-            <TemaSection title="Demanda · lo que se busca" tone="brand" medidas={temas.demanda} />
-            <TemaSection title="Cruce · oferta × demanda" tone="warn" medidas={temas.cruce} />
+            <TemaSection title="Oferta · lo que existe" tone="ok" medidas={temas.oferta} entidad={panel.entidad || entidad} />
+            <TemaSection title="Demanda · lo que se busca" tone="brand" medidas={temas.demanda} entidad={panel.entidad || entidad} />
+            <TemaSection title="Cruce · oferta × demanda" tone="warn" medidas={temas.cruce} entidad={panel.entidad || entidad} />
 
             {/* FUSIÓN */}
             {panel.fusion && <FusionSection fusion={panel.fusion} />}
@@ -257,65 +243,40 @@ function ConductualSection({ cond }) {
 }
 
 // ── OFERTA / DEMANDA / CRUCE ─────────────────────────────────────────────────
-function TemaSection({ title, tone, medidas }) {
+// Cada métrica pasa por el estándar <Indicador>: nombre humano · valor · comparativo (vs ciudad) ·
+// granularidad · dimensión · uso · fuente (procedencia) · n + confianza · latente con razón.
+function TemaSection({ title, tone, medidas, entidad }) {
   const rows = medidas || [];
   if (rows.length === 0) return null;
   const conValor = rows.filter((m) => !m.latente).length;
+  const ent = entidad || {};
+  const granularidad = `${TIPO_LABEL[ent.tipo] || ent.tipo}: ${ent.id}`;
   return (
     <Card style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={lbl}>{title}</div>
         <Badge tone={tone}>{conValor}/{rows.length} con valor</Badge>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr><th style={th}>medida</th><th style={{ ...th, textAlign: 'right' }}>valor</th><th style={{ ...th, textAlign: 'right' }}>n</th><th style={{ ...th, textAlign: 'right' }}>confianza</th></tr>
-        </thead>
-        <tbody>
-          {rows.map((m) => <MedidaRow key={m.id} m={m} />)}
-        </tbody>
-      </table>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+        {rows.map((m) => {
+          const ind = {
+            nombre: m.medida || m.id,
+            valor: m.valor,
+            unidad: m.unidad,
+            comparativo: m.comparativo || { vs_ciudad: null, señal: '—', texto: '' },
+            granularidad,
+            dimension: m.id,
+            uso: m.uso,
+            fuente: Array.isArray(m.procedencia?.fuente) ? m.procedencia.fuente.join(' + ') : m.procedencia?.fuente,
+            n: m.n,
+            confianza: m.confianza,
+            latente: m.latente,
+            razon_latente: m.latente ? 'n por debajo del mínimo — se activa con más volumen' : null,
+          };
+          return <Indicador key={m.id} ind={ind} />;
+        })}
+      </div>
     </Card>
-  );
-}
-
-function MedidaRow({ m }) {
-  const [open, setOpen] = useState(false);
-  const p = m.procedencia || {};
-  const hasProc = p.fuente || p.almacen_salida || p.formula || p.cohorte || p.actualizado;
-  return (
-    <>
-      <tr onClick={() => hasProc && setOpen((o) => !o)} style={{ cursor: hasProc ? 'pointer' : 'default' }}>
-        <td style={td}>
-          <span style={{ color: m.latente ? '#777' : '#ddd' }}>{m.medida || m.id}</span>
-          {hasProc && <span style={{ fontSize: 10, color: '#666', marginLeft: 6 }}>{open ? '▾' : '▸'}</span>}
-        </td>
-        <td style={{ ...td, textAlign: 'right' }}>
-          {m.latente
-            ? <span style={{ fontSize: 10.5, color: '#777', background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 5 }}>latente</span>
-            : <span style={{ color: 'var(--theme)', fontWeight: 600 }}>{fmtVal(m.valor)}{m.unidad ? <span style={{ color: '#888', fontWeight: 400 }}> {m.unidad}</span> : ''}</span>}
-        </td>
-        <td style={{ ...td, textAlign: 'right', color: '#aaa' }}>{m.n ?? '—'}</td>
-        <td style={{ ...td, textAlign: 'right', color: confTone(m.confianza), fontWeight: 600 }}>{m.confianza || '—'}</td>
-      </tr>
-      {open && hasProc && (
-        <tr>
-          <td colSpan={4} style={{ padding: '0 8px 8px' }}>
-            <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Procedencia · de dónde sale</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 11.5 }}>
-                <span style={{ color: '#888' }}>Fuente</span><span style={{ color: '#ddd' }}>{p.fuente || '—'}</span>
-                <span style={{ color: '#888' }}>Almacén</span>
-                <span style={{ color: '#ddd' }}>{p.almacen_entrada || '—'} <span style={{ color: '#666' }}>→</span> {p.almacen_salida || '—'}</span>
-                {p.formula && <><span style={{ color: '#888' }}>Fórmula</span><span style={{ color: '#ccc', fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{p.formula}</span></>}
-                <span style={{ color: '#888' }}>Cohorte</span><span style={{ color: '#ddd' }}>{p.cohorte || '—'}</span>
-                {p.actualizado && <><span style={{ color: '#888' }}>Actualizado</span><span style={{ color: '#ddd' }}>{p.actualizado}</span></>}
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
   );
 }
 
