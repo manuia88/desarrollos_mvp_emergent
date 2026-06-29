@@ -46,6 +46,9 @@ async def demand_deep(request: Request, since_days: int = 365):
         "cuando": await di.temporal_demand(db),
         "journey": await di.journey_depth(db, since_days=since_days),
         "comportamiento": await di.behavior_profile(db, since_days=since_days),   # device + DISC + tour + scroll
+        "sensibilidad_precio": await di.price_sensitivity(db, since_days=since_days),
+        "velocidad_embudo": await di.funnel_velocity(db, since_days=since_days),
+        "visitantes_calientes": await di.hot_visitors(db),
     }
 
 

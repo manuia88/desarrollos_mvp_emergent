@@ -315,6 +315,38 @@ export default function SuperadminDemandaMercado() {
                 <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>DISC: {Object.entries(deep.comportamiento.estilo_disc).map(([k, v]) => `${k} (${v})`).join(' · ')}</div>
               )}
             </Card>
+
+            {/* SENSIBILIDAD AL PRECIO */}
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Sensibilidad al precio <span style={{ fontSize: 11, color: '#888' }}>(techo buscado)</span></div>
+              <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Global: mediana <strong style={{ color: 'var(--theme)' }}>${((deep.sensibilidad_precio?.global?.mediana || 0) / 1e6).toFixed(1)}M</strong> (p25 ${((deep.sensibilidad_precio?.global?.p25 || 0) / 1e6).toFixed(1)}M – p75 ${((deep.sensibilidad_precio?.global?.p75 || 0) / 1e6).toFixed(1)}M)</div>
+              {(deep.sensibilidad_precio?.por_colonia || []).slice(0, 5).map((c) => (
+                <div key={c.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                  <span>{c.colonia}</span><strong>${((c.mediana || 0) / 1e6).toFixed(1)}M</strong></div>
+              ))}
+            </Card>
+
+            {/* VELOCIDAD DEL EMBUDO */}
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Velocidad del embudo</div>
+              <div style={{ fontSize: 13, lineHeight: 1.9 }}>
+                <div>Consideración (1ª señal → lead): <strong style={{ color: 'var(--theme)' }}>{deep.velocidad_embudo?.consideracion_dias?.mediana ?? '—'} días</strong></div>
+                <div>Lead → cierre: <strong style={{ color: 'var(--theme)' }}>{deep.velocidad_embudo?.lead_a_cierre_dias?.mediana ?? '—'} días</strong></div>
+              </div>
+            </Card>
+
+            {/* VISITANTES CALIENTES (lo más accionable) */}
+            <Card style={{ padding: '14px 18px', border: '1px solid rgba(34,197,94,0.35)' }}>
+              <div style={{ fontWeight: 600, marginBottom: 4, color: '#22c55e' }}>🔥 Visitantes calientes (lead anónimo por convertir)</div>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Quién se está calentando + qué le interesa → el asesor podría adelantarse.</div>
+              {(deep.visitantes_calientes?.visitantes_calientes || []).slice(0, 6).map((v) => (
+                <div key={v.visitor_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span>{(v.features || []).join(', ') || '—'} {(v.colonias || []).length > 0 ? `· ${v.colonias.join('/')}` : ''}</span>
+                  <strong style={{ color: '#22c55e' }}>{v.calor}</strong>
+                </div>
+              ))}
+              {(deep.visitantes_calientes?.visitantes_calientes || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </Card>
           </div>
         )}
       </div>

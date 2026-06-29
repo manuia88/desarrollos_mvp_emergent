@@ -586,6 +586,99 @@ async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
             "lectura": "cómo se comporta: dispositivo, estilo de decisión (DISC), y qué tan a fondo explora"}
 
 
+async def price_sensitivity(db, since_days: int = 365, top: int = 12) -> Dict[str, Any]:
+    """SENSIBILIDAD AL PRECIO — el TECHO de precio que busca el mercado, global y por colonia (mediana/p25/p75). Te dice
+    a qué precio construir/listar para no quedar fuera de la búsqueda."""
+    import statistics
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    glob = []; by_col = defaultdict(list)
+    async for s in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}},
+                                                {"_id": 0, "precio_max": 1, "colonias": 1}):
+        glob.append(s["precio_max"])
+        for c in (s.get("colonias") or []):
+            by_col[c].append(s["precio_max"])
+
+    def stats(vals):
+        v = sorted(vals)
+        return {"n": len(v), "mediana": round(statistics.median(v)) if v else None,
+                "p25": round(v[len(v) // 4]) if v else None, "p75": round(v[3 * len(v) // 4]) if v else None}
+    return {"global": stats(glob),
+            "por_colonia": [{"colonia": c, **stats(v)} for c, v in sorted(by_col.items(), key=lambda x: -len(x[1]))[:top]],
+            "lectura": "construye/lista por debajo de la mediana del techo = entras en más búsquedas"}
+
+
+async def funnel_velocity(db, since_days: int = 365) -> Dict[str, Any]:
+    """VELOCIDAD DEL EMBUDO — cuánto tarda el comprador: del 1er contacto al LEAD, y del lead al CIERRE. Por intent si
+    se puede. 'Inversionistas deciden en días, familias en semanas'."""
+    import statistics
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    # 1er señal → lead (consideración) por visitante que tiene lead
+    first = {}; lead_at = {}
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1}):
+        v, t = s.get("visitor_id"), s.get("created_at_dt")
+        if not isinstance(t, dt.datetime):
+            continue
+        if v not in first or t < first[v]:
+            first[v] = t
+        if s.get("type") == "lead":
+            if v not in lead_at or t < lead_at[v]:
+                lead_at[v] = t
+    consider_days = [round((lead_at[v] - first[v]).total_seconds() / 86400, 1) for v in lead_at if v in first and lead_at[v] >= first[v]]
+    # lead creado → cerrado (db.leads)
+    close_days = []
+    async for l in db.leads.find({"status_v2": {"$in": ["vendido", "cerrado_ganado"]}}, {"_id": 0, "created_at": 1, "last_activity_at": 1}):
+        try:
+            c = dt.datetime.fromisoformat(str(l["created_at"]).replace("Z", "")[:26])
+            e = dt.datetime.fromisoformat(str(l.get("last_activity_at") or l["created_at"]).replace("Z", "")[:26])
+            if e >= c:
+                close_days.append(round((e - c).total_seconds() / 86400, 1))
+        except Exception:
+            continue
+    med = lambda x: round(statistics.median(x), 1) if x else None
+    return {"consideracion_dias": {"n": len(consider_days), "mediana": med(consider_days)},
+            "lead_a_cierre_dias": {"n": len(close_days), "mediana": med(close_days)},
+            "lectura": "mide la velocidad real: cuánto tardan en convertirse y en cerrar"}
+
+
+_PROP_WEIGHT = {"atlax_apartado": 12, "lead": 10, "intent": 8, "roi_explore": 7, "payment_explore": 7,
+                "unit_save": 5, "save": 4, "like": 4, "compare": 3, "unit_view": 3, "atlax_query": 3,
+                "photo_dwell": 2, "photo_zoom": 2, "tour_view": 3, "ficha_view": 1, "view": 1, "dwell": 1, "dismiss": -3}
+
+
+async def hot_visitors(db, since_days: int = 90, top: int = 15) -> Dict[str, Any]:
+    """PROPENSIÓN / CALOR POR VISITANTE — puntúa cada visitante anónimo por sus señales (apartado/lead pesan, dismiss
+    resta) + qué features/colonias mira. Lo MÁS accionable: 'estos visitantes anónimos se están calentando'."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    score = defaultdict(float); feats = defaultdict(lambda: defaultdict(int)); cols = defaultdict(lambda: defaultdict(int))
+    last = {}; converted = set()
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
+                                         {"_id": 0, "visitor_id": 1, "type": 1, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "meta": 1, "unit_number": 1, "value": 1}):
+        v = s.get("visitor_id")
+        if not v:
+            continue
+        score[v] += _PROP_WEIGHT.get(s.get("type"), 0.5)
+        if s.get("type") == "lead":
+            converted.add(v)
+        if s.get("colonia"):
+            cols[v][s["colonia"]] += 1
+        f, _c, _p = _attribute(s, DEVELOPMENTS_BY_ID.get(s.get("entity_id")))
+        for x in (f or []):
+            feats[v][x] += 1
+        t = s.get("created_at_dt")
+        if isinstance(t, dt.datetime) and (v not in last or t > last[v]):
+            last[v] = t
+    ranked = sorted(((v, sc) for v, sc in score.items() if v not in converted), key=lambda x: -x[1])[:top]
+    out = []
+    for v, sc in ranked:
+        tf = sorted(feats[v].items(), key=lambda x: -x[1])[:3]
+        tc = sorted(cols[v].items(), key=lambda x: -x[1])[:2]
+        out.append({"visitor_id": v, "calor": round(sc, 1),
+                    "features": [k for k, _ in tf], "colonias": [k for k, _ in tc],
+                    "ultima_actividad": last[v].isoformat() if v in last else None})
+    return {"visitantes_calientes": out, "lectura": "lead anónimo a punto de pedir contacto — el asesor podría adelantarse"}
+
+
 async def killer_query(db, feature: str, colonia: str, period: str = "month") -> Dict[str, Any]:
     """El ejemplo del founder: '¿cuántos clientes engancharon con [feature] en [colonia], y cuándo?'."""
     feature = feature.strip().lower()
