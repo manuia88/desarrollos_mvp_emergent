@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import { getTerminal, getIndicadoresAtributos, getIndicadoresFinanciero } from '../../api/superadminDemandIntel';
-import Indicador from '../../components/superadmin/Indicador';
+import HallazgoView from '../../components/superadmin/HallazgoView';
 import GridPanel from '../../components/superadmin/GridPanel';
 import AtlasPanel from '../../components/superadmin/AtlasPanel';
 import FacetPanel from '../../components/superadmin/FacetPanel';
@@ -26,6 +26,10 @@ const card = { padding: '14px 18px' };
 const th = { fontSize: 11, color: '#888', textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
 const td = { fontSize: 12.5, padding: '4px 8px', borderTop: '1px solid rgba(255,255,255,0.05)' };
 const INDGRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14 };
+// Barra de filtros guiados (Atributos / Financiero): etiqueta chiquita arriba de cada control.
+const fLabel = { fontSize: 11, color: '#888', fontWeight: 600 };
+const fSelect = { padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5 };
+const fInput = { padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5 };
 
 export default function SuperadminTerminalZona({ user, onLogout }) {
   const [tab, setTab] = useState('atlas');
@@ -35,6 +39,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
   // Selector de geo compartido por los tabs Atributos/Financiero (estándar INDICADOR).
   const [geoSel, setGeoSel] = useState({ nivel: 'ciudad', valor: '' });
+  const [busqueda, setBusqueda] = useState('');   // buscador de texto client-side (filtra los hallazgos)
   const [indData, setIndData] = useState(null);   // respuesta del endpoint de indicadores (atributos/financiero)
   const [indLoading, setIndLoading] = useState(false);
   const [indError, setIndError] = useState(null);
@@ -80,23 +85,37 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         ))}
       </div>
 
-      {/* SELECTOR DE GEO compartido (Atributos / Financiero) */}
+      {/* BARRA DE FILTROS GUIADOS (Atributos / Financiero) — lenguaje humano: ¿qué zona? + buscador de un dato */}
       {showGeoSel && (
-        <Card style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-          <span style={{ fontSize: 12, color: '#888' }}>Geografía:</span>
-          <select value={geoSel.nivel}
-            onChange={(e) => setGeoSel({ nivel: e.target.value, valor: e.target.value === 'ciudad' ? '' : geoSel.valor })}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5 }}>
-            <option value="ciudad">Ciudad (toda CDMX)</option>
-            <option value="alcaldia">Alcaldía</option>
-            <option value="colonia">Colonia</option>
-          </select>
-          {geoSel.nivel !== 'ciudad' && (
-            <input value={geoSel.valor} onChange={(e) => setGeoSel((g) => ({ ...g, valor: e.target.value }))}
-              placeholder={geoSel.nivel === 'colonia' ? 'p.ej. condesa' : 'p.ej. cuauhtemoc'}
-              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5, minWidth: 200 }} />
-          )}
-          {geoSel.nivel !== 'ciudad' && !geoSel.valor && <span style={{ fontSize: 11.5, color: '#777' }}>Escribe una {geoSel.nivel} para consultar.</span>}
+        <Card style={{ ...card, display: 'flex', gap: 18, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 14 }}>
+          {/* ¿Qué zona? — nivel + valor */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={fLabel}>¿Qué zona?</span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select value={geoSel.nivel}
+                onChange={(e) => setGeoSel({ nivel: e.target.value, valor: e.target.value === 'ciudad' ? '' : geoSel.valor })}
+                style={fSelect}>
+                <option value="ciudad">Toda la ciudad (CDMX)</option>
+                <option value="alcaldia">Una alcaldía</option>
+                <option value="colonia">Una colonia</option>
+              </select>
+              {geoSel.nivel !== 'ciudad' && (
+                <input value={geoSel.valor} onChange={(e) => setGeoSel((g) => ({ ...g, valor: e.target.value }))}
+                  placeholder={geoSel.nivel === 'colonia' ? 'ej. polanco' : 'ej. cuauhtemoc'}
+                  style={{ ...fInput, minWidth: 200 }} />
+              )}
+            </div>
+          </div>
+
+          {/* Buscador de un dato */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 220px' }}>
+            <span style={fLabel}>Busca un dato</span>
+            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="🔎 ej. terraza, enganche"
+              style={{ ...fInput, width: '100%' }} />
+          </div>
+
+          {geoSel.nivel !== 'ciudad' && !geoSel.valor && <span style={{ fontSize: 11.5, color: '#777', alignSelf: 'center' }}>Escribe una {geoSel.nivel === 'colonia' ? 'colonia' : 'alcaldía'} para consultar.</span>}
         </Card>
       )}
 
@@ -107,26 +126,14 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
       {showGeoSel && indLoading && <Card style={card}>Cargando indicadores…</Card>}
       {showGeoSel && indError && <Card style={{ ...card, color: '#dc2626' }}>{indError}</Card>}
 
-      {/* ATRIBUTOS DE UNIDAD — estándar INDICADOR */}
+      {/* ATRIBUTOS DE UNIDAD — historia legible (HallazgoView) */}
       {tab === 'atributos' && !indLoading && !indError && indData && (
-        <>
-          {indData.lectura && <div style={{ fontSize: 12.5, color: '#9aa', marginBottom: 12 }}>{indData.lectura}</div>}
-          <div style={INDGRID}>
-            {(indData.indicadores || []).map((i) => <Indicador key={i.nombre + i.dimension} ind={i} />)}
-          </div>
-          {(indData.indicadores || []).length === 0 && <Card style={card}><span style={{ color: '#888', fontSize: 12.5 }}>Sin indicadores para esta geografía.</span></Card>}
-        </>
+        <HallazgoView data={indData} busqueda={busqueda} />
       )}
 
-      {/* FINANCIERO — estándar INDICADOR */}
+      {/* FINANCIERO — historia legible (HallazgoView) */}
       {tab === 'financiero' && !indLoading && !indError && indData && (
-        <>
-          {indData.lectura && <div style={{ fontSize: 12.5, color: '#9aa', marginBottom: 12 }}>{indData.lectura}</div>}
-          <div style={INDGRID}>
-            {(indData.indicadores || []).map((i) => <Indicador key={i.nombre + i.dimension} ind={i} />)}
-          </div>
-          {(indData.indicadores || []).length === 0 && <Card style={card}><span style={{ color: '#888', fontSize: 12.5 }}>Sin indicadores para esta geografía.</span></Card>}
-        </>
+        <HallazgoView data={indData} busqueda={busqueda} />
       )}
 
       {/* POR DESARROLLO (universo completo per-dev) */}
