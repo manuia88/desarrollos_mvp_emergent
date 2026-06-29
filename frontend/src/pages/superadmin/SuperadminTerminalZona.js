@@ -5,9 +5,11 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import { getTerminal } from '../../api/superadminDemandIntel';
 import GridPanel from '../../components/superadmin/GridPanel';
+import AtlasPanel from '../../components/superadmin/AtlasPanel';
 
 const TABS = [
   { key: 'escalas', label: 'Escalas geo' },
+  { key: 'atlas', label: 'Atlas (explorador)' },
   { key: 'desarrollos', label: 'Por desarrollo' },
   { key: 'inteligencia', label: 'Inteligencia de zona' },
   { key: 'atributos', label: 'Atributos de unidad' },
@@ -32,6 +34,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
   useEffect(() => { getTerminal('resumen').then(setResumen).catch(() => {}); }, []);
   useEffect(() => {
     if (tab === 'grid') return; // grid se carga solo (GridPanel)
+    if (tab === 'atlas') return; // atlas se carga solo (AtlasPanel)
     if (cache[tab]) return;
     setLoading(true);
     getTerminal(tab).then((d) => setCache((c) => ({ ...c, [tab]: d }))).catch((e) => setCache((c) => ({ ...c, [tab]: { error: e.message } }))).finally(() => setLoading(false));
@@ -238,6 +241,9 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
       {/* GRID DE MÉTRICAS */}
       {tab === 'grid' && <GridPanel />}
+
+      {/* ATLAS (explorador de entidades) */}
+      {tab === 'atlas' && <AtlasPanel />}
     </SuperadminLayout>
   );
 }

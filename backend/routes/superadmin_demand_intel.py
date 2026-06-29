@@ -66,6 +66,25 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/atlas/entity")
+async def atlas_entity(request: Request, tipo: str, id: str, ventana: str = "90d"):
+    """ATLAS — ficha universal de métricas de una entidad (nano→macro, cualquier dimensión): todas las medidas por tema
+    con procedencia + fusión + conductual (unidades más vistas/sin cita, perfil cliente, forma de pago) + navegación."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import entity_atlas as ea
+    return await ea.entity_panel(request.app.state.db, tipo, id, ventana=ventana)
+
+
+@router.get("/atlas/children")
+async def atlas_children(request: Request, tipo: str = "ciudad", id: str = "CDMX"):
+    """ATLAS — navegación: hijos de una entidad (ciudad→alcaldía→corredor→colonia→desarrollo→prototipo→unidad)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import entity_atlas as ea
+    return {"tipo": tipo, "id": id, "hijos": ea.entity_children(tipo, id), "tipos_entidad": ea.ENTITY_TYPES}
+
+
 @router.get("/grid/overview")
 async def grid_overview(request: Request):
     """Grid de métricas — resumen del registro: medidas base, celdas teóricas, dimensiones, almacén de salida."""

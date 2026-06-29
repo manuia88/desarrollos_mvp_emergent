@@ -46,3 +46,11 @@ export async function getGridRanking(params = {}) {
 export async function getGridInsights() {
   return _j(await fetch(`${BASE}/grid/insights`, { headers: h(), credentials: 'include' }));
 }
+// Atlas — navegación: hijos de una entidad (ciudad→alcaldía→corredor→colonia→desarrollo→prototipo→unidad).
+export async function getAtlasChildren(tipo = 'ciudad', id = 'CDMX') {
+  return _j(await fetch(`${BASE}/atlas/children?${_qs({ tipo, id })}`, { headers: h(), credentials: 'include' }));
+}
+// Atlas — ficha universal de métricas de una entidad (temas con procedencia + fusión + conductual + nav).
+export async function getAtlasEntity(tipo, id, ventana = '90d') {
+  return _j(await fetch(`${BASE}/atlas/entity?${_qs({ tipo, id, ventana })}`, { headers: h(), credentials: 'include' }));
+}

@@ -449,8 +449,9 @@ async def _c_atributo_buscado(db, dims):
     q = {"meta.amenidades": {"$exists": True}}
     if cols:
         q["colonia"] = {"$in": list(cols)}
+    import demand_intelligence as di
     async for s in db.buyer_signals.find(q, {"_id": 0, "meta": 1}):
-        for a in ((s.get("meta") or {}).get("amenidades") or []):
+        for a in di._as_feature_list((s.get("meta") or {}).get("amenidades")):
             c[str(a).lower()] += 1
     n = sum(c.values())
     return (c.most_common(1)[0][0] if c else None, n, None)
