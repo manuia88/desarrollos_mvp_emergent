@@ -177,9 +177,106 @@ DIMENSIONS += [
     _d("rk.credito", "RIESGO", 0, "Riesgo de crédito del segmento", None, "por_crear", "por_crear", "banda", None),
 ]
 
+# ═══════════════ PRECIO / TRANSACCIÓN · hiper-segmentado a fondo ═══════════════
+DIMENSIONS += [
+    _d("px.por_recamara", "PRECIO", 1, "Precio por recámara", "price", "unit", "derivado", "banda", "px.lista_abs", nota="price/bedrooms"),
+    _d("px.privativo_vs_vendible", "PRECIO", 1, "Precio m² privativo vs vendible", "m2_privative", "unit", "derivado", "banda", "px.lista_m2"),
+    _d("px.percentil_colonia", "PRECIO", 1, "Percentil de precio en la colonia", "price", "unit", "derivado", "banda", "px.tier", ["p10", "p25", "p50", "p75", "p90"]),
+    _d("px.hedonico", "PRECIO", 1, "Precio explicado por atributo (hedónico)", None, "derivado", "derivado", "numerico", "px.lista_m2", nota="cuánto del precio aporta cada feature"),
+    _d("px.enganche_pct_detalle", "PRECIO", 2, "Enganche %", "creditos_aceptados", "dev", "derivado", "banda", "px.esquema", ["5%", "10%", "15%", "20%", "30%"]),
+    _d("px.enganche_monto", "PRECIO", 2, "Enganche monto", None, "derivado", "derivado", "banda", "px.esquema"),
+    _d("px.enganche_momento", "PRECIO", 2, "Momento del enganche", None, "por_crear", "por_crear", "categorico", "px.esquema", ["firma", "preventa", "diferido"]),
+    _d("px.mensualidades_num", "PRECIO", 2, "# de mensualidades en obra", None, "por_crear", "por_crear", "banda", "px.esquema"),
+    _d("px.mensualidades_pct", "PRECIO", 2, "% pagado durante obra", None, "por_crear", "por_crear", "banda", "px.esquema"),
+    _d("px.contra_entrega_pct", "PRECIO", 2, "% contra-entrega", None, "por_crear", "por_crear", "banda", "px.esquema"),
+    _d("px.tasa_implicita", "PRECIO", 2, "Tasa implícita del esquema", None, "derivado", "derivado", "banda", "px.esquema"),
+    _d("px.dispersion_dev", "PRECIO", 1, "Dispersión de precios en el dev", "price", "unit", "derivado", "banda", "px.lista_abs", nota="rango/desv"),
+    _d("px.ajustes_num", "PRECIO", 1, "# de ajustes de precio", "price_history", "dev", "derivado", "banda", "px.ajuste_velocidad"),
+    _d("px.apreciacion_velocidad", "PRECIO", 1, "Velocidad de apreciación", "price_history", "dev", "derivado", "banda", "px.lista_abs", None, "%/año"),
+    _d("px.relativo_cohorte", "PRECIO", 1, "Precio vs cohorte comparable", "price", "unit", "derivado", "banda", "px.tier"),
+    _d("px.comision_broker", "PRECIO", 1, "Comisión del bróker", None, "por_crear", "por_crear", "banda", None),
+    _d("px.costos_cierre", "PRECIO", 1, "Costos de cierre (ISAI/notario/avalúo)", None, "por_crear", "por_crear", "banda", None),
+    _d("px.financiamiento_tasa", "PRECIO", 1, "Tasa de financiamiento / CAT", None, "por_crear", "por_crear", "banda", "px.esquema"),
+    _d("px.banco", "PRECIO", 1, "Banco / producto de crédito", None, "por_crear", "por_crear", "categorico", "px.esquema", ["Infonavit", "Fovissste", "bancario", "cofinanciado"]),
+]
+
+# ═══════════════ OFERENTE / COMPETENCIA · hiper-segmentado a fondo ═══════════════
+DIMENSIONS += [
+    _d("of.tamano", "OFERENTE", 1, "Tamaño del desarrollador", None, "por_crear", "por_crear", "categorico", "of.desarrollador", ["boutique", "mediano", "grande", "institucional"]),
+    _d("of.antiguedad", "OFERENTE", 1, "Antigüedad / experiencia", None, "por_crear", "por_crear", "banda", "of.desarrollador"),
+    _d("of.num_proyectos", "OFERENTE", 1, "# de proyectos", None, "derivado", "derivado", "banda", "of.desarrollador"),
+    _d("of.salud_financiera", "OFERENTE", 1, "Salud financiera", None, "por_crear", "por_crear", "categorico", "of.desarrollador"),
+    _d("of.velocidad_hist", "OFERENTE", 1, "Velocidad de venta histórica", None, "derivado", "derivado", "banda", "of.desarrollador"),
+    _d("of.calidad_resenas", "OFERENTE", 1, "Calidad (reseñas)", None, "derivado", "latente", "banda", "of.desarrollador", nota="reviews_residents_cache"),
+    _d("of.litigios", "OFERENTE", 1, "Litigios / quejas", None, "por_crear", "por_crear", "banda", "of.desarrollador"),
+    _d("of.hhi", "OFERENTE", 1, "Concentración (HHI por colonia)", None, "derivado", "derivado", "banda", "of.concentracion"),
+    _d("of.share_lider", "OFERENTE", 1, "Share del líder", "units_total", "dev", "derivado", "banda", "of.concentracion"),
+    _d("of.pipeline", "OFERENTE", 1, "Pipeline del competidor (qué lanzará)", None, "por_crear", "por_crear", "categorico", "of.desarrollador"),
+    _d("of.pos_precio", "OFERENTE", 1, "Posición de precio vs rivales", "price_from", "dev", "derivado", "banda", "of.desarrollador", nota="battle_card"),
+    _d("of.pos_amenidades", "OFERENTE", 1, "Posición de amenidades vs rivales", "amenities", "dev", "derivado", "banda", "of.desarrollador"),
+    _d("of.pos_absorcion", "OFERENTE", 1, "Posición de absorción vs rivales", "units_sold", "dev", "derivado", "banda", "of.desarrollador"),
+    _d("of.canal_venta", "OFERENTE", 1, "Canal de venta", None, "por_crear", "por_crear", "categorico", None, ["directo", "bróker", "portal", "showroom"]),
+    _d("of.broker_conversion", "OFERENTE", 2, "Conversión del bróker", None, "derivado", "latente", "banda", "of.bróker"),
+    _d("of.broker_respuesta", "OFERENTE", 2, "Tiempo de respuesta del bróker", None, "derivado", "latente", "banda", "of.bróker"),
+]
+
+# ═══════════════ RIESGO · hiper-segmentado a fondo ═══════════════
+DIMENSIONS += [
+    _d("rk.sismico_micro", "RIESGO", 1, "Microzonificación sísmica", None, "derivado", "derivado", "categorico", "rk.sismico", ["Lomas(I)", "Transición(II)", "Lago(III)"]),
+    _d("rk.sismico_pml", "RIESGO", 1, "PML sísmico estimado", None, "por_crear", "por_crear", "banda", "rk.sismico", None, "% del valor"),
+    _d("rk.sismico_norma", "RIESGO", 1, "Norma sísmica (año de construcción)", None, "por_crear", "por_crear", "categorico", "rk.sismico", ["pre-1985", "1985-2004", "2004-2017", "post-2017"]),
+    _d("rk.hundimiento_cm", "RIESGO", 1, "Hundimiento (cm/año)", None, "por_crear", "por_crear", "banda", "rk.inundacion"),
+    _d("rk.falla", "RIESGO", 1, "Falla / grieta / ladera", None, "por_crear", "por_crear", "categorico", "rk.sismico"),
+    _d("rk.volatilidad_precio", "RIESGO", 1, "Volatilidad de precio", "price_history", "dev", "derivado", "banda", "rk.iliquidez"),
+    _d("rk.concentracion_demanda", "RIESGO", 1, "Concentración de demanda (1 segmento)", None, "derivado", "derivado", "banda", "rk.sobreoferta"),
+    _d("rk.regimen", "RIESGO", 1, "Régimen de propiedad / condominio", None, "por_crear", "por_crear", "categorico", "rk.legal"),
+    _d("rk.gravamenes", "RIESGO", 1, "Gravámenes / hipotecas", None, "por_crear", "por_crear", "booleano", "rk.legal"),
+    _d("rk.permisos", "RIESGO", 1, "Permisos / manifestación de obra", None, "por_crear", "por_crear", "categorico", "rk.legal"),
+    _d("rk.morosidad_segmento", "RIESGO", 1, "Morosidad esperada del segmento", None, "por_crear", "por_crear", "banda", "rk.credito"),
+    _d("rk.dscr", "RIESGO", 1, "DSCR del segmento", None, "latente", "latente", "banda", "rk.credito"),
+    _d("rk.reputacional", "RIESGO", 1, "Reputacional (reseñas negativas)", None, "derivado", "latente", "banda", None),
+    _d("rk.macro_tasa", "RIESGO", 1, "Sensibilidad a tasa de interés", None, "derivado", "derivado", "banda", None, nota="CETES/Banxico"),
+    _d("rk.macro_fx", "RIESGO", 1, "Sensibilidad a tipo de cambio (extranjeros)", None, "por_crear", "por_crear", "banda", None),
+    _d("rk.macro_construccion", "RIESGO", 1, "Inflación de costo de construcción", None, "derivado", "derivado", "banda", None),
+]
+
+# ═══════════════ EJE 8 · SEÑALES (las 10 ideas-upgrade, ahora como dimensiones) ═══════════════
+DIMENSIONS += [
+    _d("sig.preferencia_revelada", "SENALES", 0, "Preferencia revelada vs declarada", None, "derivado", "derivado", "numerico", None, nota="qué mira/compara vs qué dice — moat de comportamiento"),
+    _d("sig.dap_atributo", "SENALES", 0, "Disposición a pagar por atributo (por segmento)", None, "derivado", "derivado", "numerico", None, nota="x.dap_atributo, por zona×tipología"),
+    _d("sig.whitespace", "SENALES", 0, "Whitespace (buscado con 0 oferta)", None, "derivado", "derivado", "categorico", None, nota="unmet_combos a nivel ficha"),
+    _d("sig.sustitucion", "SENALES", 0, "Sustitución / segunda opción", None, "derivado", "derivado", "categorico", None, nota="co_viewed — grafo de competencia real"),
+    _d("sig.calentamiento", "SENALES", 0, "Índice de calentamiento (aceleración)", None, "derivado", "derivado", "numerico", None, nota="2ª derivada de demanda"),
+    _d("sig.sobreoferta_predictiva", "SENALES", 0, "Sobreoferta predictiva", None, "derivado", "derivado", "banda", None, nota="pipeline ÷ absorción futura"),
+    _d("sig.profundidad_mercado", "SENALES", 0, "Profundidad de mercado por ficha", None, "derivado", "derivado", "numerico", None, nota="compradores activos por combinación"),
+    _d("sig.migracion", "SENALES", 0, "Migración intencional (origen→destino)", None, "por_crear", "por_crear", "categorico", None, nota="de dónde viene la demanda"),
+    _d("sig.market_basket", "SENALES", 0, "Afinidad de atributos (market basket)", None, "derivado", "derivado", "categorico", None, nota="qué se busca junto — bundles óptimos"),
+    _d("sig.brecha_deseo_capacidad", "SENALES", 0, "Brecha deseo vs capacidad", None, "latente", "latente", "banda", None, nota="busca vs puede pagar"),
+    _d("sig.liquidez", "SENALES", 0, "Score de liquidez por segmento", None, "derivado", "derivado", "banda", None, nota="qué tan rápido se vende/revende"),
+    _d("sig.competitividad_precio", "SENALES", 0, "Competitividad de precio (AVM por segmento)", None, "derivado", "derivado", "numerico", None, nota="¿bien puesto el precio?"),
+    _d("sig.elasticidad", "SENALES", 0, "Elasticidad precio-demanda por segmento", None, "derivado", "derivado", "numerico", None, nota="x.elasticidad_precio"),
+]
+
+# ═══════════════ EJE 9 · DATO (calidad / confianza — meta, para filtrar por solidez) ═══════════════
+DIMENSIONS += [
+    _d("meta.n", "DATO", 0, "Tamaño de muestra (n)", None, "derivado", "derivado", "banda", None, ["<10", "10-30", "30-100", ">100"]),
+    _d("meta.confianza", "DATO", 0, "Confianza del dato", None, "derivado", "derivado", "categorico", None, ["alta", "media", "baja"]),
+    _d("meta.frescura", "DATO", 0, "Frescura (qué tan reciente)", None, "derivado", "derivado", "banda", None, ["hoy", "<7d", "<30d", ">30d"]),
+    _d("meta.cobertura", "DATO", 0, "Cobertura del segmento", None, "derivado", "derivado", "banda", None, nota="% de la ficha con dato real"),
+    _d("meta.estado_dato", "DATO", 0, "Estado del dato", None, "derivado", "derivado", "categorico", None, ["real", "derivado", "latente", "por_crear"]),
+]
+
+# ═══════════════ complementos (QUE / QUIEN) que sumé ═══════════════
+DIMENSIONS += [
+    _d("prod.esg", "QUE", 1, "Sostenibilidad / ESG", None, "por_crear", "por_crear", "categorico", None, ["sí", "no"]),
+    _d("prod.smart", "QUE", 1, "Edificio inteligente / fibra", "servicios", "dev", "derivado", "booleano", None, ["sí", "no"]),
+    _d("dem.fiscal", "QUIEN", 1, "Perfil fiscal (deducibilidad/RESICO/ISR)", None, "por_crear", "por_crear", "categorico", "dem.intencion"),
+    _d("dem.liquidez_salida", "QUIEN", 1, "Necesidad de liquidez de salida", None, "por_crear", "por_crear", "banda", "dem.intencion", nota="inversionista: facilidad de reventa"),
+]
+
 # ── índice por id + helpers ─────────────────────────────────────────────────────
 BY_ID = {d["id"]: d for d in DIMENSIONS}
-EJES = ["DONDE", "QUE", "QUIEN", "CUANDO", "PRECIO", "OFERENTE", "RIESGO"]
+EJES = ["DONDE", "QUE", "QUIEN", "CUANDO", "PRECIO", "OFERENTE", "RIESGO", "SENALES", "DATO"]
 
 
 def overview() -> Dict[str, Any]:
