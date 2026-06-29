@@ -39,3 +39,9 @@ activos, trigger manual del dev/founder.
   `scripts/smoke_e2e.py` pre-deploy.
 - **#7 — Pipeline de video real del dev (Studio/3DGS) + gate de calidad de foto:** el "wow" depende de contenido real.
   Build mayor (subida + storage + el gate). Backlog.
+
+## Terminal de Zona — rediseño UI/UX (diferido a módulo SUPERADMIN · 2026-06-29)
+**Estado:** la página `/superadmin/terminal-zona` VERIFICADA renderizando con dato real (founder confirmó "sí se ve").
+Backend completo: 120 compuestas · 4 escalas · 16 atributos · financiero · AirROI · riesgo natural+crimen.
+**Diferido:** mejorar mucho la UI/UX (founder: "hay que mejorar mucho la UI/UX, lo revisamos en el módulo de superadmin").
+Construida funcional, no pulida — el rediseño visual va cuando toque el portal superadmin.
