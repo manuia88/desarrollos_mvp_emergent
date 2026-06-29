@@ -30,6 +30,14 @@ export async function getZonas() {
 export async function getTerminal(axis = 'resumen') {
   return _j(await fetch(`${BASE}/terminal-zona?axis=${encodeURIComponent(axis)}`, { headers: h(), credentials: 'include' }));
 }
+// Indicadores de ATRIBUTOS (estándar INDICADOR) — cada número con uso/fuente/comparativo/granularidad/dimensión. geo se omite si vacío.
+export async function getIndicadoresAtributos({ geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/indicadores/atributos?${_qs({ geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+// Indicadores FINANCIERO (estándar INDICADOR) — cada número con uso/fuente/comparativo/granularidad/dimensión. geo se omite si vacío.
+export async function getIndicadoresFinanciero({ geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/indicadores/financiero?${_qs({ geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
 // Grid de Métricas — el mapa de TODAS las medidas (oferta/demanda/cruce) × dimensiones, con celdas teóricas.
 export async function getGridOverview() {
   return _j(await fetch(`${BASE}/grid/overview`, { headers: h(), credentials: 'include' }));

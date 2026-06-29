@@ -1,39 +1,43 @@
-// Superadmin · TERMINAL DE ZONA — la vista madre del cubo. Pivotea TODOS los ejes (escalas geo · inteligencia fusión ·
-// atributos de unidad · financiero · cruces · las 100 compuestas). Carga perezosa por eje.
+// Superadmin · TERMINAL DE ZONA — la vista madre del cubo. Pivotea los ejes (atlas · conteos · comparativas ·
+// por desarrollo · atributos · financiero · compuestas · grid). Atributos y Financiero usan el estándar INDICADOR.
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
-import { getTerminal } from '../../api/superadminDemandIntel';
+import { getTerminal, getIndicadoresAtributos, getIndicadoresFinanciero } from '../../api/superadminDemandIntel';
+import Indicador from '../../components/superadmin/Indicador';
 import GridPanel from '../../components/superadmin/GridPanel';
 import AtlasPanel from '../../components/superadmin/AtlasPanel';
 import FacetPanel from '../../components/superadmin/FacetPanel';
 import CompararPanel from '../../components/superadmin/CompararPanel';
 
 const TABS = [
-  { key: 'escalas', label: 'Escalas geo' },
   { key: 'atlas', label: 'Atlas (explorador)' },
   { key: 'facet', label: 'Conteos (oferta/demanda)' },
   { key: 'comparar', label: 'Comparativas (¿por qué?)' },
   { key: 'desarrollos', label: 'Por desarrollo' },
-  { key: 'inteligencia', label: 'Inteligencia de zona' },
   { key: 'atributos', label: 'Atributos de unidad' },
   { key: 'financiero', label: 'Financiero' },
-  { key: 'cruces', label: 'Cruces' },
   { key: 'compuestas', label: 'Las 120 compuestas' },
   { key: 'grid', label: 'Grid de métricas' },
 ];
 
 const fmtM = (v) => (v == null ? '—' : `$${(v / 1e6).toFixed(1)}M`);
-const fmtK = (v) => (v == null ? '—' : `$${Math.round(v / 1000)}k`);
 const card = { padding: '14px 18px' };
 const th = { fontSize: 11, color: '#888', textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
 const td = { fontSize: 12.5, padding: '4px 8px', borderTop: '1px solid rgba(255,255,255,0.05)' };
+const INDGRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14 };
 
 export default function SuperadminTerminalZona({ user, onLogout }) {
-  const [tab, setTab] = useState('escalas');
+  const [tab, setTab] = useState('atlas');
   const [cache, setCache] = useState({});
   const [loading, setLoading] = useState(false);
   const [resumen, setResumen] = useState(null);
+
+  // Selector de geo compartido por los tabs Atributos/Financiero (estándar INDICADOR).
+  const [geoSel, setGeoSel] = useState({ nivel: 'ciudad', valor: '' });
+  const [indData, setIndData] = useState(null);   // respuesta del endpoint de indicadores (atributos/financiero)
+  const [indLoading, setIndLoading] = useState(false);
+  const [indError, setIndError] = useState(null);
 
   useEffect(() => { getTerminal('resumen').then(setResumen).catch(() => {}); }, []);
   useEffect(() => {
@@ -41,12 +45,25 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
     if (tab === 'atlas') return; // atlas se carga solo (AtlasPanel)
     if (tab === 'facet') return; // explorador faceteado se carga solo (FacetPanel)
     if (tab === 'comparar') return; // comparativas se carga solo (CompararPanel)
+    if (tab === 'atributos') return; // atributos carga vía endpoint de indicadores
+    if (tab === 'financiero') return; // financiero carga vía endpoint de indicadores
     if (cache[tab]) return;
     setLoading(true);
     getTerminal(tab).then((d) => setCache((c) => ({ ...c, [tab]: d }))).catch((e) => setCache((c) => ({ ...c, [tab]: { error: e.message } }))).finally(() => setLoading(false));
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Carga de INDICADORES (atributos/financiero) — se dispara al entrar al tab o cambiar el geo.
+  useEffect(() => {
+    if (tab !== 'atributos' && tab !== 'financiero') return;
+    const geoArgs = geoSel.nivel === 'ciudad' ? {} : { geo_nivel: geoSel.nivel, geo_valor: geoSel.valor };
+    if (geoSel.nivel !== 'ciudad' && !geoSel.valor) { setIndData(null); setIndError(null); return; }
+    const fn = tab === 'atributos' ? getIndicadoresAtributos : getIndicadoresFinanciero;
+    setIndLoading(true); setIndError(null);
+    fn(geoArgs).then((r) => setIndData(r)).catch((e) => { setIndData(null); setIndError(e.message); }).finally(() => setIndLoading(false));
+  }, [tab, geoSel]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const d = cache[tab];
+  const showGeoSel = tab === 'atributos' || tab === 'financiero';
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
@@ -63,30 +80,53 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         ))}
       </div>
 
-      {loading && <Card style={card}>Cargando eje…</Card>}
-      {d?.error && <Card style={{ ...card, color: '#dc2626' }}>{d.error}</Card>}
+      {/* SELECTOR DE GEO compartido (Atributos / Financiero) */}
+      {showGeoSel && (
+        <Card style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+          <span style={{ fontSize: 12, color: '#888' }}>Geografía:</span>
+          <select value={geoSel.nivel}
+            onChange={(e) => setGeoSel({ nivel: e.target.value, valor: e.target.value === 'ciudad' ? '' : geoSel.valor })}
+            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5 }}>
+            <option value="ciudad">Ciudad (toda CDMX)</option>
+            <option value="alcaldia">Alcaldía</option>
+            <option value="colonia">Colonia</option>
+          </select>
+          {geoSel.nivel !== 'ciudad' && (
+            <input value={geoSel.valor} onChange={(e) => setGeoSel((g) => ({ ...g, valor: e.target.value }))}
+              placeholder={geoSel.nivel === 'colonia' ? 'p.ej. condesa' : 'p.ej. cuauhtemoc'}
+              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5, minWidth: 200 }} />
+          )}
+          {geoSel.nivel !== 'ciudad' && !geoSel.valor && <span style={{ fontSize: 11.5, color: '#777' }}>Escribe una {geoSel.nivel} para consultar.</span>}
+        </Card>
+      )}
 
-      {/* ESCALAS */}
-      {tab === 'escalas' && d && !d.error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: 16 }}>
-          {[['macro', 'Macro · alcaldía'], ['grande', 'Grande · corredor'], ['media', 'Media · colonia'], ['micro', 'Micro · CP']].map(([sc, label]) => (
-            <Card key={sc} style={card}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>{label}</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>zona</th><th style={th}>dem</th><th style={th}>absor</th><th style={th}>mov</th></tr></thead>
-                <tbody>
-                  {(d[sc]?.zonas || []).slice(0, 8).map((z) => (
-                    <tr key={z.zona}>
-                      <td style={td}>{z.zona}</td><td style={td}>{z.demanda}</td>
-                      <td style={{ ...td, color: z.absorcion >= 1.5 ? '#22c55e' : z.absorcion < 0.5 ? '#dc2626' : 'inherit' }}>{z.absorcion}</td>
-                      <td style={{ ...td, color: z.movimiento === 'subiendo' ? '#22c55e' : z.movimiento === 'nuevo' ? 'var(--theme)' : '#888' }}>{z.cambio_pct != null ? `${z.cambio_pct > 0 ? '+' : ''}${z.cambio_pct}%` : z.movimiento}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          ))}
-        </div>
+      {loading && !showGeoSel && <Card style={card}>Cargando eje…</Card>}
+      {d?.error && !showGeoSel && <Card style={{ ...card, color: '#dc2626' }}>{d.error}</Card>}
+
+      {/* INDICADORES (Atributos / Financiero) — estado de carga/error compartido */}
+      {showGeoSel && indLoading && <Card style={card}>Cargando indicadores…</Card>}
+      {showGeoSel && indError && <Card style={{ ...card, color: '#dc2626' }}>{indError}</Card>}
+
+      {/* ATRIBUTOS DE UNIDAD — estándar INDICADOR */}
+      {tab === 'atributos' && !indLoading && !indError && indData && (
+        <>
+          {indData.lectura && <div style={{ fontSize: 12.5, color: '#9aa', marginBottom: 12 }}>{indData.lectura}</div>}
+          <div style={INDGRID}>
+            {(indData.indicadores || []).map((i) => <Indicador key={i.nombre + i.dimension} ind={i} />)}
+          </div>
+          {(indData.indicadores || []).length === 0 && <Card style={card}><span style={{ color: '#888', fontSize: 12.5 }}>Sin indicadores para esta geografía.</span></Card>}
+        </>
+      )}
+
+      {/* FINANCIERO — estándar INDICADOR */}
+      {tab === 'financiero' && !indLoading && !indError && indData && (
+        <>
+          {indData.lectura && <div style={{ fontSize: 12.5, color: '#9aa', marginBottom: 12 }}>{indData.lectura}</div>}
+          <div style={INDGRID}>
+            {(indData.indicadores || []).map((i) => <Indicador key={i.nombre + i.dimension} ind={i} />)}
+          </div>
+          {(indData.indicadores || []).length === 0 && <Card style={card}><span style={{ color: '#888', fontSize: 12.5 }}>Sin indicadores para esta geografía.</span></Card>}
+        </>
       )}
 
       {/* POR DESARROLLO (universo completo per-dev) */}
@@ -94,150 +134,6 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 14 }}>
           {(d.desarrollos || []).map((x) => <DevCard key={x.dev_id} x={x} />)}
         </div>
-      )}
-
-      {/* INTELIGENCIA (fusión 8 motores) */}
-      {tab === 'inteligencia' && d && !d.error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
-          {(d.zonas || []).map((z) => (
-            <Card key={z.zona} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <strong>{z.nombre || z.zona} {z.tier && <span style={{ fontSize: 11, color: '#888' }}>· {z.tier}</span>}</strong>
-                <span style={{ fontSize: 12, color: '#888' }}>{z.alcaldia}</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 14px', fontSize: 12.5 }}>
-                <span>Precio/m²: <strong>{fmtK(z.precio_m2)}</strong></span>
-                <span>Demanda: <strong>{z.demanda}</strong></span>
-                <span>Absorción: <strong>{z.absorcion?.vendido_pct != null ? `${z.absorcion.vendido_pct}%` : '—'}</strong></span>
-                <span>Score zona: <strong>{z.score_zona || '—'}</strong></span>
-                <span>Riesgo: <strong>{z.riesgo?.letra || '—'}</strong></span>
-                <span>Inversión: <strong style={{ color: 'var(--theme)' }}>{z.inversion?.score != null ? `${z.inversion.score} (${z.inversion.tier})` : '—'}</strong></span>
-              </div>
-              {(z.riesgo_natural || z.crimen) && (
-                <div style={{ fontSize: 12, color: '#888', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  ⚠️ {z.riesgo_natural?.sismico_zona ? `Sísmico zona ${z.riesgo_natural.sismico_zona}` : ''}{z.riesgo_natural?.inundacion_pct != null ? ` · inundación ${z.riesgo_natural.inundacion_pct}%` : ''}{z.crimen?.incidentes != null ? ` · ${Math.round(z.crimen.incidentes)} inc. FGJ` : ''}{z.crimen?.safety_score != null ? ` (safety ${z.crimen.safety_score})` : ''}
-                </div>
-              )}
-              {z.str_airbnb && (
-                <div style={{ fontSize: 12, color: '#bbb', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  🏠 Airbnb (AirROI): cap rate <strong style={{ color: '#22c55e' }}>{z.cap_rate_str}%</strong> · ocupación {z.str_airbnb.ocupacion_pct}% · RevPAR ${z.str_airbnb.revpar} · {z.str_airbnb.listings} listings
-                </div>
-              )}
-              {(z.valor_residual_pm2 || z.feature_lift || z.costo_construccion_m2) && (
-                <div style={{ fontSize: 12, color: '#888', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  🏗️ {z.costo_construccion_m2 ? `Costo obra $${Math.round(z.costo_construccion_m2 / 1000)}k/m² · ` : ''}{z.valor_residual_pm2 ? `Suelo máx $${Math.round(z.valor_residual_pm2 / 1000)}k/m² · ` : ''}{z.feature_lift ? `Palanca: ${z.feature_lift.valor} +${z.feature_lift.lift_pp}pp` : ''}{z.catastral_pm2 ? ` · catastral $${z.catastral_pm2}/m²` : ''}
-                </div>
-              )}
-              {z.recomendacion && <div style={{ fontSize: 12, color: '#bbb', marginTop: 8, fontStyle: 'italic' }}>{z.ciclo ? `${z.ciclo} — ` : ''}{z.recomendacion}</div>}
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* ATRIBUTOS DE UNIDAD — los 16 ejes */}
-      {tab === 'atributos' && d && !d.error && (
-        <>
-          <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>{d.ejes?.length || 16} ejes de granularidad dentro del depa y del edificio · {d.lectura}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-            <Card style={card}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Demanda que engancha con…</div>
-              {(d.booleanos || []).map((b) => (
-                <div key={b.atributo} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0' }}>
-                  <span style={{ width: 130 }}>{b.atributo}</span>
-                  <span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${b.pct}%`, borderRadius: 2 }} />
-                  <strong>{b.pct}%</strong>
-                </div>
-              ))}
-            </Card>
-            <AttrCard title="Tamaño (m²)" dict={d.m2_band} />
-            <AttrCard title="Tipología" dict={d.tipologia} />
-            <AttrCard title="Piso del depa" dict={d.piso} />
-            <AttrCard title="Vista" dict={d.vista} />
-            <AttrCard title="Orientación" dict={d.orientacion} />
-            <AttrCard title="Altura del edificio" dict={d.altura_edificio} />
-            <AttrCard title="Estacionamiento (cajones)" dict={d.estacionamiento_cajones} extra={Object.entries(d.estacionamiento_tipo || {}).map(([k, v]) => `${k} ${v}`).join(' · ')} />
-            <AttrCard title="Espacio exterior" dict={d.espacio_exterior} />
-            <AttrCard title="Riqueza de amenidades" dict={d.amenidades_riqueza} />
-            <AttrCard title="Tamaño del edificio" dict={d.tamano_edificio} />
-            <AttrCard title="Entrega / etapa" dict={d.entrega} />
-            <AttrCard title="Créditos aceptados" dict={d.creditos_aceptados} />
-            <Card style={card}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Amenidades específicas (demanda)</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {(d.amenidades_especificas || []).slice(0, 16).map((a) => <Badge key={a.amenidad} tone="neutral">{a.amenidad} {a.n}</Badge>)}
-              </div>
-            </Card>
-            <AttrCard title="Recámaras / baños" dict={{ ...Object.fromEntries(Object.entries(d.recamaras || {}).map(([k, v]) => [`${k} rec`, v])), ...Object.fromEntries(Object.entries(d.banos || {}).map(([k, v]) => [`${k} baño`, v])) }} />
-          </div>
-        </>
-      )}
-
-      {/* FINANCIERO */}
-      {tab === 'financiero' && d && !d.error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Presupuesto + intent</div>
-            {Object.entries(d.presupuesto || {}).map(([b, n]) => {
-              const mx = Math.max(...Object.values(d.presupuesto || { 0: 1 }));
-              return <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '2px 0' }}><span style={{ width: 56 }}>{b}</span><span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${(n / mx) * 100}%`, borderRadius: 2 }} /><strong>{n}</strong></div>;
-            })}
-            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-              <Badge tone="ok">vivir: {d.intent?.vivir || 0}</Badge><Badge tone="warn">invertir: {d.intent?.invertir || 0}</Badge>
-            </div>
-          </Card>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Enganche · crédito · plazo · mensualidad</div>
-            <div style={{ fontSize: 13, lineHeight: 1.9 }}>
-              <div>Enganche mediano: <strong>{fmtM(d.enganche_mediano)}</strong> {d.enganche_pct && Object.keys(d.enganche_pct).length > 0 ? `(${Object.entries(d.enganche_pct).map(([k, v]) => `${k}:${v}`).join(' ')})` : ''}</div>
-              <div>Crédito mediano: <strong>{fmtM(d.credito_mediano)}</strong></div>
-              <div>Plazo: <strong>{Object.entries(d.plazo_anos || {}).map(([k, v]) => `${k} (${v})`).join(' · ') || '—'}</strong></div>
-              <div>Mensualidad mediana: <strong>{fmtK(d.mensualidad_mediana)}</strong> <span style={{ color: '#888' }}>({d.mensualidad_n} datos)</span></div>
-            </div>
-            {(d.cobertura?.cotizador_con_enganche === 0) && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>Captura cableada · se llena con uso del cotizador.</div>}
-          </Card>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Apetito de retorno + rentabilidad por zona</div>
-            <div style={{ fontSize: 12.5, marginBottom: 8 }}>TIR mediana: <strong>{d.tir_mediana != null ? `${d.tir_mediana}%` : '—'}</strong> · Cap rate: <strong>{d.cap_rate_mediano != null ? `${d.cap_rate_mediano}%` : '—'}</strong></div>
-            {(d.rentabilidad_por_zona || []).slice(0, 6).map((r) => (
-              <div key={r.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '2px 0' }}><span>{r.colonia}</span><strong style={{ color: 'var(--theme)' }}>{r.score} ({r.tier})</strong></div>
-            ))}
-          </Card>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Perfil de financiamiento</div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
-              <div>Perfil: {Object.entries(d.perfil_financiamiento || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-              <div>LTV (apalancamiento): {Object.entries(d.apalancamiento_ltv || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-              <div>Esquema: {Object.entries(d.esquema_preferido || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-              <div>Tipo de crédito: {Object.entries(d.tipo_credito || {}).slice(0, 4).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-              <div>Capacidad de pago: {d.capacidad_pago_pct_anual != null ? `${d.capacidad_pago_pct_anual}%/año del valor` : '—'}</div>
-              <div>Le gana a CETES: {d.le_gana_a_cetes?.['sí'] || 0} sí · {d.le_gana_a_cetes?.no || 0} no</div>
-            </div>
-            {Object.keys(d.perfil_financiamiento || {}).length === 0 && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>Captura cableada · se llena con uso del cotizador/calc.</div>}
-          </Card>
-        </div>
-      )}
-
-      {/* CRUCES (compuestas clave) */}
-      {tab === 'cruces' && d && !d.error && (
-        <Card style={card}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Métricas compuestas net-new <span style={{ fontSize: 11, color: '#888' }}>({(d.composites || []).join(' · ')})</span></div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
-            <thead><tr><th style={th}>zona</th><th style={th}>oport. real</th><th style={th}>brecha dem-precio</th><th style={th}>aj. riesgo</th><th style={th}>grado inv.</th><th style={th}>presión absor.</th><th style={th}>estado</th></tr></thead>
-            <tbody>
-              {(d.zonas || []).map((z) => (
-                <tr key={z.zona}>
-                  <td style={td}>{z.nombre || z.zona}</td>
-                  <td style={{ ...td, fontWeight: 700, color: 'var(--theme)' }}>{z.indice_oportunidad_real ?? '—'}</td>
-                  <td style={{ ...td, color: (z.brecha_demanda_precio_pct || 0) > 0 ? '#22c55e' : '#dc2626' }}>{z.brecha_demanda_precio_pct != null ? `${z.brecha_demanda_precio_pct > 0 ? '+' : ''}${z.brecha_demanda_precio_pct}%` : '—'}</td>
-                  <td style={td}>{z.demanda_ajustada_riesgo ?? '—'}</td>
-                  <td style={td}>{z.demanda_grado_inversion ?? '—'}</td>
-                  <td style={td}>{z.presion_absorcion ?? '—'}</td>
-                  <td style={{ ...td, color: z.estado_mercado === 'hambrienta' ? '#22c55e' : z.estado_mercado === 'agotándose' ? '#f59e0b' : '#888' }}>{z.estado_mercado || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
       )}
 
       {/* LAS 100 COMPUESTAS */}
@@ -320,25 +216,6 @@ function DevCard({ x }) {
         {x.rivales?.length > 0 ? `Rivales: ${x.rivales.map((r) => r.dev).join(' · ')} · ` : ''}
         Medios: {x.medios?.fotos || 0} fotos{x.medios?.video ? ' · video' : ''}{x.medios?.tour360 ? ' · tour 360' : ''}{x.avance_obra != null ? ` · obra ${x.avance_obra}%` : ''}
       </div>
-    </Card>
-  );
-}
-
-function AttrCard({ title, dict, extra }) {
-  const entries = Object.entries(dict || {});
-  const mx = Math.max(1, ...entries.map(([, v]) => v));
-  return (
-    <Card style={card}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
-      {entries.length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
-      {entries.slice(0, 6).map(([k, v]) => (
-        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '2px 0' }}>
-          <span style={{ width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k}</span>
-          <span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${(v / mx) * 100}%`, borderRadius: 2 }} />
-          <strong>{v}</strong>
-        </div>
-      ))}
-      {extra && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>{extra}</div>}
     </Card>
   );
 }

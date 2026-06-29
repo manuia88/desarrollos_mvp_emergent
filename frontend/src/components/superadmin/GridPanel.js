@@ -3,6 +3,7 @@
 // + Insights redactados + Ranking de zonas por medida.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
+import Indicador from './Indicador';
 import { getGridOverview, getGridCell, getGridRanking, getGridInsights } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
@@ -26,14 +27,6 @@ const DIM_LABEL = {
   atributo: 'Atributo', vista: 'Vista', etapa: 'Etapa', ventana: 'Ventana',
 };
 const GEO_NIVELES = ['colonia', 'alcaldia', 'corredor', 'desarrollo'];
-
-const confTone = (c) => {
-  const v = String(c || '').toLowerCase();
-  if (v.startsWith('alta')) return '#22c55e';
-  if (v.startsWith('media')) return '#f59e0b';
-  if (v.startsWith('baja')) return '#dc2626';
-  return '#888';
-};
 
 export default function GridPanel() {
   const [overview, setOverview] = useState(null);
@@ -261,38 +254,39 @@ export default function GridPanel() {
 
 function CellResult({ cell }) {
   const p = cell.procedencia || {};
-  const tone = confTone(cell.confianza);
+  const dimsObj = cell.dims || {};
+
+  // Granularidad legible: si la celda trae geo, muéstrala; si no, ciudad por defecto.
+  const granularidad = dimsObj.geo != null && String(dimsObj.geo).trim() !== ''
+    ? `geo: ${dimsObj.geo}`
+    : 'ciudad (CDMX)';
+
+  // Dimensión legible: las dims activas que NO son geo, en lenguaje humano.
+  const dimEntries = Object.entries(dimsObj)
+    .filter(([k, v]) => k !== 'geo' && v != null && String(v).trim() !== '')
+    .map(([k, v]) => `${DIM_LABEL[k] || k}: ${v}`);
+  const dimension = dimEntries.length ? dimEntries.join(' · ') : '—';
+
+  const fuente = Array.isArray(p.fuente) ? p.fuente.join(' + ') : p.fuente;
+
+  const ind = {
+    nombre: cell.medida,
+    valor: cell.valor,
+    unidad: cell.unidad,
+    comparativo: { vs_ciudad: null, señal: '—', texto: p.cohorte ? `cohorte: ${p.cohorte}` : '' },
+    granularidad,
+    dimension,
+    uso: p.formula ? `Cómo se calcula: ${p.formula}` : '',
+    fuente,
+    n: cell.n,
+    confianza: cell.confianza,
+    latente: cell.latente,
+    razon_latente: cell.latente ? 'n por debajo del mínimo — se activa cuando acumule volumen' : null,
+  };
+
   return (
     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        {cell.latente ? (
-          <span style={{ fontSize: 30, fontWeight: 800, color: '#777', letterSpacing: '-0.02em' }}>LATENTE</span>
-        ) : (
-          <span style={{ fontSize: 34, fontWeight: 800, color: 'var(--theme)', letterSpacing: '-0.02em' }}>
-            {cell.valor == null ? '—' : (typeof cell.valor === 'number' ? cell.valor.toLocaleString('es-MX') : String(cell.valor))}
-          </span>
-        )}
-        {cell.unidad && <span style={{ fontSize: 14, color: '#aaa' }}>{cell.unidad}</span>}
-      </div>
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12.5, color: '#aaa', marginTop: 6 }}>
-        <span>n: <strong style={{ color: '#ddd' }}>{cell.n ?? '—'}</strong></span>
-        <span>confianza: <strong style={{ color: tone }}>{cell.confianza || '—'}</strong></span>
-        {cell.medida && <span>medida: <strong style={{ color: '#ddd' }}>{cell.medida}</strong></span>}
-        {cell.lado && <span>lado: <strong style={{ color: '#ddd' }}>{cell.lado}</strong></span>}
-      </div>
-
-      {/* PROCEDENCIA — de dónde sale el número (clave) */}
-      <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
-        <div style={{ fontSize: 10.5, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Procedencia · de dónde sale</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 12px', fontSize: 12.5 }}>
-          <span style={{ color: '#888' }}>Fuente</span><span style={{ color: '#ddd' }}>{p.fuente || '—'}</span>
-          <span style={{ color: '#888' }}>Almacén</span>
-          <span style={{ color: '#ddd' }}>{p.almacen_entrada || '—'} <span style={{ color: '#666' }}>→</span> {p.almacen_salida || '—'}</span>
-          <span style={{ color: '#888' }}>Fórmula</span><span style={{ color: '#ccc', fontFamily: 'ui-monospace, monospace', fontSize: 11.5 }}>{p.formula || '—'}</span>
-          <span style={{ color: '#888' }}>Cohorte</span><span style={{ color: '#ddd' }}>{p.cohorte || '—'}</span>
-          <span style={{ color: '#888' }}>Actualizado</span><span style={{ color: '#ddd' }}>{p.actualizado || '—'}</span>
-        </div>
-      </div>
+      <Indicador ind={ind} />
     </div>
   );
 }
