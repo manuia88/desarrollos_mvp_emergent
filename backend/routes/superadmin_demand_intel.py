@@ -106,6 +106,27 @@ async def compare_insights(request: Request, geo_nivel: Optional[str] = None, ge
     return await ce.auto_insights(request.app.state.db, geo=geo, top=top)
 
 
+@router.post("/compare/set-launch")
+async def compare_set_launch(request: Request, dev_id: str, fecha_lanzamiento: str):
+    """Captura la fecha de lanzamiento REAL de un desarrollo (AAAA-MM) → gana sobre la estimación y enciende velocidad."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import launch_dates as ld
+    return await ld.set_launch(request.app.state.db, dev_id, fecha_lanzamiento)
+
+
+@router.get("/compare/launch-coverage")
+async def compare_launch_coverage(request: Request):
+    """Cobertura de fecha de lanzamiento: cuántos capturados / estimados por obra / estimados por etapa / sin dato."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import launch_dates as ld
+    lm = await ld.dev_launch_map(request.app.state.db)
+    return {"cobertura": ld.coverage(lm), "total": len(lm),
+            "detalle": [{"dev_id": k, "fecha": (v[0].strftime("%Y-%m") if v[0] else None), "metodo": v[1], "preciso": v[2]}
+                        for k, v in sorted(lm.items())]}
+
+
 @router.get("/compare/catalog")
 async def compare_catalog(request: Request):
     """COMPARATIVA — catálogo de splits y outcomes disponibles."""

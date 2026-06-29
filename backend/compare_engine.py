@@ -23,12 +23,16 @@ def _months_since(fl) -> Optional[float]:
 _SOLD = ("vendido", "reservado", "sold", "reserved", "apartado")
 
 
-def _dev_metrics(d: Dict, sigcounts: Counter) -> Dict[str, Any]:
+def _dev_metrics(d: Dict, sigcounts: Counter, launch_map: Optional[Dict] = None) -> Dict[str, Any]:
     """Métricas de resultado de UN desarrollo (las que se comparan)."""
     units = d.get("units") or []
     total = len(units)
     sold = sum(1 for u in units if str(u.get("status") or "").lower() in _SOLD)
-    months = _months_since(d.get("fecha_lanzamiento"))
+    lt = (launch_map or {}).get(d.get("id"))
+    if lt and lt[0]:
+        months = max((dt.datetime.utcnow() - lt[0]).days / 30.0, 0.5)
+    else:
+        months = _months_since(d.get("fecha_lanzamiento"))
     absor = (sold / months) if months else None                      # unidades vendidas / mes
     meses_vender = ((total - sold) / absor) if absor and absor > 0.05 else None  # meses para agotar inventario
     prices = [u["price"] / u["m2_total"] for u in units if u.get("price") and u.get("m2_total")]
@@ -88,6 +92,8 @@ async def compare(db, split: str, outcome: str = "meses_vender", geo: Optional[t
         return {"error": f"resultado desconocido: {outcome}", "outcomes": list(OUTCOMES)}
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     sig = await _dev_signal_counts(db, cutoff)
+    import launch_dates as ld
+    launch_map = await ld.dev_launch_map(db)
     grupos: Dict[str, List[float]] = defaultdict(list)
     devs_por_grupo: Dict[str, int] = defaultdict(int)
     units_por_grupo: Dict[str, int] = defaultdict(int)
@@ -97,7 +103,7 @@ async def compare(db, split: str, outcome: str = "meses_vender", geo: Optional[t
         val = _split_value(d, split)
         if val is None:
             continue
-        met = _dev_metrics(d, sig)
+        met = _dev_metrics(d, sig, launch_map)
         ov = met.get(outcome)
         devs_por_grupo[val] += 1
         units_por_grupo[val] += met["n_units"]
@@ -120,16 +126,15 @@ async def compare(db, split: str, outcome: str = "meses_vender", geo: Optional[t
         u = OUTCOMES[outcome][1]
         lectura = f"'{peor['grupo']}' vs '{mejor['grupo']}': {abs(delta)} {u} de diferencia en {OUTCOMES[outcome][0].lower()} (n={peor['n_desarrollos']} vs {mejor['n_desarrollos']} desarrollos)"
     latente = len(filas) == 0
-    razon_latente = None
-    if latente and outcome in ("meses_vender", "absorcion"):
-        razon_latente = "requiere fecha_lanzamiento para medir velocidad — se activa cuando se capture (hoy solo 1/18 la tiene)"
-    elif latente:
-        razon_latente = "sin dato suficiente en los grupos"
+    razon_latente = "sin dato suficiente en los grupos" if latente else None
+    proc = {"fuente": "DEVELOPMENTS.units + buyer_signals", "metodo": "mediana por grupo",
+            "cautela": "n bajo = señal débil; no inferir causalidad estricta"}
+    if outcome in ("meses_vender", "absorcion"):
+        proc["fecha_lanzamiento"] = ld.coverage(launch_map)  # capturado vs estimado vs sin-dato
+        proc["nota"] = "velocidad calculada con fecha de lanzamiento capturada o estimada por avance de obra (no inventada)"
     return {"split": split, "outcome": outcome, "outcome_label": OUTCOMES[outcome][0], "unidad": OUTCOMES[outcome][1],
             "mejor_es": mejor_es, "geo": list(geo) if geo else None, "grupos": filas, "delta": delta,
-            "latente": latente, "razon_latente": razon_latente, "lectura": lectura,
-            "procedencia": {"fuente": "DEVELOPMENTS.units + buyer_signals", "metodo": "mediana por grupo",
-                            "cautela": "n bajo = señal débil; no inferir causalidad estricta"}}
+            "latente": latente, "razon_latente": razon_latente, "lectura": lectura, "procedencia": proc}
 
 
 async def auto_insights(db, geo: Optional[tuple] = None, min_delta_rel: float = 0.25, top: int = 15) -> Dict[str, Any]:

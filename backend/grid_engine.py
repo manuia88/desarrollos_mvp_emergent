@@ -398,35 +398,30 @@ async def _c_dias_mercado(db, dims):
 async def _c_meses_venta(db, dims):
     from data_developments import DEVELOPMENTS
     import demand_intelligence as di
+    import launch_dates as ld
+    lm = await ld.dev_launch_map(db)
     geo = dims.get("geo"); meses = []
     for d in DEVELOPMENTS:
         if geo and not _geo_match(d, geo, di):
             continue
-        fl = d.get("fecha_lanzamiento")
-        if fl:
-            try:
-                f = dt.datetime.fromisoformat(str(fl).replace("Z", "")[:10])
-                meses.append(round((dt.datetime.utcnow() - f).days / 30))
-            except Exception:
-                pass
+        lt = lm.get(d.get("id"))                              # capturado o estimado por avance de obra
+        if lt and lt[0]:
+            meses.append(round((dt.datetime.utcnow() - lt[0]).days / 30))
     return (round(statistics.median(meses)) if meses else None, len(meses), None)
 
 
 async def _c_ritmo_lanz(db, dims):
     from data_developments import DEVELOPMENTS
     import demand_intelligence as di
+    import launch_dates as ld
+    lm = await ld.dev_launch_map(db)
     geo = dims.get("geo"); cut = _window_cutoff(dims.get("ventana")); n = 0
     for d in DEVELOPMENTS:
         if geo and not _geo_match(d, geo, di):
             continue
-        fl = d.get("fecha_lanzamiento")
-        if fl:
-            try:
-                f = dt.datetime.fromisoformat(str(fl).replace("Z", "")[:10])
-                if not cut or f >= cut:
-                    n += 1
-            except Exception:
-                pass
+        lt = lm.get(d.get("id"))
+        if lt and lt[0] and (not cut or lt[0] >= cut):
+            n += 1
     return (n, n, None)
 
 
