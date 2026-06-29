@@ -45,6 +45,7 @@ async def demand_deep(request: Request, since_days: int = 365):
         "que_compite": await di.co_viewed(db, since_days=since_days),
         "cuando": await di.temporal_demand(db),
         "journey": await di.journey_depth(db, since_days=since_days),
+        "comportamiento": await di.behavior_profile(db, since_days=since_days),   # device + DISC + tour + scroll
     }
 
 

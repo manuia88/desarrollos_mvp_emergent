@@ -303,6 +303,18 @@ export default function SuperadminDemandaMercado() {
               </div>
               <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>por hora (0–23h) · {Object.entries(deep.cuando?.por_dia || {}).map(([d, v]) => `${d} ${v}`).join(' · ')}</div>
             </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Comportamiento</div>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>Dispositivo</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {Object.entries(deep.comportamiento?.device || {}).map(([k, v]) => <Badge key={k} tone="neutral">{k}: {v}</Badge>)}
+                {Object.keys(deep.comportamiento?.device || {}).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>— (señales nuevas, se llenan con uso)</span>}
+              </div>
+              <div style={{ fontSize: 12, color: '#888' }}>Tour/video abierto: <strong>{deep.comportamiento?.abrieron_tour_video || 0}</strong> · Scroll prom: <strong>{deep.comportamiento?.scroll_profundo_promedio_pct != null ? `${deep.comportamiento.scroll_profundo_promedio_pct}%` : '—'}</strong></div>
+              {Object.keys(deep.comportamiento?.estilo_disc || {}).length > 0 && (
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>DISC: {Object.entries(deep.comportamiento.estilo_disc).map(([k, v]) => `${k} (${v})`).join(' · ')}</div>
+              )}
+            </Card>
           </div>
         )}
       </div>

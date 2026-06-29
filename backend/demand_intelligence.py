@@ -560,6 +560,32 @@ async def journey_depth(db, since_days: int = 365) -> Dict[str, Any]:
             "convierten_a_lead_pct": round(100 * sum(1 for v in by_v.values() if v["lead"]) / tot)}
 
 
+async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
+    """PERFIL DE COMPORTAMIENTO — device (mobile/desktop/tablet), estilo DISC, engagement de tour/video, profundidad de
+    scroll. Consume las dimensiones de captura nueva (que ninguna quede capturada-y-muerta)."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    devices = defaultdict(int); n_tour = 0; scrolls = []
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "device": 1, "type": 1, "value": 1}):
+        if s.get("device"):
+            devices[s["device"]] += 1
+        if s.get("type") == "tour_view":
+            n_tour += 1
+        elif s.get("type") == "scroll_depth":
+            try:
+                scrolls.append(int(s.get("value") or 0))
+            except (TypeError, ValueError):
+                pass
+    disc = defaultdict(int)
+    try:
+        async for c in db.buyer_coach_conversations.find({"inferred_disc": {"$nin": [None, ""]}}, {"_id": 0, "inferred_disc": 1}):
+            disc[c["inferred_disc"]] += 1
+    except Exception:
+        pass
+    return {"device": dict(devices), "estilo_disc": dict(disc), "abrieron_tour_video": n_tour,
+            "scroll_profundo_promedio_pct": round(sum(scrolls) / len(scrolls)) if scrolls else None,
+            "lectura": "cómo se comporta: dispositivo, estilo de decisión (DISC), y qué tan a fondo explora"}
+
+
 async def killer_query(db, feature: str, colonia: str, period: str = "month") -> Dict[str, Any]:
     """El ejemplo del founder: '¿cuántos clientes engancharon con [feature] en [colonia], y cuándo?'."""
     feature = feature.strip().lower()

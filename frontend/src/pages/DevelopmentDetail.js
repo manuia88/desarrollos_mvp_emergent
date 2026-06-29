@@ -136,11 +136,19 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   useEffect(() => {
     if (!dev?.id) return;
     const t0 = Date.now();
+    let maxScroll = 0;
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      if (h > 0) maxScroll = Math.max(maxScroll, Math.round((window.scrollY / h) * 100));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: dev.colonia });
     fetchInteres(dev.id).then(setInteres);
     return () => {
+      window.removeEventListener('scroll', onScroll);
       const ms = Date.now() - t0;
       if (ms > 1500) sendBuyerSignal('dwell', { entity_id: dev.id, colonia: dev.colonia, dwell_ms: Math.min(ms, 600000) });
+      if (maxScroll > 5) sendBuyerSignal('scroll_depth', { entity_id: dev.id, colonia: dev.colonia, value: String(Math.min(100, maxScroll)) });
     };
   }, [dev?.id, dev?.colonia]);
 
@@ -535,7 +543,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   return (
                     <button key={t0.k}
                       data-testid={`tab-${t0.k}`}
-                      onClick={() => setTab(t0.k)}
+                      onClick={() => { setTab(t0.k); if (['tour_3d', 'video', 'tour', 'fotos'].includes(t0.k)) { try { sendBuyerSignal('tour_view', { entity_id: dev.id, colonia: dev.colonia, value: t0.k }); } catch (e) { /* noop */ } } }}
                       style={{
                         position: 'relative',
                         padding: '14px 16px', background: 'transparent', border: 'none',

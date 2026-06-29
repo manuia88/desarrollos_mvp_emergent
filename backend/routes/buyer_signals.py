@@ -57,7 +57,10 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
          "atlax_apartado",  # intentó APARTAR con enganche (meta = credito/enganche) — señal casi-compra, la más caliente
          # Exploración financiera (antes invisible) → intención alta + qué pide en dinero:
          "payment_explore",  # exploró el cotizador/plan de pago (meta = enganche/mensualidad/esquema/plazo)
-         "roi_explore"}    # exploró rentabilidad/ROI (meta = escenario/yield/plusvalía) — lente inversionista
+         "roi_explore",    # exploró rentabilidad/ROI (meta = escenario/yield/plusvalía) — lente inversionista
+         # Engagement profundo de contenido (antes invisible):
+         "tour_view",      # abrió el tour 3D / video / recorrido (value = tipo) — interés visual alto
+         "scroll_depth"}   # qué tan profundo bajó en la ficha (value = % máximo) — qué tanto leyó
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
@@ -94,6 +97,7 @@ class SignalIn(BaseModel):
     value: Optional[str] = None      # libre (ej. sección leída, estilo)
     dwell_ms: Optional[int] = None
     seconds: Optional[int] = None    # tiempo en una sección (section_time) — engagement de contenido
+    device: Optional[str] = None     # mobile | tablet | desktop — granularidad por dispositivo
     meta: Optional[Dict[str, Any]] = None  # granular (Atlax): {recamaras, precio_max, intent, amenidades, n_exact, n_casi, cross_zone…}
 
 
@@ -123,6 +127,7 @@ async def buyer_signal(s: SignalIn, request: Request):
             "value": (s.value or "")[:120] or None,
             "dwell_ms": dwell,
             "seconds": (s.seconds if (isinstance(s.seconds, int) and 0 <= s.seconds <= 86400) else None),
+            "device": (s.device if s.device in ("mobile", "tablet", "desktop") else None),
             "ip_hash": hashlib.sha256(f"{ip}:dmx_bs".encode()).hexdigest()[:16] if ip else None,
             "created_at_dt": now,
         }

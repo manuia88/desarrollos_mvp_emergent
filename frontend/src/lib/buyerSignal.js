@@ -25,11 +25,21 @@ export function visitorId() {
   } catch { return 'v_anon'; }
 }
 
+// Tipo de dispositivo — granularidad por device (mobile/desktop/tablet) en TODA señal.
+function deviceType() {
+  try {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    if (/ipad|tablet|playbook|silk/.test(ua) || (/android/.test(ua) && !/mobile/.test(ua))) return 'tablet';
+    if (/mobi|iphone|ipod|android|blackberry|windows phone/.test(ua)) return 'mobile';
+    return 'desktop';
+  } catch { return 'unknown'; }
+}
+
 export function sendBuyerSignal(type, opts = {}) {
   try {
     fetch(`${API}/api/buyer/signal`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
-      body: JSON.stringify({ visitor_id: visitorId(), type, ...opts }),
+      body: JSON.stringify({ visitor_id: visitorId(), type, device: deviceType(), ...opts }),
     }).catch(() => {});
   } catch { /* noop */ }
 }
