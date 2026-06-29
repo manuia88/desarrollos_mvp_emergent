@@ -54,3 +54,25 @@ export async function getAtlasChildren(tipo = 'ciudad', id = 'CDMX') {
 export async function getAtlasEntity(tipo, id, ventana = '90d') {
   return _j(await fetch(`${BASE}/atlas/entity?${_qs({ tipo, id, ventana })}`, { headers: h(), credentials: 'include' }));
 }
+// Explorador Faceteado — catálogo: poblaciones, facets por población, ventanas, series.
+export async function getFacetCatalog() {
+  return _j(await fetch(`${BASE}/facet/catalog`, { headers: h(), credentials: 'include' }));
+}
+// Conteo faceteado de OFERTA y DEMANDA (independiente + relacional/gap) por un facet, en geo+ventana. filtros = objeto → JSON.
+export async function getFacetQuery({ poblacion, group_by, geo_nivel, geo_valor, ventana, filtros } = {}) {
+  const params = { poblacion, group_by, geo_nivel, geo_valor, ventana };
+  if (filtros && Object.keys(filtros).length > 0) params.filtros = JSON.stringify(filtros);
+  return _j(await fetch(`${BASE}/facet/query?${_qs(params)}`, { headers: h(), credentials: 'include' }));
+}
+// Cross-tab 2D — facet_a × facet_b (conteos por celda).
+export async function getFacetCrosstab({ poblacion, facet_a, facet_b, geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/facet/crosstab?${_qs({ poblacion, facet_a, facet_b, geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+// Serie temporal del conteo (por día/semana/quincena/mes, N periodos atrás).
+export async function getFacetSerie({ granularidad, periodos, geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/facet/serie?${_qs({ granularidad, periodos, geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+// "Lo que NO existe" — huecos: búsquedas con 0 oferta (demanda insatisfecha).
+export async function getFacetUnmet(top = 12) {
+  return _j(await fetch(`${BASE}/facet/unmet?${_qs({ top })}`, { headers: h(), credentials: 'include' }));
+}
