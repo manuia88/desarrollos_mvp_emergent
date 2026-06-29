@@ -1,5 +1,17 @@
 # MAPA FINAL — Módulo Marketplace: toda la granularidad y su visualización en 3 portales
 
+> **ACTUALIZACIÓN (2026-06-29) — estado real tras la última tanda:**
+> - **120 compuestas** (12 packs) · cobertura ~64-78% · las 13 nulls cableadas build-ready (forecast/clima/fraude/reseñas/brokers).
+> - **4 escalas** geo (micro CP · media colonia · grande corredor · macro alcaldía), no 3.
+> - **16 ejes de atributos** de unidad + **eje financiero** (12 sub-dim) + **AirROI real** (cap rate Airbnb, candado mes).
+> - **Riesgo natural (sísmico/inundación Atlas) + crimen FGJ** reales por zona.
+> - **~46 funciones de motor llevadas al UNIVERSO** (7 a mano + 39 en la última tanda) — granularidad por colonia/tiempo/
+>   segmento/distribución/serie en cada una, sin romper consumidores (verificado, batería 66/66).
+> - Página **Terminal de Zona** (superadmin) + paneles en Dev + Asesor. Feeders locales prendidos (catastral/costo-obra/
+>   valor-residual/cap-rate). Pendiente real = solo dato de producción (transacciones/crons) + tu verificación logueada.
+
+
+
 Este documento CIERRA el módulo marketplace. Es el plano de lo que se captura, lo que se calcula, y lo que se ve en
 **superadmin, dev y asesor**. La barra ya está puesta: **~4,000 celdas/colonia × 1,811 colonias + 100 métricas compuestas.**
 

@@ -1,4 +1,12 @@
-# 100 MÉTRICAS COMPUESTAS — los productos empaquetados vendibles
+# 100 → 120 MÉTRICAS COMPUESTAS — los productos empaquetados vendibles
+
+> **ACTUALIZACIÓN (2026-06-29):** ya son **120 compuestas** en **12 paquetes** — se agregaron Pack 11 **Suelo&Construcción**
+> (#101-110: margen del dev, residual÷catastral, premium sobre catastral, eficiencia de obra…) y Pack 12 **STR/Airbnb**
+> (#111-120: payback STR, premium vs renta tradicional, yield ajustado a riesgo, índice STR — con **AirROI real**, candado
+> 1 llamada/zona/mes). Cobertura ~64-78% (resto build-ready esperando dato de prod). Las 13 nulls quedaron **cableadas a su
+> fuente real** (forecast/clima/fraude/reseñas/brokers) para poblarse en producción.
+
+
 
 Cada métrica = **(comportamiento del marketplace) ⊗ (motor de mercado del superadmin)**. Ninguna existe en un motor solo.
 Organizadas en **10 paquetes vendibles**. ✅ = ya construida y verificada (`cross_intelligence`). Portal = quién la consume.
