@@ -2009,9 +2009,9 @@ async def development_intelligence(db, dev_id: Optional[str] = None, since_days:
         ranked = sorted(dem.items(), key=lambda x: -sum(x[1].values()))
         dev_ids = [d for d, _ in ranked[:top]] or [d.get("id") for d in DEVELOPMENTS[:top]]
 
-    # contexto de zona (1 sola vez) para comparar dev vs su colonia
+    # contexto de zona (1 sola vez) para comparar dev vs su colonia — con AirROI + subscores + riesgo natural
     try:
-        zmap = {z["zona"]: z for z in (await zone_intelligence(db, top=60)).get("zonas", [])}
+        zmap = {z["zona"]: z for z in (await zone_intelligence(db, top=60, with_airroi=True, with_underwriting=True)).get("zonas", [])}
     except Exception:
         zmap = {}
 
@@ -2023,13 +2023,65 @@ async def development_intelligence(db, dev_id: Optional[str] = None, since_days:
         units = d.get("units") or []
         d_dem = dem.get(did, {})
         eng = sum(d_dem.get(t, 0) for t in ("ficha_view", "like", "save", "unit_view", "unit_save", "compare", "intent"))
+        import statistics as _st
         prof = {"dev_id": did, "nombre": d.get("name") or did, "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
-                "precio_desde": d.get("price_from"), "demanda": eng,
-                "señales": {t: d_dem.get(t, 0) for t in ("ficha_view", "like", "save", "intent", "compare") if d_dem.get(t)}}
-        # absorción REAL de sus unidades
+                "alcaldia": d.get("alcaldia"), "stage": d.get("stage"), "entrega": d.get("delivery_estimate"),
+                "precio_desde": d.get("price_from"), "precio_hasta": d.get("price_to"), "demanda": eng,
+                "señales": {t: d_dem.get(t, 0) for t in ("ficha_view", "like", "save", "intent", "compare", "tour_view", "payment_explore", "roi_explore") if d_dem.get(t)}}
+
+        # ── PRODUCTO / CARACTERÍSTICAS (de SUS unidades) ──
         if units:
-            sold = sum(1 for u in units if str(u.get("status") or "").lower() in ("vendido", "reservado", "sold", "reserved"))
-            prof["absorcion"] = {"vendido_pct": round(100 * sold / len(units)), "vendidas": sold, "total": len(units)}
+            def _pct_u(field):
+                return round(100 * sum(1 for u in units if u.get(field)) / len(units))
+            m2s = [u.get("m2_total") for u in units if u.get("m2_total")]
+            prices = [u.get("price") for u in units if u.get("price")]
+            protos = Counter(str(u.get("prototype") or "").upper() for u in units if u.get("prototype"))
+            recs = Counter(u.get("bedrooms") for u in units if u.get("bedrooms"))
+            banos = Counter(u.get("bathrooms") for u in units if u.get("bathrooms"))
+            vista = Counter(str(u.get("vista")).lower() for u in units if u.get("vista"))
+            orient = Counter(str(u.get("orientation")).lower() for u in units if u.get("orientation"))
+            park = Counter(u.get("parking_spots") for u in units if u.get("parking_spots") is not None)
+            outdoor = [round((u.get("m2_terrace") or 0) + (u.get("m2_balcony") or 0) + (u.get("m2_roof_garden") or 0)) for u in units]
+            prof["producto"] = {
+                "tipologias": dict(protos), "recamaras": {str(k): v for k, v in sorted(recs.items())},
+                "banos": {str(k): v for k, v in sorted(banos.items())}, "estacionamiento": {str(k): v for k, v in sorted(park.items())},
+                "m2": {"min": min(m2s) if m2s else None, "max": max(m2s) if m2s else None, "mediana": round(_st.median(m2s)) if m2s else None},
+                "m2_exterior_prom": round(_st.mean(outdoor)) if outdoor else 0,
+                "vista": dict(vista), "orientacion": dict(orient), "altura_edificio_pisos": d.get("max_level"),
+                "balcon_pct": _pct_u("balcon"), "terraza_pct": _pct_u("terraza"), "roof_garden_pct": _pct_u("roof_garden"),
+                "bodega_pct": _pct_u("bodega"), "pet_friendly_pct": _pct_u("pet_friendly"),
+                "precio_unidad": {"min": min(prices) if prices else None, "max": max(prices) if prices else None,
+                                  "mediana": round(_st.median(prices)) if prices else None},
+            }
+            # precio/m² del dev
+            pm2 = [u["price"] / u["m2_total"] for u in units if u.get("price") and u.get("m2_total")]
+            if pm2:
+                prof["precio_m2"] = round(_st.median(pm2))
+
+        # ── AMENIDADES + SERVICIOS + MEDIOS ──
+        prof["amenidades"] = d.get("amenities") or []
+        if d.get("servicios"):
+            prof["servicios"] = d["servicios"]
+        prof["medios"] = {"fotos": len(d.get("photos") or []), "video": bool(d.get("video_url")), "tour360": bool(d.get("tour360_url"))}
+        if d.get("construction_progress") is not None:
+            prof["avance_obra"] = d.get("construction_progress")
+
+        # ── FINANZAS / CRÉDITOS ──
+        precio_ref = d.get("price_from") or (prof.get("producto", {}).get("precio_unidad", {}) or {}).get("mediana")
+        prof["finanzas"] = {
+            "precio_desde": d.get("price_from"), "precio_hasta": d.get("price_to"),
+            "creditos_aceptados": d.get("creditos_aceptados") or [],
+            "enganche_tipico_20pct": round(precio_ref * 0.2) if precio_ref else None,
+            "credito_estimado": round(precio_ref * 0.8) if precio_ref else None,
+        }
+
+        # ── ABSORCIÓN REAL de sus unidades (+ por estado) ──
+        if units:
+            estados = Counter(str(u.get("status") or "disponible").lower() for u in units)
+            sold = sum(estados.get(k, 0) for k in ("vendido", "reservado", "sold", "reserved"))
+            prof["absorcion"] = {"vendido_pct": round(100 * sold / len(units)), "vendidas": sold, "total": len(units),
+                                 "por_estado": dict(estados),
+                                 "disponibles": d.get("units_available"), "reservadas": d.get("units_reserved")}
         # margen (dmx_margin)
         try:
             import dmx_margin as dm
@@ -2074,14 +2126,24 @@ async def development_intelligence(db, dev_id: Optional[str] = None, since_days:
                 prof["alertas_comparables"] = len(al)
         except Exception:
             pass
-        # CONTEXTO de su colonia (dev vs zona)
+        # CONTEXTO de su colonia (dev vs zona) + UBICACIÓN + INVERSIÓN
         z = zmap.get(d.get("colonia_id"))
         if z:
             prof["zona"] = {"nombre": z.get("nombre"), "precio_m2_zona": z.get("precio_m2"), "demanda_zona": z.get("demanda"),
                             "absorcion_zona_pct": (z.get("absorcion") or {}).get("vendido_pct"),
                             "riesgo": (z.get("riesgo") or {}).get("letra"), "inversion": (z.get("inversion") or {}).get("score"),
                             "cap_rate_str": z.get("cap_rate_str")}
-            # cuota de demanda del dev dentro de su colonia
+            # UBICACIÓN (calidad de vida de su colonia)
+            prof["ubicacion"] = {"subscores": z.get("subscores") or {},
+                                 "riesgo_natural": z.get("riesgo_natural"), "crimen": z.get("crimen"),
+                                 "ciclo": z.get("ciclo"), "alcaldia": z.get("alcaldia")}
+            # INVERSIÓN (del dev en su zona)
+            prof["inversion"] = {"score_zona": (z.get("inversion") or {}).get("score"), "tier": (z.get("inversion") or {}).get("tier"),
+                                 "cap_rate_str_airbnb": z.get("cap_rate_str"), "cap_rate_estimado": z.get("cap_rate_est"),
+                                 "valor_residual_suelo": z.get("valor_residual_pm2")}
+            # premium del dev vs su zona (precio/m² dev vs precio/m² zona)
+            if prof.get("precio_m2") and z.get("precio_m2"):
+                prof["premium_vs_zona_pct"] = round(100 * (prof["precio_m2"] - z["precio_m2"]) / z["precio_m2"])
             if z.get("demanda"):
                 prof["cuota_demanda_zona_pct"] = round(100 * eng / max(z["demanda"], 1))
         out.append(prof)

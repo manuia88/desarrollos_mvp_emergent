@@ -77,31 +77,10 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         </div>
       )}
 
-      {/* POR DESARROLLO (fusión 7 motores per-dev) */}
+      {/* POR DESARROLLO (universo completo per-dev) */}
       {tab === 'desarrollos' && d && !d.error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
-          {(d.desarrollos || []).map((x) => (
-            <Card key={x.dev_id} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <strong>{x.nombre}</strong>
-                <span style={{ fontSize: 12, color: '#888' }}>{x.colonia}{x.precio_desde ? ` · ${fmtM(x.precio_desde)}` : ''}</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 14px', fontSize: 12.5 }}>
-                <span>Demanda: <strong>{x.demanda}</strong></span>
-                <span>Absorción: <strong>{x.absorcion?.vendido_pct != null ? `${x.absorcion.vendido_pct}% (${x.absorcion.vendidas}/${x.absorcion.total})` : '—'}</strong></span>
-                <span>Project score: <strong>{x.project_score ?? '—'}</strong></span>
-                <span>Margen: <strong>{x.margen?.pct != null ? `${x.margen.pct}%` : '—'}</strong></span>
-                <span>P(venta 12m): <strong style={{ color: 'var(--theme)' }}>{x.prob_venta_12m?.pct != null ? `${x.prob_venta_12m.pct}%` : '—'}</strong></span>
-                <span>Alertas: <strong>{x.alertas_comparables ?? '—'}</strong></span>
-              </div>
-              {x.rivales?.length > 0 && <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Rivales: {x.rivales.map((r) => r.dev).join(' · ')}</div>}
-              {x.zona && (
-                <div style={{ fontSize: 12, color: '#bbb', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  vs {x.zona.nombre}: zona ${Math.round((x.zona.precio_m2_zona || 0) / 1000)}k/m² · absorción {x.zona.absorcion_zona_pct}% · riesgo {x.zona.riesgo} · inversión {x.zona.inversion}{x.cuota_demanda_zona_pct != null ? ` · este dev = ${x.cuota_demanda_zona_pct}% de la demanda de la zona` : ''}
-                </div>
-              )}
-            </Card>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 14 }}>
+          {(d.desarrollos || []).map((x) => <DevCard key={x.dev_id} x={x} />)}
         </div>
       )}
 
@@ -254,6 +233,70 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         <Compuestas100 data={d} />
       )}
     </SuperadminLayout>
+  );
+}
+
+function Row({ label, children }) {
+  return <div style={{ fontSize: 12, marginBottom: 6 }}><span style={{ color: '#888' }}>{label}: </span><span style={{ color: '#ccc' }}>{children}</span></div>;
+}
+function Sect({ title, children }) {
+  return <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ fontSize: 11, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{title}</div>{children}</div>;
+}
+const kv = (o) => Object.entries(o || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—';
+
+function DevCard({ x }) {
+  const p = x.producto || {}; const f = x.finanzas || {}; const u = x.ubicacion || {}; const inv = x.inversion || {};
+  return (
+    <Card style={{ padding: '14px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+        <strong style={{ fontSize: 15 }}>{x.nombre}</strong>
+        <span style={{ fontSize: 12, color: '#888' }}>{x.colonia} · {x.alcaldia}</span>
+      </div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{x.stage || '—'} · entrega {x.entrega || '—'} · {fmtM(x.precio_desde)}–{fmtM(x.precio_hasta)} · {x.precio_m2 ? `$${Math.round(x.precio_m2 / 1000)}k/m²` : ''} {x.premium_vs_zona_pct != null && <span style={{ color: x.premium_vs_zona_pct > 0 ? '#f59e0b' : '#22c55e' }}>({x.premium_vs_zona_pct > 0 ? '+' : ''}{x.premium_vs_zona_pct}% vs zona)</span>}</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 14px', fontSize: 12.5 }}>
+        <span>Demanda: <strong>{x.demanda}</strong>{x.cuota_demanda_zona_pct != null ? ` (${x.cuota_demanda_zona_pct}% de zona)` : ''}</span>
+        <span>Absorción: <strong>{x.absorcion?.vendido_pct ?? '—'}%</strong> ({x.absorcion?.vendidas}/{x.absorcion?.total})</span>
+        <span>P(venta 12m): <strong style={{ color: 'var(--theme)' }}>{x.prob_venta_12m?.pct != null ? `${x.prob_venta_12m.pct}%` : '—'}</strong></span>
+        <span>Score: <strong>{x.project_score ?? '—'}</strong> · Margen: <strong>{x.margen?.pct != null ? `${x.margen.pct}%` : '—'}</strong></span>
+      </div>
+
+      <Sect title="Producto (sus unidades)">
+        <Row label="Tipologías">{kv(p.tipologias)}</Row>
+        <Row label="m²">{p.m2 ? `${p.m2.min}–${p.m2.max} (med ${p.m2.mediana}) · exterior ~${p.m2_exterior_prom}m²` : '—'}</Row>
+        <Row label="Recámaras / baños">{kv(p.recamaras)} · baños {kv(p.banos)}</Row>
+        <Row label="Vista / altura">{kv(p.vista)} · edificio {p.altura_edificio_pisos || '—'} pisos · estac. {kv(p.estacionamiento)}</Row>
+        <Row label="Atributos">balcón {p.balcon_pct}% · terraza {p.terraza_pct}% · roof {p.roof_garden_pct}% · bodega {p.bodega_pct}% · pet {p.pet_friendly_pct}%</Row>
+      </Sect>
+
+      {x.amenidades?.length > 0 && (
+        <Sect title="Amenidades">
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{x.amenidades.map((a) => <Badge key={a} tone="neutral">{a.replace(/_/g, ' ')}</Badge>)}</div>
+        </Sect>
+      )}
+
+      <Sect title="Finanzas / créditos">
+        <Row label="Precio">{fmtM(f.precio_desde)} – {fmtM(f.precio_hasta)}</Row>
+        <Row label="Enganche típico (20%)">{fmtM(f.enganche_tipico_20pct)} · crédito {fmtM(f.credito_estimado)}</Row>
+        <Row label="Créditos aceptados">{(f.creditos_aceptados || []).join(' · ') || '—'}</Row>
+      </Sect>
+
+      <Sect title="Ubicación (su colonia)">
+        <Row label="Calidad de vida">{u.subscores ? Object.entries(u.subscores).map(([k, v]) => `${k} ${Math.round(v)}`).join(' · ') : '—'}</Row>
+        <Row label="Riesgo">{u.riesgo_natural ? `sísmico ${u.riesgo_natural.sismico_zona} · inundación ${u.riesgo_natural.inundacion_pct}%` : '—'}{u.crimen?.incidentes != null ? ` · ${Math.round(u.crimen.incidentes)} inc. FGJ` : ''}</Row>
+      </Sect>
+
+      <Sect title="Inversión">
+        <Row label="Score zona">{inv.score_zona ?? '—'} {inv.tier ? `(${inv.tier})` : ''} · cap rate Airbnb <strong style={{ color: '#22c55e' }}>{inv.cap_rate_str_airbnb != null ? `${inv.cap_rate_str_airbnb}%` : '—'}</strong> · estimado {inv.cap_rate_estimado != null ? `${inv.cap_rate_estimado}%` : '—'}</Row>
+        <Row label="Valor residual del suelo">{inv.valor_residual_suelo != null ? `$${Math.round(inv.valor_residual_suelo / 1000)}k/m²` : '—'}</Row>
+      </Sect>
+
+      <div style={{ fontSize: 11.5, color: '#777', marginTop: 8 }}>
+        {x.rivales?.length > 0 ? `Rivales: ${x.rivales.map((r) => r.dev).join(' · ')} · ` : ''}
+        Medios: {x.medios?.fotos || 0} fotos{x.medios?.video ? ' · video' : ''}{x.medios?.tour360 ? ' · tour 360' : ''}{x.avance_obra != null ? ` · obra ${x.avance_obra}%` : ''}
+      </div>
+    </Card>
   );
 }
 
