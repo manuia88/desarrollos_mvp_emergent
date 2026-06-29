@@ -153,6 +153,207 @@ async def demand_by_colonia(db, period: str = "month", since_days: int = 365, to
     return {"period": period, "top_colonias": [{"colonia": c, "demanda": n, "serie": dict(sorted(series[c].items()))} for c, n in ranked]}
 
 
+async def financial_demand(db, since_days: int = 180, colonias: Optional[List[str]] = None) -> Dict[str, Any]:
+    """EJE FINANCIERO — el bolsillo del comprador: presupuesto, ENGANCHE (recurso propio), CRÉDITO, AÑOS de crédito,
+    MENSUALIDAD que puede pagar, intent vivir/invertir, y apetito de retorno (ROI/TIR/cap rate) que explora. + qué
+    zonas dan buena rentabilidad. Cruza el cotizador (payment_explore) y la calc de inversión (roi_explore) con el mercado."""
+    import statistics
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+
+    def band_precio(p):
+        return "0-3M" if p <= 3e6 else "3-5M" if p <= 5e6 else "5-8M" if p <= 8e6 else "8-12M" if p <= 12e6 else "12-20M" if p <= 20e6 else "20M+"
+
+    presupuesto = defaultdict(int); enganche_pct = defaultdict(int); plazo_anos = defaultdict(int)
+    mensualidad = []; enganche_montos = []; credito_montos = []
+    roi_apetito = defaultdict(int); tir_vals = []; cap_vals = []; vivir = invertir = 0
+
+    # Presupuesto (búsquedas + meta)
+    async for q in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}}, {"_id": 0, "precio_max": 1}):
+        presupuesto[band_precio(q["precio_max"])] += 1
+    # Señales financieras (cotizador + ROI + Atlax)
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["payment_explore", "roi_explore", "atlax_query", "atlax_profile", "lens"]}},
+                                         {"_id": 0, "type": 1, "meta": 1, "value": 1}):
+        meta = s.get("meta") or {}
+        if meta.get("presupuesto") or meta.get("max_price"):
+            try:
+                presupuesto[band_precio(float(meta.get("presupuesto") or meta.get("max_price")))] += 1
+            except (TypeError, ValueError):
+                pass
+        # intent
+        intent = (meta.get("intent") or "").lower() or (s.get("value") or "").lower()
+        if "invert" in intent:
+            invertir += 1
+        elif "vivir" in intent or "habit" in intent:
+            vivir += 1
+        # cotizador: enganche / plazo / mensualidad / crédito
+        if meta.get("enganche_pct") is not None:
+            enganche_pct[f"{int(round(float(meta['enganche_pct'])/5)*5)}%"] += 1
+        if meta.get("enganche"):
+            try:
+                enganche_montos.append(float(meta["enganche"]))
+            except (TypeError, ValueError):
+                pass
+        if meta.get("plazo_anos") or meta.get("plazo"):
+            try:
+                plazo_anos[f"{int(meta.get('plazo_anos') or (float(meta['plazo'])/12 if float(meta['plazo'])>40 else meta['plazo']))} años"] += 1
+            except (TypeError, ValueError):
+                pass
+        if meta.get("mensualidad"):
+            try:
+                mensualidad.append(float(meta["mensualidad"]))
+            except (TypeError, ValueError):
+                pass
+        if meta.get("credito"):
+            try:
+                credito_montos.append(float(meta["credito"]))
+            except (TypeError, ValueError):
+                pass
+        # apetito de retorno (calc de inversión)
+        for k, store in (("roi", roi_apetito), ("yield", roi_apetito)):
+            if meta.get(k) is not None:
+                try:
+                    store[f"{int(round(float(meta[k])))}%"] += 1
+                except (TypeError, ValueError):
+                    pass
+        if meta.get("tir") is not None:
+            try:
+                tir_vals.append(float(meta["tir"]))
+            except (TypeError, ValueError):
+                pass
+        if meta.get("cap_rate") is not None:
+            try:
+                cap_vals.append(float(meta["cap_rate"]))
+            except (TypeError, ValueError):
+                pass
+
+    # intent global (fallback al motor)
+    if vivir == 0 and invertir == 0:
+        try:
+            isp = await intent_split(db, since_days=since_days)
+            gl = isp.get("global", {})
+            vivir, invertir = gl.get("vivir", 0), gl.get("invertir", 0)
+        except Exception:
+            pass
+
+    # rentabilidad por zona (score de inversión)
+    rentabilidad = []
+    try:
+        import score_inversion_engine as sie
+        for r in (await sie.top_colonias_by_score(db, limit=12)) or []:
+            if not colonias or (r.get("colonia_slug") in colonias):
+                rentabilidad.append({"colonia": r.get("colonia_name") or r.get("colonia_slug"),
+                                     "score": r.get("score"), "tier": r.get("tier"), "rec": r.get("recommendation")})
+    except Exception:
+        pass
+
+    med = lambda x: round(statistics.median(x)) if x else None
+    return {
+        "presupuesto": dict(sorted(presupuesto.items())),
+        "intent": {"vivir": vivir, "invertir": invertir},
+        "enganche_pct": dict(sorted(enganche_pct.items())),
+        "enganche_mediano": med(enganche_montos),
+        "credito_mediano": med(credito_montos),
+        "plazo_anos": dict(sorted(plazo_anos.items())),
+        "mensualidad_mediana": med(mensualidad),
+        "mensualidad_n": len(mensualidad),
+        "apetito_retorno_pct": dict(sorted(roi_apetito.items())),
+        "tir_mediana": med(tir_vals),
+        "cap_rate_mediano": round(statistics.median(cap_vals), 1) if cap_vals else None,
+        "rentabilidad_por_zona": rentabilidad,
+        "cobertura": {"cotizador_con_enganche": len(enganche_montos), "con_mensualidad": len(mensualidad),
+                      "con_roi": len(tir_vals) + len(cap_vals)},
+        "lectura": "el bolsillo: cuánto traen, cuánto enganche/crédito, a qué plazo, qué mensualidad pagan, y qué retorno buscan",
+    }
+
+
+async def attribute_demand(db, since_days: int = 180, colonias: Optional[List[str]] = None) -> Dict[str, Any]:
+    """EJE DE ATRIBUTOS DE UNIDAD — granularidad fina del INTERIOR: cuánta demanda engancha con balcón, vista
+    interior/exterior, terraza, roof garden, bodega, pet-friendly, edificio bajo/medio/alto, orientación, # baños y
+    # recámaras. Cruza la demanda (señales) con los atributos reales de las unidades que mira. El zoom 'dentro del depa'."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    BOOL_ATTRS = [("balcon", "balcón"), ("terraza", "terraza"), ("roof_garden", "roof garden"),
+                  ("bodega", "bodega"), ("pet_friendly", "pet friendly"), ("estacionamiento_independiente", "estac. independiente")]
+    booleano = {label: {"si": 0, "total": 0} for _, label in BOOL_ATTRS}
+    vista = defaultdict(int); orientacion = defaultdict(int); altura = defaultdict(int)
+    amenidades = defaultdict(int); banos = defaultdict(int); recamaras = defaultdict(int)
+    ENG = {"ficha_view", "like", "save", "unit_view", "unit_save", "compare", "intent", "atlax_query", "atlax_profile"}
+
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
+                                         {"_id": 0, "type": 1, "entity_id": 1, "meta": 1, "colonia": 1}):
+        meta = s.get("meta") or {}
+        # EXPLÍCITO (lo que pide en Atlax/búsqueda)
+        for a in _as_feature_list(meta.get("amenidades") or meta.get("extras")):
+            amenidades[a] += 1
+        if meta.get("banos"):
+            banos[str(meta["banos"])] += 1
+        if meta.get("recamaras") or meta.get("beds"):
+            recamaras[str(meta.get("recamaras") or meta.get("beds"))] += 1
+        # REVELADO (los atributos de las unidades que engancha)
+        if s.get("type") in ENG:
+            dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+            if not dev:
+                continue
+            if colonias and dev.get("colonia_id") not in colonias:
+                continue
+            units = dev.get("units") or []
+            if not units:
+                continue
+            maxlvl = max((u.get("level") or 0) for u in units)
+            altura["bajo (<6 pisos)" if maxlvl < 6 else "medio (6-15)" if maxlvl <= 15 else "alto (>15)"] += 1
+            for field, label in BOOL_ATTRS:
+                booleano[label]["total"] += 1
+                if any(u.get(field) for u in units):
+                    booleano[label]["si"] += 1
+            for u in units:
+                if u.get("vista"):
+                    vista[str(u["vista"]).lower()] += 1
+                if u.get("orientation"):
+                    orientacion[str(u["orientation"]).lower()] += 1
+
+    def pct(d):
+        return [{"atributo": k, "demanda": v["si"], "de": v["total"],
+                 "pct": round(100 * v["si"] / v["total"]) if v["total"] else 0}
+                for k, v in sorted(d.items(), key=lambda x: -x[1]["si"])]
+    return {
+        "booleanos": pct(booleano),                                   # balcón/terraza/roof/bodega/pet
+        "vista": dict(sorted(vista.items(), key=lambda x: -x[1])),    # interior/exterior/calle…
+        "orientacion": dict(sorted(orientacion.items(), key=lambda x: -x[1])),
+        "altura_edificio": dict(altura),                              # bajo/medio/alto
+        "amenidades_pedidas": [{"amenidad": k, "n": v} for k, v in sorted(amenidades.items(), key=lambda x: -x[1])[:15]],
+        "banos": dict(sorted(banos.items())),
+        "recamaras": dict(sorted(recamaras.items())),
+        "lectura": "granularidad DENTRO del depa: qué atributo fino busca/engancha la demanda (balcón, vista, altura…)",
+    }
+
+
+async def attribute_killer(db, atributo: str, since_days: int = 180) -> Dict[str, Any]:
+    """Query asesino de atributo: ¿en qué COLONIAS engancha más la demanda con [atributo]? (balcón en Condesa, etc.)"""
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    a = atributo.lower().strip()
+    field_map = {"balcón": "balcon", "balcon": "balcon", "terraza": "terraza", "roof garden": "roof_garden",
+                 "roof_garden": "roof_garden", "bodega": "bodega", "pet friendly": "pet_friendly", "pet_friendly": "pet_friendly"}
+    field = field_map.get(a)
+    by_col = defaultdict(int)
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["ficha_view", "like", "save", "unit_view", "compare"]}},
+                                         {"_id": 0, "entity_id": 1, "colonia": 1}):
+        dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+        if not dev:
+            continue
+        units = dev.get("units") or []
+        match = False
+        if field:
+            match = any(u.get(field) for u in units)
+        else:
+            match = any(a in str(u.get("vista", "")).lower() or a in str(u.get("orientation", "")).lower() for u in units)
+        if match:
+            by_col[s.get("colonia") or dev.get("colonia_id")] += 1
+    return {"atributo": atributo,
+            "por_colonia": [{"colonia": c, "demanda": n} for c, n in sorted(by_col.items(), key=lambda x: -x[1])[:15]],
+            "lectura": f"dónde la demanda engancha más con '{atributo}'"}
+
+
 async def demand_by_attribute(db, since_days: int = 365) -> Dict[str, Any]:
     """Atributos EXPLÍCITOS buscados (recámaras / m² / precio / estacionamiento) — demanda dura de las búsquedas."""
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)

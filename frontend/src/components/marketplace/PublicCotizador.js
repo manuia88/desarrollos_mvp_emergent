@@ -55,9 +55,17 @@ export default function PublicCotizador({ formasPago, basePrice, fechaInicio, fe
     if (fired.current.has(k)) return;
     fired.current.add(k);
     try {
+      const engancheMonto = bd.firma_pct ? Math.round(base * bd.firma_pct / 100) : (bd.firma || null);
       sendBuyerSignal('payment_explore', {
         entity_id: devId, colonia, value: String(selected.nombre || selected.label || idx),
-        meta: { esquema: selected.nombre || selected.label, enganche_pct: bd.firma_pct, mensualidad: bd.mensualidad, meses: bd.meses, precio: base },
+        meta: {
+          esquema: selected.nombre || selected.label,
+          enganche_pct: bd.firma_pct, enganche: engancheMonto,
+          credito: engancheMonto != null ? Math.max(0, Math.round(base - engancheMonto)) : null,
+          mensualidad: bd.mensualidad, meses: bd.meses,
+          plazo_anos: bd.meses ? Math.round(bd.meses / 12) : null,
+          precio: base,
+        },
       });
     } catch (_) { /* noop */ }
   }, [bd, selected, idx, devId, colonia, base]);

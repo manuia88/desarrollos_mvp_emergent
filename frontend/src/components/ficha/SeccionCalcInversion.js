@@ -35,7 +35,12 @@ export default function SeccionCalcInversion({ dev, unit, mode = 'individual', u
     try {
       sendBuyerSignal('roi_explore', {
         entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: mode,
-        meta: { tir_pct: result.tir_pct, cap_rate: inv && inv.cap_rate, modo: mode, precio: unit && unit.price },
+        meta: {
+          tir: result.tir_pct, tir_pct: result.tir_pct, roi: result.tir_pct,
+          cap_rate: (result.cap_rate_pct != null ? result.cap_rate_pct : (inv && inv.cap_rate)),
+          escenario: mode, modo: mode, precio: unit && unit.price,
+          intent: 'invertir',
+        },
       });
     } catch (_) { /* noop */ }
   }, [result, dev.id, dev.colonia_id, dev.colonia, unit, mode, inv]);
