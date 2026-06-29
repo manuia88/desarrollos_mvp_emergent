@@ -66,6 +66,16 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/explorar")
+async def explorar(request: Request, tipo: str = "ciudad", id: str = "CDMX", combinaciones: bool = True):
+    """EXPLORADOR — un nodo del árbol (ciudad▸alcaldía▸colonia▸desarrollo▸unidad): hijos + cada segmento INDEPENDIENTE
+    (oferta/demanda/gap por valor) + fichas técnicas (combinaciones) + características al fondo."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import explorador as ex
+    return await ex.explorar_nodo(request.app.state.db, tipo, id, con_combinaciones=combinaciones)
+
+
 @router.get("/dimensiones")
 async def dimensiones(request: Request, eje: Optional[str] = None, arbol: bool = False):
     """Catálogo CANÓNICO de hiper-segmentación: 114 dimensiones × 7 ejes, cada una con su campo real/derivado/por-crear.
