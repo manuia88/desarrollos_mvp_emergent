@@ -107,6 +107,24 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/heatmap/opciones")
+async def heatmap_opciones(request: Request):
+    """HEATMAP — qué se puede pintar: métricas de mercado + dimensiones-segmento (para el gap)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import heatmap_tension as ht
+    return ht.opciones()
+
+
+@router.get("/heatmap")
+async def heatmap_ep(request: Request, metrica: Optional[str] = None, dimension: Optional[str] = None, valor: Optional[str] = None):
+    """HEATMAP DE TENSIÓN — la ciudad pintada por [métrica] o por el gap de [dimensión=valor], repivotable."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import heatmap_tension as ht
+    return await ht.heatmap(request.app.state.db, metrica=metrica, dimension=dimension, valor=valor)
+
+
 @router.get("/explorar/biografia")
 async def explorar_biografia(request: Request, dev_id: str, unidad: str):
     """BIOGRAFÍA de una unidad: huella de demanda, embudo, posición de precio, premium, competidoras, AVM, pronóstico."""
