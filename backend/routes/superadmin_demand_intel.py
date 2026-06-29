@@ -85,6 +85,36 @@ async def atlas_children(request: Request, tipo: str = "ciudad", id: str = "CDMX
     return {"tipo": tipo, "id": id, "hijos": ea.entity_children(tipo, id), "tipos_entidad": ea.ENTITY_TYPES}
 
 
+@router.get("/compare/run")
+async def compare_run(request: Request, split: str = "amenidades_nivel", outcome: str = "sell_through",
+                      geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """COMPARATIVA (el porqué) — parte desarrollos por [split] y compara [outcome] entre grupos → delta cuantificado."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import compare_engine as ce
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await ce.compare(request.app.state.db, split, outcome, geo=geo)
+
+
+@router.get("/compare/insights")
+async def compare_insights(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None, top: int = 15):
+    """COMPARATIVA — auto-insights: barre split×outcome y sube los deltas más grandes ('sin amenidades = +N meses')."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import compare_engine as ce
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await ce.auto_insights(request.app.state.db, geo=geo, top=top)
+
+
+@router.get("/compare/catalog")
+async def compare_catalog(request: Request):
+    """COMPARATIVA — catálogo de splits y outcomes disponibles."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import compare_engine as ce
+    return {"splits": ce.SPLITS, "outcomes": [{"id": k, "label": v[0], "unidad": v[1], "mejor_es": v[2]} for k, v in ce.OUTCOMES.items()]}
+
+
 @router.get("/facet/catalog")
 async def facet_catalog(request: Request):
     """FACETEO — catálogo: poblaciones (unidades/desarrollos/demanda), facets disponibles, ventanas, granularidades."""
