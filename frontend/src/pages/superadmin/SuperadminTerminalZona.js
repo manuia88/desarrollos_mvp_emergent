@@ -7,11 +7,12 @@ import { getTerminal } from '../../api/superadminDemandIntel';
 
 const TABS = [
   { key: 'escalas', label: 'Escalas geo' },
+  { key: 'desarrollos', label: 'Por desarrollo' },
   { key: 'inteligencia', label: 'Inteligencia de zona' },
   { key: 'atributos', label: 'Atributos de unidad' },
   { key: 'financiero', label: 'Financiero' },
   { key: 'cruces', label: 'Cruces' },
-  { key: 'compuestas', label: 'Las 100 compuestas' },
+  { key: 'compuestas', label: 'Las 120 compuestas' },
 ];
 
 const fmtM = (v) => (v == null ? '—' : `$${(v / 1e6).toFixed(1)}M`);
@@ -71,6 +72,34 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
                   ))}
                 </tbody>
               </table>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* POR DESARROLLO (fusión 7 motores per-dev) */}
+      {tab === 'desarrollos' && d && !d.error && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+          {(d.desarrollos || []).map((x) => (
+            <Card key={x.dev_id} style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <strong>{x.nombre}</strong>
+                <span style={{ fontSize: 12, color: '#888' }}>{x.colonia}{x.precio_desde ? ` · ${fmtM(x.precio_desde)}` : ''}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 14px', fontSize: 12.5 }}>
+                <span>Demanda: <strong>{x.demanda}</strong></span>
+                <span>Absorción: <strong>{x.absorcion?.vendido_pct != null ? `${x.absorcion.vendido_pct}% (${x.absorcion.vendidas}/${x.absorcion.total})` : '—'}</strong></span>
+                <span>Project score: <strong>{x.project_score ?? '—'}</strong></span>
+                <span>Margen: <strong>{x.margen?.pct != null ? `${x.margen.pct}%` : '—'}</strong></span>
+                <span>P(venta 12m): <strong style={{ color: 'var(--theme)' }}>{x.prob_venta_12m?.pct != null ? `${x.prob_venta_12m.pct}%` : '—'}</strong></span>
+                <span>Alertas: <strong>{x.alertas_comparables ?? '—'}</strong></span>
+              </div>
+              {x.rivales?.length > 0 && <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Rivales: {x.rivales.map((r) => r.dev).join(' · ')}</div>}
+              {x.zona && (
+                <div style={{ fontSize: 12, color: '#bbb', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  vs {x.zona.nombre}: zona ${Math.round((x.zona.precio_m2_zona || 0) / 1000)}k/m² · absorción {x.zona.absorcion_zona_pct}% · riesgo {x.zona.riesgo} · inversión {x.zona.inversion}{x.cuota_demanda_zona_pct != null ? ` · este dev = ${x.cuota_demanda_zona_pct}% de la demanda de la zona` : ''}
+                </div>
+              )}
             </Card>
           ))}
         </div>
