@@ -911,16 +911,39 @@ async def co_viewed(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
 
 
 async def temporal_demand(db, since_days: int = 90) -> Dict[str, Any]:
-    """CUÁNDO buscan — hora del día + día de la semana. 'Lujo de noche, familias en fin de semana'."""
+    """CUÁNDO buscan (universo) — hora · día · FRANJA (madrugada/mañana/mediodía/tarde/noche) · entre-semana vs fin de
+    semana · CUÁNDO ocurre la intención ALTA (intent/lead/apartado/pago) vs el browsing · hora y día pico."""
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
-    by_hour = defaultdict(int); by_dow = defaultdict(int)
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "created_at_dt": 1}):
+    by_hour = defaultdict(int); by_dow = defaultdict(int); by_franja = defaultdict(int)
+    semana = {"entre_semana": 0, "fin_de_semana": 0}
+    franja_alta = defaultdict(int); franja_browse = defaultdict(int)
+    ALTA = {"intent", "lead", "atlax_apartado", "payment_explore", "roi_explore", "unit_save", "save"}
+
+    def franja(h):
+        return "madrugada (0-6)" if h < 6 else "mañana (6-12)" if h < 12 else "mediodía (12-15)" if h < 15 else "tarde (15-19)" if h < 19 else "noche (19-24)"
+
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "created_at_dt": 1, "type": 1}):
         d = s.get("created_at_dt")
-        if isinstance(d, dt.datetime):
-            by_hour[d.hour] += 1; by_dow[d.weekday()] += 1
+        if not isinstance(d, dt.datetime):
+            continue
+        by_hour[d.hour] += 1; by_dow[d.weekday()] += 1
+        fr = franja(d.hour); by_franja[fr] += 1
+        semana["fin_de_semana" if d.weekday() >= 5 else "entre_semana"] += 1
+        (franja_alta if s.get("type") in ALTA else franja_browse)[fr] += 1
+
     dow = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    fr_order = ["madrugada (0-6)", "mañana (6-12)", "mediodía (12-15)", "tarde (15-19)", "noche (19-24)"]
+    hora_pico = max(by_hour, key=by_hour.get) if by_hour else None
+    dia_pico = max(by_dow, key=by_dow.get) if by_dow else None
+    franja_intencion = max(franja_alta, key=franja_alta.get) if franja_alta else None
     return {"por_hora": {str(h): by_hour.get(h, 0) for h in range(24)},
-            "por_dia": {dow[i]: by_dow.get(i, 0) for i in range(7)}}
+            "por_dia": {dow[i]: by_dow.get(i, 0) for i in range(7)},
+            "por_franja": {f: by_franja.get(f, 0) for f in fr_order},
+            "semana": semana,
+            "intencion_alta_por_franja": {f: franja_alta.get(f, 0) for f in fr_order},
+            "hora_pico": hora_pico, "dia_pico": dow[dia_pico] if dia_pico is not None else None,
+            "franja_de_mayor_intencion": franja_intencion,
+            "lectura": "cuándo navegan vs cuándo deciden (intención alta) — programa contacto/campañas en la franja correcta"}
 
 
 async def journey_depth(db, since_days: int = 365) -> Dict[str, Any]:
