@@ -581,3 +581,15 @@ A la pregunta del founder 'qué granularidad no mencionada se puede capturar', p
 - Video/tour 360 engagement (¿lo vieron? cuánto?).
 - Scroll depth por ficha (lead_capture_events lo tiene solo para captura de lead, no en toda ficha).
 - DISC/estilo de decisión (el motor de inferencia no corre → 0 dato).
+
+---
+
+## CAPTURAS NUEVAS CERRADAS (los 5 pendientes) — marketplace granularidad COMPLETA
+1. DEVICE — deviceType() en helper → toda señal lleva mobile/tablet/desktop (SignalIn.device + storage).
+2. TOUR/VIDEO — 'tour_view' al abrir tour_3d/video/fotos.
+3. SCROLL DEPTH — 'scroll_depth' (% máximo) al salir de la ficha.
+4. DISC — ya inferido por buyer_coach_engine; ahora AGREGADO (behavior_profile).
+5. COMPARE PAIRS — cubierto por co_viewed (co-vistos) — sin captura aparte.
+behavior_profile() los consume todos. Endpoint /deep + tarjeta. Cero cable-muerto.
+PORTAL 1 = MARKETPLACE: granularidad máxima REAL alcanzada (geo calle→ciudad · propiedad · financiero · demanda ·
+preguntas+conversación · rechazo · intent · competencia · tiempo · journey · device · DISC · tour · scroll).
