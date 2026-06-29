@@ -227,6 +227,7 @@ const SUPERADMIN_NAV = [
       { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
       { key: 'granularidad',      to: '/superadmin/granularidad',      label: 'Granularidad',      Icon: Target },
       { key: 'demanda-mercado',   to: '/superadmin/demanda-mercado',   label: 'Demanda de mercado', Icon: Target },
+      { key: 'terminal-zona',     to: '/superadmin/terminal-zona',     label: 'Terminal de Zona',   Icon: Target },
       { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
       { key: 'indices-dmx',       to: '/superadmin/indices',           label: 'Índices DMX',       Icon: LineChart },
       { key: 'calibracion',       to: '/superadmin/calibracion',       label: 'Calibración',       Icon: Gauge },

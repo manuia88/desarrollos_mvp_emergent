@@ -66,6 +66,42 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/terminal-zona")
+async def terminal_zona(request: Request, axis: str = "resumen", since_days: int = 180):
+    """TERMINAL DE ZONA — la vista madre que pivotea TODOS los ejes del cubo (carga perezosa por eje):
+    escalas (micro/media/macro) · inteligencia (fusión 8 motores) · cruces (compuestas) · compuestas (las 100) ·
+    atributos (balcón/vista/altura…) · financiero (enganche/crédito/años/mensualidad/ROI/rentabilidad)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import demand_intelligence as di
+    db = request.app.state.db
+    if axis == "escalas":
+        return await di.market_movement(db, since_days=since_days)
+    if axis == "inteligencia":
+        return await di.zone_intelligence(db, since_days=since_days)
+    if axis == "cruces":
+        return await di.cross_intelligence(db, since_days=since_days)
+    if axis == "compuestas":
+        import composite_metrics as cm
+        return await cm.compute_all(db, since_days=since_days)
+    if axis == "atributos":
+        return await di.attribute_demand(db, since_days=since_days)
+    if axis == "financiero":
+        return await di.financial_demand(db, since_days=since_days)
+    # resumen: el índice de ejes
+    return {
+        "ejes": [
+            {"key": "escalas", "label": "Escalas geo", "desc": "micro (CP) · media (colonia) · macro (alcaldía): demanda+absorción+movimiento"},
+            {"key": "inteligencia", "label": "Inteligencia de zona", "desc": "fusión de 8 motores por colonia (precio/riesgo/inversión/ciclo)"},
+            {"key": "atributos", "label": "Atributos de unidad", "desc": "balcón · vista int/ext · altura edificio · orientación · baños · recámaras"},
+            {"key": "financiero", "label": "Financiero", "desc": "presupuesto · enganche · crédito · años · mensualidad · intent · ROI/cap rate · rentabilidad"},
+            {"key": "cruces", "label": "Cruces (compuestas)", "desc": "brecha demanda-precio · ajustada a riesgo · oportunidad real"},
+            {"key": "compuestas", "label": "Las 100 compuestas", "desc": "10 paquetes vendibles — comportamiento ⊗ mercado"},
+        ],
+        "lectura": "el cubo de ~4,000 celdas/colonia — pivotea medida × escala × atributo × financiero × tiempo",
+    }
+
+
 @router.get("/granular-advanced")
 async def granular_advanced(request: Request, since_days: int = 365):
     """Las 20 granularidades AVANZADAS (estacionalidad, balance oferta-demanda, absorción, RFM, elasticidad, viral, fugas

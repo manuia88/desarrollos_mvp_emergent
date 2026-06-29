@@ -236,10 +236,13 @@ async def senales_calientes(request: Request):
     await require_advisor(request)
     import demand_intelligence as di
     import marketplace_granularity as mg
+    import composite_metrics as cm
     db = request.app.state.db
     return {"calientes": await di.hot_visitors(db, since_days=90, top=12),
             "presupuesto_predicho": await mg.predicted_budget(db),
-            "timeline": await mg.predicted_timeline(db)}
+            "timeline": await mg.predicted_timeline(db),
+            "compuestas_lead": await cm.for_asesor(db),       # calidad/fit/pitch/timing por zona
+            "financiero": await di.financial_demand(db)}      # bolsillo del comprador (presupuesto/enganche/intent)
 
 
 # ─── Profile ──────────────────────────────────────────────────────────────────

@@ -26,3 +26,7 @@ export async function getGranularAdvanced() {
 export async function getZonas() {
   return _j(await fetch(`${BASE}/zonas`, { headers: h(), credentials: 'include' }));
 }
+// Terminal de Zona — carga perezosa por eje (resumen/escalas/inteligencia/atributos/financiero/cruces/compuestas).
+export async function getTerminal(axis = 'resumen') {
+  return _j(await fetch(`${BASE}/terminal-zona?axis=${encodeURIComponent(axis)}`, { headers: h(), credentials: 'include' }));
+}
