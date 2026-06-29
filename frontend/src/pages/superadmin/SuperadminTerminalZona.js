@@ -56,7 +56,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
       {/* ESCALAS */}
       {tab === 'escalas' && d && !d.error && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: 16 }}>
-          {[['macro', 'Macro · alcaldía'], ['media', 'Media · colonia'], ['micro', 'Micro · CP']].map(([sc, label]) => (
+          {[['macro', 'Macro · alcaldía'], ['grande', 'Grande · corredor'], ['media', 'Media · colonia'], ['micro', 'Micro · CP']].map(([sc, label]) => (
             <Card key={sc} style={card}>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>{label}</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>

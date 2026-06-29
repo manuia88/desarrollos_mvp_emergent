@@ -844,10 +844,29 @@ def _col2geo():
     return m
 
 
+# Corredores inmobiliarios CDMX (escala "grande" = cluster de colonias, entre colonia y alcaldía).
+_CORRIDORS = {
+    "reforma-centro": ["juarez", "juárez", "cuauhtemoc", "cuauhtémoc", "centro", "tabacalera", "san-rafael", "santa-maria-la-ribera", "roma-norte-centro"],
+    "roma-condesa": ["roma-norte", "roma-sur", "condesa", "hipodromo", "hipodromo-condesa", "hipódromo", "cuauhtemoc-roma"],
+    "polanco-lomas": ["polanco", "lomas-de-chapultepec", "bosques-de-las-lomas", "anzures", "granada", "ampliacion-granada", "polanco-moderno"],
+    "del-valle-napoles": ["del-valle-centro", "del-valle-norte", "del-valle-sur", "napoles", "nápoles", "narvarte", "narvarte-poniente", "actipan", "insurgentes-san-borja"],
+    "coyoacan-pedregal": ["del-carmen", "pedregal", "jardines-del-pedregal", "ciudad-universitaria", "copilco", "coyoacan-centro"],
+    "santa-fe": ["santa-fe", "lomas-de-santa-fe", "contadero", "cuajimalpa"],
+    "mixcoac-insurgentes": ["mixcoac", "san-jose-insurgentes", "insurgentes-mixcoac", "extremadura-insurgentes", "credito-constructor", "noche-buena", "altavista", "san-angel"],
+}
+_COL2CORRIDOR = {c: name for name, cols in _CORRIDORS.items() for c in cols}
+
+
+def _corridor(colonia_id, alcaldia):
+    if colonia_id and colonia_id in _COL2CORRIDOR:
+        return _COL2CORRIDOR[colonia_id]
+    return f"zona {alcaldia}" if alcaldia else None
+
+
 async def zone_dynamics(db, scale: str = "media", since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 20) -> Dict[str, Any]:
-    """DINÁMICA DE ZONA por escala — micro(CP) / media(colonia) / macro(alcaldía). Por cada zona: DEMANDA (señales+
-    búsquedas), OFERTA (unidades), ABSORCIÓN (demanda/oferta) y MOVIMIENTO (mitad reciente vs previa = subiendo/enfriando/
-    nuevo). El 'SimCity de la demanda' a 3 zooms."""
+    """DINÁMICA DE ZONA por escala — micro(CP) / media(colonia) / grande(corredor) / macro(alcaldía). Por cada zona:
+    DEMANDA (señales+búsquedas), OFERTA (unidades), ABSORCIÓN (demanda/oferta) y MOVIMIENTO (mitad reciente vs previa =
+    subiendo/enfriando/nuevo). El 'SimCity de la demanda' a 4 zooms."""
     from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
     now = dt.datetime.utcnow()
     cutoff = now - dt.timedelta(days=since_days)
@@ -860,6 +879,9 @@ async def zone_dynamics(db, scale: str = "media", since_days: int = 180, colonia
             return d.get("alcaldia") or (c2g.get(colonia_id, {}) or {}).get("alcaldia")
         if scale == "micro":
             return d.get("postal_code") or (c2g.get(colonia_id, {}) or {}).get("cp")
+        if scale == "grande":
+            cid = colonia_id or d.get("colonia_id")
+            return _corridor(cid, d.get("alcaldia") or (c2g.get(cid, {}) or {}).get("alcaldia"))
         return colonia_id or d.get("colonia_id")  # media
 
     def in_scope(colonia_id, dev):
@@ -874,7 +896,8 @@ async def zone_dynamics(db, scale: str = "media", since_days: int = 180, colonia
     for d in DEVELOPMENTS:
         if colonias and scale == "media" and d.get("colonia_id") not in colonias:
             continue
-        k = {"macro": d.get("alcaldia"), "micro": d.get("postal_code"), "media": d.get("colonia_id")}.get(scale)
+        k = {"macro": d.get("alcaldia"), "micro": d.get("postal_code"), "media": d.get("colonia_id"),
+             "grande": _corridor(d.get("colonia_id"), d.get("alcaldia"))}.get(scale)
         if k:
             sup[k] += len(d.get("units") or []) or 1
 
@@ -896,7 +919,14 @@ async def zone_dynamics(db, scale: str = "media", since_days: int = 180, colonia
     srch = defaultdict(int)
     async for q in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "colonias": {"$nin": [None, []]}}, {"_id": 0, "colonias": 1}):
         for c in (q.get("colonias") or []):
-            k = c if scale == "media" else (c2g.get(c, {}) or {}).get("alcaldia" if scale == "macro" else "cp")
+            if scale == "media":
+                k = c
+            elif scale == "macro":
+                k = (c2g.get(c, {}) or {}).get("alcaldia")
+            elif scale == "grande":
+                k = _corridor(c, (c2g.get(c, {}) or {}).get("alcaldia"))
+            else:  # micro
+                k = (c2g.get(c, {}) or {}).get("cp")
             if k and (not colonias or scale != "media" or c in colonias):
                 srch[k] += 1
 
@@ -924,6 +954,7 @@ async def market_movement(db, since_days: int = 180, colonias: Optional[List[str
     """Las 3 escalas de una: macro (alcaldía) → media (colonia) → micro (CP). Demanda+oferta+absorción+movimiento."""
     return {
         "macro": await zone_dynamics(db, "macro", since_days=since_days, colonias=colonias),
+        "grande": await zone_dynamics(db, "grande", since_days=since_days, colonias=colonias),
         "media": await zone_dynamics(db, "media", since_days=since_days, colonias=colonias),
         "micro": await zone_dynamics(db, "micro", since_days=since_days, colonias=colonias),
     }
@@ -1029,15 +1060,9 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
             pass
         # FEEDER LOCAL: costo de construcción por m² (BASE_COSTS, sin tokens externos)
         try:
-            import inspect as _insp
-            import construction_cost_engine as cce
             _t = (prof.get("tier") or "").lower()
             tier_cc = "luxury" if ("premium" in _t or "lux" in _t) else "entry" if "emerg" in _t else "mid"
-            cr = cce.predict_cost_per_m2(cid, "vertical", tier_cc)
-            if _insp.isawaitable(cr):
-                cr = await cr
-            if isinstance(cr, dict):
-                prof["costo_construccion_m2"] = cr.get("cost_per_m2_mxn") or cr.get("cost_per_m2")
+            prof["costo_construccion_m2"] = await _construccion_m2(cid, tier_cc)
         except Exception:
             pass
         out.append(prof)
@@ -1045,6 +1070,84 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
             "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
             "fuentes": ["buyer_signals", "demand_twin_engine", "absorcion_engine", "avm_public_engine",
                         "zone_score_engine", "risk_score_engine", "score_inversion_engine", "zone_cycle_engine"]}
+
+
+_CC_CACHE: Dict[str, Any] = {}
+
+
+async def _construccion_m2(colonia_id: str, tier: str):
+    """Costo de construcción/m² con caché en proceso (evita pegarle a BANXICO en cada colonia)."""
+    key = f"{colonia_id}|{tier}"
+    if key in _CC_CACHE:
+        return _CC_CACHE[key]
+    val = None
+    try:
+        import inspect as _insp
+        import construction_cost_engine as cce
+        cr = cce.predict_cost_per_m2(colonia_id, "vertical", tier)
+        if _insp.isawaitable(cr):
+            cr = await cr
+        if isinstance(cr, dict):
+            val = cr.get("cost_per_m2_mxn") or cr.get("cost_per_m2")
+    except Exception:
+        val = None
+    _CC_CACHE[key] = val
+    return val
+
+
+async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 180, top: int = 14) -> Dict[str, Any]:
+    """LAS 75 MÉTRICAS A LAS 4 ESCALAS — la fusión institucional, agregada al nivel pedido:
+    media = colonia (fusión directa) · grande = corredor · macro = alcaldía (rollup ponderado) · micro = CP (subset geo)."""
+    import statistics
+    if scale == "media":
+        return await zone_intelligence(db, since_days=since_days, top=top)
+    if scale == "micro":
+        md = await zone_dynamics(db, "micro", since_days=since_days, top=top)
+        return {"escala": "micro", "zonas": md["zonas"], "lectura": "micro (CP): demanda+oferta+absorción+movimiento (subset geo)"}
+
+    # grande/macro: agrega la fusión de colonia → corredor/alcaldía
+    zi = await zone_intelligence(db, since_days=since_days, top=60)
+
+    def grupo(z):
+        rec = z  # zone_intelligence ya trae alcaldia
+        if scale == "macro":
+            return z.get("alcaldia") or "—"
+        return _corridor(z.get("zona"), z.get("alcaldia")) or "—"
+
+    groups = defaultdict(list)
+    for z in zi["zonas"]:
+        groups[grupo(z)].append(z)
+
+    def wavg(zs, getter):
+        vals = [(getter(z), z.get("demanda") or 1) for z in zs if getter(z) is not None]
+        if not vals:
+            return None
+        num = sum(v * w for v, w in vals); den = sum(w for _, w in vals)
+        return round(num / den) if den else None
+
+    def avg(zs, getter):
+        vals = [getter(z) for z in zs if getter(z) is not None]
+        return round(statistics.mean(vals), 1) if vals else None
+
+    out = []
+    for name, zs in groups.items():
+        out.append({
+            "zona": name, "nombre": name.replace("-", " ").title(), "colonias": len(zs),
+            "demanda": sum(z.get("demanda") or 0 for z in zs),
+            "busquedas": sum(z.get("busquedas") or 0 for z in zs),
+            "oferta_unidades": sum(z.get("oferta_unidades") or 0 for z in zs),
+            "precio_m2": wavg(zs, lambda z: z.get("precio_m2")),
+            "costo_construccion_m2": avg(zs, lambda z: z.get("costo_construccion_m2")),
+            "catastral_pm2": avg(zs, lambda z: z.get("catastral_pm2")),
+            "absorcion": {"vendido_pct": avg(zs, lambda z: (z.get("absorcion") or {}).get("vendido_pct"))},
+            "riesgo": {"num": avg(zs, lambda z: (z.get("riesgo") or {}).get("num"))},
+            "inversion": {"score": avg(zs, lambda z: (z.get("inversion") or {}).get("score"))},
+            "subscores": {k: avg(zs, lambda z, k=k: (z.get("subscores") or {}).get(k)) for k in ("seguridad", "transporte", "amenidades", "lifestyle", "vibe")},
+            "oportunidad": avg(zs, lambda z: z.get("oportunidad")),
+        })
+    out.sort(key=lambda x: -(x["demanda"] + x["busquedas"]))
+    return {"escala": scale, "zonas": out[:top],
+            "lectura": f"{scale}: la fusión de 8 motores agregada a nivel {'corredor' if scale == 'grande' else 'alcaldía'} (rollup ponderado por demanda)"}
 
 
 async def cross_intelligence(db, since_days: int = 180, top: int = 14) -> Dict[str, Any]:

@@ -78,7 +78,8 @@ async def terminal_zona(request: Request, axis: str = "resumen", since_days: int
     if axis == "escalas":
         return await di.market_movement(db, since_days=since_days)
     if axis == "inteligencia":
-        return await di.zone_intelligence(db, since_days=since_days)
+        scale = request.query_params.get("scale", "media")
+        return await di.zone_intelligence_scaled(db, scale=scale, since_days=since_days)
     if axis == "cruces":
         return await di.cross_intelligence(db, since_days=since_days)
     if axis == "compuestas":
