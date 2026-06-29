@@ -68,18 +68,23 @@ Consultable vía `cube_olap` (tiers city→unit) + `cross_intelligence`. Poblar 
 
 ---
 
-## ESTADO DEL MÓDULO MARKETPLACE
+## ESTADO DEL MÓDULO MARKETPLACE (actualizado tras el build completo)
 | Capa | Estado |
 |---|---|
-| 0 Captura (92 señales, 5 nuevas) | ✅ COMPLETO |
+| 0 Captura (92 señales, 5 nuevas + enganche/crédito/años/mensualidad/ROI) | ✅ COMPLETO |
 | 1 Inteligencia base (45 funciones) | ✅ COMPLETO |
 | 2 Escala geo (3 zooms) | ✅ COMPLETO |
 | 3 Fusión 8 motores (zone_intelligence) | ✅ COMPLETO |
-| 4 Compuestas (5/100 + catálogo) | 🔵 5 construidas, 95 catalogadas |
-| 5 El cubo (~4,000 celdas) | 🟡 esquema listo, poblar = feeders |
-| Visualización superadmin | ✅ ~60 páginas + falta Terminal de Zona |
-| Visualización dev | 🟡 backend listo, falta Underwriting Suite UI |
-| Visualización asesor | 🟡 2 vistas vivas, falta Lead Intelligence UI |
+| 4 **Las 100 compuestas** (composite_metrics.py) | ✅ COMPLETO (registro 100/100, 62% valor real, resto feeder-off cableado) |
+| 4b **Eje de atributos de unidad** (attribute_demand) | ✅ COMPLETO (balcón/vista/altura/orientación/baños/recámaras) |
+| 4c **Eje financiero** (financial_demand) | ✅ COMPLETO (presupuesto/enganche/crédito/años/mensualidad/intent/ROI/rentabilidad) |
+| 5 El cubo (~4,000 celdas) | ✅ esquema + consulta vivos; poblar columnas micro/macro = feeders 🟡 |
+| **Terminal de Zona** (superadmin) | ✅ COMPLETO (página + 6 tabs + ruta + nav) |
+| Visualización dev | ✅ atributos + financiero + compuestas en DesarrolladorDemanda |
+| Visualización asesor | ✅ bolsillo + mejores-zonas (compuestas lead) en SenalesCalientesCard |
+
+**Cero motores nuevos: todo es composición.** Lo único que resta para poblar el 100% de las ~4,000 celdas es **prender
+feeders 🟡** (catastro/places/risk/DRPI/airroi) — captura y cálculo ya están construidos y cableados a los 4 portales.
 
 ## LO QUE FALTA PARA CERRAR EL MÓDULO (secuencia)
 1. **Terminal de Zona** (superadmin) — la página estrella: pivote escala×medida×tiempo×segmento + cruces. ← el producto.
