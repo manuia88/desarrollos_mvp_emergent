@@ -85,6 +85,61 @@ async def atlas_children(request: Request, tipo: str = "ciudad", id: str = "CDMX
     return {"tipo": tipo, "id": id, "hijos": ea.entity_children(tipo, id), "tipos_entidad": ea.ENTITY_TYPES}
 
 
+@router.get("/facet/catalog")
+async def facet_catalog(request: Request):
+    """FACETEO — catálogo: poblaciones (unidades/desarrollos/demanda), facets disponibles, ventanas, granularidades."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    return fe.facets_catalog()
+
+
+@router.get("/facet/query")
+async def facet_query_ep(request: Request, poblacion: str = "unidades", group_by: Optional[str] = None,
+                         geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None, ventana: Optional[str] = None,
+                         filtros: Optional[str] = None):
+    """FACETEO — ¿cuántos [población] cumplen [filtros], por [group_by], en [geo], en [ventana]? OFERTA y DEMANDA,
+    independiente (cada lado solo) y relacional (gap/ratio por valor). filtros = JSON {facet:valor}."""
+    import json
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    fdict = json.loads(filtros) if filtros else {}
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await fe.facet_query(request.app.state.db, poblacion=poblacion, filtros=fdict, group_by=group_by, geo=geo, ventana=ventana)
+
+
+@router.get("/facet/crosstab")
+async def facet_crosstab_ep(request: Request, poblacion: str, facet_a: str, facet_b: str,
+                            geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """FACETEO — cross-tab: conteo de [población] por facet_a × facet_b (tabla 2D)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await fe.facet_crosstab(request.app.state.db, poblacion, facet_a, facet_b, geo=geo)
+
+
+@router.get("/facet/serie")
+async def facet_serie_ep(request: Request, granularidad: str = "semana", periodos: int = 12,
+                         geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """FACETEO — serie de tiempo del conteo de demanda (día/semana/quincena/mes), últimos N periodos."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await fe.serie_temporal(request.app.state.db, geo=geo, granularidad=granularidad, periodos=periodos)
+
+
+@router.get("/facet/unmet")
+async def facet_unmet_ep(request: Request, top: int = 12):
+    """FACETEO — 'lo que NO existe': combinaciones (colonia × tipología × tier) que se BUSCAN con 0 oferta."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    return await fe.unmet_combos(request.app.state.db, top=top)
+
+
 @router.get("/grid/overview")
 async def grid_overview(request: Request):
     """Grid de métricas — resumen del registro: medidas base, celdas teóricas, dimensiones, almacén de salida."""
