@@ -116,7 +116,8 @@ async def _segmentos_geo(db, geo) -> List[Dict[str, Any]]:
         for v in r["relacional"]["por_valor"]:
             if v["oferta"] == 0 and v["demanda"] == 0:
                 continue
-            items.append({"segmento": v["valor"], "oferta": v["oferta"], "demanda": v["demanda"], "gap": v["gap"], "tension": v["tension"]})
+            items.append({"segmento": v["valor"], "oferta": v["oferta"], "demanda": v["demanda"], "gap": v["gap"],
+                          "tension": v["tension"], "filtro": {gb: v["valor"]}})   # filtro → drill / acumular
         if items:
             segmentos.append({"dimension": dim_id, "eje": (dr.BY_ID.get(dim_id) or {}).get("eje", "QUE"),
                               "label": label, "estado": _estado(dim_id), "items": items})
@@ -129,7 +130,8 @@ async def _segmentos_geo(db, geo) -> List[Dict[str, Any]]:
             continue
         con = next((v for v in r["relacional"]["por_valor"] if str(v["valor"]).startswith("con")), None)
         if con and (con["oferta"] or con["demanda"]):
-            atr.append({"segmento": label, "oferta": con["oferta"], "demanda": con["demanda"], "gap": con["gap"], "tension": con["tension"]})
+            atr.append({"segmento": label, "oferta": con["oferta"], "demanda": con["demanda"], "gap": con["gap"],
+                        "tension": con["tension"], "filtro": {fid: con["valor"]}})
     if atr:
         segmentos.append({"dimension": "attr.*", "eje": "QUE", "label": "Atributos (cada uno independiente)", "estado": "real", "items": atr})
     return segmentos
@@ -172,6 +174,104 @@ def _caracteristicas_unidad(eid: str) -> List[Dict[str, Any]]:
               ("Roof garden", "sí" if u.get("roof_garden") else "no"), ("Bodega", "sí" if u.get("bodega") else "no"),
               ("Pet friendly", "sí" if u.get("pet_friendly") else "no")]
     return [{"caracteristica": k, "valor": v} for k, v in campos if v is not None]
+
+
+async def _demanda_perfil(db, filtros: Dict[str, str], geo) -> Dict[str, Any]:
+    """PERFIL de quien busca este segmento: cuántos, intención, presupuesto, qué más buscan. La demanda, no anónima."""
+    import facet_engine as fe
+    import demand_intelligence as di
+    cols = fe._geo_cols(geo)
+    # 1) cuántos lo buscan (reusa el lado demanda del facet sobre el primer facet del filtro)
+    fid, fval = next(iter(filtros.items()))
+    try:
+        fq = await fe.facet_query(db, "unidades", group_by=fid, geo=geo)
+        match = next((v for v in fq["relacional"]["por_valor"] if str(v["valor"]) == str(fval)), None)
+        n_buscan = match["demanda"] if match else 0
+    except Exception:
+        n_buscan = 0
+    # 2) intención + presupuesto + qué más buscan (de las búsquedas/señales en la geo)
+    q = {}
+    if cols:
+        q["colonias"] = {"$in": list(cols)}
+    presu, coam = [], Counter()
+    n_busq = 0
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "precio_max": 1}):
+        n_busq += 1
+        if s.get("precio_max"):
+            presu.append(s["precio_max"])
+    intent = {"vivir": 0, "invertir": 0}
+    qsig = {"type": {"$in": ["zone_intent", "intent", "atlax_profile", "ficha_view", "like"]}}
+    if cols:
+        qsig["colonia"] = {"$in": list(cols)}
+    async for s in db.buyer_signals.find(qsig, {"_id": 0, "value": 1, "meta": 1}):
+        v = (str(s.get("value") or "") + " " + str((s.get("meta") or {}).get("intent") or "")).lower()
+        if "invert" in v:
+            intent["invertir"] += 1
+        elif "vivir" in v:
+            intent["vivir"] += 1
+        for a in di._as_feature_list((s.get("meta") or {}).get("amenidades")):
+            coam[str(a).lower()] += 1
+    import statistics
+    tot_i = intent["vivir"] + intent["invertir"]
+    return {
+        "n_buscan": n_buscan,
+        "intencion": ({"invertir": round(100 * intent["invertir"] / tot_i), "vivir": round(100 * intent["vivir"] / tot_i)} if tot_i else None),
+        "presupuesto_mediano": (round(statistics.median(presu)) if presu else None),
+        "tambien_buscan": [a for a, _ in coam.most_common(5)],
+        "nota": "perfil de demanda en la zona (la búsqueda es casi anónima; se reconstruye del comportamiento)",
+    }
+
+
+async def explorar_segmento(db, tipo: str, eid: str, filtros: Dict[str, str], extra: Optional[Dict] = None, top: int = 60) -> Dict[str, Any]:
+    """DRILL de un segmento (clic en '2rec'): OFERTA (qué desarrollos/unidades lo cumplen) + DEMANDA (perfil de quién lo
+    busca). filtros acumulables: {recamaras:'2rec', terraza:'con terraza', ...}. 'extra' = filtros previos acumulados."""
+    import facet_engine as fe
+    geo = _node_geo(tipo, eid)
+    acumulado = {**(extra or {}), **(filtros or {})}
+    # OFERTA — las entidades reales que cumplen el filtro acumulado
+    oferta = await fe.facet_list(db, "unidades", filtros=acumulado, geo=geo, limit=top)
+    # DEMANDA — el perfil de quién lo busca
+    demanda = await _demanda_perfil(db, filtros, geo)
+    return {
+        "nodo": {"tipo": tipo, "id": eid}, "filtros_acumulados": acumulado,
+        "oferta": {"total": oferta["total"], "entidades": oferta["entidades"]},
+        "demanda": demanda,
+        "tension": {"hay": oferta["total"], "buscan": demanda["n_buscan"], "gap": demanda["n_buscan"] - oferta["total"]},
+        "lectura": f"{oferta['total']} unidades cumplen · {demanda['n_buscan']} lo buscan en la zona",
+    }
+
+
+async def oportunidades(db, geo=None, top: int = 15) -> Dict[str, Any]:
+    """MODO AUTO — el cubo encuentra solo: barre segmentos clave × colonias y sube las mayores OPORTUNIDADES (más se busca
+    de lo que hay) y SOBREOFERTAS. No esperas a buscar; el cubo te trae el hallazgo rankeado."""
+    import facet_engine as fe
+    from data_developments import DEVELOPMENTS
+    colonias = sorted({d.get("colonia_id") for d in DEVELOPMENTS if d.get("colonia_id")}) if not geo else [geo[1]]
+    nombres = {d.get("colonia_id"): (d.get("colonia") or d.get("colonia_id")) for d in DEVELOPMENTS}
+    hallazgos = []
+    for col in colonias:
+        g = ("colonia", col)
+        for gb, etiqueta in [("recamaras", "tipología"), ("tier_precio", "precio")] + [(a, lbl) for a, _l, lbl in [(x[1], None, x[2]) for x in ATRIBUTOS]]:
+            try:
+                r = await fe.facet_query(db, "unidades", group_by=gb, geo=g)
+            except Exception:
+                continue
+            for v in r["relacional"]["por_valor"]:
+                if str(v["valor"]).startswith("sin "):   # "sin terraza/pet" como oportunidad es ruido — saltar
+                    continue
+                gap = v["gap"]
+                if abs(gap) < 5:
+                    continue
+                hallazgos.append({"colonia": nombres.get(col, col), "colonia_id": col, "segmento": v["valor"],
+                                  "dimension": etiqueta, "oferta": v["oferta"], "demanda": v["demanda"], "gap": gap,
+                                  "tipo": "oportunidad" if gap > 0 else "sobreoferta",
+                                  "filtro": {gb: v["valor"]},
+                                  "lectura": (f"En {nombres.get(col, col)} se busca {v['valor']} mucho más de lo que hay: faltan {gap}."
+                                              if gap > 0 else f"En {nombres.get(col, col)} sobra {v['valor']}: {-gap} más de lo que se busca.")})
+    hallazgos.sort(key=lambda h: -abs(h["gap"]))
+    return {"oportunidades": [h for h in hallazgos if h["tipo"] == "oportunidad"][:top],
+            "sobreofertas": [h for h in hallazgos if h["tipo"] == "sobreoferta"][:top],
+            "lectura": "el cubo barrió los segmentos y subió dónde la demanda rebasa la oferta (y viceversa), por impacto"}
 
 
 async def explorar_nodo(db, tipo: str = "ciudad", eid: str = "CDMX", con_combinaciones: bool = True) -> Dict[str, Any]:

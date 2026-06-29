@@ -97,6 +97,26 @@ async def explorar(request: Request, tipo: str = "ciudad", id: str = "CDMX", com
     return await ex.explorar_nodo(request.app.state.db, tipo, id, con_combinaciones=combinaciones)
 
 
+@router.post("/explorar/segmento")
+async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str = "", top: int = 60):
+    """DRILL de un segmento (clic en '2rec'): OFERTA (entidades) + DEMANDA (perfil). Body = {filtros:{...}, extra:{...}}."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import explorador as ex
+    body = await request.json()
+    return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
+
+
+@router.get("/explorar/oportunidades")
+async def explorar_oportunidades(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None, top: int = 15):
+    """MODO AUTO — el cubo encuentra solo: top oportunidades (demanda>oferta) y sobreofertas, rankeadas por impacto."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import explorador as ex
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await ex.oportunidades(request.app.state.db, geo=geo, top=top)
+
+
 @router.get("/dimensiones")
 async def dimensiones(request: Request, eje: Optional[str] = None, arbol: bool = False):
     """Catálogo CANÓNICO de hiper-segmentación: 114 dimensiones × 7 ejes, cada una con su campo real/derivado/por-crear.
