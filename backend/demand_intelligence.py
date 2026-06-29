@@ -889,9 +889,9 @@ async def intent_split(db, since_days: int = 365, top: int = 10) -> Dict[str, An
 
 
 async def co_viewed(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
-    """QUÉ COMPITE (market basket) — desarrollos vistos por el MISMO comprador = compiten en su mente. Inteligencia
-    competitiva real ('quien ve Altavista también ve Tamaulipas 89')."""
-    from collections import Counter
+    """QUÉ COMPITE (market basket, universo) — desarrollos vistos por el MISMO comprador = compiten en su mente.
+    Pares · RIVAL principal por dev · competencia CROSS-ZONA vs intra-zona · dev más considerado (captura de atención).
+    Inteligencia competitiva real."""
     from data_developments import DEVELOPMENTS_BY_ID
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     seen = defaultdict(set)
@@ -899,15 +899,29 @@ async def co_viewed(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
                                           "created_at_dt": {"$gte": cutoff}, "entity_id": {"$nin": [None, ""]}},
                                          {"_id": 0, "visitor_id": 1, "entity_id": 1}):
         seen[s["visitor_id"]].add(s["entity_id"])
-    pairs = Counter()
+    pairs = Counter(); per_dev = defaultdict(Counter); considerado = Counter()
+    cross_zone = 0; intra_zone = 0
+    col = lambda d: (DEVELOPMENTS_BY_ID.get(d, {}) or {}).get("colonia_id")
+    nm = lambda d: (DEVELOPMENTS_BY_ID.get(d, {}) or {}).get("name") or d
     for devs in seen.values():
         dl = sorted(devs)
         for i in range(len(dl)):
+            considerado[dl[i]] += len(dl) - 1
             for j in range(i + 1, len(dl)):
-                pairs[(dl[i], dl[j])] += 1
-    nm = lambda d: (DEVELOPMENTS_BY_ID.get(d, {}) or {}).get("name") or d
+                a, b = dl[i], dl[j]
+                pairs[(a, b)] += 1
+                per_dev[a][b] += 1; per_dev[b][a] += 1
+                if col(a) and col(b) and col(a) != col(b):
+                    cross_zone += 1
+                else:
+                    intra_zone += 1
+    rival_principal = [{"dev": nm(d), "rival": nm(rc.most_common(1)[0][0]), "veces": rc.most_common(1)[0][1]}
+                       for d, rc in sorted(per_dev.items(), key=lambda x: -sum(x[1].values()))[:top] if rc]
     return {"pares_comparados": [{"a": nm(a), "b": nm(b), "juntos": n} for (a, b), n in pairs.most_common(top)],
-            "lectura": "estos desarrollos compiten por el mismo comprador"}
+            "rival_principal": rival_principal,
+            "competencia_cross_zona": cross_zone, "competencia_intra_zona": intra_zone,
+            "mas_considerados": [{"dev": nm(d), "apariciones": n} for d, n in considerado.most_common(8)],
+            "lectura": "rival #1 de cada dev + si la competencia es dentro de la zona o cruzando zonas + el más considerado"}
 
 
 async def temporal_demand(db, since_days: int = 90) -> Dict[str, Any]:
