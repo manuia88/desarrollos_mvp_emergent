@@ -1929,6 +1929,111 @@ async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 1
             "lectura": f"{scale}: la fusión de 8 motores agregada a nivel {'corredor' if scale == 'grande' else 'alcaldía'} (rollup ponderado por demanda)"}
 
 
+async def development_intelligence(db, dev_id: Optional[str] = None, since_days: int = 180, top: int = 12) -> Dict[str, Any]:
+    """ÍNDICE DE INTELIGENCIA POR DESARROLLO — el equivalente de zone_intelligence pero a nivel PROYECTO. Fusiona los
+    motores per-dev en una foto por desarrollo: demanda propia (señales) · absorción real de SUS unidades · margen
+    (dmx_margin) · project score (dmx_project_score) · posición competitiva + rivales (battle_card) · anomalías de
+    comparables · probabilidad de venta · y el CONTEXTO de su colonia (dev vs zona). Cierra el hueco: la misma
+    granularidad del Terminal de Zona, a nivel desarrollo."""
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+
+    # demanda por dev (señales con entity_id = dev)
+    dem = defaultdict(lambda: defaultdict(int))
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "entity_id": {"$nin": [None, ""]}},
+                                         {"_id": 0, "entity_id": 1, "type": 1}):
+        dem[s["entity_id"]][s["type"]] += 1
+
+    if dev_id:
+        dev_ids = [dev_id]
+    else:
+        ranked = sorted(dem.items(), key=lambda x: -sum(x[1].values()))
+        dev_ids = [d for d, _ in ranked[:top]] or [d.get("id") for d in DEVELOPMENTS[:top]]
+
+    # contexto de zona (1 sola vez) para comparar dev vs su colonia
+    try:
+        zmap = {z["zona"]: z for z in (await zone_intelligence(db, top=60)).get("zonas", [])}
+    except Exception:
+        zmap = {}
+
+    out = []
+    for did in dev_ids:
+        d = DEVELOPMENTS_BY_ID.get(did)
+        if not d:
+            continue
+        units = d.get("units") or []
+        d_dem = dem.get(did, {})
+        eng = sum(d_dem.get(t, 0) for t in ("ficha_view", "like", "save", "unit_view", "unit_save", "compare", "intent"))
+        prof = {"dev_id": did, "nombre": d.get("name") or did, "colonia": d.get("colonia"), "colonia_id": d.get("colonia_id"),
+                "precio_desde": d.get("price_from"), "demanda": eng,
+                "señales": {t: d_dem.get(t, 0) for t in ("ficha_view", "like", "save", "intent", "compare") if d_dem.get(t)}}
+        # absorción REAL de sus unidades
+        if units:
+            sold = sum(1 for u in units if str(u.get("status") or "").lower() in ("vendido", "reservado", "sold", "reserved"))
+            prof["absorcion"] = {"vendido_pct": round(100 * sold / len(units)), "vendidas": sold, "total": len(units)}
+        # margen (dmx_margin)
+        try:
+            import dmx_margin as dm
+            mg = await dm.compute_margins([d])
+            m = mg.get(did) or (list(mg.values())[0] if mg else {})
+            if m:
+                prof["margen"] = {"pct": m.get("margin_pct"), "semaforo": m.get("semaforo") or m.get("veredicto")}
+        except Exception:
+            pass
+        # project score (dmx_project_score)
+        try:
+            import dmx_project_score as ps
+            sc = ps.compute({**d, "demanda": eng})
+            if isinstance(sc, dict):
+                prof["project_score"] = sc.get("score") or sc.get("total")
+        except Exception:
+            pass
+        # battle card (posición competitiva + rivales)
+        try:
+            import battle_card_engine as bc
+            ms = await bc.get_my_score(db, did)
+            if isinstance(ms, dict):
+                prof["competitivo"] = {"score": ms.get("score") or ms.get("total"), "ranking": ms.get("ranking") or ms.get("rank")}
+            comp = await bc.get_top_competitors(db, did, d.get("colonia_id") or "", limit=3)
+            if comp:
+                prof["rivales"] = [{"dev": (c.get("nombre") or c.get("name") or c.get("project_id")), "score": c.get("score")} for c in comp[:3]]
+        except Exception:
+            pass
+        # probabilidad de venta total
+        try:
+            import probability_engine as pe
+            pv = await pe.compute_sells_complete(db, did, 12)
+            if isinstance(pv, dict):
+                prof["prob_venta_12m"] = {"pct": pv.get("probability_pct"), "confianza": pv.get("confidence_lvl")}
+        except Exception:
+            pass
+        # anomalías de comparables (precio/velocidad/lanzamientos cerca)
+        try:
+            import comparable_anomaly_engine as ca
+            al = await ca.detect_anomalies_for_dev(db, did)
+            if al:
+                prof["alertas_comparables"] = len(al)
+        except Exception:
+            pass
+        # CONTEXTO de su colonia (dev vs zona)
+        z = zmap.get(d.get("colonia_id"))
+        if z:
+            prof["zona"] = {"nombre": z.get("nombre"), "precio_m2_zona": z.get("precio_m2"), "demanda_zona": z.get("demanda"),
+                            "absorcion_zona_pct": (z.get("absorcion") or {}).get("vendido_pct"),
+                            "riesgo": (z.get("riesgo") or {}).get("letra"), "inversion": (z.get("inversion") or {}).get("score"),
+                            "cap_rate_str": z.get("cap_rate_str")}
+            # cuota de demanda del dev dentro de su colonia
+            if z.get("demanda"):
+                prof["cuota_demanda_zona_pct"] = round(100 * eng / max(z["demanda"], 1))
+        out.append(prof)
+
+    out.sort(key=lambda x: -(x.get("demanda") or 0))
+    return {"desarrollos": out,
+            "lectura": "cada desarrollo: su demanda, absorción, margen, score, competencia, prob. de venta + cómo se compara con su colonia",
+            "fuentes": ["buyer_signals", "dmx_margin", "dmx_project_score", "battle_card_engine", "probability_engine",
+                        "comparable_anomaly_engine", "zone_intelligence"]}
+
+
 async def cross_intelligence(db, since_days: int = 180, top: int = 14) -> Dict[str, Any]:
     """MÉTRICAS COMPUESTAS NET-NEW — cruzan el COMPORTAMIENTO del marketplace (buyer_signals/demand) con los MOTORES de
     mercado del superadmin (AVM/riesgo/inversión/absorción). Ninguna existe en un motor solo; nacen del cruce.
