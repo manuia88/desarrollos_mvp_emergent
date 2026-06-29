@@ -125,7 +125,17 @@ def _conv_low(g):
 # ════════════════ LAS 100 COMPUESTAS ════════════════
 # Cada entrada: (n, pack, nombre, descubre, fn(z, g) -> valor)
 P = {1: "Pricing", 2: "Demand", 3: "Investor", 4: "Risk", 5: "Absorption",
-     6: "Underwriting", 7: "Livability", 8: "Competitive", 9: "Lead", 10: "Momentum"}
+     6: "Underwriting", 7: "Livability", 8: "Competitive", 9: "Lead", 10: "Momentum",
+     11: "Suelo&Construcción", 12: "STR/Airbnb"}
+
+
+def _str(z, k):
+    return (z.get("str_airbnb") or {}).get(k)
+
+
+def _pct(a, b):
+    a, b = _n(a), _n(b)
+    return round(100 * a / b) if a is not None and b not in (None, 0) else None
 
 COMPOSITES: List = [
     # ── PACK 1 · PRICING ──
@@ -348,6 +358,50 @@ COMPOSITES: List = [
      lambda z, g: round(z.get("busquedas", 0) - z.get("oferta_unidades", 0)) if z.get("busquedas", 0) > z.get("oferta_unidades", 0) else 0),
     (100, 10, "Termómetro zona emergente", "la próxima Condesa antes de que suba",
      lambda z, g: "emergente" if (z.get("demanda", 0) > 30 and (_n(z.get("precio_m2")) or 1e9) < 70000) else "—"),
+
+    # ── PACK 11 · SUELO & CONSTRUCCIÓN (usa feeders nuevos: catastral + costo construcción + valor residual) ──
+    (101, 11, "Construcción % del precio", "qué parte del precio es costo de obra",
+     lambda z, g: _pct(z.get("costo_construccion_m2"), z.get("precio_m2"))),
+    (102, 11, "Margen bruto del dev", "(precio − costo) / precio = colchón del desarrollador",
+     lambda z, g: round(100 * (z["precio_m2"] - z["costo_construccion_m2"]) / z["precio_m2"]) if z.get("precio_m2") and z.get("costo_construccion_m2") else None),
+    (103, 11, "Demanda × margen", "dónde construir con margen Y demanda probada",
+     lambda z, g: round((z.get("demanda", 0)) * ((z["precio_m2"] - z["costo_construccion_m2"]) / z["precio_m2"])) if z.get("precio_m2") and z.get("costo_construccion_m2") else None),
+    (104, 11, "Suelo % del precio (catastral)", "qué parte del valor es tierra (catastral)",
+     lambda z, g: _pct(z.get("catastral_pm2"), z.get("precio_m2"))),
+    (105, 11, "Residual ÷ catastral", "cuántas veces el catastral justifica el desarrollo (múltiplo de suelo)",
+     lambda z, g: _ratio(z.get("valor_residual_pm2"), z.get("catastral_pm2"))),
+    (106, 11, "Premium sobre catastral", "precio de mercado vs valor catastral del suelo (×)",
+     lambda z, g: _ratio(z.get("precio_m2"), z.get("catastral_pm2"))),
+    (107, 11, "Eficiencia de construcción", "precio ÷ costo de obra (cuánto multiplica)",
+     lambda z, g: _ratio(z.get("precio_m2"), z.get("costo_construccion_m2"))),
+    (108, 11, "Margen ajustado a riesgo", "margen bruto neto del riesgo de la zona",
+     lambda z, g: round((100 * (z["precio_m2"] - z["costo_construccion_m2"]) / z["precio_m2"]) * (_risk(z) or 0) / 100) if z.get("precio_m2") and z.get("costo_construccion_m2") and _risk(z) is not None else None),
+    (109, 11, "Lift de palanca × margen", "el feature que sube venta, donde hay margen para construirlo",
+     lambda z, g: f"{(z.get('feature_lift') or {}).get('valor')} +{(z.get('feature_lift') or {}).get('lift_pp')}pp" if z.get("feature_lift") and z.get("costo_construccion_m2") else None),
+    (110, 11, "Suelo máx pagable × demanda", "valor residual del suelo ponderado por demanda real",
+     lambda z, g: round((z.get("valor_residual_pm2") or 0) * min(z.get("demanda", 0) / 100 + 0.5, 1.5)) if z.get("valor_residual_pm2") else None),
+
+    # ── PACK 12 · STR / AIRBNB (usa AirROI real: ocupación/ADR/RevPAR/revenue/listings + cap_rate_str) ──
+    (111, 12, "Payback STR (años)", "años para recuperar la inversión vía Airbnb",
+     lambda z, g: round((z["precio_m2"] * ((z.get("spec_pedida") or {}).get("m2") or 80) / 20.0) / _str(z, "revenue_anual_usd"), 1) if z.get("precio_m2") and _str(z, "revenue_anual_usd") else None),
+    (112, 12, "Saturación STR", "listings Airbnb ÷ inventario en venta (competencia de renta corta)",
+     lambda z, g: _ratio(_str(z, "listings"), max(z.get("oferta_unidades", 1), 1)) if _str(z, "listings") else None),
+    (113, 12, "RevPAR × demanda", "atractivo Airbnb ponderado por demanda de compra",
+     lambda z, g: round((_str(z, "revpar") or 0) * min(z.get("demanda", 0) / 50, 2)) if _str(z, "revpar") else None),
+    (114, 12, "Yield STR ajustado a riesgo", "cap rate Airbnb neto de riesgo físico",
+     lambda z, g: round((z.get("cap_rate_str") or 0) * (_risk(z) or 0) / 100, 2) if z.get("cap_rate_str") and _risk(z) is not None else None),
+    (115, 12, "Premium STR vs tradicional", "cuánto más rinde Airbnb que la renta larga (×)",
+     lambda z, g: _ratio(z.get("cap_rate_str"), z.get("cap_rate_est")) if z.get("cap_rate_str") and z.get("cap_rate_est") else None),
+    (116, 12, "STR × score de inversión", "renta corta donde además la zona es grado inversión",
+     lambda z, g: round((z.get("cap_rate_str") or 0) * (_inv(z) or 0) / 100, 1) if z.get("cap_rate_str") and _inv(z) is not None else None),
+    (117, 12, "Demanda caliente × yield STR", "zona caliente de compra Y rentable en Airbnb",
+     lambda z, g: round((z.get("demanda", 0)) * (z.get("cap_rate_str") or 0) / 100, 1) if z.get("cap_rate_str") else None),
+    (118, 12, "Ocupación × ADR", "eficiencia de ingreso Airbnb (ocupación × tarifa)",
+     lambda z, g: round((_str(z, "ocupacion_pct") or 0) / 100 * (_str(z, "adr") or 0)) if _str(z, "adr") else None),
+    (119, 12, "Listings × absorción", "competencia Airbnb vs velocidad de venta (presión de zona)",
+     lambda z, g: round((_str(z, "listings") or 0) * ((z.get("absorcion") or {}).get("vendido_pct") or 0) / 100) if _str(z, "listings") else None),
+    (120, 12, "Índice STR", "blend ocupación + RevPAR + cap rate Airbnb = atractivo de renta corta",
+     lambda z, g: round(min((_str(z, "ocupacion_pct") or 0), 100) * 0.3 + min((_str(z, "revpar") or 0), 200) / 200 * 35 + min((z.get("cap_rate_str") or 0), 15) / 15 * 35) if _str(z, "revpar") else None),
 ]
 
 
