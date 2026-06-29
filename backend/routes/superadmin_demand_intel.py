@@ -86,6 +86,10 @@ async def terminal_zona(request: Request, axis: str = "resumen", since_days: int
     if axis == "compuestas":
         import composite_metrics as cm
         return await cm.compute_all(db, since_days=since_days)
+    if axis == "desarrollos":
+        return await di.development_intelligence(db, dev_id=request.query_params.get("dev_id"), since_days=since_days)
+    if axis == "areas-escala":
+        return await di.axes_por_escala(db, scale=request.query_params.get("scale", "macro"), since_days=since_days)
     if axis == "atributos":
         return await di.attribute_demand(db, since_days=since_days)
     if axis == "financiero":

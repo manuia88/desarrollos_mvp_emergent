@@ -319,8 +319,11 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
     esquema = defaultdict(int); perfil_fin = defaultdict(int); ltv = defaultdict(int)
     capacidad = []; tipo_credito = defaultdict(int); le_gana_cetes = {"sí": 0, "no": 0}
 
-    # Presupuesto (búsquedas + meta)
-    async for q in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}}, {"_id": 0, "precio_max": 1}):
+    # Presupuesto (búsquedas + meta) — filtrado por colonias si se pide (para que finanzas varíe por escala)
+    _pq = {"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}}
+    if colonias:
+        _pq["colonias"] = {"$in": list(colonias)}
+    async for q in db.marketplace_searches.find(_pq, {"_id": 0, "precio_max": 1}):
         presupuesto[band_precio(q["precio_max"])] += 1
     # Señales financieras (cotizador + ROI + Atlax)
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["payment_explore", "roi_explore", "atlax_query", "atlax_profile", "lens"]}},
@@ -1927,6 +1930,62 @@ async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 1
     out.sort(key=lambda x: -(x["demanda"] + x["busquedas"]))
     return {"escala": scale, "zonas": out[:top],
             "lectura": f"{scale}: la fusión de 8 motores agregada a nivel {'corredor' if scale == 'grande' else 'alcaldía'} (rollup ponderado por demanda)"}
+
+
+async def axes_por_escala(db, scale: str = "media", since_days: int = 180, top: int = 8) -> Dict[str, Any]:
+    """TODAS LAS ÁREAS A CADA ESCALA — características (atributos), finanzas, créditos e inversión agregadas por la escala
+    pedida: media(colonia) · grande(corredor) · macro(alcaldía) · ciudad. Reusa attribute_demand + financial_demand con
+    scope de colonias por zona. Cierra: la misma granularidad de áreas que en colonia, también en alcaldía y ciudad."""
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    # zona de la escala → set de colonias
+    groups = defaultdict(set)
+    for d in DEVELOPMENTS:
+        cid = d.get("colonia_id"); alc = d.get("alcaldia")
+        if not cid:
+            continue
+        key = (alc if scale == "macro" else _corridor(cid, alc) if scale == "grande"
+               else (d.get("city") or "CDMX") if scale == "ciudad" else cid)
+        if key:
+            groups[key].add(cid)
+    # rank zonas por demanda (señales)
+    dem = defaultdict(int)
+    async for s in db.buyer_signals.find({"colonia": {"$nin": [None, ""]}}, {"_id": 0, "colonia": 1, "entity_id": 1}):
+        cid = s.get("colonia") or (DEVELOPMENTS_BY_ID.get(s.get("entity_id"), {}) or {}).get("colonia_id")
+        for zona, cols in groups.items():
+            if cid in cols:
+                dem[zona] += 1
+                break
+    ranked = sorted(groups.items(), key=lambda x: -dem.get(x[0], 0))[:top]
+
+    out = []
+    for zona, cols in ranked:
+        cl = list(cols)
+        try:
+            atr = await attribute_demand(db, since_days=since_days, colonias=cl)
+        except Exception:
+            atr = {}
+        try:
+            fin = await financial_demand(db, since_days=since_days, colonias=cl)
+        except Exception:
+            fin = {}
+        out.append({
+            "zona": zona, "nombre": str(zona).replace("-", " ").title(), "colonias": len(cl), "demanda": dem.get(zona, 0),
+            # CARACTERÍSTICAS (top del eje de atributos)
+            "caracteristicas": {
+                "booleanos": (atr.get("booleanos") or [])[:5],
+                "vista": atr.get("vista"), "altura_edificio": atr.get("altura_edificio"),
+                "tipologia": atr.get("tipologia"), "amenidades": [a["amenidad"] for a in (atr.get("amenidades_especificas") or [])[:6]],
+            },
+            # FINANZAS + CRÉDITOS + INVERSIÓN
+            "finanzas": {
+                "presupuesto": fin.get("presupuesto"), "intent": fin.get("intent"),
+                "enganche_mediano": fin.get("enganche_mediano"), "mensualidad_mediana": fin.get("mensualidad_mediana"),
+                "perfil_financiamiento": fin.get("perfil_financiamiento"), "tipo_credito": fin.get("tipo_credito"),
+                "apetito_retorno": fin.get("apetito_retorno_pct"), "rentabilidad": (fin.get("rentabilidad_por_zona") or [])[:3],
+            },
+        })
+    return {"escala": scale, "zonas": out,
+            "lectura": "características + finanzas + créditos + inversión, agregadas a la escala (alcaldía/corredor/ciudad)"}
 
 
 async def development_intelligence(db, dev_id: Optional[str] = None, since_days: int = 180, top: int = 12) -> Dict[str, Any]:
