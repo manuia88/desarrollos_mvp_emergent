@@ -66,6 +66,27 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/screener/metricas")
+async def screener_metricas(request: Request):
+    """SCREENER — métricas y operadores disponibles para armar criterios de búsqueda."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import screener as sc
+    return sc.metricas_disponibles()
+
+
+@router.post("/screener/buscar")
+async def screener_buscar(request: Request, ordenar_por: Optional[str] = None, desc: bool = True, top: int = 40):
+    """SCREENER — buscar por criterios: body = [{metrica, op, valor}]. Devuelve colonias que cumplen TODOS (AND)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import screener as sc
+    criterios = await request.json()
+    if isinstance(criterios, dict):
+        criterios = criterios.get("criterios", [])
+    return await sc.screen(request.app.state.db, criterios, ordenar_por=ordenar_por, desc=desc, top=top)
+
+
 @router.get("/explorar")
 async def explorar(request: Request, tipo: str = "ciudad", id: str = "CDMX", combinaciones: bool = True):
     """EXPLORADOR — un nodo del árbol (ciudad▸alcaldía▸colonia▸desarrollo▸unidad): hijos + cada segmento INDEPENDIENTE
