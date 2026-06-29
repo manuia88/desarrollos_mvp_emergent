@@ -167,6 +167,18 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
               <div key={r.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '2px 0' }}><span>{r.colonia}</span><strong style={{ color: 'var(--theme)' }}>{r.score} ({r.tier})</strong></div>
             ))}
           </Card>
+          <Card style={card}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Perfil de financiamiento</div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
+              <div>Perfil: {Object.entries(d.perfil_financiamiento || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
+              <div>LTV (apalancamiento): {Object.entries(d.apalancamiento_ltv || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
+              <div>Esquema: {Object.entries(d.esquema_preferido || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
+              <div>Tipo de crédito: {Object.entries(d.tipo_credito || {}).slice(0, 4).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
+              <div>Capacidad de pago: {d.capacidad_pago_pct_anual != null ? `${d.capacidad_pago_pct_anual}%/año del valor` : '—'}</div>
+              <div>Le gana a CETES: {d.le_gana_a_cetes?.['sí'] || 0} sí · {d.le_gana_a_cetes?.no || 0} no</div>
+            </div>
+            {Object.keys(d.perfil_financiamiento || {}).length === 0 && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>Captura cableada · se llena con uso del cotizador/calc.</div>}
+          </Card>
         </div>
       )}
 

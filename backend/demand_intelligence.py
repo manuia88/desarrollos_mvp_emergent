@@ -166,6 +166,9 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
     presupuesto = defaultdict(int); enganche_pct = defaultdict(int); plazo_anos = defaultdict(int)
     mensualidad = []; enganche_montos = []; credito_montos = []
     roi_apetito = defaultdict(int); tir_vals = []; cap_vals = []; vivir = invertir = 0
+    # Sub-dimensiones nuevas (principio universo, no ejemplo):
+    esquema = defaultdict(int); perfil_fin = defaultdict(int); ltv = defaultdict(int)
+    capacidad = []; tipo_credito = defaultdict(int); le_gana_cetes = {"sí": 0, "no": 0}
 
     # Presupuesto (búsquedas + meta)
     async for q in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}}, {"_id": 0, "precio_max": 1}):
@@ -225,6 +228,32 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
                 cap_vals.append(float(meta["cap_rate"]))
             except (TypeError, ValueError):
                 pass
+        # ── sub-dimensiones nuevas ──
+        if meta.get("esquema"):
+            esquema[str(meta["esquema"]).lower()] += 1
+        ep = meta.get("enganche_pct")
+        if ep is not None:
+            try:
+                ep = float(ep)
+                perfil_fin["contado" if ep >= 99 else "crédito (enganche bajo)" if ep < 25 else "mixto (enganche alto)"] += 1
+                ltv[f"{int(round((100 - ep) / 10) * 10)}% crédito"] += 1   # loan-to-value
+            except (TypeError, ValueError):
+                pass
+        # capacidad de pago: mensualidad vs presupuesto (stress)
+        try:
+            mm = float(meta.get("mensualidad") or 0); pp = float(meta.get("presupuesto") or meta.get("precio") or 0)
+            if mm and pp:
+                capacidad.append(round(mm * 12 * 100 / pp, 1))    # % anual del valor que paga
+        except (TypeError, ValueError):
+            pass
+        for c in _as_feature_list(meta.get("credito_tipo") or meta.get("creditos")):
+            tipo_credito[str(c).lower()] += 1
+        # apetito vs CETES (¿le gana al banco?)
+        try:
+            if meta.get("tir") is not None and meta.get("cetes") is not None:
+                le_gana_cetes["sí" if float(meta["tir"]) > float(meta["cetes"]) else "no"] += 1
+        except (TypeError, ValueError):
+            pass
 
     # intent global (fallback al motor)
     if vivir == 0 and invertir == 0:
@@ -260,9 +289,17 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
         "tir_mediana": med(tir_vals),
         "cap_rate_mediano": round(statistics.median(cap_vals), 1) if cap_vals else None,
         "rentabilidad_por_zona": rentabilidad,
+        # sub-dimensiones nuevas (universo, no ejemplo):
+        "esquema_preferido": dict(sorted(esquema.items(), key=lambda x: -x[1])),
+        "perfil_financiamiento": dict(perfil_fin),                 # contado / crédito / mixto
+        "apalancamiento_ltv": dict(sorted(ltv.items())),           # loan-to-value
+        "capacidad_pago_pct_anual": med(capacidad),                # % anual del valor que paga
+        "tipo_credito": dict(sorted(tipo_credito.items(), key=lambda x: -x[1])),
+        "le_gana_a_cetes": le_gana_cetes,
         "cobertura": {"cotizador_con_enganche": len(enganche_montos), "con_mensualidad": len(mensualidad),
                       "con_roi": len(tir_vals) + len(cap_vals)},
-        "lectura": "el bolsillo: cuánto traen, cuánto enganche/crédito, a qué plazo, qué mensualidad pagan, y qué retorno buscan",
+        "lectura": "el bolsillo COMPLETO: presupuesto, enganche/crédito/LTV, plazo, mensualidad, capacidad de pago, esquema, "
+                   "tipo de crédito, intent, apetito de retorno vs CETES, y rentabilidad por zona",
     }
 
 
