@@ -52,6 +52,16 @@ async def demand_deep(request: Request, since_days: int = 365):
     }
 
 
+@router.get("/zonas")
+async def demand_zonas(request: Request, since_days: int = 180):
+    """DINÁMICA DE ZONA a 3 escalas — macro (alcaldía) · media (colonia) · micro (CP). Por zona: demanda, oferta,
+    ABSORCIÓN y MOVIMIENTO (subiendo/enfriando/nuevo). El mapa de calor del mercado a 3 zooms."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import demand_intelligence as di
+    return await di.market_movement(request.app.state.db, since_days=since_days)
+
+
 @router.get("/granular-advanced")
 async def granular_advanced(request: Request, since_days: int = 365):
     """Las 20 granularidades AVANZADAS (estacionalidad, balance oferta-demanda, absorción, RFM, elasticidad, viral, fugas

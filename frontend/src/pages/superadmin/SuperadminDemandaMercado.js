@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
-import { getOverview, getFeature, getDeep, getGranularAdvanced } from '../../api/superadminDemandIntel';
+import { getOverview, getFeature, getDeep, getGranularAdvanced, getZonas } from '../../api/superadminDemandIntel';
 
 function Spark({ serie }) {
   const entries = Object.entries(serie || {});
@@ -31,6 +31,7 @@ export default function SuperadminDemandaMercado() {
   const [killer, setKiller] = useState(null);
   const [deep, setDeep] = useState(null);   // dimensiones profundas (lazy)
   const [adv, setAdv] = useState(null);     // 20 granularidades avanzadas (lazy)
+  const [zonas, setZonas] = useState(null); // dinámica de zona 3 escalas (lazy)
 
   useEffect(() => {
     getOverview({ period, colonia }).then(setData).catch((e) => setErr(e.message));
@@ -348,6 +349,40 @@ export default function SuperadminDemandaMercado() {
               ))}
               {(deep.visitantes_calientes?.visitantes_calientes || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
             </Card>
+          </div>
+        )}
+      </div>
+
+      {/* DINÁMICA DE ZONA · 3 ESCALAS (lazy) */}
+      <div style={{ marginTop: 16 }}>
+        {!zonas ? (
+          <button onClick={() => getZonas().then(setZonas).catch((e) => setZonas({ error: e.message }))}
+            style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#aaa', cursor: 'pointer' }}>
+            Ver dinámica de zona · macro (alcaldía) → media (colonia) → micro (CP) · demanda · absorción · movimiento
+          </button>
+        ) : zonas.error ? <Card style={{ padding: 16, color: '#dc2626' }}>{zonas.error}</Card> : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: 16 }}>
+            {[['macro', 'Macro · alcaldía'], ['media', 'Media · colonia'], ['micro', 'Micro · CP']].map(([sc, label]) => (
+              <Card key={sc} style={{ padding: '14px 18px' }}>
+                <div style={{ fontWeight: 600, marginBottom: 10 }}>{label}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr repeat(4, 0.7fr)', gap: 4, fontSize: 11, color: '#888', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 4, marginBottom: 4 }}>
+                  <span>zona</span><span style={{ textAlign: 'right' }}>dem</span><span style={{ textAlign: 'right' }}>busq</span><span style={{ textAlign: 'right' }}>absor</span><span style={{ textAlign: 'right' }}>mov</span>
+                </div>
+                {(zonas[sc]?.zonas || []).slice(0, 8).map((z) => {
+                  const mvColor = z.movimiento === 'subiendo' ? '#22c55e' : z.movimiento === 'enfriando' ? '#dc2626' : z.movimiento === 'nuevo' ? 'var(--theme)' : '#888';
+                  const mvTxt = z.cambio_pct != null ? `${z.cambio_pct > 0 ? '+' : ''}${z.cambio_pct}%` : z.movimiento === 'nuevo' ? 'nuevo' : '—';
+                  return (
+                    <div key={z.zona} style={{ display: 'grid', gridTemplateColumns: '1.4fr repeat(4, 0.7fr)', gap: 4, fontSize: 12, padding: '2px 0' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{z.zona}</span>
+                      <span style={{ textAlign: 'right' }}>{z.demanda}</span>
+                      <span style={{ textAlign: 'right', color: '#888' }}>{z.busquedas}</span>
+                      <span style={{ textAlign: 'right', color: z.absorcion >= 1.5 ? '#22c55e' : z.absorcion < 0.5 ? '#dc2626' : 'inherit', fontWeight: 600 }}>{z.absorcion}</span>
+                      <span style={{ textAlign: 'right', color: mvColor }}>{mvTxt}</span>
+                    </div>
+                  );
+                })}
+              </Card>
+            ))}
           </div>
         )}
       </div>

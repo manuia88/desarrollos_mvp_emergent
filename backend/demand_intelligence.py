@@ -560,6 +560,102 @@ async def journey_depth(db, since_days: int = 365) -> Dict[str, Any]:
             "convierten_a_lead_pct": round(100 * sum(1 for v in by_v.values() if v["lead"]) / tot)}
 
 
+def _col2geo():
+    """Mapa colonia_id → {alcaldia, cp} desde la oferta (para escalar búsquedas a macro/micro)."""
+    from data_developments import DEVELOPMENTS
+    m = {}
+    for d in DEVELOPMENTS:
+        c = d.get("colonia_id")
+        if c and c not in m:
+            m[c] = {"alcaldia": d.get("alcaldia"), "cp": d.get("postal_code"), "colonia": d.get("colonia") or c}
+    return m
+
+
+async def zone_dynamics(db, scale: str = "media", since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 20) -> Dict[str, Any]:
+    """DINÁMICA DE ZONA por escala — micro(CP) / media(colonia) / macro(alcaldía). Por cada zona: DEMANDA (señales+
+    búsquedas), OFERTA (unidades), ABSORCIÓN (demanda/oferta) y MOVIMIENTO (mitad reciente vs previa = subiendo/enfriando/
+    nuevo). El 'SimCity de la demanda' a 3 zooms."""
+    from data_developments import DEVELOPMENTS, DEVELOPMENTS_BY_ID
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
+    mid = now - dt.timedelta(days=since_days // 2)
+    c2g = _col2geo()
+
+    def key_for(colonia_id, dev):
+        d = dev or {}
+        if scale == "macro":
+            return d.get("alcaldia") or (c2g.get(colonia_id, {}) or {}).get("alcaldia")
+        if scale == "micro":
+            return d.get("postal_code") or (c2g.get(colonia_id, {}) or {}).get("cp")
+        return colonia_id or d.get("colonia_id")  # media
+
+    def in_scope(colonia_id, dev):
+        if not colonias:
+            return True
+        if scale == "media":
+            return (colonia_id or (dev or {}).get("colonia_id")) in colonias
+        return True  # macro/micro: no se filtra por colonia individual
+
+    # OFERTA por zona
+    sup = defaultdict(int)
+    for d in DEVELOPMENTS:
+        if colonias and scale == "media" and d.get("colonia_id") not in colonias:
+            continue
+        k = {"macro": d.get("alcaldia"), "micro": d.get("postal_code"), "media": d.get("colonia_id")}.get(scale)
+        if k:
+            sup[k] += len(d.get("units") or []) or 1
+
+    # DEMANDA (señales) + MOVIMIENTO
+    dem = defaultdict(int); rec = defaultdict(int); pri = defaultdict(int)
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "colonia": 1, "entity_id": 1, "created_at_dt": 1}):
+        dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+        if not in_scope(s.get("colonia"), dev):
+            continue
+        k = key_for(s.get("colonia"), dev)
+        if not k:
+            continue
+        dem[k] += 1
+        t = s.get("created_at_dt")
+        if isinstance(t, dt.datetime):
+            (rec if t >= mid else pri)[k] += 1
+
+    # BÚSQUEDAS por zona (escaladas)
+    srch = defaultdict(int)
+    async for q in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "colonias": {"$nin": [None, []]}}, {"_id": 0, "colonias": 1}):
+        for c in (q.get("colonias") or []):
+            k = c if scale == "media" else (c2g.get(c, {}) or {}).get("alcaldia" if scale == "macro" else "cp")
+            if k and (not colonias or scale != "media" or c in colonias):
+                srch[k] += 1
+
+    def movimiento(k):
+        r, p = rec.get(k, 0), pri.get(k, 0)
+        if p == 0 and r > 0:
+            return ("nuevo", None)
+        if p == 0:
+            return ("sin_dato", None)
+        ch = round(100 * (r - p) / p)
+        return ("subiendo" if ch >= 20 else "enfriando" if ch <= -20 else "estable", ch)
+
+    zonas = []
+    for k in set(dem) | set(sup) | set(srch):
+        de, su = dem.get(k, 0), sup.get(k, 0)
+        mv, ch = movimiento(k)
+        zonas.append({"zona": k, "demanda": de, "busquedas": srch.get(k, 0), "oferta_unidades": su,
+                      "absorcion": round(de / max(su, 1), 2), "movimiento": mv, "cambio_pct": ch})
+    zonas.sort(key=lambda x: -(x["demanda"] + x["busquedas"]))
+    return {"escala": scale, "zonas": zonas[:top],
+            "lectura": "absorción alta + movimiento 'subiendo' = zona caliente con poca oferta (oportunidad)"}
+
+
+async def market_movement(db, since_days: int = 180, colonias: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Las 3 escalas de una: macro (alcaldía) → media (colonia) → micro (CP). Demanda+oferta+absorción+movimiento."""
+    return {
+        "macro": await zone_dynamics(db, "macro", since_days=since_days, colonias=colonias),
+        "media": await zone_dynamics(db, "media", since_days=since_days, colonias=colonias),
+        "micro": await zone_dynamics(db, "micro", since_days=since_days, colonias=colonias),
+    }
+
+
 async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
     """PERFIL DE COMPORTAMIENTO — device (mobile/desktop/tablet), estilo DISC, engagement de tour/video, profundidad de
     scroll. Consume las dimensiones de captura nueva (que ninguna quede capturada-y-muerta)."""
