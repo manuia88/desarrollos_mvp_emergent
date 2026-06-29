@@ -561,3 +561,23 @@ Ambos wired a superadmin + visibles.
 **VEREDICTO marketplace:** granularidad máxima alcanzada en las dimensiones del founder — geo (calle→ciudad), propiedad
 (internas/externas/amenidades/fichas/fotos), financiero (pago/crédito/ROI), demanda, preguntas+conversación, formularios.
 Toda interacción es rastreable y se agrega. Cero cable-muerto. PORTAL 1 = MARKETPLACE cerrado a fondo.
+
+---
+
+## GRANULARIDAD NO MENCIONADA — 5 dimensiones nuevas (construidas) + pendientes de captura
+
+A la pregunta del founder 'qué granularidad no mencionada se puede capturar', pensando como Master Dev:
+
+**CONSTRUIDAS (dato ya capturado, puro análisis — endpoint /demand-intel/deep + sección en página):**
+1. POR QUÉ DICEN NO (rejection_intel) — dismiss→razón (precio/zona/fotos/tamaño) por colonia = el REVERSO de la demanda.
+2. INTENT vivir vs invertir (intent_split) — lens → segmenta ('25 invertir vs 1 vivir').
+3. QUÉ COMPITE (co_viewed/market basket) — devs vistos por el mismo comprador ('Altavista vs Lomas').
+4. CUÁNDO buscan (temporal_demand) — hora del día + día de la semana.
+5. PROFUNDIDAD DEL JOURNEY (journey_depth) — toques promedio (16.8), % regresa (11%), % convierte (6%).
+
+**PENDIENTES DE CAPTURA NUEVA (front, anotadas para sus interacciones):**
+- Device exacto por señal (mobile/desktop — las sessions lo tienen, las señales no).
+- Pares de comparación reales (el signal 'compare' no captura QUÉ vs QUÉ — solo que comparó).
+- Video/tour 360 engagement (¿lo vieron? cuánto?).
+- Scroll depth por ficha (lead_capture_events lo tiene solo para captura de lead, no en toda ficha).
+- DISC/estilo de decisión (el motor de inferencia no corre → 0 dato).
