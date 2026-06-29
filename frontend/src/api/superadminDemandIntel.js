@@ -58,6 +58,16 @@ export async function getGridInsights() {
 export async function getExplorar({ tipo = 'ciudad', id = 'CDMX', combinaciones = true } = {}) {
   return _j(await fetch(`${BASE}/explorar?${_qs({ tipo, id, combinaciones })}`, { headers: h(), credentials: 'include' }));
 }
+// Explorador · DRILL de un segmento (clic en '2rec'): OFERTA (entidades) + DEMANDA (perfil) + tensión. tipo/id/top como query, body={filtros,extra} JSON.
+export async function postExplorarSegmento({ tipo = 'colonia', id = '', top = 60 } = {}, body = {}) {
+  return _j(await fetch(`${BASE}/explorar/segmento?${_qs({ tipo, id, top })}`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(body || {}),
+  }));
+}
+// Explorador · MODO AUTO — el cubo encuentra solo: oportunidades (demanda>oferta) + sobreofertas, rankeadas. geo se omite si vacío.
+export async function getExplorarOportunidades({ geo_nivel, geo_valor, top = 15 } = {}) {
+  return _j(await fetch(`${BASE}/explorar/oportunidades?${_qs({ geo_nivel, geo_valor, top })}`, { headers: h(), credentials: 'include' }));
+}
 // Atlas — navegación: hijos de una entidad (ciudad→alcaldía→corredor→colonia→desarrollo→prototipo→unidad).
 export async function getAtlasChildren(tipo = 'ciudad', id = 'CDMX') {
   return _j(await fetch(`${BASE}/atlas/children?${_qs({ tipo, id })}`, { headers: h(), credentials: 'include' }));
