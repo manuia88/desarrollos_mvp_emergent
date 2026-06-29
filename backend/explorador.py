@@ -288,8 +288,15 @@ async def explorar_nodo(db, tipo: str = "ciudad", eid: str = "CDMX", con_combina
     segmentos: List[Dict[str, Any]] = []
     combinaciones: List[Dict[str, Any]] = []
     caracteristicas: List[Dict[str, Any]] = []
+    biografia = None
     if tipo == "unidad":
         caracteristicas = _caracteristicas_unidad(eid)
+        try:
+            import unidad_biografia as ub
+            dev, _, un = eid.partition("::")
+            biografia = await ub.biografia_unidad(db, dev, un)
+        except Exception:
+            biografia = None
     else:
         segmentos = await _segmentos_geo(db, geo)
         if con_combinaciones and tipo in ("colonia", "desarrollo", "alcaldia"):
@@ -297,7 +304,7 @@ async def explorar_nodo(db, tipo: str = "ciudad", eid: str = "CDMX", con_combina
     n_seg = sum(len(s["items"]) for s in segmentos)
     return {
         "nodo": nodo, "ruta": ruta, "hijos": hijos, "segmentos": segmentos,
-        "combinaciones": combinaciones, "caracteristicas": caracteristicas,
+        "combinaciones": combinaciones, "caracteristicas": caracteristicas, "biografia": biografia,
         "resumen": {"hijos": len(hijos), "dimensiones": len(segmentos), "datos_independientes": n_seg, "fichas_tecnicas": len(combinaciones)},
         "lectura": "cada segmento es un dato independiente (no se juntan valores); el fondo del árbol son las fichas técnicas",
     }

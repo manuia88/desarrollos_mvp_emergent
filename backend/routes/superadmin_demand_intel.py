@@ -107,6 +107,15 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/explorar/biografia")
+async def explorar_biografia(request: Request, dev_id: str, unidad: str):
+    """BIOGRAFÍA de una unidad: huella de demanda, embudo, posición de precio, premium, competidoras, AVM, pronóstico."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import unidad_biografia as ub
+    return await ub.biografia_unidad(request.app.state.db, dev_id, unidad)
+
+
 @router.get("/explorar/oportunidades")
 async def explorar_oportunidades(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None, top: int = 15):
     """MODO AUTO — el cubo encuentra solo: top oportunidades (demanda>oferta) y sobreofertas, rankeadas por impacto."""
