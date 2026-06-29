@@ -1168,6 +1168,20 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                 prof["riesgo"] = {"letra": r.get("score_letter"), "num": r.get("score_numeric")}
         except Exception:
             pass
+        # FEEDER LOCAL (sin usar): riesgo natural (sísmico/inundación) + crimen FGJ por zona
+        try:
+            nr = await db.natural_risk_layers.find_one({"zone_id": cid}, {"_id": 0, "sismic_zone": 1, "sismic_score": 1, "flood_pct": 1, "composite_score": 1})
+            if nr:
+                prof["riesgo_natural"] = {"sismico_zona": nr.get("sismic_zone"), "sismico_score": nr.get("sismic_score"),
+                                          "inundacion_pct": nr.get("flood_pct"), "compuesto": nr.get("composite_score")}
+        except Exception:
+            pass
+        try:
+            cz = await db.crime_zone_colonia.find_one({"zone_id": cid}, {"_id": 0, "safety_score": 1, "incidentes_ponderados": 1})
+            if cz:
+                prof["crimen"] = {"safety_score": cz.get("safety_score"), "incidentes": cz.get("incidentes_ponderados")}
+        except Exception:
+            pass
         # Score de inversión 0-100 AAA-B
         s2 = inv.get(lc)
         if s2:

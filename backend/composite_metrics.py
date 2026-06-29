@@ -88,6 +88,10 @@ async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, A
         g["intent"] = await di.intent_split(db)
     except Exception:
         g["intent"] = {}
+    try:
+        g["temporal"] = await di.temporal_demand(db)
+    except Exception:
+        g["temporal"] = {}
     # mercado (feeders — best-effort; None si apagado)
     g["cetes"] = None
     try:
@@ -208,16 +212,16 @@ COMPOSITES: List = [
     # ── PACK 4 · RISK ──
     (31, 4, "Demanda ajustada a riesgo", "caliente pero riesgosa vs caliente segura",
      lambda z, g: round(z.get("demanda", 0) * (_risk(z) / 100), 1) if _risk(z) is not None else None),
-    (32, 4, "Precio vs riesgo sísmico", "¿pagas premium en zona de alto riesgo?",
-     lambda z, g: round((_n(z.get("precio_m2")) or 0) / max(_risk(z) or 1, 1)) if z.get("precio_m2") and _risk(z) else None),
-    (33, 4, "Demanda en zona vulnerable", "interés en zonas riesgosas (alerta)",
-     lambda z, g: z.get("demanda") if (_risk(z) or 100) < 40 else 0),
+    (32, 4, "Precio vs riesgo sísmico", "zona sísmica real (Atlas CDMX) + premium de precio que se paga ahí",
+     lambda z, g: f"zona {(z.get('riesgo_natural') or {}).get('sismico_zona')} (${round((z.get('precio_m2') or 0)/1000)}k/m²)" if (z.get("riesgo_natural") or {}).get("sismico_zona") else None),
+    (33, 4, "Demanda en zona vulnerable", "demanda en zonas con riesgo de inundación (alerta · Atlas CDMX)",
+     lambda z, g: z.get("demanda") if ((z.get("riesgo_natural") or {}).get("inundacion_pct") or 0) >= 10 else (0 if z.get("riesgo_natural") else None)),
     (34, 4, "Brecha de percepción", "rechazo que los vecinos confirman",
      lambda z, g: g.get("rejection", {}).get("zona", 0)),
     (35, 4, "Riesgo climático × migración", "¿la demanda huye de zonas vulnerables?",
      lambda z, g: None),  # feeder climate
-    (36, 4, "Miedo vs dato", "donde el miedo supera al delito real",
-     lambda z, g: None),  # feeder perception+crime
+    (36, 4, "Crimen real (FGJ) vs demanda", "incidentes ponderados reales (FGJ) donde igual hay demanda alta",
+     lambda z, g: f"{round((z.get('crimen') or {}).get('incidentes') or 0)} inc · {z.get('demanda',0)} dem" if (z.get("crimen") or {}).get("incidentes") is not None else None),
     (37, 4, "Frontera riesgo-retorno", "la frontera eficiente de colonias",
      lambda z, g: round((_inv(z) or 0) + (_risk(z) or 0)) if _inv(z) is not None and _risk(z) is not None else None),
     (38, 4, "Descuento por riesgo", "cuánto descuenta el mercado por riesgo",
@@ -334,8 +338,8 @@ COMPOSITES: List = [
      lambda z, g: z.get("nombre") if (_inv(z) or 0) >= 40 else None),
     (89, 9, "Mejor canal por calidad", "qué canal trae los mejores leads",
      lambda z, g: (g.get("atribucion") or [{}])[0].get("fuente") if g.get("atribucion") else None),
-    (90, 9, "Timing de contacto", "cuándo contactar para máxima respuesta",
-     lambda z, g: None),  # feeder temporal-por-zona
+    (90, 9, "Timing de contacto", "la franja donde el comprador DECIDE (no solo navega)",
+     lambda z, g: (g.get("temporal") or {}).get("franja_de_mayor_intencion")),
 
     # ── PACK 10 · MOMENTUM ──
     (91, 10, "Demanda indicador líder", "la demanda adelanta el precio",
