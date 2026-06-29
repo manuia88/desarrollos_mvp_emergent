@@ -31,6 +31,23 @@ async def demand_overview(request: Request, colonia: Optional[str] = None, perio
     }
 
 
+@router.get("/deep")
+async def demand_deep(request: Request, since_days: int = 365):
+    """Dimensiones PROFUNDAS no obvias: por-qué-NO (rechazo), intent vivir/invertir, qué compite (market basket),
+    cuándo buscan (hora/día), profundidad del journey. Todas de dato YA capturado."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import demand_intelligence as di
+    db = request.app.state.db
+    return {
+        "por_que_no": await di.rejection_intel(db, since_days=since_days),
+        "intent": await di.intent_split(db, since_days=since_days),
+        "que_compite": await di.co_viewed(db, since_days=since_days),
+        "cuando": await di.temporal_demand(db),
+        "journey": await di.journey_depth(db, since_days=since_days),
+    }
+
+
 @router.post("/notify")
 async def demand_notify(request: Request):
     """Dispara YA el push proactivo (normalmente cron semanal): notifica a cada dev qué construir en sus colonias."""

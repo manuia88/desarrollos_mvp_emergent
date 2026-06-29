@@ -478,6 +478,88 @@ async def recommend_for_lead(db, visitor_id: str) -> Dict[str, Any]:
             "lectura": "ofrécele estos desarrollos: hacen match con lo que el lead estuvo mirando"}
 
 
+async def rejection_intel(db, since_days: int = 365, top: int = 12) -> Dict[str, Any]:
+    """EL REVERSO DE LA DEMANDA — por qué dicen NO (dismiss → precio/zona/tamaño/fotos/amenidad/entrega), por colonia.
+    Te dice QUÉ CORREGIR, no solo qué quieren."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    reasons = defaultdict(int); by_col = defaultdict(lambda: defaultdict(int)); n = 0
+    async for s in db.buyer_signals.find({"type": "dismiss", "created_at_dt": {"$gte": cutoff}},
+                                         {"_id": 0, "value": 1, "meta": 1, "colonia": 1}):
+        r = str(s.get("value") or (s.get("meta") or {}).get("reason") or "otro")
+        reasons[r] += 1; n += 1
+        if s.get("colonia"):
+            by_col[s["colonia"]][r] += 1
+    return {"total_rechazos": n, "razones": [{"razon": k, "n": v} for k, v in sorted(reasons.items(), key=lambda x: -x[1])[:top]],
+            "por_colonia": {c: dict(r) for c, r in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:8]},
+            "lectura": "la razón #1 de rechazo = lo que más te cuesta ventas"}
+
+
+async def intent_split(db, since_days: int = 365, top: int = 10) -> Dict[str, Any]:
+    """DEMANDA POR INTENT — vivir vs invertir (lens) global y por colonia. 'En Polanco el 60% es inversionista'."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    glob = defaultdict(int); by_col = defaultdict(lambda: defaultdict(int))
+    async for s in db.buyer_signals.find({"type": "lens", "created_at_dt": {"$gte": cutoff}}, {"_id": 0, "value": 1, "colonia": 1}):
+        v = s.get("value")
+        if v:
+            glob[v] += 1
+            if s.get("colonia"):
+                by_col[s["colonia"]][v] += 1
+    return {"global": dict(glob),
+            "por_colonia": [{"colonia": c, **dict(d)} for c, d in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:top]]}
+
+
+async def co_viewed(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
+    """QUÉ COMPITE (market basket) — desarrollos vistos por el MISMO comprador = compiten en su mente. Inteligencia
+    competitiva real ('quien ve Altavista también ve Tamaulipas 89')."""
+    from collections import Counter
+    from data_developments import DEVELOPMENTS_BY_ID
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    seen = defaultdict(set)
+    async for s in db.buyer_signals.find({"type": {"$in": ["ficha_view", "like", "unit_view", "compare"]},
+                                          "created_at_dt": {"$gte": cutoff}, "entity_id": {"$nin": [None, ""]}},
+                                         {"_id": 0, "visitor_id": 1, "entity_id": 1}):
+        seen[s["visitor_id"]].add(s["entity_id"])
+    pairs = Counter()
+    for devs in seen.values():
+        dl = sorted(devs)
+        for i in range(len(dl)):
+            for j in range(i + 1, len(dl)):
+                pairs[(dl[i], dl[j])] += 1
+    nm = lambda d: (DEVELOPMENTS_BY_ID.get(d, {}) or {}).get("name") or d
+    return {"pares_comparados": [{"a": nm(a), "b": nm(b), "juntos": n} for (a, b), n in pairs.most_common(top)],
+            "lectura": "estos desarrollos compiten por el mismo comprador"}
+
+
+async def temporal_demand(db, since_days: int = 90) -> Dict[str, Any]:
+    """CUÁNDO buscan — hora del día + día de la semana. 'Lujo de noche, familias en fin de semana'."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    by_hour = defaultdict(int); by_dow = defaultdict(int)
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "created_at_dt": 1}):
+        d = s.get("created_at_dt")
+        if isinstance(d, dt.datetime):
+            by_hour[d.hour] += 1; by_dow[d.weekday()] += 1
+    dow = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    return {"por_hora": {str(h): by_hour.get(h, 0) for h in range(24)},
+            "por_dia": {dow[i]: by_dow.get(i, 0) for i in range(7)}}
+
+
+async def journey_depth(db, since_days: int = 365) -> Dict[str, Any]:
+    """PROFUNDIDAD DEL JOURNEY — toques antes del lead, % que regresa, % que convierte. Calidad del embudo."""
+    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    by_v = defaultdict(lambda: {"n": 0, "lead": False, "days": set()})
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1}):
+        v = by_v[s["visitor_id"]]; v["n"] += 1
+        if s["type"] == "lead":
+            v["lead"] = True
+        if isinstance(s.get("created_at_dt"), dt.datetime):
+            v["days"].add(s["created_at_dt"].date())
+    tot = len(by_v) or 1
+    return {"visitantes": len(by_v),
+            "toques_promedio": round(sum(v["n"] for v in by_v.values()) / tot, 1),
+            "regresan_pct": round(100 * sum(1 for v in by_v.values() if len(v["days"]) > 1) / tot),
+            "convierten_a_lead_pct": round(100 * sum(1 for v in by_v.values() if v["lead"]) / tot)}
+
+
 async def killer_query(db, feature: str, colonia: str, period: str = "month") -> Dict[str, Any]:
     """El ejemplo del founder: '¿cuántos clientes engancharon con [feature] en [colonia], y cuándo?'."""
     feature = feature.strip().lower()

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
-import { getOverview, getFeature } from '../../api/superadminDemandIntel';
+import { getOverview, getFeature, getDeep } from '../../api/superadminDemandIntel';
 
 function Spark({ serie }) {
   const entries = Object.entries(serie || {});
@@ -29,6 +29,7 @@ export default function SuperadminDemandaMercado() {
   const [kf, setKf] = useState('terraza');
   const [kc, setKc] = useState('polanco');
   const [killer, setKiller] = useState(null);
+  const [deep, setDeep] = useState(null);   // dimensiones profundas (lazy)
 
   useEffect(() => {
     getOverview({ period, colonia }).then(setData).catch((e) => setErr(e.message));
@@ -255,6 +256,55 @@ export default function SuperadminDemandaMercado() {
             {(data?.conversacion?.objeciones || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
           </div>
         </Card>
+      </div>
+
+      {/* SEÑALES PROFUNDAS (lazy) */}
+      <div style={{ marginTop: 16 }}>
+        {!deep ? (
+          <button onClick={() => getDeep().then(setDeep).catch((e) => setDeep({ error: e.message }))}
+            style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#aaa', cursor: 'pointer' }}>
+            Ver señales profundas (por qué NO · intent · qué compite · cuándo · journey)
+          </button>
+        ) : deep.error ? <Card style={{ padding: 16, color: '#dc2626' }}>{deep.error}</Card> : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Por qué dicen NO <span style={{ fontSize: 11, color: '#888' }}>({deep.por_que_no?.total_rechazos || 0})</span></div>
+              {(deep.por_que_no?.razones || []).map((r) => <div key={r.razon} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}><span>{r.razon}</span><strong style={{ color: '#dc2626' }}>{r.n}</strong></div>)}
+              {(deep.por_que_no?.razones || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Intent: vivir vs invertir</div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                {Object.entries(deep.intent?.global || {}).map(([k, v]) => <Badge key={k} tone={k === 'invertir' ? 'warn' : 'ok'}>{k}: {v}</Badge>)}
+              </div>
+              {(deep.intent?.por_colonia || []).slice(0, 5).map((c) => <div key={c.colonia} style={{ fontSize: 12, color: '#888', padding: '2px 0' }}>{c.colonia}: {c.invertir || 0} inv · {c.vivir || 0} vivir</div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Qué compite (se ven juntos)</div>
+              {(deep.que_compite?.pares_comparados || []).slice(0, 6).map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0' }}>{p.a} <span style={{ color: '#888' }}>vs</span> {p.b} <strong style={{ color: 'var(--theme)' }}>×{p.juntos}</strong></div>)}
+              {(deep.que_compite?.pares_comparados || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Profundidad del journey</div>
+              <div style={{ fontSize: 13, lineHeight: 1.8 }}>
+                <div>Visitantes: <strong>{deep.journey?.visitantes}</strong></div>
+                <div>Toques promedio: <strong>{deep.journey?.toques_promedio}</strong></div>
+                <div>Regresan: <strong>{deep.journey?.regresan_pct}%</strong></div>
+                <div>Convierten a lead: <strong style={{ color: 'var(--theme)' }}>{deep.journey?.convierten_a_lead_pct}%</strong></div>
+              </div>
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Cuándo buscan</div>
+              <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 40 }}>
+                {Object.entries(deep.cuando?.por_hora || {}).map(([hh, v]) => {
+                  const mx = Math.max(...Object.values(deep.cuando?.por_hora || { 0: 1 }));
+                  return <span key={hh} title={`${hh}h: ${v}`} style={{ flex: 1, height: Math.max(2, (v / mx) * 40), background: 'var(--theme)', opacity: 0.7, borderRadius: 1 }} />;
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>por hora (0–23h) · {Object.entries(deep.cuando?.por_dia || {}).map(([d, v]) => `${d} ${v}`).join(' · ')}</div>
+            </Card>
+          </div>
+        )}
       </div>
     </SuperadminLayout>
   );

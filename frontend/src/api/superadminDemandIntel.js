@@ -14,3 +14,7 @@ export async function getOverview(params = {}) {
 export async function getFeature(feature, colonia, period = 'month') {
   return _j(await fetch(`${BASE}/feature?${_qs({ feature, colonia, period })}`, { headers: h(), credentials: 'include' }));
 }
+// Dimensiones profundas: por-qué-NO, intent, qué compite, cuándo, journey.
+export async function getDeep() {
+  return _j(await fetch(`${BASE}/deep`, { headers: h(), credentials: 'include' }));
+}
