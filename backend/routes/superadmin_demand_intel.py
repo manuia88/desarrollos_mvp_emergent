@@ -66,6 +66,20 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/dimensiones")
+async def dimensiones(request: Request, eje: Optional[str] = None, arbol: bool = False):
+    """Catálogo CANÓNICO de hiper-segmentación: 114 dimensiones × 7 ejes, cada una con su campo real/derivado/por-crear.
+    Única fuente de verdad para el árbol, el screener y la captura de datos."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import dimension_registry as dr
+    if arbol:
+        return {"overview": dr.overview(), "arbol": dr.arbol(eje), "eje": eje}
+    if eje:
+        return {"overview": dr.overview(), "dimensiones": dr.by_eje(eje), "eje": eje}
+    return {"overview": dr.overview(), "dimensiones": dr.DIMENSIONS}
+
+
 @router.get("/atlas/entity")
 async def atlas_entity(request: Request, tipo: str, id: str, ventana: str = "90d"):
     """ATLAS — ficha universal de métricas de una entidad (nano→macro, cualquier dimensión): todas las medidas por tema
