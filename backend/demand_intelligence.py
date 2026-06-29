@@ -1010,7 +1010,7 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
         s2 = inv.get(lc)
         if s2:
             prof["inversion"] = {"score": s2.get("score"), "tier": s2.get("tier"), "rec": s2.get("recommendation")}
-        # Ciclo + recomendación (alimentado con la absorción REAL)
+        # Ciclo + recomendación (alimentado con la absorción REAL) + feeders locales (catastral + costo construcción)
         try:
             rec = await db.colonias.find_one({"id": cid}, {"_id": 0})
             if rec:
@@ -1020,6 +1020,24 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                     prof["recomendacion"] = zce.zone_recommendation(cyc)
                 except Exception:
                     pass
+                # FEEDER LOCAL: valor catastral del suelo (1,391 colonias lo tienen)
+                if rec.get("vsuelo_pm2_catastral"):
+                    prof["catastral_pm2"] = rec["vsuelo_pm2_catastral"]
+                if rec.get("precio_pm2") and not prof.get("precio_m2"):
+                    prof["precio_m2"] = rec["precio_pm2"]
+        except Exception:
+            pass
+        # FEEDER LOCAL: costo de construcción por m² (BASE_COSTS, sin tokens externos)
+        try:
+            import inspect as _insp
+            import construction_cost_engine as cce
+            _t = (prof.get("tier") or "").lower()
+            tier_cc = "luxury" if ("premium" in _t or "lux" in _t) else "entry" if "emerg" in _t else "mid"
+            cr = cce.predict_cost_per_m2(cid, "vertical", tier_cc)
+            if _insp.isawaitable(cr):
+                cr = await cr
+            if isinstance(cr, dict):
+                prof["costo_construccion_m2"] = cr.get("cost_per_m2_mxn") or cr.get("cost_per_m2")
         except Exception:
             pass
         out.append(prof)

@@ -97,33 +97,14 @@ async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, A
             g["cetes"] = rates.get("cetes_28") or rates.get("cetes")
     except Exception:
         pass
-    g["construction_cost"] = {}
-    try:
-        import inspect as _insp
-        import construction_cost_engine as cc
-        fn = getattr(cc, "predict_cost_per_m2", None)
-        for tier in ("entry", "mid", "luxury"):
-            if not fn:
-                break
-            r = fn(db, "cdmx", "vertical", tier) if _insp.iscoroutinefunction(fn) else fn("cdmx", "vertical", tier)
-            if _insp.isawaitable(r):
-                r = await r
-            if isinstance(r, dict):
-                g["construction_cost"][tier] = r.get("cost_per_m2") or r.get("costo_m2") or r.get("cost")
-    except Exception:
-        pass
+    # costo de construcción ahora viene por-zona en zone_intelligence (feeder local cableado allí).
     return {"zones": zones, "g": g}
 
 
 # ── helper: costo de construcción por tier de la zona ───────────────────────────
 def _cc_for(z, g):
-    tier = (z.get("tier") or "").lower()
-    cc = g.get("construction_cost") or {}
-    if "lux" in tier or "premium" in tier:
-        return cc.get("luxury")
-    if "emerg" in tier or "entry" in tier:
-        return cc.get("entry")
-    return cc.get("mid")
+    # Feeder local: costo de construcción por m² ya viene en la zona (zone_intelligence).
+    return z.get("costo_construccion_m2")
 
 
 def _wtp_med(g):
@@ -164,8 +145,8 @@ COMPOSITES: List = [
      lambda z, g: _pct_gap(_spec(z, "precio_max_prom"), (z.get("precio_m2", 0) or 0) * (_spec(z, "m2") or 0)) if z.get("demanda", 0) > 20 and z.get("precio_m2") else None),
     (8, 1, "Descuento esperado al cierre", "cuánto bajan para cerrar según demanda",
      lambda z, g: round(max(0, 8 - (z.get("demanda", 0) / 25)), 1)),
-    (9, 1, "Prima de especulación", "asking vs valor de suelo, ponderado por demanda",
-     lambda z, g: None),  # feeder catastral
+    (9, 1, "Prima de especulación", "asking vs valor de suelo (catastral), ponderado por demanda",
+     lambda z, g: _pct_gap(z.get("precio_m2"), z.get("catastral_pm2")) if z.get("precio_m2") and z.get("catastral_pm2") else None),
     (10, 1, "Elasticidad → forecast", "dónde se moverá la demanda al subir el precio",
      lambda z, g: None),  # feeder forecast
 
