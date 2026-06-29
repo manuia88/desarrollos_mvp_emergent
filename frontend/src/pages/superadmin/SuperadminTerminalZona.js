@@ -10,9 +10,11 @@ import AtlasPanel from '../../components/superadmin/AtlasPanel';
 import FacetPanel from '../../components/superadmin/FacetPanel';
 import CompararPanel from '../../components/superadmin/CompararPanel';
 import ExploradorPanel from '../../components/superadmin/ExploradorPanel';
+import ScreenerPanel from '../../components/superadmin/ScreenerPanel';
 
 const TABS = [
   { key: 'explorador', label: 'Explorador (árbol)' },
+  { key: 'screener', label: 'Screener (buscar)' },
   { key: 'atlas', label: 'Atlas (explorador)' },
   { key: 'facet', label: 'Conteos (oferta/demanda)' },
   { key: 'comparar', label: 'Comparativas (¿por qué?)' },
@@ -50,6 +52,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
   useEffect(() => {
     if (tab === 'grid') return; // grid se carga solo (GridPanel)
     if (tab === 'explorador') return; // explorador (árbol) se carga solo (ExploradorPanel)
+    if (tab === 'screener') return; // screener se carga solo (ScreenerPanel)
     if (tab === 'atlas') return; // atlas se carga solo (AtlasPanel)
     if (tab === 'facet') return; // explorador faceteado se carga solo (FacetPanel)
     if (tab === 'comparar') return; // comparativas se carga solo (CompararPanel)
@@ -156,6 +159,9 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
       {/* EXPLORADOR (árbol navegable — abrir = clic, cada segmento independiente) */}
       {tab === 'explorador' && <ExploradorPanel />}
+
+      {/* SCREENER (buscar por criterios — el buscador del analista) */}
+      {tab === 'screener' && <ScreenerPanel />}
 
       {/* ATLAS (explorador de entidades) */}
       {tab === 'atlas' && <AtlasPanel />}

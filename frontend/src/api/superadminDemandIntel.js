@@ -114,3 +114,13 @@ export async function getLaunchCoverage() {
 export async function setLaunch(dev_id, fecha_lanzamiento) {
   return _j(await fetch(`${BASE}/compare/set-launch?${_qs({ dev_id, fecha_lanzamiento })}`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// Screener — métricas screenables + operadores (>,<,≥,≤,=) + un ejemplo de criterios para precargar.
+export async function getScreenerMetricas() {
+  return _j(await fetch(`${BASE}/screener/metricas`, { headers: h(), credentials: 'include' }));
+}
+// Screener — busca las colonias que cumplen TODOS los criterios. criterios = [{metrica, op, valor}] → BODY JSON. ordenar_por/desc/top como query params.
+export async function postScreenerBuscar(criterios, { ordenar_por, desc = true, top = 40 } = {}) {
+  return _j(await fetch(`${BASE}/screener/buscar?${_qs({ ordenar_por, desc, top })}`, {
+    method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(criterios || []),
+  }));
+}
