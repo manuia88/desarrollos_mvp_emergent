@@ -29,6 +29,33 @@ export default function SenalesCalientesCard() {
           <strong style={{ color: '#16a34a' }}>calor {v.calor}</strong>
         </div>
       ))}
+
+      {/* Bolsillo del comprador (eje financiero) */}
+      {d.financiero && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.06)', fontSize: 12, color: '#666' }}>
+          <strong style={{ color: '#333' }}>El bolsillo del mercado:</strong>{' '}
+          {Object.entries(d.financiero.presupuesto || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'} más buscado ·{' '}
+          {d.financiero.intent?.invertir || 0} invertir / {d.financiero.intent?.vivir || 0} vivir
+          {d.financiero.mensualidad_mediana ? ` · mensualidad ~$${Math.round(d.financiero.mensualidad_mediana / 1000)}k` : ''}
+        </div>
+      )}
+
+      {/* Lead Intelligence — compuestas por zona (next-best-zone / urgencia / fit) */}
+      {(d.compuestas_lead?.por_zona || []).length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#333', marginBottom: 6 }}>Mejores zonas para ofrecer (urgencia × inventario)</div>
+          {(d.compuestas_lead.por_zona)
+            .map((z) => ({ z, urg: z.valores?.[86], fit: z.valores?.[85], inv: z.valores?.[81] }))
+            .filter((x) => x.urg === 'ALTA' || (x.inv || 0) >= 40)
+            .slice(0, 5)
+            .map(({ z, urg, fit, inv }) => (
+              <div key={z.zona} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: '#555' }}>
+                <span>{z.nombre || z.zona}</span>
+                <span>{urg === 'ALTA' ? <strong style={{ color: '#dc2626' }}>cerrar YA</strong> : `fit ${fit ?? '—'}`} · inv {inv ?? '—'}</span>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -354,6 +354,50 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
                 </div>
               </Card>
             )}
+
+            {/* EJE DE ATRIBUTOS — qué busca la demanda DENTRO del depa */}
+            {feat.atributos && (
+              <Card style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Qué busca la demanda dentro del depa</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Balcón, vista, altura del edificio, orientación — los atributos finos que enganchan en tu zona.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Atributos (% engagement)</div>
+                    {(feat.atributos.booleanos || []).slice(0, 6).map((b) => (
+                      <div key={b.atributo} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{b.atributo}</span><strong style={{ color: 'var(--cream)' }}>{b.pct}%</strong></div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Vista · altura</div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Vista: {Object.entries(feat.atributos.vista || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>Edificio: {Object.entries(feat.atributos.altura_edificio || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—'}</div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* EJE FINANCIERO — el bolsillo del comprador en tus colonias */}
+            {feat.financiero && (
+              <Card style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>El bolsillo del comprador</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Presupuesto, intención (vivir/invertir) y rentabilidad de tus zonas.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Presupuesto buscado</div>
+                    {Object.entries(feat.financiero.presupuesto || {}).map(([b, n]) => (
+                      <div key={b} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{b}</span><strong style={{ color: 'var(--cream)' }}>{n}</strong></div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Intención + rentabilidad</div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Invertir: <strong style={{ color: 'var(--cream)' }}>{feat.financiero.intent?.invertir || 0}</strong> · Vivir: <strong style={{ color: 'var(--cream)' }}>{feat.financiero.intent?.vivir || 0}</strong></div>
+                    {(feat.financiero.rentabilidad_por_zona || []).slice(0, 4).map((r) => (
+                      <div key={r.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{r.colonia}</span><strong style={{ color: 'var(--cream)' }}>{r.score} ({r.tier})</strong></div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
           </>
         )}
       <style>{`
