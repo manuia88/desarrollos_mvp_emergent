@@ -118,6 +118,7 @@ export default function ExploradorPanel() {
   const segmentos = data?.segmentos || [];
   const combinaciones = data?.combinaciones || [];
   const caracteristicas = data?.caracteristicas || [];
+  const biografia = data?.biografia || null;   // solo viene en nodo UNIDAD
   const r = data?.resumen || {};
 
   // resumen legible — solo piezas con dato (>0)
@@ -254,11 +255,14 @@ export default function ExploradorPanel() {
           {/* ── FICHAS TÉCNICAS (combinaciones) ── */}
           {combinaciones.length > 0 && <FichasTecnicas fichas={combinaciones} />}
 
+          {/* ── BIOGRAFÍA DE MERCADO (nivel unidad) — el expediente de la unidad ── */}
+          {biografia && <BiografiaUnidad bio={biografia} />}
+
           {/* ── CARACTERÍSTICAS (nivel unidad) ── */}
           {caracteristicas.length > 0 && <Caracteristicas items={caracteristicas} />}
 
           {/* vacío total */}
-          {hijos.length === 0 && segmentos.length === 0 && combinaciones.length === 0 && caracteristicas.length === 0 && (
+          {hijos.length === 0 && segmentos.length === 0 && combinaciones.length === 0 && caracteristicas.length === 0 && !biografia && (
             <Card style={card}><span style={{ fontSize: 12.5, color: '#888' }}>Este nodo aún no tiene datos para mostrar.</span></Card>
           )}
         </>
@@ -509,5 +513,243 @@ function Caracteristicas({ items }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BIOGRAFÍA DE LA UNIDAD — el expediente de mercado: no es sus specs, es su historia.
+// Solo en nodo UNIDAD. Todo sale de `biografia` (cero dato inventado). Lo latente queda gris con su razón.
+// ════════════════════════════════════════════════════════════════════════════
+
+// tarjeta interna del expediente (título + contenido)
+function BioCard({ titulo, hint, children, style }) {
+  return (
+    <div style={{ padding: '12px 14px', borderRadius: 11, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 11, color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{titulo}</span>
+        {hint && <span style={{ fontSize: 10.5, color: '#666' }}>{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// número grande con su etiqueta debajo
+function BioStat({ valor, label, color = '#eee' }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 56 }}>
+      <span style={{ fontSize: 21, fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{valor}</span>
+      <span style={{ fontSize: 10.5, color: '#888' }}>{label}</span>
+    </div>
+  );
+}
+
+function BiografiaUnidad({ bio }) {
+  if (!bio) return null;
+  const huella = bio.huella_demanda || {};
+  const embudo = bio.embudo || {};
+  const pos = bio.posicion_precio || {};
+  const premium = bio.premium_atributos || [];
+  const competidoras = bio.competidoras || [];
+  const avm = bio.avm || {};
+  const pron = bio.pronostico || {};
+  const cuando = huella.cuando_la_miran || {};
+  const curva = huella.curva_calor || [];
+  const maxCurva = Math.max(1, ...curva.map((c) => c['señales'] || 0));
+
+  return (
+    <Card style={{ ...card, border: '1px solid var(--theme, #6366f1)' }}>
+      {/* título del expediente + lectura grande */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div style={lbl}>Biografía de mercado de la unidad</div>
+        <Badge tone="brand">expediente</Badge>
+      </div>
+      {bio.lectura && (
+        <div style={{ fontSize: 15, color: 'var(--cream, #eee)', fontWeight: 600, lineHeight: 1.4, marginBottom: 14 }}>{bio.lectura}</div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+
+        {/* 1) HUELLA DE DEMANDA */}
+        <BioCard titulo="Huella de demanda" hint="comportamiento real">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 18px' }}>
+            <BioStat valor={fmtN(huella.vistas)} label="vistas" color="#22c55e" />
+            <BioStat valor={fmtN(huella.guardados)} label="guardados" color="#a78bfa" />
+            <BioStat valor={fmtN(huella.interes_alto)} label="interés alto" color="#fbbf24" />
+            <BioStat valor={fmtN(huella.visitantes_unicos)} label="personas" color="#eee" />
+          </div>
+          {(cuando.dia_pico || cuando.hora_pico != null) && (
+            <div style={{ fontSize: 12, color: '#bbb' }}>
+              La miran sobre todo: <strong style={{ color: '#eee' }}>{cuando.dia_pico || '—'}</strong>
+              {cuando.hora_pico != null && <> a las <strong style={{ color: '#eee' }}>{cuando.hora_pico}h</strong></>}
+            </div>
+          )}
+          {/* mini-gráfica de barras: señales por semana (0 = esta semana) */}
+          {curva.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 46 }}>
+                {curva.map((c) => {
+                  const v = c['señales'] || 0;
+                  return (
+                    <div key={c.semanas_atras} title={`${c.semanas_atras === 0 ? 'esta semana' : `hace ${c.semanas_atras} sem`}: ${v} señales`}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                      <div style={{ width: '100%', borderRadius: '3px 3px 0 0', background: c.semanas_atras === 0 ? 'var(--theme, #6366f1)' : 'rgba(167,139,250,0.55)',
+                        height: `${Math.max(v > 0 ? 8 : 2, (v / maxCurva) * 100)}%`, minHeight: 2 }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: '#666', marginTop: 3 }}>
+                <span>ahora</span><span>hace 7 sem</span>
+              </div>
+            </div>
+          )}
+        </BioCard>
+
+        {/* 2) EMBUDO */}
+        <BioCard titulo="Embudo" hint="vista → guardado → interés">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#22c55e', lineHeight: 1 }}>{fmtN(embudo.vistas)}</span>
+              <span style={{ fontSize: 10, color: '#888' }}>vistas</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 36 }}>
+              <span style={{ fontSize: 13, color: '#666' }}>→</span>
+              <span style={{ fontSize: 10.5, color: '#a78bfa', fontWeight: 700 }}>{embudo.conv_vista_guardado != null ? `${embudo.conv_vista_guardado}%` : '—'}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#a78bfa', lineHeight: 1 }}>{fmtN(embudo.guardados)}</span>
+              <span style={{ fontSize: 10, color: '#888' }}>guardados</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 36 }}>
+              <span style={{ fontSize: 13, color: '#666' }}>→</span>
+              <span style={{ fontSize: 10.5, color: '#fbbf24', fontWeight: 700 }}>{embudo.conv_guardado_interes != null ? `${embudo.conv_guardado_interes}%` : '—'}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24', lineHeight: 1 }}>{fmtN(embudo.interes_alto)}</span>
+              <span style={{ fontSize: 10, color: '#888' }}>interés</span>
+            </div>
+          </div>
+        </BioCard>
+
+        {/* 3) POSICIÓN DE PRECIO */}
+        <BioCard titulo="Posición de precio" hint="percentil 0–100">
+          <PercentilBarra label="en su desarrollo" pct={pos.percentil_en_dev} />
+          <PercentilBarra label="en su colonia" pct={pos.percentil_en_colonia} />
+          {pos.percentil_en_colonia != null && (
+            <div style={{ fontSize: 12, color: '#bbb' }}>
+              Más {pos.percentil_en_colonia >= 50 ? 'cara' : 'barata'} que el <strong style={{ color: '#eee' }}>{pos.percentil_en_colonia}%</strong> de su colonia
+            </div>
+          )}
+          {(pos.precio_m2 != null || pos.mediana_m2_colonia != null) && (
+            <div style={{ fontSize: 12, color: '#bbb', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6 }}>
+              Precio/m²: <strong style={{ color: '#eee' }}>{pos.precio_m2 != null ? fmtMX(pos.precio_m2) : '—'}</strong>
+              {pos.mediana_m2_colonia != null && <span style={{ color: '#888' }}> · mediana colonia {fmtMX(pos.mediana_m2_colonia)}</span>}
+            </div>
+          )}
+        </BioCard>
+
+        {/* 4) PREMIUM POR ATRIBUTO */}
+        <BioCard titulo="Premium por atributo" hint="cuánto suma cada uno">
+          {premium.length === 0 ? (
+            <span style={{ fontSize: 12, color: '#777' }}>Sin atributos premium.</span>
+          ) : (
+            <div style={{ display: 'grid', gap: 5 }}>
+              {premium.map((p, i) => (
+                <div key={`${p.atributo}:${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, fontSize: 12.5 }}>
+                  <span style={{ color: '#ddd' }}>{p.atributo}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+                    <strong style={{ color: p.lift_pct >= 0 ? '#34d399' : '#f59e0b' }}>{p.lift_pct >= 0 ? '+' : ''}{p.lift_pct}%</strong>
+                    {p.n != null && <span style={{ fontSize: 10, color: '#666' }}>n={p.n}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </BioCard>
+
+        {/* 5) UNIDADES COMPETIDORAS */}
+        <BioCard titulo="Unidades competidoras" hint="qué más vieron">
+          {competidoras.length === 0 ? (
+            <span style={{ fontSize: 12, color: '#777' }}>Sin co-vistas suficientes todavía.</span>
+          ) : (
+            <div style={{ display: 'grid', gap: 4 }}>
+              {competidoras.map((c, i) => (
+                <div key={`${c.desarrollo}:${c.unidad}:${i}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, alignItems: 'center', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.desarrollo}{c.unidad != null ? <span style={{ color: '#888' }}> · {String(c.unidad)}</span> : null}
+                  </span>
+                  <span style={{ color: '#a78bfa', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtN(c.co_vistas)} co-vistas</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </BioCard>
+
+        {/* 6) AVM — ¿bien puesto el precio? */}
+        <BioCard titulo="¿Bien puesto el precio?" hint="AVM"
+          style={avm && !avm.latente ? { borderColor: ((avm.dif_pct ?? 0) <= 0 ? 'rgba(31,160,106,0.5)' : 'rgba(245,158,11,0.5)') } : undefined}>
+          {avm.latente ? (
+            <span style={{ fontSize: 12, color: '#777', fontStyle: 'italic' }}>{avm.razon || 'AVM no disponible'}</span>
+          ) : (
+            <>
+              <div style={{ fontSize: 13.5, color: ((avm.dif_pct ?? 0) <= 0 ? '#34d399' : '#fbbf24'), fontWeight: 600, lineHeight: 1.4 }}>{avm.lectura}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#bbb' }}>
+                <span>Estimado: <strong style={{ color: '#eee' }}>{fmtMX(avm.estimado)}</strong></span>
+                {Array.isArray(avm.rango) && avm.rango[0] != null && (
+                  <span>Rango: <strong style={{ color: '#eee' }}>{fmtMX(avm.rango[0])}–{fmtMX(avm.rango[1])}</strong></span>
+                )}
+                {avm.confianza != null && <span>Confianza: <strong style={{ color: '#eee' }}>{String(avm.confianza)}</strong></span>}
+              </div>
+              {avm.drivers && <div style={{ fontSize: 11, color: '#888' }}>{avm.drivers}</div>}
+            </>
+          )}
+        </BioCard>
+
+        {/* 7) PRONÓSTICO */}
+        <BioCard titulo="Pronóstico" hint="P(venta) del proyecto · 12m">
+          {pron.latente ? (
+            <span style={{ fontSize: 12, color: '#777', fontStyle: 'italic' }}>{pron.razon || 'pronóstico no disponible'}</span>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 24, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>
+                  {pron.p_venta_proyecto_12m != null ? `${Math.round(pron.p_venta_proyecto_12m)}%` : '—'}
+                </span>
+                <span style={{ fontSize: 11, color: '#888' }}>prob. de venta del proyecto a 12 meses</span>
+              </div>
+              {pron.confianza != null && <div style={{ fontSize: 11.5, color: '#bbb' }}>Confianza: <strong style={{ color: '#eee' }}>{String(pron.confianza)}</strong></div>}
+              {pron.explicacion && <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.4 }}>{pron.explicacion}</div>}
+              {pron.nota && <div style={{ fontSize: 10.5, color: '#666', fontStyle: 'italic' }}>{pron.nota}</div>}
+            </>
+          )}
+        </BioCard>
+
+      </div>
+
+      {/* de dónde sale */}
+      {bio.fuente && (
+        <div style={{ fontSize: 10.5, color: '#666', marginTop: 12, fontStyle: 'italic' }}>De dónde sale: {bio.fuente}</div>
+      )}
+    </Card>
+  );
+}
+
+// barra de percentil 0–100 con marcador en la posición
+function PercentilBarra({ label, pct }) {
+  const has = pct != null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5 }}>
+        <span style={{ color: '#999' }}>{label}</span>
+        <strong style={{ color: has ? '#eee' : '#666' }}>{has ? `P${pct}` : '—'}</strong>
+      </div>
+      <div style={{ position: 'relative', height: 7, borderRadius: 4, background: 'linear-gradient(90deg, rgba(34,197,94,0.35), rgba(245,158,11,0.35))' }}>
+        {has && (
+          <div style={{ position: 'absolute', top: -1.5, left: `calc(${Math.max(0, Math.min(100, pct))}% - 5px)`, width: 10, height: 10, borderRadius: '50%',
+            background: 'var(--cream, #eee)', border: '2px solid var(--theme, #6366f1)' }} />
+        )}
+      </div>
+    </div>
   );
 }
