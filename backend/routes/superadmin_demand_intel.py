@@ -109,6 +109,20 @@ async def facet_query_ep(request: Request, poblacion: str = "unidades", group_by
     return await fe.facet_query(request.app.state.db, poblacion=poblacion, filtros=fdict, group_by=group_by, geo=geo, ventana=ventana)
 
 
+@router.get("/facet/list")
+async def facet_list_ep(request: Request, poblacion: str = "unidades", geo_nivel: Optional[str] = None,
+                        geo_valor: Optional[str] = None, ventana: Optional[str] = None, filtros: Optional[str] = None,
+                        limit: int = 300):
+    """FACETEO — drill-down: ¿CUÁLES unidades/desarrollos/zonas hay detrás del conteo? filtros = JSON {facet:valor}."""
+    import json
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import facet_engine as fe
+    fdict = json.loads(filtros) if filtros else {}
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await fe.facet_list(request.app.state.db, poblacion=poblacion, filtros=fdict, geo=geo, ventana=ventana, limit=limit)
+
+
 @router.get("/facet/crosstab")
 async def facet_crosstab_ep(request: Request, poblacion: str, facet_a: str, facet_b: str,
                             geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):

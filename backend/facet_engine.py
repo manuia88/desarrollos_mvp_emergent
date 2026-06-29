@@ -7,7 +7,7 @@ Facets: cualquier atributo del schema. Geo: colonia/alcaldia/corredor/ciudad. Ve
 """
 import datetime as dt
 from collections import Counter, defaultdict
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 
 # ── extractores de facet por población ──────────────────────────────────────────
@@ -287,6 +287,62 @@ async def facet_query(db, poblacion: str = "unidades", filtros: Optional[Dict] =
     return {"poblacion": "demanda", "filtros": filtros, "group_by": group_by, "geo": list(geo) if geo else None,
             "ventana": ventana, "total": total, "breakdown": breakdown,
             "lectura": f"{total} búsquedas en el corte", "procedencia": {"fuente": "marketplace_searches", "n": total}}
+
+
+async def facet_list(db, poblacion: str = "unidades", filtros: Optional[Dict] = None, geo: Optional[tuple] = None,
+                     ventana: Optional[str] = None, limit: int = 300) -> Dict[str, Any]:
+    """DRILL-DOWN — las entidades REALES detrás de un conteo: ¿CUÁLES unidades/desarrollos/zonas cumplen [filtros]?"""
+    from data_developments import DEVELOPMENTS
+    import demand_intelligence as di
+    filtros = filtros or {}
+    rows: List[Dict[str, Any]] = []
+    if poblacion == "unidades":
+        for d in DEVELOPMENTS:
+            if not _geo_match(d, geo):
+                continue
+            for u in (d.get("units") or []):
+                if not _unit_pass(u, d, filtros):
+                    continue
+                atrs = [a for a in ("terraza", "balcon", "roof_garden", "bodega", "pet_friendly") if u.get(a)]
+                rows.append({"desarrollo": d.get("name") or d.get("id"), "dev_id": d.get("id"),
+                             "unidad": u.get("unit_number"), "prototipo": str(u.get("prototype") or "").upper() or None,
+                             "colonia": d.get("colonia") or d.get("colonia_id"), "alcaldia": d.get("alcaldia"),
+                             "m2": u.get("m2_total"), "recamaras": u.get("bedrooms"), "banos": u.get("bathrooms"),
+                             "piso": u.get("level"), "vista": u.get("vista"), "precio": u.get("price"),
+                             "status": str(u.get("status") or "disponible").lower(), "atributos": atrs})
+    elif poblacion == "desarrollos":
+        for d in DEVELOPMENTS:
+            if not _geo_match(d, geo) or not _dev_pass(d, filtros):
+                continue
+            units = d.get("units") or []
+            rows.append({"desarrollo": d.get("name") or d.get("id"), "dev_id": d.get("id"),
+                         "colonia": d.get("colonia") or d.get("colonia_id"), "alcaldia": d.get("alcaldia"),
+                         "corredor": di._corridor(d.get("colonia_id"), d.get("alcaldia")), "entrega": _entrega(d),
+                         "unidades_total": d.get("units_total") or len(units), "altura": _band_altura(d),
+                         "amenidades": len(d.get("amenities") or []), "precio_desde": d.get("price_from"),
+                         "precio_hasta": d.get("price_to"), "tier": _band_tier(d.get("price_from")),
+                         "creditos": d.get("creditos_aceptados") or [], "desarrollador": d.get("developer_id")})
+    else:  # zonas — agrega por colonia las que cumplen (qué zonas)
+        agg: Dict[str, Dict] = {}
+        for d in DEVELOPMENTS:
+            if not _geo_match(d, geo):
+                continue
+            cid = d.get("colonia_id")
+            a = agg.setdefault(cid, {"colonia": d.get("colonia") or cid, "alcaldia": d.get("alcaldia"),
+                                     "desarrollos": 0, "unidades": 0, "precio_desde": None})
+            a["desarrollos"] += 1
+            a["unidades"] += len(d.get("units") or [])
+            pf = d.get("price_from")
+            if pf and (a["precio_desde"] is None or pf < a["precio_desde"]):
+                a["precio_desde"] = pf
+        rows = sorted(agg.values(), key=lambda x: -x["unidades"])
+    total = len(rows)
+    # ordena por precio asc para unidades/desarrollos (lectura natural)
+    if poblacion in ("unidades", "desarrollos"):
+        rows.sort(key=lambda r: (r.get("precio") or r.get("precio_desde") or 9e15))
+    return {"poblacion": poblacion, "filtros": filtros, "geo": list(geo) if geo else None, "total": total,
+            "mostrados": min(total, limit), "entidades": rows[:limit],
+            "lectura": f"las {total} {poblacion} que cumplen el filtro" + (" (top por precio)" if total > limit else "")}
 
 
 async def facet_crosstab(db, poblacion: str, facet_a: str, facet_b: str, geo: Optional[tuple] = None) -> Dict[str, Any]:
