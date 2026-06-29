@@ -259,7 +259,7 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
     if vivir == 0 and invertir == 0:
         try:
             isp = await intent_split(db, since_days=since_days)
-            gl = isp.get("global", {})
+            gl = isp.get("resumen") or isp.get("global", {})
             vivir, invertir = gl.get("vivir", 0), gl.get("invertir", 0)
         except Exception:
             pass
@@ -788,33 +788,103 @@ async def recommend_for_lead(db, visitor_id: str) -> Dict[str, Any]:
             "lectura": "ofrécele estos desarrollos: hacen match con lo que el lead estuvo mirando"}
 
 
-async def rejection_intel(db, since_days: int = 365, top: int = 12) -> Dict[str, Any]:
-    """EL REVERSO DE LA DEMANDA — por qué dicen NO (dismiss → precio/zona/tamaño/fotos/amenidad/entrega), por colonia.
-    Te dice QUÉ CORREGIR, no solo qué quieren."""
+# Taxonomía UNIVERSO de razones de rechazo (normaliza texto libre → 14 categorías canónicas).
+_REJECTION_TAXONOMY = [
+    ("precio", ["precio", "caro", "costo", "presupuesto", "no me alcanza", "dinero", "enganche", "mensualidad"]),
+    ("zona", ["zona", "colonia", "barrio", "ubicacion", "ubicación", "lejos", "no me gusta la zona"]),
+    ("tamaño", ["tamaño", "tamano", "chico", "pequeño", "pequeno", "metros", "m2", "espacio", "grande de mas"]),
+    ("fotos", ["foto", "imagen", "render", "no se ve", "calidad de foto"]),
+    ("amenidades", ["amenidad", "alberca", "gym", "gimnasio", "roof", "areas comunes", "sin amenidades"]),
+    ("seguridad", ["seguridad", "inseguro", "peligroso", "robo", "delito"]),
+    ("plazo_entrega", ["entrega", "plazo", "preventa", "tardan", "mucho tiempo", "fecha"]),
+    ("crédito", ["credito", "crédito", "hipoteca", "infonavit", "banco", "no me prestan", "financiamiento"]),
+    ("layout", ["distribucion", "distribución", "layout", "plano", "cocina", "acomodo"]),
+    ("vista", ["vista", "interior", "no tiene vista", "ve a la calle"]),
+    ("piso_nivel", ["piso", "planta baja", "muy alto", "nivel", "elevador"]),
+    ("ruido_entorno", ["ruido", "trafico", "tráfico", "avenida", "ruidoso"]),
+    ("estacionamiento", ["estacionamiento", "cajon", "cajón", "parking", "auto"]),
+    ("desarrollador", ["desarrollador", "constructora", "marca", "reputacion", "confianza"]),
+]
+
+
+def _normalize_rejection(raw: str) -> str:
+    t = (raw or "").lower().strip()
+    if not t or t == "otro":
+        return "otro"
+    for cat, kws in _REJECTION_TAXONOMY:
+        if any(k in t for k in kws):
+            return cat
+    return t if len(t) <= 18 else "otro"   # texto corto desconocido se conserva; largo → otro
+
+
+async def rejection_intel(db, since_days: int = 365, top: int = 14) -> Dict[str, Any]:
+    """EL REVERSO DE LA DEMANDA (universo) — por qué dicen NO, normalizado a 14 razones canónicas (precio, zona, tamaño,
+    fotos, amenidades, seguridad, plazo/entrega, crédito, layout, vista, piso, ruido, estacionamiento, desarrollador),
+    por colonia. Te dice QUÉ CORREGIR. Antes guardaba el texto crudo sin agrupar."""
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     reasons = defaultdict(int); by_col = defaultdict(lambda: defaultdict(int)); n = 0
     async for s in db.buyer_signals.find({"type": "dismiss", "created_at_dt": {"$gte": cutoff}},
                                          {"_id": 0, "value": 1, "meta": 1, "colonia": 1}):
-        r = str(s.get("value") or (s.get("meta") or {}).get("reason") or "otro")
+        r = _normalize_rejection(str(s.get("value") or (s.get("meta") or {}).get("reason") or "otro"))
         reasons[r] += 1; n += 1
         if s.get("colonia"):
             by_col[s["colonia"]][r] += 1
     return {"total_rechazos": n, "razones": [{"razon": k, "n": v} for k, v in sorted(reasons.items(), key=lambda x: -x[1])[:top]],
+            "taxonomia": [c for c, _ in _REJECTION_TAXONOMY],
             "por_colonia": {c: dict(r) for c, r in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:8]},
-            "lectura": "la razón #1 de rechazo = lo que más te cuesta ventas"}
+            "lectura": "la razón #1 de rechazo = lo que más te cuesta ventas (14 razones canónicas)"}
+
+
+def _normalize_intent(raw: str, signal_type: str = "") -> Optional[str]:
+    """Universo de intenciones: primera-vivienda · upgrade · downsize · segunda-residencia · invertir-renta ·
+    invertir-plusvalía · flip · vivir / invertir (genérico)."""
+    t = (raw or "").lower().strip()
+    if "primera" in t or "primer depa" in t or "first" in t:
+        return "primera-vivienda"
+    if "upgrade" in t or "más grande" in t or "mas grande" in t or "crecer" in t:
+        return "upgrade"
+    if "downsize" in t or "más chico" in t or "mas chico" in t or "reducir" in t:
+        return "downsize"
+    if "segunda" in t or "vacacion" in t or "fin de semana" in t or "descanso" in t:
+        return "segunda-residencia"
+    if "renta" in t or "rentar" in t or "airbnb" in t or "alquil" in t:
+        return "invertir-renta"
+    if "plusval" in t or "revaloriz" in t or "apreci" in t:
+        return "invertir-plusvalía"
+    if "flip" in t or "revender" in t or "remate" in t:
+        return "flip"
+    if "invert" in t:
+        return "invertir-renta" if signal_type == "roi_explore" else "invertir"
+    if "vivir" in t or "habit" in t or "mudar" in t or "hogar" in t:
+        return "vivir"
+    if signal_type == "roi_explore":
+        return "invertir"
+    if signal_type == "payment_explore":
+        return "vivir"
+    return None
 
 
 async def intent_split(db, since_days: int = 365, top: int = 10) -> Dict[str, Any]:
-    """DEMANDA POR INTENT — vivir vs invertir (lens) global y por colonia. 'En Polanco el 60% es inversionista'."""
+    """DEMANDA POR INTENT (universo) — 8 intenciones inferidas de MÚLTIPLES fuentes (lens · roi_explore · payment_explore ·
+    meta de Atlax): primera-vivienda, upgrade, downsize, segunda-residencia, invertir-renta, invertir-plusvalía, flip,
+    vivir/invertir. Global + por colonia. Antes solo vivir/invertir del lens."""
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     glob = defaultdict(int); by_col = defaultdict(lambda: defaultdict(int))
-    async for s in db.buyer_signals.find({"type": "lens", "created_at_dt": {"$gte": cutoff}}, {"_id": 0, "value": 1, "colonia": 1}):
-        v = s.get("value")
+    async for s in db.buyer_signals.find(
+            {"type": {"$in": ["lens", "roi_explore", "payment_explore", "atlax_query", "atlax_profile"]}, "created_at_dt": {"$gte": cutoff}},
+            {"_id": 0, "type": 1, "value": 1, "colonia": 1, "meta": 1}):
+        meta = s.get("meta") or {}
+        raw = s.get("value") or meta.get("intent") or meta.get("objetivo") or ""
+        v = _normalize_intent(str(raw), s.get("type"))
         if v:
             glob[v] += 1
             if s.get("colonia"):
                 by_col[s["colonia"]][v] += 1
-    return {"global": dict(glob),
+    # resumen vivir vs invertir (compat con consumidores existentes)
+    vivir = sum(n for k, n in glob.items() if k.startswith("vivir") or k in ("primera-vivienda", "upgrade", "downsize", "segunda-residencia"))
+    invertir = sum(n for k, n in glob.items() if k.startswith("invertir") or k == "flip")
+    return {"global": dict(glob), "resumen": {"vivir": vivir, "invertir": invertir},
+            "taxonomia": ["primera-vivienda", "upgrade", "downsize", "segunda-residencia", "invertir-renta", "invertir-plusvalía", "flip"],
             "por_colonia": [{"colonia": c, **dict(d)} for c, d in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:top]]}
 
 
