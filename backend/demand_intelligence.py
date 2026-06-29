@@ -45,6 +45,91 @@ def bucket(d: dt.datetime, period: str) -> str:
     return d.strftime("%Y-%m")  # month (default)
 
 
+def _time_band(d: dt.datetime, now: Optional[dt.datetime] = None) -> str:
+    """Banda de RECENCIA universal: 7d / 30d / 90d / 365d / +1a — para ver si la demanda es fresca o vieja."""
+    if not isinstance(d, dt.datetime):
+        return "+1a"
+    now = now or dt.datetime.utcnow()
+    days = (now - d).total_seconds() / 86400
+    if days <= 7:
+        return "0-7d"
+    if days <= 30:
+        return "8-30d"
+    if days <= 90:
+        return "31-90d"
+    if days <= 365:
+        return "91-365d"
+    return "+1a"
+
+
+def _hour_band(d: dt.datetime) -> str:
+    """Franja horaria: madrugada/mañana/tarde/noche — cuándo navega el mercado (UTC, proxy)."""
+    if not isinstance(d, dt.datetime):
+        return "—"
+    h = d.hour
+    if h < 6:
+        return "madrugada"
+    if h < 12:
+        return "mañana"
+    if h < 18:
+        return "tarde"
+    return "noche"
+
+
+def _dow_band(d: dt.datetime) -> str:
+    """Día de semana vs fin de semana — el inversionista navega entre semana, la familia el finde (proxy)."""
+    if not isinstance(d, dt.datetime):
+        return "—"
+    return "fin_de_semana" if d.weekday() >= 5 else "entre_semana"
+
+
+def _signal_segment(s: Dict[str, Any]) -> str:
+    """Segmento de intención de UNA señal: vivir / invertir / desconocido (desde meta.intent/uso/tipo o el tipo de señal)."""
+    meta = s.get("meta") or {}
+    raw = str(meta.get("intent") or meta.get("uso") or s.get("intent") or "").lower()
+    seg = _normalize_intent(raw, s.get("type") or "")
+    if seg in ("invertir", "invertir-renta", "invertir-plusvalía", "flip"):
+        return "invertir"
+    if seg in ("vivir", "primera-vivienda", "upgrade", "downsize", "segunda-residencia"):
+        return "vivir"
+    if s.get("type") in ("roi_explore",):
+        return "invertir"
+    if s.get("type") in ("payment_explore",):
+        return "vivir"
+    return "desconocido"
+
+
+def _device_of(s: Dict[str, Any]) -> str:
+    """Dispositivo normalizado (mobile/desktop/tablet/desconocido) desde device o meta.device o channel."""
+    meta = s.get("meta") or {}
+    raw = str(s.get("device") or meta.get("device") or s.get("channel") or "").lower().strip()
+    if not raw:
+        return "desconocido"
+    if "mob" in raw or raw in ("ios", "android", "phone"):
+        return "mobile"
+    if "tab" in raw or "ipad" in raw:
+        return "tablet"
+    if "desk" in raw or raw in ("web", "pc", "mac", "windows"):
+        return "desktop"
+    return raw
+
+
+def _price_band(pm) -> Optional[str]:
+    """Banda de precio canónica reusable (la misma que usan demand_by_attribute / unmet_demand)."""
+    try:
+        pm = float(pm)
+    except (TypeError, ValueError):
+        return None
+    if pm <= 0:
+        return None
+    return "0-3M" if pm <= 3e6 else "3-8M" if pm <= 8e6 else "8-20M" if pm <= 20e6 else "20M+"
+
+
+def _topn(d: Dict[Any, int], n: int = 10, key_name: str = "k", val_name: str = "n") -> List[Dict[str, Any]]:
+    """Ranking top-N genérico de un dict {clave: count} → [{k, n}]."""
+    return [{key_name: k, val_name: v} for k, v in sorted(d.items(), key=lambda x: -x[1])[:n]]
+
+
 def _dev_features(dev: Dict[str, Any]) -> set:
     feats = set(dev.get("amenities") or []) | set(dev.get("unit_features") or [])
     return {str(f).strip().lower() for f in feats if f}
@@ -115,42 +200,106 @@ async def demand_by_feature(db, colonia: Optional[str] = None, colonias: Optiona
         q["colonia"] = colonia
     elif colonias:
         q["colonia"] = {"$in": colonias}
+    now = dt.datetime.utcnow()
     by_feature = defaultdict(int)
     series = defaultdict(lambda: defaultdict(int))   # feature -> bucket -> count
-    precise = 0
-    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "unit_number": 1, "meta": 1, "type": 1, "value": 1}):
+    f_by_col = defaultdict(lambda: defaultdict(int))     # feature -> colonia -> count (universo espacial)
+    f_recency = defaultdict(lambda: defaultdict(int))    # feature -> banda recencia
+    f_segment = defaultdict(lambda: defaultdict(int))    # feature -> vivir/invertir
+    f_device = defaultdict(lambda: defaultdict(int))     # feature -> dispositivo
+    f_precise = defaultdict(int)                         # feature -> señales precisas a unidad
+    col_total = defaultdict(int)                         # colonia -> demanda total (cualquier feature)
+    precise = 0; total = 0
+    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "unit_number": 1, "meta": 1, "type": 1, "value": 1, "device": 1, "channel": 1}):
         feats, col, prec = _attribute(s, DEVELOPMENTS_BY_ID.get(s.get("entity_id")))
         if not feats or not col:
             continue
         if prec:
             precise += 1
         b = bucket(s["created_at_dt"], period)
+        rb = _time_band(s.get("created_at_dt"), now)
+        seg = _signal_segment(s)
+        dev_kind = _device_of(s)
+        col_total[col] += 1
         for f in feats:
+            total += 1
             by_feature[f] += 1
             series[f][b] += 1
+            f_by_col[f][col] += 1
+            f_recency[f][rb] += 1
+            f_segment[f][seg] += 1
+            f_device[f][dev_kind] += 1
+            if prec:
+                f_precise[f] += 1
     ranked = sorted(by_feature.items(), key=lambda x: -x[1])[:top]
+    top_features = []
+    for f, n in ranked:
+        rec = f_recency[f]
+        fresca = rec.get("0-7d", 0) + rec.get("8-30d", 0)
+        top_features.append({
+            "feature": f, "demanda": n,
+            "serie": dict(sorted(series[f].items())),
+            "share_pct": round(n / total * 100, 1) if total else 0.0,
+            "por_colonia": _topn(f_by_col[f], 8, "colonia", "n"),
+            "por_recencia": dict(f_recency[f]),
+            "por_segmento": dict(f_segment[f]),
+            "por_dispositivo": dict(f_device[f]),
+            "senales_precisas": f_precise[f],
+            "frescura_pct": round(fresca / n * 100) if n else 0,
+            "momentum": "calentando" if (rec.get("0-7d", 0) > rec.get("8-30d", 0)) else "estable",
+        })
     return {
         "colonia": colonia or "todas", "period": period, "since_days": since_days, "senales_precisas_unidad": precise,
-        "top_features": [{"feature": f, "demanda": n,
-                          "serie": dict(sorted(series[f].items()))} for f, n in ranked],
+        "top_features": top_features,
+        "total_senales": total,
+        "precision_pct": round(precise / max(total, 1) * 100),
+        "colonias_activas": _topn(col_total, 12, "colonia", "demanda"),
+        "lectura": "demanda por feature al universo: colonia, recencia, vivir/invertir, dispositivo y momentum por cada feature",
     }
 
 
 async def demand_by_colonia(db, period: str = "month", since_days: int = 365, top: int = 25) -> Dict[str, Any]:
     """Colonias MÁS SOLICITADAS (señales + búsquedas) × tiempo."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    from data_developments import DEVELOPMENTS
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
+    col2alc = {d.get("colonia_id"): d.get("alcaldia") for d in DEVELOPMENTS if d.get("colonia_id")}
     by_col = defaultdict(int)
     series = defaultdict(lambda: defaultdict(int))
+    from_signal = defaultdict(int); from_search = defaultdict(int)   # señal de navegación vs búsqueda explícita
+    recency = defaultdict(lambda: defaultdict(int))                  # colonia -> banda recencia
+    by_alc = defaultdict(int)                                        # rollup a alcaldía
+    total = 0
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "colonia": {"$nin": [None, ""]}},
                                          {"_id": 0, "colonia": 1, "created_at_dt": 1}):
-        by_col[s["colonia"]] += 1
-        series[s["colonia"]][bucket(s["created_at_dt"], period)] += 1
+        c = s["colonia"]
+        by_col[c] += 1; from_signal[c] += 1; total += 1
+        series[c][bucket(s["created_at_dt"], period)] += 1
+        recency[c][_time_band(s.get("created_at_dt"), now)] += 1
+        by_alc[col2alc.get(c) or "—"] += 1
     async for s in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "colonias": 1, "created_at_dt": 1}):
         for c in (s.get("colonias") or []):
-            by_col[c] += 1
+            by_col[c] += 1; from_search[c] += 1; total += 1
             series[c][bucket(s["created_at_dt"], period)] += 1
+            recency[c][_time_band(s.get("created_at_dt"), now)] += 1
+            by_alc[col2alc.get(c) or "—"] += 1
     ranked = sorted(by_col.items(), key=lambda x: -x[1])[:top]
-    return {"period": period, "top_colonias": [{"colonia": c, "demanda": n, "serie": dict(sorted(series[c].items()))} for c, n in ranked]}
+    top_colonias = []
+    for c, n in ranked:
+        rec = recency[c]
+        top_colonias.append({
+            "colonia": c, "demanda": n, "serie": dict(sorted(series[c].items())),
+            "share_pct": round(n / total * 100, 1) if total else 0.0,
+            "alcaldia": col2alc.get(c) or "—",
+            "de_navegacion": from_signal.get(c, 0), "de_busqueda": from_search.get(c, 0),
+            "intencion_pct": round(from_search.get(c, 0) / n * 100) if n else 0,   # % de búsqueda explícita = mayor intento
+            "por_recencia": dict(rec),
+            "momentum": "calentando" if (rec.get("0-7d", 0) > rec.get("8-30d", 0)) else "estable",
+        })
+    return {"period": period, "top_colonias": top_colonias,
+            "total_senales": total,
+            "por_alcaldia": _topn(by_alc, 16, "alcaldia", "demanda"),
+            "lectura": "colonias más solicitadas al universo: rollup a alcaldía, recencia, navegación vs búsqueda (intento) y momentum"}
 
 
 async def financial_demand(db, since_days: int = 180, colonias: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -444,9 +593,12 @@ async def attribute_killer(db, atributo: str, since_days: int = 180) -> Dict[str
     field_map = {"balcón": "balcon", "balcon": "balcon", "terraza": "terraza", "roof garden": "roof_garden",
                  "roof_garden": "roof_garden", "bodega": "bodega", "pet friendly": "pet_friendly", "pet_friendly": "pet_friendly"}
     field = field_map.get(a)
-    by_col = defaultdict(int)
+    now = dt.datetime.utcnow()
+    by_col = defaultdict(int); by_alc = defaultdict(int); recency = defaultdict(int)
+    by_segment = defaultdict(int); by_period = defaultdict(int); col2alc = {}
+    total = 0
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["ficha_view", "like", "save", "unit_view", "compare"]}},
-                                         {"_id": 0, "entity_id": 1, "colonia": 1}):
+                                         {"_id": 0, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "meta": 1, "type": 1}):
         dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
         if not dev:
             continue
@@ -457,30 +609,78 @@ async def attribute_killer(db, atributo: str, since_days: int = 180) -> Dict[str
         else:
             match = any(a in str(u.get("vista", "")).lower() or a in str(u.get("orientation", "")).lower() for u in units)
         if match:
-            by_col[s.get("colonia") or dev.get("colonia_id")] += 1
-    return {"atributo": atributo,
-            "por_colonia": [{"colonia": c, "demanda": n} for c, n in sorted(by_col.items(), key=lambda x: -x[1])[:15]],
-            "lectura": f"dónde la demanda engancha más con '{atributo}'"}
+            col = s.get("colonia") or dev.get("colonia_id")
+            by_col[col] += 1; total += 1
+            col2alc[col] = dev.get("alcaldia")
+            by_alc[dev.get("alcaldia") or "—"] += 1
+            recency[_time_band(s.get("created_at_dt"), now)] += 1
+            by_segment[_signal_segment(s)] += 1
+            by_period[bucket(s.get("created_at_dt"), "month")] += 1
+    ranked = sorted(by_col.items(), key=lambda x: -x[1])[:15]
+    return {"atributo": atributo, "total": total,
+            "por_colonia": [{"colonia": c, "demanda": n, "share_pct": round(n / total * 100, 1) if total else 0.0,
+                             "alcaldia": col2alc.get(c) or "—"} for c, n in ranked],
+            "por_alcaldia": _topn(by_alc, 16, "alcaldia", "demanda"),
+            "por_recencia": dict(recency), "por_segmento": dict(by_segment),
+            "serie": dict(sorted(by_period.items())),
+            "lectura": f"dónde la demanda engancha más con '{atributo}' (colonia/alcaldía/recencia/segmento/serie)"}
 
 
 async def demand_by_attribute(db, since_days: int = 365) -> Dict[str, Any]:
     """Atributos EXPLÍCITOS buscados (recámaras / m² / precio / estacionamiento) — demanda dura de las búsquedas."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     rec = defaultdict(int); price_bands = defaultdict(int); parking = defaultdict(int)
+    banos = defaultdict(int); m2 = defaultdict(int); uso = defaultdict(int); tipo = defaultdict(int)
+    esquema = defaultdict(int); mensualidad = defaultdict(int); enganche = defaultdict(int)
+    recency = defaultdict(int)
+    rec_x_price = defaultdict(int)   # recámaras × precio (cruce que vende: "2 rec en 3-8M")
     n = 0
     async for s in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}},
-                                                {"_id": 0, "recamaras_min": 1, "precio_max": 1, "estacionamientos_min": 1}):
+                                                {"_id": 0, "recamaras_min": 1, "precio_max": 1, "estacionamientos_min": 1,
+                                                 "banos_min": 1, "m2_min": 1, "uso": 1, "tipo_pedido": 1, "esquema_pedido": 1,
+                                                 "mensualidad_max": 1, "enganche_max": 1, "created_at_dt": 1}):
         n += 1
-        if s.get("recamaras_min"):
-            rec[f"{s['recamaras_min']}+ rec"] += 1
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        rb = f"{s['recamaras_min']}+ rec" if s.get("recamaras_min") else None
+        if rb:
+            rec[rb] += 1
         pm = s.get("precio_max")
-        if pm:
-            band = "0-3M" if pm <= 3e6 else "3-8M" if pm <= 8e6 else "8-20M" if pm <= 20e6 else "20M+"
-            price_bands[band] += 1
+        pband = _price_band(pm)
+        if pband:
+            price_bands[pband] += 1
+        if rb and pband:
+            rec_x_price[f"{rb} · {pband}"] += 1
         if s.get("estacionamientos_min"):
             parking[f"{s['estacionamientos_min']}+ estac"] += 1
+        if s.get("banos_min"):
+            banos[f"{s['banos_min']}+ baños"] += 1
+        mm = s.get("m2_min")
+        if mm:
+            m2[_m2_band(mm)] += 1
+        if s.get("uso"):
+            uso[str(s["uso"]).lower().strip()] += 1
+        if s.get("tipo_pedido"):
+            tipo[str(s["tipo_pedido"]).lower().strip()] += 1
+        if s.get("esquema_pedido"):
+            esquema[str(s["esquema_pedido"]).lower().strip()] += 1
+        ms = s.get("mensualidad_max")
+        if ms:
+            mensualidad["<20k" if ms <= 20000 else "20-40k" if ms <= 40000 else "40-80k" if ms <= 80000 else "80k+"] += 1
+        eg = s.get("enganche_max")
+        if eg:
+            enganche["<500k" if eg <= 5e5 else "500k-1.5M" if eg <= 1.5e6 else "1.5-3M" if eg <= 3e6 else "3M+"] += 1
     return {"busquedas": n, "recamaras": dict(sorted(rec.items())),
-            "bandas_precio": dict(sorted(price_bands.items())), "estacionamiento": dict(sorted(parking.items()))}
+            "bandas_precio": dict(sorted(price_bands.items())), "estacionamiento": dict(sorted(parking.items())),
+            "banos": dict(sorted(banos.items())), "m2": dict(sorted(m2.items())),
+            "uso_intent": dict(sorted(uso.items(), key=lambda x: -x[1])),
+            "tipo_propiedad": dict(sorted(tipo.items(), key=lambda x: -x[1])),
+            "esquema_pago": dict(sorted(esquema.items(), key=lambda x: -x[1])),
+            "mensualidad_buscada": dict(sorted(mensualidad.items())),
+            "enganche_disponible": dict(sorted(enganche.items())),
+            "recamaras_x_precio": _topn(rec_x_price, 12, "combo", "n"),
+            "por_recencia": dict(recency),
+            "lectura": "atributos duros buscados al universo: + m²/baños/uso/tipo/esquema/mensualidad/enganche + cruce recámaras×precio"}
 
 
 async def what_to_build(db, colonia: Optional[str] = None, colonias: Optional[List[str]] = None,
@@ -490,76 +690,144 @@ async def what_to_build(db, colonia: Optional[str] = None, colonias: Optional[Li
     from data_developments import DEVELOPMENTS
     scope = set(colonias or ([colonia] if colonia else []))
     dem = await demand_by_feature(db, colonia=colonia, colonias=colonias, since_days=since_days, top=50)
-    demand = {f["feature"]: f["demanda"] for f in dem["top_features"]}
+    feat_rows = {f["feature"]: f for f in dem["top_features"]}
+    demand = {f: row["demanda"] for f, row in feat_rows.items()}
     supply = defaultdict(int)
+    supply_by_col = defaultdict(lambda: defaultdict(int))   # feature -> colonia -> unidades en oferta
+    supply_devs = defaultdict(int)                          # feature -> # desarrollos que lo ofrecen
     for dev in DEVELOPMENTS:
         if scope and (dev.get("colonia_id") not in scope):
             continue
         feats = _dev_features(dev)
         n_units = len(dev.get("units") or []) or 1
+        cid = dev.get("colonia_id")
         for f in feats:
             supply[f] += n_units
+            supply_devs[f] += 1
+            if cid:
+                supply_by_col[f][cid] += 1
     gaps = []
     for f, d in demand.items():
         s = supply.get(f, 0)
         ratio = d / max(s, 1)
-        gaps.append({"feature": f, "demanda": d, "oferta_unidades": s, "presion": round(ratio, 2)})
+        row = feat_rows.get(f, {})
+        recency = row.get("por_recencia") or {}
+        fresco = recency.get("0-7d", 0) + recency.get("8-30d", 0)
+        seg = row.get("por_segmento") or {}
+        nivel = "constrúyelo" if ratio >= 1.0 else "considéralo" if ratio >= 0.5 else "cubierto"
+        gaps.append({
+            "feature": f, "demanda": d, "oferta_unidades": s, "presion": round(ratio, 2),
+            "desarrollos_que_lo_ofrecen": supply_devs.get(f, 0),
+            "demanda_fresca_30d": fresco,
+            "momentum": row.get("momentum", "estable"),
+            "segmento_dominante": (max(seg.items(), key=lambda x: x[1])[0] if seg else None),
+            "colonias_demanda": row.get("por_colonia", [])[:5],
+            "colonias_oferta": _topn(supply_by_col[f], 5, "colonia", "devs"),
+            "nivel": nivel,
+        })
     gaps.sort(key=lambda x: -x["presion"])
+    resumen = Counter(g["nivel"] for g in gaps)
     return {"colonia": colonia or (",".join(colonias) if colonias else "todas"), "oportunidades": gaps[:15],
-            "lectura": "presion alta = mucha demanda, poca oferta → construir esto"}
+            "oportunidades_completas": gaps,
+            "resumen_niveles": dict(resumen),
+            "constru_ya": [g["feature"] for g in gaps if g["nivel"] == "constrúyelo"][:8],
+            "lectura": "presion alta = mucha demanda, poca oferta → construir esto (+ dónde está la demanda vs la oferta, frescura y segmento)"}
 
 
 async def engagement_by_content(db, since_days: int = 365, top: int = 20) -> Dict[str, Any]:
     """RESUCITA señales que se capturaban y morían: section_time/section_view/module_open → qué CONTENIDO de la ficha
     engancha al comprador (secciones, módulos, tiempo). Le dice al dev qué destacar y al superadmin qué le importa al mercado."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     sec_time = defaultdict(float); sec_views = defaultdict(int); mod_open = defaultdict(int)
+    sec_dwell_n = defaultdict(int)                         # # de eventos section_time (para promedio)
+    recency = defaultdict(int); by_segment = defaultdict(int); by_device = defaultdict(int)
     n = 0
     async for s in db.buyer_signals.find(
             {"created_at_dt": {"$gte": cutoff}, "type": {"$in": ["section_time", "section_view", "module_open"]}},
-            {"_id": 0, "type": 1, "value": 1, "seconds": 1, "meta": 1}):
+            {"_id": 0, "type": 1, "value": 1, "seconds": 1, "meta": 1, "created_at_dt": 1, "device": 1, "channel": 1}):
         n += 1
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        by_segment[_signal_segment(s)] += 1
+        by_device[_device_of(s)] += 1
         v = (s.get("value") or "").strip().lower()
         if not v:
             continue
         if s["type"] == "section_time":
             secs = s.get("seconds") or (s.get("meta") or {}).get("seconds") or 0
             sec_time[v] += float(secs or 0)
+            sec_dwell_n[v] += 1
         elif s["type"] == "section_view":
             sec_views[v] += 1
         else:
             mod_open[v] += 1
     return {
         "señales_de_contenido": n,
-        "secciones_por_tiempo": [{"seccion": k, "segundos_total": round(t)} for k, t in sorted(sec_time.items(), key=lambda x: -x[1])[:top]],
-        "secciones_por_vistas": [{"seccion": k, "vistas": v} for k, v in sorted(sec_views.items(), key=lambda x: -x[1])[:top]],
+        "secciones_por_tiempo": [{"seccion": k, "segundos_total": round(t),
+                                  "segundos_promedio": round(t / max(sec_dwell_n[k], 1), 1)}
+                                 for k, t in sorted(sec_time.items(), key=lambda x: -x[1])[:top]],
+        "secciones_por_vistas": [{"seccion": k, "vistas": v,
+                                  "engagement_pct": round(min(sec_dwell_n.get(k, 0) / v, 1) * 100) if v else 0}
+                                 for k, v in sorted(sec_views.items(), key=lambda x: -x[1])[:top]],
         "modulos_abiertos": [{"modulo": k, "aperturas": v} for k, v in sorted(mod_open.items(), key=lambda x: -x[1])[:top]],
+        "por_recencia": dict(recency), "por_segmento": dict(by_segment), "por_dispositivo": dict(by_device),
+        "seccion_estrella": (max(sec_time.items(), key=lambda x: x[1])[0] if sec_time else None),
+        "lectura": "qué contenido de la ficha engancha al universo: segundos promedio por sección, recencia, vivir/invertir, dispositivo",
     }
 
 
 async def unmet_demand(db, colonias: Optional[List[str]] = None, since_days: int = 365, top: int = 20) -> Dict[str, Any]:
     """DEMANDA NO SATISFECHA — lo que la gente BUSCA y casi no encuentra (unmet=True o results_count<=2). La señal más
     pura de 'qué construir que NO existe'. Por colonia × recámaras × precio."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     q = {"created_at_dt": {"$gte": cutoff}, "$or": [{"unmet": True}, {"results_count": {"$lte": 2}}]}
     if colonias:
         q["colonias"] = {"$in": colonias}
     by_col = defaultdict(int); by_rec = defaultdict(int); by_price = defaultdict(int); n = 0
-    async for s in db.marketplace_searches.find(q, {"_id": 0, "colonias": 1, "recamaras_min": 1, "precio_max": 1}):
+    by_m2 = defaultdict(int); by_uso = defaultdict(int); by_esquema = defaultdict(int)
+    recency = defaultdict(int); series = defaultdict(int); col_x_price = defaultdict(int)
+    zona_no_disp = defaultdict(int); gap_mens = 0; total_unmet_pure = 0
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "colonias": 1, "recamaras_min": 1, "precio_max": 1,
+                                                    "m2_min": 1, "uso": 1, "esquema_pedido": 1, "created_at_dt": 1,
+                                                    "unmet": 1, "zona_no_disponible": 1, "gap_mensualidad": 1}):
         n += 1
+        if s.get("unmet"):
+            total_unmet_pure += 1
+        if s.get("gap_mensualidad"):
+            gap_mens += 1
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        series[bucket(s.get("created_at_dt"), "month")] += 1
+        pband = _price_band(s.get("precio_max"))
         for c in (s.get("colonias") or []):
             if colonias and c not in colonias:
                 continue
             by_col[c] += 1
+            if pband:
+                col_x_price[f"{c} · {pband}"] += 1
+        if s.get("zona_no_disponible"):
+            zona_no_disp[str(s["zona_no_disponible"]).lower().strip()] += 1
         if s.get("recamaras_min"):
             by_rec[f"{s['recamaras_min']}+ rec"] += 1
-        pm = s.get("precio_max")
-        if pm:
-            by_price["0-3M" if pm <= 3e6 else "3-8M" if pm <= 8e6 else "8-20M" if pm <= 20e6 else "20M+"] += 1
+        if pband:
+            by_price[pband] += 1
+        if s.get("m2_min"):
+            by_m2[_m2_band(s["m2_min"])] += 1
+        if s.get("uso"):
+            by_uso[str(s["uso"]).lower().strip()] += 1
+        if s.get("esquema_pedido"):
+            by_esquema[str(s["esquema_pedido"]).lower().strip()] += 1
     return {"busquedas_insatisfechas": n,
+            "unmet_puro": total_unmet_pure,
             "por_colonia": [{"colonia": c, "n": v} for c, v in sorted(by_col.items(), key=lambda x: -x[1])[:top]],
             "por_recamaras": dict(sorted(by_rec.items())), "por_precio": dict(sorted(by_price.items())),
-            "lectura": "alta demanda insatisfecha = oportunidad de construir lo que el mercado pide y no encuentra"}
+            "por_m2": dict(sorted(by_m2.items())), "por_uso": dict(sorted(by_uso.items(), key=lambda x: -x[1])),
+            "por_esquema": dict(sorted(by_esquema.items(), key=lambda x: -x[1])),
+            "colonia_x_precio": _topn(col_x_price, top, "combo", "n"),
+            "zonas_sin_oferta": _topn(zona_no_disp, top, "zona", "n"),
+            "por_recencia": dict(recency), "serie": dict(sorted(series.items())),
+            "brecha_mensualidad": gap_mens,
+            "lectura": "demanda no satisfecha al universo: + m²/uso/esquema, cruce colonia×precio, zonas sin oferta y brecha de mensualidad"}
 
 
 async def _window_feature_counts(db, start, end, colonias=None) -> Dict[str, int]:
@@ -576,26 +844,63 @@ async def _window_feature_counts(db, start, end, colonias=None) -> Dict[str, int
     return dict(counts)
 
 
+async def _window_colonia_demand(db, start, end, colonias=None) -> Dict[str, int]:
+    """Demanda total por colonia en una ventana (para tendencia ESPACIAL, no solo de feature)."""
+    q = {"created_at_dt": {"$gte": start, "$lt": end}, "type": {"$in": _ENGAGE}, "colonia": {"$nin": [None, ""]}}
+    if colonias:
+        q["colonia"] = {"$in": colonias}
+    counts = defaultdict(int)
+    async for s in db.buyer_signals.find(q, {"_id": 0, "colonia": 1}):
+        counts[s["colonia"]] += 1
+    return dict(counts)
+
+
 async def trend_alerts(db, window_days: int = 30, colonias: Optional[List[str]] = None, min_recent: int = 3) -> Dict[str, Any]:
     """TENDENCIA/ANOMALÍA — demanda por feature en la ventana reciente vs la anterior → qué SUBE rápido ('terraza 3x este
     mes'). El sensor de 'el mercado está cambiando, muévete'."""
     now = dt.datetime.utcnow()
     recent = await _window_feature_counts(db, now - dt.timedelta(days=window_days), now, colonias)
     prior = await _window_feature_counts(db, now - dt.timedelta(days=2 * window_days), now - dt.timedelta(days=window_days), colonias)
-    alerts = []
+    older = await _window_feature_counts(db, now - dt.timedelta(days=3 * window_days), now - dt.timedelta(days=2 * window_days), colonias)
+    alerts = []; subiendo = bajando = 0
     for f, rc in recent.items():
         if rc < min_recent:
             continue
         pc = prior.get(f, 0)
+        oc = older.get(f, 0)
+        # aceleración: la tasa reciente vs la anterior está creciendo aún más rápido (2da derivada).
+        acelera = (rc - pc) > (pc - oc) and rc > pc
         # anterior=0 → NO inventamos % (sería 'subió 3600%' engañoso). Es 'nuevo' en la ventana reciente.
         if pc == 0:
-            alerts.append({"feature": f, "reciente": rc, "anterior": 0, "crecimiento_pct": None, "nuevo": True, "x": None})
+            subiendo += 1
+            alerts.append({"feature": f, "reciente": rc, "anterior": 0, "anterior_2": oc, "crecimiento_pct": None,
+                           "nuevo": True, "x": None, "acelerando": True, "direccion": "sube"})
         else:
-            alerts.append({"feature": f, "reciente": rc, "anterior": pc, "crecimiento_pct": round((rc - pc) / pc * 100),
-                           "nuevo": False, "x": round(rc / pc, 1)})
+            growth = round((rc - pc) / pc * 100)
+            if growth > 0:
+                subiendo += 1
+            elif growth < 0:
+                bajando += 1
+            alerts.append({"feature": f, "reciente": rc, "anterior": pc, "anterior_2": oc, "crecimiento_pct": growth,
+                           "nuevo": False, "x": round(rc / pc, 1), "acelerando": acelera,
+                           "direccion": "sube" if growth > 0 else "baja" if growth < 0 else "plano"})
     alerts.sort(key=lambda x: -(x["crecimiento_pct"] if x["crecimiento_pct"] is not None else (10 ** 6 + x["reciente"])))
+    # tendencia ESPACIAL: qué colonias se calientan/enfrían
+    c_recent = await _window_colonia_demand(db, now - dt.timedelta(days=window_days), now, colonias)
+    c_prior = await _window_colonia_demand(db, now - dt.timedelta(days=2 * window_days), now - dt.timedelta(days=window_days), colonias)
+    col_trends = []
+    for c, rc in c_recent.items():
+        if rc < min_recent:
+            continue
+        pc = c_prior.get(c, 0)
+        col_trends.append({"colonia": c, "reciente": rc, "anterior": pc, "nuevo": pc == 0,
+                           "crecimiento_pct": (None if pc == 0 else round((rc - pc) / pc * 100))})
+    col_trends.sort(key=lambda x: -(x["crecimiento_pct"] if x["crecimiento_pct"] is not None else 10 ** 6))
     return {"ventana_dias": window_days, "tendencias": alerts[:15],
-            "lectura": "feature creciendo rápido + poca oferta = constrúyelo YA"}
+            "tendencias_colonia": col_trends[:12],
+            "acelerando": [a["feature"] for a in alerts if a.get("acelerando")][:8],
+            "resumen": {"subiendo": subiendo, "bajando": bajando, "features_en_movimiento": len(alerts)},
+            "lectura": "feature creciendo rápido + poca oferta = constrúyelo YA (+ qué acelera y qué colonias se calientan)"}
 
 
 _CONV_FEATURES = ("terraza", "balcón", "balcon", "roof", "gym", "alberca", "jardín", "jardin", "vista", "bodega",
@@ -612,6 +917,10 @@ async def conversation_intel(db, since_days: int = 365, top: int = 15) -> Dict[s
     cutoff = (dt.datetime.utcnow() - dt.timedelta(days=since_days)).isoformat()
     known = {d.get("colonia_id"): (d.get("colonia") or "") for d in DEVELOPMENTS if d.get("colonia_id")}
     feats = defaultdict(int); concerns = defaultdict(int); cols = defaultdict(int)
+    feat_x_concern = defaultdict(int)        # co-ocurrencia feature+objeción en un mismo turno
+    feat_x_col = defaultdict(int)            # feature mencionada junto a colonia
+    by_segment = defaultdict(int)            # vivir/invertir inferido del texto
+    long_q = 0                               # mensajes "ricos" (>12 palabras) = más intención
     n = 0
     async for m in db.asistente_messages.find({"role": "user"}, {"_id": 0, "content": 1, "created_at": 1}):
         if str(m.get("created_at") or "") < cutoff:
@@ -620,69 +929,137 @@ async def conversation_intel(db, since_days: int = 365, top: int = 15) -> Dict[s
         if not txt:
             continue
         n += 1
+        if len(txt.split()) > 12:
+            long_q += 1
+        seg = _normalize_intent(txt)
+        if seg:
+            bucket_seg = "invertir" if seg.startswith("invertir") or seg == "flip" else "vivir"
+            by_segment[bucket_seg] += 1
+        msg_feats = []; msg_concerns = []; msg_cols = []
         for f in _CONV_FEATURES:
             if f in txt:
-                feats[f.replace("balcón", "balcon").replace("jardín", "jardin")] += 1
+                key = f.replace("balcón", "balcon").replace("jardín", "jardin")
+                feats[key] += 1
+                msg_feats.append(key)
         for k, label in _CONV_CONCERNS.items():
             if k in txt:
                 concerns[label] += 1
+                msg_concerns.append(label)
         for cid, cname in known.items():
             if (cid.replace("-", " ") in txt) or (cname and cname.lower() in txt):
                 cols[cid] += 1
+                msg_cols.append(cid)
+        for f in set(msg_feats):
+            for cc in set(msg_concerns):
+                feat_x_concern[f"{f} ⨯ {cc}"] += 1
+            for c in set(msg_cols):
+                feat_x_col[f"{f} en {c}"] += 1
     _rank = lambda d: [{"k": k, "n": v} for k, v in sorted(d.items(), key=lambda x: -x[1])[:top]]
     return {"mensajes_analizados": n, "features_mencionados": _rank(feats), "objeciones": _rank(concerns),
             "colonias_mencionadas": _rank(cols),
-            "lectura": "lo que el comprador realmente DICE en la conversación (intención + objeciones), no solo lo que filtra"}
+            "feature_x_objecion": _topn(feat_x_concern, top, "combo", "n"),
+            "feature_x_colonia": _topn(feat_x_col, top, "combo", "n"),
+            "por_segmento": dict(by_segment),
+            "mensajes_ricos": long_q,
+            "intencion_pct": round(long_q / n * 100) if n else 0,
+            "lectura": "lo que el comprador realmente DICE en Atlax al universo: co-ocurrencias feature×objeción y feature×colonia, vivir/invertir e intención"}
 
 
 async def demand_by_geo(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
     """Demanda al GEO MÁS FINO posible: CALLE → CP(≈manzana) → COLONIA → ALCALDÍA → CIUDAD. La calle/CP vienen del dev
     (la unidad hereda su dirección). Cierra el gap sub-colonia: 'cuántos exploran propiedades en Moliere 245 / CP 11570'."""
     from data_developments import DEVELOPMENTS_BY_ID
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     levels = {"calle": "street", "cp": "postal_code", "colonia": "colonia_id", "alcaldia": "alcaldia", "ciudad": "city"}
     agg = {lvl: defaultdict(int) for lvl in levels}
+    recency = {lvl: defaultdict(lambda: defaultdict(int)) for lvl in levels}   # nivel -> geo -> banda recencia
+    segment = {lvl: defaultdict(lambda: defaultdict(int)) for lvl in levels}   # nivel -> geo -> vivir/invertir
+    direccion = defaultdict(int)            # dirección exacta (calle+CP) = el punto más fino
+    total = 0
     async for s in db.buyer_signals.find(
             {"created_at_dt": {"$gte": cutoff}, "type": {"$in": _ENGAGE}, "entity_id": {"$nin": [None, ""]}},
-            {"_id": 0, "entity_id": 1}):
+            {"_id": 0, "entity_id": 1, "created_at_dt": 1, "meta": 1, "type": 1}):
         dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
         if not dev:
             continue
+        total += 1
+        rb = _time_band(s.get("created_at_dt"), now)
+        seg = _signal_segment(s)
         for lvl, field in levels.items():
             v = dev.get(field) or ("CDMX" if lvl == "ciudad" else None)
             if v:
                 agg[lvl][str(v)] += 1
-    return {lvl: [{"geo": g, "demanda": n} for g, n in sorted(d.items(), key=lambda x: -x[1])[:top]]
-            for lvl, d in agg.items()}
+                recency[lvl][str(v)][rb] += 1
+                segment[lvl][str(v)][seg] += 1
+        st, cp = dev.get("street"), dev.get("postal_code")
+        if st or cp:
+            direccion[f"{st or '—'} · CP {cp or '—'}"] += 1
+    out = {lvl: [{"geo": g, "demanda": n, "share_pct": round(n / total * 100, 1) if total else 0.0,
+                  "por_recencia": dict(recency[lvl][g]), "por_segmento": dict(segment[lvl][g])}
+                 for g, n in sorted(d.items(), key=lambda x: -x[1])[:top]]
+           for lvl, d in agg.items()}
+    out["total_senales"] = total
+    out["direccion_exacta"] = _topn(direccion, top, "direccion", "demanda")
+    out["lectura"] = "demanda al geo más fino del universo: calle→CP→colonia→alcaldía→ciudad + dirección exacta, recencia y vivir/invertir por nivel"
+    return out
 
 
 async def financial_intent(db, colonias: Optional[List[str]] = None, since_days: int = 365) -> Dict[str, Any]:
     """INTENCIÓN FINANCIERA (antes invisible) — cuántos exploran PAGO (qué enganche/mensualidad/esquema) y RENTABILIDAD
     (qué ROI). Señal de ALTO intento. Que payment_explore/roi_explore no queden capturados-y-muertos."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     q = {"created_at_dt": {"$gte": cutoff}}
     if colonias:
         q["colonia"] = {"$in": colonias}
     pay = roi = 0
     enganches = []; tirs = []; esquemas = defaultdict(int)
+    eng_band = defaultdict(int); tir_band = defaultdict(int)     # distribución, no solo promedio
+    mens_band = defaultdict(int); mens_vals = []
+    by_col = defaultdict(lambda: {"pago": 0, "roi": 0}); recency = defaultdict(int)
     async for s in db.buyer_signals.find({**q, "type": {"$in": ["payment_explore", "roi_explore"]}},
-                                         {"_id": 0, "type": 1, "meta": 1}):
+                                         {"_id": 0, "type": 1, "meta": 1, "colonia": 1, "created_at_dt": 1}):
         meta = s.get("meta") or {}
+        col = s.get("colonia")
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
         if s["type"] == "payment_explore":
             pay += 1
-            if isinstance(meta.get("enganche_pct"), (int, float)):
-                enganches.append(meta["enganche_pct"])
+            if col:
+                by_col[col]["pago"] += 1
+            ep = meta.get("enganche_pct")
+            if isinstance(ep, (int, float)):
+                enganches.append(ep)
+                eng_band["<10%" if ep < 10 else "10-20%" if ep < 20 else "20-30%" if ep < 30 else "30%+"] += 1
+            mp = meta.get("mensualidad") or meta.get("mensualidad_max")
+            if isinstance(mp, (int, float)) and mp > 0:
+                mens_vals.append(mp)
+                mens_band["<20k" if mp <= 20000 else "20-40k" if mp <= 40000 else "40-80k" if mp <= 80000 else "80k+"] += 1
             if meta.get("esquema"):
                 esquemas[str(meta["esquema"])] += 1
         else:
             roi += 1
-            if isinstance(meta.get("tir_pct"), (int, float)):
-                tirs.append(meta["tir_pct"])
+            if col:
+                by_col[col]["roi"] += 1
+            tp = meta.get("tir_pct")
+            if isinstance(tp, (int, float)):
+                tirs.append(tp)
+                tir_band["<8%" if tp < 8 else "8-12%" if tp < 12 else "12-18%" if tp < 18 else "18%+"] += 1
+    total = pay + roi
+    col_rows = sorted(by_col.items(), key=lambda x: -(x[1]["pago"] + x[1]["roi"]))[:10]
     return {"exploraron_pago": pay, "exploraron_roi": roi,
             "enganche_promedio_pct": round(sum(enganches) / len(enganches), 1) if enganches else None,
             "tir_buscado_promedio_pct": round(sum(tirs) / len(tirs), 1) if tirs else None,
             "esquemas_preferidos": dict(sorted(esquemas.items(), key=lambda x: -x[1])[:5]),
-            "lectura": "alto intento de compra — están corriendo números"}
+            "distribucion_enganche": dict(sorted(eng_band.items())),
+            "distribucion_tir": dict(sorted(tir_band.items())),
+            "distribucion_mensualidad": dict(sorted(mens_band.items())),
+            "mensualidad_promedio": round(sum(mens_vals) / len(mens_vals)) if mens_vals else None,
+            "por_colonia": [{"colonia": c, "pago": v["pago"], "roi": v["roi"], "total": v["pago"] + v["roi"]} for c, v in col_rows],
+            "por_recencia": dict(recency),
+            "split_vivir_invertir": {"vivir_pago": pay, "invertir_roi": roi,
+                                     "pct_inversionista": round(roi / total * 100) if total else 0},
+            "lectura": "alto intento de compra — están corriendo números (+ distribución de enganche/TIR/mensualidad, por colonia y split vivir/invertir)"}
 
 
 async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: int = 90, top: int = 5) -> Dict[str, Any]:
@@ -692,6 +1069,7 @@ async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: in
     trends = await trend_alerts(db, colonias=colonias)
     unmet = await unmet_demand(db, colonias=colonias, since_days=since_days)
     trend_map = {t["feature"]: t for t in trends.get("tendencias", [])}
+    acelera_set = set(trends.get("acelerando", []))
     jugadas = []
     for o in wtb.get("oportunidades", []):
         if o["presion"] < 0.5 and o["demanda"] < 5:
@@ -699,17 +1077,31 @@ async def demand_alerts(db, colonias: Optional[List[str]] = None, since_days: in
         t = trend_map.get(o["feature"])
         sube = (t or {}).get("crecimiento_pct")
         nuevo = bool((t or {}).get("nuevo"))
-        urgencia = round(o["presion"] + (1.0 if ((sube and sube > 50) or nuevo) else 0.0), 2)
+        acelera = o["feature"] in acelera_set
+        urgencia = round(o["presion"] + (1.0 if ((sube and sube > 50) or nuevo) else 0.0) + (0.5 if acelera else 0.0), 2)
         msg = f"{o['feature']}: {o['demanda']} lo buscan vs {o['oferta_unidades']} unidades en oferta (presión ×{o['presion']})"
         if nuevo:
             msg += " · nuevo en demanda reciente"
         elif sube and sube > 0:
             msg += f" · subiendo {sube:+d}%"
+        if acelera:
+            msg += " · acelerando"
+        col_demanda = o.get("colonias_demanda") or []
         jugadas.append({"feature": o["feature"], "mensaje": msg, "presion": o["presion"], "tendencia_pct": sube,
-                        "nuevo": nuevo, "urgencia": urgencia, "accion": "construir" if o["presion"] >= 0.7 else "considerar"})
+                        "nuevo": nuevo, "acelerando": acelera, "urgencia": urgencia,
+                        "demanda": o["demanda"], "oferta_unidades": o["oferta_unidades"],
+                        "demanda_fresca_30d": o.get("demanda_fresca_30d", 0),
+                        "segmento": o.get("segmento_dominante"),
+                        "donde_construir": [c.get("colonia") for c in col_demanda[:3]],
+                        "accion": "construir" if o["presion"] >= 0.7 else "considerar"})
     jugadas.sort(key=lambda x: -x["urgencia"])
+    n_construir = sum(1 for j in jugadas if j["accion"] == "construir")
     return {"jugadas": jugadas[:top], "busquedas_no_satisfechas": unmet.get("busquedas_insatisfechas", 0),
-            "lectura": "ordenado por urgencia (presión + tendencia) — construye lo de arriba"}
+            "todas_las_jugadas": jugadas,
+            "colonias_sin_oferta": unmet.get("zonas_sin_oferta", [])[:5],
+            "resumen": {"jugadas_construir": n_construir, "jugadas_considerar": len(jugadas) - n_construir,
+                        "colonias_calientes": [c.get("colonia") for c in trends.get("tendencias_colonia", [])[:3]]},
+            "lectura": "ordenado por urgencia (presión + tendencia + aceleración) — construye lo de arriba, en las colonias indicadas"}
 
 
 async def notify_demand_alerts(db) -> Dict[str, Any]:
@@ -754,18 +1146,40 @@ async def lead_engaged_features(db, visitor_id: str, since_days: int = 365, top:
     """Las FEATURES y COLONIAS con las que un lead/visitante ENGANCHÓ (sus propias señales) → para que el ASESOR le
     ofrezca lo correcto. Cierra el loop comprador→asesor: 'este lead miró terraza/gym en Polanco → ofrécele eso'."""
     from data_developments import DEVELOPMENTS_BY_ID
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     counts = defaultdict(int); cols = defaultdict(int)
+    devs = defaultdict(int); types = defaultdict(int); segments = defaultdict(int)
+    recency = defaultdict(int); total = 0; calor = 0.0; last = None
     async for s in db.buyer_signals.find(
             {"visitor_id": visitor_id, "created_at_dt": {"$gte": cutoff}, "type": {"$in": _ENGAGE}},
-            {"_id": 0, "entity_id": 1, "colonia": 1, "unit_number": 1, "meta": 1, "type": 1, "value": 1}):
+            {"_id": 0, "entity_id": 1, "colonia": 1, "unit_number": 1, "meta": 1, "type": 1, "value": 1, "created_at_dt": 1}):
+        total += 1
+        types[s.get("type")] += 1
+        calor += _PROP_WEIGHT.get(s.get("type"), 0.5)
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        segments[_signal_segment(s)] += 1
+        t = s.get("created_at_dt")
+        if isinstance(t, dt.datetime) and (last is None or t > last):
+            last = t
+        if s.get("entity_id"):
+            devs[s["entity_id"]] += 1
         feats, col, _ = _attribute(s, DEVELOPMENTS_BY_ID.get(s.get("entity_id")))
         for f in (feats or []):
             counts[f] += 1
         if col:
             cols[col] += 1
+    seg_dom = max(segments.items(), key=lambda x: x[1])[0] if segments else "desconocido"
     return {"features": [{"feature": f, "n": n} for f, n in sorted(counts.items(), key=lambda x: -x[1])[:top]],
-            "colonias": [{"colonia": c, "n": n} for c, n in sorted(cols.items(), key=lambda x: -x[1])[:5]]}
+            "colonias": [{"colonia": c, "n": n} for c, n in sorted(cols.items(), key=lambda x: -x[1])[:5]],
+            "total_senales": total, "calor": round(calor, 1),
+            "tipos_senal": _topn(types, 8, "tipo", "n"),
+            "desarrollos_vistos": _topn(devs, 5, "dev", "n"),
+            "por_recencia": dict(recency),
+            "segmento": seg_dom, "por_segmento": dict(segments),
+            "ultima_actividad": last.isoformat() if last else None,
+            "estado": "activo" if (recency.get("0-7d", 0) + recency.get("8-30d", 0)) > 0 else "frío",
+            "lectura": "lo que enganchó el lead al universo: + tipos de señal, desarrollos vistos, calor, recencia y vivir/invertir"}
 
 
 async def recommend_for_lead(db, visitor_id: str) -> Dict[str, Any]:
@@ -774,18 +1188,35 @@ async def recommend_for_lead(db, visitor_id: str) -> Dict[str, Any]:
     eng = await lead_engaged_features(db, visitor_id)
     want_f = {x["feature"] for x in eng["features"]}
     want_c = {x["colonia"] for x in eng["colonias"]}
+    segmento = eng.get("segmento", "desconocido")
+    calor = eng.get("calor", 0)
     if not want_f and not want_c:
-        return {"features": [], "colonias": [], "unidades": [], "lectura": "El lead aún no tiene señales — sin recomendación granular."}
+        return {"features": [], "colonias": [], "unidades": [], "recomendaciones": [],
+                "segmento": segmento, "calor": calor,
+                "lectura": "El lead aún no tiene señales — sin recomendación granular."}
+    # peso por intensidad: features más vistas pesan más en el score (no solo presencia)
+    f_weight = {x["feature"]: x["n"] for x in eng["features"]}
     matches = []
     for dev in DEVELOPMENTS:
         dfeats = _dev_features(dev)
-        score = len(dfeats & want_f) + (2 if dev.get("colonia_id") in want_c else 0)
+        inter = dfeats & want_f
+        en_colonia = dev.get("colonia_id") in want_c
+        score = len(inter) + (2 if en_colonia else 0)
         if score > 0:
+            score_pond = sum(f_weight.get(f, 1) for f in inter) + (3 if en_colonia else 0)
+            falta = sorted(want_f - dfeats)
             matches.append({"dev": dev.get("id"), "name": dev.get("name"), "colonia": dev.get("colonia_id"),
-                            "features_match": sorted(dfeats & want_f), "score": score})
-    matches.sort(key=lambda x: -x["score"])
-    return {"features_del_lead": eng["features"], "colonias_del_lead": eng["colonias"], "recomendaciones": matches[:6],
-            "lectura": "ofrécele estos desarrollos: hacen match con lo que el lead estuvo mirando"}
+                            "features_match": sorted(inter), "score": score, "score_ponderado": score_pond,
+                            "en_su_colonia": en_colonia, "features_que_le_faltan": falta[:4],
+                            "razon": f"hace match en {len(inter)} feature(s) que el lead miró" +
+                                     (f" y está en {dev.get('colonia_id')}" if en_colonia else "")})
+    matches.sort(key=lambda x: (-x["score_ponderado"], -x["score"]))
+    top = matches[:6]
+    return {"features_del_lead": eng["features"], "colonias_del_lead": eng["colonias"], "recomendaciones": top,
+            "segmento": segmento, "calor": calor, "estado": eng.get("estado"),
+            "total_candidatos": len(matches),
+            "mejor_jugada": (f"Ofrécele {top[0]['name']} — {top[0]['razon']}" if top else None),
+            "lectura": "ofrécele estos desarrollos: hacen match con lo que el lead estuvo mirando (rankeado por intensidad de interés)"}
 
 
 # Taxonomía UNIVERSO de razones de rechazo (normaliza texto libre → 14 categorías canónicas).
@@ -1281,6 +1712,37 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                 pass
             if lift_global:
                 prof["feature_lift"] = lift_global
+            # BUILD-READY (colecciones existen, se llenan con dato de prod): forecast · clima · fraude · reseñas · brokers
+            try:
+                fc = await db.drpi_snapshots.find_one({"zone_id": cid, "available": True}, {"_id": 0})
+                if fc:
+                    prof["forecast_pct"] = fc.get("forecast_12m_pct") or fc.get("drpi_delta_pct") or fc.get("delta_pct")
+            except Exception:
+                pass
+            try:
+                clm = await db.climate_migration_patterns.find_one({"$or": [{"zone_id": cid}, {"destino": cid}, {"origin": cid}]}, {"_id": 0})
+                if clm:
+                    prof["clima_migracion"] = clm.get("magnitud") or clm.get("confianza") or clm.get("score")
+            except Exception:
+                pass
+            try:
+                nf = await db.fraud_alerts.count_documents({"zone_id": cid})
+                if nf:
+                    prof["fraude_n"] = nf
+            except Exception:
+                pass
+            try:
+                rv = await db.reviews_residents_cache.find_one({"entity_id": cid, "is_stub": {"$ne": True}}, {"_id": 0})
+                if rv:
+                    prof["reviews_sentiment"] = rv.get("sentiment_score") or rv.get("positivo_pct") or rv.get("score")
+            except Exception:
+                pass
+            try:
+                brk = await db.broker_listings.distinct("broker_id", {"colonia_id": cid})
+                if brk:
+                    prof["brokers_n"] = len(brk)
+            except Exception:
+                pass
         out.append(prof)
     return {"zonas": out,
             "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
@@ -1530,16 +1992,27 @@ async def cross_intelligence(db, since_days: int = 180, top: int = 14) -> Dict[s
 async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
     """PERFIL DE COMPORTAMIENTO — device (mobile/desktop/tablet), estilo DISC, engagement de tour/video, profundidad de
     scroll. Consume las dimensiones de captura nueva (que ninguna quede capturada-y-muerta)."""
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     devices = defaultdict(int); n_tour = 0; scrolls = []
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "device": 1, "type": 1, "value": 1}):
-        if s.get("device"):
-            devices[s["device"]] += 1
-        if s.get("type") == "tour_view":
+    scroll_band = defaultdict(int); type_mix = defaultdict(int); segments = defaultdict(int)
+    recency = defaultdict(int); dwell_ms = []
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
+                                         {"_id": 0, "device": 1, "type": 1, "value": 1, "meta": 1, "channel": 1, "created_at_dt": 1, "dwell_ms": 1}):
+        devices[_device_of(s)] += 1
+        type_mix[s.get("type") or "?"] += 1
+        segments[_signal_segment(s)] += 1
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        dm = s.get("dwell_ms")
+        if isinstance(dm, (int, float)) and dm > 0:
+            dwell_ms.append(dm)
+        if s.get("type") in ("tour_view", "video_view"):
             n_tour += 1
         elif s.get("type") == "scroll_depth":
             try:
-                scrolls.append(int(s.get("value") or 0))
+                v = int(s.get("value") or 0)
+                scrolls.append(v)
+                scroll_band["0-25%" if v <= 25 else "26-50%" if v <= 50 else "51-75%" if v <= 75 else "76-100%"] += 1
             except (TypeError, ValueError):
                 pass
     disc = defaultdict(int)
@@ -1548,30 +2021,60 @@ async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
             disc[c["inferred_disc"]] += 1
     except Exception:
         pass
+    total_dev = sum(devices.values())
     return {"device": dict(devices), "estilo_disc": dict(disc), "abrieron_tour_video": n_tour,
             "scroll_profundo_promedio_pct": round(sum(scrolls) / len(scrolls)) if scrolls else None,
-            "lectura": "cómo se comporta: dispositivo, estilo de decisión (DISC), y qué tan a fondo explora"}
+            "device_share_pct": {k: round(v / total_dev * 100, 1) for k, v in devices.items()} if total_dev else {},
+            "distribucion_scroll": dict(sorted(scroll_band.items())),
+            "mezcla_senales": _topn(type_mix, 12, "tipo", "n"),
+            "por_segmento": dict(segments),
+            "disc_dominante": (max(disc.items(), key=lambda x: x[1])[0] if disc else None),
+            "por_recencia": dict(recency),
+            "dwell_ms_promedio": round(sum(dwell_ms) / len(dwell_ms)) if dwell_ms else None,
+            "lectura": "cómo se comporta al universo: dispositivo (+share), DISC dominante, distribución de scroll, mezcla de señales y vivir/invertir"}
 
 
 async def price_sensitivity(db, since_days: int = 365, top: int = 12) -> Dict[str, Any]:
     """SENSIBILIDAD AL PRECIO — el TECHO de precio que busca el mercado, global y por colonia (mediana/p25/p75). Te dice
     a qué precio construir/listar para no quedar fuera de la búsqueda."""
     import statistics
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     glob = []; by_col = defaultdict(list)
+    bands = defaultdict(int); by_uso = defaultdict(list); recency = defaultdict(int)
+    mens = []; eng = []
     async for s in db.marketplace_searches.find({"created_at_dt": {"$gte": cutoff}, "precio_max": {"$gt": 0}},
-                                                {"_id": 0, "precio_max": 1, "colonias": 1}):
-        glob.append(s["precio_max"])
+                                                {"_id": 0, "precio_max": 1, "colonias": 1, "uso": 1,
+                                                 "mensualidad_max": 1, "enganche_max": 1, "created_at_dt": 1}):
+        pm = s["precio_max"]
+        glob.append(pm)
+        recency[_time_band(s.get("created_at_dt"), now)] += 1
+        pb = _price_band(pm)
+        if pb:
+            bands[pb] += 1
         for c in (s.get("colonias") or []):
-            by_col[c].append(s["precio_max"])
+            by_col[c].append(pm)
+        if s.get("uso"):
+            by_uso[str(s["uso"]).lower().strip()].append(pm)
+        if isinstance(s.get("mensualidad_max"), (int, float)) and s["mensualidad_max"] > 0:
+            mens.append(s["mensualidad_max"])
+        if isinstance(s.get("enganche_max"), (int, float)) and s["enganche_max"] > 0:
+            eng.append(s["enganche_max"])
 
     def stats(vals):
         v = sorted(vals)
         return {"n": len(v), "mediana": round(statistics.median(v)) if v else None,
-                "p25": round(v[len(v) // 4]) if v else None, "p75": round(v[3 * len(v) // 4]) if v else None}
+                "p25": round(v[len(v) // 4]) if v else None, "p75": round(v[3 * len(v) // 4]) if v else None,
+                "min": round(v[0]) if v else None, "max": round(v[-1]) if v else None}
+    sweet = max(bands.items(), key=lambda x: x[1])[0] if bands else None
     return {"global": stats(glob),
             "por_colonia": [{"colonia": c, **stats(v)} for c, v in sorted(by_col.items(), key=lambda x: -len(x[1]))[:top]],
-            "lectura": "construye/lista por debajo de la mediana del techo = entras en más búsquedas"}
+            "distribucion_bandas": dict(sorted(bands.items())),
+            "banda_dominante": sweet,
+            "por_uso": [{"uso": u, **stats(v)} for u, v in sorted(by_uso.items(), key=lambda x: -len(x[1]))],
+            "mensualidad": stats(mens), "enganche": stats(eng),
+            "por_recencia": dict(recency),
+            "lectura": "construye/lista por debajo de la mediana del techo = entras en más búsquedas (+ banda dominante, sensibilidad por uso/mensualidad/enganche)"}
 
 
 async def funnel_velocity(db, since_days: int = 365) -> Dict[str, Any]:
@@ -1580,31 +2083,56 @@ async def funnel_velocity(db, since_days: int = 365) -> Dict[str, Any]:
     import statistics
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     # 1er señal → lead (consideración) por visitante que tiene lead
-    first = {}; lead_at = {}
-    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1}):
+    first = {}; lead_at = {}; n_signals = defaultdict(int); v_segment = defaultdict(lambda: defaultdict(int))
+    all_visitors = set()
+    async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
+                                         {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1, "meta": 1}):
         v, t = s.get("visitor_id"), s.get("created_at_dt")
         if not isinstance(t, dt.datetime):
             continue
+        all_visitors.add(v)
+        n_signals[v] += 1
+        v_segment[v][_signal_segment(s)] += 1
         if v not in first or t < first[v]:
             first[v] = t
         if s.get("type") == "lead":
             if v not in lead_at or t < lead_at[v]:
                 lead_at[v] = t
-    consider_days = [round((lead_at[v] - first[v]).total_seconds() / 86400, 1) for v in lead_at if v in first and lead_at[v] >= first[v]]
+    consider_days = []; consider_by_seg = defaultdict(list)
+    for v in lead_at:
+        if v in first and lead_at[v] >= first[v]:
+            d = round((lead_at[v] - first[v]).total_seconds() / 86400, 1)
+            consider_days.append(d)
+            seg = max(v_segment[v].items(), key=lambda x: x[1])[0] if v_segment[v] else "desconocido"
+            consider_by_seg[seg].append(d)
     # lead creado → cerrado (db.leads)
-    close_days = []
-    async for l in db.leads.find({"status_v2": {"$in": ["vendido", "cerrado_ganado"]}}, {"_id": 0, "created_at": 1, "last_activity_at": 1}):
+    close_days = []; close_by_intent = defaultdict(list)
+    async for l in db.leads.find({"status_v2": {"$in": ["vendido", "cerrado_ganado"]}},
+                                 {"_id": 0, "created_at": 1, "last_activity_at": 1, "intent": 1, "buyer_profile": 1}):
         try:
             c = dt.datetime.fromisoformat(str(l["created_at"]).replace("Z", "")[:26])
             e = dt.datetime.fromisoformat(str(l.get("last_activity_at") or l["created_at"]).replace("Z", "")[:26])
             if e >= c:
-                close_days.append(round((e - c).total_seconds() / 86400, 1))
+                d = round((e - c).total_seconds() / 86400, 1)
+                close_days.append(d)
+                seg = _normalize_intent(str(l.get("intent") or (l.get("buyer_profile") or {}).get("intent") or "")) or "desconocido"
+                bucket_seg = "invertir" if seg.startswith("invertir") or seg == "flip" else "vivir" if seg != "desconocido" else "desconocido"
+                close_by_intent[bucket_seg].append(d)
         except Exception:
             continue
     med = lambda x: round(statistics.median(x), 1) if x else None
-    return {"consideracion_dias": {"n": len(consider_days), "mediana": med(consider_days)},
-            "lead_a_cierre_dias": {"n": len(close_days), "mediana": med(close_days)},
-            "lectura": "mide la velocidad real: cuánto tardan en convertirse y en cerrar"}
+    pct = lambda x, p: (round(sorted(x)[int(len(x) * p)], 1) if x else None)
+    n_visitors = len(all_visitors); n_leads = len(lead_at)
+    return {"consideracion_dias": {"n": len(consider_days), "mediana": med(consider_days),
+                                   "p25": pct(consider_days, 0.25), "p75": pct(consider_days, 0.75)},
+            "lead_a_cierre_dias": {"n": len(close_days), "mediana": med(close_days),
+                                   "p25": pct(close_days, 0.25), "p75": pct(close_days, 0.75)},
+            "consideracion_por_segmento": {s: {"n": len(v), "mediana": med(v)} for s, v in consider_by_seg.items()},
+            "cierre_por_intent": {s: {"n": len(v), "mediana": med(v)} for s, v in close_by_intent.items()},
+            "embudo": {"visitantes": n_visitors, "leads": n_leads, "cerrados": len(close_days),
+                       "conversion_visitante_a_lead_pct": round(n_leads / n_visitors * 100, 1) if n_visitors else 0.0,
+                       "senales_por_visitante": round(sum(n_signals.values()) / n_visitors, 1) if n_visitors else 0.0},
+            "lectura": "velocidad real al universo: consideración y cierre con p25/p75, por segmento (inversionista vs familia) y tasa de conversión del embudo"}
 
 
 _PROP_WEIGHT = {"atlax_apartado": 12, "lead": 10, "intent": 8, "roi_explore": 7, "payment_explore": 7,
@@ -1616,34 +2144,55 @@ async def hot_visitors(db, since_days: int = 90, top: int = 15) -> Dict[str, Any
     """PROPENSIÓN / CALOR POR VISITANTE — puntúa cada visitante anónimo por sus señales (apartado/lead pesan, dismiss
     resta) + qué features/colonias mira. Lo MÁS accionable: 'estos visitantes anónimos se están calentando'."""
     from data_developments import DEVELOPMENTS_BY_ID
-    cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
+    now = dt.datetime.utcnow()
+    cutoff = now - dt.timedelta(days=since_days)
     score = defaultdict(float); feats = defaultdict(lambda: defaultdict(int)); cols = defaultdict(lambda: defaultdict(int))
+    devs = defaultdict(lambda: defaultdict(int)); seg = defaultdict(lambda: defaultdict(int)); n_sig = defaultdict(int)
     last = {}; converted = set()
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
                                          {"_id": 0, "visitor_id": 1, "type": 1, "entity_id": 1, "colonia": 1, "created_at_dt": 1, "meta": 1, "unit_number": 1, "value": 1}):
         v = s.get("visitor_id")
         if not v:
             continue
+        n_sig[v] += 1
         score[v] += _PROP_WEIGHT.get(s.get("type"), 0.5)
+        seg[v][_signal_segment(s)] += 1
         if s.get("type") == "lead":
             converted.add(v)
         if s.get("colonia"):
             cols[v][s["colonia"]] += 1
+        if s.get("entity_id"):
+            devs[v][s["entity_id"]] += 1
         f, _c, _p = _attribute(s, DEVELOPMENTS_BY_ID.get(s.get("entity_id")))
         for x in (f or []):
             feats[v][x] += 1
         t = s.get("created_at_dt")
         if isinstance(t, dt.datetime) and (v not in last or t > last[v]):
             last[v] = t
-    ranked = sorted(((v, sc) for v, sc in score.items() if v not in converted), key=lambda x: -x[1])[:top]
+    pool = [(v, sc) for v, sc in score.items() if v not in converted]
+    ranked = sorted(pool, key=lambda x: -x[1])[:top]
     out = []
     for v, sc in ranked:
         tf = sorted(feats[v].items(), key=lambda x: -x[1])[:3]
         tc = sorted(cols[v].items(), key=lambda x: -x[1])[:2]
+        td = sorted(devs[v].items(), key=lambda x: -x[1])[:2]
+        seg_dom = max(seg[v].items(), key=lambda x: x[1])[0] if seg[v] else "desconocido"
+        rb = _time_band(last[v], now) if v in last else "+1a"
         out.append({"visitor_id": v, "calor": round(sc, 1),
                     "features": [k for k, _ in tf], "colonias": [k for k, _ in tc],
+                    "desarrollos": [k for k, _ in td], "segmento": seg_dom,
+                    "n_senales": n_sig[v], "frescura": rb,
+                    "urgente": rb in ("0-7d", "8-30d") and sc >= 8,
                     "ultima_actividad": last[v].isoformat() if v in last else None})
-    return {"visitantes_calientes": out, "lectura": "lead anónimo a punto de pedir contacto — el asesor podría adelantarse"}
+    # banda de calor global del pool (para el asesor: cuántos hay en cada nivel)
+    bands = defaultdict(int)
+    for _v, sc in pool:
+        bands["caliente" if sc >= 12 else "tibio" if sc >= 6 else "frío"] += 1
+    return {"visitantes_calientes": out,
+            "total_visitantes": len(pool), "convertidos": len(converted),
+            "bandas_calor": dict(bands),
+            "urgentes": [o["visitor_id"] for o in out if o["urgente"]],
+            "lectura": "lead anónimo a punto de pedir contacto — el asesor podría adelantarse (+ segmento, frescura, urgencia y bandas de calor)"}
 
 
 async def killer_query(db, feature: str, colonia: str, period: str = "month") -> Dict[str, Any]:
@@ -1651,6 +2200,18 @@ async def killer_query(db, feature: str, colonia: str, period: str = "month") ->
     feature = feature.strip().lower()
     res = await demand_by_feature(db, colonia=colonia, period=period, top=100)
     row = next((f for f in res["top_features"] if f["feature"] == feature), None)
+    # contexto: ¿cómo se compara con las demás features de esa colonia? (rank + share)
+    ranking = [f["feature"] for f in res["top_features"]]
+    rank = (ranking.index(feature) + 1) if feature in ranking else None
     return {"pregunta": f"demanda de '{feature}' en '{colonia}'", "feature": feature, "colonia": colonia,
             "demanda_total": (row or {}).get("demanda", 0), "serie_tiempo": (row or {}).get("serie", {}),
-            "respondible": row is not None}
+            "respondible": row is not None,
+            "share_pct": (row or {}).get("share_pct", 0.0),
+            "ranking_en_colonia": rank, "features_en_colonia": len(ranking),
+            "por_recencia": (row or {}).get("por_recencia", {}),
+            "por_segmento": (row or {}).get("por_segmento", {}),
+            "por_dispositivo": (row or {}).get("por_dispositivo", {}),
+            "momentum": (row or {}).get("momentum"),
+            "frescura_pct": (row or {}).get("frescura_pct", 0),
+            "senales_precisas": (row or {}).get("senales_precisas", 0),
+            "lectura": f"'{feature}' en '{colonia}': demanda total, momentum, recencia, vivir/invertir y su posición vs otras features"}
