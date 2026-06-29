@@ -82,3 +82,15 @@ export async function getFacetList({ poblacion, geo_nivel, geo_valor, ventana, f
   if (filtros && Object.keys(filtros).length > 0) params.filtros = JSON.stringify(filtros);
   return _j(await fetch(`${BASE}/facet/list?${_qs(params)}`, { headers: h(), credentials: 'include' }));
 }
+// Comparativas (¿por qué?) — catálogo: splits (atributo por el que partir) + outcomes (métrica de resultado).
+export async function getCompareCatalog() {
+  return _j(await fetch(`${BASE}/compare/catalog`, { headers: h(), credentials: 'include' }));
+}
+// Comparativas — parte los desarrollos por un split y compara una métrica de resultado entre grupos (+delta, lectura, procedencia).
+export async function getCompareRun({ split, outcome, geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/compare/run?${_qs({ split, outcome, geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+// Comparativas — hallazgos automáticos ordenados por impacto (el porqué redactado, con confianza).
+export async function getCompareInsights(top = 15) {
+  return _j(await fetch(`${BASE}/compare/insights?${_qs({ top })}`, { headers: h(), credentials: 'include' }));
+}

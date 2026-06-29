@@ -7,11 +7,13 @@ import { getTerminal } from '../../api/superadminDemandIntel';
 import GridPanel from '../../components/superadmin/GridPanel';
 import AtlasPanel from '../../components/superadmin/AtlasPanel';
 import FacetPanel from '../../components/superadmin/FacetPanel';
+import CompararPanel from '../../components/superadmin/CompararPanel';
 
 const TABS = [
   { key: 'escalas', label: 'Escalas geo' },
   { key: 'atlas', label: 'Atlas (explorador)' },
   { key: 'facet', label: 'Conteos (oferta/demanda)' },
+  { key: 'comparar', label: 'Comparativas (¿por qué?)' },
   { key: 'desarrollos', label: 'Por desarrollo' },
   { key: 'inteligencia', label: 'Inteligencia de zona' },
   { key: 'atributos', label: 'Atributos de unidad' },
@@ -38,6 +40,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
     if (tab === 'grid') return; // grid se carga solo (GridPanel)
     if (tab === 'atlas') return; // atlas se carga solo (AtlasPanel)
     if (tab === 'facet') return; // explorador faceteado se carga solo (FacetPanel)
+    if (tab === 'comparar') return; // comparativas se carga solo (CompararPanel)
     if (cache[tab]) return;
     setLoading(true);
     getTerminal(tab).then((d) => setCache((c) => ({ ...c, [tab]: d }))).catch((e) => setCache((c) => ({ ...c, [tab]: { error: e.message } }))).finally(() => setLoading(false));
@@ -250,6 +253,9 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
       {/* EXPLORADOR FACETEADO (conteos oferta/demanda) */}
       {tab === 'facet' && <FacetPanel />}
+
+      {/* COMPARATIVAS (¿por qué?) — la capa del porqué */}
+      {tab === 'comparar' && <CompararPanel />}
     </SuperadminLayout>
   );
 }
