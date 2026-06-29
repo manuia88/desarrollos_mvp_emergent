@@ -76,3 +76,9 @@ export async function getFacetSerie({ granularidad, periodos, geo_nivel, geo_val
 export async function getFacetUnmet(top = 12) {
   return _j(await fetch(`${BASE}/facet/unmet?${_qs({ top })}`, { headers: h(), credentials: 'include' }));
 }
+// Drill-down ("cuáles") — LISTA de entidades reales detrás de un conteo. filtros = objeto → JSON.
+export async function getFacetList({ poblacion, geo_nivel, geo_valor, ventana, filtros, limit } = {}) {
+  const params = { poblacion, geo_nivel, geo_valor, ventana, limit };
+  if (filtros && Object.keys(filtros).length > 0) params.filtros = JSON.stringify(filtros);
+  return _j(await fetch(`${BASE}/facet/list?${_qs(params)}`, { headers: h(), credentials: 'include' }));
+}

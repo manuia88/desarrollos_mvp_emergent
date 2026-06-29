@@ -3,7 +3,7 @@
 // + sección "Lo que NO existe" (huecos = demanda con 0 oferta) y un cross-tab 2D opcional.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
-import { getFacetCatalog, getFacetQuery, getFacetUnmet, getFacetCrosstab } from '../../api/superadminDemandIntel';
+import { getFacetCatalog, getFacetQuery, getFacetUnmet, getFacetCrosstab, getFacetList } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
 const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
@@ -51,6 +51,8 @@ export default function FacetPanel() {
   const [data, setData] = useState(null);
   const [qErr, setQErr] = useState(null);
   const [loading, setLoading] = useState(false);
+  // contexto exacto con que se corrió la última consulta (para el drill-down "cuáles")
+  const [queryCtx, setQueryCtx] = useState(null);
 
   // unmet
   const [unmet, setUnmet] = useState(null);
@@ -95,6 +97,8 @@ export default function FacetPanel() {
   const consultar = () => {
     if (!groupBy) return;
     setLoading(true); setQErr(null);
+    // congela el contexto con que se corrió esta consulta — el drill-down "cuáles" lo usa tal cual
+    setQueryCtx({ poblacion, groupBy, geoNivel, geoValor, ventana, filtros: filtrosObj });
     getFacetQuery({ poblacion, group_by: groupBy, geo_nivel: geoValor ? geoNivel : undefined, geo_valor: geoValor || undefined, ventana, filtros: filtrosObj })
       .then((d) => setData(d))
       .catch((e) => { setData(null); setQErr(e.message); })
@@ -182,7 +186,7 @@ export default function FacetPanel() {
 
       {/* RESULTADO */}
       {loading && <Card style={card}>Contando oferta y demanda…</Card>}
-      {data && !qErr && !loading && <FacetResult data={data} />}
+      {data && !qErr && !loading && <FacetResult data={data} ctx={queryCtx} />}
 
       {/* CROSS-TAB (2D) */}
       <Card style={card}>
@@ -221,27 +225,92 @@ function Field({ label, children }) {
   );
 }
 
+// El drill de ENTIDADES siempre lista OFERTA real. Si la población es 'demanda',
+// el drill cae a 'unidades' (la oferta que cumple) — se aclara en la UI.
+const drillPob = (pob) => (pob === 'desarrollos' ? 'desarrollos' : pob === 'zonas' ? 'zonas' : 'unidades');
+
 // ── RESULTADO: independiente + relacional ────────────────────────────────────
-function FacetResult({ data }) {
+function FacetResult({ data, ctx }) {
   const ind = data.independiente || {};
   const rel = data.relacional || {};
   const proc = data.procedencia || {};
   const oferta = ind.oferta || {};
   const demanda = ind.demanda || {};
   const porValor = rel.por_valor || [];
+  const groupBy = data.group_by || ctx?.groupBy || 'valor';
+
+  // drill-down general (todas las N de la oferta del filtro actual)
+  const [allList, setAllList] = useState(null);
+  const [allLoading, setAllLoading] = useState(false);
+  const [allErr, setAllErr] = useState(null);
+  const [allOpen, setAllOpen] = useState(false);
+
+  // drill-down por fila (clave = valor de la fila)
+  const [rowKey, setRowKey] = useState(null);       // valor de la fila abierta
+  const [rowList, setRowList] = useState(null);
+  const [rowLoading, setRowLoading] = useState(false);
+  const [rowErr, setRowErr] = useState(null);
+
+  const pobDrill = drillPob(ctx?.poblacion);
+  const demandaDrill = ctx?.poblacion === 'demanda';
+
+  const fetchList = (extraFiltros) => getFacetList({
+    poblacion: pobDrill,
+    geo_nivel: ctx?.geoValor ? ctx?.geoNivel : undefined,
+    geo_valor: ctx?.geoValor || undefined,
+    ventana: ctx?.ventana,
+    filtros: { ...(ctx?.filtros || {}), ...(extraFiltros || {}) },
+    limit: 300,
+  });
+
+  const verLasN = () => {
+    if (allOpen) { setAllOpen(false); return; }
+    if (allList) { setAllOpen(true); return; }
+    setAllLoading(true); setAllErr(null);
+    fetchList()
+      .then((d) => { setAllList(d); setAllOpen(true); })
+      .catch((e) => setAllErr(e.message))
+      .finally(() => setAllLoading(false));
+  };
+
+  const verCuales = (valor) => {
+    if (rowKey === valor) { setRowKey(null); return; } // toggle cerrar
+    setRowKey(valor); setRowList(null); setRowErr(null); setRowLoading(true);
+    fetchList({ [groupBy]: valor })
+      .then((d) => setRowList(d))
+      .catch((e) => setRowErr(e.message))
+      .finally(() => setRowLoading(false));
+  };
+
+  const colSpan = 6; // group_by + oferta + demanda + gap + tensión + acción
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       {/* INDEPENDIENTE — dos tarjetas lado a lado */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
-        <SideCard title="Oferta · lo que existe" accent="#22c55e" side={oferta} fuente={oferta.fuente || proc.oferta} />
+        <SideCard
+          title="Oferta · lo que existe" accent="#22c55e" side={oferta} fuente={oferta.fuente || proc.oferta}
+          action={ctx ? (
+            <button style={{ ...btnGhost, padding: '5px 12px', fontSize: 11.5 }} onClick={verLasN} disabled={allLoading}>
+              {allLoading ? 'Listando…' : allOpen ? 'ocultar lista' : `ver las ${fmtN(oferta.total)} →`}
+            </button>
+          ) : null}
+        />
         <SideCard title="Demanda · lo que se busca" accent="var(--theme)" side={demanda} fuente={demanda.fuente || proc.demanda} />
       </div>
+
+      {/* LISTA GENERAL (todas las N de la oferta del filtro) */}
+      {allErr && <Card style={{ ...card, color: '#dc2626', fontSize: 12.5 }}>{allErr}</Card>}
+      {allOpen && allList && (
+        <EntityList list={allList} pob={pobDrill}
+          title={demandaDrill ? 'Oferta que cumple el filtro actual' : 'Todas las que cumplen el filtro actual'}
+          note={demandaDrill ? 'La población es demanda; abajo se lista la OFERTA real que cumple.' : null} />
+      )}
 
       {/* RELACIONAL — oferta vs demanda + gap/tensión */}
       <Card style={card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
-          <div style={lbl}>Relacional · oferta vs demanda por {data.group_by || 'valor'}</div>
+          <div style={lbl}>Relacional · oferta vs demanda por {groupBy}</div>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', fontSize: 12.5, color: '#aaa' }}>
             <span>Ratio demanda/oferta: <strong style={{ color: 'var(--theme)' }}>{rel.ratio_demanda_oferta != null ? (typeof rel.ratio_demanda_oferta === 'number' ? rel.ratio_demanda_oferta.toFixed(2) : rel.ratio_demanda_oferta) : '—'}</strong></span>
             <span>Gap total: <strong style={{ color: (rel.gap_total || 0) > 0 ? '#22c55e' : (rel.gap_total || 0) < 0 ? '#dc2626' : '#ddd' }}>{rel.gap_total != null ? `${rel.gap_total > 0 ? '+' : ''}${fmtN(rel.gap_total)}` : '—'}</strong></span>
@@ -253,27 +322,54 @@ function FacetResult({ data }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={th}>{data.group_by || 'valor'}</th>
+                <th style={th}>{groupBy}</th>
                 <th style={{ ...th, textAlign: 'right' }}>oferta</th>
                 <th style={{ ...th, textAlign: 'right' }}>demanda</th>
                 <th style={{ ...th, textAlign: 'right' }}>gap</th>
                 <th style={{ ...th, textAlign: 'right' }}>tensión</th>
+                <th style={{ ...th, textAlign: 'right' }}>cuáles</th>
               </tr>
             </thead>
             <tbody>
               {porValor.map((r, i) => {
                 const gap = r.gap != null ? r.gap : (r.demanda || 0) - (r.oferta || 0);
                 const gapColor = gap > 0 ? '#22c55e' : gap < 0 ? '#dc2626' : '#888';
+                const valor = r.valor;
+                const open = rowKey === valor;
                 return (
-                  <tr key={r.valor ?? i}>
-                    <td style={td}>{r.valor ?? '—'}</td>
-                    <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.oferta)}</td>
-                    <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.demanda)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: gapColor }}>{gap > 0 ? '+' : ''}{fmtN(gap)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>
-                      {r.tension != null && r.tension !== '' ? <Badge tone={tensionTone(r.tension)}>{r.tension}</Badge> : <span style={{ color: '#555' }}>—</span>}
-                    </td>
-                  </tr>
+                  <React.Fragment key={valor ?? i}>
+                    <tr>
+                      <td style={td}>{valor ?? '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.oferta)}</td>
+                      <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.demanda)}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: gapColor }}>{gap > 0 ? '+' : ''}{fmtN(gap)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>
+                        {r.tension != null && r.tension !== '' ? <Badge tone={tensionTone(r.tension)}>{r.tension}</Badge> : <span style={{ color: '#555' }}>—</span>}
+                      </td>
+                      <td style={{ ...td, textAlign: 'right' }}>
+                        {ctx && valor != null && valor !== '' ? (
+                          <button style={{ ...btnGhost, padding: '4px 10px', fontSize: 11 }} onClick={() => verCuales(valor)}>
+                            {open ? 'ocultar' : 'ver cuáles'}
+                          </button>
+                        ) : <span style={{ color: '#555' }}>—</span>}
+                      </td>
+                    </tr>
+                    {open && (
+                      <tr>
+                        <td style={{ padding: 0 }} colSpan={colSpan}>
+                          <div style={{ padding: '4px 8px 10px' }}>
+                            {rowLoading && <div style={{ fontSize: 12, color: '#888', padding: '6px 0' }}>Listando entidades…</div>}
+                            {rowErr && <div style={{ fontSize: 12, color: '#dc2626', padding: '6px 0' }}>{rowErr}</div>}
+                            {rowList && !rowLoading && !rowErr && (
+                              <EntityList list={rowList} pob={pobDrill} embedded
+                                title={`${demandaDrill ? 'Oferta' : 'Entidades'} con ${groupBy} = ${valor}`}
+                                note={demandaDrill ? 'Lista la OFERTA real que cumple este valor.' : null} />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -289,15 +385,136 @@ function FacetResult({ data }) {
   );
 }
 
-function SideCard({ title, accent, side, fuente }) {
+// ── LISTA DE ENTIDADES (drill-down "cuáles") ─────────────────────────────────
+function EntityList({ list, pob, title, note, embedded }) {
+  const entidades = list?.entidades || [];
+  const total = list?.total;
+  const mostrados = list?.mostrados != null ? list.mostrados : entidades.length;
+  const lectura = list?.lectura;
+
+  const header = (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ ...lbl, marginBottom: 0 }}>{title || 'Entidades'}</div>
+        <span style={{ fontSize: 11.5, color: '#888' }}>
+          {total != null ? <>mostrando <strong style={{ color: '#ddd' }}>{fmtN(mostrados)}</strong> de <strong style={{ color: '#ddd' }}>{fmtN(total)}</strong></> : <>{fmtN(mostrados)} entidades</>}
+        </span>
+      </div>
+      {note && <div style={{ fontSize: 11.5, color: '#b08968', marginTop: 4, fontStyle: 'italic' }}>{note}</div>}
+    </div>
+  );
+
+  const body = (
+    <>
+      {header}
+      {entidades.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: '#666' }}>Sin entidades que cumplan.</div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <EntityTable entidades={entidades} pob={pob} />
+        </div>
+      )}
+      {lectura && <div style={{ fontSize: 12.5, color: '#bbb', marginTop: 8, fontStyle: 'italic' }}>{lectura}</div>}
+    </>
+  );
+
+  if (embedded) return <div>{body}</div>;
+  return <Card style={card}>{body}</Card>;
+}
+
+function EntityTable({ entidades, pob }) {
+  if (pob === 'desarrollos') {
+    return (
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+        <thead>
+          <tr>
+            <th style={th}>desarrollo</th><th style={th}>colonia</th><th style={th}>entrega</th>
+            <th style={{ ...th, textAlign: 'right' }}>unidades</th><th style={{ ...th, textAlign: 'right' }}>altura</th>
+            <th style={{ ...th, textAlign: 'right' }}>precio desde</th><th style={th}>tier</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entidades.map((e, i) => (
+            <tr key={e.dev_id ?? e.desarrollo ?? i}>
+              <td style={{ ...td, color: '#ddd', fontWeight: 600 }}>{e.desarrollo ?? '—'}</td>
+              <td style={td}>{e.colonia ?? '—'}</td>
+              <td style={td}>{e.entrega ?? '—'}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.unidades_total)}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.altura)}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{e.precio_desde != null ? fmtN(e.precio_desde) : '—'}</td>
+              <td style={td}>{e.tier != null && e.tier !== '' ? <Badge tone="neutral">{e.tier}</Badge> : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (pob === 'zonas') {
+    return (
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
+        <thead>
+          <tr>
+            <th style={th}>colonia</th><th style={th}>alcaldía</th>
+            <th style={{ ...th, textAlign: 'right' }}>desarrollos</th><th style={{ ...th, textAlign: 'right' }}>unidades</th>
+            <th style={{ ...th, textAlign: 'right' }}>precio desde</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entidades.map((e, i) => (
+            <tr key={e.colonia ?? i}>
+              <td style={{ ...td, color: '#ddd', fontWeight: 600 }}>{e.colonia ?? '—'}</td>
+              <td style={td}>{e.alcaldia ?? '—'}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.desarrollos)}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.unidades)}</td>
+              <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{e.precio_desde != null ? fmtN(e.precio_desde) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  // unidades (default)
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+      <thead>
+        <tr>
+          <th style={th}>desarrollo</th><th style={th}>unidad</th><th style={th}>colonia</th>
+          <th style={{ ...th, textAlign: 'right' }}>m²</th><th style={{ ...th, textAlign: 'right' }}>rec</th>
+          <th style={{ ...th, textAlign: 'right' }}>precio</th><th style={th}>status</th><th style={th}>atributos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {entidades.map((e, i) => (
+          <tr key={`${e.dev_id ?? ''}-${e.unidad ?? i}`}>
+            <td style={{ ...td, color: '#ddd', fontWeight: 600 }}>{e.desarrollo ?? '—'}</td>
+            <td style={td}>{e.unidad ?? e.prototipo ?? '—'}</td>
+            <td style={td}>{e.colonia ?? '—'}</td>
+            <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.m2)}</td>
+            <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(e.recamaras)}</td>
+            <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{e.precio != null ? fmtN(e.precio) : '—'}</td>
+            <td style={td}>{e.status != null && e.status !== '' ? <Badge tone="neutral">{e.status}</Badge> : '—'}</td>
+            <td style={td}>
+              {Array.isArray(e.atributos) && e.atributos.length > 0
+                ? <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>{e.atributos.map((a, j) => <Badge key={j} tone="neutral">{a}</Badge>)}</span>
+                : <span style={{ color: '#555' }}>—</span>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function SideCard({ title, accent, side, fuente, action }) {
   const breakdown = side.breakdown || [];
   const mx = Math.max(1, ...breakdown.map((b) => b.n || 0));
   return (
     <Card style={card}>
       <div style={lbl}>{title}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 34, fontWeight: 800, color: accent, letterSpacing: '-0.02em', lineHeight: 1 }}>{fmtN(side.total)}</span>
         <span style={{ fontSize: 12.5, color: '#888' }}>total</span>
+        {action && <span style={{ marginLeft: 'auto' }}>{action}</span>}
       </div>
       {breakdown.length === 0 && <div style={{ fontSize: 12, color: '#666' }}>Sin desglose.</div>}
       <div style={{ display: 'grid', gap: 5 }}>
