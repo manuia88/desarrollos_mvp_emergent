@@ -756,6 +756,66 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                         "zone_score_engine", "risk_score_engine", "score_inversion_engine", "zone_cycle_engine"]}
 
 
+async def cross_intelligence(db, since_days: int = 180, top: int = 14) -> Dict[str, Any]:
+    """MÉTRICAS COMPUESTAS NET-NEW — cruzan el COMPORTAMIENTO del marketplace (buyer_signals/demand) con los MOTORES de
+    mercado del superadmin (AVM/riesgo/inversión/absorción). Ninguna existe en un motor solo; nacen del cruce.
+    El verdadero 'descubrimiento': lo que la demanda quiere vs lo que el mercado ofrece, ajustado por riesgo y retorno."""
+    zi = await zone_intelligence(db, since_days=since_days, top=top)
+    out = []
+    for z in zi["zonas"]:
+        cid = z.get("zona"); precio_m2 = z.get("precio_m2"); spec = z.get("spec_pedida") or {}
+        demanda = z.get("demanda") or 0
+        riesgo_num = (z.get("riesgo") or {}).get("num")
+        inv_score = (z.get("inversion") or {}).get("score")
+        absor = (z.get("absorcion") or {}).get("vendido_pct")
+        opp = z.get("oportunidad")
+        row = {"zona": cid, "nombre": z.get("nombre"), "demanda": demanda}
+
+        # 1· BRECHA DEMANDA-PRECIO (demand_twin × AVM): ¿la demanda puede pagar lo que cuesta?
+        #    + = quiere pagar MÁS que el costo (oportunidad de precio) · − = está fuera de su alcance.
+        if precio_m2 and spec.get("precio_max_prom") and spec.get("m2"):
+            costo = precio_m2 * spec["m2"]
+            row["brecha_demanda_precio_pct"] = round(100 * (spec["precio_max_prom"] - costo) / costo) if costo else None
+            row["puede_pagar"] = spec["precio_max_prom"] >= costo
+
+        # 2· DEMANDA AJUSTADA A RIESGO (zone_dynamics × risk_score): demanda calidad-de-vida-segura.
+        if riesgo_num is not None:
+            row["demanda_ajustada_riesgo"] = round(demanda * (riesgo_num / 100), 1)
+            row["caliente_pero_riesgosa"] = demanda >= 50 and riesgo_num < 50
+
+        # 3· DEMANDA GRADO-INVERSIÓN (zone_dynamics × score_inversion): dónde la demanda coincide con buen retorno.
+        if inv_score is not None:
+            row["demanda_grado_inversion"] = round(demanda * (inv_score / 100), 1)
+
+        # 4· PRESIÓN DE ABSORCIÓN (absorcion × oportunidad-demanda): ¿se vende más rápido de lo que llega demanda?
+        if absor is not None and opp is not None:
+            #  alto = mucha venta poca demanda nueva (se agota) · bajo = mucha demanda poca venta (hambrienta).
+            row["presion_absorcion"] = round(absor / max(opp, 1), 2)
+            row["estado_mercado"] = ("agotándose" if (absor or 0) > 40 and (opp or 0) < 20
+                                     else "hambrienta" if (opp or 0) > 50 and (absor or 0) < 20 else "equilibrada")
+
+        # 5· ÍNDICE DE OPORTUNIDAD REAL (blend net-new): demanda alta + puede pagar + bajo riesgo + buena inversión.
+        parts = []
+        if demanda:
+            parts.append(min(demanda / 150, 1) * 30)
+        if row.get("brecha_demanda_precio_pct") is not None:
+            parts.append(max(0, min(row["brecha_demanda_precio_pct"], 100)) / 100 * 30)
+        if riesgo_num is not None:
+            parts.append(riesgo_num / 100 * 20)
+        if inv_score is not None:
+            parts.append(inv_score / 100 * 20)
+        if parts:
+            row["indice_oportunidad_real"] = round(sum(parts))
+        out.append(row)
+
+    out.sort(key=lambda x: -(x.get("indice_oportunidad_real") or 0))
+    return {"zonas": out,
+            "lectura": "cruces que NINGÚN motor solo produce: ¿la demanda puede pagar lo que cuesta? ¿es caliente pero "
+                       "riesgosa? ¿coincide con buen retorno? ¿se está agotando o está hambrienta?",
+            "composites": ["brecha_demanda_precio", "demanda_ajustada_riesgo", "demanda_grado_inversion",
+                           "presion_absorcion", "indice_oportunidad_real"]}
+
+
 async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
     """PERFIL DE COMPORTAMIENTO — device (mobile/desktop/tablet), estilo DISC, engagement de tour/video, profundidad de
     scroll. Consume las dimensiones de captura nueva (que ninguna quede capturada-y-muerta)."""

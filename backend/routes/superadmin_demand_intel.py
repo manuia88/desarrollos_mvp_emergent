@@ -62,6 +62,7 @@ async def demand_zonas(request: Request, since_days: int = 180):
     db = request.app.state.db
     mm = await di.market_movement(db, since_days=since_days)
     mm["inteligencia"] = await di.zone_intelligence(db, since_days=since_days)  # fusión 9 motores por colonia
+    mm["cruces"] = await di.cross_intelligence(db, since_days=since_days)        # métricas compuestas net-new
     return mm
 
 
