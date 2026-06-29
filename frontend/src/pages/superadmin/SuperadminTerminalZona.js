@@ -98,6 +98,11 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
                   🏠 Airbnb (AirROI): cap rate <strong style={{ color: '#22c55e' }}>{z.cap_rate_str}%</strong> · ocupación {z.str_airbnb.ocupacion_pct}% · RevPAR ${z.str_airbnb.revpar} · {z.str_airbnb.listings} listings
                 </div>
               )}
+              {(z.valor_residual_pm2 || z.feature_lift || z.costo_construccion_m2) && (
+                <div style={{ fontSize: 12, color: '#888', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  🏗️ {z.costo_construccion_m2 ? `Costo obra $${Math.round(z.costo_construccion_m2 / 1000)}k/m² · ` : ''}{z.valor_residual_pm2 ? `Suelo máx $${Math.round(z.valor_residual_pm2 / 1000)}k/m² · ` : ''}{z.feature_lift ? `Palanca: ${z.feature_lift.valor} +${z.feature_lift.lift_pp}pp` : ''}{z.catastral_pm2 ? ` · catastral $${z.catastral_pm2}/m²` : ''}
+                </div>
+              )}
               {z.recomendacion && <div style={{ fontSize: 12, color: '#bbb', marginTop: 8, fontStyle: 'italic' }}>{z.ciclo ? `${z.ciclo} — ` : ''}{z.recomendacion}</div>}
             </Card>
           ))}

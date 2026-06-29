@@ -13,7 +13,7 @@ NOTA de precisión: hoy la demanda por feature se DERIVA del dev (el dev que vio
 empiece a mandar unit_id en cada interacción de unidad, la señal será exacta (este motor ya lo usa si está presente).
 """
 import datetime as dt
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import Any, Dict, List, Optional
 
 _ENGAGE = ["ficha_view", "like", "unit_view", "unit_save", "compare", "photo_dwell", "photo_zoom", "intent", "save",
@@ -997,7 +997,7 @@ async def market_movement(db, since_days: int = 180, colonias: Optional[List[str
     }
 
 
-async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 14, with_airroi: bool = False) -> Dict[str, Any]:
+async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 14, with_airroi: bool = False, with_underwriting: bool = False) -> Dict[str, Any]:
     """ÍNDICE DE INTELIGENCIA DE ZONA — FUSIONA 9 motores vivos en UNA foto por colonia (lo que hoy vive en silos):
       · demanda + movimiento (buyer_signals)        · demanda pedida + oportunidad (demand_twin_engine)
       · ABSORCIÓN real por cohorte (absorcion_engine) · precio/m² + tier (AVM)
@@ -1027,6 +1027,7 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
     except Exception:
         pass
 
+    lift_global = await _feature_lift(db) if with_underwriting else None
     out = []
     for z in dyn["zonas"][:top]:
         cid = z["zona"]; lc = (cid or "").lower()
@@ -1125,6 +1126,18 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
                             prof["cap_rate_str"] = round(100 * air["revenue_anual"] / precio_usd, 1)
             except Exception:
                 pass
+        # UNDERWRITING (motores locales): valor residual del suelo · upside Norma 3 · lift de feature aprendido
+        if with_underwriting:
+            try:
+                prof["valor_residual_pm2"] = await _valor_residual_m2(db, cid)
+            except Exception:
+                pass
+            try:
+                prof["norma3_upside_pct"] = await _norma3_upside(db, cid)
+            except Exception:
+                pass
+            if lift_global:
+                prof["feature_lift"] = lift_global
         out.append(prof)
     return {"zonas": out,
             "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
@@ -1177,6 +1190,62 @@ async def _airroi_zone(db, zone_name: str):
         return (doc or {}).get("data") if doc else None
 
 
+_VR_CACHE: Dict[str, Any] = {}
+_N3_CACHE: Dict[str, Any] = {}
+_LIFT_CACHE: Dict[str, Any] = {}
+
+
+async def _feature_lift(db):
+    """Lift aprendido (pp) del factor con más señal — del simulador de palancas. Global (mismo para todas las zonas)."""
+    if "v" in _LIFT_CACHE:
+        return _LIFT_CACHE["v"]
+    out = None
+    try:
+        import simulador_palancas_engine as sp
+        s = await sp.simular(db, factor="recamaras", de="2 recámaras", a="3 recámaras")
+        ops = (s or {}).get("opciones") or []
+        best = max(ops, key=lambda o: o.get("lift_pp", -99)) if ops else None
+        if best:
+            out = {"factor": "recámaras", "valor": best.get("valor"), "lift_pp": best.get("lift_pp")}
+    except Exception:
+        out = None
+    _LIFT_CACHE["v"] = out
+    return out
+
+
+async def _valor_residual_m2(db, colonia_id: str):
+    """Valor residual máximo del suelo por m² (terreno representativo 1000 m²) — calcular_residual, cacheado."""
+    if colonia_id in _VR_CACHE:
+        return _VR_CACHE[colonia_id]
+    val = None
+    try:
+        import valor_residual_engine as vr
+        r = await vr.calcular_residual(db, 1000.0, colonia_id=colonia_id)
+        resp = (r or {}).get("respuesta") or {}
+        val = resp.get("oferta_pm2_terreno") or resp.get("oferta_maxima_pm2")
+    except Exception:
+        val = None
+    _VR_CACHE[colonia_id] = val
+    return val
+
+
+async def _norma3_upside(db, colonia_id: str):
+    """Upside de fusión de predios (Norma 3) por colonia — detectar_fusiones, cacheado."""
+    if colonia_id in _N3_CACHE:
+        return _N3_CACHE[colonia_id]
+    val = None
+    try:
+        import norma3_engine as n3
+        r = await n3.detectar_fusiones(db, colonia_id=colonia_id)
+        if isinstance(r, dict) and r.get("disponible") and (r.get("oportunidades") or []):
+            top = r["oportunidades"][0]
+            val = top.get("delta_valor_pct") or top.get("upside_pct") or len(r["oportunidades"])
+    except Exception:
+        val = None
+    _N3_CACHE[colonia_id] = val
+    return val
+
+
 async def _construccion_m2(colonia_id: str, tier: str):
     """Costo de construcción/m² con caché en proceso (evita pegarle a BANXICO en cada colonia)."""
     key = f"{colonia_id}|{tier}"
@@ -1197,18 +1266,18 @@ async def _construccion_m2(colonia_id: str, tier: str):
     return val
 
 
-async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 180, top: int = 14, with_airroi: bool = False) -> Dict[str, Any]:
+async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 180, top: int = 14, with_airroi: bool = False, with_underwriting: bool = False) -> Dict[str, Any]:
     """LAS 75 MÉTRICAS A LAS 4 ESCALAS — la fusión institucional, agregada al nivel pedido:
     media = colonia (fusión directa) · grande = corredor · macro = alcaldía (rollup ponderado) · micro = CP (subset geo)."""
     import statistics
     if scale == "media":
-        return await zone_intelligence(db, since_days=since_days, top=top, with_airroi=with_airroi)
+        return await zone_intelligence(db, since_days=since_days, top=top, with_airroi=with_airroi, with_underwriting=with_underwriting)
     if scale == "micro":
         md = await zone_dynamics(db, "micro", since_days=since_days, top=top)
         return {"escala": "micro", "zonas": md["zonas"], "lectura": "micro (CP): demanda+oferta+absorción+movimiento (subset geo)"}
 
-    # grande/macro: agrega la fusión de colonia → corredor/alcaldía
-    zi = await zone_intelligence(db, since_days=since_days, top=60)
+    # grande/macro: agrega la fusión de colonia → corredor/alcaldía (underwriting local sí; AirROI no, por costo)
+    zi = await zone_intelligence(db, since_days=since_days, top=60, with_underwriting=with_underwriting)
 
     def grupo(z):
         rec = z  # zone_intelligence ya trae alcaldia
@@ -1241,11 +1310,14 @@ async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 1
             "precio_m2": wavg(zs, lambda z: z.get("precio_m2")),
             "costo_construccion_m2": avg(zs, lambda z: z.get("costo_construccion_m2")),
             "catastral_pm2": avg(zs, lambda z: z.get("catastral_pm2")),
+            "valor_residual_pm2": avg(zs, lambda z: z.get("valor_residual_pm2")),
+            "cap_rate_est": avg(zs, lambda z: z.get("cap_rate_est")),
             "absorcion": {"vendido_pct": avg(zs, lambda z: (z.get("absorcion") or {}).get("vendido_pct"))},
             "riesgo": {"num": avg(zs, lambda z: (z.get("riesgo") or {}).get("num"))},
             "inversion": {"score": avg(zs, lambda z: (z.get("inversion") or {}).get("score"))},
-            "subscores": {k: avg(zs, lambda z, k=k: (z.get("subscores") or {}).get(k)) for k in ("seguridad", "transporte", "amenidades", "lifestyle", "vibe")},
+            "subscores": {k: avg(zs, lambda z, k=k: (z.get("subscores") or {}).get(k)) for k in ("seguridad", "transporte", "educacion", "amenidades", "lifestyle", "precio", "vibe")},
             "oportunidad": avg(zs, lambda z: z.get("oportunidad")),
+            "movimiento": (lambda c: c.most_common(1)[0][0] if c else None)(Counter(z.get("movimiento") for z in zs if z.get("movimiento"))),
         })
     out.sort(key=lambda x: -(x["demanda"] + x["busquedas"]))
     return {"escala": scale, "zonas": out[:top],

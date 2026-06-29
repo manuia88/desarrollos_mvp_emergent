@@ -58,7 +58,7 @@ def _scale(v, mx):
 async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, Any]:
     import demand_intelligence as di
     import marketplace_granularity as mg
-    zi = await di.zone_intelligence(db, since_days=since_days, top=top, with_airroi=True)  # AirROI cacheado 1×/zona/mes
+    zi = await di.zone_intelligence(db, since_days=since_days, top=top, with_airroi=True, with_underwriting=True)  # AirROI 1×/zona/mes + valor residual/norma3/lift
     zones = zi.get("zonas", [])
 
     g: Dict[str, Any] = {}
@@ -245,12 +245,12 @@ COMPOSITES: List = [
      lambda z, g: f"{_spec(z,'recamaras')}rec/{_spec(z,'m2')}m²" if _spec(z, "recamaras") else None),
     (53, 6, "Margen-oportunidad", "lo que pagan − costo de construir",
      lambda z, g: _pct_gap(z.get("precio_m2"), _cc_for(z, g)) if _cc_for(z, g) else None),
-    (54, 6, "Valor residual × demanda", "máx a pagar por terreno con demanda",
-     lambda z, g: None),  # feeder valor_residual zona
-    (55, 6, "Norma 3 × plusvalía", "ganancia de fusionar predios donde sube",
-     lambda z, g: None),  # feeder norma3 zona
-    (56, 6, "Lift de feature aprendido", "terraza +X% validado con demanda",
-     lambda z, g: None),  # feeder simulador_palancas
+    (55, 6, "Norma 3 × plusvalía", "ganancia % de fusionar predios donde el precio sube",
+     lambda z, g: z.get("norma3_upside_pct")),
+    (54, 6, "Valor residual × demanda", "máx $/m² a pagar por el terreno, ponderado por demanda",
+     lambda z, g: round((z.get("valor_residual_pm2") or 0) * min(z.get("demanda", 0) / 100 + 0.5, 1.5)) if z.get("valor_residual_pm2") else None),
+    (56, 6, "Lift de feature aprendido", "qué feature sube la venta (pp) — del simulador de palancas",
+     lambda z, g: f"{(z.get('feature_lift') or {}).get('valor')}: +{(z.get('feature_lift') or {}).get('lift_pp')}pp" if z.get("feature_lift") else None),
     (57, 6, "Precio de lanzamiento", "a qué precio entrar",
      lambda z, g: round((_n(z.get("precio_m2")) or 0) * (0.95 if (_ab(z, "vendido_pct") or 0) < 20 else 1.0)) if z.get("precio_m2") else None),
     (58, 6, "Bancabilidad del lote", "financiable según velocidad",
