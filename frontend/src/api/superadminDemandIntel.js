@@ -94,3 +94,11 @@ export async function getCompareRun({ split, outcome, geo_nivel, geo_valor } = {
 export async function getCompareInsights(top = 15) {
   return _j(await fetch(`${BASE}/compare/insights?${_qs({ top })}`, { headers: h(), credentials: 'include' }));
 }
+// Fechas de lanzamiento — cobertura (capturado/estimado/sin dato) + detalle por desarrollo. Base de las métricas de velocidad.
+export async function getLaunchCoverage() {
+  return _j(await fetch(`${BASE}/compare/launch-coverage`, { headers: h(), credentials: 'include' }));
+}
+// Fechas de lanzamiento — captura la fecha real de un desarrollo (AAAA-MM). Manda dev_id y fecha_lanzamiento como query params.
+export async function setLaunch(dev_id, fecha_lanzamiento) {
+  return _j(await fetch(`${BASE}/compare/set-launch?${_qs({ dev_id, fecha_lanzamiento })}`, { method: 'POST', headers: h(), credentials: 'include' }));
+}

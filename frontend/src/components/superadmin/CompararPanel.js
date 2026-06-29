@@ -5,7 +5,7 @@
 //   B) "Comparar tú mismo": arma split × outcome (+geo opcional) y corre /compare/run.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
-import { getCompareCatalog, getCompareRun, getCompareInsights } from '../../api/superadminDemandIntel';
+import { getCompareCatalog, getCompareRun, getCompareInsights, getLaunchCoverage, setLaunch } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
 const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
@@ -18,6 +18,11 @@ const btnStyle = {
   padding: '7px 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
   background: 'var(--theme, #6366f1)', color: '#fff', fontSize: 12.5, fontWeight: 600,
 };
+const th = {
+  textAlign: 'left', fontSize: 10.5, color: '#888', fontWeight: 700, textTransform: 'uppercase',
+  letterSpacing: 0.4, padding: '6px 10px 8px', borderBottom: '1px solid rgba(255,255,255,0.10)', whiteSpace: 'nowrap',
+};
+const td = { fontSize: 12, color: '#bbb', padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', verticalAlign: 'middle' };
 
 const GEO_NIVELES = ['colonia', 'alcaldia'];
 
@@ -100,6 +105,9 @@ export default function CompararPanel() {
         La capa del <strong style={{ color: '#ddd' }}>porqué</strong>: parte los desarrollos por un atributo y compara métricas de resultado para ver <span style={{ color: 'var(--theme)' }}>qué mueve qué</span>.
       </div>
 
+      {/* ── SECCIÓN 0 · FECHAS DE LANZAMIENTO (base de la velocidad) ────────── */}
+      <LaunchDatesSection />
+
       {/* ── SECCIÓN A · EL PORQUÉ AUTOMÁTICO ───────────────────────────────── */}
       <InsightsSection insights={insights} insErr={insErr} />
 
@@ -152,6 +160,157 @@ function Field({ label, children }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={{ fontSize: 10.5, color: '#888' }}>{label}</span>
       {children}
+    </div>
+  );
+}
+
+// ── SECCIÓN 0: fechas de lanzamiento (cobertura + captura) ────────────────────
+const YYYYMM_RE = /^\d{4}-(0[1-9]|1[0-2])$/; // AAAA-MM válido (mes 01-12)
+
+// tono del chip por categoría de cobertura: capturado=verde · estimado=ámbar · sin dato=rojo.
+function coverageTone(key) {
+  const k = String(key || '').toLowerCase();
+  if (k.includes('capturado')) return { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.40)', fg: '#22c55e' };
+  if (k.includes('sin dato')) return { bg: 'rgba(220,38,38,0.12)', border: 'rgba(220,38,38,0.40)', fg: '#f87171' };
+  return { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.35)', fg: '#f59e0b' }; // estimado
+}
+
+// badge de método por fila (mismo criterio de color que los chips de cobertura).
+function metodoTone(metodo) {
+  const m = String(metodo || '').toLowerCase();
+  if (m.includes('capturado')) return 'ok';
+  if (m.includes('sin dato') || m === '') return 'bad';
+  return 'warn';
+}
+
+function LaunchDatesSection() {
+  const [cov, setCov] = useState(null);
+  const [err, setErr] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [drafts, setDrafts] = useState({});   // dev_id → valor AAAA-MM en edición
+  const [rowErr, setRowErr] = useState({});    // dev_id → mensaje de error
+  const [saving, setSaving] = useState({});    // dev_id → bool
+
+  const load = () => {
+    getLaunchCoverage().then((d) => { setCov(d); setErr(null); }).catch((e) => setErr(e.message));
+  };
+  useEffect(() => { load(); }, []);
+
+  const guardar = (dev_id) => {
+    const val = (drafts[dev_id] || '').trim();
+    if (!YYYYMM_RE.test(val)) {
+      setRowErr((p) => ({ ...p, [dev_id]: 'Formato AAAA-MM (p.ej. 2024-09)' }));
+      return;
+    }
+    setRowErr((p) => ({ ...p, [dev_id]: null }));
+    setSaving((p) => ({ ...p, [dev_id]: true }));
+    setLaunch(dev_id, val)
+      .then((d) => {
+        if (d && d.ok === false) { setRowErr((p) => ({ ...p, [dev_id]: d.error || 'No se pudo guardar.' })); return; }
+        setDrafts((p) => { const n = { ...p }; delete n[dev_id]; return n; });
+        load();
+      })
+      .catch((e) => setRowErr((p) => ({ ...p, [dev_id]: e.message })))
+      .finally(() => setSaving((p) => ({ ...p, [dev_id]: false })));
+  };
+
+  const cobertura = cov?.cobertura || {};
+  const detalle = cov?.detalle || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ ...lbl, fontSize: 12, marginBottom: 0 }}>Fechas de lanzamiento (base de la velocidad)</div>
+        <button
+          style={{ ...btnStyle, padding: '5px 13px', fontSize: 11.5, background: 'rgba(255,255,255,0.05)', color: '#bbb' }}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? 'Ocultar' : 'Ver / capturar'}
+        </button>
+      </div>
+
+      {err && <Card style={{ ...card, color: '#dc2626', fontSize: 12.5 }}>{err}</Card>}
+      {!err && cov == null && <Card style={card}>Cargando cobertura de fechas…</Card>}
+
+      {!err && cov && (
+        <Card style={card}>
+          {/* chips de cobertura */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {Object.entries(cobertura).map(([k, n]) => {
+              const t = coverageTone(k);
+              return (
+                <span key={k} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12,
+                  background: t.bg, border: `1px solid ${t.border}`, color: t.fg,
+                  borderRadius: 9999, padding: '4px 11px', fontWeight: 600,
+                }}>
+                  <strong style={{ color: t.fg }}>{fmtN(n)}</strong>
+                  <span style={{ color: '#aaa', fontWeight: 400 }}>{k}</span>
+                </span>
+              );
+            })}
+            {cov.total != null && (
+              <span style={{ fontSize: 11.5, color: '#777', alignSelf: 'center' }}>· {fmtN(cov.total)} desarrollos</span>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: '#777', lineHeight: 1.5 }}>
+            la velocidad usa fecha capturada o estimada por avance de obra — no inventada.
+          </div>
+
+          {/* tabla detalle (colapsable) */}
+          {open && (
+            detalle.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: '#666', marginTop: 12 }}>Sin desarrollos para mostrar.</div>
+            ) : (
+              <div style={{ overflowX: 'auto', marginTop: 12 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {['Desarrollo', 'Fecha', 'Método', 'Capturar (AAAA-MM)'].map((h) => (
+                        <th key={h} style={th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalle.map((row) => {
+                      const id = row.dev_id;
+                      const e = rowErr[id];
+                      return (
+                        <tr key={id}>
+                          <td style={{ ...td, color: '#ddd', whiteSpace: 'nowrap' }}>{id}</td>
+                          <td style={{ ...td, color: row.fecha ? '#ddd' : '#666' }}>{row.fecha || '—'}</td>
+                          <td style={td}>
+                            <Badge tone={metodoTone(row.metodo)}>{row.metodo || 'sin dato'}</Badge>
+                          </td>
+                          <td style={td}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <input
+                                style={{ ...inputStyle, minWidth: 0, width: 100, padding: '5px 8px' }}
+                                value={drafts[id] ?? ''}
+                                placeholder={row.fecha || 'AAAA-MM'}
+                                onChange={(ev) => setDrafts((p) => ({ ...p, [id]: ev.target.value }))}
+                                onKeyDown={(ev) => { if (ev.key === 'Enter') guardar(id); }}
+                              />
+                              <button
+                                style={{ ...btnStyle, padding: '5px 12px', fontSize: 11.5 }}
+                                onClick={() => guardar(id)}
+                                disabled={!!saving[id]}
+                              >
+                                {saving[id] ? '…' : 'guardar'}
+                              </button>
+                            </div>
+                            {e && <div style={{ color: '#dc2626', fontSize: 10.5, marginTop: 3 }}>{e}</div>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </Card>
+      )}
     </div>
   );
 }
