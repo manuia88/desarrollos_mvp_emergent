@@ -54,6 +54,10 @@ export async function getGridRanking(params = {}) {
 export async function getGridInsights() {
   return _j(await fetch(`${BASE}/grid/insights`, { headers: h(), credentials: 'include' }));
 }
+// Explorador (árbol) — un nodo: hijos (siguiente nivel) + cada segmento INDEPENDIENTE (oferta/demanda/gap) + fichas técnicas + características. id de unidad = "devid::unitnumber".
+export async function getExplorar({ tipo = 'ciudad', id = 'CDMX', combinaciones = true } = {}) {
+  return _j(await fetch(`${BASE}/explorar?${_qs({ tipo, id, combinaciones })}`, { headers: h(), credentials: 'include' }));
+}
 // Atlas — navegación: hijos de una entidad (ciudad→alcaldía→corredor→colonia→desarrollo→prototipo→unidad).
 export async function getAtlasChildren(tipo = 'ciudad', id = 'CDMX') {
   return _j(await fetch(`${BASE}/atlas/children?${_qs({ tipo, id })}`, { headers: h(), credentials: 'include' }));
