@@ -93,6 +93,11 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
                 <span>Riesgo: <strong>{z.riesgo?.letra || '—'}</strong></span>
                 <span>Inversión: <strong style={{ color: 'var(--theme)' }}>{z.inversion?.score != null ? `${z.inversion.score} (${z.inversion.tier})` : '—'}</strong></span>
               </div>
+              {z.str_airbnb && (
+                <div style={{ fontSize: 12, color: '#bbb', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  🏠 Airbnb (AirROI): cap rate <strong style={{ color: '#22c55e' }}>{z.cap_rate_str}%</strong> · ocupación {z.str_airbnb.ocupacion_pct}% · RevPAR ${z.str_airbnb.revpar} · {z.str_airbnb.listings} listings
+                </div>
+              )}
               {z.recomendacion && <div style={{ fontSize: 12, color: '#bbb', marginTop: 8, fontStyle: 'italic' }}>{z.ciclo ? `${z.ciclo} — ` : ''}{z.recomendacion}</div>}
             </Card>
           ))}

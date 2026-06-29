@@ -997,7 +997,7 @@ async def market_movement(db, since_days: int = 180, colonias: Optional[List[str
     }
 
 
-async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 14) -> Dict[str, Any]:
+async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 14, with_airroi: bool = False) -> Dict[str, Any]:
     """ÍNDICE DE INTELIGENCIA DE ZONA — FUSIONA 9 motores vivos en UNA foto por colonia (lo que hoy vive en silos):
       · demanda + movimiento (buyer_signals)        · demanda pedida + oportunidad (demand_twin_engine)
       · ABSORCIÓN real por cohorte (absorcion_engine) · precio/m² + tier (AVM)
@@ -1109,6 +1109,22 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
             prof["cap_rate_est"] = yld  # % anual bruto (estimado local, no AirROI)
         except Exception:
             pass
+        # FEEDER AIRROI (pagado, cacheado 30d): métricas STR Airbnb REALES + cap rate de renta corta
+        if with_airroi:
+            try:
+                air = await _airroi_zone(db, prof.get("nombre") or cid.title())
+                if air and air.get("revenue_anual"):
+                    prof["str_airbnb"] = {"ocupacion_pct": round((air.get("occupancy") or 0) * 100),
+                                          "adr": air.get("adr"), "revpar": air.get("revpar"),
+                                          "revenue_anual_usd": air.get("revenue_anual"), "listings": air.get("listings")}
+                    # cap rate STR real = revenue anual (USD) / valor propiedad (MXN→USD, fx 20)
+                    m2_typ = (prof.get("spec_pedida") or {}).get("m2") or 80
+                    if prof.get("precio_m2") and m2_typ:
+                        precio_usd = prof["precio_m2"] * m2_typ / 20.0
+                        if precio_usd > 0:
+                            prof["cap_rate_str"] = round(100 * air["revenue_anual"] / precio_usd, 1)
+            except Exception:
+                pass
         out.append(prof)
     return {"zonas": out,
             "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
@@ -1117,6 +1133,48 @@ async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[s
 
 
 _CC_CACHE: Dict[str, Any] = {}
+_AIRROI_TTL_DAYS = 30
+_AIRROI_MONTHLY_CAP = 400   # tope de llamadas nuevas/mes (control de costo · ~$40 máx)
+
+
+async def _airroi_zone(db, zone_name: str):
+    """Métricas STR (Airbnb) por zona vía AirROI — REGLA DE COSTO: 1 sola llamada por zona por MES CALENDARIO.
+    Si la zona ya se trajo este mes, devuelve el dato guardado y BLOQUEA la llamada a la API (no gasta). Solo llama si no
+    hay dato del mes actual. Tope global mensual como segundo candado. AirROI cobra por llamada."""
+    if not zone_name:
+        return None
+    key = str(zone_name).strip().lower()
+    mes = dt.datetime.utcnow().strftime("%Y-%m")
+    doc = None
+    try:
+        doc = await db.airroi_cache.find_one({"_id": key})
+        # CANDADO 1 — ya se trajo este mes → usar guardado, NO llamar a la API.
+        if doc and doc.get("fetched_mes") == mes:
+            return doc.get("data")
+    except Exception:
+        pass
+    # CANDADO 2 — tope global de llamadas nuevas este mes (backstop de costo).
+    try:
+        if await db.airroi_cache.count_documents({"fetched_mes": mes}) >= _AIRROI_MONTHLY_CAP:
+            return (doc or {}).get("data") if doc else None
+    except Exception:
+        pass
+    # Solo aquí se gasta una llamada (1ª vez de la zona este mes).
+    try:
+        import connectors_ie as ci
+        conn = ci.AirRoiConnector(source_doc={"source_id": "airroi"}, credentials={})
+        obs = await conn.fetch(zone_id=zone_name)
+        o = (obs[0] if obs else {}) or {}
+        if o.get("is_stub"):
+            return (doc or {}).get("data") if doc else None   # falló: conserva el dato viejo, no marca el mes
+        p = o.get("payload") or {}
+        data = {"occupancy": p.get("occupancy"), "adr": p.get("average_daily_rate"), "revpar": p.get("rev_par"),
+                "revenue_anual": p.get("revenue"), "listings": p.get("active_listings_count")}
+        await db.airroi_cache.update_one({"_id": key},
+            {"$set": {"data": data, "fetched_at": dt.datetime.utcnow(), "fetched_mes": mes}}, upsert=True)
+        return data
+    except Exception:
+        return (doc or {}).get("data") if doc else None
 
 
 async def _construccion_m2(colonia_id: str, tier: str):
@@ -1139,12 +1197,12 @@ async def _construccion_m2(colonia_id: str, tier: str):
     return val
 
 
-async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 180, top: int = 14) -> Dict[str, Any]:
+async def zone_intelligence_scaled(db, scale: str = "media", since_days: int = 180, top: int = 14, with_airroi: bool = False) -> Dict[str, Any]:
     """LAS 75 MÉTRICAS A LAS 4 ESCALAS — la fusión institucional, agregada al nivel pedido:
     media = colonia (fusión directa) · grande = corredor · macro = alcaldía (rollup ponderado) · micro = CP (subset geo)."""
     import statistics
     if scale == "media":
-        return await zone_intelligence(db, since_days=since_days, top=top)
+        return await zone_intelligence(db, since_days=since_days, top=top, with_airroi=with_airroi)
     if scale == "micro":
         md = await zone_dynamics(db, "micro", since_days=since_days, top=top)
         return {"escala": "micro", "zonas": md["zonas"], "lectura": "micro (CP): demanda+oferta+absorción+movimiento (subset geo)"}

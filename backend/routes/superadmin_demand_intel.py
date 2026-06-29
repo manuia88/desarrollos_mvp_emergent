@@ -79,7 +79,8 @@ async def terminal_zona(request: Request, axis: str = "resumen", since_days: int
         return await di.market_movement(db, since_days=since_days)
     if axis == "inteligencia":
         scale = request.query_params.get("scale", "media")
-        return await di.zone_intelligence_scaled(db, scale=scale, since_days=since_days)
+        air = request.query_params.get("airroi", "1") != "0"   # AirROI cacheado 1×/zona/mes (default on)
+        return await di.zone_intelligence_scaled(db, scale=scale, since_days=since_days, with_airroi=air)
     if axis == "cruces":
         return await di.cross_intelligence(db, since_days=since_days)
     if axis == "compuestas":

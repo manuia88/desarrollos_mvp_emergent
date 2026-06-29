@@ -58,7 +58,7 @@ def _scale(v, mx):
 async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, Any]:
     import demand_intelligence as di
     import marketplace_granularity as mg
-    zi = await di.zone_intelligence(db, since_days=since_days, top=top)
+    zi = await di.zone_intelligence(db, since_days=since_days, top=top, with_airroi=True)  # AirROI cacheado 1×/zona/mes
     zones = zi.get("zonas", [])
 
     g: Dict[str, Any] = {}
@@ -173,26 +173,26 @@ COMPOSITES: List = [
      lambda z, g: z.get("demanda")),
 
     # ── PACK 3 · INVESTOR ──
-    (21, 3, "Demanda-inversor × yield", "demanda inversionista que coincide con yield (cap rate local)",
-     lambda z, g: round(z.get("demanda", 0) * (z.get("cap_rate_est") or 0) / 100, 1) if z.get("cap_rate_est") else None),
+    (21, 3, "Demanda-inversor × yield", "demanda inversionista que coincide con yield (AirROI real o estimado)",
+     lambda z, g: round(z.get("demanda", 0) * ((z.get("cap_rate_str") or z.get("cap_rate_est")) or 0) / 100, 1) if (z.get("cap_rate_str") or z.get("cap_rate_est")) else None),
     (22, 3, "Demanda grado-inversión", "donde demanda y retorno coinciden",
      lambda z, g: round(z.get("demanda", 0) * (_inv(z) / 100), 1) if _inv(z) is not None else None),
     (23, 3, "Sharpe de la colonia", "retorno ajustado por riesgo, con demanda",
      lambda z, g: round((_inv(z) or 0) / 100 * (_risk(z) or 0) / 100 * min(z.get("demanda", 0) / 100, 1.5), 2) if _inv(z) is not None and _risk(z) is not None else None),
-    (24, 3, "Spread vs CETES por zona", "yield bruto − CETES (real estate suele rendir menos que la tasa libre)",
-     lambda z, g: round((z.get("cap_rate_est") or 0) - (g.get("cetes") or 10.0), 1) if z.get("cap_rate_est") else None),
+    (24, 3, "Spread vs CETES por zona", "yield (AirROI/estimado) − CETES",
+     lambda z, g: round(((z.get("cap_rate_str") or z.get("cap_rate_est")) or 0) - (g.get("cetes") or 10.0), 1) if (z.get("cap_rate_str") or z.get("cap_rate_est")) else None),
     (25, 3, "ROI ponderado por absorción", "retorno real considerando velocidad de salida",
      lambda z, g: round((_inv(z) or 0) * min((_ab(z, "velocidad_mensual") or 0) / 2, 1.5)) if _inv(z) is not None and _ab(z, "velocidad_mensual") else None),
-    (26, 3, "Yield renta-corta vs larga", "dónde Airbnb supera renta tradicional",
-     lambda z, g: None),  # feeder airroi
+    (26, 3, "Yield renta-corta vs larga", "Airbnb (AirROI) vs renta tradicional (estimado) — puntos %",
+     lambda z, g: round((z.get("cap_rate_str") or 0) - (z.get("cap_rate_est") or 0), 1) if z.get("cap_rate_str") and z.get("cap_rate_est") else None),
     (27, 3, "Bancabilidad × demanda", "proyecto financiable con demanda probada",
      lambda z, g: round((_inv(z) or 0) * min(z.get("demanda", 0) / 80, 1.5)) if _inv(z) is not None else None),
     (28, 3, "Plusvalía esperada × demanda", "apreciación donde la demanda empuja",
      lambda z, g: z.get("cambio_pct")),  # proxy hasta DRPI
     (29, 3, "Liquidez (entrada-salida)", "qué tan rápido entras y sales",
      lambda z, g: _ab(z, "meses_agotar")),
-    (30, 3, "Cap rate ajustado a riesgo", "yield neto de riesgo físico/seguridad",
-     lambda z, g: round((z.get("cap_rate_est") or 0) * (_risk(z) or 0) / 100, 2) if z.get("cap_rate_est") and _risk(z) is not None else None),
+    (30, 3, "Cap rate ajustado a riesgo", "yield (AirROI/estimado) neto de riesgo físico/seguridad",
+     lambda z, g: round(((z.get("cap_rate_str") or z.get("cap_rate_est")) or 0) * (_risk(z) or 0) / 100, 2) if (z.get("cap_rate_str") or z.get("cap_rate_est")) and _risk(z) is not None else None),
 
     # ── PACK 4 · RISK ──
     (31, 4, "Demanda ajustada a riesgo", "caliente pero riesgosa vs caliente segura",
