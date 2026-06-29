@@ -85,6 +85,26 @@ async def atlas_children(request: Request, tipo: str = "ciudad", id: str = "CDMX
     return {"tipo": tipo, "id": id, "hijos": ea.entity_children(tipo, id), "tipos_entidad": ea.ENTITY_TYPES}
 
 
+@router.get("/indicadores/atributos")
+async def indicadores_atributos(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """Atributos como INDICADORES con valor: demanda vs oferta + comparativo vs ciudad + uso + fuente + granularidad."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import terminal_indicadores as ti
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await ti.atributos_indicadores(request.app.state.db, geo=geo)
+
+
+@router.get("/indicadores/financiero")
+async def indicadores_financiero(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """Financiero como INDICADORES con uso + fuente + estado honesto (latente donde el cotizador no se usa)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import terminal_indicadores as ti
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await ti.financiero_indicadores(request.app.state.db, geo=geo)
+
+
 @router.get("/compare/run")
 async def compare_run(request: Request, split: str = "amenidades_nivel", outcome: str = "sell_through",
                       geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
