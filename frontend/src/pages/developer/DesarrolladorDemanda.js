@@ -398,6 +398,33 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
                 </div>
               </Card>
             )}
+
+            {/* COMPUESTAS — underwriting/pricing/suelo por zona (métricas que cruzan demanda × mercado) */}
+            {feat.compuestas?.por_zona?.length > 0 && (
+              <Card style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Métricas de decisión (cruces demanda × mercado)</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Margen, suelo, absorción y competencia de TUS zonas — cada una cruza el comportamiento del comprador con el mercado.</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead><tr>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--cream-3)', borderBottom: '1px solid var(--border)' }}>métrica</th>
+                      {(feat.compuestas.por_zona || []).slice(0, 4).map((z) => <th key={z.zona} style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--cream-3)', borderBottom: '1px solid var(--border)' }}>{z.nombre || z.zona}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {(feat.compuestas.catalogo || []).filter((c) => ['Underwriting', 'Suelo&Construcción', 'Pricing'].includes(c.pack)).slice(0, 12).map((c) => (
+                        <tr key={c.n}>
+                          <td style={{ padding: '3px 8px', color: 'var(--cream-2)', borderTop: '1px solid var(--border)' }} title={c.descubre}>{c.nombre}</td>
+                          {(feat.compuestas.por_zona || []).slice(0, 4).map((z) => {
+                            const v = z.valores?.[c.n];
+                            return <td key={z.zona} style={{ padding: '3px 8px', textAlign: 'right', color: v == null || v === '—' ? 'var(--cream-3)' : 'var(--cream)', borderTop: '1px solid var(--border)' }}>{v == null ? '—' : String(v)}</td>;
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
           </>
         )}
       <style>{`

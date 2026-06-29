@@ -181,9 +181,8 @@ COMPOSITES: List = [
      lambda z, g: (g.get("sustitucion") or {}).get("visitantes_multi_colonia")),
     (18, 2, "Profundidad × calidad", "¿mejores zonas se exploran más?",
      lambda z, g: _ratio(z.get("demanda"), z.get("score_zona") and 1) if z.get("score_zona") else None),
-    (19, 2, "Intent-mix por tier", "vivir vs invertir (8 intenciones) según el tier",
-     lambda z, g: next((f"{sum(v for k, v in c.items() if 'invertir' in str(k) or k == 'flip')}inv/{sum(v for k, v in c.items() if 'vivir' in str(k) or k in ('primera-vivienda', 'upgrade', 'downsize', 'segunda-residencia'))}viv"
-                        for c in (g.get("intent", {}).get("por_colonia") or []) if c.get("colonia") == z.get("zona")), None)),
+    (19, 2, "Intent-mix por tier", "vivir vs invertir (agregado de 8 intenciones) según el tier",
+     lambda z, g: next((f"{c.get('invertir', 0)}inv/{c.get('vivir', 0)}viv" for c in (g.get("intent", {}).get("por_colonia") or []) if c.get("colonia") == z.get("zona")), None)),
     (20, 2, "Concentración de demanda", "qué tan concentrada está la demanda",
      lambda z, g: z.get("demanda")),
 

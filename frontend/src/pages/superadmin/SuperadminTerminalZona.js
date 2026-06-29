@@ -93,6 +93,11 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
                 <span>Riesgo: <strong>{z.riesgo?.letra || '—'}</strong></span>
                 <span>Inversión: <strong style={{ color: 'var(--theme)' }}>{z.inversion?.score != null ? `${z.inversion.score} (${z.inversion.tier})` : '—'}</strong></span>
               </div>
+              {(z.riesgo_natural || z.crimen) && (
+                <div style={{ fontSize: 12, color: '#888', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  ⚠️ {z.riesgo_natural?.sismico_zona ? `Sísmico zona ${z.riesgo_natural.sismico_zona}` : ''}{z.riesgo_natural?.inundacion_pct != null ? ` · inundación ${z.riesgo_natural.inundacion_pct}%` : ''}{z.crimen?.incidentes != null ? ` · ${Math.round(z.crimen.incidentes)} inc. FGJ` : ''}{z.crimen?.safety_score != null ? ` (safety ${z.crimen.safety_score})` : ''}
+                </div>
+              )}
               {z.str_airbnb && (
                 <div style={{ fontSize: 12, color: '#bbb', marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   🏠 Airbnb (AirROI): cap rate <strong style={{ color: '#22c55e' }}>{z.cap_rate_str}%</strong> · ocupación {z.str_airbnb.ocupacion_pct}% · RevPAR ${z.str_airbnb.revpar} · {z.str_airbnb.listings} listings

@@ -883,9 +883,14 @@ async def intent_split(db, since_days: int = 365, top: int = 10) -> Dict[str, An
     # resumen vivir vs invertir (compat con consumidores existentes)
     vivir = sum(n for k, n in glob.items() if k.startswith("vivir") or k in ("primera-vivienda", "upgrade", "downsize", "segunda-residencia"))
     invertir = sum(n for k, n in glob.items() if k.startswith("invertir") or k == "flip")
+    def _con_agregados(d):
+        dd = dict(d)
+        dd["vivir"] = sum(n for k, n in d.items() if str(k).startswith("vivir") or k in ("primera-vivienda", "upgrade", "downsize", "segunda-residencia"))
+        dd["invertir"] = sum(n for k, n in d.items() if str(k).startswith("invertir") or k == "flip")
+        return dd
     return {"global": dict(glob), "resumen": {"vivir": vivir, "invertir": invertir},
             "taxonomia": ["primera-vivienda", "upgrade", "downsize", "segunda-residencia", "invertir-renta", "invertir-plusvalía", "flip"],
-            "por_colonia": [{"colonia": c, **dict(d)} for c, d in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:top]]}
+            "por_colonia": [{"colonia": c, **_con_agregados(d)} for c, d in sorted(by_col.items(), key=lambda x: -sum(x[1].values()))[:top]]}
 
 
 async def co_viewed(db, since_days: int = 365, top: int = 15) -> Dict[str, Any]:
@@ -961,20 +966,37 @@ async def temporal_demand(db, since_days: int = 90) -> Dict[str, Any]:
 
 
 async def journey_depth(db, since_days: int = 365) -> Dict[str, Any]:
-    """PROFUNDIDAD DEL JOURNEY — toques antes del lead, % que regresa, % que convierte. Calidad del embudo."""
+    """PROFUNDIDAD DEL JOURNEY (universo) — toques, % regresa, % convierte + DISTRIBUCIÓN de profundidad (1 toque/2-3/4-6/
+    7+), % REBOTE (1 solo toque y se va), VELOCIDAD a lead (días 1er-toque→lead), días activos promedio. Calidad del embudo."""
+    import statistics
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
-    by_v = defaultdict(lambda: {"n": 0, "lead": False, "days": set()})
+    by_v = defaultdict(lambda: {"n": 0, "lead": False, "days": set(), "first": None, "lead_at": None})
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}}, {"_id": 0, "visitor_id": 1, "type": 1, "created_at_dt": 1}):
         v = by_v[s["visitor_id"]]; v["n"] += 1
+        t = s.get("created_at_dt")
         if s["type"] == "lead":
             v["lead"] = True
-        if isinstance(s.get("created_at_dt"), dt.datetime):
-            v["days"].add(s["created_at_dt"].date())
+            if isinstance(t, dt.datetime) and (v["lead_at"] is None or t < v["lead_at"]):
+                v["lead_at"] = t
+        if isinstance(t, dt.datetime):
+            v["days"].add(t.date())
+            if v["first"] is None or t < v["first"]:
+                v["first"] = t
     tot = len(by_v) or 1
+    prof = defaultdict(int)
+    for v in by_v.values():
+        prof["1 toque" if v["n"] == 1 else "2-3" if v["n"] <= 3 else "4-6" if v["n"] <= 6 else "7+"] += 1
+    velocidad = [round((v["lead_at"] - v["first"]).total_seconds() / 86400, 1)
+                 for v in by_v.values() if v["lead_at"] and v["first"] and v["lead_at"] >= v["first"]]
     return {"visitantes": len(by_v),
             "toques_promedio": round(sum(v["n"] for v in by_v.values()) / tot, 1),
             "regresan_pct": round(100 * sum(1 for v in by_v.values() if len(v["days"]) > 1) / tot),
-            "convierten_a_lead_pct": round(100 * sum(1 for v in by_v.values() if v["lead"]) / tot)}
+            "convierten_a_lead_pct": round(100 * sum(1 for v in by_v.values() if v["lead"]) / tot),
+            "distribucion_profundidad": {k: prof.get(k, 0) for k in ("1 toque", "2-3", "4-6", "7+")},
+            "rebote_pct": round(100 * prof.get("1 toque", 0) / tot),
+            "velocidad_a_lead_dias": round(statistics.median(velocidad), 1) if velocidad else None,
+            "dias_activos_promedio": round(sum(len(v["days"]) for v in by_v.values()) / tot, 1),
+            "lectura": "qué tan profundo exploran, cuántos rebotan, y qué tan rápido se convierten"}
 
 
 def _col2geo():
