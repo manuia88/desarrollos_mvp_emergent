@@ -266,64 +266,136 @@ async def financial_demand(db, since_days: int = 180, colonias: Optional[List[st
     }
 
 
+_PROTO_LABEL = {"a": "tipo A", "b": "tipo B", "c": "tipo C", "ph": "penthouse", "s": "studio",
+                "g": "garden", "l1": "loft", "l2": "loft", "loft": "loft", "duplex": "duplex"}
+
+
+def _m2_band(m2):
+    if not m2:
+        return None
+    return "compacto (<60)" if m2 < 60 else "medio (60-100)" if m2 < 100 else "grande (100-150)" if m2 < 150 else "XL (>150)"
+
+
+def _piso_band(lvl):
+    if lvl is None:
+        return None
+    return "PB-bajo (1-3)" if lvl <= 3 else "medio (4-10)" if lvl <= 10 else "alto (11-20)" if lvl <= 20 else "muy alto (>20)"
+
+
 async def attribute_demand(db, since_days: int = 180, colonias: Optional[List[str]] = None) -> Dict[str, Any]:
-    """EJE DE ATRIBUTOS DE UNIDAD — granularidad fina del INTERIOR: cuánta demanda engancha con balcón, vista
-    interior/exterior, terraza, roof garden, bodega, pet-friendly, edificio bajo/medio/alto, orientación, # baños y
-    # recámaras. Cruza la demanda (señales) con los atributos reales de las unidades que mira. El zoom 'dentro del depa'."""
+    """EJE DE ATRIBUTOS DE UNIDAD (universo completo) — cuánta demanda engancha con CADA atributo fino del producto:
+    booleanos (balcón/terraza/roof/bodega/pet/estac-indep), vista int/ext, orientación, altura de edificio, m², tipología
+    (studio/PH/loft/garden), piso, estacionamiento (cajones + tipo individual/tándem), espacio exterior, amenidades
+    específicas (gym/alberca/spa/concierge…), riqueza de amenidades, tamaño de edificio, etapa de entrega, y créditos
+    aceptados. Cruza la demanda con los atributos REALES de las unidades/desarrollos que mira."""
     from data_developments import DEVELOPMENTS_BY_ID
     cutoff = dt.datetime.utcnow() - dt.timedelta(days=since_days)
     BOOL_ATTRS = [("balcon", "balcón"), ("terraza", "terraza"), ("roof_garden", "roof garden"),
                   ("bodega", "bodega"), ("pet_friendly", "pet friendly"), ("estacionamiento_independiente", "estac. independiente")]
     booleano = {label: {"si": 0, "total": 0} for _, label in BOOL_ATTRS}
     vista = defaultdict(int); orientacion = defaultdict(int); altura = defaultdict(int)
-    amenidades = defaultdict(int); banos = defaultdict(int); recamaras = defaultdict(int)
+    amenidades_pedidas = defaultdict(int); banos = defaultdict(int); recamaras = defaultdict(int)
+    m2_band = defaultdict(int); tipologia = defaultdict(int); piso = defaultdict(int)
+    estac_cajones = defaultdict(int); estac_tipo = defaultdict(int); espacio_ext = {"con terraza/balcón": 0, "sin exterior": 0}
+    amen_especificas = defaultdict(int); amen_riqueza = defaultdict(int); tam_edificio = defaultdict(int)
+    entrega = defaultdict(int); creditos = defaultdict(int)
     ENG = {"ficha_view", "like", "save", "unit_view", "unit_save", "compare", "intent", "atlax_query", "atlax_profile"}
 
     async for s in db.buyer_signals.find({"created_at_dt": {"$gte": cutoff}},
                                          {"_id": 0, "type": 1, "entity_id": 1, "meta": 1, "colonia": 1}):
         meta = s.get("meta") or {}
-        # EXPLÍCITO (lo que pide en Atlax/búsqueda)
         for a in _as_feature_list(meta.get("amenidades") or meta.get("extras")):
-            amenidades[a] += 1
+            amenidades_pedidas[a] += 1
         if meta.get("banos"):
             banos[str(meta["banos"])] += 1
         if meta.get("recamaras") or meta.get("beds"):
             recamaras[str(meta.get("recamaras") or meta.get("beds"))] += 1
-        # REVELADO (los atributos de las unidades que engancha)
-        if s.get("type") in ENG:
-            dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
-            if not dev:
-                continue
-            if colonias and dev.get("colonia_id") not in colonias:
-                continue
-            units = dev.get("units") or []
-            if not units:
-                continue
-            maxlvl = max((u.get("level") or 0) for u in units)
-            altura["bajo (<6 pisos)" if maxlvl < 6 else "medio (6-15)" if maxlvl <= 15 else "alto (>15)"] += 1
-            for field, label in BOOL_ATTRS:
-                booleano[label]["total"] += 1
-                if any(u.get(field) for u in units):
-                    booleano[label]["si"] += 1
-            for u in units:
-                if u.get("vista"):
-                    vista[str(u["vista"]).lower()] += 1
-                if u.get("orientation"):
-                    orientacion[str(u["orientation"]).lower()] += 1
+        if s.get("type") not in ENG:
+            continue
+        dev = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+        if not dev or (colonias and dev.get("colonia_id") not in colonias):
+            continue
+        units = dev.get("units") or []
+        if not units:
+            continue
+        # ── DEV-LEVEL (una vez por enganche) ──
+        maxlvl = max((u.get("level") or 0) for u in units)
+        altura["bajo (<6 pisos)" if maxlvl < 6 else "medio (6-15)" if maxlvl <= 15 else "alto (>15)"] += 1
+        nun = len(units)
+        tam_edificio["boutique (<20u)" if nun < 20 else "medio (20-80u)" if nun <= 80 else "torre (>80u)"] += 1
+        ams = dev.get("amenities") or dev.get("amenidades") or []
+        if isinstance(ams, list):
+            na = len(ams)
+            amen_riqueza["pocas (<5)" if na < 5 else "medias (5-8)" if na <= 8 else "muchas (>8)"] += 1
+            for a in ams:
+                amen_especificas[str(a).lower().replace("_", " ")] += 1
+        st = str(dev.get("stage") or dev.get("property_type") or "").lower()
+        if st:
+            entrega["preventa" if "pre" in st else "construcción" if "constr" in st or "obra" in st else "entrega/inmediata" if "entr" in st or "inmed" in st else st] += 1
+        for c in _as_feature_list(dev.get("creditos_aceptados")):
+            creditos[str(c).lower()] += 1
+        for field, label in BOOL_ATTRS:
+            booleano[label]["total"] += 1
+            if any(u.get(field) for u in units):
+                booleano[label]["si"] += 1
+        # ── UNIT-LEVEL (set de valores que ofrece el dev) ──
+        seen_m2 = set(); seen_tipo = set(); seen_piso = set(); seen_caj = set(); seen_pt = set()
+        any_ext = False
+        for u in units:
+            if u.get("vista"):
+                vista[str(u["vista"]).lower()] += 1
+            if u.get("orientation"):
+                orientacion[str(u["orientation"]).lower()] += 1
+            b = _m2_band(u.get("m2_total"))
+            if b:
+                seen_m2.add(b)
+            p = (u.get("prototype") or "").lower()
+            if p:
+                seen_tipo.add(_PROTO_LABEL.get(p, f"tipo {p.upper()}"))
+            pb = _piso_band(u.get("level"))
+            if pb:
+                seen_piso.add(pb)
+            ps = u.get("parking_spots")
+            if ps is not None:
+                seen_caj.add("0" if ps == 0 else "1" if ps == 1 else "2+")
+            if u.get("parking_type"):
+                seen_pt.add("tándem" if "bater" in str(u["parking_type"]).lower() or "tand" in str(u["parking_type"]).lower() else "individual")
+            if (u.get("m2_terrace") or 0) > 0 or (u.get("m2_balcony") or 0) > 0 or u.get("terraza") or u.get("balcon"):
+                any_ext = True
+        for b in seen_m2:
+            m2_band[b] += 1
+        for t in seen_tipo:
+            tipologia[t] += 1
+        for pp in seen_piso:
+            piso[pp] += 1
+        for c in seen_caj:
+            estac_cajones[c] += 1
+        for pt in seen_pt:
+            estac_tipo[pt] += 1
+        espacio_ext["con terraza/balcón" if any_ext else "sin exterior"] += 1
 
     def pct(d):
-        return [{"atributo": k, "demanda": v["si"], "de": v["total"],
-                 "pct": round(100 * v["si"] / v["total"]) if v["total"] else 0}
+        return [{"atributo": k, "demanda": v["si"], "de": v["total"], "pct": round(100 * v["si"] / v["total"]) if v["total"] else 0}
                 for k, v in sorted(d.items(), key=lambda x: -x[1]["si"])]
+
+    def srt(d, lim=20):
+        return dict(sorted(d.items(), key=lambda x: -x[1])[:lim])
+
     return {
-        "booleanos": pct(booleano),                                   # balcón/terraza/roof/bodega/pet
-        "vista": dict(sorted(vista.items(), key=lambda x: -x[1])),    # interior/exterior/calle…
-        "orientacion": dict(sorted(orientacion.items(), key=lambda x: -x[1])),
-        "altura_edificio": dict(altura),                              # bajo/medio/alto
-        "amenidades_pedidas": [{"amenidad": k, "n": v} for k, v in sorted(amenidades.items(), key=lambda x: -x[1])[:15]],
-        "banos": dict(sorted(banos.items())),
-        "recamaras": dict(sorted(recamaras.items())),
-        "lectura": "granularidad DENTRO del depa: qué atributo fino busca/engancha la demanda (balcón, vista, altura…)",
+        "booleanos": pct(booleano),
+        "vista": srt(vista), "orientacion": srt(orientacion), "altura_edificio": dict(altura),
+        "m2_band": srt(m2_band), "tipologia": srt(tipologia), "piso": srt(piso),
+        "estacionamiento_cajones": dict(sorted(estac_cajones.items())), "estacionamiento_tipo": dict(estac_tipo),
+        "espacio_exterior": dict(espacio_ext),
+        "amenidades_especificas": [{"amenidad": k, "n": v} for k, v in sorted(amen_especificas.items(), key=lambda x: -x[1])[:18]],
+        "amenidades_riqueza": dict(amen_riqueza), "tamano_edificio": dict(tam_edificio),
+        "entrega": dict(entrega), "creditos_aceptados": srt(creditos),
+        "amenidades_pedidas": [{"amenidad": k, "n": v} for k, v in sorted(amenidades_pedidas.items(), key=lambda x: -x[1])[:15]],
+        "banos": dict(sorted(banos.items())), "recamaras": dict(sorted(recamaras.items())),
+        "ejes": ["booleanos", "vista", "orientación", "altura edificio", "m²", "tipología", "piso", "estacionamiento",
+                 "espacio exterior", "amenidades específicas", "riqueza amenidades", "tamaño edificio", "entrega",
+                 "créditos aceptados", "baños", "recámaras"],
+        "lectura": "el universo de atributos del producto: 16 ejes de granularidad DENTRO del depa y del edificio",
     }
 
 

@@ -99,33 +99,42 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         </div>
       )}
 
-      {/* ATRIBUTOS DE UNIDAD */}
+      {/* ATRIBUTOS DE UNIDAD — los 16 ejes */}
       {tab === 'atributos' && d && !d.error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Demanda que engancha con…</div>
-            {(d.booleanos || []).map((b) => (
-              <div key={b.atributo} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0' }}>
-                <span style={{ width: 130 }}>{b.atributo}</span>
-                <span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${b.pct}%`, borderRadius: 2 }} />
-                <strong>{b.pct}%</strong>
+        <>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>{d.ejes?.length || 16} ejes de granularidad dentro del depa y del edificio · {d.lectura}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            <Card style={card}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Demanda que engancha con…</div>
+              {(d.booleanos || []).map((b) => (
+                <div key={b.atributo} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '3px 0' }}>
+                  <span style={{ width: 130 }}>{b.atributo}</span>
+                  <span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${b.pct}%`, borderRadius: 2 }} />
+                  <strong>{b.pct}%</strong>
+                </div>
+              ))}
+            </Card>
+            <AttrCard title="Tamaño (m²)" dict={d.m2_band} />
+            <AttrCard title="Tipología" dict={d.tipologia} />
+            <AttrCard title="Piso del depa" dict={d.piso} />
+            <AttrCard title="Vista" dict={d.vista} />
+            <AttrCard title="Orientación" dict={d.orientacion} />
+            <AttrCard title="Altura del edificio" dict={d.altura_edificio} />
+            <AttrCard title="Estacionamiento (cajones)" dict={d.estacionamiento_cajones} extra={Object.entries(d.estacionamiento_tipo || {}).map(([k, v]) => `${k} ${v}`).join(' · ')} />
+            <AttrCard title="Espacio exterior" dict={d.espacio_exterior} />
+            <AttrCard title="Riqueza de amenidades" dict={d.amenidades_riqueza} />
+            <AttrCard title="Tamaño del edificio" dict={d.tamano_edificio} />
+            <AttrCard title="Entrega / etapa" dict={d.entrega} />
+            <AttrCard title="Créditos aceptados" dict={d.creditos_aceptados} />
+            <Card style={card}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Amenidades específicas (demanda)</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(d.amenidades_especificas || []).slice(0, 16).map((a) => <Badge key={a.amenidad} tone="neutral">{a.amenidad} {a.n}</Badge>)}
               </div>
-            ))}
-          </Card>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Vista · Altura · Orientación</div>
-            <div style={{ fontSize: 12.5, marginBottom: 6 }}>Vista: {Object.entries(d.vista || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-            <div style={{ fontSize: 12.5, marginBottom: 6 }}>Edificio: {Object.entries(d.altura_edificio || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—'}</div>
-            <div style={{ fontSize: 12.5 }}>Orientación: {Object.entries(d.orientacion || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-          </Card>
-          <Card style={card}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Amenidades pedidas · recámaras</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-              {(d.amenidades_pedidas || []).slice(0, 10).map((a) => <Badge key={a.amenidad} tone="neutral">{a.amenidad} {a.n}</Badge>)}
-            </div>
-            <div style={{ fontSize: 12.5 }}>Recámaras: {Object.entries(d.recamaras || {}).map(([k, v]) => `${k}rec ${v}`).join(' · ') || '—'} · Baños: {Object.entries(d.banos || {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'}</div>
-          </Card>
-        </div>
+            </Card>
+            <AttrCard title="Recámaras / baños" dict={{ ...Object.fromEntries(Object.entries(d.recamaras || {}).map(([k, v]) => [`${k} rec`, v])), ...Object.fromEntries(Object.entries(d.banos || {}).map(([k, v]) => [`${k} baño`, v])) }} />
+          </div>
+        </>
       )}
 
       {/* FINANCIERO */}
@@ -189,6 +198,25 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         <Compuestas100 data={d} />
       )}
     </SuperadminLayout>
+  );
+}
+
+function AttrCard({ title, dict, extra }) {
+  const entries = Object.entries(dict || {});
+  const mx = Math.max(1, ...entries.map(([, v]) => v));
+  return (
+    <Card style={card}>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
+      {entries.length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+      {entries.slice(0, 6).map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '2px 0' }}>
+          <span style={{ width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k}</span>
+          <span style={{ flex: 1, height: 9, background: 'var(--theme)', opacity: 0.7, width: `${(v / mx) * 100}%`, borderRadius: 2 }} />
+          <strong>{v}</strong>
+        </div>
+      ))}
+      {extra && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>{extra}</div>}
+    </Card>
   );
 }
 
