@@ -7,9 +7,9 @@ Confianza por n: <10 = baja. Latente ≠ falso.
 """
 import datetime as dt
 import statistics
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from metric_registry import REGISTRY, REGISTRY_BY_ID, DIMENSIONS, ALMACEN_SALIDA
+from metric_registry import REGISTRY_BY_ID, DIMENSIONS, ALMACEN_SALIDA
 
 
 # ── helpers de dimensión ────────────────────────────────────────────────────────
@@ -213,12 +213,140 @@ async def _c_affordability(db, dims):
     return (None, 0, None)
 
 
+def _pctl(vals, q):
+    v = sorted(vals)
+    return round(v[int(q * len(v))]) if v else None
+
+
+async def _c_precio_p25(db, dims):
+    pm2 = [u["price"] / u["m2_total"] for u, _ in _dev_units(dims) if u.get("price") and u.get("m2_total")]
+    return (_pctl(pm2, 0.25), len(pm2), None)
+
+
+async def _c_precio_p75(db, dims):
+    pm2 = [u["price"] / u["m2_total"] for u, _ in _dev_units(dims) if u.get("price") and u.get("m2_total")]
+    return (_pctl(pm2, 0.75), len(pm2), None)
+
+
+async def _c_unidades_tot(db, dims):
+    us = _dev_units(dims)
+    return (len(us), len(us), None)
+
+
+async def _c_unidades_vend(db, dims):
+    us = _dev_units(dims)
+    s = sum(1 for u, _ in us if str(u.get("status") or "").lower() in ("vendido", "reservado", "sold", "reserved"))
+    return (s, len(us), None)
+
+
+async def _c_premium_vista(db, dims):
+    us = _dev_units({k: v for k, v in dims.items() if k != "vista"})
+    ext = [u["price"] / u["m2_total"] for u, _ in us if str(u.get("vista") or "").lower() == "exterior" and u.get("price") and u.get("m2_total")]
+    inte = [u["price"] / u["m2_total"] for u, _ in us if str(u.get("vista") or "").lower() == "interior" and u.get("price") and u.get("m2_total")]
+    if ext and inte:
+        return (round(100 * (statistics.median(ext) - statistics.median(inte)) / statistics.median(inte)), len(ext) + len(inte), None)
+    return (None, len(ext) + len(inte), None)
+
+
+async def _c_vistas_proto(db, dims):
+    cols = _geo_colonias(dims)
+    q = {"type": "unit_view"}
+    if cols:
+        q["colonia"] = {"$in": list(cols)}
+    n = await db.buyer_signals.count_documents(q)
+    return (n, n, None)
+
+
+async def _c_tipologia_buscada(db, dims):
+    cols = _geo_colonias(dims); cut = _window_cutoff(dims.get("ventana"))
+    q = {"recamaras_min": {"$gt": 0}}
+    if cols:
+        q["colonias"] = {"$in": list(cols)}
+    if cut:
+        q["created_at_dt"] = {"$gte": cut}
+    from collections import Counter
+    c = Counter()
+    async for s in db.marketplace_searches.find(q, {"_id": 0, "recamaras_min": 1}):
+        c[s["recamaras_min"]] += 1
+    n = sum(c.values())
+    return (f"{c.most_common(1)[0][0]}rec" if c else None, n, None)
+
+
+async def _c_demanda_atributo(db, dims):
+    attr = dims.get("atributo")
+    cols = _geo_colonias(dims); cut = _window_cutoff(dims.get("ventana"))
+    if not attr:
+        return (None, 0, None)
+    q = {"type": {"$in": ["ficha_view", "like", "save", "unit_view", "intent", "atlax_query"]}}
+    if cols:
+        q["colonia"] = {"$in": list(cols)}
+    if cut:
+        q["created_at_dt"] = {"$gte": cut}
+    from data_developments import DEVELOPMENTS_BY_ID
+    n = 0
+    async for s in db.buyer_signals.find(q, {"_id": 0, "entity_id": 1, "meta": 1}):
+        d = DEVELOPMENTS_BY_ID.get(s.get("entity_id"))
+        meta = s.get("meta") or {}
+        ams = [str(a).lower() for a in (meta.get("amenidades") or [])]
+        if attr in ams:
+            n += 1
+        elif d and any(_unit_has_attr(u, d, attr) for u in (d.get("units") or [])):
+            n += 1
+    return (n, n, None)
+
+
+async def _c_recurrencia(db, dims):
+    cols = _geo_colonias(dims)
+    q = {}
+    if cols:
+        q["colonia"] = {"$in": list(cols)}
+    from collections import defaultdict
+    byv = defaultdict(int)
+    async for s in db.buyer_signals.find(q, {"_id": 0, "visitor_id": 1}):
+        if s.get("visitor_id"):
+            byv[s["visitor_id"]] += 1
+    return (round(sum(byv.values()) / len(byv), 1) if byv else None, len(byv), None)
+
+
+async def _c_conv_vista_sol(db, dims):
+    vi, vn, _ = await _c_vistas(db, dims)
+    so, _, _ = await _c_solicitudes(db, dims)
+    return (round(100 * (so or 0) / vi) if vi else None, vn, None)
+
+
+async def _c_arbitraje(db, dims):
+    bq, bn, _ = await _c_busquedas(db, dims)
+    inv, _, _ = await _c_inventario(db, dims)
+    return ((bq or 0) - (inv or 0), bn, None) if bq is not None else (None, 0, None)
+
+
+async def _c_sobreoferta(db, dims):
+    inv, _, _ = await _c_inventario(db, dims)
+    vi, vn, _ = await _c_vistas(db, dims)
+    return (round((inv or 0) / max(vi or 1, 1), 2), vn, None) if inv is not None else (None, 0, None)
+
+
+async def _c_indice_revelada(db, dims):
+    vi, vn, _ = await _c_vistas(db, dims)
+    so, _, _ = await _c_solicitudes(db, dims)
+    rec, _, _ = await _c_recurrencia(db, dims)
+    if vn < 8:
+        return (None, vn, None)
+    idx = min((vi or 0) / 50, 1) * 40 + min((so or 0) / 10, 1) * 40 + min((rec or 0) / 5, 1) * 20
+    return (round(idx), vn, None)
+
+
 COMPUTERS = {
     "of.precio_m2": _c_precio_m2, "of.precio_absoluto": _c_precio_abs, "of.inventario_activo": _c_inventario,
     "of.sell_through": _c_sell_through, "of.absorcion_mensual": _c_absorcion,
+    "of.precio_p25": _c_precio_p25, "of.precio_p75": _c_precio_p75, "of.unidades_totales": _c_unidades_tot,
+    "of.unidades_vendidas": _c_unidades_vend, "of.velocidad_venta": _c_absorcion, "of.premium_vista": _c_premium_vista,
     "dm.vistas": _c_vistas, "dm.busquedas": _c_busquedas, "dm.solicitudes": _c_solicitudes,
-    "dm.presupuesto_declarado": _c_presupuesto,
+    "dm.presupuesto_declarado": _c_presupuesto, "dm.vistas_prototipo": _c_vistas_proto,
+    "dm.tipologia_buscada": _c_tipologia_buscada, "dm.demanda_por_atributo": _c_demanda_atributo,
+    "dm.recurrencia_busqueda": _c_recurrencia, "dm.conv_vista_solicitud": _c_conv_vista_sol,
     "x.gap_oferta_demanda": _c_gap, "x.ratio_demanda_inventario": _c_ratio_dem_inv, "x.affordability_gap": _c_affordability,
+    "x.arbitraje": _c_arbitraje, "x.sobreoferta_subdemanda": _c_sobreoferta, "x.indice_demanda_revelada": _c_indice_revelada,
 }
 
 
@@ -286,7 +414,6 @@ async def insights(db) -> Dict[str, Any]:
     found = []
     # 1) ¿los proyectos con amenidades-alta se venden más rápido? (sell_through con vs sin)
     con = await compute(db, "of.sell_through", {"atributo": "amenidades_alta"})
-    sin_us = _dev_units({})  # baseline
     if not con.get("latente"):
         base = await compute(db, "of.sell_through", {})
         if not base.get("latente") and con["valor"] is not None and base["valor"] is not None:

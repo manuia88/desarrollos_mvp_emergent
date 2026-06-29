@@ -30,3 +30,19 @@ export async function getZonas() {
 export async function getTerminal(axis = 'resumen') {
   return _j(await fetch(`${BASE}/terminal-zona?axis=${encodeURIComponent(axis)}`, { headers: h(), credentials: 'include' }));
 }
+// Grid de Métricas — el mapa de TODAS las medidas (oferta/demanda/cruce) × dimensiones, con celdas teóricas.
+export async function getGridOverview() {
+  return _j(await fetch(`${BASE}/grid/overview`, { headers: h(), credentials: 'include' }));
+}
+// Una celda del grid: valor + procedencia (de dónde sale el número). params: {measure, geo_nivel, geo_valor, tipologia, rango_m2, tier_precio, atributo, vista, etapa, ventana}.
+export async function getGridCell(params = {}) {
+  return _j(await fetch(`${BASE}/grid/cell?${_qs(params)}`, { headers: h(), credentials: 'include' }));
+}
+// Ranking de zonas por una medida. params: {measure, por, top}.
+export async function getGridRanking(params = {}) {
+  return _j(await fetch(`${BASE}/grid/ranking?${_qs(params)}`, { headers: h(), credentials: 'include' }));
+}
+// Insights redactados desde el grid (con n, cohorte y fuente).
+export async function getGridInsights() {
+  return _j(await fetch(`${BASE}/grid/insights`, { headers: h(), credentials: 'include' }));
+}

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import { getTerminal } from '../../api/superadminDemandIntel';
+import GridPanel from '../../components/superadmin/GridPanel';
 
 const TABS = [
   { key: 'escalas', label: 'Escalas geo' },
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'financiero', label: 'Financiero' },
   { key: 'cruces', label: 'Cruces' },
   { key: 'compuestas', label: 'Las 120 compuestas' },
+  { key: 'grid', label: 'Grid de métricas' },
 ];
 
 const fmtM = (v) => (v == null ? '—' : `$${(v / 1e6).toFixed(1)}M`);
@@ -29,6 +31,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
   useEffect(() => { getTerminal('resumen').then(setResumen).catch(() => {}); }, []);
   useEffect(() => {
+    if (tab === 'grid') return; // grid se carga solo (GridPanel)
     if (cache[tab]) return;
     setLoading(true);
     getTerminal(tab).then((d) => setCache((c) => ({ ...c, [tab]: d }))).catch((e) => setCache((c) => ({ ...c, [tab]: { error: e.message } }))).finally(() => setLoading(false));
@@ -232,6 +235,9 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
       {tab === 'compuestas' && d && !d.error && (
         <Compuestas100 data={d} />
       )}
+
+      {/* GRID DE MÉTRICAS */}
+      {tab === 'grid' && <GridPanel />}
     </SuperadminLayout>
   );
 }
