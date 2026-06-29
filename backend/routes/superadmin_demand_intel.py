@@ -66,6 +66,57 @@ async def demand_zonas(request: Request, since_days: int = 180):
     return mm
 
 
+@router.get("/grid/overview")
+async def grid_overview(request: Request):
+    """Grid de métricas — resumen del registro: medidas base, celdas teóricas, dimensiones, almacén de salida."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import metric_registry as mr
+    return mr.registry_overview()
+
+
+@router.get("/grid/cell")
+async def grid_cell(request: Request, measure: str, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None,
+                    tipologia: Optional[str] = None, rango_m2: Optional[str] = None, tier_precio: Optional[str] = None,
+                    atributo: Optional[str] = None, vista: Optional[str] = None, etapa: Optional[str] = None, ventana: Optional[str] = None):
+    """Pivot: una celda con PROCEDENCIA (fuente/almacén/n/cohorte/frescura/confianza). Latente si n<n_mínimo."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import grid_engine as ge
+    dims = {"geo": (geo_nivel, geo_valor) if geo_nivel and geo_valor else None, "tipologia": tipologia,
+            "rango_m2": rango_m2, "tier_precio": tier_precio, "atributo": atributo, "vista": vista, "etapa": etapa, "ventana": ventana}
+    return await ge.compute(request.app.state.db, measure, {k: v for k, v in dims.items() if v})
+
+
+@router.get("/grid/ranking")
+async def grid_ranking(request: Request, measure: str, por: str = "colonia", top: int = 12,
+                       tipologia: Optional[str] = None, atributo: Optional[str] = None, ventana: Optional[str] = None):
+    """Ranking: top zonas/desarrollos por una medida (recorre el eje geo pedido)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import grid_engine as ge
+    return await ge.ranking(request.app.state.db, measure, por=por, top=top,
+                            **{k: v for k, v in {"tipologia": tipologia, "atributo": atributo, "ventana": ventana}.items() if v})
+
+
+@router.get("/grid/insights")
+async def grid_insights(request: Request):
+    """Insights redactados que suben solos del grid (cada uno con n + cohorte + fuente — no se inventa)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import grid_engine as ge
+    return await ge.insights(request.app.state.db)
+
+
+@router.post("/grid/materialize")
+async def grid_materialize(request: Request, measure: str, ejes: str = "geo,tipologia"):
+    """Materializa una medida sobre los ejes (producto cartesiano) en metric_grid — solo n≥n_mínimo; resto latente."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import grid_engine as ge
+    return await ge.materialize(request.app.state.db, measure, [e.strip() for e in ejes.split(",") if e.strip()])
+
+
 @router.get("/terminal-zona")
 async def terminal_zona(request: Request, axis: str = "resumen", since_days: int = 180):
     """TERMINAL DE ZONA — la vista madre que pivotea TODOS los ejes del cubo (carga perezosa por eje):
