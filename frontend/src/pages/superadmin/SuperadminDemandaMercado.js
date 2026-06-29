@@ -385,6 +385,43 @@ export default function SuperadminDemandaMercado() {
             ))}
           </div>
         )}
+
+        {/* ÍNDICE DE INTELIGENCIA DE ZONA — fusión de 8 motores por colonia */}
+        {zonas && !zonas.error && (zonas.inteligencia?.zonas || []).length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Índice de Inteligencia de Zona</div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>La foto institucional por colonia: demanda · absorción real · precio/m² · calidad de vida · riesgo · inversión · ciclo. Fusión de 8 motores que vivían en silos.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+              {(zonas.inteligencia.zonas).map((z) => (
+                <Card key={z.zona} style={{ padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{z.nombre || z.zona} {z.tier && <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>· {z.tier}</span>}</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>{z.alcaldia}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 14px', fontSize: 12.5 }}>
+                    <span>Precio/m²: <strong>{z.precio_m2 ? `$${(z.precio_m2 / 1000).toFixed(0)}k` : '—'}</strong></span>
+                    <span>Demanda: <strong>{z.demanda}</strong> · {z.movimiento}</span>
+                    <span>Absorción: <strong>{z.absorcion?.vendido_pct != null ? `${z.absorcion.vendido_pct}%` : '—'}</strong> {z.absorcion?.velocidad_mensual != null && <span style={{ color: '#888' }}>({z.absorcion.velocidad_mensual}/mes)</span>}</span>
+                    <span>Agotar: <strong>{z.absorcion?.meses_agotar != null ? `${z.absorcion.meses_agotar} m` : '—'}</strong></span>
+                    <span>Score zona: <strong>{z.score_zona || '—'}</strong></span>
+                    <span>Riesgo: <strong>{z.riesgo?.letra || '—'}</strong> {z.riesgo?.num != null && <span style={{ color: '#888' }}>({z.riesgo.num})</span>}</span>
+                    <span>Inversión: <strong style={{ color: 'var(--theme)' }}>{z.inversion?.score != null ? `${z.inversion.score} (${z.inversion.tier})` : '—'}</strong></span>
+                    <span>Oportunidad: <strong>{z.oportunidad != null ? Math.round(z.oportunidad) : '—'}</strong></span>
+                  </div>
+                  {z.spec_pedida && (
+                    <div style={{ fontSize: 11.5, color: '#888', marginTop: 8 }}>La demanda pide: ${(((z.spec_pedida.precio_max_prom) || 0) / 1e6).toFixed(1)}M · {z.spec_pedida.recamaras?.toFixed?.(1) || z.spec_pedida.recamaras} rec · {z.spec_pedida.m2} m²</div>
+                  )}
+                  {z.subscores && Object.keys(z.subscores).length > 0 && (
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+                      {Object.entries(z.subscores).map(([k, v]) => <span key={k} style={{ fontSize: 10.5, padding: '1px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.05)', color: '#aaa' }}>{k} {Math.round(v)}</span>)}
+                    </div>
+                  )}
+                  {z.recomendacion && <div style={{ fontSize: 12, color: 'var(--cream-2, #bbb)', marginTop: 8, fontStyle: 'italic' }}>{z.ciclo ? `${z.ciclo} — ` : ''}{z.recomendacion}</div>}
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 20 GRANULARIDADES AVANZADAS (lazy) */}

@@ -656,6 +656,106 @@ async def market_movement(db, since_days: int = 180, colonias: Optional[List[str
     }
 
 
+async def zone_intelligence(db, since_days: int = 180, colonias: Optional[List[str]] = None, top: int = 14) -> Dict[str, Any]:
+    """ÍNDICE DE INTELIGENCIA DE ZONA — FUSIONA 9 motores vivos en UNA foto por colonia (lo que hoy vive en silos):
+      · demanda + movimiento (buyer_signals)        · demanda pedida + oportunidad (demand_twin_engine)
+      · ABSORCIÓN real por cohorte (absorcion_engine) · precio/m² + tier (AVM)
+      · score A-F + subscores calidad de vida (zone_score) · RIESGO (risk_score_engine)
+      · SCORE DE INVERSIÓN 0-100 AAA-B (score_inversion_engine) · ciclo + recomendación (zone_cycle_engine).
+    El 'HouseCanary de MX' por zona — la data deja de estar muerta y se mide."""
+    import avm_public_engine as ave
+    import zone_score_engine as zse
+    import zone_cycle_engine as zce
+    import absorcion_engine as abse
+    import demand_twin_engine as dte
+    import risk_score_engine as rse
+    import score_inversion_engine as sie
+
+    dyn = await zone_dynamics(db, "media", since_days=since_days, colonias=colonias, top=top * 2)
+    # one-shot (devuelven listas) → indexar por colonia
+    twin = {}
+    try:
+        for t in (await dte.build_demand_twin(db, limit=140)) or []:
+            twin[(t.get("colonia") or "").lower()] = t
+    except Exception:
+        pass
+    inv = {}
+    try:
+        for s in (await sie.top_colonias_by_score(db, limit=140)) or []:
+            inv[(s.get("colonia_slug") or "").lower()] = s
+    except Exception:
+        pass
+
+    out = []
+    for z in dyn["zonas"][:top]:
+        cid = z["zona"]; lc = (cid or "").lower()
+        prof = {k: z.get(k) for k in ("zona", "demanda", "busquedas", "oferta_unidades", "movimiento", "cambio_pct")}
+        absorcion_pct = None
+        # AVM — precio/m² + tier
+        try:
+            a = ave.colonia_stats(cid)
+            if isinstance(a, dict) and not a.get("error"):
+                prof.update({"precio_m2": a.get("price_m2"), "tier": a.get("tier"),
+                             "alcaldia": a.get("alcaldia"), "nombre": a.get("name")})
+        except Exception:
+            pass
+        # ABSORCIÓN real por cohorte (vendido% · velocidad · meses para agotar)
+        try:
+            ab = await abse.curva_absorcion(db, colonia_id=cid)
+            cur = ab.get("curva") or []
+            if cur:
+                tot = sum(c.get("unidades_total", 0) for c in cur)
+                sold = sum(c.get("vendidas", 0) for c in cur)
+                vel = round(sum(c.get("velocidad_mensual", 0) for c in cur), 1)
+                absorcion_pct = round(100 * sold / tot) if tot else None
+                prof["absorcion"] = {"vendido_pct": absorcion_pct, "velocidad_mensual": vel,
+                                     "meses_agotar": round((tot - sold) / vel, 1) if vel else None}
+        except Exception:
+            pass
+        # Demanda pedida + oportunidad (Gemelo de Demanda)
+        t = twin.get(lc)
+        if t:
+            prof["oportunidad"] = t.get("interes") or t.get("oportunidad_score")
+            prof["spec_pedida"] = t.get("spec")
+        # Score A-F + subscores de calidad de vida
+        try:
+            s = await zse.get_zone_with_subscores(db, cid)
+            if isinstance(s, dict):
+                prof["score_zona"] = s.get("score_letter")
+                prof["subscores"] = s.get("subscores") or {}
+                prof.setdefault("nombre", s.get("name"))
+        except Exception:
+            pass
+        # Riesgo (crimen + natural + título + percepción)
+        try:
+            r = await rse.compute_risk_score_v2(db, cid)
+            if isinstance(r, dict):
+                prof["riesgo"] = {"letra": r.get("score_letter"), "num": r.get("score_numeric")}
+        except Exception:
+            pass
+        # Score de inversión 0-100 AAA-B
+        s2 = inv.get(lc)
+        if s2:
+            prof["inversion"] = {"score": s2.get("score"), "tier": s2.get("tier"), "rec": s2.get("recommendation")}
+        # Ciclo + recomendación (alimentado con la absorción REAL)
+        try:
+            rec = await db.colonias.find_one({"id": cid}, {"_id": 0})
+            if rec:
+                cyc = zce.compute_zone_cycle(rec, absorcion_pct=absorcion_pct)
+                prof["ciclo"] = cyc.get("label") or (cyc.get("ciclo") or {}).get("label") or (cyc.get("ciclo") or {}).get("fase_key")
+                try:
+                    prof["recomendacion"] = zce.zone_recommendation(cyc)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        out.append(prof)
+    return {"zonas": out,
+            "lectura": "demanda + absorción real + precio/m² + calidad de vida + riesgo + inversión + ciclo = la foto institucional de la zona",
+            "fuentes": ["buyer_signals", "demand_twin_engine", "absorcion_engine", "avm_public_engine",
+                        "zone_score_engine", "risk_score_engine", "score_inversion_engine", "zone_cycle_engine"]}
+
+
 async def behavior_profile(db, since_days: int = 365) -> Dict[str, Any]:
     """PERFIL DE COMPORTAMIENTO — device (mobile/desktop/tablet), estilo DISC, engagement de tour/video, profundidad de
     scroll. Consume las dimensiones de captura nueva (que ninguna quede capturada-y-muerta)."""

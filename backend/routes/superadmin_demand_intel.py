@@ -59,7 +59,10 @@ async def demand_zonas(request: Request, since_days: int = 180):
     from permissions import require_superadmin
     await require_superadmin(request)
     import demand_intelligence as di
-    return await di.market_movement(request.app.state.db, since_days=since_days)
+    db = request.app.state.db
+    mm = await di.market_movement(db, since_days=since_days)
+    mm["inteligencia"] = await di.zone_intelligence(db, since_days=since_days)  # fusión 9 motores por colonia
+    return mm
 
 
 @router.get("/granular-advanced")

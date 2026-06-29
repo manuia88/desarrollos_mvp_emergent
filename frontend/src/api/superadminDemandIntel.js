@@ -22,7 +22,7 @@ export async function getDeep() {
 export async function getGranularAdvanced() {
   return _j(await fetch(`${BASE}/granular-advanced`, { headers: h(), credentials: 'include' }));
 }
-// Dinámica de zona a 3 escalas: macro (alcaldía) · media (colonia) · micro (CP) — demanda/oferta/absorción/movimiento.
+// Dinámica de zona a 3 escalas + Índice de Inteligencia de Zona (fusión de 8 motores por colonia).
 export async function getZonas() {
   return _j(await fetch(`${BASE}/zonas`, { headers: h(), credentials: 'include' }));
 }
