@@ -593,3 +593,28 @@ A la pregunta del founder 'qué granularidad no mencionada se puede capturar', p
 behavior_profile() los consume todos. Endpoint /deep + tarjeta. Cero cable-muerto.
 PORTAL 1 = MARKETPLACE: granularidad máxima REAL alcanzada (geo calle→ciudad · propiedad · financiero · demanda ·
 preguntas+conversación · rechazo · intent · competencia · tiempo · journey · device · DISC · tour · scroll).
+
+---
+
+## GRANULARIDAD NIVEL PROFUNDO — construido + el mapa de lo que SIGUE siendo posible
+
+**Construido hoy (dato existente, alto valor):**
+- price_sensitivity — techo de precio buscado por colonia (Polanco 14M, Del Valle 3M) = a qué precio construir/listar.
+- funnel_velocity — días de consideración (1ª señal→lead) + lead→cierre (35 días).
+- hot_visitors — propensión/calor por visitante anónimo (señales ponderadas, dismiss resta) + features/colonias = lead
+  por convertir, ACCIONABLE. /deep + 3 tarjetas.
+
+**El siguiente nivel (mapa, por lo que requiere):**
+- SEMÁNTICO (análisis LLM de asistente_messages): trayectoria de sentimiento, criterios de decisión rankeados, drivers
+  emocionales, urgencia en lenguaje, objeción→resolución.
+- PREDICTIVO (modelo ML): presupuesto PREDICHO (vs declarado), timeline de compra, probabilidad de cierre, lookalike
+  segments, next-best-action.
+- MICRO-INTERACCIÓN (captura nueva front): heatmap de cursor, abandono por campo, filtros probados-y-abandonados,
+  velocidad de tabs, re-visitas/back.
+- TRADE-OFFS/ELASTICIDAD (dato existe, análisis avanzado): qué sacrifican (terraza vs recámara), willingness-to-pay por
+  feature, elasticidad de sustitución.
+- ATRIBUCIÓN: multi-touch (first/last/assisted) · UTM/campaña por señal (captura).
+- HOGAR/IDENTIDAD: composición del hogar (inferida) · co-decisión · journey cross-device completo (visitor_identity).
+
+Lectura honesta: la granularidad es prácticamente infinita; lo construido cubre lo de mayor ROI con dato actual. Lo
+demás se prioriza por valor, no por capacidad.
