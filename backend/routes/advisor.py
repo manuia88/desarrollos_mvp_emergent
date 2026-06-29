@@ -228,6 +228,20 @@ async def require_advisor(request: Request):
     return user
 
 
+# ─── Señales calientes (lead anónimo por convertir) ────────────────────────────
+@router.get("/senales-calientes")
+async def senales_calientes(request: Request):
+    """LEADS ANÓNIMOS CALENTÁNDOSE — visitantes sin contacto aún, rankeados por su comportamiento (apartado/intención
+    pesan, rechazo resta) + qué features/colonias miran. El asesor se ADELANTA. Cierra demanda anónima → asesor."""
+    await require_advisor(request)
+    import demand_intelligence as di
+    import marketplace_granularity as mg
+    db = request.app.state.db
+    return {"calientes": await di.hot_visitors(db, since_days=90, top=12),
+            "presupuesto_predicho": await mg.predicted_budget(db),
+            "timeline": await mg.predicted_timeline(db)}
+
+
 # ─── Profile ──────────────────────────────────────────────────────────────────
 @router.get("/profile")
 async def get_profile(request: Request):

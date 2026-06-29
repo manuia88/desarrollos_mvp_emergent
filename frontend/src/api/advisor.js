@@ -22,6 +22,8 @@ export const getDashboard = () => j('/api/asesor/dashboard');
 
 // "Tu Espejo" · diagnóstico de desempeño on-demand (reusa el motor del agente Coach)
 export const getMiEspejo = () => j('/api/asesor/mi-espejo');
+// Leads anónimos calentándose (demanda anónima → asesor se adelanta) + presupuesto/timeline predichos.
+export const getSenalesCalientes = () => j('/api/asesor/senales-calientes');
 
 // Fase 3.3 · lente del asesor sobre el cubo (inteligencia de mercado para su pitch)
 export const getAsesorAmenityRanker = (colonia) => j(`/api/asesor/market/amenity-ranker${colonia ? `?colonia=${colonia}` : ''}`);

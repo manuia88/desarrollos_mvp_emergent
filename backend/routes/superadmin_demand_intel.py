@@ -52,6 +52,17 @@ async def demand_deep(request: Request, since_days: int = 365):
     }
 
 
+@router.get("/granular-advanced")
+async def granular_advanced(request: Request, since_days: int = 365):
+    """Las 20 granularidades AVANZADAS (estacionalidad, balance oferta-demanda, absorción, RFM, elasticidad, viral, fugas
+    de embudo, competidores, locale, re-engagement, criterios, urgencia, sentimiento, presupuesto/timeline/prob predichos,
+    co-ocurrencia, willingness-to-pay, sustitución, atribución). Todas de dato YA capturado."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import marketplace_granularity as mg
+    return await mg.run_all(request.app.state.db, since_days=since_days)
+
+
 @router.post("/notify")
 async def demand_notify(request: Request):
     """Dispara YA el push proactivo (normalmente cron semanal): notifica a cada dev qué construir en sus colonias."""

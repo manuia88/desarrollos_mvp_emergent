@@ -96,7 +96,15 @@ async def demand_features(request: Request, dias: int = Query(90, ge=7, le=365))
         "no_satisfecha": await di.unmet_demand(db, colonias=cols, since_days=dias),
         "tendencias": await di.trend_alerts(db, colonias=cols),
         "intencion_financiera": await di.financial_intent(db, colonias=cols, since_days=dias),
+        # Granularidad avanzada scopeada a TUS colonias (balance oferta-demanda, absorción, elasticidad de precio,
+        # estacionalidad, co-ocurrencia de features, willingness-to-pay, sustitución, criterios de decisión):
+        "avanzado": await _mg_dev(db, cols, dias),
     }
+
+
+async def _mg_dev(db, cols, dias):
+    import marketplace_granularity as mg
+    return await mg.run_all(db, keys=mg.DEV_KEYS, colonias=cols, since_days=dias)
 
 
 @router.get("/demand-intel")

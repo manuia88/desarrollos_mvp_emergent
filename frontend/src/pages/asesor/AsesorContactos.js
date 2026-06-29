@@ -6,6 +6,7 @@ import { Pin, Archive, ListPlus, Thermometer, Eye, Check, X as XIcon, MessageCir
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
+import SenalesCalientesCard from '../../components/asesor/SenalesCalientesCard';
 import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
@@ -1127,6 +1128,7 @@ function AsesorContactosV2({ user, onLogout }) {
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <div className="portal-asesor">
+        <SenalesCalientesCard />
         {/* Head · igual al mockup: título + subtítulo · tools a la derecha */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
           <div>

@@ -18,3 +18,7 @@ export async function getFeature(feature, colonia, period = 'month') {
 export async function getDeep() {
   return _j(await fetch(`${BASE}/deep`, { headers: h(), credentials: 'include' }));
 }
+// 20 granularidades avanzadas (estacionalidad, balance, absorción, RFM, elasticidad, fugas, atribución, etc.).
+export async function getGranularAdvanced() {
+  return _j(await fetch(`${BASE}/granular-advanced`, { headers: h(), credentials: 'include' }));
+}

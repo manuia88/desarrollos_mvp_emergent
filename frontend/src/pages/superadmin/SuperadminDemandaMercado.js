@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
-import { getOverview, getFeature, getDeep } from '../../api/superadminDemandIntel';
+import { getOverview, getFeature, getDeep, getGranularAdvanced } from '../../api/superadminDemandIntel';
 
 function Spark({ serie }) {
   const entries = Object.entries(serie || {});
@@ -30,6 +30,7 @@ export default function SuperadminDemandaMercado() {
   const [kc, setKc] = useState('polanco');
   const [killer, setKiller] = useState(null);
   const [deep, setDeep] = useState(null);   // dimensiones profundas (lazy)
+  const [adv, setAdv] = useState(null);     // 20 granularidades avanzadas (lazy)
 
   useEffect(() => {
     getOverview({ period, colonia }).then(setData).catch((e) => setErr(e.message));
@@ -346,6 +347,63 @@ export default function SuperadminDemandaMercado() {
                 </div>
               ))}
               {(deep.visitantes_calientes?.visitantes_calientes || []).length === 0 && <span style={{ color: '#666', fontSize: 12 }}>—</span>}
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* 20 GRANULARIDADES AVANZADAS (lazy) */}
+      <div style={{ marginTop: 16 }}>
+        {!adv ? (
+          <button onClick={() => getGranularAdvanced().then(setAdv).catch((e) => setAdv({ error: e.message }))}
+            style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#aaa', cursor: 'pointer' }}>
+            Ver 20 granularidades avanzadas (estacionalidad · balance oferta-demanda · absorción · RFM · elasticidad · fugas · atribución · …)
+          </button>
+        ) : adv.error ? <Card style={{ padding: 16, color: '#dc2626' }}>{adv.error}</Card> : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Elasticidad precio (la curva)</div>
+              {Object.entries(adv.elasticidad_precio?.curva || {}).map(([b, n]) => {
+                const mx = Math.max(...Object.values(adv.elasticidad_precio?.curva || { 0: 1 }));
+                return <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '2px 0' }}><span style={{ width: 56 }}>{b}</span><span style={{ flex: 1, height: 10, background: 'var(--theme)', opacity: 0.7, width: `${(n / mx) * 100}%`, borderRadius: 2 }} /><strong>{n}</strong></div>;
+              })}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Fugas del embudo</div>
+              {Object.entries(adv.fugas_embudo?.conversion_pct || {}).map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}><span>{k}</span><strong style={{ color: v < 30 ? '#dc2626' : '#22c55e' }}>{v}%</strong></div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Balance oferta-demanda</div>
+              {(adv.balance_oferta_demanda?.colonias || []).slice(0, 6).map((c) => <div key={c.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}><span>{c.colonia}</span><span style={{ color: '#888' }}>{c.demanda}d / {c.oferta_unidades}o</span><strong style={{ color: 'var(--theme)' }}>{c.balance}</strong></div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Segmentos RFM</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {Object.entries(adv.segmentos_rfm?.segmentos || {}).map(([k, v]) => <Badge key={k} tone={k === 'campeones' ? 'ok' : k === 'dormidos' ? 'warn' : 'neutral'}>{k}: {v}</Badge>)}
+              </div>
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Criterios de decisión</div>
+              {(adv.criterios_decision?.criterios || []).slice(0, 6).map((c) => <div key={c.criterio} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}><span>{c.criterio}</span><strong>{c.n}</strong></div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Willingness-to-pay por feature</div>
+              {(adv.willingness_to_pay?.features || []).slice(0, 6).map((f) => <div key={f.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}><span>{f.feature}</span><strong>${(f.precio_medio_visto / 1e6).toFixed(1)}M</strong></div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Atribución por canal</div>
+              {(adv.atribucion?.por_fuente || []).slice(0, 6).map((s) => <div key={s.fuente} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}><span>{s.fuente}</span><span style={{ color: '#888' }}>{s.sesiones} ses · {s.conversion_pct}%</span></div>)}
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Estacionalidad (por mes)</div>
+              <Spark serie={adv.estacionalidad?.por_mes} />
+            </Card>
+            <Card style={{ padding: '14px 18px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Timeline predicho + Urgencia</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {Object.entries(adv.timeline_predicho?.segmentos_timeline || {}).map(([k, v]) => <Badge key={k} tone={k === 'compra_pronto' ? 'ok' : 'neutral'}>{k}: {v}</Badge>)}
+              </div>
+              <div style={{ fontSize: 12, color: '#888' }}>Urgencia en conversación: <strong>{adv.urgencia?.urgencia_pct || 0}%</strong></div>
             </Card>
           </div>
         )}

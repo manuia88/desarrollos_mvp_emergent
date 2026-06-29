@@ -327,6 +327,33 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
                 </div>
               </Card>
             )}
+
+            {feat.avanzado && (
+              <Card style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>Señales avanzadas de tu zona</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12 }}>Balance oferta-demanda, sweet-spot de precio y dónde se fuga el interés. (Se trabaja a detalle en el rediseño del portal.)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Balance oferta-demanda</div>
+                    {(feat.avanzado.balance_oferta_demanda?.colonias || []).slice(0, 4).map((c) => (
+                      <div key={c.colonia} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{c.colonia}</span><strong style={{ color: 'var(--cream)' }}>{c.balance}</strong></div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Sweet-spot de precio</div>
+                    {Object.entries(feat.avanzado.elasticidad_precio?.curva || {}).map(([b, n]) => (
+                      <div key={b} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{b}</span><strong style={{ color: 'var(--cream)' }}>{n}</strong></div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 6 }}>Willingness-to-pay</div>
+                    {(feat.avanzado.willingness_to_pay?.features || []).slice(0, 4).map((f) => (
+                      <div key={f.feature} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0', color: 'var(--cream-3)' }}><span>{f.feature}</span><strong style={{ color: 'var(--cream)' }}>${(f.precio_medio_visto / 1e6).toFixed(1)}M</strong></div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
           </>
         )}
       <style>{`
