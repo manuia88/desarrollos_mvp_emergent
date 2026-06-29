@@ -274,9 +274,51 @@ DIMENSIONS += [
     _d("dem.liquidez_salida", "QUIEN", 1, "Necesidad de liquidez de salida", None, "por_crear", "por_crear", "banda", "dem.intencion", nota="inversionista: facilidad de reventa"),
 ]
 
+# ═══════════════ EJE 10 · EXPERIENCIA / POST-VENTA + COSTO DE PROPIEDAD ═══════════════
+DIMENSIONS += [
+    _d("exp.satisfaccion", "EXPERIENCIA", 0, "Satisfacción del residente", None, "derivado", "latente", "banda", None, ["alta", "media", "baja"], nota="reviews_residents_cache"),
+    _d("exp.calidad_entrega", "EXPERIENCIA", 0, "Calidad de entrega (real vs prometido)", None, "por_crear", "por_crear", "banda", None),
+    _d("exp.tiempo_entrega_real", "EXPERIENCIA", 0, "Cumplimiento de fecha de entrega", "construction_progress", "dev", "por_crear", "banda", None, nota="prometido vs real"),
+    # cuotas de PREVENTA (founder)
+    _d("exp.cuota_equipamiento", "EXPERIENCIA", 1, "Cuota de equipamiento (preventa)", None, "por_crear", "por_crear", "banda", "prod.etapa", None, "MXN", nota="pago único para amenidades y áreas comunes"),
+    _d("exp.mant_anticipado", "EXPERIENCIA", 1, "Mantenimiento anticipado (preventa)", None, "por_crear", "por_crear", "banda", "prod.etapa", None, "MXN", nota="prepago de 6-12 meses al entregar"),
+    _d("exp.mant_anticipado_meses", "EXPERIENCIA", 2, "Meses de mantenimiento anticipado", None, "por_crear", "por_crear", "banda", "exp.mant_anticipado", ["6", "9", "12"]),
+    # cuota de ENTREGA INMEDIATA / en operación (founder)
+    _d("exp.cuota_mantenimiento", "EXPERIENCIA", 1, "Cuota de mantenimiento mensual", None, "por_crear", "por_crear", "banda", None, None, "MXN/mes", nota="entrega inmediata / en operación; suele ser $/m²"),
+    _d("exp.mantenimiento_m2", "EXPERIENCIA", 2, "Mantenimiento por m²", None, "por_crear", "por_crear", "banda", "exp.cuota_mantenimiento", None, "MXN/m²"),
+    _d("exp.fondo_reserva", "EXPERIENCIA", 1, "Fondo de reserva del condominio", None, "por_crear", "por_crear", "banda", None, None, "MXN"),
+    _d("exp.predial", "EXPERIENCIA", 1, "Predial anual estimado", None, "por_crear", "por_crear", "banda", None, None, "MXN/año"),
+    _d("exp.costo_servicios", "EXPERIENCIA", 1, "Costo de servicios (luz/agua/gas)", "servicios", "dev", "por_crear", "banda", None, None, "MXN/mes"),
+    _d("exp.costo_total_propiedad", "EXPERIENCIA", 0, "Costo total de propiedad (mant+predial+servicios)", None, "derivado", "derivado", "banda", None, None, "MXN/mes", nota="suma de cargas recurrentes"),
+]
+
+# ═══════════════ DÓNDE · POIs (densidad de equipamiento urbano en radio — '15 min') ═══════════════
+DIMENSIONS += [
+    _d("poi.score_15min", "DONDE", 0, "Score de 15 minutos", None, "por_crear", "por_crear", "banda", None, ["bajo", "medio", "alto"], nota="OSM disponible, falta extracción"),
+    _d("poi.restaurantes", "DONDE", 1, "Restaurantes/cafés en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.escuelas", "DONDE", 1, "Escuelas en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.salud", "DONDE", 1, "Hospitales/clínicas en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.fitness", "DONDE", 1, "Gimnasios en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.comercio", "DONDE", 1, "Súper/plazas en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.cultura_areas_verdes", "DONDE", 1, "Parques/cultura en radio", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, "OSM"),
+    _d("poi.aspiracional", "DONDE", 1, "POIs aspiracionales (cafés/coworking premium)", None, "por_crear", "por_crear", "banda", "poi.score_15min", None, None, nota="señal de gentrificación"),
+]
+
+# ═══════════════ SEÑALES · TENDENCIA DE ZONA / GENTRIFICACIÓN (índice compuesto + sus 6 señales) ═══════════════
+DIMENSIONS += [
+    _d("sig.tendencia_zona", "SENALES", 0, "Tendencia de zona", None, "derivado", "derivado", "categorico", None, ["subiendo fuerte", "subiendo", "estable", "enfriándose", "bajando"], nota="índice compuesto de las 6 señales"),
+    _d("sig.gent_fase", "SENALES", 0, "Fase de gentrificación", None, "derivado", "derivado", "categorico", "sig.tendencia_zona", ["emergente", "en ascenso", "consolidada", "madura", "declive"]),
+    _d("sig.gent_acel_demanda", "SENALES", 1, "Señal 1: aceleración de demanda", None, "derivado", "derivado", "numerico", "sig.tendencia_zona", nota="2ª derivada de búsquedas"),
+    _d("sig.gent_aprec_precio", "SENALES", 1, "Señal 2: apreciación de precio/m²", "price_history", "dev", "derivado", "numerico", "sig.tendencia_zona"),
+    _d("sig.gent_entrada_gama", "SENALES", 1, "Señal 3: entrada de gama más alta", None, "derivado", "derivado", "categorico", "sig.tendencia_zona", nota="nuevos devs de mayor gama"),
+    _d("sig.gent_poi_aspiracional", "SENALES", 1, "Señal 4: POIs aspiracionales subiendo", None, "por_crear", "por_crear", "numerico", "sig.tendencia_zona", nota="liga con poi.aspiracional"),
+    _d("sig.gent_acel_absorcion", "SENALES", 1, "Señal 5: aceleración de absorción", None, "derivado", "derivado", "numerico", "sig.tendencia_zona"),
+    _d("sig.gent_cambio_perfil", "SENALES", 1, "Señal 6: cambio de perfil (AMAI + migración)", None, "por_crear", "por_crear", "categorico", "sig.tendencia_zona", nota="nivel socioeconómico de quien busca + migración de entrada"),
+]
+
 # ── índice por id + helpers ─────────────────────────────────────────────────────
 BY_ID = {d["id"]: d for d in DIMENSIONS}
-EJES = ["DONDE", "QUE", "QUIEN", "CUANDO", "PRECIO", "OFERENTE", "RIESGO", "SENALES", "DATO"]
+EJES = ["DONDE", "QUE", "QUIEN", "CUANDO", "PRECIO", "OFERENTE", "RIESGO", "SENALES", "DATO", "EXPERIENCIA"]
 
 
 def overview() -> Dict[str, Any]:
