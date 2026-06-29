@@ -15,10 +15,11 @@ const SENAL = {
 
 const fmtVal = (v, u) => {
   if (v == null) return '—';
+  if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join(' · ');
   if (typeof v === 'string') return v;
   if (u === 'MXN') return v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`;
   if (u === '%') return `${v}%`;
-  return typeof v === 'number' ? v.toLocaleString('es-MX') : v;
+  return typeof v === 'number' ? v.toLocaleString('es-MX') : String(v);
 };
 
 function Chip({ icon, children }) {

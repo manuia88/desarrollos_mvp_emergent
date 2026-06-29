@@ -7,11 +7,12 @@ import { Card, Badge } from '../advisor/primitives';
 
 const fmt = (v, unidad) => {
   if (v == null) return '—';
+  if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join(' · ');
   if (typeof v === 'string') return v;
   if (unidad === 'MXN') return v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`;
   if (unidad === '%') return `${v}%`;
   if (unidad === '$/m²') return `$${Math.round(v).toLocaleString('es-MX')}`;
-  return typeof v === 'number' ? v.toLocaleString('es-MX') : v;
+  return typeof v === 'number' ? v.toLocaleString('es-MX') : String(v);
 };
 
 const toneConf = (c) => (c === 'alta' ? 'ok' : c === 'media' ? 'warn' : 'neutral');
