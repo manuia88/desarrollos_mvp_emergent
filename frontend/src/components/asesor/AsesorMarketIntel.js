@@ -3,6 +3,7 @@
 // Light theme (.portal-asesor). Enfoque: argumentos de valor + dónde hay compradores.
 import React, { useEffect, useState } from 'react';
 import { getAsesorAmenityRanker, getAsesorDemandGap } from '../../api/advisor';
+import AsesorDemandaMapa from './AsesorDemandaMapa';
 
 const fmtTipo = (t) => String(t || '').replace(/_/g, ' ').replace('recamaras', 'rec').replace('recamara', 'rec');
 const C_OK = 'var(--ok, #1FA06A)', C_THEME = 'var(--theme, #6D4AFF)';
@@ -72,6 +73,8 @@ export default function AsesorMarketIntel() {
   return (
     <div data-testid="asesor-market-intel">
       <div className="eyebrow" style={{ marginBottom: 10 }}>INTELIGENCIA DE MERCADO · PARA VENDER</div>
+      {/* Lente espacial: el MAPA de la demanda primero (antes solo tablas). Hide-if-empty. */}
+      <AsesorDemandaMapa />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
         <SellingArgs />
         <HotZones />
