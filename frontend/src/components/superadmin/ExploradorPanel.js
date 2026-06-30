@@ -6,7 +6,10 @@ import { Card, Badge } from '../advisor/primitives';
 import { getExplorar, postExplorarSegmento, getExplorarOportunidades } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
-const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 };
+// encabezado de sección (organizador de la pantalla) — legible, jerárquico, contraste alto
+const lbl = { fontSize: 12, color: '#b4b4c0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 };
+// encabezado de columnas dentro de una tabla — más tenue que lbl pero aún legible
+const colHead = { fontSize: 10.5, color: '#9a9aa6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 };
 
 const TIPO_LABEL = {
   ciudad: 'Ciudad', alcaldia: 'Alcaldía', colonia: 'Colonia', desarrollo: 'Desarrollo', unidad: 'Unidad',
@@ -16,11 +19,6 @@ const fmtN = (n) => (n == null ? '—' : Number(n).toLocaleString('es-MX'));
 const fmtMX = (n) => (n == null ? '—' : `$${Math.round(n).toLocaleString('es-MX')}`);
 
 // estado del dato (registro canónico): real=verde · derivado=azul · latente=gris · por_crear=gris
-function estadoTone(estado) {
-  if (estado === 'real') return 'ok';
-  if (estado === 'derivado') return 'brand';
-  return 'neutral';
-}
 function estadoColor(estado) {
   if (estado === 'real') return '#1FA06A';
   if (estado === 'derivado') return '#6D4AFF';
@@ -134,7 +132,7 @@ export default function ExploradorPanel() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10 }}>
           {ruta.map((c, i) => (
             <React.Fragment key={`${c.tipo}:${c.id}:${i}`}>
-              {i > 0 && <span style={{ color: '#555' }}>/</span>}
+              {i > 0 && <span style={{ color: '#6a6a76' }}>/</span>}
               <button onClick={() => go(c.tipo, c.id)}
                 style={{ padding: '3px 9px', borderRadius: 7, cursor: 'pointer', fontSize: 12.5,
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -146,20 +144,20 @@ export default function ExploradorPanel() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--cream, #eee)', letterSpacing: '-0.02em' }}>{actual.nombre || actual.id}</span>
-            <Badge tone="neutral">{TIPO_LABEL[actual.tipo] || actual.tipo}</Badge>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 11, color: '#9a9aa6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>{TIPO_LABEL[actual.tipo] || actual.tipo}</span>
+            <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--cream, #f4f4f6)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{actual.nombre || actual.id}</span>
           </div>
-          {resumenPartes.length > 0 && <span style={{ fontSize: 12.5, color: '#aaa' }}>{resumenPartes.join(' · ')}</span>}
+          {resumenPartes.length > 0 && <span style={{ fontSize: 12.5, color: '#b4b4c0' }}>{resumenPartes.join(' · ')}</span>}
         </div>
 
-        {data?.lectura && <div style={{ fontSize: 11.5, color: '#777', marginTop: 8, fontStyle: 'italic', lineHeight: 1.4 }}>{data.lectura}</div>}
+        {data?.lectura && <div style={{ fontSize: 12, color: '#9a9aa6', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45 }}>{data.lectura}</div>}
 
         {/* ── controles: modo de lectura + modo automático ── */}
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#777', marginRight: 2 }}>Ver:</span>
+            <span style={{ fontSize: 11.5, color: '#9a9aa6', fontWeight: 600, marginRight: 2 }}>Ver:</span>
             {[['mixto', 'Mixto'], ['oferta', 'Oferta'], ['demanda', 'Demanda']].map(([val, lab]) => (
               <button key={val} onClick={() => setModo(val)}
                 style={{ padding: '4px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: modo === val ? 700 : 500,
@@ -180,7 +178,9 @@ export default function ExploradorPanel() {
         {actual.id != null && actual.tipo !== 'ciudad' && (
           <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button onClick={() => go('ciudad', 'CDMX')}
-              style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              style={{ fontSize: 12, color: '#a8a8b3', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.12s ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--theme, #6366f1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#a8a8b3'; }}>
               ↑ Volver a la cima (CDMX)
             </button>
           </div>
@@ -191,7 +191,7 @@ export default function ExploradorPanel() {
       {Object.keys(filtrosActivos).length > 0 && (
         <Card style={card}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>Filtros</span>
+            <span style={{ ...lbl, marginBottom: 0 }}>Filtros</span>
             {Object.entries(filtrosActivos).map(([k, v]) => (
               <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 6px 3px 10px', borderRadius: 14,
                 background: 'rgba(99,102,241,0.16)', border: '1px solid var(--theme, #6366f1)', fontSize: 12, color: '#ddd' }}>
@@ -231,18 +231,21 @@ export default function ExploradorPanel() {
                 {hijos.map((c) => (
                   <button key={`${c.tipo}:${c.id}`} onClick={() => go(c.tipo, c.id)}
                     style={{ textAlign: 'left', padding: '9px 11px', borderRadius: 10, cursor: 'pointer',
-                      border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#ddd',
-                      display: 'flex', flexDirection: 'column', gap: 3 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--theme, #6366f1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre || c.id}</span>
-                    <span style={{ fontSize: 11, color: '#888' }}>
-                      {c.tipo === 'unidad'
-                        ? [c.precio != null ? fmtMX(c.precio) : null, c.m2 != null ? `${c.m2} m²` : null, c.recamaras != null ? `${c.recamaras} rec` : null, c.status]
-                            .filter(Boolean).join(' · ') || (TIPO_LABEL[c.tipo] || c.tipo)
-                        : [c.n_unidades != null ? `${fmtN(c.n_unidades)} unidades` : null, c.n_devs != null ? `${c.n_devs} desarrollos` : null, c.desarrollador]
-                            .filter(Boolean).join(' · ') || (TIPO_LABEL[c.tipo] || c.tipo)}
+                      border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)', color: '#e4e4ea',
+                      display: 'flex', alignItems: 'center', gap: 8, transition: 'transform 0.12s ease, border-color 0.12s ease, background 0.12s ease' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--theme, #6366f1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(-1px)'; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = 'var(--theme, #6366f1)'; ch.style.transform = 'translateX(2px)'; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = '#777'; ch.style.transform = 'translateX(0)'; } }}>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre || c.id}</span>
+                      <span style={{ fontSize: 11, color: '#9a9aa6' }}>
+                        {c.tipo === 'unidad'
+                          ? [c.precio != null ? fmtMX(c.precio) : null, c.m2 != null ? `${c.m2} m²` : null, c.recamaras != null ? `${c.recamaras} rec` : null, c.status]
+                              .filter(Boolean).join(' · ') || (TIPO_LABEL[c.tipo] || c.tipo)
+                          : [c.n_unidades != null ? `${fmtN(c.n_unidades)} unidades` : null, c.n_devs != null ? `${c.n_devs} desarrollos` : null, c.desarrollador]
+                              .filter(Boolean).join(' · ') || (TIPO_LABEL[c.tipo] || c.tipo)}
+                      </span>
                     </span>
+                    <span data-chev style={{ fontSize: 17, color: '#777', lineHeight: 1, flexShrink: 0, transition: 'color 0.12s ease, transform 0.12s ease' }}>›</span>
                   </button>
                 ))}
               </div>
@@ -272,37 +275,42 @@ export default function ExploradorPanel() {
 }
 
 // columnas por modo: mixto = oferta+demanda+barra+gap · oferta = solo oferta · demanda = solo demanda
+// (+ una columna final fija para el hint "ver cuáles ›" que insinúa que la fila es navegable)
+const HINT_COL = '88px';
 function gridCols(modo) {
-  if (modo === 'oferta') return 'minmax(120px, 1.6fr) 80px minmax(150px, 1fr)';
-  if (modo === 'demanda') return 'minmax(120px, 1.6fr) 80px minmax(150px, 1fr)';
-  return 'minmax(120px, 1.4fr) 64px 64px minmax(150px, 1fr) minmax(170px, 1.2fr)';
+  if (modo === 'oferta') return `minmax(120px, 1.6fr) 80px minmax(150px, 1fr) ${HINT_COL}`;
+  if (modo === 'demanda') return `minmax(120px, 1.6fr) 80px minmax(150px, 1fr) ${HINT_COL}`;
+  return `minmax(120px, 1.4fr) 64px 64px minmax(150px, 1fr) minmax(170px, 1.2fr) ${HINT_COL}`;
 }
 
 // ── Un grupo de segmentos (una dimensión) — cada item en su PROPIA fila, clic = abrir (oferta+demanda) ──
 function SegmentoGrupo({ g, modo, onOpen, activos }) {
   const items = g.items || [];
   if (items.length === 0) return null;
-  const tone = estadoTone(g.estado);
   // escala de la mini-barra: el mayor entre oferta y demanda de todo el grupo
   const max = Math.max(1, ...items.flatMap((it) => [it.oferta || 0, it.demanda || 0]));
   const cols = gridCols(modo);
   return (
     <Card style={card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
-        <div style={lbl}>{g.label}</div>
-        <Badge tone={tone}>{g.estado}</Badge>
+        <div style={{ ...lbl, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span title={`Estado del dato: ${g.estado}`} aria-label={`Estado del dato: ${g.estado}`}
+            style={{ width: 7, height: 7, borderRadius: '50%', background: estadoColor(g.estado), flexShrink: 0, boxShadow: `0 0 0 2px ${estadoColor(g.estado)}22` }} />
+          {g.label}
+        </div>
       </div>
-      <div style={{ fontSize: 11, color: '#777', marginBottom: 10 }}>
+      <div style={{ fontSize: 11.5, color: '#9a9aa6', marginBottom: 10 }}>
         {items.length} {items.length === 1 ? 'dato independiente' : 'datos independientes'} — clic en una fila para abrir qué hay y quién lo busca
       </div>
       <div style={{ display: 'grid', gap: 7 }}>
         {/* encabezado de columnas */}
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: 0.4, paddingBottom: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', ...colHead, paddingBottom: 2 }}>
           <span>Segmento</span>
           {modo !== 'demanda' && <span style={{ textAlign: 'right' }}>Oferta</span>}
           {modo !== 'oferta' && <span style={{ textAlign: 'right' }}>Demanda</span>}
           <span></span>
           {modo === 'mixto' && <span>Gap</span>}
+          <span></span>
         </div>
         {items.map((it, i) => <SegmentoFila key={`${it.segmento}:${i}`} it={it} max={max} modo={modo} cols={cols} onOpen={onOpen} activos={activos} />)}
       </div>
@@ -321,6 +329,8 @@ function SegmentoFila({ it, max, modo, cols, onOpen, activos }) {
   const filtro = it.filtro || null;
   const yaActivo = filtro && activos && Object.entries(filtro).every(([k, v]) => String(activos[k]) === String(v));
   const clickable = !!filtro && !!onOpen;
+  const idleBorder = yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)';
+  const idleBg = yaActivo ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.025)';
   return (
     <div
       onClick={clickable ? () => onOpen(filtro) : undefined}
@@ -329,15 +339,24 @@ function SegmentoFila({ it, max, modo, cols, onOpen, activos }) {
         display: 'grid', gridTemplateColumns: cols,
         gap: 10, alignItems: 'center', fontSize: 12.5,
         padding: '7px 10px', borderRadius: 9, cursor: clickable ? 'pointer' : 'default',
-        background: yaActivo ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.025)',
-        borderTop: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
-        borderRight: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
-        borderBottom: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
+        background: idleBg,
+        borderTop: '1px solid ' + idleBorder,
+        borderRight: '1px solid ' + idleBorder,
+        borderBottom: '1px solid ' + idleBorder,
         borderLeft: `3px solid ${gapColor}`,
+        transition: 'background 0.12s ease, border-color 0.12s ease',
       }}
-      onMouseEnter={clickable ? (e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; } : undefined}
-      onMouseLeave={clickable ? (e) => { e.currentTarget.style.background = yaActivo ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.025)'; } : undefined}>
-      <span style={{ color: '#ddd', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(it.segmento)}</span>
+      onMouseEnter={clickable ? (e) => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
+        if (!yaActivo) { e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.borderRightColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.18)'; }
+        const h = e.currentTarget.querySelector('[data-hint]'); if (h) { h.style.color = 'var(--theme, #6366f1)'; h.style.opacity = '1'; }
+      } : undefined}
+      onMouseLeave={clickable ? (e) => {
+        e.currentTarget.style.background = idleBg;
+        e.currentTarget.style.borderTopColor = idleBorder; e.currentTarget.style.borderRightColor = idleBorder; e.currentTarget.style.borderBottomColor = idleBorder;
+        const h = e.currentTarget.querySelector('[data-hint]'); if (h) { h.style.color = '#666'; h.style.opacity = '0.65'; }
+      } : undefined}>
+      <span style={{ color: '#e4e4ea', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(it.segmento)}</span>
       {modo !== 'demanda' && <span style={{ textAlign: 'right', color: '#22c55e', fontWeight: 700 }}>{fmtN(oferta)}</span>}
       {modo !== 'oferta' && <span style={{ textAlign: 'right', color: '#a78bfa', fontWeight: 700 }}>{fmtN(demanda)}</span>}
       {/* mini-barra: según modo */}
@@ -346,6 +365,10 @@ function SegmentoFila({ it, max, modo, cols, onOpen, activos }) {
         {modo !== 'oferta' && <div style={{ height: 6, borderRadius: 3, background: '#a78bfa', opacity: 0.85, width: `${(demanda / max) * 100}%`, minWidth: demanda > 0 ? 2 : 0 }} />}
       </div>
       {modo === 'mixto' && <span style={{ color: gapColor, fontWeight: 700, fontSize: 12 }}>{gapTexto}</span>}
+      {/* hint de navegabilidad — discreto, se intensifica en hover */}
+      <span data-hint style={{ textAlign: 'right', fontSize: 11, color: '#666', opacity: clickable ? 0.65 : 0, whiteSpace: 'nowrap', transition: 'color 0.12s ease, opacity 0.12s ease' }}>
+        {clickable ? 'ver cuáles ›' : ''}
+      </span>
     </div>
   );
 }
@@ -361,20 +384,23 @@ function OportunidadesPanel({ oport, loading, error, onPick }) {
     <button key={`${o.colonia_id}:${o.segmento}:${o.dimension}`} onClick={() => onPick(o)}
       style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', width: '100%',
         borderTop: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.025)', color: '#ddd',
-        borderLeft: `3px solid ${color}`, display: 'flex', flexDirection: 'column', gap: 4 }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderTopColor = color; e.currentTarget.style.borderRightColor = color; e.currentTarget.style.borderBottomColor = color; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderRightColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.08)'; }}>
-      <span style={{ fontSize: 13.5, color: '#eee', fontWeight: 600, lineHeight: 1.35 }}>{emoji} {o.lectura}</span>
-      <span style={{ fontSize: 11, color: '#888' }}>
-        {[o.colonia, o.dimension, o.segmento, `oferta ${fmtN(o.oferta)} · demanda ${fmtN(o.demanda)}`].filter(Boolean).join(' · ')}
+        background: 'rgba(255,255,255,0.025)', color: '#e4e4ea',
+        borderLeft: `3px solid ${color}`, display: 'flex', alignItems: 'center', gap: 10, transition: 'transform 0.12s ease, background 0.12s ease, border-color 0.12s ease' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderTopColor = color; e.currentTarget.style.borderRightColor = color; e.currentTarget.style.borderBottomColor = color; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = color; ch.style.transform = 'translateX(2px)'; } }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderRightColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.08)'; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = '#777'; ch.style.transform = 'translateX(0)'; } }}>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+        <span style={{ fontSize: 13.5, color: '#f0f0f3', fontWeight: 600, lineHeight: 1.35 }}>{emoji} {o.lectura}</span>
+        <span style={{ fontSize: 11, color: '#9a9aa6' }}>
+          {[o.colonia, o.dimension, o.segmento, `oferta ${fmtN(o.oferta)} · demanda ${fmtN(o.demanda)}`].filter(Boolean).join(' · ')}
+        </span>
       </span>
+      <span data-chev style={{ fontSize: 17, color: '#777', lineHeight: 1, flexShrink: 0, transition: 'color 0.12s ease, transform 0.12s ease' }}>›</span>
     </button>
   );
   return (
     <Card style={card}>
       <div style={lbl}>El cubo encontró:</div>
-      {oport.lectura && <div style={{ fontSize: 11.5, color: '#777', marginBottom: 12, fontStyle: 'italic' }}>{oport.lectura}</div>}
+      {oport.lectura && <div style={{ fontSize: 12, color: '#9a9aa6', marginBottom: 12, fontStyle: 'italic' }}>{oport.lectura}</div>}
       {oportunidades.length === 0 && sobreofertas.length === 0 && (
         <span style={{ fontSize: 12.5, color: '#888' }}>No hay hallazgos con suficiente señal en este alcance.</span>
       )}
@@ -431,12 +457,12 @@ function DrillPanel({ drill, modo, onClose }) {
       {modo !== 'demanda' && (
         <div style={{ marginBottom: modo === 'oferta' ? 0 : 14 }}>
           <div style={{ fontSize: 11.5, color: '#34d399', fontWeight: 700, marginBottom: 4 }}>Oferta — qué hay</div>
-          <div style={{ fontSize: 11, color: '#777', marginBottom: 8 }}>{fmtN(oferta.total)} unidades cumplen{entidades.length < (oferta.total || 0) ? ` · mostrando ${entidades.length}` : ''}</div>
+          <div style={{ fontSize: 11.5, color: '#9a9aa6', marginBottom: 8 }}>{fmtN(oferta.total)} unidades cumplen{entidades.length < (oferta.total || 0) ? ` · mostrando ${entidades.length}` : ''}</div>
           {entidades.length === 0 ? (
-            <span style={{ fontSize: 12.5, color: '#888' }}>Ninguna unidad cumple este filtro en la zona.</span>
+            <span style={{ fontSize: 12.5, color: '#9a9aa6' }}>Ninguna unidad cumple este filtro en la zona.</span>
           ) : (
             <div style={{ display: 'grid', gap: 4 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px,1.6fr) 70px 56px 44px minmax(90px,1fr) 90px', gap: 8, fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px,1.6fr) 70px 56px 44px minmax(90px,1fr) 90px', gap: 8, ...colHead }}>
                 <span>Desarrollo</span><span>Unidad</span><span style={{ textAlign: 'right' }}>m²</span><span style={{ textAlign: 'right' }}>Rec</span><span style={{ textAlign: 'right' }}>Precio</span><span>Status</span>
               </div>
               {entidades.map((u, i) => (
@@ -458,7 +484,7 @@ function DrillPanel({ drill, modo, onClose }) {
       {modo !== 'oferta' && (
         <div>
           <div style={{ fontSize: 11.5, color: '#c4b5fd', fontWeight: 700, marginBottom: 4 }}>Demanda — quién lo busca</div>
-          <div style={{ fontSize: 11, color: '#777', marginBottom: 8 }}>{fmtN(demanda.n_buscan)} lo buscan en la zona</div>
+          <div style={{ fontSize: 11.5, color: '#9a9aa6', marginBottom: 8 }}>{fmtN(demanda.n_buscan)} lo buscan en la zona</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', fontSize: 12.5 }}>
             {intent && (
               <span style={{ color: '#bbb' }}>Intención: <strong style={{ color: '#a78bfa' }}>{intent.invertir}% invertir</strong> · <strong style={{ color: '#a78bfa' }}>{intent.vivir}% vivir</strong></span>
@@ -488,7 +514,7 @@ function FichasTecnicas({ fichas }) {
   return (
     <Card style={card}>
       <div style={lbl}>Fichas técnicas · cada combinación = un dato</div>
-      <div style={{ fontSize: 11, color: '#777', marginBottom: 10 }}>{fichas.length} combinaciones distintas (rec · baños · cajón · m² · extras)</div>
+      <div style={{ fontSize: 11.5, color: '#9a9aa6', marginBottom: 10 }}>{fichas.length} combinaciones distintas (rec · baños · cajón · m² · extras)</div>
       <div style={{ display: 'grid', gap: 6 }}>
         {fichas.map((f, i) => (
           <div key={`${f.ficha}:${i}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 48px', gap: 10, alignItems: 'center', fontSize: 12.5 }}>
@@ -510,8 +536,8 @@ function Caracteristicas({ items }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '6px 18px' }}>
         {items.map((c, i) => (
           <div key={`${c.caracteristica}:${i}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12.5, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <span style={{ color: '#888' }}>{c.caracteristica}</span>
-            <strong style={{ color: '#ddd', textAlign: 'right' }}>{String(c.valor)}</strong>
+            <span style={{ color: '#a8a8b3' }}>{c.caracteristica}</span>
+            <strong style={{ color: '#e4e4ea', textAlign: 'right' }}>{String(c.valor)}</strong>
           </div>
         ))}
       </div>
@@ -529,7 +555,7 @@ function BioCard({ titulo, hint, children, style }) {
   return (
     <div style={{ padding: '12px 14px', borderRadius: 11, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, ...style }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 11, color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{titulo}</span>
+        <span style={{ fontSize: 11.5, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>{titulo}</span>
         {hint && <span style={{ fontSize: 10.5, color: '#666' }}>{hint}</span>}
       </div>
       {children}
