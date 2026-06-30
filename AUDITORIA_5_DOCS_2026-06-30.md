@@ -14,9 +14,16 @@ precios para forecast, reseñas, brokers) — no se fabrica. El cubo de "4 escal
 ## Actualización (mismo día) — los 3 scores "esperando fuente" → PRENDIDOS con dato real
 - **N07** seguridad hídrica: **1,051 colonias** (SACMEX 313k reportes, CKAN vivo).
 - **N04** trayectoria del delito: **1,034 colonias** (FGJ 2.1M carpetas × año).
-- **N05** resiliencia sísmica: **153 colonias** (zonificación sísmica oficial por colonia, de 5 → 153).
+- **N05** resiliencia sísmica: **761 colonias** (join espacial shapely sobre la zonificación sísmica oficial, de 5 → 761).
+- **Compuestas forecast** (7: #10/#12/#28/#91/#94/#97/#100): encendidas con la apreciación oficial **SHF** por alcaldía + CDMX estatal (forecast_pct 0→20/20 zonas, cobertura 55→60%).
 - **Feeders re-ejecutables**: `POST /api/superadmin/scores/refresh-moat-feeders` (re-corre los 3 + recompute).
 - Patrón: flags `needs_water`/`needs_crime_trajectory`/`needs_natural_risk` + `_build_*_context` (como `needs_denue`).
+
+### El piso honesto — lo único que falta NO tiene fuente (no se fabrica)
+Las compuestas que siguen null (#66 reseñas, #78 brokers, #35 clima, #39 fraude, #40 título) leen de colecciones
+**VACÍAS** (`reviews_residents`, `broker_zone`, `climate_migration_zone`, `fraud_alerts`, `di_cross_checks` = 0 docs)
+sin dataset abierto que las llene. Per la regla #1 del founder ("no inventes datos"), el stub honesto es lo correcto:
+se prenden solas cuando la plataforma acumule reseñas/cierres/brokers (el código ya está cableado).
 
 ---
 
