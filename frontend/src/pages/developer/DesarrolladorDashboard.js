@@ -14,6 +14,7 @@ import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar } from '../../components/icons';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
+import CuboBuzonPanel from '../../components/shared/CuboBuzonPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
@@ -388,6 +389,16 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         eyebrow="PORTAL DESARROLLADOR"
         title={`Buenos días, ${(user?.name || '').split(' ')[0]}`}
         sub="Panorama operativo del portafolio en tiempo real."
+      />
+
+      {/* Buzón del cubo — lo que el superadmin (la inteligencia central) te mandó construir/ajustar. Hide-if-empty. */}
+      <CuboBuzonPanel
+        fetchActions={api.getCubeActions}
+        setEstado={api.setCubeActionEstado}
+        titulo="El cubo te manda"
+        subtitulo="construir / ajustar según la demanda real"
+        accent="#6366f1"
+        verbo="Lo haré"
       />
 
       {/* V1: barra de tabs (legacy, intacta). V2: un solo flujo, sin tabs. */}

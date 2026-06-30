@@ -15,6 +15,8 @@ import {
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import AsesorMarketIntel from '../../components/asesor/AsesorMarketIntel';
+import CuboBuzonPanel from '../../components/shared/CuboBuzonPanel';
+import { fetchCubeActions, setCubeActionEstado } from '../../api/asesor';
 import ActionCard from '../../components/asesor/command_center/ActionCard';
 import KpiCard from '../../components/asesor/command_center/KpiCard';
 import LeadInlinePreview from '../../components/asesor/command_center/LeadInlinePreview';
@@ -440,6 +442,16 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                 </button>
               </div>
             </div>
+
+            {/* Buzón del cubo — oportunidades que la inteligencia central detectó y que calzan con tus leads. Hide-if-empty. */}
+            <CuboBuzonPanel
+              fetchActions={fetchCubeActions}
+              setEstado={setCubeActionEstado}
+              titulo="El cubo detectó"
+              subtitulo="oportunidades que calzan con tus leads"
+              accent="#EC4899"
+              verbo="Trabajar"
+            />
 
             {/* P5.B · panel de personalización (mostrar/ocultar + reordenar) */}
             {customizing && (

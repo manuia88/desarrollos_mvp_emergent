@@ -153,6 +153,9 @@ app.include_router(auto_pilot_router)
 from routes.developer import router as developer_router
 app.include_router(developer_router)
 
+from routes.cube_inbox import router as cube_inbox_router
+app.include_router(cube_inbox_router)
+
 # Wire IE Engine (Phase A) router
 from routes.ie_engine import router as ie_engine_router, seed_ie_engine
 from scheduler_ie import start_scheduler, stop_scheduler

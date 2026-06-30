@@ -92,3 +92,18 @@ export async function fetchAsesorPlaybook(projectId) {
   if (!r.ok) throw new Error('Error al cargar el playbook del proyecto');
   return r.json();
 }
+
+// ─── Buzón del cubo — oportunidades que el cubo (superadmin) detectó y rutó al asesor (cierra el flywheel) ──
+export async function fetchCubeActions() {
+  const r = await fetch(`${API}/api/asesor/cube-actions`, { credentials: 'include' });
+  if (!r.ok) throw new Error('Error al cargar las oportunidades del cubo');
+  return r.json();
+}
+export async function setCubeActionEstado(id, estado) {
+  const r = await fetch(`${API}/api/asesor/cube-actions/${id}/estado`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }),
+  });
+  if (!r.ok) throw new Error('Error al actualizar la oportunidad');
+  return r.json();
+}
