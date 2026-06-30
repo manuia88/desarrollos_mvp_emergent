@@ -62,6 +62,16 @@ def _is_prod() -> bool:
 def _prod_env_guard():
     """Gate de prod fail-closed (Tanda 2 · P0.5/P0.7/P1.10). En prod EXPLÍCITO ABORTA el arranque si faltan secretos
     críticos; loguea fuerte los recomendados. En dev/preview solo advierte (no rompe arranque). Un solo lugar."""
+    # SEGURIDAD (P3 · cierre a verde): en PROD EXPLÍCITO, DMX_DEV_MODE truthy es FATAL — no arrancar.
+    # Por qué: si DMX_ENV=production PERO DMX_DEV_MODE=true, `_is_dev()` devuelve True y `_is_prod()` False
+    # → toda la app cae a modo dev ABIERTO (docs/openapi expuestos, cookies sin Secure, webhook de pagos sin
+    # firma, cuentas demo con contraseña pública sembradas). Es un pie-de-bala silencioso. Mejor no bootear.
+    if _is_explicit_prod() and os.environ.get("DMX_DEV_MODE", "").strip().lower() in ("1", "true", "yes"):
+        msg = ("PROD inseguro · DMX_DEV_MODE está activo (truthy) con DMX_ENV=production → la app correría en modo "
+               "dev ABIERTO (docs expuestos, cookies inseguras, webhook sin firma, cuentas demo). Quita DMX_DEV_MODE "
+               "en producción.")
+        logging.error(f"[startup] {msg}")
+        raise RuntimeError(msg)   # fail-closed: mejor no bootear que bootear en modo dev abierto
     if not _is_explicit_prod():
         # dev/preview/desconocido: avisos suaves, no bloquea el arranque (no rompe preview sin secretos)
         if not os.environ.get("JWT_SECRET"):

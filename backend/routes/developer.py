@@ -1326,7 +1326,17 @@ async def list_pricing_suggestions(request: Request):
     # pagó. Movimiento medido (cap ±8%), razón real + confianza. Regenera una vez (anchor=valuacion).
     existing_v2 = await db.developer_pricing_suggestions.count_documents(
         {"owner_id": user.user_id, "anchor": "valuacion"})
-    if existing_v2 == 0:
+    # P3-CSRF-02: este GET puede disparar una RECONSTRUCCIÓN cara (delete_many + recálculo de
+    # valuación 4-fuentes por zona). Un GET cross-site (<img>/navegación con cookies) podría
+    # quemar CPU/DB en ráfaga. Rate-limit por usuario en la ruta cara (fail-soft: si el limiter
+    # no está, no bloquea; si se excede, NO regenera y sirve lo que ya hay en caché).
+    _regen_ok = True
+    try:
+        from services.csrf_guard import gen_allowed
+        _regen_ok = gen_allowed(user, "dev_pricing_regen", 3, 600)
+    except Exception:
+        _regen_ok = True
+    if existing_v2 == 0 and _regen_ok:
         await db.developer_pricing_suggestions.delete_many(
             {"owner_id": user.user_id, "anchor": {"$ne": "valuacion"}, "status": "pending"})
         from resale_data import colonia_valuation, obra_nueva_pm2_map
