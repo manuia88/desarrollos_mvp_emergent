@@ -105,13 +105,15 @@ async def _r_geo_zone_cycle(db, ctx):
 
 
 async def _r_geo_maps_devs(db, ctx):
-    """Capa del mapa 'desarrollos' (GeoJSON DB-only) — qué proyectos hay y dónde."""
+    """Capa del mapa 'desarrollos' (GeoJSON DB-only) — proyectos de la colonia vs ciudad."""
     import maps_engine as e
+    from data_developments import DEVELOPMENTS
+    cid = ctx.get("colonia_id")
     geo = await e.MapsEngine(db).get_layer_data("devs")
     feats = (geo or {}).get("features") or []
-    props0 = (feats[0].get("properties") if feats else {}) or {}
-    return {"features_count": len(feats), "layer": "devs",
-            "primer_proyecto": props0.get("name") or props0.get("id"),
+    en_col = [d for d in DEVELOPMENTS if d.get("colonia_id") == cid]
+    return {"proyectos_colonia": len(en_col), "proyectos_ciudad": len(feats), "layer": "devs", "colonia": cid,
+            "primer_proyecto": (en_col[0].get("name") if en_col else None),
             "tipo": geo.get("type") if isinstance(geo, dict) else None}
 
 
@@ -124,8 +126,8 @@ async def _r_geo_score_ie(db, ctx):
     for r in results:
         out.append({"code": r.code, "value": r.value, "tier": r.tier,
                     "confidence": r.confidence, "is_stub": r.is_stub})
-    # más informativos primero (no-stub con valor), luego por valor desc
-    out.sort(key=lambda d: (d["is_stub"], -(d["value"] or 0)))
+    # titular informativo: no-stub primero, los saturados a 100 (no diferencian) al final, luego por valor desc
+    out.sort(key=lambda d: (d["is_stub"], (d["value"] or 0) >= 100, -(d["value"] or 0)))
     return out
 
 
@@ -234,8 +236,9 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "recomendacion", "nombre": "Jugada recomendada", "uso": "Qué hacer dada la fase, gentrificación y renta."},
     ]},
     "geo_maps_devs": {"items": [
-        {"k": "features_count", "nombre": "Proyectos en el mapa", "uso": "Cuántos desarrollos hay geolocalizados en la capa.", "unidad": "proyectos"},
-        {"k": "primer_proyecto", "nombre": "Proyecto de referencia", "uso": "Un desarrollo representativo de la capa."},
+        {"k": "proyectos_colonia", "nombre": "Proyectos en la colonia", "uso": "Cuántos desarrollos hay en esta colonia (competencia directa).", "unidad": "proyectos", "siempre": True},
+        {"k": "proyectos_ciudad", "nombre": "Proyectos en el mapa (ciudad)", "uso": "Total geolocalizado en la capa de toda la ciudad.", "unidad": "proyectos"},
+        {"k": "primer_proyecto", "nombre": "Proyecto de referencia", "uso": "Un desarrollo de la colonia."},
     ]},
     "geo_score_ie": {"es_lista": True, "nombre_total": "Indicadores IE calculados", "uso_total": "Cuántos indicadores IE oficiales tiene la colonia.", "items": [
         {"k": "code", "nombre": "Indicador IE principal", "uso": "El indicador IE con mayor valor no-stub de la colonia."},
@@ -247,6 +250,7 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "track_a.total", "nombre": "Fuentes de gobierno", "uso": "Cuántas fuentes oficiales hay conectadas.", "unidad": "fuentes"},
         {"k": "track_a.counts.ok", "nombre": "Fuentes frescas (OK)", "uso": "Cuántas fuentes están al día — confianza del dato oficial.", "unidad": "fuentes"},
         {"k": "track_a.counts.stale", "nombre": "Fuentes vencidas", "uso": "Cuántas fuentes quedaron viejas (a refrescar).", "unidad": "fuentes"},
+        {"k": "track_a.counts.missing", "nombre": "Fuentes sin conectar", "uso": "Cuántas fuentes oficiales aún no se han traído nunca.", "unidad": "fuentes"},
         {"k": "track_b_raw_total", "nombre": "Registros crudos guardados", "uso": "Volumen de dato gubernamental ingerido.", "unidad": "registros"},
     ]},
     "geo_state_cdmx": {"items": [

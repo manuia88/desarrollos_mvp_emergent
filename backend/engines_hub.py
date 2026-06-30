@@ -99,8 +99,19 @@ async def _r_dmx_indices(db, ctx):
     import dmx_indices_engine as e
     import zone_score_engine as zs
     sc = await zs.get_score_or_compute(db, ctx.get("colonia_id"), tier="colonia")
-    colonia = {"colonia_id": ctx.get("colonia_id"), "city": "CDMX",
-               "scores": sc.get("scores") or sc.get("subscores") or sc, "inventory": sc.get("inventory") or {}}
+    comp = sc.get("components") or {}
+    # mapear los componentes reales de zone_score a las llaves que consume compute_indices (antes pasaba {} → IDM idéntico)
+    colonia = {"colonia_id": ctx.get("colonia_id"), "name": _nombre_de(ctx.get("colonia_id")), "city": "CDMX",
+               "scores": {
+                   "comercio": comp.get("denue_density", 60),
+                   "vida": comp.get("demand", 60),
+                   "seguridad": comp.get("risk", 60),
+                   "movilidad": comp.get("denue_density", 60),
+                   "educacion": 60,
+                   "plusvalia": comp.get("yield_score", 60),
+                   "riesgo": comp.get("risk", 60),
+               },
+               "inventory": sc.get("inventory") or {}}
     return e.compute_indices(colonia)
 
 

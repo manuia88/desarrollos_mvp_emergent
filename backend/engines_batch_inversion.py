@@ -32,14 +32,23 @@ def _unit_m2(u: Dict[str, Any]):
             or (u or {}).get("m2_total") or (u or {}).get("m2") or (u or {}).get("m2_privative"))
 
 
+def _yield_bruto_mensual(precio, m2) -> float:
+    """Yield bruto mensual por nivel de precio: las zonas premium rinden MENOS en renta (patrón documentado
+    en CDMX). pm2 alto → ~0.32%/mes (~3.8%/año); pm2 bajo → ~0.50%/mes (~6%/año). Hace que el cap rate
+    varíe por zona en vez de salir plano para todas."""
+    pm2 = (precio / m2) if (precio and m2) else 50000.0
+    y = 0.0050 - (pm2 - 25000.0) / 95000.0 * 0.0020
+    return max(0.0030, min(0.0052, y))
+
+
 def _deal_desde_unidad(ctx: Dict[str, Any]) -> Dict[str, Any]:
     """Arma un DEAL mínimo (precio, m², renta, defaults conservadores) desde ctx['_unit']/['_dev'] para los
-    motores inversion_v4. Renta estimada a ~0.42% mensual del precio (yield bruto típico CDMX) si no hay otra."""
+    motores inversion_v4. La renta se deriva del yield bruto por nivel de precio de la zona (no plano)."""
     unit = ctx.get("_unit") or {}
     dev = ctx.get("_dev") or {}
     precio = _unit_price(unit) or dev.get("price_from") or 6_000_000
     m2 = _unit_m2(unit) or 90.0
-    renta_mensual = round(precio * 0.0042)
+    renta_mensual = round(precio * _yield_bruto_mensual(precio, m2))
     return {
         "valor_propiedad": float(precio), "m2_construido": float(m2), "num_unidades": 1,
         "renta_mensual": renta_mensual, "con_credito": True, "perfil": "fisica",
@@ -164,7 +173,7 @@ REGISTRO = [
      "produce": "costo de obra por m² en la zona (INPP/INCC, fallback honesto)", "input": ["colonia_id"],
      "fn": _r_inv_construction_cost, "fuente": "construction_cost_engine"},
     {"id": "inv_simulador_palancas", "nombre": "Qué pasaría si (palancas de producto)", "eje": "QUÉ", "tanda": 5,
-     "produce": "impacto en la venta de cambiar una palanca de producto (ej. recámaras)", "input": ["colonia_id"],
+     "produce": "impacto en la venta de cambiar una palanca de producto (ej. recámaras) — agregado nacional", "input": [],
      "fn": _r_inv_simulador_palancas, "fuente": "simulador_palancas_engine"},
     {"id": "inv_margin", "nombre": "Margen del proyecto (semáforo)", "eje": "OFERENTE", "tanda": 5,
      "produce": "margen bruto % del proyecto + si se está comprimiendo", "input": ["dev_id"],

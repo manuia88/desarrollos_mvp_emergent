@@ -12,9 +12,24 @@ def _dig(obj, path):
     for k in path.split("."):
         if isinstance(cur, dict):
             cur = cur.get(k)
+        elif isinstance(cur, list) and k.lstrip("-").isdigit():
+            i = int(k)
+            cur = cur[i] if -len(cur) <= i < len(cur) else None
         else:
             return None
     return cur
+
+
+def _es_vacio(v) -> bool:
+    """Vacío REAL = sin dato. OJO: 0 y False SON datos válidos (no vacíos) — solo None/''/[]/{}."""
+    return v is None or (isinstance(v, str) and v.strip() == "") or v in ([], {})
+
+
+def _fmt(v):
+    """Presentación amable: booleanos legibles (Sí/No) en vez de True/False crudos."""
+    if isinstance(v, bool):
+        return "Sí" if v else "No"
+    return v
 
 
 # DESCRIPTOR por motor: items = [{k (dot-path), nombre, uso, unidad?}]. fuente toma del registro.
@@ -22,13 +37,14 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
     "osm_pois": {"items": [
         {"k": "businesses_count_total", "nombre": "Comercios/POIs en radio", "uso": "Densidad de equipamiento urbano: a más POIs, zona más caminable y deseable.", "unidad": "POIs"},
         {"k": "score_15min", "nombre": "Score 15 minutos", "uso": "Qué tanto resuelves la vida a pie en 15 min.", "unidad": "score"},
-        {"k": "restaurants", "nombre": "Restaurantes/cafés", "uso": "Vida de barrio; señal aspiracional/gentrificación."},
-        {"k": "schools", "nombre": "Escuelas", "uso": "Atractivo para familias."},
-        {"k": "health", "nombre": "Salud (hospitales/clínicas)", "uso": "Servicios esenciales cerca."},
+        {"k": "by_category.restaurante", "nombre": "Restaurantes/cafés", "uso": "Vida de barrio; señal aspiracional/gentrificación."},
+        {"k": "by_category.escuela", "nombre": "Escuelas", "uso": "Atractivo para familias."},
+        {"k": "by_category.hospital", "nombre": "Salud (hospitales/clínicas)", "uso": "Servicios esenciales cerca."},
     ]},
     "shf": {"items": [
-        {"k": "apreciacion_anual_pct", "nombre": "Apreciación SHF", "uso": "Plusvalía oficial de la alcaldía — el benchmark institucional (no la muestra de visitantes).", "unidad": "%/año"},
-        {"k": "apreciacion", "nombre": "Apreciación SHF", "uso": "Plusvalía oficial.", "unidad": "%"},
+        {"k": "plusvalia_anual_pct", "nombre": "Plusvalía SHF (oficial)", "uso": "Apreciación anual oficial de la alcaldía — el benchmark institucional (no la muestra de visitantes).", "unidad": "%/año"},
+        {"k": "indice", "nombre": "Índice SHF", "uso": "Nivel del índice oficial de precios de la vivienda."},
+        {"k": "es_propio", "nombre": "¿Índice propio de la alcaldía?", "uso": "Transparencia: si usa dato propio o el promedio CDMX."},
         {"k": "alcaldia", "nombre": "Alcaldía", "uso": "Zona del índice."},
     ]},
     "catastro": {"items": [
@@ -48,8 +64,12 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "zone_name", "nombre": "Zona", "uso": "Colonia evaluada."},
     ]},
     "demanda_demografica": {"items": [
-        {"k": "demanda_estimada", "nombre": "Demanda demográfica estimada", "uso": "Demanda por perfil poblacional (no solo los 18 visitantes).", "unidad": "hogares"},
-        {"k": "hogares_objetivo", "nombre": "Hogares objetivo", "uso": "Tamaño del mercado demográfico.", "unidad": "hogares"},
+        {"k": "demanda_anual_total", "nombre": "Demanda demográfica anual", "uso": "Familias/año del NSE objetivo (no solo los visitantes).", "unidad": "hogares/año"},
+        {"k": "demanda_vertical", "nombre": "Demanda de vertical (depto)", "uso": "Cuántas de esas familias buscarían departamento.", "unidad": "hogares/año"},
+        {"k": "inventario_vertical", "nombre": "Inventario vertical", "uso": "Oferta vertical existente en la zona.", "unidad": "unidades"},
+        {"k": "gap_vertical", "nombre": "Hueco de oferta vertical", "uso": "Demanda menos inventario: el hueco capturable (negativo = saturado).", "unidad": "unidades", "siempre": True},
+        {"k": "nse_objetivo.participacion_pct", "nombre": "% del NSE objetivo", "uso": "Qué tanto de la zona es del segmento meta.", "unidad": "%"},
+        {"k": "lectura", "nombre": "Lectura de demanda", "uso": "El estimado explicado en lenguaje simple."},
     ]},
     "bancabilidad": {"items": [
         {"k": "bancabilidad", "nombre": "Bancabilidad de la zona", "uso": "Capacidad de crédito del segmento: techo de precio financiable.", "unidad": "score"},
@@ -59,7 +79,7 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "valor_unitario_catastral_m2", "nombre": "Valor unitario catastral", "uso": "Referencia fiscal del suelo.", "unidad": "$/m²"},
     ]},
     "market_estimate": {"items": [
-        {"k": "precio_venta_m2", "nombre": "Precio de venta estimado", "uso": "AVM base de la colonia.", "unidad": "$/m²"},
+        {"k": "precio_venta_m2", "nombre": "Precio de venta estimado", "uso": "AVM base de la colonia.", "unidad": "$/m²", "siempre": True},
         {"k": "es_estimado", "nombre": "¿Es estimación?", "uso": "Transparencia: dato real vs modelado."},
     ]},
     "forecast_zona": {"items": [
@@ -71,29 +91,37 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
     ]},
     "amenidades_ranker": {"items": [
         {"k": "vale_la_pena", "nombre": "Amenidades que valen la pena", "uso": "Cuáles amenidades pagan su costo en esta zona."},
+        {"k": "por_precio", "nombre": "Amenidades con prima de precio", "uso": "Atributos que el mercado paga (impacto hedónico en $/m²)."},
+        {"k": "muestra", "nombre": "Búsquedas analizadas", "uso": "Base de demanda del ranker (0 = aún afinándose).", "unidad": "búsquedas"},
     ]},
     "dmx_demand_gap": {"items": [
-        {"k": "es_estimado", "nombre": "¿Estimado?", "uso": "Transparencia del dato."},
+        {"k": "total_cells", "nombre": "Celdas de demanda analizadas", "uso": "Cobertura del mapa de brechas (colonia×tipología).", "unidad": "celdas"},
+        {"k": "lectura_datos", "nombre": "Origen de la demanda", "uso": "Si la brecha viene de comportamiento real o estimado."},
+        {"k": "cells.0.colonia", "nombre": "Top brecha — colonia", "uso": "Dónde está la mayor oportunidad de producto."},
+        {"k": "cells.0.tipologia", "nombre": "Top brecha — tipología", "uso": "Qué producto falta en esa zona."},
+        {"k": "cells.0.verdict", "nombre": "Veredicto de la brecha", "uso": "Qué hacer (construir/sostener/frenar)."},
     ]},
     "generador_producto": {"items": [
         {"k": "cus", "nombre": "CUS (coef. uso de suelo)", "uso": "Cuánto puedes construir en el terreno — el potencial.", "unidad": "x"},
-        {"k": "niveles_max", "nombre": "Niveles permitidos", "uso": "Altura máxima por normativa.", "unidad": "niveles"},
+        {"k": "m2_vendible", "nombre": "m² vendibles", "uso": "Superficie comercializable del producto óptimo.", "unidad": "m²"},
+        {"k": "total_unidades", "nombre": "Unidades sugeridas", "uso": "Cuántas unidades caben en el producto óptimo.", "unidad": "unidades"},
     ]},
     "invest_baseline": {"items": [
         {"k": "tier_zona", "nombre": "Tier de zona", "uso": "Clasificación de la zona para inversión."},
         {"k": "zone_score", "nombre": "Score de zona", "uso": "Calidad para invertir.", "unidad": "0-100"},
     ]},
     "tasas_mercado": {"items": [
-        {"k": "cetes", "nombre": "CETES", "uso": "Tasa libre de riesgo: el piso que debe superar la inversión.", "unidad": "%"},
-        {"k": "hipotecaria", "nombre": "Tasa hipotecaria", "uso": "Costo del crédito del comprador.", "unidad": "%"},
+        {"k": "vehiculos.1.pct", "nombre": "CETES 28 días", "uso": "Tasa libre de riesgo (Banxico live): el piso que debe superar la inversión.", "unidad": "%"},
+        {"k": "vehiculos.2.pct", "nombre": "CETES 364 días", "uso": "Tasa libre de riesgo a 1 año: referencia de horizonte largo.", "unidad": "%"},
     ]},
     "perfil_zona": {"items": [
         {"k": "zone_score.score", "nombre": "Score de zona", "uso": "Calidad compuesta de la colonia.", "unidad": "0-100"},
-        {"k": "ciclo.fase", "nombre": "Fase de ciclo", "uso": "Dónde está la colonia en el ciclo de mercado (expansión/pico/contracción)."},
-        {"k": "ciclo.recomendacion", "nombre": "Recomendación de ciclo", "uso": "Qué conviene hacer dada la fase."},
+        {"k": "ciclo.ciclo.label", "nombre": "Fase de ciclo", "uso": "Dónde está la colonia en el ciclo de mercado (expansión/pico/contracción)."},
+        {"k": "ciclo.ciclo.lectura", "nombre": "Lectura del ciclo", "uso": "Qué significa la fase en lenguaje simple."},
     ]},
     "dmx_indices": {"items": [
-        {"k": "price_m2", "nombre": "Precio/m² (índice)", "uso": "Precio de referencia del índice DMX.", "unidad": "$/m²"},
+        {"k": "idm.valor", "nombre": "Índice DMX (IDM)", "uso": "El número único de la zona (combina los 5 índices).", "unidad": "0-100"},
+        {"k": "idm.letra", "nombre": "Calificación DMX", "uso": "A-F de la zona."},
         {"k": "momentum_pct", "nombre": "Momentum del índice", "uso": "Aceleración/desaceleración del mercado.", "unidad": "%"},
     ]},
     "drpi": {"items": [
@@ -148,7 +176,7 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
     "contexto_precio": {"items": [
         {"k": "este_pm2", "nombre": "Precio/m² de la zona", "uso": "El precio de referencia de la colonia.", "unidad": "$/m²"},
         {"k": "posicion.etiqueta", "nombre": "Posición de precio", "uso": "Dónde cae el precio vs comparables (entrada/medio/tope de gama)."},
-        {"k": "posicion.vs_pct", "nombre": "Percentil vs peers", "uso": "Qué tan caro/barato vs colonias comparables.", "unidad": "%"},
+        {"k": "posicion.vs_pct", "nombre": "Diferencia vs obra nueva comparable", "uso": "% por encima/debajo de la mediana de obra nueva comparable (negativo = más barato).", "unidad": "%"},
         {"k": "posicion.lectura", "nombre": "Lectura de posición", "uso": "El porqué en lenguaje simple."},
     ]},
 }
@@ -179,19 +207,19 @@ def presentar(engine_id: str, salida: Any, fuente: str, eje: str) -> List[Dict[s
         top = salida[0] if (salida and isinstance(salida[0], dict)) else {}
         for it in desc["items"]:
             v = _dig(top, it["k"])
-            latente = v in (None, "", [], {}, 0, False)
+            latente = _es_vacio(v)
             if latente and not it.get("siempre"):
                 continue
-            indic.append({"nombre": it["nombre"], "valor": v, "unidad": it.get("unidad"), "uso": it["uso"],
-                          "fuente": fuente, "dimension": eje, "confianza": _conf(False), "latente": False})
+            indic.append({"nombre": it["nombre"], "valor": (None if latente else _fmt(v)), "unidad": it.get("unidad"),
+                          "uso": it["uso"], "fuente": fuente, "dimension": eje, "confianza": _conf(latente), "latente": latente})
         return indic
     if desc and isinstance(salida, dict):
         for it in desc["items"]:
             v = _dig(salida, it["k"])
-            if v is None and not it.get("siempre"):
+            latente = _es_vacio(v)
+            if latente and not it.get("siempre"):
                 continue
-            latente = v in (None, "", [], {}, 0, False)
-            indic.append({"nombre": it["nombre"], "valor": (None if latente else v), "unidad": it.get("unidad"),
+            indic.append({"nombre": it["nombre"], "valor": (None if latente else _fmt(v)), "unidad": it.get("unidad"),
                           "uso": it["uso"], "fuente": fuente, "dimension": eje, "confianza": _conf(latente),
                           "latente": latente})
     # si NO hay descriptor: NO volcamos crudo — devolvemos vacío con bandera (honesto, pendiente de hipersegmentar)
