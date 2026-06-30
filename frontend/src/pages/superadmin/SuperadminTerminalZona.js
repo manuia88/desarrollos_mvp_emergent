@@ -14,6 +14,7 @@ import ScreenerPanel from '../../components/superadmin/ScreenerPanel';
 import HeatmapPanel from '../../components/superadmin/HeatmapPanel';
 import AnalisisPanel from '../../components/superadmin/AnalisisPanel';
 import MemorandumPanel from '../../components/superadmin/MemorandumPanel';
+import ColoniaPicker from '../../components/superadmin/ColoniaPicker';
 
 const TABS = [
   { key: 'explorador', label: 'Explorador (árbol)' },
@@ -51,6 +52,7 @@ const fInput = { padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(2
 
 export default function SuperadminTerminalZona({ user, onLogout }) {
   const [tab, setTab] = useState('atlas');
+  const [zona, setZona] = useState('');   // CONTEXTO COMPARTIDO: la colonia en foco que heredan los tabs (workbench)
   const [cache, setCache] = useState({});
   const [loading, setLoading] = useState(false);
   const [resumen, setResumen] = useState(null);
@@ -127,6 +129,14 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
         </div>
       </div>
 
+      {/* CONTEXTO COMPARTIDO — 'Zona en foco': se elige una vez y los tabs (Memorándum/Análisis…) la heredan */}
+      <Card style={{ ...card, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14, padding: '10px 16px' }}>
+        <span style={{ fontSize: 12.5, color: '#b4b4c0', fontWeight: 600 }}>📍 Zona en foco</span>
+        <ColoniaPicker value={zona} onChange={setZona} allowCity placeholder="Toda la ciudad (CDMX)" />
+        {zona && <button onClick={() => setZona('')} style={{ fontSize: 11.5, color: '#9a9aa6', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, cursor: 'pointer', padding: '4px 10px' }}>quitar</button>}
+        <span style={{ fontSize: 11, color: '#7a7a86' }}>los tabs Memorándum y Análisis la heredan</span>
+      </Card>
+
       {/* BARRA DE FILTROS GUIADOS (Atributos / Financiero) — lenguaje humano: ¿qué zona? + buscador de un dato */}
       {showGeoSel && (
         <Card style={{ ...card, display: 'flex', gap: 18, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 14 }}>
@@ -201,8 +211,8 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
       {/* MAPA DE TENSIÓN (heatmap repivotable de CDMX) */}
       {tab === 'heatmap' && <HeatmapPanel />}
-      {tab === 'analisis' && <AnalisisPanel />}
-      {tab === 'memorandum' && <MemorandumPanel />}
+      {tab === 'analisis' && <AnalisisPanel zona={zona} onZona={setZona} />}
+      {tab === 'memorandum' && <MemorandumPanel zona={zona} onZona={setZona} />}
 
       {/* ATLAS (explorador de entidades) */}
       {tab === 'atlas' && <AtlasPanel />}

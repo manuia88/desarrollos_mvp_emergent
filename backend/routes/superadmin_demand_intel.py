@@ -107,6 +107,24 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/colonias")
+async def colonias_catalogo(request: Request):
+    """Catálogo de colonias (con oferta) para el picker compartido — id·nombre·alcaldía·n_unidades."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    from data_developments import DEVELOPMENTS
+    agg = {}
+    for d in DEVELOPMENTS:
+        cid = d.get("colonia_id")
+        if not cid:
+            continue
+        a = agg.setdefault(cid, {"id": cid, "nombre": d.get("colonia") or cid, "alcaldia": d.get("alcaldia"), "n_unidades": 0, "n_devs": 0})
+        a["n_unidades"] += len(d.get("units") or [])
+        a["n_devs"] += 1
+    colonias = sorted(agg.values(), key=lambda x: x["nombre"])
+    return {"colonias": colonias, "total": len(colonias)}
+
+
 @router.get("/disenar")
 async def disenar_ep(request: Request, colonia: str, top: int = 3):
     """AUTO-ARQUITECTO — 'el cubo diseña': la ficha técnica óptima a construir en [colonia], del whitespace × precio × premium."""

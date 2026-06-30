@@ -185,3 +185,8 @@ export async function postActivar(body) {
 export async function getAcciones({ destino, estado } = {}) {
   return _j(await fetch(`${BASE}/acciones?${_qs({ destino, estado })}`, { headers: h(), credentials: 'include' }));
 }
+
+// Catálogo de colonias para el picker compartido (workbench).
+export async function getColonias() {
+  return _j(await fetch(`${BASE}/colonias`, { headers: h(), credentials: 'include' }));
+}
