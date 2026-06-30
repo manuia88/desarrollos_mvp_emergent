@@ -45,19 +45,27 @@ el feeder lo prende después.*
 2. **Granularidad nano↔macro** — la **celda atómica ahora es tier-aware**: `_oferta`/`_scores` siguen el nivel geo
    (colonia→alcaldía→ciudad→desarrollo) vía `query_slice(tier)`. El drill del átomo devuelve dato real distinto por
    escala (verificado: Polanco $135k → Miguel Hidalgo $123k → CDMX $96k/m²). Cierra el "navegable de lo nano a lo macro".
-3. **Score N05 prendido** — la receta `IE_COL_N05_INFRASTRUCTURE_RESILIENCE` era `DataPendingRecipe` (stub permanente
-   por diseño). Ahora es **receta REAL**: lee el riesgo natural de Atlas CDMX (`risk_scores_zone`, sismo/inundación/
-   hundimiento) inyectado como pseudo-fuente (`needs_natural_risk`). Real donde hay Atlas (Polanco 55.8, Condesa 26.5,
-   Roma 24.8 → 5 colonias hoy), stub honesto donde no. **Auto-expande a la ciudad cuando corra el join espacial Atlas×polígonos.**
-   N04 (serie temporal FGJ) y N07 (SACMEX sin dataset) siguen stub honesto — sin dato in-repo, no se inventa.
+3. **Los 3 scores stub → PRENDIDOS desde dato externo REAL (cero inventado):**
+   - **N07 Seguridad hídrica** — nuevo `sacmex_water_ingest.py`: SACMEX CKAN (resource `a8069e94`, **313,756 reportes
+     reales** de agua) agregado por colonia → `sacmex_zone_colonia`. Receta lee incidentes reales (`needs_water`).
+     **1,051 colonias** (992 alineadas con el universo N0x). Agricola Oriental 8003 inc → 0.05 (peor agua).
+   - **N04 Trayectoria del delito** — nuevo `fgj_trajectory_ingest.py`: FGJ CKAN (resource `48fcb848`, **2,098,743
+     carpetas**) agregado por colonia × año (2022-2024) → tendencia real → `fgj_trajectory_zone`. Receta lee el ratio
+     (`needs_crime_trajectory`). **1,034 colonias.** Texmic 9→2 = 99.9 (mejorando); Juventud Unida 5→14 = 0.05 (empeorando).
+   - **N05 Resiliencia de infraestructura** — receta lee el riesgo natural REAL de Atlas CDMX (`risk_scores_zone`,
+     sismo/inundación/hundimiento, `needs_natural_risk`). **5 colonias** (lo que el Atlas tiene hoy); auto-expande
+     cuando corra el join espacial Atlas×polígonos city-wide.
+   Patrón común: nuevo flag `needs_*` + `_build_*_context` en `score_engine.py` (mismo que `needs_denue` de N01/N08).
+   HONESTO: real donde hay reporte, stub honesto donde no.
 
 ## Lo que FALTA y cómo prenderlo (data/feeder, no código)
 | Gap | Qué necesita | Fuente verificada (Doc 5) |
 |---|---|---|
-| N04 crimen-trayectoria | Connector FGJ que guarde serie temporal (fecha/mes/año) | resource_id `48fcb848` |
-| ~~N05 infra resiliencia~~ | ✅ **receta PRENDIDA** (lee Atlas real); falta correr join espacial Atlas×polígonos para pasar de 5 colonias a la ciudad | ArcGIS `serviciosatlas.sgirpc.cdmx.gob.mx` |
-| N07 seguridad de agua | Connector SACMEX cortes → obs reales | resource_id `a8069e94` |
-| 12 compuestas null | Se prenden con N04/N05/N07 + forecast histórico + reviews/brokers | mismo origen |
+| ~~N04 crimen-trayectoria~~ | ✅ **PRENDIDO** (1,034 colonias, FGJ 2.1M × año) | resource_id `48fcb848` |
+| ~~N05 infra resiliencia~~ | ✅ **receta PRENDIDA** (5 colonias hoy); falta correr join espacial Atlas×polígonos city-wide | ArcGIS `serviciosatlas.sgirpc.cdmx.gob.mx` |
+| ~~N07 seguridad de agua~~ | ✅ **PRENDIDO** (1,051 colonias, SACMEX 313k) | resource_id `a8069e94` |
+| 12 compuestas null | Dependen de forecast histórico / reseñas / brokers (otra data) — no de N04/05/07 | distinto origen |
+| Feeders re-ejecutables | `sacmex_water_ingest` / `fgj_trajectory_ingest` corren on-demand; falta agendarlos en el cron IE | — |
 | Cubo unit-tier | `query_slice(unit/prototipo)` debe respetar `tier_id` (hoy hace fallback a ciudad) | bug, no dato |
 | Grid 4 escalas materializado | Materializar `metric_grid` en alcaldía/ciudad (la celda ya lo cubre vivo) | optimización |
 
