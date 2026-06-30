@@ -130,7 +130,7 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "demanda_potencial.total", "nombre": "Demanda potencial", "uso": "Techo de demanda del submercado."},
     ]},
     "avm_publico": {"items": [
-        {"k": "precio_estimado", "nombre": "Valor estimado (2-rec 90m²)", "uso": "AVM de un depto típico: ¿está bien puesto el precio?", "unidad": "MXN"},
+        {"k": "precio_estimado", "nombre": "Valor estimado (AVM)", "uso": "Valor de mercado de la unidad (o de un depto típico si no se da unidad): ¿está bien puesto el precio?", "unidad": "MXN"},
         {"k": "precio_per_m2", "nombre": "Precio estimado por m²", "uso": "Referencia AVM por m².", "unidad": "$/m²"},
         {"k": "confidence", "nombre": "Confianza del AVM", "uso": "Qué tan confiable es la estimación."},
     ]},

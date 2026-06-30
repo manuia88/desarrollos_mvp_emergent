@@ -204,8 +204,12 @@ def _precio_colonia(colonia_id):
 # ── TANDA 4 runners (valuación · costo de propiedad · pago) ──
 async def _r_avm(db, ctx):
     import avm_public_engine as e
-    _, _, m2 = _precio_colonia(ctx.get("colonia_id"))
-    return await e.avm_quick_async(db, ctx.get("colonia_id"), float(m2 or 90), 2, 2, 0)
+    # consciente de la unidad: si viene una unidad en contexto, valúa ESA unidad; si no, un depto típico 90m²/2rec
+    u = ctx.get("_unit") or {}
+    m2 = float(u.get("m2_total") or u.get("m2") or 90)
+    rec = int(u.get("recamaras") or u.get("bedrooms") or 2)
+    ban = int(u.get("banos") or u.get("bathrooms") or 2)
+    return await e.avm_quick_async(db, ctx.get("colonia_id"), m2, rec, ban, 0)
 
 
 async def _r_ownership(db, ctx):
