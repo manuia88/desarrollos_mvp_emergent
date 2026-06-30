@@ -89,6 +89,11 @@ async def analyze_pricing(body: AnalyzeIn, request: Request):
     org_id = getattr(user, "tenant_id", None) or getattr(user, "org_id", None)
     if not org_id:
         raise HTTPException(400, "tenant_id no disponible en sesión")
+    # GUARD DE PERTENENCIA (C-02 raíz, P2): un dev solo ANALIZA sus propios proyectos. Sin esto, correr /analyze sobre
+    # el proyecto de otra desarrolladora hacía recon de su demanda/comparables Y creaba un rec con la unidad ajena que
+    # luego /apply mutaba (cross-tenant write). Cerrar aquí mata la cadena en su origen.
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, body.project_id)
 
     db = request.app.state.db
 
@@ -102,9 +107,11 @@ async def analyze_pricing(body: AnalyzeIn, request: Request):
         raise HTTPException(403, str(e))
     except PricingAgentRateLimitError as e:
         raise HTTPException(429, str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         log.error(f"[routes_subagents] analyze_pricing error: {e}")
-        raise HTTPException(500, f"Error interno del agente de pricing: {e}")
+        raise HTTPException(500, "Error interno del agente de pricing")
 
     return JSONResponse(status_code=201, content=result)
 
@@ -158,17 +165,14 @@ async def apply_recommendation(rec_id: str, request: Request):
         raise HTTPException(404, "Recomendación no encontrada")
     if doc.get("org_id") != org_id and getattr(user, "role", "") != "superadmin":
         raise HTTPException(403, "Acceso denegado")
-    # GUARD DE PERTENENCIA (C-02): el precio público solo se aplica a unidades de TUS desarrollos. El check de org_id
-    # no basta — valida que el development_id de la recomendación esté entre los devs del usuario (anti IDOR cross-tenant).
-    rec_dev = doc.get("development_id")
+    # GUARD DE PERTENENCIA (C-02, CORREGIDO P2): el doc persiste `project_id` (NO `development_id`) — el guard previo
+    # leía un campo inexistente → siempre None → NO-OP. Ahora valida el project_id real con el helper canónico
+    # (raise 403 si no es del caller). El check de org_id NO basta: analyze pudo crear el rec con MI org sobre la
+    # unidad de OTRA desarrolladora.
+    rec_dev = doc.get("project_id") or doc.get("development_id")
     if rec_dev and getattr(user, "role", "") != "superadmin":
-        try:
-            from tenant_scope import user_dev_ids
-            owned = set(user_dev_ids(user) or [])
-        except Exception:
-            owned = None
-        if owned is not None and rec_dev not in owned:
-            raise HTTPException(403, "La recomendación no pertenece a tu desarrollo")
+        from tenant_scope import assert_dev_project
+        assert_dev_project(user, rec_dev)
     if doc.get("status") != "pending":
         raise HTTPException(409, f"No se puede aplicar una recomendación en estado '{doc.get('status')}'")
 
@@ -192,7 +196,7 @@ async def apply_recommendation(rec_id: str, request: Request):
             delta = None
         if delta is not None:
             from data_developments import DEVELOPMENTS_BY_ID
-            dev_id = doc.get("development_id")
+            dev_id = doc.get("project_id") or doc.get("development_id")  # P2: el campo real es project_id
             dev = (DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0})) if dev_id else None
             unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None) if dev else None
             if unit is None:  # fallback: localizar el dev que contiene la unidad
@@ -200,6 +204,12 @@ async def apply_recommendation(rec_id: str, request: Request):
                 if dev:
                     dev_id = dev.get("id")
                     unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None)
+            # P2 (defensa en profundidad): si el dev se resolvió por fallback (unit_id es global), revalida pertenencia
+            # antes de mutar el precio público — la unidad NO puede ser de otra desarrolladora.
+            if dev_id and getattr(user, "role", "") != "superadmin":
+                from tenant_scope import dev_can_access_project
+                if not dev_can_access_project(user, dev_id):
+                    raise HTTPException(403, "La unidad pertenece a otra desarrolladora")
             ov = await db.developer_unit_overrides.find_one({"dev_id": dev_id, "unit_id": unit_id}, {"_id": 0}) if dev_id else None
             base_price = (unit or {}).get("price")          # precio de LISTA original = el ancla del tope
             cur = (ov or {}).get("price") or base_price       # precio vigente (sobre el que aplica el delta)

@@ -77,13 +77,14 @@ async def _user_can_manage(db, user: Dict[str, Any], unit_id: str, dev_id: Optio
         u = await _resolve_unit(db, unit_id)
         if u:
             dev_id = u.get("project_id") or u.get("development_id") or u.get("dev_id")
+    # A2 (audit v2 · IDOR write cross-tenant): sin dev resuelto NO se puede verificar pertenencia → fail-CLOSED
+    # (antes el advisor caía en `return True` incondicional y el developer en `dev_id is None or ...`, ambos fail-open).
+    if not dev_id:
+        return False
     user_dev = user.get("dev_org_id") or user.get("tenant_id")
-    if role in ("developer_admin", "dev_admin", "developer"):
-        return bool(user_dev) and (dev_id is None or user_dev == dev_id)
-    if role in ("advisor", "asesor_admin"):
-        # advisors can manage in projects they have access to (simplified ACL)
-        return True
-    return False
+    # Toda gestión (developer Y advisor) exige que la unidad sea de un proyecto del MISMO tenant del caller.
+    # Nunca se concede por ROL: un advisor no puede gestionar el tour 3D de una unidad de otra desarrolladora.
+    return bool(user_dev) and user_dev == dev_id
 
 
 # ─── Register / process ──────────────────────────────────────────────────────
