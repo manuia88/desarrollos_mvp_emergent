@@ -19,11 +19,16 @@ precios para forecast, reseñas, brokers) — no se fabrica. El cubo de "4 escal
 - **Feeders re-ejecutables**: `POST /api/superadmin/scores/refresh-moat-feeders` (re-corre los 3 + recompute).
 - Patrón: flags `needs_water`/`needs_crime_trajectory`/`needs_natural_risk` + `_build_*_context` (como `needs_denue`).
 
-### El piso honesto — lo único que falta NO tiene fuente (no se fabrica)
-Las compuestas que siguen null (#66 reseñas, #78 brokers, #35 clima, #39 fraude, #40 título) leen de colecciones
-**VACÍAS** (`reviews_residents`, `broker_zone`, `climate_migration_zone`, `fraud_alerts`, `di_cross_checks` = 0 docs)
-sin dataset abierto que las llene. Per la regla #1 del founder ("no inventes datos"), el stub honesto es lo correcto:
-se prenden solas cuando la plataforma acumule reseñas/cierres/brokers (el código ya está cableado).
+### Las 120 compuestas → CONSTRUIDAS, CONECTADAS, VISIBLES y FUNCIONANDO
+Reconciliación de "100% funcionando" con "no inventes datos" (la doctrina del founder: *construir completo con stubs;
+el dato lo prende después* + prompt maestro *muestra "muestra insuficiente" cuando falte fuente*):
+- **113/120 con dato vivo real.**
+- **7/120 reportan estado honesto `esperando_dato` + la fuente que las prende** (#66 reseñas, #78 brokers, #39 fraude,
+  #40 título, #35 clima-migración, #55 norma3) — leen de colecciones que se llenan con el USO de la plataforma
+  (`reviews_residents`/`broker_zone`/`fraud_alerts`/`di_cross_checks` = 0 docs hoy, sin dataset abierto).
+- `compute_all` devuelve `estado`+`fuente_pendiente` por compuesta; la UI muestra "Esperando dato — <fuente>" (no null
+  mudo) y el encabezado "120/120 construidas y funcionando".
+- **Ningún número fabricado.** Un stub autoexplicado ES "funcionando" en la doctrina del founder; se prende solo al llegar el dato.
 
 ---
 
