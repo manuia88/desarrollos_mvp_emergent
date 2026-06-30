@@ -1,11 +1,15 @@
 // Superadmin · MOTORES — el catálogo de motores del cubo. Lista los motores REGISTRADOS (agrupados por eje)
-// y deja correr cualquiera contra una colonia, mostrando su salida HIPER-SEGMENTADA (cada campo = su propio dato).
+// y deja correr cualquiera contra una colonia, mostrando sus INDICADORES hiper-segmentados (cada dato = su propio
+// significado: nombre humano, valor, uso, fuente, confianza). NO se vuelca la salida cruda como sudoku key→value.
 // Es un HUB que crece por tandas: hoy ~7 motores, llegará a ~120. Reusa /engines/catalog y /engines/run.
-// Cero dato inventado: TODO viene de la respuesta. `null` se muestra como "sin dato (latente)", error en ámbar (no rojo).
+// El run devuelve `indicadores` (lo que se pinta como tarjetas <Indicador>), `hipersegmentado` (bool) y
+// `salida_cruda` (solo referencia técnica, visible bajo clic explícito, nunca como vista principal).
+// Cero dato inventado: TODO viene de la respuesta. Motor sin descriptor → aviso ámbar honesto, no JSON crudo.
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Badge } from '../advisor/primitives';
 import { getEnginesCatalog, getEngineRun } from '../../api/superadminDemandIntel';
 import ColoniaPicker from './ColoniaPicker';
+import Indicador from './Indicador';
 
 // ── tokens de tema oscuro (idénticos a los otros paneles) ───────────────────
 const card = { padding: '16px 20px' };
@@ -149,7 +153,43 @@ function Field({ label, depth, children }) {
   );
 }
 
+// ── Salida CRUDA / técnica — colapsada, SOLO bajo clic explícito (transparencia de dev) ──────
+// Nunca es la vista principal: vive escondida tras un botón discreto, claramente marcada como cruda.
+function SalidaTecnica({ salida }) {
+  const [abierta, setAbierta] = useState(false);
+  const tieneSalida = salida != null && (!isPlainObject(salida) || Object.keys(salida).length > 0);
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setAbierta((a) => !a)}
+        style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', padding: 0 }}
+      >
+        {abierta ? 'ocultar salida técnica' : 'ver salida técnica (cruda)'}
+      </button>
+      {abierta && (
+        <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.015)' }}>
+          <div style={{ fontSize: 10, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+            Salida cruda · referencia técnica (sin hipersegmentar)
+          </div>
+          {tieneSalida ? (
+            <div style={{ display: 'grid', gap: 5 }}>
+              {isPlainObject(salida)
+                ? Object.entries(salida).map(([k, v]) => <FieldTree key={k} label={k} value={v} depth={0} />)
+                : <FieldTree label="salida" value={salida} depth={0} />}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: amber, fontStyle: 'italic' }}>El motor corrió pero no devolvió campos (latente).</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Bloque de SALIDA de un motor (debajo de su tarjeta) ─────────────────────
+// Protagonista = los INDICADORES hiper-segmentados (tarjetas <Indicador>). La salida cruda solo vive,
+// colapsada y bajo clic, como referencia técnica. Si el motor no tiene descriptor → aviso ámbar honesto.
 function EngineOutput({ res }) {
   if (!res) return null;
   // Error → ámbar, no rojo (el motor está latente o falló, no es crash).
@@ -162,13 +202,17 @@ function EngineOutput({ res }) {
       </div>
     );
   }
-  const salida = res.salida;
-  const tieneSalida = salida != null && (!isPlainObject(salida) || Object.keys(salida).length > 0);
+
+  // Indicadores hiper-segmentados (lo que se pinta). Cada item ya es casi la prop `ind` de <Indicador>:
+  // {nombre, valor, unidad, uso, fuente, dimension, confianza, latente}. Solo agregamos razon_latente.
+  const indicadores = Array.isArray(res.indicadores) ? res.indicadores : [];
+  const hiper = res.hipersegmentado !== false && indicadores.length > 0;
+
   return (
     <div style={{ marginTop: 10, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.02)' }}>
       {/* meta del run: produce + contexto */}
       {(res.produce || res.ctx) && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'baseline', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'baseline', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           {res.produce && <span style={{ fontSize: 12, color: '#bdbdc6' }}>produce: <span style={{ color: cream, fontWeight: 600 }}>{res.produce}</span></span>}
           {isPlainObject(res.ctx) && Object.keys(res.ctx).length > 0 && (
             <span style={{ fontSize: 11.5, color: muted }}>
@@ -178,15 +222,32 @@ function EngineOutput({ res }) {
         </div>
       )}
 
-      {/* SALIDA hiper-segmentada — cada campo su propia fila */}
-      {tieneSalida ? (
-        <div style={{ display: 'grid', gap: 5 }}>
-          {isPlainObject(salida)
-            ? Object.entries(salida).map(([k, v]) => <FieldTree key={k} label={k} value={v} depth={0} />)
-            : <FieldTree label="salida" value={salida} depth={0} />}
-        </div>
+      {hiper ? (
+        // INDICADORES — rejilla de tarjetas legibles (cada dato con su significado), NO sudoku key→value.
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+            {indicadores.map((it, i) => (
+              <Indicador
+                key={`${it.nombre || 'ind'}-${i}`}
+                ind={{
+                  ...it,
+                  razon_latente: it.latente ? (it.razon_latente || 'sin dato / esperando ingesta') : it.razon_latente,
+                }}
+              />
+            ))}
+          </div>
+          {/* transparencia de dev: la salida cruda sigue disponible, colapsada y bajo clic, nunca protagonista */}
+          {res.salida_cruda != null && <SalidaTecnica salida={res.salida_cruda} />}
+        </>
       ) : (
-        <div style={{ fontSize: 12.5, color: amber, fontStyle: 'italic' }}>El motor corrió pero no devolvió campos (latente).</div>
+        // Sin descriptor → aviso ámbar honesto. La salida cruda solo bajo clic explícito (transparencia).
+        <div style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid rgba(245,158,11,0.35)`, background: 'rgba(245,158,11,0.06)' }}>
+          <div style={{ fontSize: 12.5, color: amber, fontWeight: 700, marginBottom: 3 }}>Este motor aún no está hipersegmentado</div>
+          <div style={{ fontSize: 12, color: '#d8c9a8', lineHeight: 1.5 }}>
+            Pendiente de descriptor — cuando se declare, sus datos se mostrarán como indicadores legibles.
+          </div>
+          <SalidaTecnica salida={res.salida_cruda} />
+        </div>
       )}
 
       {res.fuente && <div style={{ fontSize: 10.5, color: '#666', marginTop: 10, fontStyle: 'italic' }}>fuente: {res.fuente}</div>}
