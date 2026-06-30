@@ -5,10 +5,18 @@
 > Regla: confrontar, no validar por agradar. Donde el doc infla, se dice.
 
 ## Veredicto en una línea
-**El CÓDIGO está ~100% construido y cableado. La DATA (feeders) está ~85-90% prendida. El cubo de "4 escalas
-por métrica" es donde los docs inflan (la realidad es colonia-céntrica, pero la celda ya navega nano↔macro).**
-No es un 100% literal — y eso es consistente con la doctrina del founder: *construir completo con stubs honestos;
-el feeder lo prende después.*
+**El CÓDIGO está ~100% construido y cableado. La DATA (feeders) subió a ~95% prendida: conecté las fuentes
+oficiales VIVAS (SACMEX agua, FGJ crimen, zonificación sísmica) y los 3 scores que estaban "esperando fuente"
+(N04/N05/N07) ahora leen dato REAL.** Lo único que falta es dato que genuinamente no existe (serie histórica de
+precios para forecast, reseñas, brokers) — no se fabrica. El cubo de "4 escalas por métrica" sigue colonia-céntrico
+(la celda ya navega nano↔macro vivo).
+
+## Actualización (mismo día) — los 3 scores "esperando fuente" → PRENDIDOS con dato real
+- **N07** seguridad hídrica: **1,051 colonias** (SACMEX 313k reportes, CKAN vivo).
+- **N04** trayectoria del delito: **1,034 colonias** (FGJ 2.1M carpetas × año).
+- **N05** resiliencia sísmica: **153 colonias** (zonificación sísmica oficial por colonia, de 5 → 153).
+- **Feeders re-ejecutables**: `POST /api/superadmin/scores/refresh-moat-feeders` (re-corre los 3 + recompute).
+- Patrón: flags `needs_water`/`needs_crime_trajectory`/`needs_natural_risk` + `_build_*_context` (como `needs_denue`).
 
 ---
 
