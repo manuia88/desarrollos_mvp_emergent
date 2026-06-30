@@ -10,7 +10,7 @@ valor además se integran como dimensiones/indicadores del cubo.
 
 **Estado:** ⬜ por cablear · 🟦 en hub (runnable+visible) · ✅ integrado al cubo (dimensión/indicador) · ⬛ otro portal (fuera de Terminal).
 
-**Progreso:** 19 / ~120 cube-relevantes en hub (TANDA 1 ✅ · TANDA 2 ✅ geo+forecast+inversión: catastro 2593 predios·riesgo natural·percibido·zone_score·perfil_zona·dmx_indices·drpi·live_pulse·score_inversion_top·invest_baseline·comercio_pb·due_diligence). ~22 con dato real.
+**Progreso:** 26 / ~120 cube-relevantes en hub (TANDAS 1-3 ✅). T3: terminal_mercado·amenidades·dmx_demand·calidad_construccion·tasas·estudio_mercado·generador_producto — 7/7 con dato real. ~29 con dato real en total.
 
 ---
 

@@ -134,6 +134,53 @@ async def _r_due_diligence(db, ctx):
     return await e.generar_due_diligence(db, ctx.get("colonia_id"))
 
 
+def _centroide_de(colonia_id: str):
+    from data_developments import DEVELOPMENTS
+    pts = [d.get("center") for d in DEVELOPMENTS if d.get("colonia_id") == colonia_id and d.get("center")]
+    if not pts:
+        return None
+    return (sum(p[1] for p in pts) / len(pts), sum(p[0] for p in pts) / len(pts))  # (lat, lng)
+
+
+# ── TANDA 3 runners (mercado · producto · global) ──
+async def _r_terminal_mercado(db, ctx):
+    import terminal_mercado_engine as e
+    return await e.terminal_mercado(db, top_colonias=8)
+
+
+async def _r_amenidades(db, ctx):
+    import amenidades_engine as e
+    return await e.ranker_amenidades(db, ctx.get("colonia_id"))
+
+
+async def _r_dmx_demand(db, ctx):
+    import dmx_demand as e
+    return await e.demand_gap(db, top=25)
+
+
+async def _r_constr_quality(db, ctx):
+    import construction_quality_engine as e
+    return await e.list_developments_by_quality(db)
+
+
+async def _r_market_rates(db, ctx):
+    import market_rates_engine as e
+    return await e.get_rates(db)
+
+
+async def _r_estudio_mercado(db, ctx):
+    import estudio_mercado_engine as e
+    c = _centroide_de(ctx.get("colonia_id"))
+    if not c:
+        return {"error": "sin centroide para la colonia"}
+    return await e.generar_estudio_radio(db, c[0], c[1], 1000.0)
+
+
+async def _r_generador_producto(db, ctx):
+    import generador_producto_engine as e
+    return await e.generar_producto(db, ctx.get("colonia_id"), 500.0)
+
+
 # ── REGISTRO — se crece por tandas (ENGINE_MAP.md). id · nombre · eje · produce · runner · fuente ──
 REGISTRO: List[Dict[str, Any]] = [
     {"id": "shf", "nombre": "Índice SHF — apreciación oficial", "eje": "DÓNDE/PRECIO", "tanda": 1,
@@ -175,6 +222,21 @@ REGISTRO: List[Dict[str, Any]] = [
      "produce": "potencial de comercio en planta baja de la zona", "input": ["colonia_id"], "fn": _r_inversionista, "fuente": "inversionista_engine"},
     {"id": "due_diligence", "nombre": "Due diligence de predio", "eje": "RIESGO", "tanda": 2,
      "produce": "due diligence (uso de suelo/riesgos) de la zona", "input": ["colonia_id"], "fn": _r_due_diligence, "fuente": "predio_due_diligence_engine"},
+    # ── TANDA 3 ──
+    {"id": "terminal_mercado", "nombre": "Terminal de mercado", "eje": "SEÑALES", "tanda": 3,
+     "produce": "tablero de mercado (top colonias, índices vivos)", "input": [], "fn": _r_terminal_mercado, "fuente": "terminal_mercado_engine"},
+    {"id": "amenidades_ranker", "nombre": "Ranker de amenidades", "eje": "QUÉ", "tanda": 3,
+     "produce": "qué amenidades pesan más en la zona", "input": ["colonia_id"], "fn": _r_amenidades, "fuente": "amenidades_engine"},
+    {"id": "dmx_demand_gap", "nombre": "Brecha de demanda (DMX)", "eje": "SEÑALES", "tanda": 3,
+     "produce": "top brechas de demanda del mercado", "input": [], "fn": _r_dmx_demand, "fuente": "dmx_demand"},
+    {"id": "calidad_construccion", "nombre": "Calidad de construcción (ranking)", "eje": "EXPERIENCIA", "tanda": 3,
+     "produce": "desarrollos rankeados por calidad de construcción", "input": [], "fn": _r_constr_quality, "fuente": "construction_quality_engine"},
+    {"id": "tasas_mercado", "nombre": "Tasas de mercado", "eje": "PRECIO", "tanda": 3,
+     "produce": "tasas (CETES/hipotecaria) del mercado", "input": [], "fn": _r_market_rates, "fuente": "market_rates_engine"},
+    {"id": "estudio_mercado", "nombre": "Estudio de mercado (radio)", "eje": "SEÑALES", "tanda": 3,
+     "produce": "estudio de mercado en radio de 1km de la zona", "input": ["colonia_id"], "fn": _r_estudio_mercado, "fuente": "estudio_mercado_engine"},
+    {"id": "generador_producto", "nombre": "Generador de producto", "eje": "INVERSIÓN", "tanda": 3,
+     "produce": "producto óptimo sugerido para un terreno en la zona", "input": ["colonia_id"], "fn": _r_generador_producto, "fuente": "generador_producto_engine"},
 ]
 BY_ID = {e["id"]: e for e in REGISTRO}
 
