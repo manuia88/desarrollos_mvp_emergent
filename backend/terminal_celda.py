@@ -54,12 +54,13 @@ async def _nucleo(db, measure: str, dims: Dict[str, Any]) -> Dict[str, Any]:
         return {"valor": None, "es_latente": True, "comparativo": {}, "_err_nucleo": str(e)[:80]}
 
 
-async def _oferta(db, colonia_id: Optional[str], tipologia: Optional[str], tier_precio: Optional[str]) -> Dict[str, Any]:
-    """inventario/vendidas/precio/$m²/absorción/meses_inventario/mix (cubo OLAP + absorción)."""
+async def _oferta(db, tier: str, tier_id: Optional[str], tipologia: Optional[str], tier_precio: Optional[str]) -> Dict[str, Any]:
+    """inventario/vendidas/precio/$m²/absorción/meses_inventario/mix (cubo OLAP + absorción).
+    tier-aware: sigue el nivel geo (colonia/alcaldia/city/development) → el átomo es navegable nano↔macro."""
     out: Dict[str, Any] = {}
     try:
         import cube_olap_engine as cube
-        s = await cube.query_slice(db, tier="colonia", tier_id=colonia_id,
+        s = await cube.query_slice(db, tier=tier, tier_id=tier_id,
                                    property_type=tipologia, price_tier=tier_precio, slice_by="property_type")
         k = s.get("kpis") or {}
         out.update({
@@ -78,14 +79,15 @@ async def _oferta(db, colonia_id: Optional[str], tipologia: Optional[str], tier_
         })
     except Exception as e:
         out["_err_oferta"] = str(e)[:80]
-    try:
-        import absorcion_engine as ab
-        a = await ab.curva_absorcion(db, colonia_id=colonia_id)
-        out["absorcion"] = _g(a, "absorcion") or _g(a, "absorcion_mensual") or _g(a, "curva", "absorcion")
-        out["meses_inventario"] = _g(a, "meses_inventario")
-        out["sell_through"] = _g(a, "sell_through") or _g(a, "exito_comercial")
-    except Exception as e:
-        out.setdefault("_err_absorcion", str(e)[:80])
+    if tier == "colonia" and tier_id:
+        try:
+            import absorcion_engine as ab
+            a = await ab.curva_absorcion(db, colonia_id=tier_id)
+            out["absorcion"] = _g(a, "absorcion") or _g(a, "absorcion_mensual") or _g(a, "curva", "absorcion")
+            out["meses_inventario"] = _g(a, "meses_inventario")
+            out["sell_through"] = _g(a, "sell_through") or _g(a, "exito_comercial")
+        except Exception as e:
+            out.setdefault("_err_absorcion", str(e)[:80])
     return out
 
 
@@ -110,21 +112,21 @@ async def _demanda(db, colonia_id: Optional[str]) -> Dict[str, Any]:
         return {"busquedas": None, "_err_demanda": str(e)[:80]}
 
 
-async def _scores_zona(db, colonia_id: Optional[str]) -> List[Dict[str, Any]]:
-    """zone_score + índices DMX aplicables a la zona (lista hipersegmentada)."""
+async def _scores_zona(db, tier_id: Optional[str], tier: str = "colonia") -> List[Dict[str, Any]]:
+    """zone_score + índices DMX aplicables a la zona (lista hipersegmentada). Tier-aware (fail-soft)."""
     out: List[Dict[str, Any]] = []
-    if not colonia_id:
+    if not tier_id:
         return out
     try:
         import zone_score_engine as zs
-        sc = await zs.get_score_or_compute(db, colonia_id, tier="colonia")
+        sc = await zs.get_score_or_compute(db, tier_id, tier=tier)
         if sc:
             out.append({"codigo": "ZONE_SCORE", "nombre": "Score de zona",
                         "valor": sc.get("score") or sc.get("score_numeric"), "letra": sc.get("score_letter") or sc.get("grade")})
             comp = sc.get("components") or {}
             try:
                 import dmx_indices_engine as dx
-                colonia = {"colonia_id": colonia_id, "city": "CDMX",
+                colonia = {"colonia_id": tier_id, "city": "CDMX",
                            "scores": {"comercio": comp.get("denue_density", 60), "vida": comp.get("demand", 60),
                                       "seguridad": comp.get("risk", 60), "movilidad": comp.get("denue_density", 60),
                                       "educacion": 60, "plusvalia": comp.get("yield_score", 60), "riesgo": comp.get("risk", 60)}}
@@ -186,13 +188,18 @@ async def build_celda(db, *, measure: str, geo_nivel: Optional[str] = None, geo_
         "tipologia": tipologia, "rango_m2": rango_m2, "tier_precio": tier_precio,
         "atributo": atributo, "ventana": ventana,
     }.items() if v}
-    colonia_id = geo_valor if (geo_nivel == "colonia") else None
+    # tier-awareness: el nivel geo (UI) → tier del cubo (OLAP). El átomo navega nano↔macro sin perder eje.
+    _TIER = {"colonia": "colonia", "alcaldia": "alcaldia", "ciudad": "city", "city": "city",
+             "desarrollo": "development", "development": "development", "unidad": "unit", "unit": "unit"}
+    tier = _TIER.get((geo_nivel or "colonia").lower(), "colonia")
+    tier_id = geo_valor
+    colonia_id = geo_valor if (tier == "colonia") else None
     alcaldia = await _alcaldia_de(db, colonia_id) if colonia_id else None
 
     nucleo = await _nucleo(db, measure, dims)
-    oferta = await _oferta(db, colonia_id, tipologia, tier_precio)
+    oferta = await _oferta(db, tier, tier_id, tipologia, tier_precio)
     demanda = await _demanda(db, colonia_id)
-    scores = await _scores_zona(db, colonia_id)
+    scores = await _scores_zona(db, tier_id, tier)
 
     # Fallback HONESTO: si el grid materializado no tiene la celda (latente) pero el cubo OLAP la
     # calcula viva, usar el valor vivo del cubo (fuente explícita). No se inventa: es el dato del cubo.

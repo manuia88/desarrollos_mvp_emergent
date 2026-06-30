@@ -241,6 +241,7 @@ const SUPERADMIN_NAV = [
       { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
       { key: 'grafo-comprador',   to: '/superadmin/grafo-comprador',   label: 'Grafo del Comprador', Icon: Users },
+      { key: 'gemelo-demanda',    to: '/superadmin/gemelo-demanda',    label: 'Gemelo de Demanda', Icon: TrendingUp },
       { key: 'cerebro-mercado',   to: '/superadmin/cerebro-mercado',   label: 'Cómo Aprende el Mercado', Icon: Sparkles },
       { key: 'terminal-mercado',  to: '/superadmin/terminal-mercado',  label: 'Terminal de Mercado CDMX', Icon: Layers },
       // ─ W6.MOV.5 · Construction Quality Index ─
