@@ -31,6 +31,14 @@ const TABS = [
   { key: 'grid', label: 'Grid de métricas' },
 ];
 
+// Navegación en 2 niveles: 3 grupos en vez de 13 tabs planos (mismo color de tema = sin tocar la paleta).
+const GROUPS = [
+  { key: 'explorar', label: 'Explorar', desc: 'navega el mercado', tabs: ['explorador', 'heatmap', 'atlas', 'desarrollos'] },
+  { key: 'analizar', label: 'Analizar', desc: 'busca y compara', tabs: ['screener', 'facet', 'comparar', 'analisis', 'atributos', 'financiero'] },
+  { key: 'reportar', label: 'Reportar', desc: 'el resultado', tabs: ['memorandum', 'compuestas', 'grid'] },
+];
+const groupOf = (k) => (GROUPS.find((g) => g.tabs.includes(k)) || GROUPS[0]).key;
+
 const fmtM = (v) => (v == null ? '—' : `$${(v / 1e6).toFixed(1)}M`);
 const card = { padding: '14px 18px' };
 const th = { fontSize: 11, color: '#888', textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
@@ -89,15 +97,34 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <PageHeader title="Terminal de Zona" subtitle={resumen?.lectura || 'El cubo de inteligencia: pivotea medida × escala × atributo × financiero × cruces.'} />
 
-      {/* tabs */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '4px 0 16px' }}>
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ padding: '7px 14px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
-              background: tab === t.key ? 'var(--theme, #6366f1)' : 'transparent', color: tab === t.key ? '#fff' : '#aaa', fontSize: 13, fontWeight: 600 }}>
-            {t.label}
-          </button>
-        ))}
+      {/* navegación en 2 niveles: grupo (Explorar/Analizar/Reportar) → sub-tab. De 13 planos a 3 grupos. */}
+      <div style={{ margin: '4px 0 16px' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
+          {GROUPS.map((g) => {
+            const activo = groupOf(tab) === g.key;
+            return (
+              <button key={g.key} onClick={() => setTab(g.tabs[0])} title={g.desc}
+                style={{ padding: '8px 18px', borderRadius: 10, border: '1px solid ' + (activo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.12)'), cursor: 'pointer',
+                  background: activo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.03)', color: activo ? '#fff' : '#bbb', fontSize: 13.5, fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+                {g.label}
+                <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.75 }}>{g.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {(GROUPS.find((g) => g.key === groupOf(tab)) || GROUPS[0]).tabs.map((k) => {
+            const t = TABS.find((x) => x.key === k);
+            if (!t) return null;
+            return (
+              <button key={k} onClick={() => setTab(k)}
+                style={{ padding: '6px 13px', borderRadius: 9999, border: '1px solid ' + (tab === k ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.12)'), cursor: 'pointer',
+                  background: tab === k ? 'rgba(99,102,241,0.18)' : 'transparent', color: tab === k ? '#fff' : '#9a9aa5', fontSize: 12.5, fontWeight: 600 }}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* BARRA DE FILTROS GUIADOS (Atributos / Financiero) — lenguaje humano: ¿qué zona? + buscador de un dato */}
