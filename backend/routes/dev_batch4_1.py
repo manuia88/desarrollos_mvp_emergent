@@ -1319,7 +1319,10 @@ async def list_asesor_citas(
             q["datetime"]["$gte"] = from_date
         if to_date:
             q["datetime"]["$lte"] = to_date
-    appointments = await db.appointments.find(q, {"_id": 0}).sort("datetime", 1).limit(200).to_list(200)
+    # P3-IDOR-01: NO exponer confirmation_token/cancel_token en el listado (encadenable a confirmar/cancelar la cita ajena).
+    appointments = await db.appointments.find(
+        q, {"_id": 0, "confirmation_token": 0, "cancel_token": 0}
+    ).sort("datetime", 1).limit(200).to_list(200)
     # Enrich with lead data
     for apt in appointments:
         if apt.get("lead_id"):
@@ -1375,7 +1378,10 @@ async def list_dev_citas(
             q["datetime"]["$lte"] = to_date
     skip = (page - 1) * limit
     total = await db.appointments.count_documents(q)
-    items = await db.appointments.find(q, {"_id": 0}).sort("datetime", 1).skip(skip).limit(limit).to_list(limit)
+    # P3-IDOR-01: NO exponer confirmation_token/cancel_token (encadenable a confirmar/cancelar la cita ajena).
+    items = await db.appointments.find(
+        q, {"_id": 0, "confirmation_token": 0, "cancel_token": 0}
+    ).sort("datetime", 1).skip(skip).limit(limit).to_list(limit)
     for apt in items:
         if apt.get("lead_id"):
             lead = await db.leads.find_one({"id": apt["lead_id"]}, {"_id": 0, "contact": 1, "status": 1, "payment_methods": 1, "budget_range": 1})

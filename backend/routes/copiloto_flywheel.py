@@ -180,7 +180,9 @@ async def cierre(b: CierreIn, request: Request):
     from fastapi import HTTPException as _HTTPException
     _cron = _os.environ.get("CRON_SECRET", "")
     _hdr = request.headers.get("X-Cron-Secret", "")
-    if not (_cron and _hdr and _hmac.compare_digest(_hdr, _cron)):
+    _is_cron = bool(_cron and _hdr and _hmac.compare_digest(_hdr, _cron))
+    _u = None
+    if not _is_cron:
         from server import get_current_user
         _u = await get_current_user(request)
         _role = getattr(_u, "role", "") if _u else ""
@@ -192,8 +194,26 @@ async def cierre(b: CierreIn, request: Request):
         from data_developments import DEVELOPMENTS_BY_ID
         if b.dev_id not in DEVELOPMENTS_BY_ID and not await db.developments.find_one({"id": b.dev_id}, {"_id": 1}):
             raise _HTTPException(400, "dev_id desconocido")
+        # P3-POISON-01: PERTENENCIA (no solo catálogo). Sin esto cualquier asesor autenticado registra un cierre con
+        # dev_id arbitrario y envenena el AVM/ranking de CUALQUIER desarrollo. El cierre solo se registra sobre un LEAD
+        # del caller (asesor) o un desarrollo suyo (developer). cron/superadmin pasan.
+        _role = getattr(_u, "role", "") if _u else ""
+        if _u is not None and _role != "superadmin":
+            from tenant_scope import assert_lead_owner, dev_can_access_project
+            if b.lead_id:
+                await assert_lead_owner(db, _u, b.lead_id)           # 403 si el lead no es del caller
+            elif _role in ("developer_admin", "developer_director"):
+                # developer sin lead: solo puede cerrar sobre un desarrollo SUYO (no demo-fallback).
+                if not dev_can_access_project(_u, b.dev_id):
+                    raise _HTTPException(403, "No puedes registrar un cierre para este desarrollo")
+            else:
+                # asesor sin lead_id: no puede atribuir el cierre a nada suyo → rechazar (cierra el envenenamiento
+                # del AVM aun en demo; un cierre real del asesor SIEMPRE referencia su lead).
+                raise _HTTPException(403, "Se requiere un lead propio para registrar el cierre")
         doc = await record_closing(db, lead_id=b.lead_id, visitor_id=b.visitor_id, dev_id=b.dev_id, price_closed=b.price_closed)
         return {"ok": True, "atom": {"desajuste": doc["desajuste"], "dias_a_cierre": doc["recorrido"]["dias_a_cierre"]}}
+    except _HTTPException:
+        raise                                                         # propagar 400/403 (no tragar a {ok:false})
     except Exception as e:  # noqa: BLE001
         log.warning(f"[flywheel] cierre fail: {e}")
         return {"ok": False}

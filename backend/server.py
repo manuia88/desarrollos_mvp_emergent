@@ -1384,12 +1384,16 @@ async def csrf_cookie_origin_guard(request, call_next):
                     allowed = _csrf_allowed_hosts(request)
                     # localhost en dev: comparar también sin puerto.
                     src_bare = src_host.split(":")[0] if src_host else ""
-                    if src_host and src_host not in allowed and (
-                        not (_is_dev() and src_bare in allowed)
+                    # P3-CSRF-01: un Origin/Referer PRESENTE pero que NO parsea a host (Origin: null, data:, blob:,
+                    # filesystem:) es un origen OPACO/cross-site → src_host=='' hacía que `if src_host` saltara el
+                    # rechazo (bypass verificado). Ahora: si hay src pero el host es vacío → rechazar; si el host no
+                    # está permitido (y no es localhost en dev) → rechazar.
+                    if (not src_host) or (
+                        src_host not in allowed and not (_is_dev() and src_bare in allowed)
                     ):
                         logging.warning(
                             f"[csrf] bloqueado {request.method} {request.url.path} "
-                            f"origin={src_host!r} no en {sorted(allowed)!r}"
+                            f"origin={src!r} host={src_host!r} no en {sorted(allowed)!r}"
                         )
                         return _csrf_reject()
                 else:
