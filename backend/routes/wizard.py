@@ -493,8 +493,8 @@ async def create_project(payload: WizardProjectPayload, request: Request):
             context={"project_id": slug, "source": payload.ia_source,
                      "total_units": total_units},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation/emit_ml_event perdido (project_created_via_wizard project=%s): %s", slug, _e)
 
     # Trigger diagnostic (B0.5) 5min later
     try:
@@ -737,8 +737,8 @@ async def ia_extract(
             context={"run_id": run_id, "files": len(file_meta),
                      "avg_confidence": avg_conf, "fields": fields_count},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (wizard_ia_extract_completed run=%s): %s", run_id, _e)
 
     doc.pop("_id", None)
     return doc

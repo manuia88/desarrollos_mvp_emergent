@@ -146,8 +146,8 @@ async def approve(
             partnership_id, "cross_org_partnership",
             metadata={"requester": doc["requester_org_id"], "target": doc["target_org_id"]},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation/log_activity perdido (approve cross_org_partnership %s): %s", partnership_id, _e)
 
     # Notify requester
     try:

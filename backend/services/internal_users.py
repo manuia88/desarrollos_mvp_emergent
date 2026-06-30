@@ -417,8 +417,8 @@ async def update_dev_internal_user(
             "update", "dev_internal_users", target_email,
             before={}, after=patch,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update dev_internal_users %s): %s", target_email, _e)
     doc = await db.dev_internal_users.find_one({"dev_org_id": dev_org_id, "email": target_email}, {"_id": 0})
     return _enrich_internal_user(doc) if doc else {}
 
@@ -479,8 +479,8 @@ async def suspend_user(db, user_id: str, suspended_by: str) -> None:
             "update", "users", user_id,
             before={"status": "active"}, after={"status": "suspended"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (suspend user %s): %s", user_id, _e)
 
 
 async def revoke_invitation(db, invitation_id: str, revoked_by: str) -> Dict[str, Any]:
@@ -513,8 +513,8 @@ async def update_assigned_projects(
             "update", "dev_internal_users", user_id,
             before={}, after={"assigned_projects": project_ids},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update assigned_projects dev_internal_users %s): %s", user_id, _e)
 
 
 # ─── Resend invitation ────────────────────────────────────────────────────────

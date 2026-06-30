@@ -203,8 +203,8 @@ async def ask_copilot(db, user, question: str,
             after={"question_len": len(question),
                    "tokens_used": tokens_in + tokens_out},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (copilot_query copilot_conversation %s): %s", conv["id"], _e)
 
     # Cost estimate (Sonnet ~ $0.003/1k input)
     cost_usd = round((tokens_in / 1000.0) * 0.003 + (tokens_out / 1000.0) * 0.015, 6)

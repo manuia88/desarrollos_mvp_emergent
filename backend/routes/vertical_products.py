@@ -159,8 +159,8 @@ async def v1_bank_avm(body: PropertyFeaturesBody, request: Request, response: Re
             before=None, after={"vertical": "bank-avm", "tier": ctx.tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create vertical_call bank-avm:%s): %s", ctx.id, _e)
     return out
 
 
@@ -196,8 +196,8 @@ async def v1_insurance_risk(body: InsuranceRiskBody, request: Request, response:
             before=None, after={"vertical": "insurance-risk", "tier": ctx.tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create vertical_call insurance-risk:%s): %s", ctx.id, _e)
     return out
 
 
@@ -242,8 +242,8 @@ async def v1_notaria_title(body: TitleCheckBody, request: Request, response: Res
             before=None, after={"vertical": "notaria-title-check", "tier": ctx.tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create vertical_call notaria-title-check:%s): %s", ctx.id, _e)
     return out
 
 
@@ -278,8 +278,8 @@ async def v1_investor_yield(body: InvestorYieldBody, request: Request, response:
             before=None, after={"vertical": "investor-yield", "tier": ctx.tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create vertical_call investor-yield:%s): %s", ctx.id, _e)
     return out
 
 # W5.FF4 register_feature marker · NO duplicate
