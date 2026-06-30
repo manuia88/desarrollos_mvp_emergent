@@ -1598,3 +1598,5 @@ scripts/dev-data/mongo/
 .playwright-mcp/
 backend/.cache/
 backend/static_parallax/
+scripts/.venv/
+.venv/
