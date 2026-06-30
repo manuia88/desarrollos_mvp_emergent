@@ -322,13 +322,46 @@ class IEColN02EmploymentAccessibility(DataPendingRecipe):
 
 
 @register
-class IEColN04CrimeTrajectory(DataPendingRecipe):
+class IEColN04CrimeTrajectory(Recipe):
+    """N04 — Trayectoria del delito: ¿la seguridad MEJORA o EMPEORA? (tendencia FGJ real, no foto).
+    Lee la tendencia de delitos de la colonia (`fgj_trajectory_zone`, ratio año-reciente/año-base sobre
+    2.1M carpetas FGJ) inyectada como pseudo-fuente. Crimen cayendo (ratio<1) = seguridad mejorando =
+    score alto → 100 − percentil del ratio de ciudad. NUNCA inventa: sin ≥2 años FGJ → stub honesto."""
     code = "IE_COL_N04_CRIME_TRAJECTORY"
-    version = "0.1"
-    dependencies = ["fgj_cdmx"]
-    tier_logic = "lower_better"
-    description = "Trayectoria del delito: ¿la seguridad mejora o empeora? (tendencia, no foto)."
-    reason = "Esperando fuente: FGJ solo tiene snapshot; falta serie temporal para la tendencia."
+    version = "1.0"
+    scope = "colonia"
+    dependencies: List[str] = []
+    needs_crime_trajectory = True
+    tier_logic = "higher_better"
+    description = ("Trayectoria del delito (FGJ, ratio año-reciente/año-base): ¿la seguridad mejora o empeora? "
+                   "100 = la que más mejora (delito cayendo).")
+
+    def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
+        zlst = obs_by_source.get("_dmx_crimetraj_zone") or []
+        zdoc = zlst[0].get("payload") if zlst else None
+        if not zdoc or zdoc.get("trend_ratio") is None:
+            return self._stub_result(zone_id, reason="sin tendencia FGJ (≥2 años) para esta colonia")
+        try:
+            ratio = float(zdoc.get("trend_ratio"))
+        except (TypeError, ValueError):
+            return self._stub_result(zone_id, reason="ratio no numérico")
+        city_vals: List[float] = []
+        for o in obs_by_source.get("_dmx_crimetraj_city") or []:
+            p = o.get("payload") or {}
+            try:
+                city_vals.append(float(p.get("trend_ratio")))
+            except (TypeError, ValueError):
+                continue
+        pct = _percentile_of(ratio, city_vals)               # alto = delito subiendo (peor)
+        value = max(0.0, min(100.0, round(100.0 - pct, 2)))   # invertir: ratio bajo (mejora) = score alto
+        n_city = len(city_vals)
+        conf = "high" if n_city >= 20 else ("med" if n_city >= 5 else "low")
+        return ScoreResult(
+            code=self.code, zone_id=zone_id, value=value,
+            tier=self._tier_for(value), confidence=conf, is_stub=False,
+            inputs_used={"fgj_traj_zone": 1, "fgj_traj_city": n_city},
+            formula_version=self.version,
+        )
 
 
 @register

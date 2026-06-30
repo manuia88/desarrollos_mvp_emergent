@@ -36,6 +36,10 @@ _DENUE_CITY_TTL = 180.0  # seconds — long enough to span one full recompute pa
 _WATER_CITY_CACHE: Dict[str, Any] = {"ts": 0.0, "docs": None}
 _WATER_CITY_TTL = 180.0
 
+# Same idea for the FGJ crime-trajectory city distribution (feeds N04).
+_CRIMETRAJ_CITY_CACHE: Dict[str, Any] = {"ts": 0.0, "docs": None}
+_CRIMETRAJ_CITY_TTL = 180.0
+
 
 @dataclass
 class ScoreResult:
@@ -69,6 +73,7 @@ class Recipe:
     needs_denue: bool = False                 # True → engine injects denue_zone_density.by_category pseudo-sources
     needs_natural_risk: bool = False          # True → engine injects risk_scores_zone natural-risk pseudo-source (N05)
     needs_water: bool = False                 # True → engine injects sacmex_zone_colonia incidents pseudo-source (N07)
+    needs_crime_trajectory: bool = False      # True → engine injects fgj_trajectory_zone trend pseudo-source (N04)
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -357,6 +362,26 @@ class ScoreEngine:
             "_dmx_water_city": [{"payload": d, "is_stub": False} for d in city_docs],
         }
 
+    async def _build_crime_trajectory_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For N04 (Crime Trajectory): inject the colonia's REAL FGJ crime trend (`fgj_trajectory_zone`,
+        ratio año-reciente/año-base) + the city distribution (cached) for the percentile. NEVER invents:
+        if the colonia has no ≥2-year FGJ trend → the recipe stubs honestly."""
+        zone_doc = await self.db.fgj_trajectory_zone.find_one(
+            {"zone_id": zone_id}, {"_id": 0, "trend_ratio": 1, "base_count": 1, "recent_count": 1,
+                                   "base_year": 1, "recent_year": 1},
+        )
+        now = time.monotonic()
+        if _CRIMETRAJ_CITY_CACHE["docs"] is None or (now - _CRIMETRAJ_CITY_CACHE["ts"]) > _CRIMETRAJ_CITY_TTL:
+            _CRIMETRAJ_CITY_CACHE["docs"] = await self.db.fgj_trajectory_zone.find(
+                {}, {"_id": 0, "trend_ratio": 1},
+            ).to_list(length=4000)
+            _CRIMETRAJ_CITY_CACHE["ts"] = now
+        city_docs = _CRIMETRAJ_CITY_CACHE["docs"]
+        return {
+            "_dmx_crimetraj_zone": [{"payload": zone_doc, "is_stub": False}] if zone_doc else [],
+            "_dmx_crimetraj_city": [{"payload": d, "is_stub": False} for d in city_docs],
+        }
+
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
         recipe = get_recipe(code)
         if not recipe:
@@ -383,6 +408,9 @@ class ScoreEngine:
         if getattr(recipe, "needs_water", False):
             # N07 reads the colonia's real SACMEX water-incident count
             obs.update(await self._build_water_context(zone_id))
+        if getattr(recipe, "needs_crime_trajectory", False):
+            # N04 reads the colonia's real FGJ crime trend (year-over-year)
+            obs.update(await self._build_crime_trajectory_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively
