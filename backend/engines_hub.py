@@ -262,5 +262,10 @@ async def run(db, engine_id: str, ctx: Optional[Dict[str, Any]] = None) -> Dict[
         salida = await meta["fn"](db, ctx)
     except Exception as e:  # noqa: BLE001
         return {"id": engine_id, "nombre": meta["nombre"], "error": str(e)[:200], "fuente": meta["fuente"]}
+    import engine_present as ep
+    indicadores = ep.presentar(engine_id, salida, meta["fuente"], meta["eje"])
     return {"id": engine_id, "nombre": meta["nombre"], "eje": meta["eje"], "produce": meta["produce"],
-            "fuente": meta["fuente"], "ctx": ctx, "salida": salida}
+            "fuente": meta["fuente"], "ctx": ctx,
+            "indicadores": indicadores,                       # ← hiper-segmentado (lo que se muestra)
+            "hipersegmentado": ep.tiene_descriptor(engine_id),
+            "salida_cruda": salida}                            # ← solo referencia/transparencia, NO se pinta como sudoku
