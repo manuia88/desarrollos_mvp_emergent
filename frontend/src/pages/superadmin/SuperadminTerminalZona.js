@@ -1,6 +1,7 @@
 // Superadmin · TERMINAL DE ZONA — la vista madre del cubo. Pivotea los ejes (atlas · conteos · comparativas ·
 // por desarrollo · atributos · financiero · compuestas · grid). Atributos y Financiero usan el estándar INDICADOR.
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import { getTerminal, getIndicadoresAtributos, getIndicadoresFinanciero } from '../../api/superadminDemandIntel';
@@ -55,7 +56,9 @@ const fSelect = { padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(
 const fInput = { padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#ddd', fontSize: 12.5 };
 
 export default function SuperadminTerminalZona({ user, onLogout }) {
-  const [tab, setTab] = useState('atlas');
+  // Permalink: si el enlace trae ejes de celda (cm) o ?tab=, abre esa pestaña directo (no la default).
+  const [sp] = useSearchParams();
+  const [tab, setTab] = useState(sp.get('tab') || (sp.get('cm') ? 'celda' : 'atlas'));
   const [zona, setZona] = useState('');   // CONTEXTO COMPARTIDO: la colonia en foco que heredan los tabs (workbench)
   const [cache, setCache] = useState({});
   const [loading, setLoading] = useState(false);
