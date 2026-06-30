@@ -2,6 +2,7 @@
 // independiente, con su OFERTA y su DEMANDA al lado, scores de la zona, comparativo, lectura y drill nano↔macro.
 // Consume GET /demand-intel/celda (terminal_celda.build_celda). Lenguaje simple, cero jerga.
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Badge } from '../advisor/primitives';
 import { getCelda } from '../../api/superadminDemandIntel';
 
@@ -48,13 +49,16 @@ function Fila({ k, v, suf }) {
 }
 
 export default function CeldaPanel({ geoSel }) {
-  const [measure, setMeasure] = useState('of.precio_m2');
-  const [geoNivel, setGeoNivel] = useState('colonia');
-  const [geoValor, setGeoValor] = useState((geoSel && (geoSel.valor || geoSel.id)) || 'polanco');
-  const [tipologia, setTipologia] = useState('depto');
+  // Permalink: la celda es direccionable por URL (cm=medida · cn=nivel · cg=geo · ct=tipo) → compartible/bookmarkable.
+  const [sp, setSp] = useSearchParams();
+  const [measure, setMeasure] = useState(sp.get('cm') || 'of.precio_m2');
+  const [geoNivel, setGeoNivel] = useState(sp.get('cn') || 'colonia');
+  const [geoValor, setGeoValor] = useState(sp.get('cg') || (geoSel && (geoSel.valor || geoSel.id)) || 'polanco');
+  const [tipologia, setTipologia] = useState(sp.get('ct') != null ? sp.get('ct') : 'depto');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [copiado, setCopiado] = useState(false);
 
   const cargar = useCallback(async (overrides = {}) => {
     const params = {
@@ -66,8 +70,15 @@ export default function CeldaPanel({ geoSel }) {
       setData(d);
       if (overrides.geo_nivel) setGeoNivel(overrides.geo_nivel);
       if (overrides.geo_valor !== undefined) setGeoValor(overrides.geo_valor);
+      // Escribir los ejes en la URL (permalink) sin pisar otros params del Terminal.
+      setSp((prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('cm', params.measure); n.set('cn', params.geo_nivel); n.set('cg', params.geo_valor || '');
+        if (params.tipologia) n.set('ct', params.tipologia); else n.delete('ct');
+        return n;
+      }, { replace: true });
     } catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, [measure, geoNivel, geoValor, tipologia]);
+  }, [measure, geoNivel, geoValor, tipologia, setSp]);
 
   useEffect(() => { cargar(); }, [measure, tipologia]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -97,6 +108,11 @@ export default function CeldaPanel({ geoSel }) {
               onKeyDown={(e) => { if (e.key === 'Enter') cargar({ geo_nivel: 'colonia' }); }} placeholder="ej. polanco" /></div>
           <button style={{ ...drillBtn, background: 'var(--theme, #6366f1)', color: '#fff', borderColor: 'transparent' }}
             onClick={() => cargar({ geo_nivel: 'colonia' })}>Ver celda</button>
+          <button style={drillBtn} title="Copia el enlace directo a esta celda"
+            onClick={() => {
+              try { if (navigator.clipboard) navigator.clipboard.writeText(window.location.href); } catch { /* sin clipboard */ }
+              setCopiado(true); setTimeout(() => setCopiado(false), 1500);
+            }}>{copiado ? 'Enlace copiado ✓' : 'Copiar enlace'}</button>
         </div>
       </Card>
 
