@@ -61,10 +61,10 @@ ALL_SOURCES = [
 
 SOURCE_LABELS = {
     SOURCE_BANXICO_SIE:     "BANXICO SIE · Series macro MX",
-    SOURCE_DATAMEXICO:      "DataMéxico SE · Indicadores económicos",
+    SOURCE_DATAMEXICO:      "INEGI BISE · Indicadores MX",  # repuntado: DataMéxico (host muerto) → INEGI
     SOURCE_CONAVI_VIVIENDA: "CONAVI · Vivienda federal",
     SOURCE_SESNSP_DELITOS:  "SESNSP · Delitos mensuales",
-    SOURCE_CENAPRED_ATLAS:  "CENAPRED · Atlas Nacional de Riesgos",
+    SOURCE_CENAPRED_ATLAS:  "SGIRPC Atlas Riesgos CDMX · sismo/geológico",  # repuntado: CENAPRED (caído) → SGIRPC
 }
 
 # Track C upload source labels (whitelisted dropdown)
@@ -184,6 +184,18 @@ def _parse_html_snippet(r: httpx.Response) -> Dict[str, Any]:
         return {"length": 0, "snippet": ""}
 
 
+def _parse_arcgis_layers(r: httpx.Response) -> Dict[str, Any]:
+    """Resumen liviano de un MapServer ArcGIS (catálogo de capas) · honesto: lanza si no es JSON."""
+    d = r.json()  # si es HTML/error → lanza → _fetch_cached marca status=error
+    layers = d.get("layers") or []
+    return {
+        "service": d.get("mapName") or d.get("documentInfo", {}).get("Title", ""),
+        "n_capas": len(layers),
+        "capas": [{"id": l.get("id"), "name": l.get("name")} for l in layers[:40]],
+        "description": (d.get("serviceDescription") or "")[:300],
+    }
+
+
 async def _fetch_cached(
     db,
     source_id: str,
@@ -280,13 +292,18 @@ async def fetch_banxico_sie(db, series_id: str = "SF43718") -> Dict[str, Any]:
     return res
 
 
-# ─── Connector 3 · DataMéxico SE (sin token) ─────────────────────────────────
+# ─── Connector 3 · INEGI BISE (token) — antes DataMéxico (host muerto) ───────
 async def fetch_datamexico_se(db) -> Dict[str, Any]:
-    """DataMéxico (Secretaría de Economía) · indicadores económicos México."""
-    # API tesseract pública · ejemplo: PIB por entidad
-    url = "https://api.datamexico.org/tesseract/cubes/inegi_pib_pe/aggregate"
-    params = {"drilldowns": "State", "measures": "Millions of Pesos", "limit": "100"}
-    res = await _fetch_cached(db, SOURCE_DATAMEXICO, url, ttl_days=14, params=params)
+    """INEGI BISE · indicadores MX (demografía/economía). Repuntado desde DataMéxico,
+    cuyo host (api.datamexico.org) ya no resuelve. Token: IE_INEGI_TOKEN.
+    HONESTO: si INEGI responde HTML (token vencido / indicador inválido), `r.json()`
+    truena en _fetch_cached → status=error (no se finge OK). Va a verde cuando el token/indicador sean válidos."""
+    token = os.environ.get("IE_INEGI_TOKEN", "")
+    indicador = os.environ.get("IE_INEGI_INDICADOR", "1002000001")  # default: población total
+    area = os.environ.get("IE_INEGI_AREA", "00")                    # default: nacional
+    url = (f"https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/"
+           f"INDICATOR/{indicador}/es/{area}/false/BISE/2.0/{token}?type=json")
+    res = await _fetch_cached(db, SOURCE_DATAMEXICO, url, ttl_days=14)
     await _audit(db, "gov_data_mx_fetched", SOURCE_DATAMEXICO,
                  {"status": res.get("status")})
     return res
@@ -312,11 +329,15 @@ async def fetch_sesnsp_delitos(db) -> Dict[str, Any]:
     return res
 
 
-# ─── Connector 6 · CENAPRED Atlas Riesgos (sin token) ────────────────────────
+# ─── Connector 6 · SGIRPC Atlas Riesgos CDMX — antes CENAPRED (host caído) ────
 async def fetch_cenapred_atlas(db) -> Dict[str, Any]:
-    """CENAPRED Atlas Nacional Riesgos · landing público · zona/peligros."""
-    url = "https://www.atlasnacionalderiesgos.gob.mx/app/v1.0/"
-    res = await _fetch_cached(db, SOURCE_CENAPRED_ATLAS, url, ttl_days=30, parser=_parse_html_snippet)
+    """SGIRPC Atlas de Riesgos CDMX (ArcGIS REST) · catálogo de capas geológicas/sísmicas.
+    Repuntado desde CENAPRED nacional (host inalcanzable); para CDMX la fuente autoritativa
+    y keyless es SGIRPC (verificada HTTP 200, capas reales). Sismo/hundimiento/inundación."""
+    url = ("https://serviciosatlas.sgirpc.cdmx.gob.mx/arcgis/rest/services/"
+           "AtlasCapasPublicas/Geologicos/MapServer")
+    res = await _fetch_cached(db, SOURCE_CENAPRED_ATLAS, url, ttl_days=30,
+                              params={"f": "json"}, parser=_parse_arcgis_layers)
     await _audit(db, "gov_data_mx_fetched", SOURCE_CENAPRED_ATLAS,
                  {"status": res.get("status")})
     return res
