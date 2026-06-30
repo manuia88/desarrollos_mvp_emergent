@@ -206,7 +206,9 @@ async def build_celda(db, *, measure: str, geo_nivel: Optional[str] = None, geo_
         if v is not None:
             nucleo["valor"] = v
             nucleo["es_latente"] = False
-            nucleo["fuente"] = (nucleo.get("fuente") or "") + " · Cubo OLAP (vivo)" if nucleo.get("fuente") else "Cubo OLAP (vivo)"
+            prev = nucleo.get("fuente")
+            prev_s = ", ".join(str(x) for x in prev) if isinstance(prev, list) else (str(prev) if prev else "")
+            nucleo["fuente"] = (prev_s + " · Cubo OLAP (vivo)") if prev_s else "Cubo OLAP (vivo)"
             nucleo["n"] = nucleo.get("n") or oferta.get("unidades_total")
 
     return {
