@@ -5,7 +5,7 @@ motor. La pestaña 'Motores' lista el catálogo y corre cualquiera. Los de mayor
 GOAL EN LOOP (ENGINE_MAP.md): se agregan motores por tandas hasta el 100%. Cada runner es defensivo (un motor que falla no
 tumba el hub). Casi todos toman un contexto simple {colonia_id, alcaldia?, dev_id?}.
 """
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 def _alcaldia_de(colonia_id: str) -> Optional[str]:
@@ -61,6 +61,79 @@ async def _r_forecast(db, ctx):
     return r
 
 
+def _nombre_de(colonia_id: str) -> Optional[str]:
+    from data_developments import DEVELOPMENTS
+    for d in DEVELOPMENTS:
+        if d.get("colonia_id") == colonia_id:
+            return d.get("colonia")
+    return colonia_id
+
+
+# ── TANDA 2+ runners (geo · forecast · inversión) ──
+async def _r_catastro(db, ctx):
+    import catastro_sig_engine as e
+    return await e.colonia_catastro(db, _nombre_de(ctx.get("colonia_id")))
+
+
+async def _r_natural_risk(db, ctx):
+    import natural_risk_engine as e
+    return await e.compute_natural_risk_zone(db, ctx.get("colonia_id"))
+
+
+async def _r_perception(db, ctx):
+    import perception_risk_engine as e
+    return await e.compute_perception_risk_zone(db, ctx.get("colonia_id"))
+
+
+async def _r_zone_score(db, ctx):
+    import zone_score_engine as e
+    return await e.get_score_or_compute(db, ctx.get("colonia_id"), tier="colonia")
+
+
+async def _r_perfil_zona(db, ctx):
+    import perfil_zona_engine as e
+    return await e.perfil_zona(db, ctx.get("colonia_id"))
+
+
+async def _r_dmx_indices(db, ctx):
+    import dmx_indices_engine as e
+    import zone_score_engine as zs
+    sc = await zs.get_score_or_compute(db, ctx.get("colonia_id"), tier="colonia")
+    colonia = {"colonia_id": ctx.get("colonia_id"), "city": "CDMX",
+               "scores": sc.get("scores") or sc.get("subscores") or sc, "inventory": sc.get("inventory") or {}}
+    return e.compute_indices(colonia)
+
+
+async def _r_drpi(db, ctx):
+    import drpi_engine as e
+    return await e.compute_drpi_national(db, period="")
+
+
+async def _r_live_pulse(db, ctx):
+    import live_pulse_engine as e
+    return await e.compute_trend_velocity(db, ctx.get("colonia_id"))
+
+
+async def _r_score_inversion(db, ctx):
+    import score_inversion_engine as e
+    return await e.top_colonias_by_score(db)
+
+
+async def _r_invest_baseline(db, ctx):
+    import investment_simulator_engine as e
+    return await e.get_colonia_baseline(db, ctx.get("colonia_id"))
+
+
+async def _r_inversionista(db, ctx):
+    import inversionista_engine as e
+    return await e.comercio_pb(db, ctx.get("colonia_id"))
+
+
+async def _r_due_diligence(db, ctx):
+    import predio_due_diligence_engine as e
+    return await e.generar_due_diligence(db, ctx.get("colonia_id"))
+
+
 # ── REGISTRO — se crece por tandas (ENGINE_MAP.md). id · nombre · eje · produce · runner · fuente ──
 REGISTRO: List[Dict[str, Any]] = [
     {"id": "shf", "nombre": "Índice SHF — apreciación oficial", "eje": "DÓNDE/PRECIO", "tanda": 1,
@@ -77,6 +150,31 @@ REGISTRO: List[Dict[str, Any]] = [
      "produce": "AVM base + posición de precio por colonia", "input": ["colonia_id"], "fn": _r_market_estimate, "fuente": "market_estimate_engine"},
     {"id": "forecast_zona", "nombre": "Pronóstico de zona", "eje": "FORECAST", "tanda": 1,
      "produce": "forecast de precio/absorción por colonia", "input": ["colonia_id"], "fn": _r_forecast, "fuente": "forecast_engine"},
+    # ── TANDA 2 ──
+    {"id": "catastro", "nombre": "Catastro / SIG (predio)", "eje": "DÓNDE", "tanda": 2,
+     "produce": "datos catastrales a nivel predio de la colonia", "input": ["colonia_id"], "fn": _r_catastro, "fuente": "catastro_sig_engine"},
+    {"id": "riesgo_natural", "nombre": "Riesgo natural (sísmico/inundación)", "eje": "RIESGO", "tanda": 2,
+     "produce": "riesgo natural por zona", "input": ["colonia_id"], "fn": _r_natural_risk, "fuente": "natural_risk_engine"},
+    {"id": "riesgo_percibido", "nombre": "Riesgo percibido (ENVIPE)", "eje": "RIESGO", "tanda": 2,
+     "produce": "percepción de inseguridad por zona", "input": ["colonia_id"], "fn": _r_perception, "fuente": "perception_risk_engine"},
+    {"id": "zone_score", "nombre": "Score de zona", "eje": "DÓNDE", "tanda": 2,
+     "produce": "score compuesto de la zona", "input": ["colonia_id"], "fn": _r_zone_score, "fuente": "zone_score_engine"},
+    {"id": "perfil_zona", "nombre": "Perfil de zona", "eje": "DÓNDE", "tanda": 2,
+     "produce": "perfil/arquetipo de la colonia", "input": ["colonia_id"], "fn": _r_perfil_zona, "fuente": "perfil_zona_engine"},
+    {"id": "dmx_indices", "nombre": "Índices DMX", "eje": "SEÑALES", "tanda": 2,
+     "produce": "índices propios del mercado (nacional)", "input": [], "fn": _r_dmx_indices, "fuente": "dmx_indices_engine"},
+    {"id": "drpi", "nombre": "DRPI (índice de precios real)", "eje": "FORECAST", "tanda": 2,
+     "produce": "índice DRPI nacional", "input": [], "fn": _r_drpi, "fuente": "drpi_engine"},
+    {"id": "live_pulse", "nombre": "Pulso vivo (velocidad de tendencia)", "eje": "SEÑALES", "tanda": 2,
+     "produce": "velocidad de tendencia de la zona (Bloomberg-style)", "input": ["colonia_id"], "fn": _r_live_pulse, "fuente": "live_pulse_engine"},
+    {"id": "score_inversion_top", "nombre": "Top colonias por inversión", "eje": "INVERSIÓN", "tanda": 2,
+     "produce": "ranking de colonias por score de inversión", "input": [], "fn": _r_score_inversion, "fuente": "score_inversion_engine"},
+    {"id": "invest_baseline", "nombre": "Baseline de inversión", "eje": "INVERSIÓN", "tanda": 2,
+     "produce": "baseline financiero de la colonia (para el simulador)", "input": ["colonia_id"], "fn": _r_invest_baseline, "fuente": "investment_simulator_engine"},
+    {"id": "inversionista_comercio", "nombre": "Comercio en PB (inversionista)", "eje": "INVERSIÓN", "tanda": 2,
+     "produce": "potencial de comercio en planta baja de la zona", "input": ["colonia_id"], "fn": _r_inversionista, "fuente": "inversionista_engine"},
+    {"id": "due_diligence", "nombre": "Due diligence de predio", "eje": "RIESGO", "tanda": 2,
+     "produce": "due diligence (uso de suelo/riesgos) de la zona", "input": ["colonia_id"], "fn": _r_due_diligence, "fuente": "predio_due_diligence_engine"},
 ]
 BY_ID = {e["id"]: e for e in REGISTRO}
 

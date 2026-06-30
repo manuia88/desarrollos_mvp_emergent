@@ -10,7 +10,7 @@ valor además se integran como dimensiones/indicadores del cubo.
 
 **Estado:** ⬜ por cablear · 🟦 en hub (runnable+visible) · ✅ integrado al cubo (dimensión/indicador) · ⬛ otro portal (fuera de Terminal).
 
-**Progreso:** 7 / ~120 cube-relevantes en hub (TANDA 1 ✅ — shf·osm·demográfica·bancabilidad·valores_unitarios·market_estimate·forecast_zona). 4 con dato real, 3 latentes (corren, esperan ingesta).
+**Progreso:** 19 / ~120 cube-relevantes en hub (TANDA 1 ✅ · TANDA 2 ✅ geo+forecast+inversión: catastro 2593 predios·riesgo natural·percibido·zone_score·perfil_zona·dmx_indices·drpi·live_pulse·score_inversion_top·invest_baseline·comercio_pb·due_diligence). ~22 con dato real.
 
 ---
 
