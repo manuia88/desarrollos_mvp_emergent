@@ -166,21 +166,54 @@ async def apply_recommendation(rec_id: str, request: Request):
         {"$set": {"status": "applied", "applied_at": now, "applied_by_user_id": user_id}},
     )
 
-    # Audit log
+    # ── APLICAR DE VERDAD: mutar el precio REAL de la unidad (antes solo flipeaba el status).
+    # Cierra el lente agentic del dev: el subagente ya no solo recomienda, ACTÚA. Guardrail: tope ±20%
+    # (never-auto-locura), solo en apply explícito (human-in-the-loop), con audit before/after del dinero.
+    price_change = None
+    unit_id = doc.get("unit_id")
+    delta_raw = doc.get("delta_pct")
+    if unit_id and delta_raw is not None:
+        try:
+            delta = max(-20.0, min(20.0, float(delta_raw)))  # tope de seguridad
+        except (TypeError, ValueError):
+            delta = None
+        if delta is not None:
+            dev = await db.developments.find_one({"units.id": unit_id}, {"id": 1, "units": 1})
+            unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None) if dev else None
+            cur = unit.get("price") if unit else None
+            if dev and cur:
+                try:
+                    new_price = round(float(cur) * (1 + delta / 100.0))
+                    await db.developments.update_one(
+                        {"id": dev["id"], "units.id": unit_id},
+                        {"$set": {"units.$.price": new_price,
+                                  "units.$.price_display": f"${new_price:,.0f}",
+                                  "units.$.price_updated_at": now,
+                                  "units.$.price_updated_by": f"pricing_agent_apply:{user_id or 'dev'}"}},
+                    )
+                    price_change = {"unit_id": unit_id, "before": float(cur), "after": new_price, "delta_pct": delta}
+                except (TypeError, ValueError) as exc:
+                    log.warning(f"[routes_subagents] price mutation failed for {unit_id}: {exc}")
+
+    # Audit log (incluye el cambio de dinero real si lo hubo)
     try:
         from audit_log import log_mutation
         actor_dict = {"user_id": user_id or "unknown", "role": getattr(user, "role", ""), "tenant_id": org_id}
         await log_mutation(
             db, actor_dict, "update", "pricing_recommendation",
             entity_id=rec_id,
-            before={"status": "pending"},
-            after={"status": "applied", "applied_by": user_id},
+            before={"status": "pending", "price": (price_change or {}).get("before")},
+            after={"status": "applied", "applied_by": user_id, "price": (price_change or {}).get("after"),
+                   "price_mutated": price_change is not None},
         )
     except Exception as exc:
         log.warning(f"[routes_subagents] audit log failed: {exc}")
 
     updated = await db.pricing_recommendations.find_one({"_id": rec_id})
-    return JSONResponse(content=_clean_rec(updated or {}))
+    out = _clean_rec(updated or {})
+    if price_change:
+        out["price_change"] = price_change
+    return JSONResponse(content=out)
 
 
 # ─── POST /api/subagents/pricing/recommendations/{id}/reject ──────────────────
