@@ -690,7 +690,9 @@ function AppRouter() {
       <Route path="/p/:token" element={<SwipeLinkRoute />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/favoritos" element={<Suspense fallback={null}><Favoritos /></Suspense>} />
-      <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
+      {/* CMP-03 (audit v2): página legacy del modelo viejo 'propiedad única' (hero SVG falso, loading roto, huérfana).
+          Solo alcanzable por shares antiguos → redirige al marketplace en vez de mostrar la página muerta. */}
+      <Route path="/propiedad/:id" element={<Navigate to="/marketplace" replace />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
       {/* Atajo: /desarrollo (sin id) → portal del desarrollador (evita el rebote a superadmin) */}
       <Route path="/desarrollo" element={<Navigate to="/desarrollador" replace />} />
