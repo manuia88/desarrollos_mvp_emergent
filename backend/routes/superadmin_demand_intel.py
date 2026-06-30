@@ -107,6 +107,35 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/disenar")
+async def disenar_ep(request: Request, colonia: str, top: int = 3):
+    """AUTO-ARQUITECTO — 'el cubo diseña': la ficha técnica óptima a construir en [colonia], del whitespace × precio × premium."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import auto_arquitecto as aa
+    return await aa.disenar(request.app.state.db, colonia, top=top)
+
+
+@router.post("/activar")
+async def activar_ep(request: Request):
+    """ACTIVACIÓN — 'el cubo actúa': rutea un hallazgo a dev/asesor/marketplace. Body = {destino,titulo,detalle,colonia?,filtro?,payload?}."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import activacion as ac
+    b = await request.json()
+    return await ac.activar(request.app.state.db, b.get("destino", ""), b.get("titulo", ""), b.get("detalle", ""),
+                            colonia=b.get("colonia"), filtro=b.get("filtro"), payload=b.get("payload"))
+
+
+@router.get("/acciones")
+async def acciones_ep(request: Request, destino: Optional[str] = None, estado: Optional[str] = None):
+    """ACTIVACIÓN — el libro mayor de acciones del cubo (lo enviado a dev/asesor/marketplace)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import activacion as ac
+    return await ac.listar(request.app.state.db, destino=destino, estado=estado)
+
+
 @router.get("/simetria")
 async def simetria_ep(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
     """SIMETRÍA — el cubo oferta↔demanda: balance y tensión por cada dimensión a la vez."""
