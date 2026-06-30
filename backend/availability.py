@@ -333,8 +333,9 @@ async def assign_appointment(
                         "score": (match.get("candidates") or [{}])[0].get("match_pct", 0),
                     },
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                log.warning("[audit] log_activity perdido (smart_match_assigned lead_match %s): %s",
+                            match.get("match_id", ""), _e)
         except Exception as e:
             # Fallback safe a load_balance
             import logging as _log
@@ -436,8 +437,9 @@ async def assign_appointment(
             metadata={"asesor_id": asesor_id, "project_id": project_id,
                        "slot": slot_start, "policy": policy_type},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (appointment_made appointment %s): %s",
+                    appointment_id, _e)
 
     return {
         "appointment_id": appointment_id,

@@ -132,8 +132,9 @@ async def get_wrapped(year_month: str, request: Request, user=Depends(_require_b
             action="wrapped_viewed", entity_id=doc["wrapped_id"],
             entity_type="buyer_wrapped",
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (wrapped_viewed buyer_wrapped %s): %s",
+                    doc["wrapped_id"], _e)
 
     return _clean_wrapped(doc)
 

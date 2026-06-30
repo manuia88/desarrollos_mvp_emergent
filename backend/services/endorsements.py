@@ -185,8 +185,9 @@ async def create_endorsement(
             entity_type="asesor_endorsement",
             metadata={"rating": int(rating), "project_id": project_id},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (endorsement_pending asesor_endorsement %s): %s",
+                    eid, _e)
 
     return _clean(doc)
 
@@ -215,8 +216,9 @@ async def confirm_endorsement(db, token: str) -> Optional[Dict[str, Any]]:
             entity_type="asesor_endorsement",
             metadata={"rating": doc.get("rating", 0)},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (endorsement_received asesor_endorsement %s): %s",
+                    doc["endorsement_id"], _e)
 
     # Trigger trust score re-compute
     try:

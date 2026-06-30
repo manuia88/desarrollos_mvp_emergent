@@ -439,8 +439,9 @@ async def public_book_appointment(body: PublicBookingIn, request: Request):
                 metadata={"name": body.lead_name, "project_id": body.project_id,
                            "source": "marketplace_booking"},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] log_activity perdido (lead_created lead %s): %s",
+                        lead_id, _e)
 
     from availability import assign_appointment
     try:

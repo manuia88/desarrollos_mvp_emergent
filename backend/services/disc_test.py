@@ -224,8 +224,9 @@ async def submit_disc(
             entity_type="asesor_disc_profile",
             metadata={"primary": primary},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (disc_completed asesor_disc_profile %s): %s",
+                    asesor_id, _e)
 
     # Trust score bonus +5
     try:

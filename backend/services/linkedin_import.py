@@ -106,8 +106,9 @@ async def import_from_url(
             entity_type="asesor_linkedin_profile",
             metadata={"years_experience": cleaned["years_experience"]},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (linkedin_imported asesor_linkedin_profile %s): %s",
+                    asesor_id, _e)
 
     # Re-compute trust score (experience + certs cambian)
     try:

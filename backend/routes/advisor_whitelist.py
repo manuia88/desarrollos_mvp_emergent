@@ -271,8 +271,9 @@ async def upsert_auto_approve_rule(payload: AutoApproveRuleIn, request: Request)
             dev_org, "auto_approve_rule",
             metadata={"enabled": payload.enabled, "threshold": payload.threshold_trust_score},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (update auto_approve_rule %s): %s",
+                    dev_org, _e)
     return rule
 
 

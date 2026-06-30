@@ -263,8 +263,9 @@ async def inline_edit(entity_type: str, entity_id: str, body: InlineIn, request:
             entity_id, entity_type,
             metadata={"field": body.field, "old": old_value, "new": new_value},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (inline_edit %s %s): %s",
+                    entity_type, entity_id, _e)
 
     # Register undo
     try:
@@ -423,8 +424,9 @@ async def undo_action(undo_id: str, request: Request):
             u.get("entity_id", ""), u.get("entity_type", ""),
             metadata={"undo_id": undo_id, "action": u.get("action")},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (undo %s undo_id=%s): %s",
+                    u.get("entity_type", ""), undo_id, _e)
     return {"ok": True, "undo_id": undo_id, "restored_action": u.get("action")}
 
 
@@ -553,8 +555,9 @@ async def _reorder_generic(db, coll_name: str, id_field: str,
         await log_activity(db, user_id, "system", "reorder",
                            scope_filter.get("development_id", ""),
                            entity_type, metadata={"count": len(ordered_ids)})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (reorder %s %s): %s",
+                    entity_type, scope_filter.get("development_id", ""), _e)
     return {"ok": True, "reordered": len(ordered_ids)}
 
 

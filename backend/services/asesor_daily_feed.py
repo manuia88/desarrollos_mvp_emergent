@@ -203,8 +203,9 @@ async def execute_action(
             entity_id=lead_id, entity_type="lead",
             metadata={"action_type": action_type},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (daily_feed_action_%s lead %s): %s",
+                    action_type, lead_id, _e)
 
     return result
 

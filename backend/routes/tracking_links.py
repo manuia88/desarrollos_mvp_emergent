@@ -120,8 +120,9 @@ async def create_link(body: LinkCreate, request: Request):
             slug, "tracking_link",
             metadata={"project_id": body.project_id, "utm_source": body.utm_source},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (link_created tracking_link %s): %s",
+                    slug, _e)
 
     out = {**doc, "booking_url": booking_url, "qr_png_data_url": qr}
     out.pop("_id", None)
@@ -185,8 +186,9 @@ async def delete_link(link_id: str, request: Request):
     try:
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "link_deleted", link_id, "tracking_link")
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (link_deleted tracking_link %s): %s",
+                    link_id, _e)
     return {"ok": True, "link_id": link_id}
 
 

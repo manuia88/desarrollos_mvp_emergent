@@ -87,8 +87,9 @@ async def upsert_kit(body: BrandKitUpsertBody, request: Request) -> Dict[str, An
         await log_activity(db, user.user_id, user.role, "brand_kit_upsert",
                            doc.get("id"), "brand_kit",
                            {"variant": body.variant_key})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (brand_kit_upsert brand_kit %s): %s",
+                    doc.get("id"), _e)
     return {"ok": True, "kit": doc}
 
 
@@ -119,8 +120,9 @@ async def delete_kit_route(kit_id: str, request: Request) -> Dict[str, Any]:
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "brand_kit_delete",
                            kit_id, "brand_kit", {})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (brand_kit_delete brand_kit %s): %s",
+                    kit_id, _e)
     return {"ok": True, "deleted": kit_id}
 
 
@@ -135,8 +137,9 @@ async def activate_kit_route(kit_id: str, request: Request) -> Dict[str, Any]:
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "brand_kit_activate",
                            kit_id, "brand_kit", {"variant": kit.get("variant_key")})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (brand_kit_activate brand_kit %s): %s",
+                    kit_id, _e)
     return {"ok": True, "kit": kit}
 
 

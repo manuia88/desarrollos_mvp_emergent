@@ -148,8 +148,9 @@ async def send_message(
             entity_type="chat_thread",
             metadata={"thread_id": thread_id, "chars": len(text)},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (chat_message_sent chat_thread %s): %s",
+                    thread_id, _e)
 
     # Notify receptor
     try:

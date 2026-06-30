@@ -381,8 +381,9 @@ async def generate_visit_briefing(
             entity_type="visit_briefing",
             metadata={"appointment_id": appointment_id},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (visit_briefing_generated visit_briefing %s): %s",
+                    doc["briefing_id"], _e)
 
     out = dict(doc)
     out["generated_at"] = _iso(doc["generated_at"])
@@ -453,8 +454,9 @@ async def auto_generate_upcoming_briefings(db) -> Dict[str, int]:
                     actor_type="system", action="visit_briefing_ready",
                     entity_id=appt_id, entity_type="appointment",
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                log.warning("[audit] log_activity perdido (visit_briefing_ready appointment %s): %s",
+                            appt_id, _e)
         except Exception as e:
             log.warning(f"[visit_prep cron] fail {appt_id}: {e}")
             failed += 1

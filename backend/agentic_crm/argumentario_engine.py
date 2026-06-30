@@ -481,8 +481,9 @@ class ArgumentarioEngine:
                 "asesor_id": asesor_id,
                 "created_at": _now(),
             })
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] log_activity perdido (argumentario.mark_used lead %s): %s",
+                        lead_id, _e)
         result = await self._get_existing(lead_id)
         return result or {"ok": True, "status": "used"}
 

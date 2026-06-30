@@ -182,8 +182,9 @@ async def set_dev_external_inventory(payload: ExternalInventoryIn, request: Requ
             dev_org, "dev_org_settings",
             metadata={"allow_external_inventory": payload.enabled},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (update dev_org_settings %s): %s",
+                    dev_org, _e)
     return {"dev_org_id": dev_org, "allow_external_inventory": payload.enabled}
 
 

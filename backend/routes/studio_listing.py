@@ -61,8 +61,9 @@ async def create_import(body: ListingImportBody, request: Request) -> Dict[str, 
         await log_activity(db, user.user_id, user.role, "studio_listing_import",
                            doc.get("id"), "listing_import",
                            {"portal": doc.get("source_portal"), "status": doc.get("status")})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (studio_listing_import listing_import %s): %s",
+                    doc.get("id"), _e)
     return {"ok": True, "import": doc}
 
 
@@ -103,6 +104,7 @@ async def delete_import_route(import_id: str, request: Request) -> Dict[str, Any
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "studio_listing_import_delete",
                            import_id, "listing_import", {})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (studio_listing_import_delete listing_import %s): %s",
+                    import_id, _e)
     return {"ok": True, "deleted": import_id}

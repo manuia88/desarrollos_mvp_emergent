@@ -120,8 +120,9 @@ async def asset_confirm(body: AssetConfirmBody, request: Request) -> Dict[str, A
         await log_activity(db, user.user_id, user.role, "studio_asset_confirm",
                            doc["id"], "studio_asset",
                            {"type": body.asset_type, "size": body.size_bytes})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (studio_asset_confirm studio_asset %s): %s",
+                    doc["id"], _e)
     return {"ok": True, "asset": doc}
 
 
@@ -168,8 +169,9 @@ async def delete_asset_route(asset_id: str, request: Request) -> Dict[str, Any]:
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "studio_asset_delete",
                            asset_id, "studio_asset", {})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (studio_asset_delete studio_asset %s): %s",
+                    asset_id, _e)
     return {"ok": True, "deleted": asset_id}
 
 
@@ -193,8 +195,9 @@ async def create_board_route(body: MoodBoardCreateBody, request: Request) -> Dic
         await log_activity(db, user.user_id, user.role, "mood_board_create",
                            doc["id"], "mood_board",
                            {"project_id": body.project_id, "name": body.name})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (mood_board_create mood_board %s): %s",
+                    doc["id"], _e)
     return {"ok": True, "board": doc}
 
 
@@ -235,8 +238,9 @@ async def update_board_route(board_id: str, body: MoodBoardUpdateBody,
         await log_activity(db, user.user_id, user.role, "mood_board_update",
                            board_id, "mood_board",
                            {"keys": list(body.model_dump(exclude_unset=True).keys())})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (mood_board_update mood_board %s): %s",
+                    board_id, _e)
     return {"ok": True, "board": doc}
 
 
@@ -259,6 +263,7 @@ async def delete_board_route(board_id: str, request: Request) -> Dict[str, Any]:
         from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "mood_board_delete",
                            board_id, "mood_board", {})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (mood_board_delete mood_board %s): %s",
+                    board_id, _e)
     return {"ok": True, "deleted": board_id}

@@ -247,8 +247,9 @@ async def approve(
             auth_id, "dev_advisor_authorization",
             metadata={"dev_org_id": doc["dev_org_id"], "asesor_id": doc["asesor_id"]},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (whitelist_approved dev_advisor_authorization %s): %s",
+                    auth_id, _e)
 
     # Notificar al asesor
     try:
@@ -325,8 +326,9 @@ async def reject(
             auth_id, "dev_advisor_authorization",
             metadata={"asesor_id": doc["asesor_id"], "comentario": comentario},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (whitelist_rejected dev_advisor_authorization %s): %s",
+                    auth_id, _e)
 
     # Notificar al asesor
     try:
@@ -391,8 +393,9 @@ async def revoke(
             auth_id, "dev_advisor_authorization",
             metadata={"asesor_id": doc["asesor_id"], "reason": reason},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (whitelist_revoked dev_advisor_authorization %s): %s",
+                    auth_id, _e)
 
     # Notificar al asesor
     try:

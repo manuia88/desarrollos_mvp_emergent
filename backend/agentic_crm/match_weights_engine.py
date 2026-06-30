@@ -230,8 +230,9 @@ class MatchWeightsEngine:
                 "weights": clean,
                 "created_at": now,
             })
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] log_activity perdido (match_weights.manual_updated org %s v%s): %s",
+                        self.org_id, version, _e)
 
         return await self.get_weights()
 

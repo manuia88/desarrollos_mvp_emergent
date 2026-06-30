@@ -453,8 +453,9 @@ async def compute_match(
             metadata={"lead_id": lead_id, "winner": winner_id,
                       "score": candidates[0]["match_pct"] if candidates else 0},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (lead_match_computed lead_match %s): %s",
+                    match_id, _e)
 
     out = dict(doc)
     out["computed_at"] = _iso(doc["computed_at"])

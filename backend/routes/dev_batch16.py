@@ -231,8 +231,9 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
                 metadata={"name": body.lead_name, "project_id": slug,
                            "source": "public_booking"},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] log_activity perdido (lead_created lead %s): %s",
+                        lead_id, _e)
 
     # Auto-assign via B15 engine
     from availability import assign_appointment

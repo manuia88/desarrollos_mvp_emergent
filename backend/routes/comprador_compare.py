@@ -61,8 +61,9 @@ async def compare_premium(body: CompareBody, request: Request, user=Depends(_req
             entity_type=body.entity_type,
             metadata={"ids": body.ids, "tier": "buyer"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (comparator_premium %s %s): %s",
+                    body.entity_type, ",".join(body.ids[:3]), _e)
 
     return matrix
 
@@ -89,8 +90,9 @@ async def compare_premium_pdf(body: ComparePdfBody, request: Request, user=Depen
             entity_id=",".join(body.ids[:3]),
             entity_type=body.entity_type,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (comparator_premium_pdf %s %s): %s",
+                    body.entity_type, ",".join(body.ids[:3]), _e)
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),

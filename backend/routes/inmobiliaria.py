@@ -136,8 +136,9 @@ async def auth_inmobiliaria_signup(
             metadata={"company_name": inm["name"], "ampi_verified": inm.get("ampi_verified")},
             inmobiliaria_id=inm["id"],
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (create inmobiliaria %s): %s",
+                    inm["id"], _e)
 
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return {
@@ -244,8 +245,9 @@ async def inmobiliaria_users_invite(
             metadata={"email": payload.email, "role": payload.role},
             inmobiliaria_id=inm_id,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (invite inmobiliaria_advisor_relationship %s): %s",
+                    rel["rel_id"], _e)
 
     return rel
 
@@ -298,8 +300,9 @@ async def inmobiliaria_create_partnership(
             metadata={"dev_org_id": doc["dev_org_id"], "commission_pct": doc.get("commission_pct")},
             inmobiliaria_id=inm_id,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (create inmobiliaria_dev_partnership %s): %s",
+                    doc["partnership_id"], _e)
 
     return doc
 
@@ -348,6 +351,7 @@ async def inmobiliaria_patch_partnership(
             metadata={"status": payload.status},
             inmobiliaria_id=existing.get("inmobiliaria_id", ""),
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_activity perdido (update inmobiliaria_dev_partnership %s): %s",
+                    partnership_id, _e)
     return after
