@@ -1,6 +1,7 @@
 // ColoniasBento — 6 diverse CDMX colonias with Vida/Movilidad/Seguridad/Comercio layers
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import useInView from '../../hooks/useInView';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
@@ -248,8 +249,8 @@ export default function ColoniasBento() {
         </div>
 
         <FadeUp delay={0.4} style={{ textAlign: 'center', marginTop: 32 }}>
-          <a
-            href="#"
+          <Link
+            to="/colonias"
             data-testid="colonias-see-all"
             style={{
               fontFamily: 'DM Sans', fontWeight: 500, fontSize: 14,
@@ -259,7 +260,7 @@ export default function ColoniasBento() {
             }}
           >
             {t('bento.see_all')} <ArrowRight size={14} color="var(--indigo-3)" />
-          </a>
+          </Link>
         </FadeUp>
       </div>
 

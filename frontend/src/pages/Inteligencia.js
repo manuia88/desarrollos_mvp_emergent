@@ -41,7 +41,7 @@ export default function Inteligencia() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar onLogin={openAuth} user={user} onLogout={logout} />
       <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="eyebrow" style={{ marginBottom: 12 }}>MOTOR IE · ¿CÓMO FUNCIONA?</div>
+        <div className="eyebrow" style={{ marginBottom: 12 }}>CÓMO MEDIMOS CADA ZONA</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
           fontSize: 'clamp(36px, 6vw, 60px)',
@@ -75,7 +75,7 @@ export default function Inteligencia() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
             <div>
-              <div className="eyebrow" style={{ marginBottom: 4 }}>LIVE · IE ENGINE</div>
+              <div className="eyebrow" style={{ marginBottom: 4 }}>EN VIVO · ANÁLISIS DE LA COLONIA</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                 {zone.name} · lectura actual
               </div>
@@ -167,7 +167,7 @@ export default function Inteligencia() {
           gap: 20, flexWrap: 'wrap',
         }}>
           <div style={{ maxWidth: 640 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>QUIÉN USA EL MOTOR</div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>QUIÉN USA ESTOS DATOS</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 6, letterSpacing: '-0.02em' }}>
               Compradores, asesores y desarrolladoras — la misma capa de verdad.
             </div>
@@ -247,6 +247,18 @@ function TopColoniasByScore() {
       {loading ? (
         <div style={{ padding: 18, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
           Calculando…
+        </div>
+      ) : items.length === 0 ? (
+        <div data-testid="top-colonias-empty" style={{
+          padding: '28px 24px', textAlign: 'center',
+          background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: 16,
+        }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 6 }}>
+            Aún no podemos publicar el ranking
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', lineHeight: 1.55, maxWidth: 440, margin: '0 auto' }}>
+            Estamos terminando de calcular el score de inversión por colonia. Vuelve en un momento.
+          </div>
         </div>
       ) : (
         <div style={{

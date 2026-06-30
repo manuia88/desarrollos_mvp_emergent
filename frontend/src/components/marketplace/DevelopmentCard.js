@@ -95,7 +95,7 @@ function IERankPill({ rank }) {
           letterSpacing: '0.02em', textTransform: 'none',
           whiteSpace: 'nowrap', zIndex: Z.BASE,
         }}>
-          Basado en IE Score · click para ver detalles
+          Según su análisis de inversión vs la zona · click para ver detalles
         </span>
       )}
     </div>
@@ -331,7 +331,6 @@ export default function DevelopmentCard({ dev, index = 0 }) {
                 <span className="tip-q" style={{ color: '#6366F1' }}>?</span>
                 <span className="tip-box">{dev.amenities.map((a) => AMEN_LABEL[a] || a).join(' · ')}</span>
               </span>
-            )}
             )}
           </div>
         )}

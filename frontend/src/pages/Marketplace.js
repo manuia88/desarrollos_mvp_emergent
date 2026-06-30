@@ -42,6 +42,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [sort, setSort] = useState('recent');
   const [developments, setDevelopments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);   // el fetch falló (red/servidor) ≠ "0 resultados" — honestidad
+  const [reloadNonce, setReloadNonce] = useState(0);     // "Reintentar" → re-dispara el fetch inicial
   // Paginación (infinite scroll) — no cargar 20,000 de golpe
   const PAGE_SIZE = 24;
   const [nextOffset, setNextOffset] = useState(0);
@@ -178,16 +180,19 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setFetchError(false);
     fetchDevelopments({ ...mergedFilters, limit: PAGE_SIZE, offset: 0 }).then(list => {
       if (!active) return;
       const arr = Array.isArray(list) ? list : [];
       setDevelopments(arr);
       setNextOffset(arr.length);
       setHasMore(arr.length === PAGE_SIZE);
+      setFetchError(false);
       setLoading(false);
-    }).catch(() => { if (active) { setDevelopments([]); setHasMore(false); setLoading(false); } });
+    }).catch(() => { if (active) { setDevelopments([]); setHasMore(false); setFetchError(true); setLoading(false); } });
     return () => { active = false; };
-  }, [mergedFilters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mergedFilters, reloadNonce]);
 
   // Cargar más (infinite scroll) — agrega la siguiente página sin recargar la actual.
   const loadMore = useCallback(() => {
@@ -703,7 +708,38 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     </div>
                   </div>
                 ) : loading ? (
-                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+                  <div className="dev-grid" data-testid="mkp-skeletons" style={{ display: 'grid', gridTemplateColumns: coloniaActiva ? 'repeat(auto-fill, minmax(260px, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
+                    <style>{`@keyframes mkpSkel{0%{opacity:.55}50%{opacity:1}100%{opacity:.55}}.mkp-skel{background:linear-gradient(100deg,#EEF0F4 0%,#F6F7FA 50%,#EEF0F4 100%);animation:mkpSkel 1.4s ease-in-out infinite}`}</style>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} aria-hidden style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 6px 22px rgba(16,18,28,0.07)' }}>
+                        <div className="mkp-skel" style={{ aspectRatio: '4 / 3', width: '100%' }} />
+                        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div className="mkp-skel" style={{ height: 18, width: '70%', borderRadius: 6 }} />
+                          <div className="mkp-skel" style={{ height: 13, width: '45%', borderRadius: 6 }} />
+                          <div className="mkp-skel" style={{ height: 24, width: '55%', borderRadius: 6, marginTop: 4 }} />
+                          <div className="mkp-skel" style={{ height: 13, width: '85%', borderRadius: 6, marginTop: 6 }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : fetchError ? (
+                  <div data-testid="mkp-fetch-error" style={{
+                    padding: '48px 32px', textAlign: 'center',
+                    background: '#fff', border: '1px dashed rgba(220,38,38,0.35)',
+                    borderRadius: 18, fontFamily: 'DM Sans', color: 'var(--cream-2)',
+                  }}>
+                    <div style={{ fontSize: 34, marginBottom: 10 }}>📡</div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, color: 'var(--cream)', marginBottom: 6 }}>
+                      No pudimos cargar los desarrollos
+                    </div>
+                    <div style={{ fontSize: 13.5, color: 'var(--cream-3)', maxWidth: 440, margin: '0 auto 18px', lineHeight: 1.5 }}>
+                      Hubo un problema de conexión. Esto no quiere decir que no haya opciones — solo no pudimos traerlas. Inténtalo de nuevo.
+                    </div>
+                    <button data-testid="mkp-fetch-retry" onClick={() => setReloadNonce((n) => n + 1)}
+                      className="btn btn-primary" style={{ padding: '10px 20px', fontSize: 14 }}>
+                      Reintentar
+                    </button>
+                  </div>
                 ) : visibleDevs.length === 0 ? (
                   (() => {
                     const acid = coloniaFilter || (filters.colonia || [])[0] || (aiFilters && aiFilters.colonia);

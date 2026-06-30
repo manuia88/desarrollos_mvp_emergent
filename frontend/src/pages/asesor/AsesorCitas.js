@@ -132,7 +132,6 @@ function CitaDrawer({ apt, onClose, onAction }) {
 }
 
 export default function AsesorCitas({ user, onLogout }) {
-  const [tab, setTab] = useState('lista');
   const [citas, setCitas] = useState([]);
   const [tareas, setTareas] = useState([]);           // E3.1 · agenda unificada
   const [typeFilter, setTypeFilter] = useState('all'); // all | cita | tarea
@@ -204,17 +203,8 @@ export default function AsesorCitas({ user, onLogout }) {
           ))}
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-          {[{ k: 'lista', label: 'Lista' }, { k: 'calendario', label: 'Calendario' }].map(t => (
-            <button key={t.k} onClick={() => setTab(t.k)} data-testid={`citas-tab-${t.k}`}
-              style={{ padding: '9px 18px', borderRadius: '8px 8px 0 0', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                background: tab === t.k ? 'rgba(236,72,153,0.12)' : 'transparent',
-                color: tab === t.k ? '#EC4899' : 'var(--cream-3)',
-                borderBottom: tab === t.k ? '2px solid #EC4899' : '2px solid transparent',
-              }}>{t.label}</button>
-          ))}
-        </div>
+        {/* Tabs · ASR-06 · La vista "Calendario" estaba en construcción ("próximamente"),
+            se oculta su pestaña hasta que exista. Solo queda "Lista". */}
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -243,8 +233,8 @@ export default function AsesorCitas({ user, onLogout }) {
           )}
         </div>
 
-        {/* Content */}
-        {tab === 'lista' ? (
+        {/* Content · ASR-06 · solo vista de lista (calendario aún no existe) */}
+        {(
           loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando agenda...</div>
           ) : (() => {
@@ -310,13 +300,6 @@ export default function AsesorCitas({ user, onLogout }) {
               </>
             );
           })()
-        ) : (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
-            Vista de calendario disponible próximamente.{' '}
-            <button onClick={() => setTab('lista')} style={{ background: 'none', border: 'none', color: '#818CF8', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13, textDecoration: 'underline' }}>
-              Ver lista
-            </button>
-          </div>
         )}
 
         {showModal && (

@@ -32,9 +32,9 @@ export default function StudioDashboard({ user, onLogout }) {
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="DMX STUDIO · WAVE 1"
+        eyebrow="DMX Studio"
         title="Director IA de video + creativos"
-        sub="Genera scripts cinematográficos con Claude Sonnet 4.5 y ad batches de 100 creativos en minutos. Pipeline modular: voz, música, subtítulos, branding."
+        sub="Genera scripts cinematográficos con Claude Sonnet 4.5 y lotes de 100 creativos en minutos. Pipeline modular: voz, música, subtítulos, branding."
         actions={
           <>
             <button onClick={() => setShowVideo(true)} data-testid="new-video-btn" className="btn btn-glass">
@@ -54,9 +54,9 @@ export default function StudioDashboard({ user, onLogout }) {
           border: '1px solid rgba(245,158,11,0.30)', borderRadius: 12,
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <Badge tone="warn">MODO DEMO</Badge>
+          <Badge tone="warn">Modo demostración</Badge>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-            Engines en modo stub. Configura STUDIO_VIDEO_ENGINE / STUDIO_ADS_ENGINE para activar pipeline real.
+            Modo demostración · pide a tu admin activarlo.
           </div>
         </div>
       )}
@@ -100,9 +100,9 @@ export default function StudioDashboard({ user, onLogout }) {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 22 }}>
               <Stat label="Videos generados" value={dash.stats.videos_generated} />
-              <Stat label="Batches de ads" value={dash.stats.ad_batches_generated} />
+              <Stat label="Lotes de ads" value={dash.stats.ad_batches_generated} />
               <Stat label="Ads desbloqueados" value={dash.stats.total_ads_unlocked} accent="#86efac" />
-              <Stat label="Engine de video" value={dash.stats.video_engine} sub="cambia con STUDIO_VIDEO_ENGINE" />
+              <Stat label="Motor de video" value={dash.stats.video_engine} sub="configúralo con tu admin" />
             </div>
 
             <Card style={{ marginBottom: 18 }}>
@@ -133,7 +133,7 @@ export default function StudioDashboard({ user, onLogout }) {
             </Card>
 
             <Card>
-              <div className="eyebrow" style={{ marginBottom: 10 }}>MIS BATCHES DE ADS</div>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>Mis lotes de ads</div>
               {dash.ad_batches.length === 0 ? <Empty title="Sin ads aún" sub="Pega un URL de propiedad o elige un desarrollo para generar 100 ads." />
                 : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
@@ -165,15 +165,15 @@ export default function StudioDashboard({ user, onLogout }) {
         {lib && <VideoWizard lib={lib} onDone={(v) => { setShowVideo(false); setToast({ kind: 'success', text: 'Video generado' }); load(); setOpenVideo(v); }} onError={t => setToast({ kind: 'error', text: t })} />}
       </Drawer>
 
-      <Drawer open={showAds} onClose={() => setShowAds(false)} title="Generar batch de 100 ads" width={620}>
-        {lib && <AdsWizard lib={lib} onDone={(b) => { setShowAds(false); setToast({ kind: 'success', text: 'Batch generado' }); load(); setOpenBatch(b); }} onError={t => setToast({ kind: 'error', text: t })} />}
+      <Drawer open={showAds} onClose={() => setShowAds(false)} title="Generar lote de 100 ads" width={620}>
+        {lib && <AdsWizard lib={lib} onDone={(b) => { setShowAds(false); setToast({ kind: 'success', text: 'Lote generado' }); load(); setOpenBatch(b); }} onError={t => setToast({ kind: 'error', text: t })} />}
       </Drawer>
 
       <Drawer open={!!openVideo} onClose={() => setOpenVideo(null)} title={openVideo?.script?.title || 'Video'} width={620}>
         {openVideo && <VideoDetail video={openVideo} />}
       </Drawer>
 
-      <Drawer open={!!openBatch} onClose={() => setOpenBatch(null)} title={openBatch?.source_label || 'Batch'} width={720}>
+      <Drawer open={!!openBatch} onClose={() => setOpenBatch(null)} title={openBatch?.source_label || 'Lote'} width={720}>
         {openBatch && <AdsBatchDetail batch={openBatch} onUpdated={async () => { const fresh = await api.getAdBatch(openBatch.id); setOpenBatch(fresh); }} setToast={setToast} />}
       </Drawer>
 
@@ -267,7 +267,7 @@ function AdsWizard({ lib, onDone, onError }) {
     if (!f.development_id && !f.source_url) return onError('Elige un desarrollo o pega un URL');
     setSub(true);
     try { onDone(await api.generateAds(f)); }
-    catch { onError('Error al generar batch'); }
+    catch { onError('Error al generar lote'); }
     finally { setSub(false); }
   };
 
@@ -277,7 +277,7 @@ function AdsWizard({ lib, onDone, onError }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 12, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-        El batch incluye 100 ads en 7 ángulos (inversión, lifestyle, plusvalía, familia, urgencia, ubicación, ROI). Por ahora: 10 copies reales + imágenes hero por ángulo, generadas bajo demanda.
+        El lote incluye 100 ads en 7 ángulos (inversión, lifestyle, plusvalía, familia, urgencia, ubicación, ROI). Por ahora: 10 copies reales + imágenes hero por ángulo, generadas bajo demanda.
       </div>
 
       <label><div style={lblStyle}>Desarrollo DMX</div>
@@ -299,7 +299,7 @@ function AdsWizard({ lib, onDone, onError }) {
       <button onClick={submit} disabled={sub || (!f.development_id && !f.source_url)} className="btn btn-primary" data-testid="ads-submit"
         style={{ justifyContent: 'center', opacity: (sub || (!f.development_id && !f.source_url)) ? 0.6 : 1 }}>
         <Sparkle size={11} />
-        {sub ? 'Claude está copywriteando…' : 'Generar batch de 100 ads'}
+        {sub ? 'Claude está copywriteando…' : 'Generar lote de 100 ads'}
       </button>
     </div>
   );
@@ -336,9 +336,9 @@ function VideoDetail({ video }) {
       </Card>
       {video.is_stub && (
         <Card style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.30)' }}>
-          <div className="eyebrow" style={{ color: '#c7d2fe', marginBottom: 6 }}>Engine actual: DEMO (script + storyboard)</div>
+          <div className="eyebrow" style={{ color: '#c7d2fe', marginBottom: 6 }}>Modo demostración (script + storyboard)</div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-            Script + storyboard + voz + música generados. Para activar render MP4 real (Kling 3.0 / Seedance Pro) configura STUDIO_VIDEO_ENGINE=auto en backend.
+            Script + storyboard + voz + música generados. Para activar el render MP4 real, pide a tu admin que active el modo completo.
           </div>
         </Card>
       )}
@@ -445,7 +445,7 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
         ))}
       </div>
 
-      <div className="eyebrow" style={{ marginTop: 14 }}>{locked.length} VARIANTES BLOQUEADAS · activa el batch completo</div>
+      <div className="eyebrow" style={{ marginTop: 14 }}>{locked.length} VARIANTES BLOQUEADAS · activa el lote completo</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 6 }}>
         {locked.slice(0, 30).map(ad => (
           <div key={ad.id} data-testid={`locked-${ad.id}`} style={{
@@ -469,9 +469,9 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
       </div>
 
       <Card style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.30)' }}>
-        <div className="eyebrow" style={{ color: '#fcd34d', marginBottom: 6 }}>ACTIVAR BATCH COMPLETO</div>
+        <div className="eyebrow" style={{ color: '#fcd34d', marginBottom: 6 }}>Activar lote completo</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-          Cuando STUDIO_ADS_ENGINE=openai-full se desbloquean los 100 creativos únicos con copy y imagen exclusivos por variante. Costo estimado: ~$15-25 USD por batch completo. Habla con tu admin DMX para activar.
+          Al activar el modo completo se desbloquean los 100 creativos únicos con copy y imagen exclusivos por variante. Costo estimado: ~$15-25 USD por lote completo. Habla con tu admin DMX para activar.
         </div>
       </Card>
     </div>

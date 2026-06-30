@@ -15,16 +15,23 @@ function fmtMxn(n) {
   return `$${Math.round(n / 1000)}k`;
 }
 
+// Etiqueta legible del tipo de favorito (en vez del valor crudo project/colonia/unit)
+const TYPE_LABEL = { project: 'Proyecto', colonia: 'Colonia', unit: 'Unidad' };
+
 export default function CompradorFavoritos() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [filterType, setFilterType] = useState('all');
 
   const load = async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await listFavorites();
       setItems(data || []);
+    } catch (e) {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -77,6 +84,8 @@ export default function CompradorFavoritos() {
 
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState onRetry={load} />
         ) : filtered.length === 0 ? (
           <Empty />
         ) : (
@@ -127,7 +136,7 @@ function FavCard({ fav, onDelete }) {
           textTransform: 'uppercase', letterSpacing: '0.07em',
           backdropFilter: 'blur(8px)',
         }}>
-          {fav.item_type}
+          {TYPE_LABEL[fav.item_type] || fav.item_type}
         </div>
         <button
           onClick={onDelete}
@@ -209,6 +218,35 @@ function FavCard({ fav, onDelete }) {
 const Loading = () => (
   <div style={{ padding: 40, textAlign: 'center', fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.5)' }}>
     Cargando favoritos…
+  </div>
+);
+
+const ErrorState = ({ onRetry }) => (
+  <div data-testid="fav-error" style={{
+    padding: '32px 24px', borderRadius: 14,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px dashed rgba(240,235,224,0.12)',
+    textAlign: 'center',
+  }}>
+    <div style={{
+      fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
+      color: 'var(--cream, #F0EBE0)', marginBottom: 6,
+    }}>
+      No pudimos cargar tus favoritos
+    </div>
+    <div style={{
+      fontFamily: 'DM Sans', fontSize: 12,
+      color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+    }}>
+      Revisa tu conexión e inténtalo de nuevo.
+    </div>
+    <button onClick={onRetry} data-testid="fav-retry" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '9px 18px', borderRadius: 9999,
+      background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+      color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+      border: 'none', cursor: 'pointer',
+    }}>Reintentar</button>
   </div>
 );
 

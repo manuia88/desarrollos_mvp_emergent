@@ -21,8 +21,11 @@ import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecomm
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 import PortfolioReading from '../../components/developer/PortfolioReading';
 import ZonaCambios from '../../components/developer/ZonaCambios';
+import { titleCase } from '../../utils/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+// Convierte un slug crudo (ej. "altavista-polanco") en un nombre legible.
+const prettyDevName = (slug) => titleCase(String(slug || '').replace(/[-_]/g, ' '));
 
 // Hover compartido para tarjetas (eleva + glow de marca discreto)
 const cardEnter = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; };
@@ -514,7 +517,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
               <Card data-testid="dash-sync-card" onMouseEnter={cardEnter} onMouseLeave={cardLeave} style={{ marginBottom: 22, background: 'linear-gradient(140deg, rgba(99,102,241,0.1), transparent)', borderColor: 'var(--border-2, var(--border))', transition: CARD_TR }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 240 }}>
-                    <div className="eyebrow" style={{ marginBottom: 6 }}>AUTO-SYNC · DOCUMENT INTELLIGENCE</div>
+                    <div className="eyebrow" style={{ marginBottom: 6 }}>Sincronización automática</div>
                     <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', letterSpacing: '-0.018em', marginBottom: 4 }}>
                       <Sparkle size={13} color="var(--indigo-3)" /> {totalPendingFields} campo{totalPendingFields === 1 ? '' : 's'} sincronizado{totalPendingFields === 1 ? '' : 's'} en {syncPending.count} desarrollo{syncPending.count === 1 ? '' : 's'}
                     </div>
@@ -530,7 +533,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
                           border: `1px solid ${s.auto_sync_paused_reason ? 'rgba(245,158,11,0.32)' : 'rgba(99,102,241,0.28)'}`,
                           color: s.auto_sync_paused_reason ? '#fcd34d' : '#c7d2fe',
                           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
-                        }}>{s.development_id} · {s.synced_field_count} campos</Link>
+                        }}>{prettyDevName(s.development_id)} · {s.synced_field_count} campos</Link>
                       ))}
                     </div>
                   </div>

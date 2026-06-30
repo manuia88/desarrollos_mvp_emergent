@@ -297,7 +297,7 @@ export default function DesarrolladorDemanda({ user, onLogout, embedded }) {
             </div>
 
             <Card style={{ marginTop: 14 }}>
-              <div className="eyebrow" style={{ marginBottom: 10 }}>FUNNEL DEL MARKETPLACE · 30D</div>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>EMBUDO DEL MARKETPLACE · 30D</div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', height: 130 }}>
                 {[
                   { k: 'Impresiones', v: legacy.funnel.impressions, h: 100, c: '#6366F1' },

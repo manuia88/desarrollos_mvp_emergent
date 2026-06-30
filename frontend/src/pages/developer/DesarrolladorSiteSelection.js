@@ -378,7 +378,7 @@ export default function DesarrolladorSiteSelection({ user, onLogout, embedded })
   return (
     <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
-        eyebrow="4.22 · SITE SELECTION AI"
+        eyebrow="SELECCIÓN DE ZONAS IA"
         title="Selección de zonas"
         sub="La IA recomienda colonias para tu próximo proyecto: qué tan viable es cada una, el retorno estimado y un resumen con pros y contras."
       />

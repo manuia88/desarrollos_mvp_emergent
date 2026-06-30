@@ -167,7 +167,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="4.15 · CONTENIDO"
+        eyebrow="CONTENIDO"
         title="Calendario de Subidas"
         sub="Gestiona el flujo de aprobación de fotos, videos, planos y documentos."
         actions={

@@ -1,11 +1,11 @@
 {
   "playground": {
     "title": "Playground de Conversación IA",
-    "subtitle": "Configura el system prompt, prueba al agente y observa qué herramientas usa.",
+    "subtitle": "Configura las instrucciones del asistente, prueba al agente y observa qué herramientas usa.",
     "col_config": "Configuración",
     "col_chat": "Conversación",
     "col_tools": "Herramientas usadas",
-    "system_prompt_label": "System prompt del asesor",
+    "system_prompt_label": "Instrucciones del asistente",
     "system_prompt_placeholder": "Ej. Eres un asesor inmobiliario IA de DesarrollosMX...",
     "channel_label": "Canal",
     "context_label": "Contexto inicial (opcional)",
@@ -20,10 +20,10 @@
     "model": "Modelo",
     "latency": "Latencia",
     "sentiment": "Sentimiento",
-    "stub_mode": "Modo heurístico (sin LLM key)",
-    "handoff_suggested": "Handoff sugerido",
+    "stub_mode": "Modo heurístico (sin IA conectada)",
+    "handoff_suggested": "Conviene pasar a un humano",
     "thinking": "Pensando...",
-    "request_handoff": "Solicitar handoff"
+    "request_handoff": "Pasar a un humano"
   },
   "widget": {
     "title": "Asesor IA",

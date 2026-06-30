@@ -3,7 +3,7 @@
  * Hero greeting + perfil completion + 5 widget cards.
  * Batch 30: SmartMatchWidget agregado como 5to widget.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchDashboard, fetchRecommended } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
@@ -78,19 +78,27 @@ function WidgetCard({ icon: Icon, title, count, subtitle, to, children, testId }
 export default function CompradorDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [reco, setReco] = useState(null);  // "Propiedades para ti"
   const navigate = useNavigate();
 
-  useEffect(() => {
-    claimVisitor();   // usuario logueado en su dashboard → ata su actividad anónima a la cuenta (asesor ve la actividad)
+  const loadDashboard = useCallback(() => {
+    setLoading(true);
+    setError(false);
     fetchDashboard()
       .then(d => { setData(d); setLoading(false); })
       .catch(e => {
-        if (e.status === 401) navigate('/login-comprador', { replace: true });
+        if (e.status === 401) { navigate('/login-comprador', { replace: true }); return; }
+        setError(true);   // fallo de red → mostrar reintento, no pantalla muerta
         setLoading(false);
       });
-    fetchRecommended(6).then(setReco).catch(() => setReco(null));  // despierta fit_engine para el comprador
   }, [navigate]);
+
+  useEffect(() => {
+    claimVisitor();   // usuario logueado en su dashboard → ata su actividad anónima a la cuenta (asesor ve la actividad)
+    loadDashboard();
+    fetchRecommended(6).then(setReco).catch(() => setReco(null));  // despierta fit_engine para el comprador
+  }, [loadDashboard]);
 
   if (loading) {
     return <CompradorLayout>
@@ -100,9 +108,34 @@ export default function CompradorDashboard() {
     </CompradorLayout>;
   }
 
-  if (!data) {
+  if (error || !data) {
     return <CompradorLayout>
-      <div>No se pudo cargar el dashboard.</div>
+      <div data-testid="dashboard-error" style={{
+        padding: '32px 24px', borderRadius: 14, maxWidth: 460, margin: '40px auto',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px dashed rgba(240,235,224,0.12)',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
+          color: 'var(--cream, #F0EBE0)', marginBottom: 6,
+        }}>
+          No pudimos cargar tu dashboard
+        </div>
+        <div style={{
+          fontFamily: 'DM Sans', fontSize: 12,
+          color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+        }}>
+          Revisa tu conexión e inténtalo de nuevo.
+        </div>
+        <button onClick={loadDashboard} data-testid="dashboard-retry" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 9999,
+          background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+          border: 'none', cursor: 'pointer',
+        }}>Reintentar</button>
+      </div>
     </CompradorLayout>;
   }
 
@@ -186,7 +219,7 @@ export default function CompradorDashboard() {
             title="Alertas recientes"
             count={k.alerts.pending}
             subtitle={k.alerts.pending > 0 ? 'En los últimos 7 días' : 'Sin alertas nuevas'}
-            to="/comprador/saved-searches"
+            to="/comprador/alertas"
           />
           <WidgetCard
             testId="widget-favorites"

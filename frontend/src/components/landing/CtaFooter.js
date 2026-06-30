@@ -1,6 +1,7 @@
 // CtaFooter — CTA section + footer bar
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
 import LfpdpppBadge from './LfpdpppBadge';
@@ -10,11 +11,11 @@ import { Z } from '../../styles/zIndex';
 export default function CtaFooter() {
   const { t } = useTranslation();
 
+  // Solo se muestran los enlaces que tienen una página real a la cual ir.
+  // Privacidad y Términos no tienen página propia todavía, así que se ocultan.
   const FOOTER_LINKS = [
-    { key: 'privacy', label: t('footer.privacy') },
-    { key: 'terms', label: t('footer.terms') },
-    { key: 'advisors', label: t('footer.advisors') },
-    { key: 'developers', label: t('footer.developers') },
+    { key: 'advisors', label: t('footer.advisors'), to: '/asesores' },
+    { key: 'developers', label: t('footer.developers'), to: '/desarrolladores' },
   ];
 
   return (
@@ -104,9 +105,9 @@ export default function CtaFooter() {
 
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
             {FOOTER_LINKS.map(link => (
-              <a
+              <Link
                 key={link.key}
-                href="#"
+                to={link.to}
                 data-testid={`footer-link-${link.key}`}
                 style={{
                   fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
@@ -117,7 +118,7 @@ export default function CtaFooter() {
                 onMouseLeave={e => e.target.style.color = 'var(--cream-3)'}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 

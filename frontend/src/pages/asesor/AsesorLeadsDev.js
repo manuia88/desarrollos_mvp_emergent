@@ -12,7 +12,7 @@ export default function AsesorLeadsDev({ user, onLogout, embedded }) {
   const body = (
     <>
       <div style={{ marginBottom: 22 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>4.29 · LEADS UNIVERSAL</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>CRM · Pipeline</div>
         <h1 data-testid="asesor-leads-dev-h1" style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)',
           letterSpacing: '-0.025em', margin: '4px 0 6px',

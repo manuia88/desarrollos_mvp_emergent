@@ -32,7 +32,7 @@ export default function MisLeadsPage({ user, onLogout }) {
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <div style={{ marginBottom: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>CRM · MIS LEADS</div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>CRM · Mis Leads</div>
         <div role="tablist" aria-label="Mis Leads"
           style={{ display: 'inline-flex', gap: 6, padding: 5, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 1px 2px rgba(20,25,45,0.05), 0 6px 16px rgba(20,25,45,0.06)' }}>
           {TABS.map(t => {

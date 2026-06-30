@@ -19,17 +19,19 @@ const CONTENT_SUBS = [
   { key: 'brochures', label: 'Brochures', asset_type: 'brochure' },
 ];
 
-function AssetThumb({ asset, onDelete, onSetCover }) {
+function AssetThumb({ asset, onDelete, onSetCover, onPreview }) {
   const [hover, setHover] = useState(false);
   const isImage = !asset.asset_type?.includes('video') && !asset.asset_type?.includes('brochure');
+  const canPreview = isImage && !!asset.url;
 
   return (
     <div
       data-testid={`asset-thumb-${asset.id}`}
+      onClick={() => { if (canPreview) onPreview?.(asset); }}
       style={{
         position: 'relative', borderRadius: 10, overflow: 'hidden',
         border: `1.5px solid ${hover ? 'rgba(var(--cream-rgb),0.3)' : 'rgba(var(--cream-rgb),0.1)'}`,
-        background: 'rgba(var(--cream-rgb),0.04)', cursor: 'pointer',
+        background: 'rgba(var(--cream-rgb),0.04)', cursor: canPreview ? 'pointer' : 'default',
         transition: 'border-color 0.15s',
         aspectRatio: '4/3',
       }}
@@ -310,6 +312,7 @@ export default function ContenidoTab({ devId, user }) {
               asset={a}
               onDelete={handleDelete}
               onSetCover={handleSetCover}
+              onPreview={setPreviewAsset}
             />
           ))}
         </div>

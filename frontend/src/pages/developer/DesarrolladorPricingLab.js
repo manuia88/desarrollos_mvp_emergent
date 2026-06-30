@@ -6,6 +6,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { Card, Badge, Toast, fmt0, fmtMXN } from '../../components/advisor/primitives';
 import * as leadsApi from '../../api/leads';
 import { Activity, Target, Plus, X, CheckCircle, Sparkle } from '../../components/icons';
+import { titleCase } from '../../utils/titleCase';
 
 const TABS = [
   { k: 'active',  label: 'Experimentos activos', Icon: Activity },
@@ -21,16 +22,16 @@ export default function DesarrolladorPricingLab({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div style={{ marginBottom: 22 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>4.14 · PRICING LAB</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Experimentos de precio · {titleCase((slug || '').replace(/[-_]/g, ' '))}</div>
         <h1 data-testid="pricing-lab-h1" style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)',
           letterSpacing: '-0.025em', margin: '4px 0 6px',
         }}>
           <Target size={20} style={{ verticalAlign: 'middle', marginRight: 10 }} />
-          Pricing Experiments — {slug}
+          Experimentos de precio — {titleCase((slug || '').replace(/[-_]/g, ' '))}
         </h1>
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 720, lineHeight: 1.55 }}>
-          Lanza experimentos A/B de precio o bundles para optimizar conversión. Asignación determinística por visitor_id + tracking de funnel completo.
+          Lanza experimentos A/B de precio o paquetes para mejorar la conversión. Cada visitante ve una variante fija y medimos el embudo completo.
         </p>
       </div>
 
@@ -165,11 +166,11 @@ function ResultsInline({ expId }) {
   return (
     <div data-testid={`results-inline-${expId}`} style={{ marginTop: 12, padding: 10, borderRadius: 8, background: 'rgba(var(--cream-rgb),0.04)', border: '1px solid var(--border)', fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--cream)', marginBottom: 6 }}>
-        Conversion funnel
+        Embudo de conversión
       </div>
       {r.variants.map(v => (
         <div key={v.label} style={{ marginBottom: 4 }}>
-          <strong style={{ color: 'var(--cream)' }}>{v.label}:</strong> view→lead {v.conversion_funnel.view_to_lead}% · lead→cita {v.conversion_funnel.lead_to_cita}% · cita→cierre {v.conversion_funnel.cita_to_cierre}%
+          <strong style={{ color: 'var(--cream)' }}>{v.label}:</strong> visita→lead {v.conversion_funnel.view_to_lead}% · lead→cita {v.conversion_funnel.lead_to_cita}% · cita→cierre {v.conversion_funnel.cita_to_cierre}%
         </div>
       ))}
       {r.winner && (

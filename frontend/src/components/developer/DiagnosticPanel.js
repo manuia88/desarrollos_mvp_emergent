@@ -67,7 +67,7 @@ export default function DiagnosticPanel({ devId, devName }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>W4.1A · DIAGNÓSTICO INTELIGENTE</div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>DIAGNÓSTICO INTELIGENTE</div>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: 0, letterSpacing: '-0.018em' }}>
             Acciones recomendadas · {devName}
           </h3>

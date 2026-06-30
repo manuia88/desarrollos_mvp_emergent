@@ -29,7 +29,7 @@ export default function DesarrolladorReportes({ user, onLogout, embedded }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
-        eyebrow="D9 · REPORTES IA + ANÁLISIS AVANZADO"
+        eyebrow="REPORTES IA + ANÁLISIS AVANZADO"
         title="Reportes ejecutivos e insights"
         sub="Resumen narrado por Claude + análisis de absorción por cohortes, heatmap de ventas y forecast por proyecto."
       />
@@ -245,7 +245,7 @@ function AbsorptionTab() {
 
       {/* Funnel */}
       <Card style={{ gridColumn: '1 / -1' }} data-testid="abs-funnel">
-        <div className="eyebrow">FUNNEL MULTI-STEP · Lead → Cierre</div>
+        <div className="eyebrow">EMBUDO POR ETAPAS · Lead → Cierre</div>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: '4px 0 14px', letterSpacing: '-0.018em' }}>
           Conversión por etapa
         </h3>
@@ -308,8 +308,8 @@ function ForecastTab() {
 
         {mode === 'consolidated' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 18 }}>
-            <Metric label="Target total" v={fmt0(cons.target_units)} />
-            <Metric label="Actual total" v={fmt0(cons.actual_units)} accent={cons.variance_pct >= 0 ? '#86efac' : '#fca5a5'} />
+            <Metric label="Meta total" v={fmt0(cons.target_units)} />
+            <Metric label="Real total" v={fmt0(cons.actual_units)} accent={cons.variance_pct >= 0 ? '#86efac' : '#fca5a5'} />
             <Metric label="Varianza" v={`${cons.variance_pct >= 0 ? '+' : ''}${cons.variance_pct}%`} accent={cons.variance_pct >= 0 ? '#86efac' : '#fca5a5'} />
             <Metric label="Tendencia" v={cons.trend === 'up' ? 'Al alza' : cons.trend === 'down' ? 'A la baja' : 'Estable'} />
           </div>
@@ -318,7 +318,7 @@ function ForecastTab() {
             <table data-testid="forecast-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Proyecto', 'Target', 'Actual', 'Varianza', 'Tendencia', 'Revenue target', 'Revenue actual'].map(h => (
+                  {['Proyecto', 'Meta', 'Real', 'Varianza', 'Tendencia', 'Ingresos meta', 'Ingresos reales'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                   ))}
                 </tr>

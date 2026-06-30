@@ -49,7 +49,7 @@ export default function InmobiliariaDashboard({ user, onLogout }) {
       <div data-testid="inmobiliaria-dashboard" style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
-            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>Dashboard Inmobiliaria</h1>
+            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>Tablero de la inmobiliaria</h1>
             <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: '4px 0 0' }}>DesarrollosMX · Portal Principal</p>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -73,10 +73,10 @@ export default function InmobiliariaDashboard({ user, onLogout }) {
           <>
             {/* Stats grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 28 }}>
-              <StatCard label="Total Leads" value={stats.total_leads} icon={Users} testid="inm-stat-total-leads" />
+              <StatCard label="Total de leads" value={stats.total_leads} icon={Users} testid="inm-stat-total-leads" />
               <StatCard label="Leads Activos" value={stats.active_leads} icon={TrendUp} testid="inm-stat-active-leads" />
               <StatCard label="Ganados" value={stats.won} icon={CheckCircle} testid="inm-stat-won" />
-              <StatCard label="Win Rate" value={stats.win_rate_pct != null ? `${stats.win_rate_pct}%` : '—'} icon={BarChart} testid="inm-stat-win-rate" />
+              <StatCard label="Tasa de cierre" value={stats.win_rate_pct != null ? `${stats.win_rate_pct}%` : '—'} icon={BarChart} testid="inm-stat-win-rate" />
               <StatCard label="Días prom. cierre" value={stats.avg_time_to_close_days} icon={Clock} testid="inm-stat-avg-close" />
             </div>
 

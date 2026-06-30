@@ -31,14 +31,18 @@ const SOURCE_LABEL = {
 export default function CompradorHistorial() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [filterSource, setFilterSource] = useState('all');
   const [filterType, setFilterType] = useState('all');
 
   const load = async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await listHistory(50);
       setItems(data || []);
+    } catch (e) {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -127,6 +131,8 @@ export default function CompradorHistorial() {
 
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState onRetry={load} />
         ) : filtered.length === 0 ? (
           <Empty hasItems={items.length > 0} />
         ) : (
@@ -231,6 +237,35 @@ function HistRow({ v }) {
 const Loading = () => (
   <div style={{ padding: 40, textAlign: 'center', fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.5)' }}>
     Cargando histórico…
+  </div>
+);
+
+const ErrorState = ({ onRetry }) => (
+  <div data-testid="hist-error" style={{
+    padding: '32px 24px', borderRadius: 14,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px dashed rgba(240,235,224,0.12)',
+    textAlign: 'center',
+  }}>
+    <div style={{
+      fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
+      color: 'var(--cream, #F0EBE0)', marginBottom: 6,
+    }}>
+      No pudimos cargar tu histórico
+    </div>
+    <div style={{
+      fontFamily: 'DM Sans', fontSize: 12,
+      color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+    }}>
+      Revisa tu conexión e inténtalo de nuevo.
+    </div>
+    <button onClick={onRetry} data-testid="hist-retry" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '9px 18px', borderRadius: 9999,
+      background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+      color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+      border: 'none', cursor: 'pointer',
+    }}>Reintentar</button>
   </div>
 );
 

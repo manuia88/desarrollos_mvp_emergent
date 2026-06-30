@@ -22,13 +22,17 @@ function describeFilters(filters = {}) {
 export default function CompradorSavedSearches() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [filterFreq, setFilterFreq] = useState('all'); // all | daily | weekly
 
   const load = async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await listSavedSearches();
       setItems(data || []);
+    } catch (e) {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -66,6 +70,8 @@ export default function CompradorSavedSearches() {
 
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState onRetry={load} />
         ) : filtered.length === 0 ? (
           <Empty />
         ) : (
@@ -140,6 +146,35 @@ const Header = () => (
 const Loading = () => (
   <div style={{ padding: 40, textAlign: 'center', fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.5)' }}>
     Cargando…
+  </div>
+);
+
+const ErrorState = ({ onRetry }) => (
+  <div data-testid="saved-error" style={{
+    padding: '32px 24px', borderRadius: 14,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px dashed rgba(240,235,224,0.12)',
+    textAlign: 'center',
+  }}>
+    <div style={{
+      fontFamily: 'Outfit', fontWeight: 700, fontSize: 17,
+      color: 'var(--cream, #F0EBE0)', marginBottom: 6,
+    }}>
+      No pudimos cargar tus búsquedas
+    </div>
+    <div style={{
+      fontFamily: 'DM Sans', fontSize: 12,
+      color: 'rgba(240,235,224,0.5)', marginBottom: 18,
+    }}>
+      Revisa tu conexión e inténtalo de nuevo.
+    </div>
+    <button onClick={onRetry} data-testid="saved-retry" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '9px 18px', borderRadius: 9999,
+      background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+      color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+      border: 'none', cursor: 'pointer',
+    }}>Reintentar</button>
   </div>
 );
 

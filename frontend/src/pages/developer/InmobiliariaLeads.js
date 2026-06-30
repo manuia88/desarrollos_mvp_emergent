@@ -12,7 +12,7 @@ export default function InmobiliariaLeads({ user, onLogout }) {
   return (
     <InmobiliariaLayout user={user} onLogout={onLogout}>
       <div style={{ marginBottom: 22 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>4.30 · LEADS UNIVERSAL</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>LEADS UNIVERSAL</div>
         <h1 data-testid="inmobiliaria-leads-h1" style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)',
           letterSpacing: '-0.025em', margin: '4px 0 6px',

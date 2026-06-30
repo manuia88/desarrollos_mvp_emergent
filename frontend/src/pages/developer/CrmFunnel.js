@@ -8,15 +8,16 @@ import { FilterChipsBar } from '../../components/shared/FilterChipsBar';
 import SmartEmptyState from '../../components/shared/SmartEmptyState';
 import { ResponsiveSankey } from '@nivo/sankey';
 import { getFunnel, getFunnelBreakdown, getSankey, getFunnelSuggestion } from '../../api/metrics';
+import { listProjectsWithStats } from '../../api/developer';
 import { Sparkle, X } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
 const STAGE_LABELS = {
   view_ficha: 'Ver ficha',
   click_reservar: 'Click reservar',
-  slot_picked: 'Slot elegido',
+  slot_picked: 'Horario elegido',
   form_filled: 'Formulario',
-  booking_confirmed: 'Booking',
+  booking_confirmed: 'Cita agendada',
   visit_completed: 'Visita completa',
 };
 
@@ -31,8 +32,9 @@ const PILL_BTN = (active) => ({
 export default function CrmFunnel({ user, onLogout }) {
   const [tab, setTab] = useState('funnel'); // 'funnel' | 'sankey'
   const [filters, setFilters] = useState({
-    period: '30d', utm_source: null, project_id: 'altavista-polanco', asesor: null,
+    period: '30d', utm_source: null, project_id: null, asesor: null,
   });
+  const [projects, setProjects] = useState([]);
   const [funnel, setFunnel] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
   const [sankey, setSankey] = useState(null);
@@ -42,6 +44,19 @@ export default function CrmFunnel({ user, onLogout }) {
 
   const handleChange = useCallback((k, v) => {
     setFilters(f => ({ ...f, [k]: v }));
+  }, []);
+
+  // Cargar lista de proyectos del desarrollador y elegir el primero por defecto.
+  useEffect(() => {
+    listProjectsWithStats()
+      .then(list => {
+        const arr = Array.isArray(list) ? list : [];
+        setProjects(arr);
+        if (arr.length) {
+          setFilters(f => (f.project_id ? f : { ...f, project_id: arr[0].id }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -90,7 +105,7 @@ export default function CrmFunnel({ user, onLogout }) {
       <PageHeader
         eyebrow="CRM · ANALÍTICA"
         title="Embudo de conversión"
-        sub="Drop-off por etapa · atribución multi-toque · sugerencias IA"
+        sub="Dónde se pierde cada etapa · atribución multi-toque · sugerencias IA"
       />
 
       {/* Tabs pill */}
@@ -98,10 +113,10 @@ export default function CrmFunnel({ user, onLogout }) {
         display: 'flex', gap: 6, marginBottom: 14,
       }}>
         <button data-testid="tab-funnel" onClick={() => setTab('funnel')} style={PILL_BTN(tab === 'funnel')}>
-          Funnel
+          Embudo
         </button>
         <button data-testid="tab-sankey" onClick={() => setTab('sankey')} style={PILL_BTN(tab === 'sankey')}>
-          Sankey
+          Flujo
         </button>
       </div>
 
@@ -114,31 +129,36 @@ export default function CrmFunnel({ user, onLogout }) {
         />
       </div>
 
-      {/* Project ID input */}
-      <div style={{ marginBottom: 14 }}>
-        <input data-testid="funnel-project-input" value={filters.project_id || ''}
-                onChange={(e) => handleChange('project_id', e.target.value)}
-                placeholder="ID del proyecto (slug)"
-                style={{
-                  padding: '8px 14px', borderRadius: 9999,
-                  background: 'rgba(var(--cream-rgb),0.06)',
-                  border: '1px solid rgba(var(--cream-rgb),0.16)',
-                  color: 'var(--cream)', fontSize: 13, fontFamily: 'DM Sans',
-                  width: 320, outline: 'none',
-                }} />
-      </div>
+      {/* Selector de proyecto */}
+      {projects.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <select data-testid="funnel-project-select" value={filters.project_id || ''}
+                  onChange={(e) => handleChange('project_id', e.target.value)}
+                  style={{
+                    padding: '8px 14px', borderRadius: 9999,
+                    background: 'rgba(var(--cream-rgb),0.06)',
+                    border: '1px solid rgba(var(--cream-rgb),0.16)',
+                    color: 'var(--cream)', fontSize: 13, fontFamily: 'DM Sans',
+                    width: 320, outline: 'none', cursor: 'pointer',
+                  }}>
+            {projects.map(p => (
+              <option key={p.id} value={p.id} style={{ color: '#06080F' }}>{p.name || p.id}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {tab === 'funnel' && (
         loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>
-            Cargando funnel…
+            Cargando embudo…
           </div>
         ) : !funnel || funnel.total_events === 0 ? (
           <SmartEmptyState
             contextKey="activity.none"
             testId="funnel-empty"
             overrides={{
-              title: 'Sin eventos en el funnel',
+              title: 'Sin eventos en el embudo',
               body: 'Cuando los visitantes interactúen con la ficha pública del proyecto, verás cada etapa aquí.',
               ctas: [],
             }}
@@ -202,7 +222,7 @@ export function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, o
                       marginLeft: 8,
                       color: s.drop_off_pct > 40 ? '#ef4444' : 'var(--cream-3)',
                     }}>
-                      ↓ {s.drop_off_pct}% drop
+                      ↓ {s.drop_off_pct}% se pierde
                     </span>
                   )}
                 </span>
@@ -232,7 +252,7 @@ export function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, o
         }}>
           <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 8,
                          letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Desglose por fuente (UTM)
+            Desglose por origen
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
@@ -308,7 +328,7 @@ function SankeyView({ sankey, onNodeClick }) {
         testId="sankey-empty"
         overrides={{
           title: 'Sin flujo de atribución para mostrar',
-          body: 'Necesitas leads con atribución multi-toque para que el Sankey tenga sentido.',
+          body: 'Necesitas leads con atribución multi-toque para que el flujo tenga sentido.',
           ctas: [],
         }}
       />

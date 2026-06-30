@@ -42,7 +42,7 @@ export default function DesarrolladorLeads({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="4.19 · LEAD PIPELINE CROSS-CHANNEL"
+        eyebrow="LEADS POR CANAL"
         title="Leads"
         sub="Tracking centralizado de prospectos por canal, estado y asignación."
       />
@@ -502,7 +502,7 @@ function AnalyticsTab() {
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14 }} className="analytics-grid">
       {/* Funnel */}
       <Card data-testid="leads-funnel">
-        <div className="eyebrow">FUNNEL · todos los estados</div>
+        <div className="eyebrow">EMBUDO · todos los estados</div>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: '4px 0 14px' }}>
           Conversión por etapa
         </h3>

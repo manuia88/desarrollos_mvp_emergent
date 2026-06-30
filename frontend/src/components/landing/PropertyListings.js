@@ -1,6 +1,7 @@
 // PropertyListings — 6 diverse properties across CDMX colonias
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
 import useInView from '../../hooks/useInView';
@@ -400,13 +401,13 @@ export default function PropertyListings() {
         </div>
 
         <FadeUp delay={0.3} style={{ textAlign: 'center', marginTop: 36 }}>
-          <a href="#" data-testid="listings-see-more" style={{
+          <Link to="/marketplace" data-testid="listings-see-more" style={{
             fontFamily: 'DM Sans', fontWeight: 500, fontSize: 14,
             color: 'var(--indigo-3)', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 6,
           }}>
             {t('listings.see_more')} <ArrowRight size={14} color="var(--indigo-3)" />
-          </a>
+          </Link>
         </FadeUp>
       </div>
 

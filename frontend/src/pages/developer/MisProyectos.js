@@ -537,7 +537,7 @@ function ListaView({ projects, onSelect, onDuplicate }) {
       <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
         <thead>
           <tr style={{ background: 'rgba(var(--cream-rgb),0.06)' }}>
-            {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud', ''].map((h, i) => (
+            {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Ingresos del mes', 'Salud', ''].map((h, i) => (
               <th key={`${h}-${i}`} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', borderBottom: '1px solid rgba(var(--cream-rgb),0.1)' }}>
                 {h}
               </th>

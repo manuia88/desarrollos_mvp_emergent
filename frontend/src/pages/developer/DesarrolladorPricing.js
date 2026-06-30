@@ -58,7 +58,7 @@ export default function DesarrolladorPricing({ user, onLogout, embedded }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
-        eyebrow="D4 · DYNAMIC PRICING AI"
+        eyebrow="PRECIO DINÁMICO IA"
         title="Sugerencias de precio"
         sub="Razonamiento explícito por unidad. Triggers automáticos por demanda y tiempo en mercado. Aprobación manual del director comercial antes de aplicar."
       />

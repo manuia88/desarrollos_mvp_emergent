@@ -30,7 +30,7 @@ export default function AsesoresMetrics({ user, onLogout, embedded }) {
       <PageHeader
         eyebrow="CRM · ASESORES"
         title="Métricas del equipo"
-        sub="Pipeline · conversión · response time · activity score · health · citas"
+        sub="Pipeline · conversión · tiempo de respuesta · nivel de actividad · salud · citas"
       />
       <div data-testid="asesores-metrics-filters" style={{ marginBottom: 14 }}>
         <FilterChipsBar

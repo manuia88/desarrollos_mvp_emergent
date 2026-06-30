@@ -253,7 +253,7 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
   if (!doc) {
     return (
       <DeveloperLayout user={user} onLogout={onLogout}>
-        <PageHeader eyebrow="4.24 · CASH FLOW FORECAST IA" title="Flujo de Caja" sub="Aún no hay forecast calculado para este proyecto." />
+        <PageHeader eyebrow="FLUJO DE CAJA · PRONÓSTICO IA" title="Flujo de Caja" sub="Aún no hay forecast calculado para este proyecto." />
         <Card style={{ padding: 36, textAlign: 'center' }}>
           <BarChart size={26} color="#f9a8d4" />
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginTop: 10 }}>
@@ -280,7 +280,7 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="4.24 · CASH FLOW FORECAST IA"
+        eyebrow="FLUJO DE CAJA · PRONÓSTICO IA"
         title={`Flujo de Caja · ${doc.project_name}`}
         sub={`Horizonte ${doc.horizon_months}m · Actualizado hace ${hoursAgo}h · ${doc.scenarios?.length || 0} escenarios analizados`}
       />

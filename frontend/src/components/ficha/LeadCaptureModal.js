@@ -23,18 +23,21 @@ export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason 
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState(false);   // el POST falló → mostramos error + permitimos reintentar (no fingimos éxito)
   const ok = name.trim().length >= 2 && (phone.replace(/\D/g, '').length >= 10 || /@/.test(email));
 
   const submit = async () => {
     if (!ok || busy) return;
     setBusy(true);
+    setError(false);
     try {
-      await fetch(`${API}/api/buyer/registrar`, {
+      const resp = await fetch(`${API}/api/buyer/registrar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
         body: JSON.stringify({ visitor_id: visitorId(), name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, dev_id: dev.id, source: `ficha_${reason}`, unit_number: unit ? unit.unit_number : null, lens: lensLabel || null, contexto: keyAns || null }),
       });
+      if (!resp.ok) throw new Error('registro falló');
       setSent(true);
-    } catch (e) { setSent(true); /* fail-open: no frustres al cliente */ }
+    } catch (e) { setError(true); /* no marcamos sent: el cliente puede reintentar */ }
     setBusy(false);
   };
 
@@ -63,8 +66,15 @@ export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason 
                 <input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" placeholder="Email (opcional)" style={inp} />
               </div>
 
+              {error && (
+                <div data-testid="lead-capture-error" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.3)' }}>
+                  <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: '#DC2626' }}>No pudimos enviar tus datos</div>
+                  <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)', marginTop: 4, lineHeight: 1.5 }}>Revisa tu conexión e inténtalo de nuevo — no se registró nada todavía.</div>
+                </div>
+              )}
+
               <div style={{ marginTop: 16 }}>
-                <BtnPrimary onClick={submit} style={{ opacity: ok && !busy ? 1 : 0.55, cursor: ok && !busy ? 'pointer' : 'not-allowed' }}>{busy ? 'Enviando…' : 'Que me contacte un asesor →'}</BtnPrimary>
+                <BtnPrimary onClick={submit} style={{ opacity: ok && !busy ? 1 : 0.55, cursor: ok && !busy ? 'pointer' : 'not-allowed' }}>{busy ? 'Enviando…' : error ? 'Reintentar →' : 'Que me contacte un asesor →'}</BtnPrimary>
               </div>
               <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'var(--cream-3)', marginTop: 10, lineHeight: 1.5 }}>Te contacta un asesor verificado del desarrollo. Sin spam.</div>
             </>

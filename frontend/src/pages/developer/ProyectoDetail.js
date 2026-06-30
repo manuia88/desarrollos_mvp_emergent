@@ -380,7 +380,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const kpiItems = summary ? [
     { label: '% Vendido', value: `${summary.sold_pct ?? 0}%`, icon: Building },
     { label: 'Uds. vendidas', value: summary.sold_units ?? 0, subtext: `de ${summary.units_total}` },
-    { label: 'Revenue MTD', value: fmtMXN(summary.revenue_mtd_est), icon: Building },
+    { label: 'Ingresos del mes', value: fmtMXN(summary.revenue_mtd_est), icon: Building },
     { label: 'Leads activos', value: summary.leads_active ?? 0 },
   ] : [];
 
@@ -485,6 +485,8 @@ export default function ProyectoDetail({ user, onLogout }) {
             </button>
             <button
               data-testid="edit-proyecto-btn"
+              onClick={() => setTab('contenido')}
+              title="Editar contenido del proyecto"
               style={{
                 background: 'rgba(var(--cream-rgb),0.08)', color: 'var(--cream)',
                 border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 8,
@@ -774,10 +776,10 @@ function Tours3DSection({ projectSlug, devId, user }) {
       }}>
         <div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>
-            Tours 3D · Gaussian Splatting
+            Tours 3D inmersivos · listo para embeber en tu sitio
           </div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-            Captura inmersiva por unidad. Compatible con iframe embedable.
+            Captura inmersiva por unidad. Se inserta directo en tu página web.
           </div>
         </div>
         {canManage && (
@@ -793,7 +795,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                 cursor: 'pointer',
               }}
             >
-              CAPTURAR NUEVO TOUR
+              {titleCase('CAPTURAR NUEVO TOUR')}
             </button>
             <button
               type="button"
@@ -806,7 +808,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                 cursor: 'pointer',
               }}
             >
-              SUBIR ARCHIVO
+              {titleCase('SUBIR ARCHIVO')}
             </button>
           </div>
         )}
@@ -869,7 +871,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                     opacity: s.status === 'ready' ? 1 : 0.45,
                   }}
                 >
-                  PREVIEW
+                  {titleCase('PREVIEW')}
                 </button>
                 {canManage && (
                   <button
@@ -884,7 +886,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                       cursor: 'pointer',
                     }}
                   >
-                    BORRAR
+                    {titleCase('BORRAR')}
                   </button>
                 )}
               </div>

@@ -14,7 +14,7 @@ export default function AsesorRanking({ user, onLogout }) {
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <PageHeader
-        eyebrow="CRM · RANKING"
+        eyebrow="CRM · Ranking"
         title="Ranking de asesores"
         sub="Score Elo computado de cierres + reviews. Opt-in: tu presencia en el ranking público es voluntaria."
       />

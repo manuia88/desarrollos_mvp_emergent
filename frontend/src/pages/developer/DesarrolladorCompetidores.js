@@ -100,7 +100,7 @@ export default function DesarrolladorCompetidores({ user, onLogout, embedded }) 
   return (
     <DeveloperLayout user={user} onLogout={onLogout} bare={embedded}>
       <PageHeader
-        eyebrow="D3 · COMPETITOR RADAR"
+        eyebrow="RADAR DE COMPETIDORES"
         title="Radar de competidores"
         sub="Alertas de pricing, histórico 12 meses y recortes de prensa IA."
         actions={
