@@ -63,6 +63,7 @@ class Recipe:
     scope: str = "colonia"                    # "colonia" | "proyecto"
     layer: str = "descriptive"                # "descriptive" (N1-N2) | "predictive" (N4) | "narrative" (N5)
     needs_denue: bool = False                 # True → engine injects denue_zone_density.by_category pseudo-sources
+    needs_natural_risk: bool = False          # True → engine injects risk_scores_zone natural-risk pseudo-source (N05)
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -322,6 +323,16 @@ class ScoreEngine:
             "_dmx_seguridad": [{"payload": seg, "is_stub": False}] if seg else [],
         }
 
+    async def _build_natural_risk_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For N05 (Infrastructure Resilience): inject the colonia's REAL natural-risk doc
+        (`risk_scores_zone`, source Atlas CDMX) under a pseudo source_id. NEVER invents:
+        only docs with `available` and `placeholder_flags.natural == False` carry real Atlas data."""
+        doc = await self.db.risk_scores_zone.find_one(
+            {"zone_id": zone_id, "available": True},
+            {"_id": 0, "components": 1, "placeholder_flags": 1, "sources_active": 1},
+        )
+        return {"_dmx_natural_risk": [{"payload": doc, "is_stub": False}] if doc else []}
+
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
         recipe = get_recipe(code)
         if not recipe:
@@ -342,6 +353,9 @@ class ScoreEngine:
         if getattr(recipe, "needs_denue", False):
             # geo-moat recipes (N01/N08/N09/N10) read OSM by_category density
             obs.update(await self._build_denue_context(zone_id))
+        if getattr(recipe, "needs_natural_risk", False):
+            # N05 reads the colonia's real Atlas natural-risk score
+            obs.update(await self._build_natural_risk_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively

@@ -332,13 +332,40 @@ class IEColN04CrimeTrajectory(DataPendingRecipe):
 
 
 @register
-class IEColN05InfrastructureResilience(DataPendingRecipe):
+class IEColN05InfrastructureResilience(Recipe):
+    """N05 — Resiliencia ante sismo/inundación/hundimiento (Atlas de Riesgos CDMX).
+    Lee el riesgo natural REAL de la colonia (`risk_scores_zone`, fuente atlas_cdmx) inyectado
+    como pseudo-fuente (needs_natural_risk). 100 = más resiliente (menor riesgo natural).
+    NUNCA inventa: si la capa natural está en placeholder o la colonia no tiene doc → stub honesto."""
     code = "IE_COL_N05_INFRASTRUCTURE_RESILIENCE"
-    version = "0.1"
-    dependencies = ["atlas_riesgos_cdmx", "cenapred"]
+    version = "1.0"
+    scope = "colonia"
+    dependencies: List[str] = []
+    needs_natural_risk = True
     tier_logic = "higher_better"
-    description = "Resiliencia de infraestructura ante sismo/inundación (Atlas de Riesgos / CENAPRED)."
-    reason = "Esperando fuente: capas WFS del Atlas de Riesgos / CENAPRED aún no ingeridas."
+    description = ("Resiliencia ante sismo/inundación/hundimiento (Atlas de Riesgos CDMX). "
+                   "100 = más resiliente (menor riesgo natural compuesto).")
+
+    def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
+        lst = obs_by_source.get("_dmx_natural_risk") or []
+        doc = lst[0].get("payload") if lst else None
+        if not doc:
+            return self._stub_result(zone_id, reason="riesgo natural (Atlas) no sincronizado para esta colonia")
+        flags = doc.get("placeholder_flags") or {}
+        comp = doc.get("components") or {}
+        nat = comp.get("natural_score")
+        if flags.get("natural") is True or nat is None:
+            return self._stub_result(zone_id, reason="capa de riesgo natural en placeholder (Atlas no resuelto)")
+        try:
+            value = max(0.0, min(100.0, round(float(nat), 2)))
+        except (TypeError, ValueError):
+            return self._stub_result(zone_id, reason="natural_score no numérico")
+        return ScoreResult(
+            code=self.code, zone_id=zone_id, value=value,
+            tier=self._tier_for(value), confidence="high", is_stub=False,
+            inputs_used={"atlas_natural": 1},
+            formula_version=self.version,
+        )
 
 
 @register
