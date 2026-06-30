@@ -56,8 +56,8 @@ async def _safe_audit_ml(
     try:
         from audit_log import log_mutation
         await log_mutation(db, actor, action, entity_type, entity_id, before, after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -69,8 +69,8 @@ async def _safe_audit_ml(
                 org_id=org or "dmx", role=role or "system",
                 context=ml_context or {}, ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 def _is_dev_admin(user) -> bool:
@@ -263,8 +263,8 @@ async def assign_visitor(exp_id: str, payload: AssignVisitorInput, request: Requ
             org_id=exp.get("dev_org_id", "dmx"), role="public",
             context={"experiment_id": exp_id, "variant": label}, ai_decision={}, user_action={},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (pricing_variant_assigned exp=%s): %s", exp_id, _e)
     return {"variant_label": label, "_existing": False}
 
 
@@ -318,8 +318,8 @@ async def resolve_active_experiment(payload: ResolveVisitorInput, request: Reque
                 org_id=exp.get("dev_org_id", "dmx"), role="public",
                 context={"experiment_id": exp_id, "variant": label}, ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (pricing_variant_assigned exp=%s): %s", exp_id, _e)
 
     variant = next((v for v in exp["variants"] if v["label"] == label), exp["variants"][0])
     return {
@@ -361,8 +361,8 @@ async def track_event(exp_id: str, payload: TrackEventInput, request: Request):
             context={"experiment_id": exp_id, "variant": assignment["variant_label"], "event": payload.event},
             ai_decision={}, user_action={},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (pricing_event_tracked exp=%s event=%s): %s", exp_id, payload.event, _e)
     return {"ok": True, "variant": assignment["variant_label"], "event": payload.event}
 
 

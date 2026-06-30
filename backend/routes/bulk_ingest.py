@@ -192,8 +192,8 @@ async def approve_item(item_id: str, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "approve", "bulk_ingest_item", item_id,
                            before=None, after={"dev_id": dev_id}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s approve): %s", item_id, _e)
     return {"ok": True, "dev_id": dev_id}
 
 
@@ -222,8 +222,8 @@ async def reject_item(item_id: str, body: RejectBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "reject", "bulk_ingest_item", item_id,
                            before=None, after={"reason": body.reason}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s reject): %s", item_id, _e)
     return {"ok": True}
 
 
@@ -257,8 +257,8 @@ async def merge_item(item_id: str, body: MergeBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "merge", "bulk_ingest_item", item_id,
                            before=None, after={"merged_into": body.target_dev_id}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s merge): %s", item_id, _e)
     return {"ok": True, "merged_into": body.target_dev_id}
 
 
@@ -306,8 +306,8 @@ async def bulk_approve(
         from audit_log import log_mutation
         await log_mutation(db, user, "bulk_approve", "bulk_ingest_job", job_id,
                            before=None, after={"approved": approved, "skipped": skipped}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_job/%s bulk_approve): %s", job_id, _e)
     return {"approved_count": approved, "skipped_count": skipped}
 
 
@@ -330,8 +330,8 @@ async def patch_item(item_id: str, body: PatchItemBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "patch", "bulk_ingest_item", item_id,
                            before=None, after={"patch": body.patch}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s patch): %s", item_id, _e)
     return {"ok": True, "item": updated, "effective_extracted": bie.effective_extracted(updated)}
 
 
@@ -375,8 +375,8 @@ async def recompute_extraction(item_id: str, request: Request):
         await log_mutation(db, user, "recompute", "bulk_ingest_item", item_id,
                            before=None, after={"history_count": len(updated.get("extraction_history") or [])},
                            request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s recompute): %s", item_id, _e)
     return {"ok": True, "item": updated}
 
 
@@ -429,8 +429,8 @@ async def force_match(item_id: str, body: ForceMatchBody, request: Request):
         await log_mutation(db, user, "force_match", "bulk_ingest_item", item_id,
                            before=None, after={"target": body.target_dev_id, "mode": body.mode},
                            request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_ingest_item/%s force_match): %s", item_id, _e)
     return {"ok": True, "decision": new_decision, "inserted_dev_id": inserted, "target_name": target.get("name")}
 
 

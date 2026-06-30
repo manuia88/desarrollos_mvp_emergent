@@ -253,8 +253,8 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
                      "first": first_touch, "last": last_touch,
                      "touchpoints": len(touchpoints_dump)},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (lead_attribution_captured lead=%s): %s", lead_id, _e)
 
     return {"ok": True, "lead_id": lead_id, "assigned_to": assigned_to,
             "attribution_model": model}
@@ -345,8 +345,8 @@ async def set_attribution_model(payload: AttributionModelPatch, request: Request
             user.user_id, org, user.role,
             context={"model": payload.model},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation/emit_ml_event perdido (dev_org_settings attribution_model org=%s): %s", org, _e)
     return {"ok": True, "model": payload.model}
 
 
@@ -525,8 +525,8 @@ async def cross_portal_sync_check(request: Request):
             user.user_id, org, user.role,
             context={"projects_checked": len(projects), "issues": len(issues)},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (cross_portal_sync_check org=%s): %s", org, _e)
     return {"projects_checked": len(projects), "issues": issues, "ok": len(issues) == 0}
 
 

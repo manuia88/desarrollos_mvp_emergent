@@ -534,8 +534,8 @@ async def dismiss_suggestion(suggestion_id: str, body: SuggestionActionIn, reque
             context={"suggestion_id": suggestion_id},
             ai_decision={}, user_action={"action": "dismiss"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (ai_suggestion_dismissed %s): %s", suggestion_id, _e)
     return {"ok": True, "suggestion_id": suggestion_id, "status": "dismissed"}
 
 
@@ -562,8 +562,8 @@ async def accept_suggestion(suggestion_id: str, body: SuggestionActionIn, reques
             context={"suggestion_id": suggestion_id},
             ai_decision={}, user_action={"action": "accept"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (ai_suggestion_accepted %s): %s", suggestion_id, _e)
     return {"ok": True, "suggestion_id": suggestion_id, "status": "accepted"}
 
 

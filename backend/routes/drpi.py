@@ -164,8 +164,8 @@ async def superadmin_recompute(request: Request):
             db, user, "create", "drpi_recompute", result.get("period", ""),
             before=None, after=result, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (drpi_recompute %s): %s", result.get("period", ""), _e)
     return result
 
 

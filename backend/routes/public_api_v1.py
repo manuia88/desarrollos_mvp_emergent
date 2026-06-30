@@ -537,8 +537,8 @@ async def create_api_key(body: ApiKeyCreateBody, request: Request):
             before=None, after={"tenant_id": body.tenant_id, "tier": body.tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create public_api_key %s): %s", doc["id"], _e)
 
     out = dict(doc); out.pop("_id", None); out.pop("key_hash", None)
     out["key_full_one_time"] = gen["full_key"]
@@ -564,8 +564,8 @@ async def patch_api_key(key_id: str, body: ApiKeyPatchBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "public_api_key", key_id,
                            before=None, after=update, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update public_api_key %s): %s", key_id, _e)
     return {"ok": True, "id": key_id, "updated": update}
 
 
@@ -582,8 +582,8 @@ async def revoke_api_key(key_id: str, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "delete", "public_api_key", key_id,
                            before=None, after={"status": "revoked"}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (delete public_api_key %s): %s", key_id, _e)
     return {"ok": True, "id": key_id, "status": "revoked"}
 
 
@@ -680,8 +680,8 @@ async def stripe_subscribe(tenant_id: str, body: StripeSubscribeBody, request: R
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "stripe_subscription", tenant_id,
                            before=None, after=out, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create stripe_subscription %s): %s", tenant_id, _e)
     return out
 
 
@@ -694,8 +694,8 @@ async def stripe_cancel(tenant_id: str, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "delete", "stripe_subscription", tenant_id,
                            before=None, after=out, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (delete stripe_subscription %s): %s", tenant_id, _e)
     return out
 
 

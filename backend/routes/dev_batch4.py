@@ -102,8 +102,10 @@ async def _safe_audit_ml(db, user, *, action: str, entity_type: str, entity_id: 
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, action, entity_type, entity_id, before, after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        import logging
+        logging.getLogger("dmx.audit").warning(
+            "[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -112,8 +114,10 @@ async def _safe_audit_ml(db, user, *, action: str, entity_type: str, entity_id: 
                 user_id=user.user_id, org_id=_tenant(user), role=user.role,
                 context=ml_context or {}, ai_decision={}, user_action=ml_action or {},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            import logging
+            logging.getLogger("dmx.audit").warning(
+                "[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 async def _push_notification(db, *, user_id: str, org_id: str, ntype: str, payload: Dict[str, Any]) -> None:

@@ -13,6 +13,7 @@ create_access_token, create_refresh_token).
 from __future__ import annotations
 
 import json
+import logging
 import random
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -179,8 +180,8 @@ async def accept_invitation(token: str, payload: AcceptInvitationPayload, reques
             context={"internal_user_id": inv["id"], "email": email},
             ai_decision={}, user_action={"action": "accept_invite"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (internal_user_activated user_id=%s): %s", user_id, _e)
 
     return {
         "ok":      True,
@@ -242,8 +243,8 @@ async def internal_login(payload: InternalLoginPayload, request: Request, respon
             context={"email": email, "internal_role": user_doc.get("internal_role")},
             ai_decision={}, user_action={"action": "login"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] emit_ml_event perdido (internal_user_login user_id=%s): %s", user_id, _e)
 
     user_doc.pop("password_hash", None)
     return {"ok": True, "user": user_doc}
@@ -391,8 +392,8 @@ async def export_project_geojson(project_id: str, request: Request):
             context={"project_id": project_id, "units_count": len(dev.get("units", []))},
             ai_decision={}, user_action={"action": "export"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (project_geojson_export project_id=%s): %s", project_id, _e)
 
     body = json.dumps(geojson, ensure_ascii=False, indent=2).encode("utf-8")
     # C4 · el slug es controlable → saneo del nombre (evita CRLF/header injection)

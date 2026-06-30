@@ -486,8 +486,8 @@ async def save_project_basics(project_id: str, payload: BasicsPayload, request: 
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "project_basics", project_id, before=None, after=fields, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (project_basics project=%s): %s", project_id, _e)
     return {"ok": True, "project_id": project_id, **fields}
 
 

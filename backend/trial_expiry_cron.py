@@ -138,8 +138,8 @@ async def run_trial_expiry_check(db) -> Dict[str, Any]:
                     await log_mutation(db, fake_user, "trial_expired",
                                        "tenant_feature", f"{tenant_id}:{feat_key}",
                                        before={"enabled": True}, after={"enabled": False})
-                except Exception:
-                    pass
+                except Exception as _e:
+                    log.warning("[audit] log_mutation perdido (tenant_feature %s:%s): %s", tenant_id, feat_key, _e)
             except Exception as e:
                 summary["errors"].append(f"revoke {tenant_id}:{feat_key}: {e}")
             continue

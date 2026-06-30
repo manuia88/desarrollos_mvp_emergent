@@ -91,8 +91,8 @@ async def _safe_audit_ml(
     try:
         from audit_log import log_mutation
         await log_mutation(db, user_or_actor, action, entity_type, entity_id, before, after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -104,8 +104,8 @@ async def _safe_audit_ml(
                 user_id=uid or "anon", org_id=org, role=role or "anon",
                 context=ml_context or {}, ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 async def _push_notification(db, *, user_id: str, org_id: str, ntype: str, payload: Dict) -> None:
@@ -425,8 +425,8 @@ async def _fire_movement_alert(db, asesor_id: str, client_name: str, activity: f
             context={"target_asesor_id": asesor_id, "client_name": client_name},
             ai_decision={}, user_action={},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (movement_alert_sent asesor=%s): %s", asesor_id, _e)
 
 
 # W5.11 Parte 3 helper · activity_score cross-project para un client_global_id.
@@ -1239,8 +1239,8 @@ async def create_cita(payload: CitaBody, request: Request):
                 context={"score": fraud_result.get("similarity_score"), "candidate_id": fraud_result.get("suspected_match_id")},
                 ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (lead_suspected_duplicate org=%s): %s", dev_org_id, _e)
 
     # Build WA templates
     asesor_name = getattr(user, "name", "Asesor") if user else "Público"

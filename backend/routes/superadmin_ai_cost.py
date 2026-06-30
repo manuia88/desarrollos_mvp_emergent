@@ -140,8 +140,8 @@ async def upsert_cap_route(body: CapBody, request: Request):
             "ai_budget_cap", body.tenant_id,
             before=before, after=doc, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (ai_budget_cap %s): %s", body.tenant_id, _e)
     return {"ok": True, "cap": doc}
 
 
@@ -169,8 +169,8 @@ async def patch_cap_route(tenant_id: str, body: CapPatchBody, request: Request):
             db, user, "update", "ai_budget_cap", tenant_id,
             before=before, after=after, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update ai_budget_cap %s): %s", tenant_id, _e)
     return {"ok": True, "cap": after}
 
 
@@ -251,8 +251,8 @@ async def update_user_tier(
             after={"tier": new_tier},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update user_tier %s): %s", user_id, _e)
     return {"ok": True, "user_id": user_id, "tier": new_tier}
 
 

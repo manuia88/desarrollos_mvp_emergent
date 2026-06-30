@@ -16,6 +16,7 @@ All mutations call audit_log.log_mutation + observability.emit_ml_event.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -353,8 +354,8 @@ async def adjust_forecast(payload: ForecastAdjust, request: Request):
             context={"dev_id": payload.dev_id},
             ai_decision={}, user_action={"target_units": payload.target_units},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (forecast_target dev_id=%s): %s", payload.dev_id, _e)
     return {"ok": True, "dev_id": payload.dev_id, "target_units": payload.target_units}
 
 
@@ -488,8 +489,8 @@ async def save_alert_config(payload: AlertConfigPayload, request: Request):
             user_id=user.user_id, org_id=_tenant(user), role=user.role,
             context={}, ai_decision={}, user_action=payload.model_dump(),
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (competitor_alert_config org=%s): %s", _tenant(user), _e)
     return {"ok": True, "config": doc}
 
 
@@ -707,8 +708,8 @@ async def ie_project_breakdown(project_id: str, request: Request):
             context={"project_id": project_id, "overall_score": overall},
             ai_decision={}, user_action={"action": "view"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] emit_ml_event perdido (ie_breakdown_view project_id=%s): %s", project_id, _e)
 
     response_data = {
         "project_id": project_id,
@@ -843,8 +844,8 @@ async def ie_improve_recommendations(project_id: str, request: Request, code: st
             ai_decision={"recommendation_count": len(recommendations)},
             user_action={"action": "drilldown"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] emit_ml_event perdido (ie_drilldown_click project_id=%s code=%s): %s", project_id, code, _e)
 
     return {
         "project_id": project_id,
@@ -1066,8 +1067,8 @@ async def update_construction_stage(project_id: str, payload: ConstructionUpdate
             context={"project_id": project_id, "stage": payload.stage_key, "overall": overall},
             ai_decision={}, user_action={"percent": payload.percent},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (construction_progress project_id=%s stage=%s): %s", project_id, payload.stage_key, _e)
 
     return {"ok": True, "project_id": project_id, "stages": stages, "overall_percent": overall, "current_stage": current}
 
@@ -1116,8 +1117,8 @@ async def add_construction_comment(project_id: str, payload: ConstructionComment
             context={"project_id": project_id, "stage": payload.stage_key},
             ai_decision={}, user_action={"action": "comment"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (construction_comment project_id=%s entry=%s): %s", project_id, entry["id"], _e)
     return {"ok": True, "entry": entry}
 
 
@@ -1181,8 +1182,8 @@ async def ie_colonia_benchmark(project_id: str, request: Request):
             context={"project_id": project_id, "colonia": dev["colonia"], "peers": n},
             ai_decision={}, user_action={"action": "view"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] emit_ml_event perdido (ie_colonia_benchmark_view project_id=%s): %s", project_id, _e)
 
     return {
         "project_id": project_id,
@@ -1290,8 +1291,8 @@ async def _fire_competitor_price_alert(
             ai_decision={"email_sent": email_sent, "channels": channels},
             user_action={},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (competitor_alert_fired competitor_id=%s): %s", competitor_id, _e)
 
     return {"ok": True, "fired": True, "notif_id": notif["id"], "delta_pct": delta_pct, "threshold": threshold, "email_sent": email_sent}
 
@@ -1342,8 +1343,8 @@ async def simulate_competitor_price_update(competitor_id: str, payload: Competit
             after={"price_sqm": round(new_price_sqm, 2), "delta_pct": payload.delta_pct},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (competitor_price_simulated competitor_id=%s): %s", competitor_id, _e)
 
     trigger = await _fire_competitor_price_alert(
         db,
@@ -1579,8 +1580,8 @@ async def update_unit_progress(project_id: str, payload: UnitProgressUpdate, req
             ai_decision={},
             user_action={"percent_complete": payload.percent_complete},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation/emit_ml_event perdido (construction_unit_progress unit_id=%s): %s", payload.unit_id, _e)
 
     return {
         "ok": True, "project_id": project_id, "unit_id": payload.unit_id,

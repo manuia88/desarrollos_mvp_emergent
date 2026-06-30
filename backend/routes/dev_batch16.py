@@ -284,8 +284,8 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
             },
             ai_decision={}, user_action={"action": "book"},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (public_booking_created project=%s): %s", slug, _e)
 
     # Phase 4 Batch 20 — attribute booking to tracking link if ref present
     if body.ref:

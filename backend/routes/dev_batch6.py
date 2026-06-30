@@ -51,8 +51,8 @@ async def _safe_audit_ml(
     try:
         from audit_log import log_mutation
         await log_mutation(db, actor, action, entity_type, entity_id, None, None, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -61,8 +61,8 @@ async def _safe_audit_ml(
             org = getattr(actor, "tenant_id", None) or "dmx"
             await emit_ml_event(db, event_type=ml_event, user_id=uid, org_id=org, role=role,
                                 context=ml_context or {}, ai_decision={}, user_action={})
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 def _parse_dates(period_from: Optional[str], period_to: Optional[str]) -> tuple[str, str]:

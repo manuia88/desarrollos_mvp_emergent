@@ -557,8 +557,8 @@ async def update_my_threshold(payload: ThresholdPayload, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "ai_budget_threshold", dev_org_id,
                            after={"threshold_mxn": threshold}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (ai_budget_threshold %s): %s", dev_org_id, _e)
     # ML event
     try:
         from observability import emit_ml_event
@@ -569,6 +569,6 @@ async def update_my_threshold(payload: ThresholdPayload, request: Request):
             context={"threshold_mxn": threshold, "month": month},
             ai_decision={}, user_action={},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (ai_budget_threshold_changed %s): %s", dev_org_id, _e)
     return {"ok": True, "dev_org_id": dev_org_id, "threshold_mxn": threshold, "month_iso": month}

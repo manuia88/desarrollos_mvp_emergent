@@ -125,8 +125,8 @@ async def bulk_upsert_tenant_features(tenant_id: str, body: BulkFeaturesBody,
         await log_mutation(db, user, "bulk_update", "tenant_features",
                            tenant_id, before=None,
                            after={"count": len(items), "result": result}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulk_update tenant_features %s): %s", tenant_id, _e)
     return {"ok": True, **result, "tenant_id": tenant_id}
 
 
@@ -154,8 +154,8 @@ async def upsert_tenant_feature(tenant_id: str, feature_key: str,
         await log_mutation(db, user, "update", "tenant_feature",
                            f"{tenant_id}:{feature_key}",
                            before=before, after=doc, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update tenant_feature %s:%s): %s", tenant_id, feature_key, _e)
     return {"ok": True, "feature": doc}
 
 
@@ -194,8 +194,8 @@ async def create_template(body: TemplateCreateBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "plan_template", doc["id"],
                            before=None, after=doc, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create plan_template %s): %s", doc["id"], _e)
     return {"ok": True, "template": {k: v for k, v in doc.items() if k != "_id"}}
 
 
@@ -221,8 +221,8 @@ async def patch_template(template_id: str, body: TemplatePatchBody, request: Req
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "plan_template", template_id,
                            before=before, after=after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update plan_template %s): %s", template_id, _e)
     return {"ok": True, "template": after}
 
 
@@ -240,8 +240,8 @@ async def apply_template_route(template_id: str, tenant_id: str, request: Reques
         await log_mutation(db, user, "apply", "plan_template_to_tenant",
                            f"{template_id}:{tenant_id}",
                            before=None, after=result, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (apply plan_template_to_tenant %s:%s): %s", template_id, tenant_id, _e)
     return {"ok": True, **result}
 
 
@@ -301,8 +301,8 @@ async def create_snapshot(body: SnapshotCreateBody, request: Request):
                            before=None, after={"name": doc["name"], "scope": doc["scope"],
                                                 "captured_from": body.from_tenant_id},
                            request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create tenant_snapshot %s): %s", doc["id"], _e)
     return {"ok": True, "snapshot": {k: v for k, v in doc.items() if k != "_id"}}
 
 
@@ -332,8 +332,8 @@ async def apply_snapshot_route(snapshot_id: str, tenant_id: str,
                            f"{snapshot_id}:{tenant_id}",
                            before=None, after={"include": include, "diff": diff},
                            request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (apply snapshot_to_tenant %s:%s): %s", snapshot_id, tenant_id, _e)
     return {"ok": True, "snapshot_id": snapshot_id, "tenant_id": tenant_id,
             "include": include, "diff": diff}
 

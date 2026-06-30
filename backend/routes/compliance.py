@@ -205,8 +205,8 @@ async def process_dsr_endpoint(dsr_id: str, request: Request):
             after={"status": "completed"},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (dsr_request %s): %s", dsr_id, _e)
 
     return result
 

@@ -918,8 +918,8 @@ async def create_buyer_lead(db, visitor_id, name=None, email=None, phone=None, d
                            ("update" if existing else "create"), "lead", entity_id=lead_id,
                            after={"assigned_to": lead.get("assigned_to"), "source": lead.get("source"),
                                   "temperatura": temperatura, "dev": dev_id}, by_ai=False)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (lead %s): %s", lead_id, _e)
     # 5. Engancha el histórico anónimo al lead (el visitor_id deja de ser anónimo).
     await db.buyer_signals.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})
     await db.marketplace_searches.update_many({"visitor_id": visitor_id}, {"$set": {"lead_id": lead_id}})

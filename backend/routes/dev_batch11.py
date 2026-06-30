@@ -86,8 +86,8 @@ async def _safe_audit(db, user, action: str, entity_type: str, entity_id: str,
             db, ml_event, user.user_id, _tenant(user), user.role,
             context=ml_context or {},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation/emit_ml_event perdido (%s entity=%s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 async def _claude_haiku(db, dev_org_id: str, system: str, user_text: str,

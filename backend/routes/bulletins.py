@@ -261,8 +261,8 @@ async def superadmin_generate(body: GenerateBody, request: Request):
             f"{body.type}::{body.zone_id or 'general'}::{period}",
             before=None, after=out, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (bulletin_generate %s): %s", body.type, _e)
     return out
 
 # W5.FF4 register_feature marker · NO duplicate

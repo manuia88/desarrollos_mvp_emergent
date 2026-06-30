@@ -118,8 +118,8 @@ async def resolve_alert(alert_id: str, body: ResolveBody, request: Request):
             before=None, after={"status": "resolved", "note": body.resolution_note},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (fraud_alert resolve %s): %s", alert_id, _e)
     return res
 
 
@@ -137,8 +137,8 @@ async def dismiss_alert(alert_id: str, body: DismissBody, request: Request):
             before=None, after={"status": "dismissed", "reason": body.reason},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (fraud_alert dismiss %s): %s", alert_id, _e)
     return res
 
 
@@ -155,6 +155,6 @@ async def manual_scan(request: Request):
             db, user, "create", "fraud_scan", "manual",
             before=None, after=out, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (fraud_scan manual): %s", _e)
     return out

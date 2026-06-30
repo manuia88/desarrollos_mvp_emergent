@@ -344,8 +344,8 @@ async def create_subscription(body: CreateSubscriptionBody, request: Request):
             },
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (licensing_subscription create %s): %s", out["id"], _e)
 
     return out
 
@@ -386,8 +386,8 @@ async def patch_subscription(
             db, user, "update", "licensing_subscription", sub_id,
             before=None, after=update, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (licensing_subscription update %s): %s", sub_id, _e)
 
     return {"ok": True, "id": sub_id, "updated": update}
 

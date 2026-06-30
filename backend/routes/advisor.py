@@ -714,8 +714,9 @@ async def _cc_set_status(request: Request, action_id: str, new_status: str, payl
         from audit_log import log_mutation
         await log_mutation(db, user, new_status, "command_center_action", action_id,
                            before=existing or {}, after={**(existing or {}), **set_doc}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning(
+            "[audit] log_mutation perdido (command_center_action/%s): %s", action_id, _e)
     return {"ok": True, "id": action_id, "status": new_status}
 
 
@@ -1390,7 +1391,8 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "contacto", cid, before=old_c, after=c, request=request)
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (contacto/%s update): %s", cid, _e)
     # E4 · si el trato se CIERRA (ganado/perdido), alimenta el loop de aprendizaje del Cerebro
     # (fail-open · solo si el Cerebro está prendido · no rompe el guardado del contacto)
     try:
@@ -1435,7 +1437,8 @@ async def delete_contacto(cid: str, request: Request):
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "delete", "contacto", cid, before=old_c, after=None, request=request)
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (contacto/%s delete): %s", cid, _e)
     return {"ok": bool(r.matched_count)}
 
 
@@ -3214,7 +3217,9 @@ async def create_operacion(payload: OperacionIn, request: Request):
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "operacion", item["id"], before=None, after=item, request=request)
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning(
+            "[audit] log_mutation perdido (operacion/%s create): %s", item["id"], _e)
     return item
 
 
@@ -3368,7 +3373,9 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
             ai_decision={},
             user_action={"to_status": payload.status, "reason": payload.reason or None},
         )
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning(
+            "[audit] emit_ml_event perdido (operacion_status_change · operacion/%s): %s", oid, _e)
     # F0.1 — Audit log (kanban critical mutation + ML emit trigger)
     try:
         from audit_log import log_mutation
@@ -3718,7 +3725,9 @@ async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request
             ai_decision={"hook": result["hook"][:120], "citations_count": len(citations)},
             user_action={},
         )
-    except Exception: pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning(
+            "[audit] emit_ml_event perdido (argumentario_rag_generated · contacto/%s): %s", payload.contact_id, _e)
     return {**out, "cache_hit": False}
 
 
@@ -4058,8 +4067,9 @@ async def bulk_contactos(payload: BulkContactosIn, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, f"bulk_{action}", "contacto", ",".join(ids[:20]),
                            before=None, after={"action": action, "count": affected}, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning(
+            "[audit] log_mutation perdido (contacto bulk_%s · %d ids): %s", action, len(ids), _e)
     return {"ok": True, "action": action, "requested": len(ids), "affected": affected}
 
 

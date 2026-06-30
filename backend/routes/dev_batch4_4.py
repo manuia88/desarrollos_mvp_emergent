@@ -76,8 +76,8 @@ async def _safe_audit_ml(
     try:
         from audit_log import log_mutation
         await log_mutation(db, actor, action, entity_type, entity_id, before, after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -89,8 +89,8 @@ async def _safe_audit_ml(
                 org_id=org or "dmx", role=role or "system",
                 context=ml_context or {}, ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 async def _claude_json(*, system: str, user_text: str, session_id: str, max_chars: int = 4000,
@@ -536,8 +536,8 @@ async def get_ai_summary(lead_id: str, request: Request):
                     ml_context={"lead_id": lead_id, "cache_hit": True},
                 )
                 return {**cached, "lead_id": lead_id, "_cached": True}
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] _safe_audit_ml perdido (ai_summary_viewed lead=%s): %s", lead_id, _e)
 
     # Cache miss → generate. (b) Rate-limit the IA spend per user (fail-soft).
     if not _ai_gen_allowed(user):

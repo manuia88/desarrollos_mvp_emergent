@@ -83,8 +83,8 @@ async def _safe_audit_ml(
     try:
         from audit_log import log_mutation
         await log_mutation(db, user, action, entity_type, entity_id, before, after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (%s/%s): %s", entity_type, entity_id, _e)
     if ml_event:
         try:
             from observability import emit_ml_event
@@ -95,8 +95,8 @@ async def _safe_audit_ml(
                 db, event_type=ml_event, user_id=uid, org_id=org, role=role,
                 context=ml_context or {}, ai_decision={}, user_action={},
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] emit_ml_event perdido (%s · %s/%s): %s", ml_event, entity_type, entity_id, _e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

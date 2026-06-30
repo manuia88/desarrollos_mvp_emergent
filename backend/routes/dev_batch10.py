@@ -572,8 +572,8 @@ async def get_project_summary(project_id: str, request: Request):
             db, "project_detail_view", user.id, _tenant(user), user.role,
             context={"project_id": project_id}
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (project_detail_view project=%s): %s", project_id, _e)
 
     return {
         "id": project_id,
