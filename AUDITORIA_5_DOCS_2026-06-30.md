@@ -40,17 +40,22 @@ el feeder lo prende después.*
 
 ---
 
-## Lo que ARREGLÉ en esta auditoría (en scope, seguro)
+## Lo que ARREGLÉ / PRENDÍ en esta auditoría (en scope, seguro, sin inventar dato)
 1. **Visibilidad** — el **Gemelo de Demanda** (SimCity de la demanda, ya construido) estaba fuera del menú → agregado a nav superadmin.
 2. **Granularidad nano↔macro** — la **celda atómica ahora es tier-aware**: `_oferta`/`_scores` siguen el nivel geo
    (colonia→alcaldía→ciudad→desarrollo) vía `query_slice(tier)`. El drill del átomo devuelve dato real distinto por
    escala (verificado: Polanco $135k → Miguel Hidalgo $123k → CDMX $96k/m²). Cierra el "navegable de lo nano a lo macro".
+3. **Score N05 prendido** — la receta `IE_COL_N05_INFRASTRUCTURE_RESILIENCE` era `DataPendingRecipe` (stub permanente
+   por diseño). Ahora es **receta REAL**: lee el riesgo natural de Atlas CDMX (`risk_scores_zone`, sismo/inundación/
+   hundimiento) inyectado como pseudo-fuente (`needs_natural_risk`). Real donde hay Atlas (Polanco 55.8, Condesa 26.5,
+   Roma 24.8 → 5 colonias hoy), stub honesto donde no. **Auto-expande a la ciudad cuando corra el join espacial Atlas×polígonos.**
+   N04 (serie temporal FGJ) y N07 (SACMEX sin dataset) siguen stub honesto — sin dato in-repo, no se inventa.
 
 ## Lo que FALTA y cómo prenderlo (data/feeder, no código)
 | Gap | Qué necesita | Fuente verificada (Doc 5) |
 |---|---|---|
 | N04 crimen-trayectoria | Connector FGJ que guarde serie temporal (fecha/mes/año) | resource_id `48fcb848` |
-| N05 infra resiliencia | Connector Atlas SGIRPC → obs reales por colonia | ArcGIS `serviciosatlas.sgirpc.cdmx.gob.mx` |
+| ~~N05 infra resiliencia~~ | ✅ **receta PRENDIDA** (lee Atlas real); falta correr join espacial Atlas×polígonos para pasar de 5 colonias a la ciudad | ArcGIS `serviciosatlas.sgirpc.cdmx.gob.mx` |
 | N07 seguridad de agua | Connector SACMEX cortes → obs reales | resource_id `a8069e94` |
 | 12 compuestas null | Se prenden con N04/N05/N07 + forecast histórico + reviews/brokers | mismo origen |
 | Cubo unit-tier | `query_slice(unit/prototipo)` debe respetar `tier_id` (hoy hace fallback a ciudad) | bug, no dato |
