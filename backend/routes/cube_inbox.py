@@ -122,3 +122,17 @@ async def asesor_cube_action_estado(action_id: str, request: Request) -> Any:
     b = await request.json()
     import activacion as ac
     return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"))
+
+
+@router.get("/api/marketplace/cube-actions")
+async def marketplace_cube_actions(request: Request) -> Any:
+    """Buzón del MARKETPLACE (público): zonas/segmentos que el cubo decidió DESTACAR a los compradores.
+    Cierra el lazo abierto: el destino 'marketplace' de cube_actions se escribía SIN lector (nadie lo consumía)."""
+    db = request.app.state.db
+    import activacion as ac
+    res = await ac.listar(db, destino="marketplace", estado="pendiente")
+    # Solo campos públicos (no expone payload/actor/filtro internos).
+    res["acciones"] = [{"id": a.get("id"), "titulo": a.get("titulo"), "detalle": a.get("detalle"),
+                        "colonia": a.get("colonia"), "created_at": a.get("created_at")}
+                       for a in res.get("acciones", [])]
+    return res

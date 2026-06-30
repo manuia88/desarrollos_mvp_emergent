@@ -656,13 +656,17 @@ async def percepcion_unidades(dev_id: str, request: Request):
         out = []
         for u in units:
             uid = u.get("id")
+            unum = u.get("unit_number")
             if not uid:
                 continue
-            views = await db.buyer_signals.count_documents({"entity_id": uid, "type": {"$in": ["unit_view", "view"]}})
-            saves = await db.buyer_signals.count_documents({"entity_id": uid, "type": {"$in": ["unit_save", "save"]}})
-            dismiss = await db.buyer_signals.count_documents({"entity_id": uid, "type": "dismiss"})
+            # Las señales por-unidad viven como {entity_id: dev_id, unit_number: '02A'} — NO por el id compuesto.
+            # (Bug previo: se cruzaba por uid → 0 matches. El superadmin sí las ve porque cruza por unit_number.)
+            q = {"entity_id": dev_id, "unit_number": unum} if unum else {"entity_id": uid}
+            views = await db.buyer_signals.count_documents({**q, "type": {"$in": ["unit_view", "view"]}})
+            saves = await db.buyer_signals.count_documents({**q, "type": {"$in": ["unit_save", "save"]}})
+            dismiss = await db.buyer_signals.count_documents({**q, "type": "dismiss"})
             dwells = [d.get("dwell_ms") async for d in db.buyer_signals.find(
-                {"entity_id": uid, "type": {"$in": ["photo_dwell", "dwell"]}}, {"dwell_ms": 1}) if d.get("dwell_ms")]
+                {**q, "type": {"$in": ["photo_dwell", "dwell"]}}, {"dwell_ms": 1}) if d.get("dwell_ms")]
             dwell_avg = round(sum(dwells) / len(dwells) / 1000, 1) if dwells else None
             interes = saves * 3 + views - dismiss * 2
             out.append({"unit_id": uid, "tipologia": u.get("tipologia") or u.get("type"),

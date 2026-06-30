@@ -166,9 +166,10 @@ async def apply_recommendation(rec_id: str, request: Request):
         {"$set": {"status": "applied", "applied_at": now, "applied_by_user_id": user_id}},
     )
 
-    # ── APLICAR DE VERDAD: mutar el precio REAL de la unidad (antes solo flipeaba el status).
-    # Cierra el lente agentic del dev: el subagente ya no solo recomienda, ACTÚA. Guardrail: tope ±20%
-    # (never-auto-locura), solo en apply explícito (human-in-the-loop), con audit before/after del dinero.
+    # ── APLICAR DE VERDAD: el precio del subagente debe LLEGAR A LA FICHA PÚBLICA. Se escribe por el MISMO camino
+    # que el edit manual del dev — `developer_unit_overrides` + `record_price_event` — que la ficha SÍ lee
+    # (public._apply_unit_overrides) y el flywheel registra. (Antes escribía en db.developments.units, que nadie lee →
+    # el cambio era invisible al comprador.) Guardrail ±20% (never-auto-locura), solo en apply explícito, audit del dinero.
     price_change = None
     unit_id = doc.get("unit_id")
     delta_raw = doc.get("delta_pct")
@@ -178,22 +179,36 @@ async def apply_recommendation(rec_id: str, request: Request):
         except (TypeError, ValueError):
             delta = None
         if delta is not None:
-            dev = await db.developments.find_one({"units.id": unit_id}, {"id": 1, "units": 1})
+            from data_developments import DEVELOPMENTS_BY_ID
+            dev_id = doc.get("development_id")
+            dev = (DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0})) if dev_id else None
             unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None) if dev else None
-            cur = unit.get("price") if unit else None
-            if dev and cur:
+            if unit is None:  # fallback: localizar el dev que contiene la unidad
+                dev = await db.developments.find_one({"units.id": unit_id}, {"_id": 0})
+                if dev:
+                    dev_id = dev.get("id")
+                    unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None)
+            ov = await db.developer_unit_overrides.find_one({"dev_id": dev_id, "unit_id": unit_id}, {"_id": 0}) if dev_id else None
+            cur = (ov or {}).get("price") or (unit or {}).get("price")
+            if dev_id and unit and cur:
                 try:
                     new_price = round(float(cur) * (1 + delta / 100.0))
-                    await db.developments.update_one(
-                        {"id": dev["id"], "units.id": unit_id},
-                        {"$set": {"units.$.price": new_price,
-                                  "units.$.price_display": f"${new_price:,.0f}",
-                                  "units.$.price_updated_at": now,
-                                  "units.$.price_updated_by": f"pricing_agent_apply:{user_id or 'dev'}"}},
-                    )
-                    price_change = {"unit_id": unit_id, "before": float(cur), "after": new_price, "delta_pct": delta}
+                    now_iso = now.isoformat()
+                    upd = {**(ov or {}), "dev_id": dev_id, "unit_id": unit_id, "price": new_price,
+                           "price_display": f"${new_price:,.0f}", "updated_at": now_iso,
+                           "updated_by": f"pricing_agent_apply:{user_id or 'dev'}"}
+                    await db.developer_unit_overrides.update_one(
+                        {"dev_id": dev_id, "unit_id": unit_id}, {"$set": upd}, upsert=True)
+                    try:  # historial de precios (flywheel/moat) — append-only, fail-open
+                        from routes.dev_price_history import record_price_event
+                        await record_price_event(db, dev_id, unit, float(cur), new_price,
+                                                 dev=DEVELOPMENTS_BY_ID.get(dev_id), user_id=user_id,
+                                                 source="pricing_agent_apply", label="Ajuste sugerido por IA (aplicado)")
+                    except Exception:
+                        pass
+                    price_change = {"unit_id": unit_id, "dev_id": dev_id, "before": float(cur), "after": new_price, "delta_pct": delta}
                 except (TypeError, ValueError) as exc:
-                    log.warning(f"[routes_subagents] price mutation failed for {unit_id}: {exc}")
+                    log.warning(f"[routes_subagents] price override failed for {unit_id}: {exc}")
 
     # Audit log (incluye el cambio de dinero real si lo hubo)
     try:
