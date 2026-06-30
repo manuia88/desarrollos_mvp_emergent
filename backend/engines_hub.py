@@ -181,6 +181,59 @@ async def _r_generador_producto(db, ctx):
     return await e.generar_producto(db, ctx.get("colonia_id"), 500.0)
 
 
+def _precio_colonia(colonia_id):
+    """(precio_mediano, pm2_mediano, m2_mediano) de las unidades de la colonia."""
+    import statistics
+    from data_developments import DEVELOPMENTS
+    pr, pm2, m2 = [], [], []
+    for d in DEVELOPMENTS:
+        if d.get("colonia_id") != colonia_id:
+            continue
+        for u in (d.get("units") or []):
+            if u.get("price"):
+                pr.append(u["price"])
+            if u.get("price") and u.get("m2_total"):
+                pm2.append(u["price"] / u["m2_total"])
+            if u.get("m2_total"):
+                m2.append(u["m2_total"])
+    return (round(statistics.median(pr)) if pr else None,
+            round(statistics.median(pm2)) if pm2 else None,
+            round(statistics.median(m2)) if m2 else None)
+
+
+# ── TANDA 4 runners (valuación · costo de propiedad · pago) ──
+async def _r_avm(db, ctx):
+    import avm_public_engine as e
+    _, _, m2 = _precio_colonia(ctx.get("colonia_id"))
+    return await e.avm_quick_async(db, ctx.get("colonia_id"), float(m2 or 90), 2, 2, 0)
+
+
+async def _r_ownership(db, ctx):
+    import ownership_economics_engine as e
+    precio, _, m2 = _precio_colonia(ctx.get("colonia_id"))
+    return e.compute_ownership(float(precio or 6_000_000), float(m2 or 90), None)
+
+
+async def _r_payment(db, ctx):
+    import payment_schemes as e
+    precio, _, _ = _precio_colonia(ctx.get("colonia_id"))
+    return {"esquemas_sugeridos": e.suggest_schemes(price_from=float(precio or 0))}
+
+
+async def _r_price_ctx(db, ctx):
+    import price_context_engine as e
+    from data_developments import DEVELOPMENTS
+    import statistics
+    cid = ctx.get("colonia_id")
+    _, pm2, _ = _precio_colonia(cid)
+    peers = []
+    for c in {d.get("colonia_id") for d in DEVELOPMENTS if d.get("colonia_id") and d.get("colonia_id") != cid}:
+        _, p, _ = _precio_colonia(c)
+        if p:
+            peers.append(p)
+    return e.compute_price_context(float(pm2 or 0), {"colonia_id": cid}, peers) or {"nota": "sin contexto suficiente"}
+
+
 # ── REGISTRO — se crece por tandas (ENGINE_MAP.md). id · nombre · eje · produce · runner · fuente ──
 REGISTRO: List[Dict[str, Any]] = [
     {"id": "shf", "nombre": "Índice SHF — apreciación oficial", "eje": "DÓNDE/PRECIO", "tanda": 1,
@@ -237,6 +290,15 @@ REGISTRO: List[Dict[str, Any]] = [
      "produce": "estudio de mercado en radio de 1km de la zona", "input": ["colonia_id"], "fn": _r_estudio_mercado, "fuente": "estudio_mercado_engine"},
     {"id": "generador_producto", "nombre": "Generador de producto", "eje": "INVERSIÓN", "tanda": 3,
      "produce": "producto óptimo sugerido para un terreno en la zona", "input": ["colonia_id"], "fn": _r_generador_producto, "fuente": "generador_producto_engine"},
+    # ── TANDA 4 ──
+    {"id": "avm_publico", "nombre": "AVM — valor de un depto típico", "eje": "PRECIO", "tanda": 4,
+     "produce": "valor estimado de un 2-rec típico (90m²) en la zona", "input": ["colonia_id"], "fn": _r_avm, "fuente": "avm_public_engine"},
+    {"id": "costo_propiedad", "nombre": "Costo de propiedad (cuotas/predial)", "eje": "EXPERIENCIA", "tanda": 4,
+     "produce": "costo total de tener la propiedad (mantenimiento+predial vs renta)", "input": ["colonia_id"], "fn": _r_ownership, "fuente": "ownership_economics_engine"},
+    {"id": "esquemas_pago", "nombre": "Esquemas de pago sugeridos", "eje": "PRECIO", "tanda": 4,
+     "produce": "esquemas de pago/enganche sugeridos para el precio de la zona", "input": ["colonia_id"], "fn": _r_payment, "fuente": "payment_schemes"},
+    {"id": "contexto_precio", "nombre": "Contexto de precio (vs peers)", "eje": "PRECIO", "tanda": 4,
+     "produce": "posición de precio de la zona vs colonias comparables", "input": ["colonia_id"], "fn": _r_price_ctx, "fuente": "price_context_engine"},
 ]
 BY_ID = {e["id"]: e for e in REGISTRO}
 

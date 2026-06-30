@@ -129,6 +129,28 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "demanda_real.total", "nombre": "Demanda real en radio", "uso": "Demanda observada en 1km.", "unidad": "señales"},
         {"k": "demanda_potencial.total", "nombre": "Demanda potencial", "uso": "Techo de demanda del submercado."},
     ]},
+    "avm_publico": {"items": [
+        {"k": "precio_estimado", "nombre": "Valor estimado (2-rec 90m²)", "uso": "AVM de un depto típico: ¿está bien puesto el precio?", "unidad": "MXN"},
+        {"k": "precio_per_m2", "nombre": "Precio estimado por m²", "uso": "Referencia AVM por m².", "unidad": "$/m²"},
+        {"k": "confidence", "nombre": "Confianza del AVM", "uso": "Qué tan confiable es la estimación."},
+    ]},
+    "costo_propiedad": {"items": [
+        {"k": "tco.costo_real_mensual", "nombre": "Costo real mensual de ser dueño", "uso": "Lo que de verdad cuesta al mes tener la propiedad (más allá de la mensualidad).", "unidad": "MXN/mes"},
+        {"k": "rent_vs_buy.renta_mensual_estimada", "nombre": "Renta equivalente", "uso": "Cuánto rentaría: la comparación dueño vs rentar.", "unidad": "MXN/mes"},
+        {"k": "rent_vs_buy.clave", "nombre": "¿Conviene comprar o rentar?", "uso": "El veredicto financiero del horizonte."},
+        {"k": "rent_vs_buy.lectura", "nombre": "Lectura renta vs compra", "uso": "El porqué en lenguaje simple."},
+    ]},
+    "esquemas_pago": {"items": [
+        {"k": "esquemas_sugeridos.segment_label", "nombre": "Segmento de pago sugerido", "uso": "Para qué tipo de comprador es el esquema."},
+        {"k": "esquemas_sugeridos.confidence", "nombre": "Confianza del esquema", "uso": "Qué tan sólida es la sugerencia."},
+        {"k": "esquemas_sugeridos.rationale", "nombre": "Lógica del esquema", "uso": "Por qué este enganche/mensualidades."},
+    ]},
+    "contexto_precio": {"items": [
+        {"k": "este_pm2", "nombre": "Precio/m² de la zona", "uso": "El precio de referencia de la colonia.", "unidad": "$/m²"},
+        {"k": "posicion.etiqueta", "nombre": "Posición de precio", "uso": "Dónde cae el precio vs comparables (entrada/medio/tope de gama)."},
+        {"k": "posicion.vs_pct", "nombre": "Percentil vs peers", "uso": "Qué tan caro/barato vs colonias comparables.", "unidad": "%"},
+        {"k": "posicion.lectura", "nombre": "Lectura de posición", "uso": "El porqué en lenguaje simple."},
+    ]},
 }
 
 

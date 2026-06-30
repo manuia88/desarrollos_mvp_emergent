@@ -10,7 +10,7 @@ valor además se integran como dimensiones/indicadores del cubo.
 
 **Estado:** ⬜ por cablear · 🟦 en hub (runnable+visible) · ✅ integrado al cubo (dimensión/indicador) · ⬛ otro portal (fuera de Terminal).
 
-**Progreso:** 26 / ~120 en el hub, **los 26 con descriptor (hiper-segmentados, 0 sudoku)**. Regla: ningún motor entra sin descriptor. Soporta motores que devuelven lista (rankings).
+**Progreso:** 30 / ~120 en el hub, **los 30 con descriptor (hiper-segmentados)**. T4: avm_publico·costo_propiedad·esquemas_pago·contexto_precio. Regla: ningún motor sin descriptor.
 
 ---
 
