@@ -107,6 +107,53 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/simetria")
+async def simetria_ep(request: Request, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """SIMETRÍA — el cubo oferta↔demanda: balance y tensión por cada dimensión a la vez."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import simetria as sm
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await sm.cubo_simetrico(request.app.state.db, geo=geo)
+
+
+@router.get("/vistas")
+async def vistas_listar(request: Request):
+    """VISTAS GUARDADAS — lista las vistas/búsquedas guardadas del analista."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import vistas_guardadas as vg
+    return await vg.listar(request.app.state.db)
+
+
+@router.post("/vistas")
+async def vistas_guardar(request: Request):
+    """VISTAS — guarda una vista. Body = {nombre, tipo, definicion, alerta?}."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import vistas_guardadas as vg
+    b = await request.json()
+    return await vg.guardar(request.app.state.db, b.get("nombre", "Sin nombre"), b.get("tipo", "screener"),
+                            b.get("definicion") or {}, alerta=b.get("alerta"))
+
+
+@router.delete("/vistas/{view_id}")
+async def vistas_borrar(request: Request, view_id: str):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import vistas_guardadas as vg
+    return await vg.borrar(request.app.state.db, view_id)
+
+
+@router.get("/vistas/alertas")
+async def vistas_alertas(request: Request):
+    """ALERTAS — evalúa los umbrales de las vistas con alerta y devuelve las disparadas."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import vistas_guardadas as vg
+    return await vg.evaluar_alertas(request.app.state.db)
+
+
 @router.get("/sankey")
 async def sankey_ep(request: Request, por: str = "tipologia", geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
     """SANKEY — flujos de sustitución (qué sustituye a qué) por tipología o zona, de la misma persona."""
