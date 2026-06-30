@@ -330,7 +330,9 @@ function SegmentoFila({ it, max, modo, cols, onOpen, activos }) {
         gap: 10, alignItems: 'center', fontSize: 12.5,
         padding: '7px 10px', borderRadius: 9, cursor: clickable ? 'pointer' : 'default',
         background: yaActivo ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.025)',
-        border: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
+        borderTop: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
+        borderRight: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
+        borderBottom: '1px solid ' + (yaActivo ? 'var(--theme, #6366f1)' : 'rgba(255,255,255,0.06)'),
         borderLeft: `3px solid ${gapColor}`,
       }}
       onMouseEnter={clickable ? (e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; } : undefined}
@@ -358,10 +360,11 @@ function OportunidadesPanel({ oport, loading, error, onPick }) {
   const fila = (o, color, emoji) => (
     <button key={`${o.colonia_id}:${o.segmento}:${o.dimension}`} onClick={() => onPick(o)}
       style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', width: '100%',
-        border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)', color: '#ddd',
+        borderTop: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.025)', color: '#ddd',
         borderLeft: `3px solid ${color}`, display: 'flex', flexDirection: 'column', gap: 4 }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = color; e.currentTarget.style.borderLeftColor = color; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderLeftColor = color; }}>
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderTopColor = color; e.currentTarget.style.borderRightColor = color; e.currentTarget.style.borderBottomColor = color; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderRightColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.08)'; }}>
       <span style={{ fontSize: 13.5, color: '#eee', fontWeight: 600, lineHeight: 1.35 }}>{emoji} {o.lectura}</span>
       <span style={{ fontSize: 11, color: '#888' }}>
         {[o.colonia, o.dimension, o.segmento, `oferta ${fmtN(o.oferta)} · demanda ${fmtN(o.demanda)}`].filter(Boolean).join(' · ')}
