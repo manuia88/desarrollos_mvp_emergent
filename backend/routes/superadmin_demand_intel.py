@@ -107,6 +107,26 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/engines/catalog")
+async def engines_catalog(request: Request):
+    """MOTORES — catálogo de motores registrados en el hub (los que se dan visibilidad), agrupados por eje."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import engines_hub as eh
+    return eh.catalogo()
+
+
+@router.get("/engines/run")
+async def engines_run(request: Request, engine_id: str, colonia_id: Optional[str] = None,
+                      alcaldia: Optional[str] = None, dev_id: Optional[str] = None, categoria: str = "media"):
+    """MOTORES — corre un motor del hub con contexto {colonia_id, alcaldia?, dev_id?}."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import engines_hub as eh
+    ctx = {k: v for k, v in {"colonia_id": colonia_id, "alcaldia": alcaldia, "dev_id": dev_id, "categoria": categoria}.items() if v}
+    return await eh.run(request.app.state.db, engine_id, ctx)
+
+
 @router.get("/colonias")
 async def colonias_catalogo(request: Request):
     """Catálogo de colonias (con oferta) para el picker compartido — id·nombre·alcaldía·n_unidades."""

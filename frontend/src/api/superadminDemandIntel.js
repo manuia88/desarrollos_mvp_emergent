@@ -190,3 +190,11 @@ export async function getAcciones({ destino, estado } = {}) {
 export async function getColonias() {
   return _j(await fetch(`${BASE}/colonias`, { headers: h(), credentials: 'include' }));
 }
+
+// Hub de motores — catálogo + correr cualquier motor del cubo (goal: 100% visibles).
+export async function getEnginesCatalog() {
+  return _j(await fetch(`${BASE}/engines/catalog`, { headers: h(), credentials: 'include' }));
+}
+export async function getEngineRun({ engine_id, colonia_id, alcaldia, dev_id, categoria } = {}) {
+  return _j(await fetch(`${BASE}/engines/run?${_qs({ engine_id, colonia_id, alcaldia, dev_id, categoria })}`, { headers: h(), credentials: 'include' }));
+}
