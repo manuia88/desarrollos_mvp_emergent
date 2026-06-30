@@ -1542,6 +1542,18 @@ async def add_lead_board_item(cid: str, payload: BoardItemIn, request: Request):
     payload.status = BOARD_STATUS_ALIAS.get(payload.status, payload.status)
     if payload.status not in BOARD_STATUS:
         raise HTTPException(400, "status inválido")
+    # Propaga el dev al LEAD del contacto → el lead se vuelve VISIBLE al dev (broker-intel filtra por development_id).
+    # Cierra la fuga asesor→dev: leads de contacto-puro quedaban con development_id vacío. Solo llena vacíos. Fail-soft.
+    try:
+        if payload.dev_id:
+            c = await db.asesor_contactos.find_one({"id": cid}, {"_id": 0, "source_lead_id": 1})
+            slid = (c or {}).get("source_lead_id")
+            if slid:
+                await db.leads.update_one(
+                    {"id": slid, "development_id": {"$in": [None, ""]}},
+                    {"$set": {"development_id": payload.dev_id}})
+    except Exception:
+        pass
     existing = await db.asesor_lead_properties.find_one(
         {"owner_id": user.user_id, "contacto_id": cid, "dev_id": payload.dev_id}, {"_id": 0})
     if existing:

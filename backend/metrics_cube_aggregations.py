@@ -244,7 +244,26 @@ async def _all_developments(db) -> List[Dict[str, Any]]:
                 by_id[d["id"]] = d
     except Exception as e:
         log.warning(f"[cube] db.developments scan failed: {e}")
-    return list(by_id.values())
+    devs = list(by_id.values())
+    # Aplicar las ediciones por-unidad del dev (developer_unit_overrides: precio/estado) y RECOMPUTAR los rollups
+    # top-level que el cubo lee (price_from/to, units_*). Antes el cubo era CIEGO a las ediciones por-unidad
+    # (leía el seed estático) → ahora refleja tanto el edit manual como el apply del subagente. Fail-open.
+    try:
+        from routes.public import _apply_unit_overrides, _aggregates_from_units
+        for d in devs:
+            units = d.get("units")
+            if not units:
+                continue
+            try:
+                merged = await _apply_unit_overrides(db, d.get("id"), units)
+                agg = _aggregates_from_units(merged)
+                if agg:
+                    d.update(agg)  # price_from/to + units_total/available/reserved/sold EFECTIVOS
+            except Exception:
+                continue
+    except Exception as e:
+        log.warning(f"[cube] override merge failed: {e}")
+    return devs
 
 
 async def aggregate_tier(db, tier: str, period: str) -> int:
