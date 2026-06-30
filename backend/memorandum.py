@@ -2,7 +2,7 @@
 comparables y recomendación, en lenguaje simple y CON FUENTES. No es un motor nuevo: ENSAMBLA lo que ya existe
 (entity_atlas, explorador.oportunidades, lookalike) en una historia lista para comité. No inventa: cada sección cita su origen.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 def _num(v, suf=""):
@@ -11,6 +11,31 @@ def _num(v, suf=""):
     if isinstance(v, (int, float)):
         return f"{round(v):,}{suf}"
     return str(v)
+
+
+async def _narrativa_llm(nombre: str, secciones: list) -> Optional[str]:
+    """Narrativa ejecutiva del memorándum redactada por LLM, GROUNDED en las secciones (cero invención: los datos
+    van en el prompt). Cierra el lente generative del superadmin (antes texto-por-regla). Fail-soft: sin
+    ANTHROPIC_API_KEY o error → None (queda la redacción por reglas, honesta)."""
+    import os
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    try:
+        from llm_client import LlmChat, UserMessage
+        datos = "\n".join(
+            f"- {s['titulo']}: {s.get('texto', '')}"
+            + (f" [{'; '.join(s['lista'])}]" if s.get("lista") else "")
+            for s in secciones
+        )
+        system = ("Eres analista inmobiliario institucional. Redacta el memorándum ejecutivo de la colonia usando "
+                  "SOLO los datos dados — NO inventes cifras ni hechos. 4-5 frases, tono de comité de inversión, en "
+                  "español, y cierra con la jugada recomendada. Si un dato dice 's/d' (sin dato), no lo menciones.")
+        chat = LlmChat(api_key=os.environ["ANTHROPIC_API_KEY"], session_id=f"memo_{nombre}",
+                       system_message=system).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        resp = await chat.send_message(UserMessage(text=f"Colonia: {nombre}\nDatos del cubo:\n{datos}"))
+        return (resp or "").strip() or None
+    except Exception:
+        return None
 
 
 async def generar(db, colonia: str) -> Dict[str, Any]:
@@ -67,7 +92,12 @@ async def generar(db, colonia: str) -> Dict[str, Any]:
             else "Sin huecos de demanda claros; competir por precio/absorción.")
     secciones.append({"titulo": "Recomendación", "texto": reco, "fuente": "síntesis"})
 
-    return {"colonia": colonia, "nombre": nombre, "secciones": secciones,
-            "lectura": f"Memorándum de {nombre} — listo para comité, cada sección con su fuente",
-            "generado_de": ["entity_atlas", "explorador.oportunidades", "lookalike"],
-            "nota": "ensamblado de dato real; las cifras 's/d' (sin dato) se llenan conforme entre volumen"}
+    narrativa = await _narrativa_llm(nombre, secciones)
+    out = {"colonia": colonia, "nombre": nombre, "secciones": secciones,
+           "lectura": f"Memorándum de {nombre} — listo para comité, cada sección con su fuente",
+           "generado_de": ["entity_atlas", "explorador.oportunidades", "lookalike"],
+           "nota": "ensamblado de dato real; las cifras 's/d' (sin dato) se llenan conforme entre volumen"}
+    if narrativa:
+        out["narrativa_llm"] = narrativa
+        out["generado_de"].append("LLM (Claude, grounded en el dato)")
+    return out
