@@ -498,6 +498,20 @@ async def grid_cell(request: Request, measure: str, geo_nivel: Optional[str] = N
     return await ge.compute(request.app.state.db, measure, {k: v for k, v in dims.items() if v})
 
 
+@router.get("/celda")
+async def terminal_celda(request: Request, measure: str, geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None,
+                         tipologia: Optional[str] = None, rango_m2: Optional[str] = None, tier_precio: Optional[str] = None,
+                         atributo: Optional[str] = None, ventana: Optional[str] = None, lente: str = "superadmin"):
+    """P6 · CELDA ATÓMICA completa: ejes + valor + OFERTA + DEMANDA + comparativo + scores + drill + lectura.
+    Compone los motores existentes (grid/cubo/grafo/zone/dmx). Fail-soft por bloque (nunca inventa)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import terminal_celda as tc
+    return await tc.build_celda(request.app.state.db, measure=measure, geo_nivel=geo_nivel, geo_valor=geo_valor,
+                                tipologia=tipologia, rango_m2=rango_m2, tier_precio=tier_precio,
+                                atributo=atributo, ventana=ventana, lente=lente)
+
+
 @router.get("/grid/ranking")
 async def grid_ranking(request: Request, measure: str, por: str = "colonia", top: int = 12,
                        tipologia: Optional[str] = None, atributo: Optional[str] = None, ventana: Optional[str] = None):
