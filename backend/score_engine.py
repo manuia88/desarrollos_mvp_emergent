@@ -341,7 +341,13 @@ class ScoreEngine:
             {"zone_id": zone_id, "available": True},
             {"_id": 0, "components": 1, "placeholder_flags": 1, "sources_active": 1},
         )
-        return {"_dmx_natural_risk": [{"payload": doc, "is_stub": False}] if doc else []}
+        seismic = await self.db.seismic_zone_colonia.find_one(
+            {"zone_id": zone_id}, {"_id": 0, "resilience": 1, "seismic_zone": 1},
+        )
+        return {
+            "_dmx_natural_risk": [{"payload": doc, "is_stub": False}] if doc else [],
+            "_dmx_seismic": [{"payload": seismic, "is_stub": False}] if seismic else [],
+        }
 
     async def _build_water_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
         """For N07 (Water Security): inject the colonia's REAL SACMEX water-incident count

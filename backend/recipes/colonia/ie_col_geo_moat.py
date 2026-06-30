@@ -380,25 +380,32 @@ class IEColN05InfrastructureResilience(Recipe):
                    "100 = más resiliente (menor riesgo natural compuesto).")
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
+        # 1) Preferir el riesgo natural COMPUESTO de Atlas (sismo+inundación+hundimiento) si existe real.
         lst = obs_by_source.get("_dmx_natural_risk") or []
         doc = lst[0].get("payload") if lst else None
-        if not doc:
-            return self._stub_result(zone_id, reason="riesgo natural (Atlas) no sincronizado para esta colonia")
-        flags = doc.get("placeholder_flags") or {}
-        comp = doc.get("components") or {}
-        nat = comp.get("natural_score")
-        if flags.get("natural") is True or nat is None:
-            return self._stub_result(zone_id, reason="capa de riesgo natural en placeholder (Atlas no resuelto)")
-        try:
-            value = max(0.0, min(100.0, round(float(nat), 2)))
-        except (TypeError, ValueError):
-            return self._stub_result(zone_id, reason="natural_score no numérico")
-        return ScoreResult(
-            code=self.code, zone_id=zone_id, value=value,
-            tier=self._tier_for(value), confidence="high", is_stub=False,
-            inputs_used={"atlas_natural": 1},
-            formula_version=self.version,
-        )
+        if doc:
+            flags = doc.get("placeholder_flags") or {}
+            nat = (doc.get("components") or {}).get("natural_score")
+            if not flags.get("natural") and nat is not None:
+                try:
+                    value = max(0.0, min(100.0, round(float(nat), 2)))
+                    return ScoreResult(code=self.code, zone_id=zone_id, value=value,
+                                       tier=self._tier_for(value), confidence="high", is_stub=False,
+                                       inputs_used={"atlas_natural": 1}, formula_version=self.version)
+                except (TypeError, ValueError):
+                    pass
+        # 2) Fallback city-wide: zonificación sísmica OFICIAL por colonia (Zona I firme → III lacustre).
+        slst = obs_by_source.get("_dmx_seismic") or []
+        sdoc = slst[0].get("payload") if slst else None
+        if sdoc and sdoc.get("resilience") is not None:
+            try:
+                value = max(0.0, min(100.0, round(float(sdoc["resilience"]), 2)))
+                return ScoreResult(code=self.code, zone_id=zone_id, value=value,
+                                   tier=self._tier_for(value), confidence="med", is_stub=False,
+                                   inputs_used={"seismic_zone": 1}, formula_version=self.version)
+            except (TypeError, ValueError):
+                pass
+        return self._stub_result(zone_id, reason="sin riesgo natural ni zona sísmica para esta colonia")
 
 
 @register
