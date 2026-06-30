@@ -175,7 +175,7 @@ async def universal_search(
             {"query": q, "types": list(requested), "result_count": len(results)},
             {}, {},
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (search_query_executed %s): %s", user.user_id, _e)
 
     return {"results": results[:limit * 3], "query": q, "total": len(results)}

@@ -117,6 +117,6 @@ async def acknowledge_alert(change_id: str, request: Request):
             db, user, "update", "risk_letter_change", change_id,
             before=None, after={"acknowledged": True}, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (risk_letter_change %s): %s", change_id, _e)
     return res

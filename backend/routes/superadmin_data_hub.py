@@ -147,8 +147,8 @@ async def test_connector(connector_id: str, request: Request):
             before=None, after={"ok": result.get("ok"), "latency_ms": result.get("latency_ms")},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (test connector %s): %s", connector_id, _e)
     return result
 
 
@@ -178,8 +178,8 @@ async def retry_connector_route(connector_id: str, request: Request):
             before=None, after={"retry_ok": (result.get("retry_result") or {}).get("ok")},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (retry connector %s): %s", connector_id, _e)
     return result
 
 
@@ -211,8 +211,8 @@ async def replay_connector_route(connector_id: str, body: ReplayBody, request: R
                    "from_ts": body.from_ts, "to_ts": body.to_ts},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (replay connector %s): %s", connector_id, _e)
     return result
 
 

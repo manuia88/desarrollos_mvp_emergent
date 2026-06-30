@@ -96,8 +96,8 @@ async def generate_brief_route(body: GenerateBody, request: Request):
                    "ai_cost_mxn": brief.get("ai_cost_mxn")},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create intelligence_brief %s): %s", brief.get("id") or "", _e)
     return brief
 
 
@@ -168,8 +168,8 @@ async def export_pdf_route(
                                 "period": period},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (read intelligence_brief_pdf %s): %s", zone_id, _e)
 
     fname = f"dmx-intelligence-{zone_id}-{datetime.utcnow().strftime('%Y%m%d')}.pdf"
     return StreamingResponse(

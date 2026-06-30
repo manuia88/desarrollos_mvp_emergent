@@ -164,8 +164,8 @@ async def superadmin_recompute(request: Request):
             db, user, "create", "risk_score_recompute", "manual",
             before=None, after=out, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (risk_score_recompute manual): %s", _e)
     return out
 
 

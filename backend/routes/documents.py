@@ -285,7 +285,8 @@ async def upload_document(
         await log_mutation(_get_db(request), user, "create", "document", res["document"]["id"],
                            before=None, after={"dev_id": dev_id, "doc_type": doc_type, "filename": file.filename},
                            request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (document create dev=%s): %s", dev_id, _e)
     return {"document": res["document"]}
 
 
@@ -592,7 +593,8 @@ async def sync_apply(dev_id: str, request: Request):
                            before={"dev_id": dev_id, "pending": True},
                            after={"dev_id": dev_id, "applied": applied_count},
                            request=request)
-    except Exception: pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (sync_overlay update dev=%s): %s", dev_id, _e)
     return result
 
 
@@ -619,7 +621,8 @@ async def sync_revert(dev_id: str, audit_id: str, request: Request):
                            request=request)
         await emit_ml_event(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
                             context={"entity_type": "sync_overlay", "action": "revert"}, ai_decision={}, user_action={})
-    except Exception: pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation/emit_ml_event perdido (sync_overlay revert dev=%s audit=%s): %s", dev_id, audit_id, _e)
     return result
 
 

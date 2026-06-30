@@ -360,8 +360,8 @@ async def resolve_anomaly(anomaly_id: str, body: ResolveBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "resolve", "founder_anomaly", anomaly_id,
                            before=before, after=after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (resolve founder_anomaly %s): %s", anomaly_id, _e)
     return {"ok": True, "anomaly": after}
 
 
@@ -387,8 +387,8 @@ async def dismiss_anomaly(anomaly_id: str, body: DismissBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "dismiss", "founder_anomaly", anomaly_id,
                            before=before, after=after, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (dismiss founder_anomaly %s): %s", anomaly_id, _e)
     return {"ok": True, "anomaly": after}
 
 
@@ -402,8 +402,8 @@ async def trigger_anomaly_detection(request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "trigger", "founder_anomaly_detection",
                            "manual", before=None, after=result, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (trigger founder_anomaly_detection manual): %s", _e)
     return result
 
 
@@ -541,8 +541,8 @@ async def execute_command(body: CommandExecBody, request: Request):
             before=None, after={"action": action, "payload": payload},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (execute founder_command %s): %s", body.command_id, _e)
     return result
 
 

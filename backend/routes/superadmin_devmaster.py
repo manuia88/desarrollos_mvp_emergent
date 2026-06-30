@@ -222,8 +222,8 @@ async def toggle_project_marketplace(project_id: str, request: Request):
         await log_mutation(db, {"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"},
                            "update", "project", entity_id=project_id,
                            after={"marketplace_published": published, "name": proj.get("name")})
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (update project %s marketplace_published): %s", project_id, _e)
     return {"ok": True, "project_id": project_id, "marketplace_published": published}
 
 

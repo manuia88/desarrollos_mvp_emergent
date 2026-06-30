@@ -343,8 +343,8 @@ async def backfill_route(body: BackfillBody, request: Request):
                                     "to_date": body.to_date},
                 request=request,
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            log.warning("[audit] log_mutation perdido (trigger cube_backfill %s): %s", result.get("job_id"), _e)
         return result
     except ValueError as e:
         raise HTTPException(400, str(e))

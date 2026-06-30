@@ -7,6 +7,7 @@ Built atop mocked developments in data_developments.py plus runtime state in Mon
 import os
 import uuid
 import hashlib
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -1019,8 +1020,8 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
                            "update", "unit", entity_id=payload.unit_id,
                            before={"status": old_status},
                            after={"status": payload.status, "dev": payload.dev_id, "reason": payload.reason or ""})
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (unit status_change unit_id=%s): %s", payload.unit_id, _e)
     # Phase 7.9 — units_history trigger
     try:
         from units_history import record_unit_change
@@ -1145,8 +1146,8 @@ async def patch_unit_fields(payload: UnitFieldsPatch, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, {"user_id": user.user_id, "role": "developer", "name": getattr(user, "name", None)},
                            "update", "unit", entity_id=payload.unit_id, after={"campos": fields, "dev": payload.dev_id})
-    except Exception:
-        pass
+    except Exception as _e:
+        logging.getLogger("dmx.audit").warning("[audit] log_mutation perdido (unit fields_change unit_id=%s): %s", payload.unit_id, _e)
     return {"ok": True, "unit_id": payload.unit_id, **fields}
 
 

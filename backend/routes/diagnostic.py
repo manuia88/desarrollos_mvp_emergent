@@ -145,8 +145,8 @@ async def auto_fix_project(project_id: str, action_id: str, request: Request):
             user.user_id, getattr(user, "tenant_id", None), user.role,
             context={"project_id": project_id, "action_id": action_id, "ok": result.get("ok")},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (auto_fix_applied project=%s action=%s): %s", project_id, action_id, _e)
     return result
 
 
@@ -449,8 +449,8 @@ async def create_problem_report(payload: ProblemReportPayload, request: Request)
             user.user_id, getattr(user, "tenant_id", None), user.role,
             context={"report_id": rid, "url": payload.current_url},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (user_problem_reported report=%s): %s", rid, _e)
 
     report.pop("_id", None)
     return {"ok": True, "report_id": rid, "report": report}
@@ -581,8 +581,8 @@ async def system_map(request: Request):
             user.user_id, getattr(user, "tenant_id", None), user.role,
             context={"nodes": len(nodes), "pass_rate": pass_rate},
         ))
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] emit_ml_event perdido (system_map_viewed): %s", _e)
 
     return {
         "nodes": nodes, "edges": edges,

@@ -283,8 +283,8 @@ async def manual_ingest_csv(
             after={"inserted": result["inserted"], "errors": len(result["errors"])},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (create transaction_bulk_ingest csv): %s", _e)
 
     return result
 

@@ -211,8 +211,8 @@ async def create_partner(body: PartnerCreateBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "partner", doc["id"],
                            before=None, after=doc, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (partner create %s): %s", doc["id"], _e)
 
     return {**doc, "welcome_email_sent": email_sent}
 
@@ -246,8 +246,8 @@ async def update_partner(partner_id: str, body: PartnerPatchBody, request: Reque
         from audit_log import log_mutation
         await log_mutation(db, user, "update", "partner", pid,
                            before=existing, after=update, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (partner update %s): %s", pid, _e)
 
     return updated
 
@@ -329,8 +329,8 @@ async def manual_revenue_event(body: RevenueEventBody, request: Request):
         from audit_log import log_mutation
         await log_mutation(db, user, "create", "revenue_event", event["id"],
                            before=None, after=event, request=request)
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (revenue_event %s): %s", event["id"], _e)
 
     return event
 

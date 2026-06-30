@@ -94,8 +94,8 @@ async def denue_sync_zone(zone_id: str, request: Request):
             after={"zone_id": zone_id, "total": result.get("businesses_count_total")},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (denue_sync %s): %s", zone_id, _e)
     return result
 
 

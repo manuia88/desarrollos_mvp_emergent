@@ -114,8 +114,8 @@ async def trigger_etl(body: TriggerBody, request: Request):
                                 "zones_processed": summary["zones_processed"]},
             request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (trigger data_lake_etl %s): %s", summary["id"], _e)
     return summary
 
 
@@ -176,8 +176,8 @@ async def run_validations_now(request: Request):
             db, user, "trigger", "model_validation", "manual",
             before=None, after=summary, request=request,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        log.warning("[audit] log_mutation perdido (trigger model_validation manual): %s", _e)
     return summary
 
 
