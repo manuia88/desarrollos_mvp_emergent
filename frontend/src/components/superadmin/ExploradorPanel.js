@@ -3,7 +3,7 @@
 // (abrir carpetas). Lo dominante: el GAP coloreado (verde = oportunidad / ámbar = sobreoferta). Cero dato inventado.
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Badge } from '../advisor/primitives';
-import { getExplorar, postExplorarSegmento, getExplorarOportunidades } from '../../api/superadminDemandIntel';
+import { getExplorar, postExplorarSegmento, getExplorarOportunidades, getDisenar, postActivar } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
 // encabezado de sección (organizador de la pantalla) — legible, jerárquico, contraste alto
@@ -380,7 +380,8 @@ function OportunidadesPanel({ oport, loading, error, onPick }) {
   if (!oport) return null;
   const oportunidades = oport.oportunidades || [];
   const sobreofertas = oport.sobreofertas || [];
-  const fila = (o, color, emoji) => (
+  // sobreofertas (ámbar): siguen siendo filas simples — solo el clic que va al drill (sin acciones inline)
+  const filaSobreoferta = (o, color, emoji) => (
     <button key={`${o.colonia_id}:${o.segmento}:${o.dimension}`} onClick={() => onPick(o)}
       style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', width: '100%',
         borderTop: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -407,16 +408,168 @@ function OportunidadesPanel({ oport, loading, error, onPick }) {
       {oportunidades.length > 0 && (
         <div style={{ marginBottom: sobreofertas.length > 0 ? 14 : 0 }}>
           <div style={{ fontSize: 11.5, color: '#34d399', fontWeight: 700, marginBottom: 8 }}>🟢 Oportunidades — se busca más de lo que hay</div>
-          <div style={{ display: 'grid', gap: 7 }}>{oportunidades.map((o) => fila(o, '#1FA06A', '🟢'))}</div>
+          <div style={{ display: 'grid', gap: 7 }}>
+            {oportunidades.map((o) => (
+              <OportunidadFila key={`${o.colonia_id}:${o.segmento}:${o.dimension}`} o={o} onPick={onPick} />
+            ))}
+          </div>
         </div>
       )}
       {sobreofertas.length > 0 && (
         <div>
           <div style={{ fontSize: 11.5, color: '#fbbf24', fontWeight: 700, marginBottom: 8 }}>🟡 Sobreofertas — hay más de lo que se busca</div>
-          <div style={{ display: 'grid', gap: 7 }}>{sobreofertas.map((o) => fila(o, '#f59e0b', '🟡'))}</div>
+          <div style={{ display: 'grid', gap: 7 }}>{sobreofertas.map((o) => filaSobreoferta(o, '#f59e0b', '🟡'))}</div>
         </div>
       )}
     </Card>
+  );
+}
+
+// destinos disponibles para "Activar →" (cerrar el ciclo encontrar→actuar)
+const ACTIVAR_DESTINOS = [['dev', 'Desarrollador'], ['asesor', 'Asesor'], ['marketplace', 'Marketplace']];
+
+// ── Una fila de OPORTUNIDAD (verde) con su PROPIO estado: clic = ir+drill (igual que antes) +
+//    acciones inline ADICIONALES (Diseñar producto · Activar →) que cierran el ciclo sin cambiar de tab ──
+function OportunidadFila({ o, onPick }) {
+  const color = '#1FA06A';
+  // estado del "Diseñar producto" (por fila)
+  const [disenoOpen, setDisenoOpen] = useState(false);
+  const [disenoLoading, setDisenoLoading] = useState(false);
+  const [disenoError, setDisenoError] = useState(null);
+  const [diseno, setDiseno] = useState(null);
+  // estado del "Activar →" (por fila)
+  const [destinoPicker, setDestinoPicker] = useState(false);
+  const [activarLoading, setActivarLoading] = useState(false);
+  const [activarError, setActivarError] = useState(null);
+  const [activarResult, setActivarResult] = useState(null);
+
+  const onDisenar = () => {
+    if (disenoOpen) { setDisenoOpen(false); return; }
+    setDisenoOpen(true);
+    if (diseno || disenoLoading) return;   // ya cargado / cargando → solo expandir
+    setDisenoLoading(true); setDisenoError(null);
+    getDisenar({ colonia: o.colonia_id, top: 1 })
+      .then((d) => { setDiseno(d); })
+      .catch((e) => { setDisenoError(e.message); setDiseno(null); })
+      .finally(() => setDisenoLoading(false));
+  };
+
+  const onElegirDestino = (destino) => {
+    setDestinoPicker(false);
+    setActivarLoading(true); setActivarError(null); setActivarResult(null);
+    postActivar({ destino, titulo: `${o.segmento} en ${o.colonia}`, detalle: o.lectura, colonia: o.colonia_id, filtro: o.filtro || {} })
+      .then((d) => { setActivarResult(d); })
+      .catch((e) => { setActivarError(e.message); setActivarResult(null); })
+      .finally(() => setActivarLoading(false));
+  };
+
+  const fichas = diseno?.fichas || [];
+  const ficha = fichas[0] || null;
+
+  const btnStyle = {
+    fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 7, cursor: 'pointer',
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.14)', color: '#cfcfd6',
+    transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+  };
+
+  return (
+    <div
+      style={{ borderRadius: 10, borderTop: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.025)', borderLeft: `3px solid ${color}` }}>
+      {/* la fila navegable (el clic que ya existía: ir+drill) */}
+      <button onClick={() => onPick(o)}
+        style={{ textAlign: 'left', padding: '10px 12px', cursor: 'pointer', width: '100%', background: 'none', border: 'none', color: '#e4e4ea',
+          display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.12s ease', borderRadius: '7px 7px 0 0' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = color; ch.style.transform = 'translateX(2px)'; } }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; const ch = e.currentTarget.querySelector('[data-chev]'); if (ch) { ch.style.color = '#777'; ch.style.transform = 'translateX(0)'; } }}>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+          <span style={{ fontSize: 13.5, color: '#f0f0f3', fontWeight: 600, lineHeight: 1.35 }}>🟢 {o.lectura}</span>
+          <span style={{ fontSize: 11, color: '#9a9aa6' }}>
+            {[o.colonia, o.dimension, o.segmento, `oferta ${fmtN(o.oferta)} · demanda ${fmtN(o.demanda)}`].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+        <span data-chev style={{ fontSize: 17, color: '#777', lineHeight: 1, flexShrink: 0, transition: 'color 0.12s ease, transform 0.12s ease' }}>›</span>
+      </button>
+
+      {/* ── ACCIONES INLINE — discretas, al pie de la fila. Cierran el ciclo encontrar→actuar sin cambiar de tab ── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: '0 12px 10px 12px' }}>
+        <button type="button" onClick={onDisenar}
+          aria-label={`Diseñar producto para ${o.segmento} en ${o.colonia}`} aria-expanded={disenoOpen}
+          style={{ ...btnStyle, borderColor: disenoOpen ? color : 'rgba(255,255,255,0.14)', color: disenoOpen ? '#34d399' : '#cfcfd6' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(31,160,106,0.12)'; e.currentTarget.style.borderColor = color; e.currentTarget.style.color = '#34d399'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = disenoOpen ? color : 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = disenoOpen ? '#34d399' : '#cfcfd6'; }}>
+          {disenoLoading ? 'Diseñando…' : (disenoOpen ? 'Ocultar diseño' : 'Diseñar producto')}
+        </button>
+
+        {/* Activar → : abre un mini-selector de destino inline */}
+        {!activarResult && (
+          <button type="button" onClick={() => setDestinoPicker((v) => !v)}
+            aria-label={`Activar oportunidad: ${o.segmento} en ${o.colonia}`} aria-expanded={destinoPicker} disabled={activarLoading}
+            style={{ ...btnStyle, borderColor: destinoPicker ? color : 'rgba(255,255,255,0.14)', color: destinoPicker ? '#34d399' : '#cfcfd6', opacity: activarLoading ? 0.6 : 1, cursor: activarLoading ? 'wait' : 'pointer' }}
+            onMouseEnter={(e) => { if (activarLoading) return; e.currentTarget.style.background = 'rgba(31,160,106,0.12)'; e.currentTarget.style.borderColor = color; e.currentTarget.style.color = '#34d399'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = destinoPicker ? color : 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = destinoPicker ? '#34d399' : '#cfcfd6'; }}>
+            {activarLoading ? 'Activando…' : 'Activar →'}
+          </button>
+        )}
+
+        {/* mini-selector de destino (dev / asesor / marketplace) */}
+        {destinoPicker && !activarResult && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: '#9a9aa6' }}>enviar a:</span>
+            {ACTIVAR_DESTINOS.map(([val, lab]) => (
+              <button key={val} type="button" onClick={() => onElegirDestino(val)}
+                aria-label={`Enviar a ${lab}`}
+                style={{ ...btnStyle, padding: '3px 9px', fontSize: 11 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(31,160,106,0.12)'; e.currentTarget.style.borderColor = color; e.currentTarget.style.color = '#34d399'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = '#cfcfd6'; }}>
+                {lab}
+              </button>
+            ))}
+          </span>
+        )}
+
+        {activarError && (
+          <span role="status" style={{ fontSize: 11.5, color: '#dc2626' }}>No se pudo activar: {activarError}</span>
+        )}
+
+        {/* resultado de la activación — en la misma fila, con check verde */}
+        {activarResult && (
+          <span role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#34d399', fontWeight: 600 }}>
+            <span aria-hidden="true">✓</span>
+            <span>{activarResult.lectura || (activarResult.accion?.titulo ? `Activada · ${activarResult.accion.titulo}` : 'Activada')}</span>
+          </span>
+        )}
+      </div>
+
+      {/* ── DISEÑO DE PRODUCTO — expandible debajo de la fila (recomendación de la 1ª ficha + métricas) ── */}
+      {disenoOpen && (
+        <div style={{ margin: '0 12px 10px 12px', padding: '9px 11px', borderRadius: 9, background: 'rgba(31,160,106,0.07)', border: '1px solid rgba(31,160,106,0.28)' }}>
+          {disenoLoading && <span style={{ fontSize: 12, color: '#aaa' }}>Diseñando el producto óptimo…</span>}
+          {disenoError && <span style={{ fontSize: 12, color: '#dc2626' }}>No se pudo diseñar: {disenoError}</span>}
+          {!disenoLoading && !disenoError && diseno && (
+            ficha ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {ficha.recomendacion && (
+                  <div style={{ fontSize: 13, color: '#eafff5', fontWeight: 600, lineHeight: 1.4 }}>{ficha.recomendacion}</div>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 11.5, color: '#bbb' }}>
+                  {ficha.demanda != null && <span>Demanda: <strong style={{ color: '#a78bfa' }}>{fmtN(ficha.demanda)}</strong></span>}
+                  {(ficha.gap != null) && <span>Gap: <strong style={{ color: '#34d399' }}>{ficha.gap > 0 ? '+' : ''}{fmtN(ficha.gap)}</strong></span>}
+                  {ficha.oferta_actual != null && <span>Oferta hoy: <strong style={{ color: '#eee' }}>{fmtN(ficha.oferta_actual)}</strong></span>}
+                  {ficha.premium_atributo_pct != null && <span>Premium atributo: <strong style={{ color: '#34d399' }}>+{ficha.premium_atributo_pct}%</strong></span>}
+                </div>
+                {(diseno.lectura || ficha.lectura) && (
+                  <div style={{ fontSize: 11, color: '#9a9aa6', fontStyle: 'italic', lineHeight: 1.4 }}>{ficha.lectura || diseno.lectura}</div>
+                )}
+                {diseno.nota && <div style={{ fontSize: 10.5, color: '#666', fontStyle: 'italic' }}>{diseno.nota}</div>}
+              </div>
+            ) : (
+              <span style={{ fontSize: 12, color: '#888' }}>{diseno.lectura || diseno.nota || 'Sin recomendación de producto para esta colonia todavía.'}</span>
+            )
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

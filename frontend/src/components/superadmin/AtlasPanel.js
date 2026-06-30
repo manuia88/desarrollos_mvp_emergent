@@ -403,9 +403,9 @@ function FusionSection({ fusion }) {
         ))}
       </div>
       )}
-      {(fusion.recomendacion || fusion.ciclo) && (
+      {(f.recomendacion || f.ciclo) && (
         <div style={{ fontSize: 12, color: '#bbb', marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontStyle: 'italic' }}>
-          {fusion.ciclo ? `${fusion.ciclo} — ` : ''}{fusion.recomendacion || ''}
+          {f.ciclo ? `${f.ciclo} — ` : ''}{f.recomendacion || ''}
         </div>
       )}
     </Card>
