@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from pymongo.errors import DuplicateKeyError
 
 log = logging.getLogger("dmx.routes_subagents")
 
@@ -157,6 +158,17 @@ async def apply_recommendation(rec_id: str, request: Request):
         raise HTTPException(404, "Recomendación no encontrada")
     if doc.get("org_id") != org_id and getattr(user, "role", "") != "superadmin":
         raise HTTPException(403, "Acceso denegado")
+    # GUARD DE PERTENENCIA (C-02): el precio público solo se aplica a unidades de TUS desarrollos. El check de org_id
+    # no basta — valida que el development_id de la recomendación esté entre los devs del usuario (anti IDOR cross-tenant).
+    rec_dev = doc.get("development_id")
+    if rec_dev and getattr(user, "role", "") != "superadmin":
+        try:
+            from tenant_scope import user_dev_ids
+            owned = set(user_dev_ids(user) or [])
+        except Exception:
+            owned = None
+        if owned is not None and rec_dev not in owned:
+            raise HTTPException(403, "La recomendación no pertenece a tu desarrollo")
     if doc.get("status") != "pending":
         raise HTTPException(409, f"No se puede aplicar una recomendación en estado '{doc.get('status')}'")
 
@@ -189,16 +201,25 @@ async def apply_recommendation(rec_id: str, request: Request):
                     dev_id = dev.get("id")
                     unit = next((u for u in (dev.get("units") or []) if u.get("id") == unit_id), None)
             ov = await db.developer_unit_overrides.find_one({"dev_id": dev_id, "unit_id": unit_id}, {"_id": 0}) if dev_id else None
-            cur = (ov or {}).get("price") or (unit or {}).get("price")
+            base_price = (unit or {}).get("price")          # precio de LISTA original = el ancla del tope
+            cur = (ov or {}).get("price") or base_price       # precio vigente (sobre el que aplica el delta)
             if dev_id and unit and cur:
                 try:
                     new_price = round(float(cur) * (1 + delta / 100.0))
+                    # AG-MONEY-01: tope ACUMULATIVO — el resultado nunca se aleja >20% del precio de LISTA (no de la base
+                    # móvil) → N applies no pueden componer (3×-20% ya no = -49%). El ±20% es un techo/piso duro real.
+                    if base_price:
+                        bp = float(base_price)
+                        new_price = max(round(bp * 0.8), min(round(bp * 1.2), new_price))
                     now_iso = now.isoformat()
                     upd = {**(ov or {}), "dev_id": dev_id, "unit_id": unit_id, "price": new_price,
                            "price_display": f"${new_price:,.0f}", "updated_at": now_iso,
                            "updated_by": f"pricing_agent_apply:{user_id or 'dev'}"}
-                    await db.developer_unit_overrides.update_one(
-                        {"dev_id": dev_id, "unit_id": unit_id}, {"$set": upd}, upsert=True)
+                    try:
+                        await db.developer_unit_overrides.update_one(
+                            {"dev_id": dev_id, "unit_id": unit_id}, {"$set": upd}, upsert=True)
+                    except DuplicateKeyError:  # OVR-KEY-04: el índice único es por unit_id (2 convenciones de llave)
+                        await db.developer_unit_overrides.update_one({"unit_id": unit_id}, {"$set": upd})
                     try:  # historial de precios (flywheel/moat) — append-only, fail-open
                         from routes.dev_price_history import record_price_event
                         await record_price_event(db, dev_id, unit, float(cur), new_price,

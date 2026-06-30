@@ -20,7 +20,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.routes_copiloto_flywheel")
 router = APIRouter(tags=["copiloto-flywheel"])
@@ -167,7 +167,8 @@ class CierreIn(BaseModel):
     lead_id: str | None = None
     visitor_id: str | None = None
     dev_id: str
-    price_closed: float | None = None
+    # C-03: cota dura — un cierre fuera de rango inmobiliario real envenena el AVM por colonia + el ranking global.
+    price_closed: float | None = Field(None, ge=100_000, le=500_000_000)
 
 
 @router.post("/api/copiloto/cierre")
@@ -187,6 +188,10 @@ async def cierre(b: CierreIn, request: Request):
             raise _HTTPException(401, "No autorizado")
     try:
         db = request.app.state.db
+        # C-03: el dev_id debe existir en el catálogo (no envenenar el AVM con un desarrollo inventado).
+        from data_developments import DEVELOPMENTS_BY_ID
+        if b.dev_id not in DEVELOPMENTS_BY_ID and not await db.developments.find_one({"id": b.dev_id}, {"_id": 1}):
+            raise _HTTPException(400, "dev_id desconocido")
         doc = await record_closing(db, lead_id=b.lead_id, visitor_id=b.visitor_id, dev_id=b.dev_id, price_closed=b.price_closed)
         return {"ok": True, "atom": {"desajuste": doc["desajuste"], "dias_a_cierre": doc["recorrido"]["dias_a_cierre"]}}
     except Exception as e:  # noqa: BLE001

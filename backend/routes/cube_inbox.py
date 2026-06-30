@@ -51,7 +51,7 @@ async def dev_cube_action_estado(action_id: str, request: Request) -> Any:
     db = request.app.state.db
     b = await request.json()
     import activacion as ac
-    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"))
+    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="dev")
 
 
 @router.get("/api/desarrollador/memory")
@@ -121,7 +121,7 @@ async def asesor_cube_action_estado(action_id: str, request: Request) -> Any:
     db = request.app.state.db
     b = await request.json()
     import activacion as ac
-    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"))
+    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="asesor")
 
 
 @router.get("/api/marketplace/cube-actions")

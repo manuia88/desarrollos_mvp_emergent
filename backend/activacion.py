@@ -56,6 +56,16 @@ async def listar(db, destino: Optional[str] = None, estado: Optional[str] = None
             "por_destino": {d: await db.cube_actions.count_documents({"destino": d}) for d in DESTINOS}}
 
 
-async def actualizar_estado(db, action_id: str, estado: str) -> Dict[str, Any]:
-    r = await db.cube_actions.update_one({"id": action_id}, {"$set": {"estado": estado, "actualizado": dt.datetime.utcnow()}})
-    return {"ok": r.matched_count > 0, "id": action_id, "estado": estado}
+ESTADOS = ("pendiente", "visto", "aplicado", "descartado")
+
+
+async def actualizar_estado(db, action_id: str, estado: str, destino: Optional[str] = None) -> Dict[str, Any]:
+    """Cambia el estado de UNA acción. SCOPED por destino (un portal solo toca SU buzón) + estado validado contra
+    enum (no string arbitrario → cierra XSS almacenado). 404-equivalente si no matchea (no muta acción ajena)."""
+    if estado not in ESTADOS:
+        return {"ok": False, "error": f"estado inválido: {estado}", "estados": list(ESTADOS)}
+    q: Dict[str, Any] = {"id": action_id}
+    if destino:
+        q["destino"] = destino  # un dev solo toca destino=dev, un asesor solo destino=asesor
+    r = await db.cube_actions.update_one(q, {"$set": {"estado": estado, "actualizado": dt.datetime.utcnow()}})
+    return {"ok": r.matched_count > 0, "id": action_id, "estado": estado, "matched": r.matched_count}
