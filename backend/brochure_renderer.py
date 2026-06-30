@@ -90,6 +90,11 @@ def _fetch_image_pil(url: Optional[str], w: int = 800, h: int = 600) -> Optional
     if not url:
         return None
     try:
+        from services.url_guard import assert_safe_url, UnsafeURLError  # anti-SSRF (fetch de URL del usuario)
+        try:
+            assert_safe_url(url, label="brochure_image")
+        except UnsafeURLError:
+            return None
         import requests
         resp = requests.get(url, timeout=8, stream=True)
         if resp.status_code == 200:
@@ -169,6 +174,11 @@ def _rl_fetch_image(url: Optional[str]) -> Optional[ImageReader]:
     if not url:
         return None
     try:
+        from services.url_guard import assert_safe_url, UnsafeURLError  # anti-SSRF (fetch de URL del usuario)
+        try:
+            assert_safe_url(url, label="brochure_image_rl")
+        except UnsafeURLError:
+            return None
         import requests
         r = requests.get(url, timeout=8)
         if r.status_code == 200:

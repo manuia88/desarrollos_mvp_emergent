@@ -463,8 +463,60 @@ async def _check_ai_summary_permission(user, lead: Dict):
         raise HTTPException(403, "Sin permisos para ver el resumen IA de este lead")
 
 
+# ── P3-CSRF-02: anti-CSRF / anti-IA-abuse on the GET that calls the LLM ───────
+# This GET (ai-summary-v2) can, on cache miss, trigger a Claude call + DB write.
+# A cross-site <img src=…> or top-level navigation can fire a credentialed GET,
+# burning IA budget and poisoning the cache (CSRF). Two cheap, defensive layers:
+#   (a) Require a NON-SIMPLE request header (X-Requested-With or X-DMX-Client).
+#       The front's fetch sends it; a cross-site <img>/navigation physically
+#       CANNOT set custom headers → missing header ⇒ 403. (CORS already allow-
+#       lists X-Requested-With in server.py.)
+#   (b) Per-user rate-limit on the EXPENSIVE path (LLM generation) via
+#       services.ratelimit, so even an authenticated abuser can't loop the model.
+# Both are FAIL-SOFT: any internal error in the check never crashes a legit
+# request — only a clearly-missing header is rejected.
+_AI_CLIENT_HEADERS = ("x-requested-with", "x-dmx-client")
+# Max LLM-backed summary generations per user inside the window (cache misses).
+AI_SUMMARY_GEN_LIMIT = 10
+AI_SUMMARY_GEN_WINDOW = 600  # seconds (10 min)
+
+
+def _has_client_header(request: Request) -> bool:
+    """True if the request carries a non-simple client header that a cross-site
+    <img>/navigation cannot set. Fail-soft: on any error, treat as present so a
+    legit request is never broken by a bug in the check."""
+    try:
+        for h in _AI_CLIENT_HEADERS:
+            if (request.headers.get(h) or "").strip():
+                return True
+        return False
+    except Exception:
+        return True
+
+
+def _require_client_header(request: Request) -> None:
+    if not _has_client_header(request):
+        # Cross-site <img>/navigation can't reach here; a real client (apiClient)
+        # always sends the header. 403 stops the CSRF/IA-burn vector.
+        raise HTTPException(403, "Falta header de cliente (X-Requested-With / X-DMX-Client)")
+
+
+def _ai_gen_allowed(user) -> bool:
+    """Per-user sliding-window limiter on LLM-backed generation. Fail-soft:
+    if the limiter is unavailable, allow (never block a legit advisor)."""
+    try:
+        from services import ratelimit as _rl
+        uid = getattr(user, "user_id", None) or "anon"
+        return _rl.allow("ai_summary_gen", str(uid), AI_SUMMARY_GEN_LIMIT, AI_SUMMARY_GEN_WINDOW)
+    except Exception:
+        return True
+
+
 @router.get("/api/leads/{lead_id}/ai-summary-v2")
 async def get_ai_summary(lead_id: str, request: Request):
+    # (a) Anti-CSRF: reject credentialed cross-site GETs that lack the client
+    # header (e.g. <img src=…>). Runs before any DB read / IA spend.
+    _require_client_header(request)
     user = await _auth(request)
     db = _db(request)
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
@@ -487,7 +539,9 @@ async def get_ai_summary(lead_id: str, request: Request):
         except Exception:
             pass
 
-    # Cache miss → generate
+    # Cache miss → generate. (b) Rate-limit the IA spend per user (fail-soft).
+    if not _ai_gen_allowed(user):
+        raise HTTPException(429, "Demasiados resúmenes IA seguidos. Espera unos minutos.")
     summary = await _build_ai_summary(db, lead)
     await db.leads.update_one({"id": lead_id}, {"$set": {"ai_summary": summary}})
     await _safe_audit_ml(

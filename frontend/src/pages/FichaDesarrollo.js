@@ -1,5 +1,5 @@
 /**
- * FichaDesarrollo — REBUILD limpio desde cero (preview con /desarrollo/:id?v2=1). No toca la ficha actual.
+ * FichaDesarrollo — REBUILD limpio desde cero. Es la ficha pública DEFAULT en /desarrollo/:id (el prototipo cockpit queda en ?v3=1).
  * Sistema visual ÚNICO (components/ficha/ui). Estructura del blueprint maestro. Esqueleto: hero + nav de anclas + 2 columnas
  * + riel de decisión. Las secciones se van llenando una por una (reusando motores existentes).
  */
@@ -12,7 +12,6 @@ import PhotoGallery from '../components/dev/PhotoGallery';
 import { MapPin } from '../components/icons';
 import { Section, Card, Stat, Modulo, BtnPrimary, BtnGhost, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import { amenInfo } from '../components/ficha/amenIcons';
-import SeccionValor from '../components/ficha/SeccionValor';     // UI NUEVA (de cero) — reusa el motor buy-signal, NO el componente viejo
 import SeccionUnidades from '../components/ficha/SeccionUnidades'; // UI NUEVA (de cero) — solo dato real de dev.units
 import SeccionDinero from '../components/ficha/SeccionDinero';     // UI NUEVA (de cero) — módulo unificado, reusa ownership+mortgage
 import PlanDePago from '../components/ficha/PlanDePago';           // #7: esquemas de pago REALES del dev (hide-if-empty)

@@ -3,7 +3,14 @@
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const j = async (url, opts = {}) => {
-  const r = await fetch(`${API}${url}`, { credentials: 'include', ...opts });
+  // P3-CSRF-02: send a non-simple header on every call so the backend can reject
+  // credentialed cross-site GETs (<img src=…>) that would burn IA budget / poison
+  // cache. A cross-site <img>/navigation physically cannot set custom headers.
+  const r = await fetch(`${API}${url}`, {
+    credentials: 'include',
+    ...opts,
+    headers: { 'X-Requested-With': 'XMLHttpRequest', ...(opts.headers || {}) },
+  });
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
     throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });

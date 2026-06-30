@@ -114,6 +114,10 @@ def generate(dev_id: str, photo_urls) -> str:
         segs = []
         for i, u in enumerate(photo_urls):
             try:
+                from services.url_guard import is_safe_url  # anti-SSRF (fetch de URL del usuario)
+                if not is_safe_url(u, label="parallax_photo"):
+                    log.warning(f"[parallax] seg {i} URL bloqueada (anti-SSRF)")
+                    continue
                 req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
                 data = urllib.request.urlopen(req, timeout=25).read()
                 arr = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)

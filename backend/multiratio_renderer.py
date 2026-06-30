@@ -80,9 +80,14 @@ async def _download_master(master_url: str, dest: Path) -> bool:
                 log.warning(f"[multiratio] local copy failed: {exc}")
                 return False
         return False
+    # anti-SSRF: bloquea localhost/IP interna/metadata/esquemas no http(s) en la URL del usuario.
+    from services.url_guard import is_safe_url
+    if not is_safe_url(master_url, label="multiratio_master"):
+        log.warning("[multiratio] master URL bloqueada (anti-SSRF)")
+        return False
     try:
         import httpx
-        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cli:
+        async with httpx.AsyncClient(timeout=120, follow_redirects=False) as cli:
             async with cli.stream("GET", master_url) as resp:
                 if resp.status_code != 200:
                     log.warning(f"[multiratio] master download status {resp.status_code}")

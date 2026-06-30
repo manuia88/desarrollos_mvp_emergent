@@ -101,7 +101,10 @@ def _fetch_logo(logo_url: Optional[str], max_h: int = 60) -> Optional[Image.Imag
     if not logo_url:
         return None
     try:
-        import httpx, asyncio
+        from services.url_guard import is_safe_url  # anti-SSRF (fetch de URL del usuario)
+        if not is_safe_url(logo_url, label="carrusel_logo"):
+            log.debug("[carrusel] logo URL bloqueada (anti-SSRF)")
+            return None
         # Sincronico para simplificar (se llama desde thread executor si necesario)
         import urllib.request
         with urllib.request.urlopen(logo_url, timeout=5) as r:

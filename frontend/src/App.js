@@ -49,8 +49,7 @@ const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowe
 const Marketplace       = lazy(() => import('./pages/Marketplace'));
 const Favoritos         = lazy(() => import('./pages/Favoritos'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
-const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
-const FichaDesarrollo = lazy(() => import('./pages/FichaDesarrollo'));   // rebuild limpio (preview con ?v2=1)
+const FichaDesarrollo = lazy(() => import('./pages/FichaDesarrollo'));   // ficha pública oficial (rebuild limpio)
 const FichaCockpit = lazy(() => import('./pages/FichaCockpit'));         // rediseño UX cockpit (prototipo · preview con ?v3=1)
 const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
@@ -683,8 +682,8 @@ function AppRouter() {
       </div>
     }>
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/v2" element={<HomeV2 />} />{/* rediseño · preview fondo claro */}
+      <Route path="/" element={<HomeV2 />} />{/* home oficial · rediseño fondo claro (promovido desde /v2) */}
+      <Route path="/v2" element={<HomeV2 />} />{/* alias conservado del preview */}
       <Route path="/atlax" element={<AtlaxSurface />} />{/* el "LLM inmobiliario" — superficie conversacional */}
       <Route path="/experiencia/:id" element={<AtlaxExperiencia />} />{/* ficha-experiencia cinemática (ATOMS) */}
       <Route path="/p/:token" element={<SwipeLinkRoute />} />
@@ -1174,9 +1173,8 @@ function SimuladorRoute() {
 
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
-  // En la rama del rebuild, la ficha NUEVA es la default (ya no hay que recordar el flag). La VIEJA queda en ?v1=1 para comparar.
+  // La ficha NUEVA (FichaDesarrollo) es la default. La v1 legacy se retiró: ?v1 cae al default.
   const params = new URLSearchParams(window.location.search);
-  if (params.get('v1')) return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
   if (params.get('v3')) return <FichaCockpit user={user} onLogin={openAuth} />;   // prototipo cockpit (rediseño UX)
   return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
 }

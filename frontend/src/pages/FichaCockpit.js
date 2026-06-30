@@ -12,7 +12,7 @@ import { LightScope, PublicNav } from '../components/ui';
 import { fetchDevelopment, fetchDevelopments } from '../api/marketplace';
 import { sendBuyerSignal, visitorId } from '../lib/buyerSignal';
 import PhotoGallery from '../components/dev/PhotoGallery';
-import { Card, Stat, SERIF, SANS, HEAD } from '../components/ficha/ui';
+import { Card, SERIF, SANS, HEAD } from '../components/ficha/ui';
 import { amenInfo } from '../components/ficha/amenIcons';
 import SeccionUnidades from '../components/ficha/SeccionUnidades';
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion';
@@ -531,7 +531,7 @@ export default function FichaCockpit({ user, onLogin }) {
     setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' });
     try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ }
   };
-  const goTo = (anchor) => { if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
+  const goTo = (anchor) => { if (anchor === 'unidades') goTab('unidad'); else if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
   const toggleSaveUnit = () => { if (!unit || !unit.unit_number) return; const u = unit.unit_number; const on = !savedUnits.has(u); try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u); else n.delete(u); return n; }); };
