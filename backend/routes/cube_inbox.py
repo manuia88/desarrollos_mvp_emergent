@@ -69,6 +69,41 @@ async def dev_memory(request: Request) -> Any:
     )
 
 
+@router.post("/api/desarrollador/generar-copy")
+async def dev_generar_copy(request: Request) -> Any:
+    """Generativo INLINE del dev (lente generative): copy de marketing del proyecto con IA, GROUNDED en su dato real
+    (nombre/colonia/tipologías/precio). Cierra el gap 'ContenidoTab es solo carga manual'. Fail-soft sin LLM."""
+    from routes.developer import require_dev_admin
+    await require_dev_admin(request)
+    db = request.app.state.db
+    import os
+    b = await request.json()
+    project_id = b.get("project_id")
+    tono = (b.get("tono") or "profesional")[:24]
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or await db.developments.find_one({"id": project_id}, {"_id": 0})
+    if not dev:
+        return {"ok": False, "error": "proyecto no encontrado"}
+    units = dev.get("units") or []
+    precios = [u.get("price") for u in units if u.get("price")]
+    desde = f"${min(precios):,.0f}" if precios else "s/d"
+    ctx = (f"Desarrollo: {dev.get('name')}. Colonia/zona: {dev.get('colonia')}. "
+           f"{len(units)} unidades, desde {desde}. Etapa: {dev.get('stage', 's/d')}.")
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return {"ok": False, "error": "sin LLM configurado", "copy": None, "contexto": ctx}
+    try:
+        from llm_client import LlmChat, UserMessage
+        system = (f"Eres copywriter inmobiliario. Escribe copy de marketing en tono {tono} para este desarrollo, "
+                  "usando SOLO los datos dados — NO inventes amenidades, precios ni características. 2 párrafos cortos "
+                  "+ 3 bullets de venta. Español, sin emojis.")
+        chat = LlmChat(api_key=os.environ["ANTHROPIC_API_KEY"], session_id=f"copy_{project_id}",
+                       system_message=system).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        resp = await chat.send_message(UserMessage(text=ctx))
+        return {"ok": True, "copy": (resp or "").strip(), "tono": tono, "contexto": ctx}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:140], "copy": None}
+
+
 @router.get("/api/asesor/cube-actions")
 async def asesor_cube_actions(request: Request) -> Any:
     """Buzón del ASESOR: oportunidades que el cubo detectó y que calzan con leads que ya buscan ese segmento."""

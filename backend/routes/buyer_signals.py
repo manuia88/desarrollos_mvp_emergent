@@ -642,6 +642,43 @@ async def percepcion_desarrollo(dev_id: str, request: Request):
         return {"ok": True, "interes": {}, "rechazos": 0, "rechazo_por_motivo": [], "gap_presentacion": False, "recomendacion": None}
 
 
+@router.get("/api/desarrollo/{dev_id}/percepcion-unidades")
+async def percepcion_unidades(dev_id: str, request: Request):
+    """Taste a nivel UNIDAD (no agregado): por cada unidad del dev, el interés y el rechazo CONDUCTUAL real
+    (unit_view/unit_save vs dismiss + foto-dwell). Cierra el 'porqué del NO' unidad-por-unidad para el dev
+    (antes la percepción era solo a nivel desarrollo). MOAT privado: rol dev + su propio dev_id."""
+    user = await _require_dev(request); assert_dev_project(user, dev_id)
+    try:
+        db = request.app.state.db
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(dev_id) or await db.developments.find_one({"id": dev_id}, {"_id": 0})
+        units = (dev or {}).get("units") or []
+        out = []
+        for u in units:
+            uid = u.get("id")
+            if not uid:
+                continue
+            views = await db.buyer_signals.count_documents({"entity_id": uid, "type": {"$in": ["unit_view", "view"]}})
+            saves = await db.buyer_signals.count_documents({"entity_id": uid, "type": {"$in": ["unit_save", "save"]}})
+            dismiss = await db.buyer_signals.count_documents({"entity_id": uid, "type": "dismiss"})
+            dwells = [d.get("dwell_ms") async for d in db.buyer_signals.find(
+                {"entity_id": uid, "type": {"$in": ["photo_dwell", "dwell"]}}, {"dwell_ms": 1}) if d.get("dwell_ms")]
+            dwell_avg = round(sum(dwells) / len(dwells) / 1000, 1) if dwells else None
+            interes = saves * 3 + views - dismiss * 2
+            out.append({"unit_id": uid, "tipologia": u.get("tipologia") or u.get("type"),
+                        "vistas": views, "guardados": saves, "descartes": dismiss,
+                        "foto_dwell_seg": dwell_avg, "interes": interes,
+                        "señal": "caliente" if interes >= 5 else ("fría" if interes <= 0 and (views + dismiss) > 0 else "tibia")})
+        out.sort(key=lambda x: -x["interes"])
+        frias = [u for u in out if u["señal"] == "fría"]
+        return {"ok": True, "unidades": out, "n_unidades": len(out), "frias": len(frias),
+                "lectura": (f"{len(frias)} unidad(es) fría(s): mucho descarte / poco interés — revisa precio o fotos"
+                            if frias else "Sin unidades frías marcadas todavía")}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[buyer_signals] percepcion-unidades fail: {e}")
+        return {"ok": True, "unidades": [], "n_unidades": 0, "frias": 0, "lectura": ""}
+
+
 class RegistrarLeadIn(BaseModel):
     visitor_id: str
     name: str

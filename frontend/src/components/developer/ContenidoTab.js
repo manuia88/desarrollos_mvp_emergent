@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DragDropZone from '../shared/DragDropZone';
-import { listDevAssets } from '../../api/developer';
+import { listDevAssets, generarCopyIA } from '../../api/developer';
 import { Upload, X, Download, Star } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
@@ -97,12 +97,22 @@ function DescripcionEditor({ devId }) {
   const [orig, setOrig] = useState('');
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [gen, setGen] = useState(false);
   useEffect(() => {
     let alive = true;
     fetch(`${API}/api/developments/${devId}`).then(r => r.json())
       .then(d => { if (alive) { const v = d.description || ''; setDesc(v); setOrig(v); } }).catch(() => {});
     return () => { alive = false; };
   }, [devId]);
+  const generar = async () => {
+    if (gen) return;
+    setGen(true);
+    try {
+      const r = await generarCopyIA(devId, 'aspiracional');
+      if (r && r.ok && r.copy) setDesc(r.copy.slice(0, 1500));
+    } catch (e) { /* fail-open: deja lo que haya */ }
+    setGen(false);
+  };
   const dirty = desc.trim() !== orig.trim();
   const save = async () => {
     if (!dirty || busy) return;
@@ -123,10 +133,16 @@ function DescripcionEditor({ devId }) {
           <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>Descripción del proyecto</div>
           <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>La "historia" que ve el comprador en la ficha. Lo que escribas aquí se publica en el marketplace.</div>
         </div>
-        <button data-testid="save-descripcion" onClick={save} disabled={!dirty || busy}
-          style={{ background: (dirty && !busy) ? 'var(--grad, #6D4AFF)' : 'rgba(var(--cream-rgb),0.12)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 18px', fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13, cursor: (dirty && !busy) ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
-          {busy ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button data-testid="generar-copy-ia" onClick={generar} disabled={gen} title="Genera el copy con IA desde el dato real del proyecto"
+            style={{ background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.22)', borderRadius: 9, padding: '8px 14px', fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13, cursor: gen ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: gen ? 0.6 : 1 }}>
+            {gen ? 'Generando…' : '✨ Generar con IA'}
+          </button>
+          <button data-testid="save-descripcion" onClick={save} disabled={!dirty || busy}
+            style={{ background: (dirty && !busy) ? 'var(--grad, #6D4AFF)' : 'rgba(var(--cream-rgb),0.12)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 18px', fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13, cursor: (dirty && !busy) ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+            {busy ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+          </button>
+        </div>
       </div>
       <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={1500}
         placeholder="Describe el proyecto: concepto, ubicación, qué lo hace especial…"

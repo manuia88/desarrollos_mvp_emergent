@@ -15,6 +15,7 @@ import VentasTab from '../../components/developer/VentasTab';
 import AvanceObraTab from '../../components/developer/AvanceObraTab';
 import GeolocalizacionTab from '../../components/developer/GeolocalizacionTab';
 import ContenidoTab from '../../components/developer/ContenidoTab';
+import UnitPulsePanel from '../../components/developer/UnitPulsePanel';
 import AmenidadesTab from '../../components/developer/AmenidadesTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
@@ -639,7 +640,10 @@ export default function ProyectoDetail({ user, onLogout }) {
               onGoTab={setTab} />
           )}
           {activeTab === 'ventas' && (
-            <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />
+            <>
+              <UnitPulsePanel devId={slug} />
+              <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />
+            </>
           )}
           {activeTab === 'contenido' && (
             <>

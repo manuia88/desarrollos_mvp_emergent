@@ -38,6 +38,10 @@ export const getCubeActions = () => j('/api/desarrollador/cube-actions');
 export const setCubeActionEstado = (id, estado) => post(`/api/desarrollador/cube-actions/${id}/estado`, { estado });
 // Memoria/contexto del dev (lente Personal) — su tesis, decisiones (qué aplica/rechaza), motivos, zonas de foco.
 export const getDevMemory = () => j('/api/desarrollador/memory');
+// Taste a nivel UNIDAD (lente Taste) — interés/rechazo conductual por unidad (vistas/guardados/descartes/foto-dwell).
+export const getUnitPulse = (devId) => j(`/api/desarrollo/${devId}/percepcion-unidades`);
+// Generativo INLINE (lente Generative) — copy de marketing del proyecto con IA, grounded en su dato real.
+export const generarCopyIA = (projectId, tono = 'profesional') => post('/api/desarrollador/generar-copy', { project_id: projectId, tono });
 // TU ZONA CAMBIÓ (conciencia ambiental · proactivo) — el MOVIMIENTO de la demanda (no el nivel): ventana reciente vs anterior.
 export const getZonaCambios = (dias = 30) => j(`/api/dev/market/zona-cambios?dias=${dias}`);
 // L68 · what-if DEFENSIVO — "¿y si un competidor construye en tu zona?" → impacto en tu tiempo de venta + poder de precio.
