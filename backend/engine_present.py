@@ -154,6 +154,15 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
 }
 
 
+# merge de descriptores de los módulos por tanda (falla suave)
+for _b in ("engines_batch_valuacion", "engines_batch_geo", "engines_batch_demanda", "engines_batch_cubo", "engines_batch_inversion"):
+    try:
+        _m = __import__(_b)
+        DESCRIPTORES.update(getattr(_m, "DESCRIPTORES", {}))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _conf(latente: bool) -> str:
     return "baja" if latente else "media"
 

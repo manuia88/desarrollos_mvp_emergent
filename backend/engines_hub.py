@@ -300,6 +300,17 @@ REGISTRO: List[Dict[str, Any]] = [
     {"id": "contexto_precio", "nombre": "Contexto de precio (vs peers)", "eje": "PRECIO", "tanda": 4,
      "produce": "posición de precio de la zona vs colonias comparables", "input": ["colonia_id"], "fn": _r_price_ctx, "fuente": "price_context_engine"},
 ]
+# ── merge de módulos por tanda (cada uno aporta su REGISTRO; falla suave si un módulo está roto) ──
+_BATCHES = ("engines_batch_valuacion", "engines_batch_geo", "engines_batch_demanda", "engines_batch_cubo", "engines_batch_inversion")
+for _b in _BATCHES:
+    try:
+        _m = __import__(_b)
+        for _e in getattr(_m, "REGISTRO", []):
+            if _e.get("id") and _e.get("fn"):
+                REGISTRO.append(_e)
+    except Exception:  # noqa: BLE001
+        pass
+
 BY_ID = {e["id"]: e for e in REGISTRO}
 
 
@@ -319,7 +330,17 @@ async def run(db, engine_id: str, ctx: Optional[Dict[str, Any]] = None) -> Dict[
     meta = BY_ID.get(engine_id)
     if not meta:
         return {"error": f"motor no registrado: {engine_id}", "registrados": list(BY_ID)}
-    ctx = ctx or {}
+    ctx = dict(ctx or {})
+    # contexto enriquecido: si un motor necesita desarrollo/unidad y solo vino colonia, toma un representativo de la zona
+    if ctx.get("colonia_id") and not ctx.get("dev_id"):
+        from data_developments import DEVELOPMENTS
+        dev = next((d for d in DEVELOPMENTS if d.get("colonia_id") == ctx["colonia_id"]), None)
+        if dev:
+            ctx["dev_id"] = dev["id"]
+            ctx["_dev"] = dev
+            us = dev.get("units") or []
+            if us:
+                ctx["_unit"] = us[0]
     try:
         salida = await meta["fn"](db, ctx)
     except Exception as e:  # noqa: BLE001

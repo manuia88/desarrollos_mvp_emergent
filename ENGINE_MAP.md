@@ -10,7 +10,7 @@ valor además se integran como dimensiones/indicadores del cubo.
 
 **Estado:** ⬜ por cablear · 🟦 en hub (runnable+visible) · ✅ integrado al cubo (dimensión/indicador) · ⬛ otro portal (fuera de Terminal).
 
-**Progreso:** 30 / ~120 en el hub, **los 30 con descriptor (hiper-segmentados)**. T4: avm_publico·costo_propiedad·esquemas_pago·contexto_precio. Regla: ningún motor sin descriptor.
+**Progreso:** **96 motores en el hub** (30 base + 5 batches: valuación 11·geo 11·demanda 14·cubo 16·inversión 14). 0 duplicados · 0 sin descriptor (TODOS hiper-segmentados) · 0 errores · 75 con dato real, 21 latentes. 6 saltados con razón (sig_catastro/narrative_engine/house_pool/dmx_dev_benchmark/comparator/fraud — necesitan lead/user/texto/scrape/red). = 100% de los motores corribles del cubo.
 
 ---
 
