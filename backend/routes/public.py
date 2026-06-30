@@ -798,7 +798,11 @@ async def inversion_v4_portafolio(request: Request):
         port = portafolio(units, inp, isr_fn=make_isr_fn(), descuento_pct=desc)
         return {"ok": True, "portafolio": port, "mercado": mkt}
     except Exception as e:
-        return {"ok": False, "error": str(e)[:200]}
+        # No filtrar str(e) al cliente (info-disclosure ante type-confusion): mensaje genérico fijo
+        # + detalle solo en logs server-side.
+        import logging
+        logging.getLogger(__name__).warning("inversion_v4_portafolio fallo: %s", e, exc_info=True)
+        return {"ok": False, "error": "No se pudo calcular el portafolio · revisa los datos"}
 
 
 # Zona geotécnica/sísmica DOMINANTE por alcaldía CDMX (NTC Reglamento de Construcciones · I=Lomas firme A · II=Transición

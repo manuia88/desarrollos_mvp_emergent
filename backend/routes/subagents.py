@@ -177,10 +177,17 @@ async def apply_recommendation(rec_id: str, request: Request):
         raise HTTPException(409, f"No se puede aplicar una recomendación en estado '{doc.get('status')}'")
 
     now = datetime.now(timezone.utc)
-    await db.pricing_recommendations.update_one(
-        {"_id": rec_id},
+    # RT3-01 · TOCTOU: el check `status != pending` (arriba) + update_one separado NO es atómico → bajo concurrencia
+    # N applies pasan el guard antes de que cualquiera marque `applied` (6/10 en la prueba) → 1 mutación de precio,
+    # pero N audit-logs/hooks. Fix: flip de status ATÓMICO con compare-and-swap — solo UNA request gana la carrera
+    # ({"_id": rec_id, "status": "pending"} → "applied"); las perdedoras ven modified_count=0 → 409. La mutación del
+    # precio (abajo) ya solo corre DESPUÉS del CAS ganado. El guard de pertenencia C-02 corre ANTES (líneas previas).
+    cas = await db.pricing_recommendations.update_one(
+        {"_id": rec_id, "status": "pending"},
         {"$set": {"status": "applied", "applied_at": now, "applied_by_user_id": user_id}},
     )
+    if cas.modified_count != 1:
+        raise HTTPException(409, "La recomendación ya fue aplicada")
 
     # ── APLICAR DE VERDAD: el precio del subagente debe LLEGAR A LA FICHA PÚBLICA. Se escribe por el MISMO camino
     # que el edit manual del dev — `developer_unit_overrides` + `record_price_event` — que la ficha SÍ lee

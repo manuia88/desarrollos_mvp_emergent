@@ -300,14 +300,21 @@ async def demanda_zona(dev_id: str, request: Request):
 
 @router.get("/api/desarrollo/{dev_id}/interes")
 async def interes_desarrollo(dev_id: str, request: Request):
-    """Interés PÚBLICO/agregado de un desarrollo (likes + vistas + guardados · k-anon ≥3 para likes/guardados).
+    """Interés PÚBLICO/agregado de un desarrollo (likes + vistas + guardados · k-anon ≥ K_ANON_MIN para likes/guardados).
     Lo consume la ficha (prueba social) y conecta al dev (su desarrollo interesa)."""
     try:
         db = request.app.state.db
         likes = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "like", "active": True})
         saves = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "save", "active": True})
         views = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "ficha_view"})
-        K = 3
+        # P3-03 (auditoría v3): la prueba social PÚBLICA (bajo→medio→alto) usaba K=3 hardcodeado en vez del umbral
+        # canónico. Bajo el tope FLY-02 (25 visitor_id/ip_hora) una sola IP podía volcar un umbral de 3. Se alinea con
+        # K_ANON_MIN (=5) — mismo gate de privacidad que /demanda-mapa — para que el umbral cueste más que el abuso tolerado.
+        try:
+            from anonymization_engine import K_ANON_MIN
+        except Exception:  # noqa: BLE001
+            K_ANON_MIN = 5
+        K = K_ANON_MIN
         return {
             "ok": True,
             "likes": likes if likes >= K else 0,

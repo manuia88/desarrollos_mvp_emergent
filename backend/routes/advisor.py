@@ -3164,6 +3164,35 @@ async def create_operacion(payload: OperacionIn, request: Request):
     asesor_split = _q(comision_base - platform_split)  # residual → suma exacta
     comision_total = _q(comision_base + iva)
 
+    # SEGURIDAD (RT3-02) · la cota numérica (ge=0 le=10B) NO impide envenenar el AVM/DRPI:
+    # un valor_cierre absurdo respecto al precio real de la unidad (p.ej. 9.99B sobre un depto
+    # de 6.5M) entra y contamina el modelo de la zona al cerrar. Si hay desarrollo de referencia,
+    # cruzamos contra su banda de precio y marcamos is_outlier (no bloqueamos: el cierre real puede
+    # variar; los outliers se excluyen río abajo del ingest de transacciones). Fail-soft.
+    is_outlier = False
+    outlier_reason = None
+    OUTLIER_MULT = Decimal("3")   # >3x el techo de la banda = sospechoso
+    OUTLIER_FLOOR = Decimal("0.2")  # <0.2x el piso de la banda = sospechoso
+    try:
+        if payload.desarrollo_id and payload.valor_cierre and payload.valor_cierre > 0:
+            from auto_sync_engine import get_effective_dev
+            ref_dev = await get_effective_dev(db, payload.desarrollo_id)
+            if ref_dev:
+                ref_to = ref_dev.get("price_to") or ref_dev.get("price_from")
+                ref_from = ref_dev.get("price_from") or ref_dev.get("price_to")
+                vc = valor_cierre
+                if ref_to and Decimal(str(ref_to)) > 0 and vc > Decimal(str(ref_to)) * OUTLIER_MULT:
+                    is_outlier = True
+                    outlier_reason = f"valor_cierre {payload.valor_cierre:,} > {OUTLIER_MULT}x precio máx del dev ({int(ref_to):,})"
+                elif ref_from and Decimal(str(ref_from)) > 0 and vc < Decimal(str(ref_from)) * OUTLIER_FLOOR:
+                    is_outlier = True
+                    outlier_reason = f"valor_cierre {payload.valor_cierre:,} < {OUTLIER_FLOOR}x precio mín del dev ({int(ref_from):,})"
+                if is_outlier:
+                    logging.getLogger("dmx.advisor").warning(
+                        f"[operacion] valor_cierre outlier (owner={user.user_id} dev={payload.desarrollo_id}): {outlier_reason}")
+    except Exception as _oe:
+        logging.getLogger("dmx.advisor").warning(f"[operacion] chequeo de outlier falló (fail-soft): {_oe}")
+
     item = {
         "id": _uid("op"),
         "code": _unique_op_code(),
@@ -3175,6 +3204,8 @@ async def create_operacion(payload: OperacionIn, request: Request):
         "comision_total": float(comision_total),
         "platform_split": float(platform_split),
         "asesor_split": float(asesor_split),
+        "is_outlier": is_outlier,
+        "outlier_reason": outlier_reason,
         **payload.model_dump(),
     }
     await db.asesor_operaciones.insert_one(dict(item))
@@ -3437,14 +3468,23 @@ async def generate_argumentario(payload: ArgumentarioIn, request: Request):
     }
     objetivo_txt = objetivos.get(payload.objetivo, "abrir conversación")
 
+    # SEGURIDAD (P3-INJ-01) · first_name/last_name/tags vienen de un lead potencialmente anónimo
+    # (datos de terceros). Se sanean y se envuelven con frontera explícita para que el LLM los
+    # trate como DATOS, nunca como instrucciones (mismo patrón que la variante -rag).
+    from llm_safety import sanitize_user_input, wrap_untrusted
+    _nombre = sanitize_user_input(f"{contact.get('first_name','')} {contact.get('last_name','')}".strip(), max_len=120)
+    _tags = sanitize_user_input(", ".join(contact.get("tags", []) or []), max_len=300)
+    datos_cliente = wrap_untrusted(
+        f"- Nombre: {_nombre}\n- Tags: {_tags}",
+        source="DATOS_CLIENTE (nombre/tags del lead)",
+    )
+
     prompt = f"""Eres un asesor inmobiliario mexicano experto escribiendo un mensaje en español mexicano (es-MX) para enviar por WhatsApp.
 
 Contexto del contacto:
-- Nombre: {contact['first_name']} {contact.get('last_name', '')}
 - Tipo: {contact.get('tipo')}
 - Temperatura: {contact.get('temperatura')}
-- Tags: {', '.join(contact.get('tags', []))}
-
+{datos_cliente}
 Contexto del desarrollo:
 - Nombre: {dev['name']}
 - Colonia: {dev['colonia']}, {dev['alcaldia']}

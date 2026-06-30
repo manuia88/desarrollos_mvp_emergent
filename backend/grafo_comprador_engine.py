@@ -272,7 +272,13 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
             continue
         col_doc = name_to_col.get(col_name_l)
         total = col_total.get(col_name_l, 0)
-        if _mn and total:
+        # P3-02 · re-id: el k-gate (KAN-01) gatea los SEGMENTOS pero el TOTAL de la colonia
+        # quedaba crudo con n=1..4 → re-identificación. Aplica el MISMO K_MIN(=5) al total:
+        # bajo K no se expone el conteo exacto ni la banda (sólo "<K, sin dato suficiente").
+        col_k_suprimido = total < K_MIN
+        if col_k_suprimido:
+            banda_nivel, banda_et = ("sin_dato", "Sin dato suficiente (pocas búsquedas)")
+        elif _mn and total:
             banda = _mn.band_from_dist(dist, total)
             banda_nivel, banda_et = banda.get("nivel"), banda.get("etiqueta")
         else:
@@ -310,9 +316,13 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
             "colonia_id": col_doc["id"] if col_doc else col_name_l,
             "colonia": col_doc["name"] if col_doc else col_name_l.title(),
             "alcaldia": col_doc.get("alcaldia") if col_doc else None,
-            "demanda_total": total,
-            "busquedas_marketplace": mkt_by_name.get(col_name_l, 0),  # P2.6 · señal del comprador
-            "likes_comprador": likes_by_col.get(col_name_l, 0),       # Copiloto · deseo (like) por colonia
+            # P3-02 · bajo K no se expone el conteo exacto (n=1..4 re-identifica) ni los
+            # sub-conteos (marketplace/likes); se devuelve banda "<K" honesta.
+            "demanda_total": None if col_k_suprimido else total,
+            "demanda_banda": f"<{K_MIN}" if col_k_suprimido else None,
+            "k_suprimido": col_k_suprimido,
+            "busquedas_marketplace": None if col_k_suprimido else mkt_by_name.get(col_name_l, 0),  # P2.6 · señal del comprador
+            "likes_comprador": None if col_k_suprimido else likes_by_col.get(col_name_l, 0),       # Copiloto · deseo (like) por colonia
             "banda": banda_nivel,
             "etiqueta": banda_et,
             "segmento_dominante": dominante,
@@ -329,21 +339,26 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
         if target_name_l and nm_l != target_name_l:
             continue
         col_doc = name_to_col.get(nm_l)
-        banda = _mn.band_from_dist(dist, cnt) if (_mn and cnt) else {}
+        # P3-02 · re-id: estas colonias sólo tienen búsquedas de marketplace; cnt=1..4 expone
+        # un total crudo re-identificable. Mismo K_MIN(=5): bajo K, banda "<K" sin conteo.
+        col_k_suprimido = cnt < K_MIN
+        banda = _mn.band_from_dist(dist, cnt) if (_mn and cnt and not col_k_suprimido) else {}
         out_colonias.append({
             "colonia_id": col_doc["id"] if col_doc else nm_l,
             "colonia": col_doc["name"] if col_doc else nm_l.title(),
             "alcaldia": col_doc.get("alcaldia") if col_doc else None,
-            "demanda_total": cnt,
-            "busquedas_marketplace": cnt,
-            "likes_comprador": likes_by_col.get(nm_l, 0),
+            "demanda_total": None if col_k_suprimido else cnt,
+            "demanda_banda": f"<{K_MIN}" if col_k_suprimido else None,
+            "k_suprimido": col_k_suprimido,
+            "busquedas_marketplace": None if col_k_suprimido else cnt,
+            "likes_comprador": None if col_k_suprimido else likes_by_col.get(nm_l, 0),
             "banda": banda.get("nivel", "sin_dato"),
-            "etiqueta": banda.get("etiqueta", "Búsquedas del comprador"),
+            "etiqueta": banda.get("etiqueta", "Sin dato suficiente (pocas búsquedas)" if col_k_suprimido else "Búsquedas del comprador"),
             "segmento_dominante": None,
             "segmento_dominante_label": None,
             "segmentos": [],
         })
-    out_colonias.sort(key=lambda x: -x["demanda_total"])
+    out_colonias.sort(key=lambda x: -(x.get("demanda_total") or 0))  # P3-02 · total puede ser None (k-suprimido)
 
     total_busq = sum(col_total.values())
     es_estimado = total_busq < 10
