@@ -12,11 +12,15 @@ import CompararPanel from '../../components/superadmin/CompararPanel';
 import ExploradorPanel from '../../components/superadmin/ExploradorPanel';
 import ScreenerPanel from '../../components/superadmin/ScreenerPanel';
 import HeatmapPanel from '../../components/superadmin/HeatmapPanel';
+import AnalisisPanel from '../../components/superadmin/AnalisisPanel';
+import MemorandumPanel from '../../components/superadmin/MemorandumPanel';
 
 const TABS = [
   { key: 'explorador', label: 'Explorador (árbol)' },
   { key: 'screener', label: 'Screener (buscar)' },
   { key: 'heatmap', label: 'Mapa de tensión' },
+  { key: 'analisis', label: 'Análisis avanzado' },
+  { key: 'memorandum', label: 'Memorándum' },
   { key: 'atlas', label: 'Atlas (explorador)' },
   { key: 'facet', label: 'Conteos (oferta/demanda)' },
   { key: 'comparar', label: 'Comparativas (¿por qué?)' },
@@ -56,6 +60,8 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
     if (tab === 'explorador') return; // explorador (árbol) se carga solo (ExploradorPanel)
     if (tab === 'screener') return; // screener se carga solo (ScreenerPanel)
     if (tab === 'heatmap') return; // mapa de tensión se carga solo (HeatmapPanel)
+    if (tab === 'analisis') return; // análisis avanzado se carga solo (AnalisisPanel)
+    if (tab === 'memorandum') return; // memorándum se carga solo (MemorandumPanel)
     if (tab === 'atlas') return; // atlas se carga solo (AtlasPanel)
     if (tab === 'facet') return; // explorador faceteado se carga solo (FacetPanel)
     if (tab === 'comparar') return; // comparativas se carga solo (CompararPanel)
@@ -168,6 +174,8 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
       {/* MAPA DE TENSIÓN (heatmap repivotable de CDMX) */}
       {tab === 'heatmap' && <HeatmapPanel />}
+      {tab === 'analisis' && <AnalisisPanel />}
+      {tab === 'memorandum' && <MemorandumPanel />}
 
       {/* ATLAS (explorador de entidades) */}
       {tab === 'atlas' && <AtlasPanel />}

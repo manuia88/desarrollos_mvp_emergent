@@ -142,3 +142,35 @@ export async function postScreenerBuscar(criterios, { ordenar_por, desc = true, 
     method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(criterios || []),
   }));
 }
+
+// ── Techo del cubo: what-if · lookalike · sankey · memorándum · simetría · vistas/alertas ──
+export async function getWhatifOpciones() {
+  return _j(await fetch(`${BASE}/whatif/opciones`, { headers: h(), credentials: 'include' }));
+}
+export async function getWhatif({ geo_valor, agregar, tipologia } = {}) {
+  return _j(await fetch(`${BASE}/whatif?${_qs({ geo_valor, agregar, tipologia })}`, { headers: h(), credentials: 'include' }));
+}
+export async function getLookalike({ colonia, top = 6 } = {}) {
+  return _j(await fetch(`${BASE}/lookalike?${_qs({ colonia, top })}`, { headers: h(), credentials: 'include' }));
+}
+export async function getSankey({ por = 'tipologia', geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/sankey?${_qs({ por, geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+export async function getMemorandum({ colonia } = {}) {
+  return _j(await fetch(`${BASE}/memorandum?${_qs({ colonia })}`, { headers: h(), credentials: 'include' }));
+}
+export async function getSimetria({ geo_nivel, geo_valor } = {}) {
+  return _j(await fetch(`${BASE}/simetria?${_qs({ geo_nivel, geo_valor })}`, { headers: h(), credentials: 'include' }));
+}
+export async function getVistas() {
+  return _j(await fetch(`${BASE}/vistas`, { headers: h(), credentials: 'include' }));
+}
+export async function postVista(body) {
+  return _j(await fetch(`${BASE}/vistas`, { method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(body || {}) }));
+}
+export async function deleteVista(viewId) {
+  return _j(await fetch(`${BASE}/vistas/${encodeURIComponent(viewId)}`, { method: 'DELETE', headers: h(), credentials: 'include' }));
+}
+export async function getVistasAlertas() {
+  return _j(await fetch(`${BASE}/vistas/alertas`, { headers: h(), credentials: 'include' }));
+}
