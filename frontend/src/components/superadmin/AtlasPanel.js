@@ -7,7 +7,72 @@ import Indicador from './Indicador';
 import { getAtlasEntity } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
-const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 };
+// Header de sección — contraste subido para legibilidad (consistencia con otros paneles).
+const lbl = { fontSize: 12, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 };
+// Sub-etiqueta de columna dentro de tarjetas (también con contraste accesible).
+const subLbl = { fontSize: 10.5, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 };
+
+// ── Skeleton de carga (pulso CSS, inyectado una vez, SSR-safe) ───────────────
+const SKELETON_STYLE_ID = 'atlaspanel-skeleton-keyframes';
+function ensureSkeletonStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SKELETON_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = SKELETON_STYLE_ID;
+  el.textContent = '@keyframes apPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }';
+  document.head.appendChild(el);
+}
+const skBlock = (w, h = 10, extra = {}) => ({
+  width: w, height: h, borderRadius: 4,
+  background: 'rgba(255,255,255,0.10)',
+  animation: 'apPulse 1.2s ease-in-out infinite',
+  ...extra,
+});
+
+// Tarjeta fantasma de un "tema" (insinúa título + grilla de indicadores).
+function SkeletonTemaCard() {
+  return (
+    <Card style={card} aria-hidden="true">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={skBlock(170, 11)} />
+        <div style={skBlock(90, 18, { borderRadius: 9999 })} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{ display: 'grid', gap: 8, padding: '13px 16px', border: '1px solid var(--border)', borderRadius: 16 }}>
+            <div style={skBlock('60%', 11)} />
+            <div style={skBlock(90, 24)} />
+            <div style={skBlock('80%', 9)} />
+            <div style={skBlock('45%', 9)} />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Bloque de carga completo (breadcrumb + conductual + tarjetas de tema) con etiqueta accesible.
+function FichaSkeleton() {
+  return (
+    <div style={{ display: 'grid', gap: 16 }} role="status" aria-live="polite" aria-busy="true">
+      <span style={{
+        position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+        overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+      }}>Cargando ficha de la entidad…</span>
+      {/* breadcrumb + ventana fantasma */}
+      <Card style={card} aria-hidden="true">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          {[120, 96, 110].map((w, i) => <div key={i} style={skBlock(w, 22, { borderRadius: 7 })} />)}
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[64, 64, 64, 64, 64].map((w, i) => <div key={i} style={skBlock(w, 26, { borderRadius: 9999 })} />)}
+        </div>
+      </Card>
+      <SkeletonTemaCard />
+      <SkeletonTemaCard />
+    </div>
+  );
+}
 
 const VENTANAS = [
   { key: 'live', label: 'Live' },
@@ -33,6 +98,8 @@ export default function AtlasPanel() {
   const [panel, setPanel] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+
+  useEffect(() => { ensureSkeletonStyle(); }, []);
 
   useEffect(() => {
     let alive = true;
@@ -63,10 +130,10 @@ export default function AtlasPanel() {
         </div>
         <div style={{ fontSize: 11.5, color: '#888', marginBottom: 12, wordBreak: 'break-all' }}>{entidad.id}</div>
 
-        <div style={{ fontSize: 10.5, color: '#777', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+        <div style={{ ...subLbl, marginBottom: 6 }}>
           Bajar a hijos {hijos.length > 0 ? `(${hijos.length})` : ''}
         </div>
-        {hijos.length === 0 && <div style={{ fontSize: 12, color: '#666' }}>Sin hijos — es una hoja del árbol.</div>}
+        {hijos.length === 0 && <div style={{ fontSize: 12, color: '#888' }}>Sin hijos — es una hoja del árbol (el nivel más fino).</div>}
         <div style={{ display: 'grid', gap: 5, maxHeight: 360, overflowY: 'auto' }}>
           {hijos.map((c) => (
             <button key={`${c.tipo}:${c.id}`} onClick={() => go(c.tipo, c.id)}
@@ -119,31 +186,35 @@ export default function AtlasPanel() {
             </div>
             <div style={{ fontSize: 12.5, color: '#aaa', display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>cobertura: <strong style={{ color: 'var(--theme)' }}>{cob.reales ?? 0}/{cob.total ?? 0}</strong> métricas con valor</span>
-              {latentes > 0 && <span style={{ color: '#777' }}>· {latentes} latentes (esperan dato)</span>}
+              {latentes > 0 && <span style={{ color: '#a8a8b3' }}>· {latentes} latentes (esperan dato)</span>}
             </div>
           </div>
         </Card>
 
-        {loading && <Card style={card}>Cargando ficha de la entidad…</Card>}
-        {err && <Card style={{ ...card, color: '#dc2626' }}>{err}</Card>}
+        {loading && <FichaSkeleton />}
+        {err && <Card style={{ ...card, color: '#dc2626' }} role="alert">{err}</Card>}
 
-        {panel && !err && (
+        {panel && !err && !loading && (
           <>
             {/* CONDUCTUAL — lo más importante, primero */}
             <ConductualSection cond={cond} />
 
             {/* OFERTA · DEMANDA · CRUCE */}
-            <TemaSection title="Oferta · lo que existe" tone="ok" medidas={temas.oferta} entidad={panel.entidad || entidad} />
-            <TemaSection title="Demanda · lo que se busca" tone="brand" medidas={temas.demanda} entidad={panel.entidad || entidad} />
-            <TemaSection title="Cruce · oferta × demanda" tone="warn" medidas={temas.cruce} entidad={panel.entidad || entidad} />
+            <TemaSection title="Oferta · lo que existe" toneLabel="oferta" tone="ok" medidas={temas.oferta} entidad={panel.entidad || entidad} />
+            <TemaSection title="Demanda · lo que se busca" toneLabel="demanda" tone="brand" medidas={temas.demanda} entidad={panel.entidad || entidad} />
+            <TemaSection title="Cruce · oferta × demanda" toneLabel="cruce" tone="warn" medidas={temas.cruce} entidad={panel.entidad || entidad} />
 
             {/* FUSIÓN */}
-            {panel.fusion && <FusionSection fusion={panel.fusion} />}
+            <FusionSection fusion={panel.fusion} />
 
             {/* INSIGHTS */}
-            {(panel.insights || []).length > 0 && (
-              <Card style={card}>
-                <div style={lbl}>Insights de la entidad</div>
+            <Card style={card}>
+              <div style={lbl}>Insights de la entidad</div>
+              {(panel.insights || []).length === 0 ? (
+                <div style={{ fontSize: 12.5, color: '#888' }}>
+                  Sin insights generados para esta entidad y ventana — surgen al cruzar suficiente oferta, demanda y conducta.
+                </div>
+              ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {panel.insights.map((it, i) => (
                     <div key={i} style={{ borderLeft: '3px solid var(--theme)', paddingLeft: 12, fontSize: 13, color: '#ddd', lineHeight: 1.45 }}>
@@ -151,8 +222,8 @@ export default function AtlasPanel() {
                     </div>
                   ))}
                 </div>
-              </Card>
-            )}
+              )}
+            </Card>
           </>
         )}
       </div>
@@ -171,18 +242,22 @@ function ConductualSection({ cond }) {
   return (
     <Card style={card}>
       <div style={lbl}>Conductual · cómo se comportan los compradores</div>
-      {!hasAny && <div style={{ fontSize: 12.5, color: '#666' }}>Aún sin señales conductuales para esta entidad y ventana.</div>}
+      {!hasAny && (
+        <div style={{ fontSize: 12.5, color: '#888' }}>
+          Aún sin señales conductuales para esta entidad y ventana — se llenan cuando los compradores interactúan (vistas, perfil, forma de pago, lo que piden).
+        </div>
+      )}
       {hasAny && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           {/* vistas sin cita — % grande */}
           {(vsc.sin_cita_pct != null || vsc.vistas != null) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: 0.4 }}>Vistas sin cita</span>
+              <span style={subLbl}>Vistas sin cita</span>
               <span style={{ fontSize: 34, fontWeight: 800, color: vsc.sin_cita_pct != null ? '#f59e0b' : '#777', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                 {vsc.sin_cita_pct != null ? `${vsc.sin_cita_pct}%` : '—'}
               </span>
-              <span style={{ fontSize: 11.5, color: '#888' }}>
-                {vsc.vistas ?? 0} vistas · {vsc.convirtieron_a_contacto ?? 0} contactaron
+              <span style={{ fontSize: 11.5, color: '#a8a8b3' }}>
+                miraron pero no agendaron · {vsc.vistas ?? 0} vistas · {vsc.convirtieron_a_contacto ?? 0} contactaron
               </span>
             </div>
           )}
@@ -190,7 +265,7 @@ function ConductualSection({ cond }) {
           {/* perfil del cliente */}
           {Object.keys(pc).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: 0.4 }}>Perfil del cliente</span>
+              <span style={subLbl}>Perfil del cliente</span>
               <div style={{ fontSize: 12.5, color: '#ddd', lineHeight: 1.7 }}>
                 <div>Visitantes únicos: <strong>{pc.visitantes_unicos ?? 0}</strong></div>
                 <div>Intención: <span style={{ color: '#bbb' }}>{kv(pc.intencion)}</span></div>
@@ -201,27 +276,27 @@ function ConductualSection({ cond }) {
 
           {/* forma de pago */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: 0.4 }}>Forma de pago</span>
+            <span style={subLbl}>Forma de pago</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {Object.keys(pago).length === 0 && <span style={{ fontSize: 12, color: '#666' }}>—</span>}
+              {Object.keys(pago).length === 0 && <span style={{ fontSize: 12, color: '#888' }}>Sin dato de forma de pago aún.</span>}
               {Object.entries(pago).map(([k, v]) => <Badge key={k} tone="neutral">{k} {v}</Badge>)}
             </div>
           </div>
 
           {/* lo que más piden */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: 0.4 }}>Lo que más piden</span>
+            <span style={subLbl}>Lo que más piden</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-              {(piden.amenidades || []).length === 0 && <span style={{ fontSize: 12, color: '#666' }}>—</span>}
+              {(piden.amenidades || []).length === 0 && <span style={{ fontSize: 12, color: '#888' }}>Sin amenidades pedidas aún.</span>}
               {(piden.amenidades || []).map((a) => <Badge key={a} tone="neutral">{a}</Badge>)}
             </div>
-            <span style={{ fontSize: 11.5, color: '#888' }}>Enganche típico: <strong style={{ color: '#bbb' }}>{fmtMX(piden.enganche_tipico)}</strong></span>
+            <span style={{ fontSize: 11.5, color: '#a8a8b3' }}>Enganche típico: <strong style={{ color: '#ddd' }}>{fmtMX(piden.enganche_tipico)}</strong></span>
           </div>
 
           {/* unidades más vistas */}
           {umv.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1 / -1' }}>
-              <span style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: 0.4 }}>Unidades más vistas</span>
+              <span style={subLbl}>Unidades más vistas</span>
               <div style={{ display: 'grid', gap: 5 }}>
                 {(() => {
                   const mx = Math.max(1, ...umv.map((u) => u.vistas || 0));
@@ -245,17 +320,31 @@ function ConductualSection({ cond }) {
 // ── OFERTA / DEMANDA / CRUCE ─────────────────────────────────────────────────
 // Cada métrica pasa por el estándar <Indicador>: nombre humano · valor · comparativo (vs ciudad) ·
 // granularidad · dimensión · uso · fuente (procedencia) · n + confianza · latente con razón.
-function TemaSection({ title, tone, medidas, entidad }) {
+function TemaSection({ title, tone, toneLabel, medidas, entidad }) {
   const rows = medidas || [];
-  if (rows.length === 0) return null;
   const conValor = rows.filter((m) => !m.latente).length;
   const ent = entidad || {};
   const granularidad = `${TIPO_LABEL[ent.tipo] || ent.tipo}: ${ent.id}`;
+  // Estado vacío explícito en vez de ocultar la sección en silencio.
+  if (rows.length === 0) {
+    return (
+      <Card style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={lbl}>{title}</div>
+          <Badge tone="neutral">{toneLabel} · sin medidas</Badge>
+        </div>
+        <div style={{ fontSize: 12.5, color: '#888' }}>
+          Aún no hay medidas de {toneLabel} para esta entidad y ventana. Aparecerán al acumular dato.
+        </div>
+      </Card>
+    );
+  }
   return (
     <Card style={card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={lbl}>{title}</div>
-        <Badge tone={tone}>{conValor}/{rows.length} con valor</Badge>
+        {/* texto + color: el badge nombra el tema (oferta/demanda/cruce), no depende solo del color */}
+        <Badge tone={tone}>{toneLabel} · {conValor}/{rows.length} con valor</Badge>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         {rows.map((m) => {
@@ -297,18 +386,23 @@ function FusionSection({ fusion }) {
   push('Project score', f.project_score);
   push('Margen', f.margen?.pct != null ? `${f.margen.pct}%` : null);
   push('P(venta 12m)', f.prob_venta_12m?.pct != null ? `${f.prob_venta_12m.pct}%` : null);
-  if (items.length === 0) return null;
   return (
     <Card style={card}>
       <div style={lbl}>Fusión institucional · síntesis de motores</div>
+      {items.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: '#888' }}>
+          Sin síntesis de motores para esta entidad — la fusión institucional (precio/m², absorción, riesgo, score) aparece cuando los motores tienen dato suficiente.
+        </div>
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px 18px' }}>
         {items.map(([label, val]) => (
           <div key={label} style={{ fontSize: 12.5 }}>
-            <span style={{ color: '#888' }}>{label}: </span>
+            <span style={{ color: '#a8a8b3' }}>{label}: </span>
             <strong style={{ color: '#ddd' }}>{String(val)}</strong>
           </div>
         ))}
       </div>
+      )}
       {(fusion.recomendacion || fusion.ciclo) && (
         <div style={{ fontSize: 12, color: '#bbb', marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontStyle: 'italic' }}>
           {fusion.ciclo ? `${fusion.ciclo} — ` : ''}{fusion.recomendacion || ''}
