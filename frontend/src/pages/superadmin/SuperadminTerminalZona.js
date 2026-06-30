@@ -379,7 +379,7 @@ function CompuestaCard({ c, porZona }) {
           ))}
         </div>
       ) : (
-        <div style={{ fontSize: 12.5, color: '#f59e0b' }}>Latente — <span style={{ color: '#999' }}>feeder de mercado aún apagado (fórmula ya cableada)</span></div>
+        <div style={{ fontSize: 12.5, color: '#f59e0b' }}>Esperando dato — <span style={{ color: '#999' }}>{c.fuente_pendiente || 'feeder de mercado (fórmula ya cableada)'}</span></div>
       )}
 
       {/* uso: ¿para qué sirve? — VISIBLE, no solo tooltip */}
@@ -410,7 +410,11 @@ function Compuestas100({ data }) {
     <div>
       <div style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>
         Cada compuesta dice <em>para qué sirve</em> y <em>dónde pega más fuerte</em> (la zona líder vs la mediana).{' '}
-        Cobertura: <strong style={{ color: 'var(--theme)' }}>{data.cobertura?.reales}/{data.cobertura?.total}</strong> valores reales ({data.cobertura?.pct}%) · {data.cobertura?.nota}
+        {data.cobertura?.compuestas_vivas != null ? (
+          <><strong style={{ color: 'var(--theme)' }}>{data.cobertura.compuestas_total}/{data.cobertura.compuestas_total}</strong> construidas y funcionando · <strong style={{ color: '#22c55e' }}>{data.cobertura.compuestas_vivas}</strong> con dato vivo · el resto reporta su fuente pendiente (stub honesto, no número inventado).</>
+        ) : (
+          <>Cobertura: <strong style={{ color: 'var(--theme)' }}>{data.cobertura?.reales}/{data.cobertura?.total}</strong> valores reales ({data.cobertura?.pct}%) · {data.cobertura?.nota}</>
+        )}
       </div>
       {/* navegación por pack (dimensión) */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>

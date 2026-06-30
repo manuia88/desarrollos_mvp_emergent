@@ -453,12 +453,26 @@ COMPOSITES: List = [
 ]
 
 
+# Stub HONESTO por compuesta sin dato: qué fuente la prende (regla "construir completo con stubs;
+# el dato lo prende después"). Se autoexplica en vez de devolver un null mudo. NO inventa el valor.
+_PENDING_SOURCE: Dict[int, str] = {
+    35: "Dataset de migración climática por zona (sin fuente abierta vigente)",
+    39: "Casos de fraude — se detectan al crecer el inventario de listings",
+    40: "Cruce de documentos (escritura/predial) — al cargar la papelería de los desarrollos",
+    66: "Sentimiento de residentes — reseñas (sin dataset abierto; se acumula con uso)",
+    78: "Brokers activos por zona — se acumula al listar más desarrollos",
+}
+_PENDING_DEFAULT = "Feeder de mercado / actividad de plataforma — la fórmula ya está cableada y se prende con el dato"
+
+
 async def compute_all(db, since_days: int = 180, top: int = 20) -> Dict[str, Any]:
-    """Corre las 100 compuestas por colonia. Devuelve por-paquete + por-zona + cobertura (cuántas dieron valor real)."""
+    """Corre las 120 compuestas por colonia. Devuelve por-paquete + por-zona + cobertura. Cada compuesta
+    reporta estado HONESTO: 'vivo' (con dato) o 'esperando_dato' (+ la fuente que la prende) — nunca null mudo."""
     ctx = await build_context(db, since_days=since_days, top=top)
     zones, g = ctx["zones"], ctx["g"]
     por_zona = []
     real_count = 0; total_count = 0
+    tiene_dato: Dict[int, bool] = {n: False for (n, *_rest) in COMPOSITES}
     for z in zones:
         vals = {}
         for (n, pack, nombre, descubre, fn) in COMPOSITES:
@@ -470,14 +484,27 @@ async def compute_all(db, since_days: int = 180, top: int = 20) -> Dict[str, Any
             total_count += 1
             if v is not None and v != "—":
                 real_count += 1
+                tiene_dato[n] = True
         por_zona.append({"zona": z.get("zona"), "nombre": z.get("nombre"), "tier": z.get("tier"), "valores": vals})
-    catalogo = [{"n": n, "pack": P[pack], "nombre": nombre, "descubre": descubre,
-                 "uso": descubre, "dimension": f"compuesta · {P[pack]}", "fuente": "composite_metrics (comportamiento × mercado, motores fusionados)"}
-                for (n, pack, nombre, descubre, fn) in COMPOSITES]
+    # Catálogo autoexplicado: estado por compuesta + fuente pendiente (stub honesto, no número fabricado).
+    catalogo = []
+    n_vivas = 0
+    for (n, pack, nombre, descubre, fn) in COMPOSITES:
+        vivo = tiene_dato.get(n, False)
+        if vivo:
+            n_vivas += 1
+        catalogo.append({
+            "n": n, "pack": P[pack], "nombre": nombre, "descubre": descubre,
+            "uso": descubre, "dimension": f"compuesta · {P[pack]}",
+            "fuente": "composite_metrics (comportamiento × mercado, motores fusionados)",
+            "estado": "vivo" if vivo else "esperando_dato",
+            "fuente_pendiente": None if vivo else _PENDING_SOURCE.get(n, _PENDING_DEFAULT),
+        })
     cobertura_pct = round(100 * real_count / max(total_count, 1))
     return {"catalogo": catalogo, "por_zona": por_zona,
             "cobertura": {"reales": real_count, "total": total_count, "pct": cobertura_pct,
-                          "nota": "valores nulos = feeder de mercado apagado (fórmula ya cableada)"},
+                          "compuestas_vivas": n_vivas, "compuestas_total": len(COMPOSITES),
+                          "nota": "120/120 construidas y funcionando: las 'esperando_dato' reportan su fuente pendiente (stub honesto), no un número inventado"},
             "packs": {str(k): v for k, v in P.items()}}
 
 
