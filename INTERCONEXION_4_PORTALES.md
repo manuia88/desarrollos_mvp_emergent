@@ -132,8 +132,10 @@ De los 5 gaps, se cerraron los **3 ROTOS (❌)** — las direcciones que de verd
 | **2** | ✅ **CERRADO** | `percepcion-unidades` cruza por `{entity_id:dev_id, unit_number}` (no por el id compuesto) | **0 → 5 unidades con señal** (02A: 31 vistas, "caliente") |
 | **5** | ✅ **CERRADO** | nuevo `GET /api/marketplace/cube-actions` (público) — el destino `marketplace` ya tiene lector | endpoint vivo, lazo cerrado |
 
-**Pendientes (🟡 parciales, no rotos — la auditoría los ranqueó debajo):**
-- **#3** El cubo OLAP de precio del superadmin lee campos top-level → no refleja ediciones por-unidad con precisión. (Las columnas vertebrales del cubo —demanda/scores/gemelo— SÍ funcionan; esto es precisión del KPI de precio.)
-- **#4** 6 leads contacto-puro sin `development_id` (45/51 sí lo tienen) + el autopiloto del asesor mueve una búsqueda, no el lead. (Impacto chico; la columna asesor→dev por etapa/cierre SÍ funciona y está probada.)
+**Refinamientos cerrados (segunda pasada):**
+- **#3** ✅ **CERRADO** — `_all_developments` (cubo) aplica `developer_unit_overrides` + recomputa `price_from/to`+`units_*` (reusa `_apply_unit_overrides`+`_aggregates_from_units`). Verificado: override 99M → **cube price_to=99M**. Cubre edit manual Y apply del subagente.
+- **#4a** ✅ **CERRADO** — al vincular una propiedad (con dev) a un contacto, el LEAD hereda `development_id` → visible al dev + backfill. Verificado: **4 leads** de contacto vinculados a su dev.
 
-**Veredicto tras los fixes:** las 4 direcciones del founder están conectadas front+back en sus columnas vertebrales **y probadas en vivo**; los 3 cables que estaban ROTOS quedaron cerrados; restan 2 refinamientos de precisión (no rupturas).
+**Único pendiente menor (no estaba en el ofrecimiento, documentado):** el autopiloto del asesor (`_exec_reasignar_etapa`) mueve una búsqueda, no el lead → no cruza al dev. Impacto chico (corre rara vez, opt-in, subsistema con guardrails); la columna asesor→dev por etapa/cierre SÍ funciona y está probada.
+
+**Veredicto FINAL:** las 4 direcciones del founder están conectadas front+back en sus columnas vertebrales **y probadas en vivo**. De los 5 cables que halló la auditoría: **5/5 cerrados** (3 rotos + 2 refinamientos). Queda 1 borde menor (autopiloto→lead) documentado — no roto.
