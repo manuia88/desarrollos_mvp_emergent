@@ -174,3 +174,14 @@ export async function deleteVista(viewId) {
 export async function getVistasAlertas() {
   return _j(await fetch(`${BASE}/vistas/alertas`, { headers: h(), credentials: 'include' }));
 }
+
+// ── Saltos conceptuales: el cubo DISEÑA (auto-arquitecto) + ACTÚA (activación cross-portal) ──
+export async function getDisenar({ colonia, top = 3 } = {}) {
+  return _j(await fetch(`${BASE}/disenar?${_qs({ colonia, top })}`, { headers: h(), credentials: 'include' }));
+}
+export async function postActivar(body) {
+  return _j(await fetch(`${BASE}/activar`, { method: 'POST', headers: h(), credentials: 'include', body: JSON.stringify(body || {}) }));
+}
+export async function getAcciones({ destino, estado } = {}) {
+  return _j(await fetch(`${BASE}/acciones?${_qs({ destino, estado })}`, { headers: h(), credentials: 'include' }));
+}

@@ -1,6 +1,7 @@
 // Superadmin · ANÁLISIS AVANZADO — la caja de herramientas del analista del Terminal de Zona.
-// 5 sub-secciones (sólo se ve la activa): Simulador (what-if) · Comparables (lookalike) · Simetría O↔D ·
-// Sustitución (Sankey) · Mis vistas y alertas. Todas reusan las funciones de '../../api/superadminDemandIntel'.
+// 7 sub-secciones (sólo se ve la activa): Simulador (what-if) · Comparables (lookalike) · Simetría O↔D ·
+// Sustitución (Sankey) · Auto-arquitecto (el cubo diseña) · Acciones del cubo (el cubo actúa) · Mis vistas y alertas.
+// Todas reusan las funciones de '../../api/superadminDemandIntel'.
 // Cero dato inventado: cada número y lectura vienen del cubo. Verde = oportunidad/sube · ámbar = sobreoferta/baja ·
 // morado = demanda. Estilo oscuro idéntico al resto de paneles del folder (Card/Badge, fontSize 12-13).
 import React, { useEffect, useMemo, useState } from 'react';
@@ -11,6 +12,7 @@ import {
   getSimetria,
   getSankey,
   getVistas, postVista, deleteVista, getVistasAlertas,
+  getDisenar, postActivar, getAcciones,
 } from '../../api/superadminDemandIntel';
 
 // ── tokens de estilo compartidos (mismos valores que HeatmapPanel/GridPanel) ──
@@ -51,6 +53,8 @@ const SUBS = [
   { id: 'comparables', label: 'Comparables' },
   { id: 'simetria', label: 'Simetría O↔D' },
   { id: 'sustitucion', label: 'Sustitución' },
+  { id: 'arquitecto', label: 'Auto-arquitecto' },
+  { id: 'acciones', label: 'Acciones del cubo' },
   { id: 'vistas', label: 'Mis vistas y alertas' },
 ];
 
@@ -64,7 +68,8 @@ export default function AnalisisPanel() {
         <div style={{ fontSize: 14, fontWeight: 700, color: '#eee', marginBottom: 6 }}>Análisis avanzado</div>
         <div style={{ fontSize: 12.5, color: '#bbb', lineHeight: 1.55 }}>
           La caja de herramientas del analista: simula el efecto de un atributo, encuentra colonias parecidas,
-          mide el balance de oferta y demanda, ve qué segmentos compiten entre sí, y guarda alertas que vigilan el cubo por ti.
+          mide el balance de oferta y demanda, ve qué segmentos compiten entre sí, deja que el cubo te diseñe el
+          producto óptimo a construir y active hallazgos hacia los portales, y guarda alertas que vigilan el cubo por ti.
         </div>
       </Card>
 
@@ -80,6 +85,8 @@ export default function AnalisisPanel() {
       {sub === 'comparables' && <Comparables />}
       {sub === 'simetria' && <Simetria />}
       {sub === 'sustitucion' && <Sustitucion />}
+      {sub === 'arquitecto' && <AutoArquitecto />}
+      {sub === 'acciones' && <AccionesCubo />}
       {sub === 'vistas' && <VistasAlertas />}
     </div>
   );
@@ -525,7 +532,281 @@ function Sustitucion() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 5) MIS VISTAS Y ALERTAS — alertas disparadas + crear/listar/borrar vistas
+// 5) AUTO-ARQUITECTO — "el cubo diseña": ¿qué construyo aquí? (whitespace × precio × premium)
+// ════════════════════════════════════════════════════════════════════════════
+const DESTINOS = [
+  { id: 'dev', label: 'Desarrollador' },
+  { id: 'asesor', label: 'Asesor' },
+  { id: 'marketplace', label: 'Marketplace' },
+];
+const destLabel = (id) => (DESTINOS.find((d) => d.id === id) || {}).label || id;
+
+function AutoArquitecto() {
+  const [colonia, setColonia] = useState('');
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const disenar = () => {
+    if (!colonia.trim()) return;
+    setLoading(true); setErr(null);
+    getDisenar({ colonia: colonia.trim() })
+      .then((d) => {
+        if (d?.error) { setData(null); setErr(d.error); }
+        else { setData(d); }
+      })
+      .catch((e) => { setData(null); setErr(e.message); })
+      .finally(() => setLoading(false));
+  };
+
+  const fichas = data?.fichas || [];
+  const ctx = data?.contexto || {};
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      {/* controles */}
+      <Card style={{ ...card, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={lbl}>Colonia</span>
+          <input
+            style={{ ...inputStyle, minWidth: 200 }} placeholder="ej. polanco"
+            value={colonia} onChange={(e) => setColonia(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') disenar(); }}
+          />
+        </div>
+        <button style={{ ...btnStyle, opacity: colonia.trim() ? 1 : 0.5 }} onClick={disenar} disabled={!colonia.trim()}>
+          {loading ? 'Diseñando…' : 'Diseñar producto'}
+        </button>
+      </Card>
+
+      {err && <Card style={{ ...card, color: '#dc2626' }}>{err}</Card>}
+
+      {data && (
+        <>
+          {/* lectura + contexto de zona */}
+          <Card style={{ ...card, borderLeft: `3px solid ${C_DEM}` }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#eee' }}>El cubo diseña en {data.nombre || colonia.trim()}</span>
+            </div>
+            {data.lectura && <div style={{ fontSize: 12.5, color: '#bbb', lineHeight: 1.5, marginBottom: 12 }}>{data.lectura}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+              <MiniStat label="Precio/m² de la zona" value={fmtM2(ctx.precio_m2_zona)} color="#ddd" />
+              <MiniStat label="% vendido en la zona" value={ctx.sell_through_zona != null ? fmtPct(ctx.sell_through_zona) : '—'} color={C_DOWN} />
+            </div>
+          </Card>
+
+          {/* fichas recomendadas */}
+          {fichas.length === 0 ? (
+            <Card style={{ ...card, color: '#888', fontSize: 12.5 }}>
+              Sin huecos de demanda claros aquí hoy — toca competir por precio o absorción, no por producto nuevo.
+            </Card>
+          ) : (
+            fichas.map((f, i) => <FichaArquitecto key={(f.ficha || i) + '-' + i} f={f} colonia={colonia.trim()} />)
+          )}
+
+          {/* nota del backend en chico */}
+          {data.nota && (
+            <Card style={{ ...card, fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+              ⚠ {data.nota}
+            </Card>
+          )}
+          {data.fuente && (
+            <div style={{ fontSize: 10.5, color: '#666' }}>Fuente: {data.fuente}</div>
+          )}
+        </>
+      )}
+
+      {!data && !err && !loading && (
+        <Card style={{ ...card, color: '#888', fontSize: 12.5 }}>
+          Escribe una colonia y pulsa <strong style={{ color: '#aaa' }}>Diseñar producto</strong>: el cubo te dirá
+          qué construir (tipología · atributo · tier · precio) a partir del whitespace de demanda y el premium de cada atributo.
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Una ficha técnica recomendada por el auto-arquitecto, con activación cross-portal.
+function FichaArquitecto({ f, colonia }) {
+  const [picking, setPicking] = useState(false);
+  const [activando, setActivando] = useState(null); // destino en curso
+  const [result, setResult] = useState(null);
+  const [actErr, setActErr] = useState(null);
+
+  const gap = f.gap;
+  const gapColor = gap > 0 ? C_UP : gap < 0 ? C_DOWN : '#9aa0b5';
+
+  const activar = (destino) => {
+    setActivando(destino); setActErr(null); setResult(null);
+    const filtro = f.atributo
+      ? { atributo_key: 'con ' + f.atributo }
+      : (f.tipologia ? { recamaras: f.tipologia } : undefined);
+    postActivar({
+      destino,
+      titulo: f.ficha,
+      detalle: f.recomendacion,
+      colonia: colonia || undefined,
+      filtro,
+    })
+      .then((d) => {
+        if (d?.ok === false || d?.error) { setActErr(d.error || 'No se pudo activar.'); }
+        else { setResult(d.lectura || `Enviada a ${destLabel(destino)}.`); setPicking(false); }
+      })
+      .catch((e) => setActErr(e.message))
+      .finally(() => setActivando(null));
+  };
+
+  return (
+    <Card style={{ ...card, borderLeft: `3px solid ${C_UP}`, background: 'rgba(34,197,94,0.04)' }}>
+      {/* recomendación en grande */}
+      <div style={{ fontSize: 15.5, fontWeight: 800, color: '#eee', lineHeight: 1.4, marginBottom: 10 }}>
+        {f.recomendacion || f.ficha}
+      </div>
+
+      {/* chips de la ficha */}
+      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 12 }}>
+        {f.tipologia && <Badge tone="neutral">{f.tipologia}</Badge>}
+        {f.atributo && <Badge tone="neutral">{f.atributo}</Badge>}
+        {f.tier && <Badge tone="neutral">{f.tier}</Badge>}
+      </div>
+
+      {/* métricas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <MiniStat label="Demanda" value={fmtNum(f.demanda)} color={C_DEM} />
+        <MiniStat label="Oferta actual" value={fmtNum(f.oferta_actual)} color="#9aa0b5" />
+        <MiniStat label="Brecha (dem − of)" value={fmtSigned(gap)} color={gapColor} />
+        {f.premium_atributo_pct != null && (
+          <MiniStat label="Premium del atributo" value={fmtPct(f.premium_atributo_pct)} color={C_UP} />
+        )}
+        {f.competencia != null && (
+          <MiniStat label="Competencia" value={fmtNum(f.competencia)} color="#9aa0b5" />
+        )}
+      </div>
+
+      {/* activación */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {!picking && !result && (
+          <button style={btnStyle} onClick={() => { setPicking(true); setActErr(null); }}>Activar →</button>
+        )}
+        {picking && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, color: '#999' }}>Enviar a:</span>
+            {DESTINOS.map((d) => (
+              <button
+                key={d.id} style={{ ...ghostBtn, opacity: activando && activando !== d.id ? 0.5 : 1 }}
+                onClick={() => activar(d.id)} disabled={!!activando}
+              >
+                {activando === d.id ? 'Enviando…' : d.label}
+              </button>
+            ))}
+            <button style={ghostBtn} onClick={() => { setPicking(false); setActErr(null); }} disabled={!!activando}>Cancelar</button>
+          </div>
+        )}
+        {result && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: C_UP }}>✓ {result}</span>
+        )}
+        {actErr && <span style={{ fontSize: 11.5, color: '#dc2626' }}>{actErr}</span>}
+      </div>
+    </Card>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 6) ACCIONES DEL CUBO — "el cubo actúa": libro mayor de hallazgos enviados a portales
+// ════════════════════════════════════════════════════════════════════════════
+function AccionesCubo() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState(''); // '' = todos | dev | asesor | marketplace
+
+  const cargar = (destino) => {
+    setLoading(true); setErr(null);
+    getAcciones(destino ? { destino } : {})
+      .then((d) => {
+        if (d?.error) { setData(null); setErr(d.error); }
+        else { setData(d); }
+      })
+      .catch((e) => { setData(null); setErr(e.message); })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { cargar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const aplicarFiltro = (id) => {
+    setFiltro(id);
+    cargar(id || undefined);
+  };
+
+  const acciones = data?.acciones || [];
+  const porDest = data?.por_destino || {};
+  const estadoTone = (e) => (e === 'pendiente' ? 'warn' : e === 'completada' || e === 'cerrada' ? 'ok' : 'neutral');
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      {/* contadores por destino + filtro */}
+      <Card style={card}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#ddd', marginBottom: 12 }}>Acciones enviadas a portales</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 14 }}>
+          {DESTINOS.map((d) => (
+            <MiniStat key={d.id} label={d.label} value={fmtNum(porDest[d.id])} color={d.id === 'asesor' ? C_DEM : '#ddd'} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>Filtrar:</span>
+          <button style={subTab(filtro === '')} onClick={() => aplicarFiltro('')}>Todos</button>
+          {DESTINOS.map((d) => (
+            <button key={d.id} style={subTab(filtro === d.id)} onClick={() => aplicarFiltro(d.id)}>{d.label}</button>
+          ))}
+        </div>
+      </Card>
+
+      {err && <Card style={{ ...card, color: '#dc2626' }}>{err}</Card>}
+
+      {loading ? (
+        <Card style={card}>Cargando acciones del cubo…</Card>
+      ) : acciones.length === 0 ? (
+        <Card style={{ ...card, color: '#888', fontSize: 12.5 }}>
+          Aún no hay acciones — actívalas desde <strong style={{ color: '#aaa' }}>Auto-arquitecto</strong> u oportunidades.
+        </Card>
+      ) : (
+        <Card style={card}>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {acciones.map((a, i) => (
+              <div key={(a.id || i) + '-' + i} style={{ padding: '11px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+                    <Badge tone="neutral">{destLabel(a.destino)}</Badge>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#ddd' }}>{a.titulo}</span>
+                  </div>
+                  {a.estado && <Badge tone={estadoTone(a.estado)}>{a.estado}</Badge>}
+                </div>
+                {a.detalle && <div style={{ fontSize: 11.5, color: '#999', lineHeight: 1.45, marginBottom: 4 }}>{a.detalle}</div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 11, color: '#888' }}>
+                  {a.colonia && <span>{a.colonia}</span>}
+                  {a.leads_potenciales != null && (
+                    <span style={{ color: C_DEM, fontWeight: 600 }}>{fmtNum(a.leads_potenciales)} leads potenciales</span>
+                  )}
+                  {a.created_at && <span style={{ marginLeft: 'auto', color: '#666' }}>{fmtFecha(a.created_at)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// fecha legible es-MX; si no parsea, muestra el string crudo (cero invento)
+const fmtFecha = (v) => {
+  if (!v) return '';
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// 7) MIS VISTAS Y ALERTAS — alertas disparadas + crear/listar/borrar vistas
 // ════════════════════════════════════════════════════════════════════════════
 const METRICAS_ALERTA = [
   { id: 'gap_terraza', label: 'Brecha terraza' },
