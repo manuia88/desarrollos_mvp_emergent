@@ -55,6 +55,37 @@ def _scale(v, mx):
 
 
 # ── construcción del contexto ───────────────────────────────────────────────────
+def _norm_alc(s: Any) -> str:
+    import re
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+
+
+async def _shf_forecast_by_alcaldia(db) -> Dict[str, Any]:
+    """Apreciación YoY REAL del índice de precios SHF por alcaldía (mismo trimestre, año anterior).
+    Cubre 5 alcaldías + 'CDMX (estatal)' como fallback city-wide. Dato oficial, no inventado."""
+    from collections import defaultdict
+    rows = await db.shf_series.find({}, {"_id": 0, "alcaldia": 1, "anio": 1, "trimestre": 1, "indice": 1}).to_list(length=8000)
+    by: Dict[str, Dict] = defaultdict(dict)
+    for r in rows:
+        try:
+            by[r.get("alcaldia")][(int(r["anio"]), int(r["trimestre"]))] = float(r["indice"])
+        except (TypeError, ValueError):
+            continue
+    out: Dict[str, Any] = {}
+    for alc, series in by.items():
+        keys = sorted(series.keys())
+        if len(keys) < 5:
+            continue
+        rk = keys[-1]
+        prior = series.get((rk[0] - 1, rk[1])) or series.get(keys[-5])
+        recent = series.get(rk)
+        if prior and recent and prior > 0:
+            out[_norm_alc(alc)] = round((recent - prior) / prior * 100, 2)
+    return out
+
+
 async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, Any]:
     import demand_intelligence as di
     import marketplace_granularity as mg
@@ -102,6 +133,20 @@ async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, A
     except Exception:
         pass
     # costo de construcción ahora viene por-zona en zone_intelligence (feeder local cableado allí).
+    # Apreciación de precio (forecast_pct) desde el índice oficial SHF: real por alcaldía (5) +
+    # CDMX estatal como fallback city-wide. Llena las compuestas de plusvalía/forecast sin inventar.
+    try:
+        shf = await _shf_forecast_by_alcaldia(db)
+        estatal = shf.get("cdmx estatal") or shf.get("cdmx")
+        for z in zones:
+            if z.get("forecast_pct") is None:
+                ap = shf.get(_norm_alc(z.get("alcaldia"))) if z.get("alcaldia") else None
+                val = ap if ap is not None else estatal
+                if val is not None:
+                    z["forecast_pct"] = val
+                    z["forecast_pct_fuente"] = "SHF " + ("alcaldía" if ap is not None else "CDMX estatal")
+    except Exception:
+        pass
     return {"zones": zones, "g": g}
 
 
