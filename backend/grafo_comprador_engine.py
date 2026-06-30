@@ -37,7 +37,12 @@ log = logging.getLogger("dmx.grafo_comprador")
 
 # k-anonimato: una celda (colonia × segmento) solo revela el producto deseado si la
 # alimentan al menos K_MIN búsquedas. Debajo → "sin dato suficiente" (honesto, cero deuda).
-K_MIN = 3
+# P2.8 / KAN-01 · K canónico: una sola fuente de verdad (anonymization_engine.K_ANON_MIN=5).
+# Antes 3 hardcodeado → garantía k=3 FALSA en el producto B2B. Fail-soft si falla el import.
+try:
+    from anonymization_engine import K_ANON_MIN as K_MIN
+except Exception:  # fail-soft: nunca por debajo del piso canónico
+    K_MIN = 5
 
 # Catálogo de etapas de vida (build for endstate: las 8 del estudio de mercado +
 # inversionista + indefinido). La inferencia v1 produce un subconjunto robusto desde la
@@ -275,11 +280,17 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
         segments_out = []
         for seg, cell in sorted(seg_cells, key=lambda x: -x[1]["n"]):
             n = cell["n"]
-            base = {"segmento": seg, "label": SEG_LABEL.get(seg, seg), "demanda": n}
+            base = {"segmento": seg, "label": SEG_LABEL.get(seg, seg)}
             if n < K_MIN:
+                # KAN-01 · gatea TODAS las dimensiones bajo K: no exponer ni el conteo
+                # exacto (puede ser n=1) ni el producto de una celda sub-K. Banda honesta.
+                base["demanda"] = None
+                base["demanda_banda"] = f"<{K_MIN}"
+                base["k_suprimido"] = True
                 base["producto"] = None
                 base["nota"] = "Sin dato suficiente (pocas búsquedas)."
             else:
+                base["demanda"] = n
                 base["producto"] = {
                     "recamaras": _mode(cell["rec"]),
                     "banos": _mode(cell["ban"]),
@@ -290,7 +301,11 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
                     "terraza_pct": int(round(100 * cell["terraza_n"] / n)) if n else 0,
                 }
             segments_out.append(base)
-        dominante = segments_out[0]["segmento"] if segments_out else None
+        # KAN-01 · el segmento dominante sólo se revela si lo respalda una celda ≥ K
+        # (si no, exponer "el #1 con n=1" reidentifica). Toma el primero NO suprimido.
+        dominante = next(
+            (s["segmento"] for s in segments_out if not s.get("k_suprimido")), None
+        )
         out_colonias.append({
             "colonia_id": col_doc["id"] if col_doc else col_name_l,
             "colonia": col_doc["name"] if col_doc else col_name_l.title(),

@@ -1129,7 +1129,15 @@ class AsistenteEngine:
         if not _check_rate(_message_buckets, session_token, MESSAGES_PER_MIN_PER_SESSION, 60):
             raise AsistenteRateLimitError("Demasiados mensajes en poco tiempo. Intenta en un momento.")
 
+        # LLM-INJ-02 · sanitiza la entrada PÚBLICA antes de que toque el LLM (anti prompt-injection directa).
+        # Mismo patrón que atlax_engine. sanitize_user_input recorta, quita tags de rol y neutraliza
+        # frases de inyección. Fail-soft: si el módulo falla, conserva el cap clásico.
         user_message = user_message.strip()[:1000]  # cap input
+        try:
+            from llm_safety import sanitize_user_input
+            user_message = sanitize_user_input(user_message, max_len=1000) or user_message
+        except Exception:
+            pass
         intent = _detect_intent(user_message)
 
         # Persist user message
@@ -1220,9 +1228,26 @@ class AsistenteEngine:
             _rag_text = ""
 
         # Augment map_context with RAG content (do NOT replace caller-provided context)
+        # LLM-INJ-02 · el contexto RAG/externo es contenido NO confiable → frontera explícita
+        # (el modelo lo trata como DATOS, nunca como órdenes). Mismo patrón que atlax_engine.
+        # map_context entra crudo desde la ruta pública (/api/asistente: page/map context que el
+        # usuario puede influir). Lo envolvemos como dato no confiable salvo que el caller ya lo
+        # haya envuelto (p.ej. atlax_engine pre-wrappea), detectado por el marcador de frontera.
         _augmented_map_context = map_context
+        if map_context and "SOLO DATOS" not in map_context:
+            try:
+                from llm_safety import wrap_untrusted
+                _augmented_map_context = wrap_untrusted(map_context, "lo que el usuario está viendo ahora")
+            except Exception:
+                pass
         if _rag_text:
-            _augmented_map_context = (map_context + "\n\n" if map_context else "") + _rag_text
+            try:
+                from llm_safety import wrap_untrusted
+                _rag_text = wrap_untrusted(_rag_text, "contexto de mercado")
+            except Exception:
+                pass
+            _base_ctx = _augmented_map_context
+            _augmented_map_context = (_base_ctx + "\n\n" if _base_ctx else "") + _rag_text
 
         # ── Tope de presupuesto ANTES de llamar al LLM ─────────────────────────
         # Cierra el vector de drenaje del chat público: antes el costo solo se rastreaba
@@ -1247,6 +1272,12 @@ class AsistenteEngine:
             tool_calls_log = []
         else:
             sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=_augmented_map_context)
+            # LLM-INJ-02 · frontera inquebrantable al frente del system prompt (superficie pública).
+            try:
+                from llm_safety import safe_system_boundary
+                sys_prompt = safe_system_boundary() + "\n\n" + sys_prompt
+            except Exception:
+                pass
             chat = LlmChat(
                 api_key=api_key,
                 session_id=session_token,

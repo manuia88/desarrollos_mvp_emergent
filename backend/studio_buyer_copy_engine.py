@@ -130,7 +130,32 @@ def _build_prompt(
         else "Generate the copy in English (US), natural and direct."
     )
 
+    # LLM-GND-01 · candado anti-invención. Este copy es marketing PÚBLICO que ve el
+    # comprador → inventar amenidades/precios/m2/fechas es engaño y riesgo legal.
+    # Cuando NO hay contexto real del proyecto, NO sembramos un placeholder con cifras
+    # concretas (precio/entrega): degradamos a copy SIN números para no inducir alucinación.
+    _ctx_real = (context_extra or "").strip()
+    if _ctx_real:
+        contexto_block = _ctx_real
+        no_data_rule = ""
+    elif language == "es-MX":
+        contexto_block = "(Sin datos verificados del proyecto. Escribe copy de valor SIN cifras concretas.)"
+        no_data_rule = (
+            "\n- NO se proporcionaron datos del proyecto: NO menciones precios, mensualidades, "
+            "m2, número de recámaras, fechas de entrega ni amenidades específicas. "
+            "Escribe sobre el beneficio/estilo de vida en términos generales."
+        )
+    else:
+        contexto_block = "(No verified project data. Write value-driven copy WITHOUT concrete figures.)"
+        no_data_rule = (
+            "\n- No project data was provided: do NOT mention prices, monthly payments, "
+            "square meters, number of bedrooms, delivery dates or specific amenities. "
+            "Write about the benefit/lifestyle in general terms."
+        )
+
     return f"""Eres un experto en marketing inmobiliario LATAM. Genera copy de ventas para un carrusel de redes sociales.
+
+REGLA INVIOLABLE (copy público al comprador): Usa EXCLUSIVAMENTE los datos provistos abajo; NO inventes amenidades, precios, m2 ni fechas. Si un dato no aparece en el contexto, NO lo afirmes.
 
 PERSONA TARGET: {persona['nombre']}
 ENFOQUE: {persona['enfoque']}
@@ -139,7 +164,7 @@ CTA SUGERIDO: {persona['cta']}
 TONO: {persona['tono']}{disc_block}
 
 CONTEXTO ADICIONAL DEL PROYECTO:
-{context_extra or "Desarrollo residencial en CDMX, precio medio-alto, entrega 2025-2026."}
+{contexto_block}
 
 INSTRUCCIONES:
 - Genera un copy principal (hook) de máximo 2 líneas impactantes
@@ -147,7 +172,7 @@ INSTRUCCIONES:
 - Incluye el CTA al final de cada variación
 - {lang_instruction}
 - NO uses clichés como "el hogar de tus sueños" o "no lo pierdas"
-- Sé específico, no genérico
+- Sé específico, no genérico, PERO solo con datos del contexto provisto{no_data_rule}
 
 FORMATO DE RESPUESTA (JSON estricto):
 {{

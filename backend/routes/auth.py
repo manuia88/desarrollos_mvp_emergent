@@ -27,6 +27,9 @@ PUBLIC_REGISTER_ROLES = {"buyer", "advisor", "developer_admin"}
 
 # Dev/Prod cookie config · localhost requiere secure=False + samesite=lax
 # porque browser bloquea cookies con secure=True sin HTTPS.
+# CSRF-01: en prod la cookie sale SameSite=None (cross-site) — el riesgo CSRF que eso
+# abre lo cierra el middleware server.csrf_cookie_origin_guard (valida Origin/Referer en
+# mutaciones auth-por-cookie). NO cambiar a 'lax' aquí sin verificar flujos cross-site.
 _DEV_MODE = os.environ.get("DMX_DEV_MODE", "false").lower() == "true"
 COOKIE_SECURE = not _DEV_MODE
 COOKIE_SAMESITE = "lax" if _DEV_MODE else "none"
@@ -199,6 +202,10 @@ async def create_session(payload: SessionCreate, response: Response, request: Re
     session_token = data.get("session_token")
     if not email or not session_token:
         raise HTTPException(401, "Datos de sesión incompletos")
+    # LEAD-TIER-JOIN-02 · normaliza el email del proveedor OAuth (case/espacios) ANTES de
+    # escribir/leer users. Sin esto, OAuth guarda email RAW y el JOIN del tier (advisor) que
+    # asume minúsculas no machea → el lead queda 'cold' en silencio (write-X/read-Y).
+    email = email.lower().strip()
     existing = await db.users.find_one({"email": email}, {"_id": 0})
     if existing:
         user_id = existing["user_id"]

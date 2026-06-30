@@ -64,6 +64,42 @@ VALID = {"view", "ficha_view", "like", "unlike", "save", "unsave", "compare", "s
 _TTL_DAYS = 120
 _indexed = {"done": False}
 
+# FLY-02 (auditoría v2): el endpoint anónimo acepta `visitor_id` ARBITRARIO. El rate-limit por IP frena el VOLUMEN,
+# pero no que UNA IP acuñe muchos visitor_id distintos → fabrica "compradores interesados" (infla likes/searches y
+# envenena demanda/gusto, que cuentan VISITANTES DISTINTOS). Freno: tope de visitor_id distintos por ip_hash en una
+# ventana rodante, en-proceso y fail-soft (igual que services.ratelimit). El HMAC del visitor_id requiere infra de
+# firma (clave + verificación en cada señal) y queda PENDIENTE; este freno por ip_hash acota el abuso con lo existente.
+_VISITORS_PER_IP_MAX = 25       # visitor_id distintos tolerados por ip_hash dentro de la ventana (familia/oficina/NAT cabe)
+_VISITORS_PER_IP_WINDOW = 3600  # 1h
+_visitors_by_ip: "dict[str, dict[str, float]]" = {}
+
+
+def _ip_visitor_ok(ip_hash: Optional[str], visitor_id: str) -> bool:
+    """True si este ip_hash aún no rebasó el tope de visitor_id distintos en la ventana. Fail-soft: sin ip_hash → pasa.
+    Acota la fabricación de compradores falsos rotando el visitor_id desde una sola IP (FLY-02)."""
+    if not ip_hash:
+        return True
+    try:
+        import time as _t
+        now = _t.monotonic()
+        seen = _visitors_by_ip.setdefault(ip_hash, {})
+        # purga visitantes fuera de ventana (mantiene el dict acotado)
+        for vid in [v for v, ts in seen.items() if now - ts > _VISITORS_PER_IP_WINDOW]:
+            seen.pop(vid, None)
+        if visitor_id in seen:
+            seen[visitor_id] = now
+            return True
+        if len(seen) >= _VISITORS_PER_IP_MAX:
+            return False
+        seen[visitor_id] = now
+        # poda perezosa del registro global (evita fuga de memoria si muchas IPs caducan)
+        if len(_visitors_by_ip) > 50000:
+            for k in [k for k, s in _visitors_by_ip.items() if not s]:
+                _visitors_by_ip.pop(k, None)
+        return True
+    except Exception:  # noqa: BLE001
+        return True
+
 
 async def _ensure_index(db):
     if _indexed["done"]:
@@ -116,10 +152,16 @@ async def buyer_signal(s: SignalIn, request: Request):
         from services.ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
         ip = _c(request)
         now = datetime.now(timezone.utc)
+        vid = s.visitor_id[:64]
+        ip_hash = hashlib.sha256(f"{ip}:dmx_bs".encode()).hexdigest()[:16] if ip else None
+        # FLY-02: freno por ip_hash — una sola IP no puede acuñar un número irreal de visitor_id distintos (compradores
+        # fabricados que inflan likes/searches y la demanda por VISITANTES DISTINTOS). Fail-soft: se descarta la señal.
+        if not _ip_visitor_ok(ip_hash, vid):
+            return {"ok": True, "throttled": True}
         dwell = s.dwell_ms if (isinstance(s.dwell_ms, int) and 0 <= s.dwell_ms <= 600000) else None
         doc = {
             "id": f"bs_{uuid.uuid4().hex[:12]}",
-            "visitor_id": s.visitor_id[:64],
+            "visitor_id": vid,
             "type": s.type,
             "entity_id": (s.entity_id or None),
             "unit_number": (s.unit_number or None),
@@ -128,7 +170,7 @@ async def buyer_signal(s: SignalIn, request: Request):
             "dwell_ms": dwell,
             "seconds": (s.seconds if (isinstance(s.seconds, int) and 0 <= s.seconds <= 86400) else None),
             "device": (s.device if s.device in ("mobile", "tablet", "desktop") else None),
-            "ip_hash": hashlib.sha256(f"{ip}:dmx_bs".encode()).hexdigest()[:16] if ip else None,
+            "ip_hash": ip_hash,
             "created_at_dt": now,
         }
         # meta granular: se guarda en las señales que la traen (Atlax + perfil de zona + apartado), sanitizado y acotado.
@@ -582,20 +624,42 @@ async def demanda_mapa(request: Request, visitor_id: str = ""):
             except Exception:  # noqa: BLE001
                 pass
 
-        max_raw = max(demanda.values()) if demanda else 1
+        # KAN-02 (auditoría v2): este endpoint es PÚBLICO/anónimo y exponía `searches_count` CRUDO por colonia (solo
+        # filtraba ==0). Un conteo chico (1–4) en una colonia revela conducta casi-individual → re-identificación. Se
+        # k-gatea con K_ANON_MIN: las colonias bajo el umbral NO entran al heatmap y NUNCA se devuelve el conteo crudo;
+        # en su lugar se reporta en BANDAS (bajo/medio/alto) sobre el conjunto ya gateado. Fail-soft.
+        try:
+            from anonymization_engine import K_ANON_MIN
+        except Exception:  # noqa: BLE001
+            K_ANON_MIN = 5
+        # El máximo para normalizar el score sale SOLO de colonias k-seguras (no de un pico sub-umbral).
+        safe_vals = [v for v in demanda.values() if v >= K_ANON_MIN]
+        max_raw = max(safe_vals) if safe_vals else 1
+
+        def _band(score: float) -> str:
+            return "alto" if score >= 66 else ("medio" if score >= 33 else "bajo")
+
         features = []
         for col in COLONIAS:
             cid = col.get("id")
             key = str(cid).strip().lower()
             raw = demanda.get(key, 0)
-            if raw == 0 and key not in mine:
-                continue   # mapa limpio: solo colonias con demanda real o que le laten al comprador
+            is_mine = key in mine
+            # k-gate: omite colonias por DEBAJO del umbral salvo que sea la zona del PROPIO visitante (su dato, no re-id
+            # de terceros) — y aun ahí el conteo crudo se suprime para no filtrar N pequeñas.
+            if raw < K_ANON_MIN and not is_mine:
+                continue
+            k_safe = raw >= K_ANON_MIN
+            score = round(100 * raw / max_raw, 1) if (k_safe and max_raw) else 0
             features.append({
                 "type": "Feature",
                 "properties": {
                     "colonia_id": cid, "colonia": col.get("name", cid), "alcaldia": col.get("alcaldia"),
-                    "searches_count": raw, "demand_score": round(100 * raw / max_raw, 1) if max_raw else 0,
-                    "mine": key in mine, "center": col.get("center", [-99.16, 19.41]),
+                    # searches_count CRUDO solo cuando es k-seguro; bajo umbral → null (no se filtra el N pequeño).
+                    "searches_count": raw if k_safe else None,
+                    "demand_score": score,
+                    "demand_band": _band(score) if k_safe else "bajo",
+                    "mine": is_mine, "center": col.get("center", [-99.16, 19.41]),
                 },
                 "geometry": {"type": "Polygon", "coordinates": [_build_polygon(col)]},
             })

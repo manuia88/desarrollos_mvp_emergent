@@ -212,6 +212,13 @@ def _uid(prefix: str) -> str:
 def _norm_phone(p: str) -> str:
     return "".join(c for c in (p or "") if c.isdigit())[-10:]
 
+def _lead_email(c: dict) -> Optional[str]:
+    """Email primario del contacto, normalizado (lower/strip) para el JOIN del tier
+    (LEAD-TIER-JOIN-02). Robusto a data histórica RAW. None si no hay email."""
+    e = (c.get("emails") or [None])[0]
+    e = (e or "").lower().strip()
+    return e or None
+
 
 def get_db(request: Request):
     return request.app.state.db
@@ -425,13 +432,16 @@ async def _build_action_queue(db, owner: str) -> list:
         ).sort("created_at", -1).limit(200).to_list(200)
         ids = [c["id"] for c in leads if c.get("id")]
         last_map = await _last_contact_map(db, ids)
-        # buyer_scores join (email → user_id → tier) reusa patrón de list_contactos
-        emails = list({(c.get("emails") or [None])[0] for c in leads if (c.get("emails") or [None])[0]})
+        # buyer_scores join (email → user_id → tier) reusa patrón de list_contactos.
+        # LEAD-TIER-JOIN-02 · normaliza el email a ambos lados del JOIN (contacto y users) para
+        # que el cruce sea case-insensitive aun con data histórica RAW (write-X/read-Y) → el tier
+        # 'hot' deja de perderse en silencio. _lead_email() normaliza también al leerlo abajo.
+        emails = list({_lead_email(c) for c in leads if _lead_email(c)})
         email_to_uid: dict = {}
         if emails:
             async for u in db.users.find({"email": {"$in": emails}}, {"_id": 0, "user_id": 1, "email": 1}):
                 if u.get("user_id") and u.get("email"):
-                    email_to_uid[u["email"]] = u["user_id"]
+                    email_to_uid[u["email"].lower().strip()] = u["user_id"]
         tier_map: dict = {}
         if email_to_uid:
             async for s in db.buyer_scores.find({"user_id": {"$in": list(email_to_uid.values())}}, {"_id": 0, "user_id": 1, "tier": 1}):
@@ -446,7 +456,7 @@ async def _build_action_queue(db, owner: str) -> list:
                     last = datetime.fromisoformat(last.replace("Z", "+00:00"))
                 except Exception:
                     last = None
-            email = (c.get("emails") or [None])[0]
+            email = _lead_email(c)  # LEAD-TIER-JOIN-02 · normalizado para machear email_to_uid
             tier = tier_map.get(email_to_uid.get(email)) if email else None
             nombre = (f"{c.get('first_name', '')} {c.get('last_name', '')}").strip() or "Lead"
             if tier == "hot" and (last is None or last < d3):
@@ -561,17 +571,19 @@ async def _build_kpis_trend(db, owner: str) -> dict:
     # Leads calientes = contactos con buyer_score tier hot
     try:
         leads = await db.asesor_contactos.find({"owner_id": owner}, {"_id": 0, "emails": 1, "created_at": 1}).limit(500).to_list(500)
-        emails = list({(c.get("emails") or [None])[0] for c in leads if (c.get("emails") or [None])[0]})
+        # LEAD-TIER-JOIN-02 · email normalizado a ambos lados → el conteo de leads calientes
+        # deja de fallar cuando OAuth/alta guardó el email con mayúsculas (write-X/read-Y).
+        emails = list({_lead_email(c) for c in leads if _lead_email(c)})
         email_to_uid: dict = {}
         if emails:
             async for u in db.users.find({"email": {"$in": emails}}, {"_id": 0, "user_id": 1, "email": 1}):
                 if u.get("user_id") and u.get("email"):
-                    email_to_uid[u["email"]] = u["user_id"]
+                    email_to_uid[u["email"].lower().strip()] = u["user_id"]
         hot_uids = set()
         if email_to_uid:
             async for s in db.buyer_scores.find({"user_id": {"$in": list(email_to_uid.values())}, "tier": "hot"}, {"_id": 0, "user_id": 1}):
                 hot_uids.add(s["user_id"])
-        hot = sum(1 for c in leads if email_to_uid.get((c.get("emails") or [None])[0]) in hot_uids)
+        hot = sum(1 for c in leads if email_to_uid.get(_lead_email(c)) in hot_uids)
         prev_total = sum(1 for c in leads if str(c.get("created_at", "")) and str(c.get("created_at")) <= d7_iso)
         kpis["leads_calientes"] = hot
         kpis["leads_calientes_trend_pct"] = _pct(len(leads), prev_total)
@@ -814,6 +826,9 @@ async def create_contacto(payload: ContactoIn, request: Request):
     if payload.temperatura not in TEMP_CONTACTO: raise HTTPException(400, "temperatura inválida")
     if payload.etapa not in ETAPA_CONTACTO: raise HTTPException(400, "etapa inválida")
     phones_norm = [_norm_phone(p) for p in payload.phones if p]
+    # LEAD-TIER-JOIN-02 · normaliza emails (lower/strip) en la ESCRITURA del contacto para que
+    # el JOIN del tier (email contacto → users.email → buyer_scores) machee case-insensitive.
+    payload.emails = [e.lower().strip() for e in (payload.emails or []) if e and e.strip()]
     # dedupe check
     if phones_norm:
         dup = await db.asesor_contactos.find_one({"owner_id": user.user_id, "phones_norm": {"$in": phones_norm}})
@@ -1347,6 +1362,10 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
         raise HTTPException(400, "temperatura inválida")
     if "phones" in patch:
         patch["phones_norm"] = [_norm_phone(p) for p in patch["phones"]]
+    # LEAD-TIER-JOIN-02 · normaliza emails (lower/strip) en la ACTUALIZACIÓN para mantener el
+    # JOIN del tier consistente con la escritura (write-X/read-Y → mismo case).
+    if "emails" in patch:
+        patch["emails"] = [e.lower().strip() for e in patch["emails"] if e and e.strip()]
     old_c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
     res = await db.asesor_contactos.update_one({"id": cid, "owner_id": user.user_id}, {"$set": patch})
     if not res.matched_count: raise HTTPException(404, "No encontrado")

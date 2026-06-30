@@ -1295,6 +1295,104 @@ async def security_headers(request, call_next):
         pass
     return resp
 
+
+# ─── CSRF-01 · Defensa CSRF para mutaciones con auth por COOKIE ────────────────
+# Cookies SameSite=None (cross-site) + sin token anti-CSRF → cualquier sitio puede
+# disparar POST/PUT/PATCH/DELETE contra nuestra API y el browser adjunta la cookie
+# de sesión (p.ej. /asesor/autopilot/pause, PATCH unit-status con Origin malicioso).
+# Defensa de menor riesgo (no rompe API/tests con Bearer): en métodos MUTANTES cuya
+# auth viene de COOKIE, exigimos que Origin/Referer pertenezca a un host propio.
+#   · Bearer  → FAIL-OPEN (API/tests usan Authorization, no cookie → no son CSRF).
+#   · GET/HEAD/OPTIONS → ignorados (no mutan).
+#   · Sin cookie de sesión → ignorado (no hay nada que falsificar).
+#   · Sin Origin NI Referer → FAIL-OPEN (clientes no-browser con cookie; el CSRF de
+#     browser SIEMPRE manda Origin en mutaciones cross-site).
+#   · Cookie + mutación + Origin/Referer EXTERNO → 403 (fail-closed, único caso).
+import urllib.parse as _urlparse
+
+# Orígenes permitidos extra (coma-separados). Por defecto reusa CORS_ORIGINS; este
+# env existe por si se quiere una lista distinta para CSRF sin tocar CORS.
+_CSRF_EXTRA_ORIGINS = {
+    o.strip().lower().rstrip("/")
+    for o in os.environ.get("CSRF_ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+}
+_CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _csrf_host_of(value: str) -> str:
+    """netloc (host[:port]) en minúsculas de un Origin/Referer. '' si no parsea."""
+    try:
+        return (_urlparse.urlsplit(value).netloc or "").lower()
+    except Exception:
+        return ""
+
+
+def _csrf_allowed_hosts(request) -> set:
+    """Hosts considerados 'propios': el Host de la propia request + CORS_ORIGINS +
+    CSRF_ALLOWED_ORIGINS + localhost en dev. Fail-soft."""
+    hosts = set()
+    try:
+        # 1) El host por el que entró la request (same-origin siempre permitido).
+        h = (request.headers.get("host") or "").strip().lower()
+        if h:
+            hosts.add(h)
+        # 2) Orígenes CORS configurados (lista explícita de prod) + extra CSRF.
+        for o in list(_CORS_ORIGINS) + list(_CSRF_EXTRA_ORIGINS):
+            nl = _csrf_host_of(o) or (o or "").strip().lower().rstrip("/")
+            if nl:
+                hosts.add(nl)
+        # 3) En dev, localhost/127.0.0.1 (cualquier puerto) van con el front local.
+        if _is_dev():
+            for hh in list(hosts):
+                if hh.startswith(("localhost", "127.0.0.1")):
+                    hosts.add(hh.split(":")[0])
+    except Exception:
+        pass
+    return hosts
+
+
+@app.middleware("http")
+async def csrf_cookie_origin_guard(request, call_next):
+    try:
+        if request.method in _CSRF_METHODS:
+            auth = request.headers.get("authorization", "")
+            is_bearer = auth.startswith("Bearer ")
+            has_cookie_auth = bool(
+                request.cookies.get("access_token")
+                or request.cookies.get("session_token")
+            )
+            # Solo nos metemos con mutaciones auth-por-cookie (no Bearer).
+            if has_cookie_auth and not is_bearer:
+                origin = request.headers.get("origin", "")
+                referer = request.headers.get("referer", "")
+                src = origin or referer  # Origin primero; Referer como respaldo.
+                if src:  # browser cross-site SIEMPRE manda Origin en mutaciones.
+                    src_host = _csrf_host_of(src)
+                    allowed = _csrf_allowed_hosts(request)
+                    # localhost en dev: comparar también sin puerto.
+                    src_bare = src_host.split(":")[0] if src_host else ""
+                    if src_host and src_host not in allowed and (
+                        not (_is_dev() and src_bare in allowed)
+                    ):
+                        from fastapi.responses import JSONResponse
+                        logging.warning(
+                            f"[csrf] bloqueado {request.method} {request.url.path} "
+                            f"origin={src_host!r} no en {sorted(allowed)!r}"
+                        )
+                        return JSONResponse(
+                            status_code=403,
+                            content={
+                                "code": "csrf_origin_rejected",
+                                "message": "Origen no permitido para esta acción.",
+                            },
+                        )
+    except Exception:
+        # Fail-soft: nunca tumbar la request por un fallo del propio guard.
+        pass
+    return await call_next(request)
+
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes.asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)

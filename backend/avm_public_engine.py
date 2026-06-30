@@ -42,12 +42,13 @@ def avm_quick(
     adj_per_m2 = base_per_m2 * rec_factor * ban_factor * age_factor
     heuristic_estimate = adj_per_m2 * m2
 
-    # Default to heuristic
+    # Default to heuristic. AVM-CONF-01: el heurístico es un seed (no hay modelo
+    # hedónico real ≥30 muestras) → NO vender "media". Confianza referencial.
     estimate = heuristic_estimate
     adj_pm2 = adj_per_m2
     range_low = round(estimate * 0.88)
     range_high = round(estimate * 1.12)
-    confidence = "media"
+    confidence = "baja"
     pricing_model = "heuristic"
     r_squared: Optional[float] = None
     model_id: Optional[str] = None
@@ -122,7 +123,9 @@ async def avm_quick_async(
     adj_pm2 = adj_per_m2
     range_low = round(estimate * 0.88)
     range_high = round(estimate * 1.12)
-    confidence = "media"
+    # AVM-CONF-01: arranca referencial; solo sube a media/alta si entra el
+    # modelo hedónico real (r² medido más abajo). Heurístico = seed, no certeza.
+    confidence = "baja"
 
     try:
         from hedonic_regression_engine import predict_price
@@ -325,6 +328,13 @@ def _avm_response(
         })
     comparables = comparables[:3]
 
+    # AVM-CONF-01: marcar honestamente la fuente. Si NO entró el modelo hedónico
+    # real (sigue en "heuristic"), es un estimado de seed → es_estimado:true,
+    # fuente="heuristico_seed", y etiqueta humana "referencial". No inventar certeza.
+    es_heuristico = pricing_model == "heuristic"
+    fuente = "heuristico_seed" if es_heuristico else pricing_model
+    confidence_label = "referencial" if es_heuristico else confidence
+
     return {
         "colonia_slug": colonia_slug,
         "colonia_name": col["name"],
@@ -336,6 +346,9 @@ def _avm_response(
         "range_low": range_low,
         "range_high": range_high,
         "confidence": confidence,
+        "confidence_label": confidence_label,
+        "fuente": fuente,
+        "es_estimado": es_heuristico,
         "comparables": comparables,
         "disclaimer": "Estimación referencial · no constituye avalúo profesional.",
         "pricing_model": pricing_model,

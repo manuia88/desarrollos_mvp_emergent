@@ -212,11 +212,23 @@ async def asesor_claim(lead_id: str, request: Request):
     if not _is_house(user):
         raise HTTPException(403, "Solo asesores de la inmobiliaria DMX")
     db = _db(request)
-    doc = await _my_lead(db, user, lead_id, must_be_mine=False)
-    if doc.get("assigned_asesor_id") and doc.get("assigned_asesor_id") != user.user_id:
+    # Compare-and-swap atómico: el filtro exige que el lead exista y siga SIN dueño.
+    # Si dos asesores corren a la vez, solo uno modifica el doc (modified_count==1);
+    # el otro recibe 409. Esto cierra la carrera del check-then-update no atómico.
+    res = await db.visit_requests.update_one(
+        {"id": lead_id, "owner_org": DMX_HOUSE_ORG,
+         "$or": [{"assigned_asesor_id": None}, {"assigned_asesor_id": {"$exists": False}}]},
+        {"$set": {"assigned_asesor_id": user.user_id, "status": "assigned", "assigned_at": _now()}})
+    if res.modified_count != 1:
+        # O no existe el lead, o ya tiene dueño. Distinguimos para dar el código correcto.
+        exists = await db.visit_requests.find_one(
+            {"id": lead_id, "owner_org": DMX_HOUSE_ORG}, {"_id": 0, "assigned_asesor_id": 1})
+        if not exists:
+            raise HTTPException(404, "Solicitud no encontrada")
+        if exists.get("assigned_asesor_id") == user.user_id:
+            # Idempotente: ya era mía (doble click / reintento) — no es error.
+            return {"ok": True, "status": "assigned"}
         raise HTTPException(409, "Otro asesor ya la tomó")
-    await db.visit_requests.update_one(
-        {"id": lead_id}, {"$set": {"assigned_asesor_id": user.user_id, "status": "assigned", "assigned_at": _now()}})
     return {"ok": True, "status": "assigned"}
 
 

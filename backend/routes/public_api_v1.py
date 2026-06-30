@@ -324,10 +324,24 @@ async def v1_zone_demand(zone_id: str, request: Request, response: Response):
     db = _db(request)
     from grafo_comprador_engine import build_grafo
     g = await build_grafo(db, colonia_id=zone_id)
+    # KAN-01 · este producto se VENDE B2B → gatea TODA dimensión bajo K canónico antes de
+    # entregar. El motor ya banda las celdas sub-K; aquí suprimimos los AGREGADOS por colonia
+    # (demanda_total / búsquedas / likes) que pueden ser sub-K y reidentificar. Se conserva la
+    # banda honesta (banda/etiqueta) — el cliente ve nivel, no el conteo n=1.
+    k = anon.K_ANON_MIN
+    cols = []
+    for c in (g.get("colonias") or []):
+        c = dict(c)
+        for fld in ("demanda_total", "busquedas_marketplace", "likes_comprador"):
+            v = c.get(fld)
+            if isinstance(v, (int, float)) and 0 < v < k:
+                c[fld] = None
+                c[f"{fld}_banda"] = f"<{k}"
+        cols.append(c)
     out = {"zone_id": zone_id, "k_anonimato": g.get("k_anonimato"),
-           "colonias": g.get("colonias"), "available": bool(g.get("colonias"))}
+           "colonias": cols, "available": bool(cols)}
     return await _deliver(db, ctx, request, response, f"/api/v1/zones/{zone_id}/demand", out,
-                          records=len(g.get("colonias") or []), started=started)
+                          records=len(cols), started=started)
 
 
 @router.get("/api/v1/zones/{zone_id}/bancabilidad")
