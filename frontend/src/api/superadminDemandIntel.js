@@ -124,6 +124,14 @@ export async function getLaunchCoverage() {
 export async function setLaunch(dev_id, fecha_lanzamiento) {
   return _j(await fetch(`${BASE}/compare/set-launch?${_qs({ dev_id, fecha_lanzamiento })}`, { method: 'POST', headers: h(), credentials: 'include' }));
 }
+// Mapa de tensión — opciones del heatmap: métricas disponibles + dimensiones de segmento (con sus valores) + lectura.
+export async function getHeatmapOpciones() {
+  return _j(await fetch(`${BASE}/heatmap/opciones`, { headers: h(), credentials: 'include' }));
+}
+// Mapa de tensión — puntos por colonia recoloreables. Modo MÉTRICA (?metrica=...) o SEGMENTO (?dimension=...&valor=...). Params vacíos se omiten.
+export async function getHeatmap({ metrica, dimension, valor } = {}) {
+  return _j(await fetch(`${BASE}/heatmap?${_qs({ metrica, dimension, valor })}`, { headers: h(), credentials: 'include' }));
+}
 // Screener — métricas screenables + operadores (>,<,≥,≤,=) + un ejemplo de criterios para precargar.
 export async function getScreenerMetricas() {
   return _j(await fetch(`${BASE}/screener/metricas`, { headers: h(), credentials: 'include' }));
