@@ -14,6 +14,7 @@ import ScreenerPanel from '../../components/superadmin/ScreenerPanel';
 import HeatmapPanel from '../../components/superadmin/HeatmapPanel';
 import AnalisisPanel from '../../components/superadmin/AnalisisPanel';
 import MemorandumPanel from '../../components/superadmin/MemorandumPanel';
+import MotoresPanel from '../../components/superadmin/MotoresPanel';
 import ColoniaPicker from '../../components/superadmin/ColoniaPicker';
 
 const TABS = [
@@ -28,6 +29,7 @@ const TABS = [
   { key: 'desarrollos', label: 'Por desarrollo' },
   { key: 'atributos', label: 'Atributos de unidad' },
   { key: 'financiero', label: 'Financiero' },
+  { key: 'motores', label: 'Motores' },
   { key: 'compuestas', label: 'Las 120 compuestas' },
   { key: 'grid', label: 'Grid de métricas' },
 ];
@@ -35,7 +37,7 @@ const TABS = [
 // Navegación en 2 niveles: 3 grupos en vez de 13 tabs planos (mismo color de tema = sin tocar la paleta).
 const GROUPS = [
   { key: 'explorar', label: 'Explorar', desc: 'navega el mercado', tabs: ['explorador', 'heatmap', 'atlas', 'desarrollos'] },
-  { key: 'analizar', label: 'Analizar', desc: 'busca y compara', tabs: ['screener', 'facet', 'comparar', 'analisis', 'atributos', 'financiero'] },
+  { key: 'analizar', label: 'Analizar', desc: 'busca y compara', tabs: ['screener', 'facet', 'comparar', 'analisis', 'atributos', 'financiero', 'motores'] },
   { key: 'reportar', label: 'Reportar', desc: 'el resultado', tabs: ['memorandum', 'compuestas', 'grid'] },
 ];
 const groupOf = (k) => (GROUPS.find((g) => g.tabs.includes(k)) || GROUPS[0]).key;
@@ -77,6 +79,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
     if (tab === 'comparar') return; // comparativas se carga solo (CompararPanel)
     if (tab === 'atributos') return; // atributos carga vía endpoint de indicadores
     if (tab === 'financiero') return; // financiero carga vía endpoint de indicadores
+    if (tab === 'motores') return; // motores se carga solo (MotoresPanel)
     if (cache[tab]) return;
     setLoading(true);
     getTerminal(tab).then((d) => setCache((c) => ({ ...c, [tab]: d }))).catch((e) => setCache((c) => ({ ...c, [tab]: { error: e.message } }))).finally(() => setLoading(false));
@@ -213,6 +216,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
       {tab === 'heatmap' && <HeatmapPanel />}
       {tab === 'analisis' && <AnalisisPanel zona={zona} onZona={setZona} />}
       {tab === 'memorandum' && <MemorandumPanel zona={zona} onZona={setZona} />}
+      {tab === 'motores' && <MotoresPanel zona={zona} onZona={setZona} />}
 
       {/* ATLAS (explorador de entidades) */}
       {tab === 'atlas' && <AtlasPanel />}
