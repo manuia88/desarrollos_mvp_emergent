@@ -9,7 +9,8 @@ import { Card, Badge } from '../advisor/primitives';
 import { getCompareCatalog, getCompareRun, getCompareInsights, getLaunchCoverage, setLaunch } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
-const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
+// Headers de sección con más contraste (consistencia Ola 3: #a8a8b3 / 12px / 600).
+const lbl = { fontSize: 12, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
 const selStyle = {
   background: 'rgba(255,255,255,0.04)', color: '#ddd', fontSize: 12.5,
   border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 9px', minWidth: 150,
@@ -20,10 +21,89 @@ const btnStyle = {
   background: 'var(--theme, #6366f1)', color: '#fff', fontSize: 12.5, fontWeight: 600,
 };
 const th = {
-  textAlign: 'left', fontSize: 10.5, color: '#888', fontWeight: 700, textTransform: 'uppercase',
+  textAlign: 'left', fontSize: 10.5, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase',
   letterSpacing: 0.4, padding: '6px 10px 8px', borderBottom: '1px solid rgba(255,255,255,0.10)', whiteSpace: 'nowrap',
 };
 const td = { fontSize: 12, color: '#bbb', padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', verticalAlign: 'middle' };
+
+// ── Skeleton de carga (pulso CSS, inyectado una vez · SSR-safe · dedup por id) ─
+const SKELETON_STYLE_ID = 'compararpanel-skeleton-keyframes';
+function ensureSkeletonStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SKELETON_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = SKELETON_STYLE_ID;
+  el.textContent = '@keyframes cmpPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }';
+  document.head.appendChild(el);
+}
+const skBlock = (w, h = 10, extra = {}) => ({
+  width: w, height: h, borderRadius: 4,
+  background: 'rgba(255,255,255,0.10)',
+  animation: 'cmpPulse 1.2s ease-in-out infinite',
+  ...extra,
+});
+// Texto solo-lector (oculto visualmente) para anunciar la carga a lectores de pantalla.
+const srOnly = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+};
+
+// Mini-barras fantasma (insinúan grupo → valor) para tarjetas en carga.
+function SkeletonBars({ rows = 3 }) {
+  const ws = [82, 60, 90, 48, 70];
+  return (
+    <div style={{ display: 'grid', gap: 7 }} aria-hidden="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={skBlock(96, 9)} />
+          <div style={skBlock(`${ws[i % ws.length]}%`, 9, { flex: 'none' })} />
+          <div style={skBlock(40, 9, { marginLeft: 'auto' })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Una tarjeta-hallazgo fantasma (frase + contexto + barras).
+function SkeletonInsightCard() {
+  return (
+    <Card style={card} aria-hidden="true">
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+        <div style={skBlock('70%', 13)} />
+        <div style={skBlock(76, 16, { borderRadius: 9999 })} />
+      </div>
+      <div style={skBlock('55%', 9, { marginBottom: 12 })} />
+      <SkeletonBars rows={3} />
+    </Card>
+  );
+}
+
+// Bloque de carga para los hallazgos automáticos (grilla de tarjetas fantasma).
+function InsightsSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-busy="true"
+      style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+      <span style={srOnly}>Buscando los porqués…</span>
+      <SkeletonInsightCard />
+      <SkeletonInsightCard />
+    </div>
+  );
+}
+
+// Bloque de carga para el resultado de "comparar tú mismo" (delta + barras fantasma).
+function RunSkeleton() {
+  return (
+    <Card style={{ ...card, marginTop: 16 }} role="status" aria-live="polite" aria-busy="true">
+      <span style={srOnly}>Comparando grupos…</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 12 }} aria-hidden="true">
+        <div style={skBlock(200, 11)} />
+        <div style={skBlock(120, 9)} />
+      </div>
+      <div style={skBlock(120, 30, { marginBottom: 14 })} aria-hidden="true" />
+      <SkeletonBars rows={4} />
+    </Card>
+  );
+}
 
 const GEO_NIVELES = ['colonia', 'alcaldia'];
 
@@ -141,6 +221,7 @@ export default function CompararPanel() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    ensureSkeletonStyle();
     getCompareCatalog()
       .then((d) => {
         setCatalog(d);
@@ -166,7 +247,19 @@ export default function CompararPanel() {
   };
 
   if (catErr) return <Card style={{ ...card, color: '#dc2626' }}>{catErr}</Card>;
-  if (!catalog) return <Card style={card}>Cargando comparativas…</Card>;
+  if (!catalog) {
+    return (
+      <div style={{ display: 'grid', gap: 20 }} role="status" aria-live="polite" aria-busy="true">
+        <span style={srOnly}>Cargando comparativas…</span>
+        <Card style={{ ...card, borderLeft: '3px solid var(--theme, #6366f1)' }} aria-hidden="true">
+          <div style={skBlock('45%', 14, { marginBottom: 10 })} />
+          <div style={skBlock('80%', 9, { marginBottom: 6 })} />
+          <div style={skBlock('65%', 9 )} />
+        </Card>
+        <InsightsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
@@ -189,7 +282,7 @@ export default function CompararPanel() {
       {/* ── B · COMPARAR TÚ MISMO ─────────────────────────────────────────── */}
       <div>
         <div style={{ ...lbl, fontSize: 12, marginBottom: 4 }}>Comparar tú mismo</div>
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 10, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: '#a8a8b3', marginBottom: 10, lineHeight: 1.5 }}>
           Elige una <strong style={{ color: '#aaa' }}>característica</strong> y un <strong style={{ color: '#aaa' }}>resultado</strong> para comparar entre tus desarrollos.
         </div>
         <Card style={card}>
@@ -226,7 +319,7 @@ export default function CompararPanel() {
           {runErr && <div style={{ color: '#dc2626', fontSize: 12.5, marginTop: 12 }}>{runErr}</div>}
         </Card>
 
-        {loading && <Card style={{ ...card, marginTop: 16 }}>Comparando grupos…</Card>}
+        {loading && <RunSkeleton />}
         {data && !runErr && !loading && <RunResult data={data} />}
       </div>
 
@@ -239,7 +332,7 @@ export default function CompararPanel() {
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 10.5, color: '#888' }}>{label}</span>
+      <span style={{ fontSize: 10.5, color: '#a8a8b3', fontWeight: 600 }}>{label}</span>
       {children}
     </div>
   );
@@ -309,12 +402,31 @@ function LaunchDatesSection() {
           {open ? 'Ocultar' : 'Ver / capturar'}
         </button>
       </div>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: '#a8a8b3', marginBottom: 10, lineHeight: 1.5 }}>
         Define desde cuándo se vende cada proyecto — es la base para medir la velocidad de venta.
       </div>
 
       {err && <Card style={{ ...card, color: '#dc2626', fontSize: 12.5 }}>{err}</Card>}
-      {!err && cov == null && open && <Card style={card}>Cargando cobertura de fechas…</Card>}
+      {!err && cov == null && open && (
+        <Card style={card} role="status" aria-live="polite" aria-busy="true">
+          <span style={srOnly}>Cargando cobertura de fechas…</span>
+          {/* chips fantasma */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }} aria-hidden="true">
+            {[90, 110, 80].map((w, i) => <div key={i} style={skBlock(w, 22, { borderRadius: 9999 })} />)}
+          </div>
+          {/* filas fantasma de la tabla */}
+          <div style={{ display: 'grid', gap: 9 }} aria-hidden="true">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={skBlock(150, 9)} />
+                <div style={skBlock(70, 9)} />
+                <div style={skBlock(64, 14, { borderRadius: 9999 })} />
+                <div style={skBlock(110, 22, { marginLeft: 'auto', borderRadius: 6 })} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {!err && cov && open && (
         <Card style={card}>
@@ -343,7 +455,9 @@ function LaunchDatesSection() {
 
           {/* tabla detalle */}
           {detalle.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: '#666', marginTop: 12 }}>Sin desarrollos para mostrar.</div>
+            <div style={{ fontSize: 12.5, color: '#888', marginTop: 12 }}>
+              Aún no hay desarrollos para capturar fecha. Se llenan al dar de alta proyectos.
+            </div>
           ) : (
             <div style={{ overflowX: 'auto', marginTop: 12 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -406,13 +520,13 @@ function InsightsSection({ insights, insErr }) {
         <div style={{ ...lbl, fontSize: 12, marginBottom: 0 }}>Qué mueve las ventas (hallazgos automáticos)</div>
         <Badge tone="brand">ordenado por impacto</Badge>
       </div>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: '#a8a8b3', marginBottom: 10, lineHeight: 1.5 }}>
         El sistema revisó tus desarrollos solo y encontró estos patrones. Los más fuertes van primero.
       </div>
       {insErr && <Card style={{ ...card, color: '#dc2626', fontSize: 12.5 }}>{insErr}</Card>}
-      {!insErr && insights == null && <Card style={card}>Buscando los porqués…</Card>}
+      {!insErr && insights == null && <InsightsSkeleton />}
       {!insErr && insights && hallazgos.length === 0 && (
-        <Card style={card}><span style={{ fontSize: 12.5, color: '#666' }}>Todavía no hay suficientes datos para detectar patrones. Se van llenando con más desarrollos y más comportamiento de compradores.</span></Card>
+        <Card style={card}><span style={{ fontSize: 12.5, color: '#888' }}>Todavía no hay suficientes datos para detectar patrones. Se van llenando con más desarrollos y más comportamiento de compradores.</span></Card>
       )}
       {hallazgos.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
@@ -469,10 +583,16 @@ function InsightCard({ h }) {
   );
 }
 
-// ── Mini-barras por grupo (grupo → valor); el "mejor" resaltado verde ─────────
+// ── Mini-barras por grupo (grupo → valor); el "mejor" resaltado verde + texto ──
 function GruposBars({ grupos, unidad, best, compact }) {
   const list = (grupos || []);
-  if (list.length === 0) return <div style={{ fontSize: 12, color: '#666' }}>Sin grupos.</div>;
+  if (list.length === 0) {
+    return (
+      <div style={{ fontSize: 12.5, color: '#888' }}>
+        Esta comparación no devolvió grupos para graficar. Prueba otra característica, otro resultado, o quita el filtro de zona.
+      </div>
+    );
+  }
   const mx = Math.max(1, ...list.map((g) => Math.abs(g.valor || 0)));
   const sorted = [...list].sort((a, b) => (b.valor || 0) - (a.valor || 0));
   return (
@@ -480,13 +600,27 @@ function GruposBars({ grupos, unidad, best, compact }) {
       {sorted.map((g, i) => {
         const isBest = best != null && g.valor === best;
         const accent = isBest ? '#22c55e' : 'var(--theme)';
+        const nombre = g.grupo ?? '—';
+        const valTxt = fmtVal(g.valor, unidad);
+        // Etiqueta accesible: el lector de pantalla oye grupo + valor (+ "mejor" si gana).
+        const ariaLabel = `${nombre}: ${valTxt}${isBest ? ' — el mejor de este resultado' : ''}`;
         return (
           <div key={g.grupo ?? i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: compact ? 12 : 12.5 }}>
             <span style={{ width: compact ? 110 : 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isBest ? '#22c55e' : '#ddd', fontWeight: isBest ? 700 : 400 }}>
-              {g.grupo ?? '—'}
+              {nombre}
             </span>
-            <span style={{ flex: 1, height: compact ? 9 : 11, borderRadius: 2, background: accent, opacity: isBest ? 0.9 : 0.6, width: `${(Math.abs(g.valor || 0) / mx) * 100}%`, minWidth: 2 }} />
-            <strong style={{ width: 86, textAlign: 'right', color: isBest ? '#22c55e' : '#ddd' }}>{fmtVal(g.valor, unidad)}</strong>
+            <span
+              role="img" aria-label={ariaLabel}
+              style={{ flex: 1, height: compact ? 9 : 11, borderRadius: 2, background: accent, opacity: isBest ? 0.9 : 0.6, width: `${(Math.abs(g.valor || 0) / mx) * 100}%`, minWidth: 2 }}
+            />
+            <strong style={{ width: 86, textAlign: 'right', color: isBest ? '#22c55e' : '#ddd' }}>{valTxt}</strong>
+            {/* "mejor" como TEXTO (no solo color) para que el ganador no dependa del verde */}
+            {isBest && (
+              <span style={{
+                fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: '#22c55e', border: '1px solid rgba(34,197,94,0.5)', borderRadius: 9999, padding: '1px 7px', whiteSpace: 'nowrap',
+              }}>mejor</span>
+            )}
             {!compact && (
               <span style={{ width: 92, textAlign: 'right', fontSize: 11, color: '#888' }}>
                 {g.n_desarrollos != null ? `${fmtN(g.n_desarrollos)} desarr.` : ''}
@@ -541,7 +675,9 @@ function RunResult({ data }) {
       ) : (
         <>
           {grupos.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: '#666' }}>No hay grupos para esta comparación.</div>
+            <div style={{ fontSize: 12.5, color: '#888' }}>
+              Esta comparación no devolvió grupos. Prueba otra característica, otro resultado, o quita el filtro de zona.
+            </div>
           ) : (
             <GruposBars grupos={grupos} unidad={data.unidad} best={best} />
           )}

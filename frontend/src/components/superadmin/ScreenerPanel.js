@@ -8,22 +8,79 @@ import { Card, Badge } from '../advisor/primitives';
 import { getScreenerMetricas, postScreenerBuscar } from '../../api/superadminDemandIntel';
 
 const card = { padding: '14px 18px' };
-const lbl = { fontSize: 11, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
+// Header/label tenue unificado (mismo gris que Facet/Atlas/Grid en Ola 3).
+const lbl = { fontSize: 12, color: '#a8a8b3', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 };
+// Etiqueta arriba de cada control del constructor ("Métrica", "Condición", "Valor", "Ordenar por").
+const fieldLbl = { fontSize: 11, color: '#a8a8b3', fontWeight: 600, marginBottom: 4 };
 const selStyle = {
   background: 'rgba(255,255,255,0.04)', color: '#ddd', fontSize: 12.5,
   border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 9px',
+  cursor: 'pointer',
 };
-const inputStyle = { ...selStyle };
+const inputStyle = { ...selStyle, cursor: 'text' };
 const btnStyle = {
   padding: '7px 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
   background: 'var(--theme, #6366f1)', color: '#fff', fontSize: 12.5, fontWeight: 600,
 };
 const btnGhost = { ...btnStyle, background: 'rgba(255,255,255,0.05)', color: '#bbb' };
 const th = {
-  textAlign: 'left', fontSize: 10.5, color: '#888', fontWeight: 700, textTransform: 'uppercase',
+  textAlign: 'left', fontSize: 10.5, color: '#a8a8b3', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: 0.4, padding: '6px 10px 8px', borderBottom: '1px solid rgba(255,255,255,0.10)', whiteSpace: 'nowrap',
 };
 const td = { fontSize: 12, color: '#bbb', padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', verticalAlign: 'middle' };
+
+// ── Skeleton de carga (pulso CSS, inyectado una vez, SSR-safe) ───────────────
+const SKELETON_STYLE_ID = 'screenerpanel-skeleton-keyframes';
+function ensureSkeletonStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SKELETON_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = SKELETON_STYLE_ID;
+  el.textContent = '@keyframes spPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }';
+  document.head.appendChild(el);
+}
+const skBlock = (w, h = 10, extra = {}) => ({
+  width: w, height: h, borderRadius: 4,
+  background: 'rgba(255,255,255,0.10)',
+  animation: 'spPulse 1.2s ease-in-out infinite',
+  ...extra,
+});
+const srOnly = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+};
+
+// Tabla fantasma de resultados (filas de colonias) mientras corre la búsqueda.
+function ResultSkeleton() {
+  return (
+    <div style={{ display: 'grid', gap: 14 }} role="status" aria-live="polite" aria-busy="true">
+      <span style={srOnly}>Recorriendo colonias…</span>
+      {/* lectura grande fantasma */}
+      <Card style={card} aria-hidden="true">
+        <div style={skBlock(280, 16)} />
+      </Card>
+      {/* tabla fantasma */}
+      <Card style={card} aria-hidden="true">
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+          <div style={skBlock(90, 9)} />
+          <div style={skBlock(70, 9)} />
+          <div style={skBlock(60, 9, { marginLeft: 'auto' })} />
+          <div style={skBlock(60, 9)} />
+        </div>
+        <div style={{ display: 'grid', gap: 11 }}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={skBlock(130, 10)} />
+              <div style={skBlock(80, 10)} />
+              <div style={skBlock(48, 10, { marginLeft: 'auto' })} />
+              <div style={skBlock(48, 10)} />
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 // Formatea un valor según la unidad de su métrica (números grandes a $X/m² o Xk; gaps/enteros como enteros).
 function fmtVal(v, unidad) {
@@ -53,6 +110,7 @@ export default function ScreenerPanel() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    ensureSkeletonStyle();
     getScreenerMetricas()
       .then((d) => {
         setCat(d);
@@ -77,14 +135,17 @@ export default function ScreenerPanel() {
     return metricas.filter((m) => ids.includes(m.id));
   }, [filas, metricas]);
 
+  // ¿hay al menos un criterio completo (métrica + operador + número válido)?
+  const criteriosValidos = useMemo(() => filas.filter(
+    (f) => f.metrica && f.op && f.valor !== '' && f.valor != null && !isNaN(Number(f.valor)),
+  ), [filas]);
+
   const setFila = (i, patch) => setFilas((fs) => fs.map((f, j) => (j === i ? { ...f, ...patch } : f)));
   const addFila = () => setFilas((fs) => [...fs, { metrica: metricas[0]?.id || '', op: operadores[0]?.id || 'gt', valor: '' }]);
   const delFila = (i) => setFilas((fs) => fs.filter((_, j) => j !== i));
 
   const buscar = () => {
-    const criterios = filas
-      .filter((f) => f.metrica && f.op && f.valor !== '' && f.valor != null && !isNaN(Number(f.valor)))
-      .map((f) => ({ metrica: f.metrica, op: f.op, valor: Number(f.valor) }));
+    const criterios = criteriosValidos.map((f) => ({ metrica: f.metrica, op: f.op, valor: Number(f.valor) }));
     if (criterios.length === 0) { setErr('Agrega al menos un criterio con número.'); return; }
     const orden = usadas.some((m) => m.id === ordenarPor) ? ordenarPor : criterios[0].metrica;
     setLoading(true); setErr(null);
@@ -96,6 +157,8 @@ export default function ScreenerPanel() {
 
   if (catErr) return <Card style={{ ...card, color: '#dc2626' }}>{catErr}</Card>;
   if (!cat) return <Card style={card}>Cargando métricas del screener…</Card>;
+
+  const ordenActual = usadas.some((m) => m.id === ordenarPor) ? ordenarPor : (usadas[0]?.id || '');
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
@@ -113,30 +176,38 @@ export default function ScreenerPanel() {
       {/* ── CONSTRUCTOR DE CRITERIOS ──────────────────────────────────────── */}
       <div>
         <div style={{ ...lbl, fontSize: 12, marginBottom: 4 }}>Tus criterios</div>
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 10, lineHeight: 1.5 }}>
-          Cada fila es una condición. Se cumplen <strong style={{ color: '#aaa' }}>todas a la vez</strong> (Y).
+        <div style={{ fontSize: 12, color: '#a8a8b3', marginBottom: 10, lineHeight: 1.5 }}>
+          Cada fila es una condición. Una colonia aparece solo si <strong style={{ color: '#cfcfd6' }}>se cumplen TODOS los criterios (Y / AND)</strong>.
         </div>
         <Card style={card}>
+          {/* Encabezado de columnas del constructor — explica qué hace cada control. */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 4 }} aria-hidden="true">
+            <div style={{ ...fieldLbl, minWidth: 240, marginBottom: 0 }}>Métrica</div>
+            <div style={{ ...fieldLbl, width: 64, textAlign: 'center', marginBottom: 0 }}>Condición</div>
+            <div style={{ ...fieldLbl, width: 120, marginBottom: 0 }}>Valor</div>
+          </div>
           <div style={{ display: 'grid', gap: 9 }}>
             {filas.map((f, i) => {
               const m = metById[f.metrica];
               return (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select style={{ ...selStyle, minWidth: 240 }} value={f.metrica} onChange={(e) => setFila(i, { metrica: e.target.value })}>
+                  <select aria-label={`Criterio ${i + 1} · métrica`} style={{ ...selStyle, minWidth: 240 }} value={f.metrica} onChange={(e) => setFila(i, { metrica: e.target.value })}>
                     {metricas.map((mm) => <option key={mm.id} value={mm.id}>{mm.label}</option>)}
                   </select>
-                  <select style={{ ...selStyle, width: 64, textAlign: 'center' }} value={f.op} onChange={(e) => setFila(i, { op: e.target.value })}>
+                  <select aria-label={`Criterio ${i + 1} · condición`} style={{ ...selStyle, width: 64, textAlign: 'center' }} value={f.op} onChange={(e) => setFila(i, { op: e.target.value })}>
                     {operadores.map((o) => <option key={o.id} value={o.id}>{o.txt}</option>)}
                   </select>
                   <input
+                    aria-label={`Criterio ${i + 1} · valor${m?.unidad ? ` (${m.unidad})` : ''}`}
                     style={{ ...inputStyle, width: 120 }} value={f.valor} type="number"
                     placeholder="número"
                     onChange={(e) => setFila(i, { valor: e.target.value })}
                     onKeyDown={(e) => { if (e.key === 'Enter') buscar(); }}
                   />
-                  {m?.unidad && <span style={{ fontSize: 11, color: '#777' }}>{m.unidad}</span>}
+                  {m?.unidad && <span style={{ fontSize: 11, color: '#888' }}>{m.unidad}</span>}
                   <button
-                    style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 4px' }}
+                    aria-label={`Quitar criterio ${i + 1}`}
+                    style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 4px' }}
                     title="Quitar criterio" onClick={() => delFila(i)}
                     disabled={filas.length <= 1}
                   >
@@ -147,12 +218,19 @@ export default function ScreenerPanel() {
             })}
           </div>
 
+          {/* Si no hay ningún criterio completo, guía al usuario. */}
+          {criteriosValidos.length === 0 && (
+            <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 10, lineHeight: 1.5 }}>
+              Completa al menos un criterio: elige una métrica, una condición y escribe un número en <strong style={{ color: '#fcd34d' }}>Valor</strong>.
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 18, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button style={btnGhost} onClick={addFila}>+ agregar criterio</button>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 10.5, color: '#888' }}>Ordenar por</span>
-              <select style={{ ...selStyle, minWidth: 200 }} value={usadas.some((m) => m.id === ordenarPor) ? ordenarPor : (usadas[0]?.id || '')} onChange={(e) => setOrdenarPor(e.target.value)}>
+              <span style={fieldLbl}>Ordenar por</span>
+              <select aria-label="Ordenar resultados por métrica" style={{ ...selStyle, minWidth: 200 }} value={ordenActual} onChange={(e) => setOrdenarPor(e.target.value)}>
                 {usadas.length === 0
                   ? <option value="">—</option>
                   : usadas.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -160,30 +238,36 @@ export default function ScreenerPanel() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 10.5, color: '#888' }}>Dirección</span>
-              <button style={btnGhost} onClick={() => setDesc((v) => !v)}>
+              <span style={fieldLbl}>Dirección</span>
+              <button
+                aria-label={`Dirección de orden: ${desc ? 'mayor primero' : 'menor primero'}. Pulsa para invertir.`}
+                style={btnGhost}
+                onClick={() => setDesc((v) => !v)}
+              >
                 {desc ? 'Mayor primero ▼' : 'Menor primero ▲'}
               </button>
             </div>
 
-            <button style={btnStyle} onClick={buscar} disabled={loading}>
+            <button style={btnStyle} onClick={buscar} disabled={loading || criteriosValidos.length === 0}>
               {loading ? 'Buscando…' : 'Buscar'}
             </button>
           </div>
-          {err && <div style={{ color: '#dc2626', fontSize: 12.5, marginTop: 12 }}>{err}</div>}
+          {err && <div role="alert" style={{ color: '#dc2626', fontSize: 12.5, marginTop: 12 }}>{err}</div>}
         </Card>
       </div>
 
       {/* ── RESULTADO ──────────────────────────────────────────────────────── */}
-      {loading && <Card style={card}>Recorriendo colonias…</Card>}
-      {data && !loading && <Resultado data={data} metById={metById} ordenarPor={data.ordenar_por} />}
+      {loading && <ResultSkeleton />}
+      {data && !loading && <Resultado data={data} metById={metById} ordenarPor={data.ordenar_por} desc={desc} />}
     </div>
   );
 }
 
-function Resultado({ data, metById, ordenarPor }) {
+function Resultado({ data, metById, ordenarPor, desc }) {
   const usadas = data.metricas_usadas || [];
   const resultados = data.resultados || [];
+  const ordenLabel = metById[ordenarPor]?.label || ordenarPor;
+  const flecha = desc ? '▼' : '▲';
 
   return (
     <div>
@@ -194,13 +278,27 @@ function Resultado({ data, metById, ordenarPor }) {
 
       {data.total === 0 ? (
         <Card style={{ ...card, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 13, color: '#fcd34d', fontWeight: 600 }}>Ninguna colonia cumple — afloja los criterios.</div>
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-            Prueba con menos condiciones o números menos exigentes. Una métrica latente (sin datos aún) nunca encuentra match.
+          <div style={{ fontSize: 14, color: '#fcd34d', fontWeight: 700, marginBottom: 6 }}>
+            Ninguna colonia cumple — afloja los criterios.
+          </div>
+          <div style={{ fontSize: 12.5, color: '#a8a8b3', lineHeight: 1.55 }}>
+            Prueba con menos condiciones, números menos exigentes, o cambia algún operador
+            (p.ej. de <em>mayor que</em> a <em>mayor o igual</em>). Recuerda: una métrica latente
+            (sin datos aún) nunca encuentra match en ninguna colonia.
           </div>
         </Card>
       ) : (
         <Card style={card}>
+          {/* Resumen claro "N de M colonias cumplen" arriba de la tabla. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 13, color: '#ddd' }}>
+              <strong style={{ color: '#fff', fontSize: 15 }}>{data.total}</strong> de {data.universo} colonias cumplen
+              {' '}<span style={{ color: '#888' }}>· mostrando {resultados.length}</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#a8a8b3', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              ordenado por <strong style={{ color: 'var(--theme)' }}>{ordenLabel}</strong> {flecha} ({desc ? 'mayor primero' : 'menor primero'})
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
@@ -211,8 +309,19 @@ function Resultado({ data, metById, ordenarPor }) {
                     const m = metById[mid];
                     const isOrden = mid === ordenarPor;
                     return (
-                      <th key={mid} style={{ ...th, textAlign: 'right', color: isOrden ? 'var(--theme)' : '#888' }}>
-                        {m?.label || mid}{isOrden ? ' ↓' : ''}
+                      <th
+                        key={mid}
+                        aria-sort={isOrden ? (desc ? 'descending' : 'ascending') : 'none'}
+                        style={{ ...th, textAlign: 'right', color: isOrden ? 'var(--theme)' : '#a8a8b3' }}
+                      >
+                        {/* El resaltado NO es solo color: ícono de orden + texto "ordenado". */}
+                        {m?.label || mid}
+                        {isOrden && (
+                          <span style={{ marginLeft: 4, fontWeight: 700 }}>
+                            {flecha}
+                            <span style={srOnly}> ordenado, {desc ? 'mayor primero' : 'menor primero'}</span>
+                          </span>
+                        )}
                       </th>
                     );
                   })}
@@ -240,9 +349,11 @@ function Resultado({ data, metById, ordenarPor }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11, color: '#777', marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, color: '#a8a8b3', marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Badge tone="brand">{data.total} de {data.universo} colonias</Badge>
-            <span>· mostrando {resultados.length} · la columna resaltada es por la que está ordenado.</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              · la columna marcada con <strong style={{ color: 'var(--theme)' }}>{flecha}</strong> es por la que está ordenado.
+            </span>
           </div>
         </Card>
       )}
