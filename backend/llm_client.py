@@ -100,7 +100,10 @@ async def _anthropic_chat(system: str, user_text: str, model: str, max_tokens: i
         raise RuntimeError("ANTHROPIC_API_KEY no configurado")
     from anthropic import AsyncAnthropic
     model = _MODEL_ALIASES.get(model, model) or _DEFAULT_ANTHROPIC
-    client = AsyncAnthropic(api_key=key)
+    # LLM-NO-TIMEOUT (audit v2): timeout DURO en el cliente → un LLM colgado no ocupa un worker ~600s (anti-DoS).
+    # Protege a los ~87 call-sites sin tocarlos. Configurable por env. max_retries acotado.
+    _timeout = float(os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
+    client = AsyncAnthropic(api_key=key, timeout=_timeout, max_retries=2)
     # Visión: si vienen imágenes (ImageContent), el contenido es una lista [texto, imagen…]; si no, texto plano.
     if images:
         content: Any = [{"type": "text", "text": user_text or ""}]
@@ -126,7 +129,7 @@ async def _openai_chat(system: str, user_text: str, model: str, max_tokens: int)
     if not key:
         raise RuntimeError("OPENAI_API_KEY no configurado")
     from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=key)
+    client = AsyncOpenAI(api_key=key, timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")), max_retries=2)
     msgs = []
     if system:
         msgs.append({"role": "system", "content": system})

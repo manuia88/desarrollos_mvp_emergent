@@ -552,6 +552,14 @@ REGLAS ESTRICTAS:
 - Los 6 tipos de objeción son fijos: precio_alto, timing, pareja_decide, prefiero_otra_zona, necesito_pensarlo, financiamiento_complicado.
 - El output JSON debe tener EXACTAMENTE estos campos: opening_script, value_pitch, objection_responses, closing_technique, discovery_questions, followup_cadence."""
 
+        # LLM-INJ-01 (audit v2): el nombre y los mensajes que el LEAD escribió a Atlax son input no-confiable que llega
+        # al prompt del asesor → sanitizar + envolver (anti inyección lead→copiloto). Reusa el módulo llm_safety.
+        from llm_safety import sanitize_user_input, wrap_untrusted
+        lead_name = sanitize_user_input(lead_name, max_len=120)
+        intent_txt = wrap_untrusted(intent_txt, "mensajes que el lead escribió a Atlax")
+        replies_txt = wrap_untrusted(replies_txt, "respuestas del lead")
+        obj_txt = wrap_untrusted(obj_txt, "objeciones registradas")
+
         user_prompt = f"""Genera el argumentario completo para este asesor inmobiliario:
 
 CONTEXTO DEL LEAD:
