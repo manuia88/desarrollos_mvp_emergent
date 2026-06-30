@@ -46,6 +46,11 @@ export async function getGridOverview() {
 export async function getGridCell(params = {}) {
   return _j(await fetch(`${BASE}/grid/cell?${_qs(params)}`, { headers: h(), credentials: 'include' }));
 }
+// P6 · CELDA ATÓMICA completa: ejes + valor + OFERTA + DEMANDA + comparativo + scores + drill + lectura.
+// params: {measure, geo_nivel, geo_valor, tipologia, rango_m2, tier_precio, atributo, ventana, lente}.
+export async function getCelda(params = {}) {
+  return _j(await fetch(`${BASE}/celda?${_qs(params)}`, { headers: h(), credentials: 'include' }));
+}
 // Ranking de zonas por una medida. params: {measure, por, top}.
 export async function getGridRanking(params = {}) {
   return _j(await fetch(`${BASE}/grid/ranking?${_qs(params)}`, { headers: h(), credentials: 'include' }));

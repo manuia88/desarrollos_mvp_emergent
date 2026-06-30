@@ -15,9 +15,11 @@ import HeatmapPanel from '../../components/superadmin/HeatmapPanel';
 import AnalisisPanel from '../../components/superadmin/AnalisisPanel';
 import MemorandumPanel from '../../components/superadmin/MemorandumPanel';
 import MotoresPanel from '../../components/superadmin/MotoresPanel';
+import CeldaPanel from '../../components/superadmin/CeldaPanel';
 import ColoniaPicker from '../../components/superadmin/ColoniaPicker';
 
 const TABS = [
+  { key: 'celda', label: 'Celda atómica' },
   { key: 'explorador', label: 'Explorador (árbol)' },
   { key: 'screener', label: 'Screener (buscar)' },
   { key: 'heatmap', label: 'Mapa de tensión' },
@@ -36,7 +38,7 @@ const TABS = [
 
 // Navegación en 2 niveles: 3 grupos en vez de 13 tabs planos (mismo color de tema = sin tocar la paleta).
 const GROUPS = [
-  { key: 'explorar', label: 'Explorar', desc: 'navega el mercado', tabs: ['explorador', 'heatmap', 'atlas', 'desarrollos'] },
+  { key: 'explorar', label: 'Explorar', desc: 'navega el mercado', tabs: ['celda', 'explorador', 'heatmap', 'atlas', 'desarrollos'] },
   { key: 'analizar', label: 'Analizar', desc: 'busca y compara', tabs: ['screener', 'facet', 'comparar', 'analisis', 'atributos', 'financiero', 'motores'] },
   { key: 'reportar', label: 'Reportar', desc: 'el resultado', tabs: ['memorandum', 'compuestas', 'grid'] },
 ];
@@ -68,6 +70,7 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
 
   useEffect(() => { getTerminal('resumen').then(setResumen).catch(() => {}); }, []);
   useEffect(() => {
+    if (tab === 'celda') return; // celda atómica se carga sola (CeldaPanel)
     if (tab === 'grid') return; // grid se carga solo (GridPanel)
     if (tab === 'explorador') return; // explorador (árbol) se carga solo (ExploradorPanel)
     if (tab === 'screener') return; // screener se carga solo (ScreenerPanel)
@@ -202,6 +205,9 @@ export default function SuperadminTerminalZona({ user, onLogout }) {
       {tab === 'compuestas' && d && !d.error && (
         <Compuestas100 data={d} />
       )}
+
+      {/* CELDA ATÓMICA (el átomo del cubo: oferta↔demanda + scores + drill) */}
+      {tab === 'celda' && <CeldaPanel geoSel={geoSel} />}
 
       {/* GRID DE MÉTRICAS */}
       {tab === 'grid' && <GridPanel />}
