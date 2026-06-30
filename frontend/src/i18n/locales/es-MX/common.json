@@ -3856,11 +3856,11 @@
     "eyebrow_asesor": "Inteligencia asesor",
     "property_label": "Propiedad",
     "property_fit_leads_title": "Leads mas compatibles",
-    "property_fit_leads_subtitle": "Top leads que matchean con esta propiedad segun fit score W5.4 + W5.2 + buyer behavior.",
+    "property_fit_leads_subtitle": "Top leads que coinciden con esta propiedad según su afinidad de gusto, la zona y su comportamiento.",
     "property_fit_leads_empty": "Sin leads suficientemente cualificados aun",
     "property_fit_leads_loading": "Cargando leads compatibles...",
     "property_fit_leads_error": "No fue posible cargar los leads. Intenta de nuevo.",
-    "property_fit_leads_disclaimer": "Fit score combina W5.4 buyer score + W5.2 zone subscores + comportamiento. Usa criterio profesional antes de contactar.",
+    "property_fit_leads_disclaimer": "La afinidad combina el gusto del comprador, los indicadores de la zona y su comportamiento. Usa criterio profesional antes de contactar.",
     "back_to_marketplace": "Volver al marketplace",
     "breakdown_tooltip_title": "Desglose Fit Score"
   },

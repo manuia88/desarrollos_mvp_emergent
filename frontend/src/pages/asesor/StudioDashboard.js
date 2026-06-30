@@ -277,7 +277,7 @@ function AdsWizard({ lib, onDone, onError }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 12, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-        El batch incluye 100 ads en 7 ángulos (inversión, lifestyle, plusvalía, familia, urgencia, ubicación, ROI). En Wave 1: 10 copies reales + lazy hero images por ángulo bajo demanda.
+        El batch incluye 100 ads en 7 ángulos (inversión, lifestyle, plusvalía, familia, urgencia, ubicación, ROI). Por ahora: 10 copies reales + imágenes hero por ángulo, generadas bajo demanda.
       </div>
 
       <label><div style={lblStyle}>Desarrollo DMX</div>

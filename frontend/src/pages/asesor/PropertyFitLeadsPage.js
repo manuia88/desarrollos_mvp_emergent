@@ -85,7 +85,7 @@ function PropertyFitLeadsPageBody() {
             {t('fit.property_fit_leads_title', 'Leads mas compatibles')}
           </h1>
           <p style={{ margin: '12px 0 0', color: MUTED, fontSize: 14, lineHeight: 1.55, maxWidth: 640 }}>
-            {t('fit.property_fit_leads_subtitle', 'Top leads que matchean con esta propiedad segun fit score W5.4 + W5.2 + buyer behavior.')}
+            {t('fit.property_fit_leads_subtitle', 'Top leads que coinciden con esta propiedad según su afinidad de gusto, la zona y su comportamiento.')}
           </p>
         </header>
 
@@ -179,7 +179,7 @@ function PropertyFitLeadsPageBody() {
           fontSize: 12.5,
           lineHeight: 1.6,
         }}>
-          {t('fit.property_fit_leads_disclaimer', 'Fit score combina W5.4 buyer score + W5.2 zone subscores + comportamiento. Usa criterio profesional antes de contactar.')}
+          {t('fit.property_fit_leads_disclaimer', 'La afinidad combina el gusto del comprador, los indicadores de la zona y su comportamiento. Usa criterio profesional antes de contactar.')}
         </aside>
       </div>
     </div>

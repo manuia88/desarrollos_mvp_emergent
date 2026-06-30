@@ -331,7 +331,7 @@ export default function MethodologyPage() {
           </div>
         </Section>
 
-        <Section title="9 · Fuentes externas globales (W5.20)">
+        <Section title="9 · Fuentes externas globales">
           <p>
             DesarrollosMX agrega 12 fuentes globales para comparativas MX vs mundo. Las
             consultas se cachean en MongoDB con TTL de 1-90 días según la frecuencia de

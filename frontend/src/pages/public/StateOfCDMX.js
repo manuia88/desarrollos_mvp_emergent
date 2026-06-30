@@ -191,7 +191,7 @@ export default function StateOfCDMX() {
       </Section>
 
       {/* Section 6 · DMX Index */}
-      <Section testid="state-section-6" title="DMX Index · Top creatives preventa" sub="Capa 7 anonimizada · datos completos en Wave 5.">
+      <Section testid="state-section-6" title="DMX Index · Top creatives preventa" sub="Datos de preventa, anonimizados.">
         <div style={{
           ...chartCard,
           padding: 28,
