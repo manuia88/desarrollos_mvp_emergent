@@ -4,7 +4,7 @@ campos de su salida importan y qué significan. Lo consume la pestaña Motores (
 
 Un INDICADOR = {nombre, valor, unidad, uso, fuente, confianza, dimension, latente}.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 def _dig(obj, path):
@@ -87,6 +87,48 @@ DESCRIPTORES: Dict[str, Dict[str, Any]] = {
         {"k": "cetes", "nombre": "CETES", "uso": "Tasa libre de riesgo: el piso que debe superar la inversión.", "unidad": "%"},
         {"k": "hipotecaria", "nombre": "Tasa hipotecaria", "uso": "Costo del crédito del comprador.", "unidad": "%"},
     ]},
+    "perfil_zona": {"items": [
+        {"k": "zone_score.score", "nombre": "Score de zona", "uso": "Calidad compuesta de la colonia.", "unidad": "0-100"},
+        {"k": "ciclo.fase", "nombre": "Fase de ciclo", "uso": "Dónde está la colonia en el ciclo de mercado (expansión/pico/contracción)."},
+        {"k": "ciclo.recomendacion", "nombre": "Recomendación de ciclo", "uso": "Qué conviene hacer dada la fase."},
+    ]},
+    "dmx_indices": {"items": [
+        {"k": "price_m2", "nombre": "Precio/m² (índice)", "uso": "Precio de referencia del índice DMX.", "unidad": "$/m²"},
+        {"k": "momentum_pct", "nombre": "Momentum del índice", "uso": "Aceleración/desaceleración del mercado.", "unidad": "%"},
+    ]},
+    "drpi": {"items": [
+        {"k": "available", "nombre": "DRPI disponible", "uso": "Índice de precios real: se activa cuando haya snapshots."},
+    ]},
+    "live_pulse": {"items": [
+        {"k": "value", "nombre": "Pulso de tendencia", "uso": "Velocidad de la demanda en la zona (señal viva tipo Bloomberg).", "unidad": "idx"},
+        {"k": "delta_pct", "nombre": "Cambio vs baseline", "uso": "Qué tanto se aceleró vs su normal.", "unidad": "%"},
+        {"k": "confidence", "nombre": "Confianza del pulso", "uso": "Qué tan confiable es la señal (source=stub = baja).", "unidad": "0-1"},
+    ]},
+    "score_inversion_top": {"es_lista": True, "uso_total": "Cuántas colonias rankeadas por inversión.", "nombre_total": "Colonias rankeadas", "items": [
+        {"k": "colonia_name", "nombre": "Mejor colonia (inversión)", "uso": "La #1 por score de inversión."},
+        {"k": "score", "nombre": "Score de inversión (#1)", "uso": "Calidad de inversión de la líder.", "unidad": "0-100"},
+        {"k": "recommendation", "nombre": "Recomendación", "uso": "Qué hacer con la #1."},
+    ]},
+    "inversionista_comercio": {"items": [
+        {"k": "recomendacion", "nombre": "Comercio en planta baja", "uso": "Si conviene mixto (comercio PB) o solo departamentos."},
+        {"k": "razon", "nombre": "Razón", "uso": "Por qué de la recomendación."},
+        {"k": "referencia_estudio", "nombre": "Referencia (estudio)", "uso": "Sustento del dato."},
+    ]},
+    "due_diligence": {"items": [
+        {"k": "semaforo", "nombre": "Semáforo de due diligence", "uso": "Verde/amarillo/rojo: qué tan limpio está el predio para comprar."},
+        {"k": "resumen", "nombre": "Resumen de revisión", "uso": "Qué puntos requieren atención antes de comprar."},
+    ]},
+    "calidad_construccion": {"es_lista": True, "uso_total": "Desarrollos rankeados por calidad de construcción.", "nombre_total": "Desarrollos evaluados", "items": [
+        {"k": "name", "nombre": "Mejor por calidad", "uso": "El desarrollo top en calidad de construcción."},
+        {"k": "construction_quality_score", "nombre": "Score de calidad (#1)", "uso": "Calidad de obra del líder.", "unidad": "0-100"},
+        {"k": "construction_quality_tier", "nombre": "Tier de calidad", "uso": "Clasificación de calidad."},
+    ]},
+    "estudio_mercado": {"items": [
+        {"k": "n_colonias", "nombre": "Colonias en radio (1km)", "uso": "Tamaño del submercado analizado.", "unidad": "colonias"},
+        {"k": "representativo", "nombre": "¿Muestra representativa?", "uso": "Transparencia: si el estudio tiene suficiente base."},
+        {"k": "demanda_real.total", "nombre": "Demanda real en radio", "uso": "Demanda observada en 1km.", "unidad": "señales"},
+        {"k": "demanda_potencial.total", "nombre": "Demanda potencial", "uso": "Techo de demanda del submercado."},
+    ]},
 }
 
 
@@ -98,6 +140,20 @@ def presentar(engine_id: str, salida: Any, fuente: str, eje: str) -> List[Dict[s
     """Salida cruda → lista de INDICADORES hiper-segmentados (cada dato con nombre/uso/fuente/confianza)."""
     desc = DESCRIPTORES.get(engine_id)
     indic: List[Dict[str, Any]] = []
+    # motores que devuelven LISTA (rankings): un indicador de total + el top item mapeado
+    if desc and desc.get("es_lista") and isinstance(salida, list):
+        indic.append({"nombre": desc.get("nombre_total", "Resultados"), "valor": len(salida), "unidad": None,
+                      "uso": desc.get("uso_total", ""), "fuente": fuente, "dimension": eje,
+                      "confianza": _conf(len(salida) == 0), "latente": len(salida) == 0})
+        top = salida[0] if (salida and isinstance(salida[0], dict)) else {}
+        for it in desc["items"]:
+            v = _dig(top, it["k"])
+            latente = v in (None, "", [], {}, 0, False)
+            if latente and not it.get("siempre"):
+                continue
+            indic.append({"nombre": it["nombre"], "valor": v, "unidad": it.get("unidad"), "uso": it["uso"],
+                          "fuente": fuente, "dimension": eje, "confianza": _conf(False), "latente": False})
+        return indic
     if desc and isinstance(salida, dict):
         for it in desc["items"]:
             v = _dig(salida, it["k"])

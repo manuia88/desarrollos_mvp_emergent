@@ -10,7 +10,7 @@ valor además se integran como dimensiones/indicadores del cubo.
 
 **Estado:** ⬜ por cablear · 🟦 en hub (runnable+visible) · ✅ integrado al cubo (dimensión/indicador) · ⬛ otro portal (fuera de Terminal).
 
-**Progreso:** 26 / ~120 cube-relevantes en hub (TANDAS 1-3 ✅). T3: terminal_mercado·amenidades·dmx_demand·calidad_construccion·tasas·estudio_mercado·generador_producto — 7/7 con dato real. ~29 con dato real en total.
+**Progreso:** 26 / ~120 en el hub, **los 26 con descriptor (hiper-segmentados, 0 sudoku)**. Regla: ningún motor entra sin descriptor. Soporta motores que devuelven lista (rankings).
 
 ---
 
