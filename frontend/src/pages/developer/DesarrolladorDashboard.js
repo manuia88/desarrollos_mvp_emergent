@@ -15,6 +15,7 @@ import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, 
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import CuboBuzonPanel from '../../components/shared/CuboBuzonPanel';
+import DevMemoryPanel from '../../components/developer/DevMemoryPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation, detectCerebroMarket, approveCerebroTask, rejectCerebroTask } from '../../api/cerebro';
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
@@ -400,6 +401,9 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         accent="#6366f1"
         verbo="Lo haré"
       />
+
+      {/* Lo que aprendí de ti — memoria/contexto persistente del dev (lente Personal). Hide-if-empty. */}
+      <DevMemoryPanel />
 
       {/* V1: barra de tabs (legacy, intacta). V2: un solo flujo, sin tabs. */}
       {!DEV_V2 && (

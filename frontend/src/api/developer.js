@@ -36,6 +36,8 @@ export const getDemandFeatures = (dias = 90) => j(`/api/dev/market/demand-featur
 // BUZÓN DEL CUBO — lo que el superadmin (el cubo) te mandó construir/ajustar (cierra el flywheel agéntico). Relevantes (tus colonias) primero.
 export const getCubeActions = () => j('/api/desarrollador/cube-actions');
 export const setCubeActionEstado = (id, estado) => post(`/api/desarrollador/cube-actions/${id}/estado`, { estado });
+// Memoria/contexto del dev (lente Personal) — su tesis, decisiones (qué aplica/rechaza), motivos, zonas de foco.
+export const getDevMemory = () => j('/api/desarrollador/memory');
 // TU ZONA CAMBIÓ (conciencia ambiental · proactivo) — el MOVIMIENTO de la demanda (no el nivel): ventana reciente vs anterior.
 export const getZonaCambios = (dias = 30) => j(`/api/dev/market/zona-cambios?dias=${dias}`);
 // L68 · what-if DEFENSIVO — "¿y si un competidor construye en tu zona?" → impacto en tu tiempo de venta + poder de precio.

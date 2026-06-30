@@ -209,6 +209,15 @@ async def apply_recommendation(rec_id: str, request: Request):
     except Exception as exc:
         log.warning(f"[routes_subagents] audit log failed: {exc}")
 
+    # Memoria del dev (lente Personal): registrar la decisión para personalizar el contexto.
+    try:
+        import dev_memory_engine as dm
+        await dm.record_decision(db, user_id=user_id, org_id=org_id, kind="rec_applied", ref_id=rec_id,
+                                 meta={"unit_id": doc.get("unit_id"), "delta_pct": doc.get("delta_pct"),
+                                       "price_change": price_change})
+    except Exception:
+        pass
+
     updated = await db.pricing_recommendations.find_one({"_id": rec_id})
     out = _clean_rec(updated or {})
     if price_change:
@@ -250,6 +259,14 @@ async def reject_recommendation(rec_id: str, body: RejectIn, request: Request):
         )
     except Exception as exc:
         log.warning(f"[routes_subagents] audit log reject failed: {exc}")
+
+    # Memoria del dev (lente Personal): el porqué del rechazo re-alimenta su contexto.
+    try:
+        import dev_memory_engine as dm
+        await dm.record_decision(db, user_id=user_id, org_id=org_id, kind="rec_rejected", ref_id=rec_id,
+                                 meta={"reason": body.reason, "unit_id": doc.get("unit_id")})
+    except Exception:
+        pass
 
     updated = await db.pricing_recommendations.find_one({"_id": rec_id})
     return JSONResponse(content=_clean_rec(updated or {}))
