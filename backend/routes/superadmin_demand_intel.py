@@ -107,6 +107,51 @@ async def explorar_segmento_ep(request: Request, tipo: str = "colonia", id: str 
     return await ex.explorar_segmento(request.app.state.db, tipo, id, body.get("filtros") or {}, extra=body.get("extra"), top=top)
 
 
+@router.get("/sankey")
+async def sankey_ep(request: Request, por: str = "tipologia", geo_nivel: Optional[str] = None, geo_valor: Optional[str] = None):
+    """SANKEY — flujos de sustitución (qué sustituye a qué) por tipología o zona, de la misma persona."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import sankey_sustitucion as sk
+    geo = (geo_nivel, geo_valor) if geo_nivel and geo_valor else None
+    return await sk.sankey(request.app.state.db, por=por, geo=geo)
+
+
+@router.get("/memorandum")
+async def memorandum_ep(request: Request, colonia: str):
+    """MEMORÁNDUM — reporte grado-institucional auto-generado de una colonia (resumen/oferta/demanda/tensión/comparables/reco)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import memorandum as mem
+    return await mem.generar(request.app.state.db, colonia)
+
+
+@router.get("/whatif/opciones")
+async def whatif_opciones(request: Request):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import whatif as wi
+    return wi.opciones()
+
+
+@router.get("/whatif")
+async def whatif_ep(request: Request, geo_valor: str, agregar: str, tipologia: Optional[str] = None):
+    """WHAT-IF — ¿si a [tipología] en [colonia] le agrego [atributo]? → cambio estimado en precio/demanda/gap."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import whatif as wi
+    return await wi.whatif(request.app.state.db, ("colonia", geo_valor), tipologia=tipologia, agregar=agregar)
+
+
+@router.get("/lookalike")
+async def lookalike_ep(request: Request, colonia: str, top: int = 6):
+    """LOOKALIKE — colonias con perfil de mercado parecido a [colonia], con el porqué."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    import lookalike as lk
+    return await lk.similares(request.app.state.db, colonia, top=top)
+
+
 @router.get("/heatmap/opciones")
 async def heatmap_opciones(request: Request):
     """HEATMAP — qué se puede pintar: métricas de mercado + dimensiones-segmento (para el gap)."""
