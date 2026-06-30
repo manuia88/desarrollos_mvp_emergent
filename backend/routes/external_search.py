@@ -255,12 +255,15 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
             except Exception:
                 return None
         _col = f.get("colonia")
+        from data_developments import colonia_slug as _cslug  # MOAT: id canónico (linaje cross-engine)
+        _cols_raw = _col if isinstance(_col, list) else ([_col] if _col else [])
+        _cols_canon = [s for s in (_cslug(c) for c in _cols_raw) if s]   # canonicaliza ANTES de persistir
         sdoc = {
             "alert": True,
             "visitor_id": body.visitor_id,
             "email": email,
             "saved_search_id": result.get("search_id"),
-            "colonias": _col if isinstance(_col, list) else ([_col] if _col else []),
+            "colonias": _cols_canon,
             "precio_max": _num(f.get("max_price")),
             "recamaras_min": _num(f.get("beds")),
             "banos_min": _num(f.get("baths")),

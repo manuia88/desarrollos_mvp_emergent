@@ -177,9 +177,10 @@ async def search_developments(request: Request, q: str = "", limit: int = 8):
             try:
                 import uuid as _u, hashlib as _h
                 from datetime import datetime as _dt, timezone as _tz
+                from data_developments import colonia_slug as _cslug  # MOAT: id canónico (linaje cross-engine)
                 _now = _dt.now(_tz.utc)
-                _cols = list({(it.get("colonia") or "").strip().lower().replace(" ", "-")
-                              for it in items if it.get("colonia")})
+                _cols = list({_cslug(it.get("colonia"))
+                              for it in items if it.get("colonia") and _cslug(it.get("colonia"))})
                 from ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
                 _ip = _c(request)
                 await db.marketplace_searches.insert_one({

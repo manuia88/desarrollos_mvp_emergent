@@ -40,11 +40,29 @@ def _db(req: Request):
     return req.app.state.db
 
 
-async def _auth(req: Request):
+# Roles "reales" de developer/advisor que pueden operar la agenda multi-broker.
+# (Excluye comprador/guest/roles sin pertenencia: no deben tocar métricas ni tokens de citas.)
+_DEV_ADVISOR_ROLES = frozenset({
+    "superadmin",
+    # eje developer
+    "developer_admin", "developer_director", "developer_member",
+    "developer_advisor", "developer_obras", "developer_marketing",
+    # eje asesor / inmobiliaria
+    "advisor", "asesor_admin",
+    "inmobiliaria_admin", "inmobiliaria_director", "inmobiliaria_member",
+    "inmobiliaria_advisor", "inmobiliaria_marketing",
+})
+
+
+async def _auth(req: Request, *, roles: Optional[frozenset] = None):
     from server import get_current_user
     user = await get_current_user(req)
     if not user:
         raise HTTPException(401, "No autenticado")
+    if roles is not None:
+        from tenant_scope import _field
+        if (_field(user, "role") or "") not in roles:
+            raise HTTPException(403, "Acceso denegado")
     return user
 
 
@@ -290,14 +308,22 @@ async def get_appointment_metrics(
     date_to: Optional[str] = Query(None),
     limit: int = Query(50, le=200),
 ):
-    user = await _auth(request)
+    # Solo developer/advisor reales (no solo "autenticado"): cierra que un comprador/guest
+    # logueado lea métricas o tokens de citas ajenas.
+    user = await _auth(request, roles=_DEV_ADVISOR_ROLES)
     if project_id:
         from tenant_scope import assert_dev_project
         assert_dev_project(user, project_id)   # no ver métricas/asesores de proyecto ajeno
     db = _db(request)
 
-    # Build query
-    q: Dict[str, Any] = {}
+    # C1-APPOINTMENTS · scope de tenant EXPLÍCITO en TODO count/aggregate/find del endpoint.
+    # Sin esto, al no llegar project_id, un developer_admin/advisor recibía citas de OTROS
+    # tenants (fuga cross-tenant verificada en vivo). superadmin → {} (god-view).
+    from tenant_scope import tenant_filter
+    tf = tenant_filter(user, "appointments")
+
+    # Build query (acotada al tenant)
+    q: Dict[str, Any] = {**tf}
     if project_id:
         q["project_id"] = project_id
     if policy_type:
@@ -312,19 +338,19 @@ async def get_appointment_metrics(
 
     since_30d = (_now() - timedelta(days=30)).isoformat()
 
-    # KPIs
-    total_30d = await db.appointments.count_documents({"created_at": {"$gte": since_30d}})
+    # KPIs (cada count lleva el filtro de tenant)
+    total_30d = await db.appointments.count_documents({**tf, "created_at": {"$gte": since_30d}})
     confirmed_30d = await db.appointments.count_documents({
-        "created_at": {"$gte": since_30d}, "status": {"$in": ["confirmed", "completed"]},
+        **tf, "created_at": {"$gte": since_30d}, "status": {"$in": ["confirmed", "completed"]},
     })
     completed_30d = await db.appointments.count_documents({
-        "created_at": {"$gte": since_30d}, "status": "completed",
+        **tf, "created_at": {"$gte": since_30d}, "status": "completed",
     })
     conversion_pct = round(completed_30d / total_30d * 100) if total_30d else 0
 
-    # Top performer asesor
+    # Top performer asesor (match acotado al tenant)
     pipeline = [
-        {"$match": {"created_at": {"$gte": since_30d}, "status": {"$in": ["confirmed", "completed"]}}},
+        {"$match": {**tf, "created_at": {"$gte": since_30d}, "status": {"$in": ["confirmed", "completed"]}}},
         {"$group": {"_id": "$asesor_id", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}}, {"$limit": 1},
     ]
@@ -332,16 +358,27 @@ async def get_appointment_metrics(
     top_asesor = top_raw[0]["_id"] if top_raw else None
     top_asesor_count = top_raw[0]["count"] if top_raw else 0
 
-    # Distribution by asesor
+    # Distribution by asesor (match acotado al tenant)
     dist_pipeline = [
-        {"$match": {"created_at": {"$gte": since_30d}}},
+        {"$match": {**tf, "created_at": {"$gte": since_30d}}},
         {"$group": {"_id": "$asesor_id", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
     ]
     distribution = await db.appointments.aggregate(dist_pipeline).to_list(20)
 
-    # Recent appointments table
-    items = await db.appointments.find(q, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    # Recent appointments table — proyección ALLOW-LIST: NUNCA exponer confirmation_token/
+    # cancel_token ni PII de terceros (lead_email/phone/name). Proyectar el doc completo
+    # filtraba tokens vivos (→ IDOR secundario confirmar/cancelar). Solo campos operativos.
+    _SAFE_FIELDS = {
+        "_id": 0,
+        "id": 1, "appointment_id": 1, "project_id": 1,
+        "lead_id": 1, "asesor_id": 1,
+        "datetime": 1, "end_datetime": 1,
+        "status": 1, "type": 1,
+        "policy_used": 1, "created_at": 1,
+        "calendar_provider": 1,
+    }
+    items = await db.appointments.find(q, _SAFE_FIELDS).sort("created_at", -1).limit(limit).to_list(limit)
 
     return {
         "kpis": {

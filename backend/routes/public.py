@@ -3046,7 +3046,9 @@ async def ai_search_parser(payload: AISearchIn, request: Request):
         _completa = bool(filters.get("colonia") and filters.get("max_price") and filters.get("beds")
                          and (filters.get("min_sqm") or filters.get("max_sqm")))
         _col = filters.get("colonia")
-        _cols = _col if isinstance(_col, list) else ([_col] if _col else [])
+        from data_developments import colonia_slug as _cslug  # MOAT: id canónico (linaje cross-engine)
+        _cols_raw = _col if isinstance(_col, list) else ([_col] if _col else [])
+        _cols = [s for s in (_cslug(c) for c in _cols_raw) if s]   # canonicaliza ANTES de persistir
         _miss = _parse_misses(q, filters)   # bucle de fallas de lectura
         await db.marketplace_searches.insert_one({
             "source": "ai_search",

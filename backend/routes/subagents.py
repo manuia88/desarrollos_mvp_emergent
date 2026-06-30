@@ -255,6 +255,23 @@ async def apply_recommendation(rec_id: str, request: Request):
     except Exception as exc:
         log.warning(f"[routes_subagents] audit log failed: {exc}")
 
+    # REGISTRO DE REVERSA (F1, P2): apply muta el precio PÚBLICO sin forma de revertir. Guardamos en db.undo_log el
+    # antes/después para poder deshacer el ajuste (manual u operativo). Fail-soft: si falla, NO rompe el apply.
+    if price_change:
+        try:
+            await db.undo_log.insert_one({
+                "tipo": "pricing_apply",
+                "rec_id": rec_id,
+                "dev_id": price_change.get("dev_id"),
+                "unit_id": price_change.get("unit_id"),
+                "before": price_change.get("before"),
+                "after": price_change.get("after"),
+                "user_id": user_id,
+                "ts": now,
+            })
+        except Exception as exc:
+            log.warning(f"[routes_subagents] undo_log insert failed: {exc}")
+
     # Memoria del dev (lente Personal): registrar la decisión para personalizar el contexto.
     try:
         import dev_memory_engine as dm
@@ -371,6 +388,11 @@ async def analyze_marketing(body: AnalyzeIn, request: Request):
     org_id = getattr(user, "tenant_id", None) or getattr(user, "org_id", None)
     if not org_id:
         raise HTTPException(400, "tenant_id no disponible en sesión")
+    # GUARD DE PERTENENCIA (A5, P2): igual que /pricing/analyze — un dev solo ANALIZA sus propios proyectos. Sin esto,
+    # correr /marketing/analyze sobre el proyecto de otra desarrolladora hacía recon de su demanda/comparables + gasto
+    # LLM ajeno. Cerrar aquí (tras el check de rol) mata la cadena en su origen.
+    from tenant_scope import assert_dev_project
+    assert_dev_project(user, body.project_id)
 
     db = request.app.state.db
 

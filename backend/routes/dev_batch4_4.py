@@ -22,6 +22,24 @@ from pydantic import BaseModel
 log = logging.getLogger("dmx.batch4_4")
 router = APIRouter(tags=["batch4.4"])
 
+# ── Access-control gates (fail-CLOSED) ───────────────────────────────────────
+# Permission helpers are imported at module load. If the import ever fails, we
+# DO NOT fall open: the helpers are replaced with deny-by-default stubs so the
+# 403 that protects lead PII is never silently dropped (B2-GATE-IMPORT fix).
+try:
+    from routes.dev_batch4_2 import can_view_full_client_data, can_view_ai_summary
+except ImportError:  # pragma: no cover — defensive, gate must stay fail-closed
+    log.error(
+        "[batch4.4] could not import permission gates from routes.dev_batch4_2 — "
+        "denying access to lead PII (fail-closed)"
+    )
+
+    def can_view_full_client_data(user, lead):  # type: ignore[misc]
+        return False
+
+    def can_view_ai_summary(user, lead):  # type: ignore[misc]
+        return False
+
 # In-memory cache for AI summary expiry & rate-limit (ephemeral, no Redis required)
 _AI_SUMMARY_RATE: Dict[str, datetime] = {}     # lead_id → last refresh ts
 _HEAT_QUEUE_LOCK = False                       # naive in-process lock for batch run
@@ -316,13 +334,9 @@ async def get_heat(lead_id: str, request: Request):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
-    # Permission gate (reuse helpers from batch4_2)
-    try:
-        from routes.dev_batch4_2 import can_view_full_client_data
-        if not can_view_full_client_data(user, lead):
-            raise HTTPException(403, "Sin permisos para ver heat de este lead")
-    except ImportError:
-        pass
+    # Permission gate (reuse helpers from batch4_2, imported fail-closed at top)
+    if not can_view_full_client_data(user, lead):
+        raise HTTPException(403, "Sin permisos para ver heat de este lead")
     return {
         "lead_id": lead_id,
         "heat_score": lead.get("heat_score"),
@@ -444,12 +458,9 @@ async def _build_ai_summary(db, lead: Dict) -> Dict:
 
 
 async def _check_ai_summary_permission(user, lead: Dict):
-    try:
-        from routes.dev_batch4_2 import can_view_ai_summary
-        if not can_view_ai_summary(user, lead):
-            raise HTTPException(403, "Sin permisos para ver el resumen IA de este lead")
-    except ImportError:
-        pass
+    # Gate imported fail-closed at module top; never silently passes.
+    if not can_view_ai_summary(user, lead):
+        raise HTTPException(403, "Sin permisos para ver el resumen IA de este lead")
 
 
 @router.get("/api/leads/{lead_id}/ai-summary-v2")

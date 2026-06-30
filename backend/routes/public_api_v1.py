@@ -290,12 +290,19 @@ async def v1_market_indices(request: Request, response: Response):
     db = _db(request)
     from terminal_mercado_engine import terminal_mercado
     t = await terminal_mercado(db)
-    if not t.get("publicable"):
+    # D1-enterprise · KAN-02 · este es el publicable que se VENDE B2B. El engine marca
+    # `publicable` con su propio umbral (K_MIN_PRODUCTO=3), por debajo del K canónico de la
+    # plataforma (K_ANON_MIN=5). Re-gateamos aquí al K real antes de entregar y etiquetamos
+    # k_anonimato con el K canónico (no el del engine) para no reidentificar con 3-4 proyectos.
+    n_proj = t.get("n_proyectos") or 0
+    if n_proj < anon.K_ANON_MIN:
         return await _deliver(db, ctx, request, response, "/api/v1/market/indices",
-                              {"available": False, "reason": "k_anonymity", "k_required": t.get("k_anonimato")},
+                              {"available": False, "reason": "k_anonymity",
+                               "k_required": anon.K_ANON_MIN, "k_actual": n_proj},
                               records=0, started=started)
-    out = {"available": True, "indices": t.get("indices_vendibles"),
-           "indice_maestro": t.get("indice_maestro"), "computed_from_projects": t.get("n_proyectos")}
+    out = {"available": True, "k_anonimato": anon.K_ANON_MIN,
+           "indices": t.get("indices_vendibles"),
+           "indice_maestro": t.get("indice_maestro"), "computed_from_projects": n_proj}
     return await _deliver(db, ctx, request, response, "/api/v1/market/indices", out,
                           records=len(out.get("indices") or []), started=started)
 
@@ -417,11 +424,30 @@ async def v1_demand_pulse(request: Request, response: Response):
         rows = [r async for r in db.leads.aggregate(pipeline)]
     except Exception:
         rows = []
-    out = {"window_days": 7, "items": [{"zone_id": r["_id"], "leads": r["leads"]} for r in rows],
-           "count": len(rows)}
+    # D2-DEMANDPULSE · KAN-03 · este pulso por zona se VENDE B2B → cada fila es un agregado de
+    # leads por colonia que con n<K reidentifica (n=1 = un comprador concreto). El
+    # `k_anonymity_passed` del log era cosmético: aquí gateamos de verdad reusando el patrón
+    # banda de v1_zone_demand → suprimimos el conteo y conservamos la banda honesta (<K).
+    k = anon.K_ANON_MIN
+    items = []
+    suppressed = 0
+    for r in rows:
+        leads = r.get("leads")
+        if isinstance(leads, (int, float)) and 0 < leads < k:
+            items.append({"zone_id": r["_id"], "leads": None, "leads_banda": f"<{k}"})
+            suppressed += 1
+        else:
+            items.append({"zone_id": r["_id"], "leads": leads})
+    out = {"window_days": 7, "k_anonimato": k, "items": items, "count": len(items)}
     _set_headers(response, ctx)
     await auth.track_api_call(db, ctx, request, status_code=200,
         latency_ms=int((time.perf_counter() - started) * 1000), response_size=len(str(out)))
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint="/api/v1/demand-pulse",
+        api_key_id=ctx.id, k_anonymity_passed=(suppressed == 0),
+        records_returned=len(items),
+        requestor_ip=request.client.host if request.client else "",
+    )
     return out
 
 

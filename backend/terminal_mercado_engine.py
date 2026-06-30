@@ -7,7 +7,7 @@ la OFERTA (cubo de todos los devs) + 3 ÍNDICES VENDIBLES (obra / absorción / g
 
 REUSA (grep-antes-de-construir · NO duplica):
   • metrics_cube_aggregations → KPIs roll-up city de todos los devs (cube_aggregations).
-  • grafo_comprador_engine.build_grafo → demanda real por colonia (ya k-anónimo, K_MIN=3).
+  • grafo_comprador_engine.build_grafo → demanda real por colonia (ya k-anónimo, K=K_ANON_MIN).
   • cerebro_mercado_engine.aprendizaje_mercado → calibración + palancas (F2.5).
   • anonymization_engine.check_k_anonymity → candado k-anónimo del producto de datos.
   • metric_normalizer → bandas honestas por percentil.
@@ -21,7 +21,13 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.terminal_mercado")
 
-K_MIN_PRODUCTO = 3   # mínimo de proyectos para publicar un agregado (anti-reidentificación)
+# KAN-01 · K canónico: una sola fuente de verdad (anonymization_engine.K_ANON_MIN=5).
+# El producto enterprise "Terminal de Mercado" DEBE etiquetar/gate el k real que se enforce,
+# nunca un número hardcodeado menor. Fail-soft a 5 si el import fallara.
+try:
+    from anonymization_engine import K_ANON_MIN as K_MIN_PRODUCTO
+except Exception:  # pragma: no cover — fail-soft conservador: nunca por debajo del enforce
+    K_MIN_PRODUCTO = 5   # mínimo de proyectos para publicar un agregado (anti-reidentificación)
 
 
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:

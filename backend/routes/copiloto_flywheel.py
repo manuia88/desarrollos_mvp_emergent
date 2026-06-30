@@ -203,6 +203,16 @@ async def cierre(b: CierreIn, request: Request):
 async def parecidos_cerraron(request: Request, visitor_id: str, limit: int = 4):
     """Recomendación por CIERRES: dado el perfil del visitor, qué compraron OTROS con perfil parecido.
     "Parecidos a los que cerraron" — el moat. Reusa db.copiloto_closings."""
+    # PRIVACIDAD (pentest 2ª pasada · D3): endpoint NO-AUTH. Un dev con cierres exactos < K_ANON_MIN es des-anonimizable
+    # (poca masa = se puede inferir el comprador). k-gate: solo se expone un dev si su TOTAL de cierres ≥ K_ANON_MIN, y
+    # nunca el conteo exacto — devolvemos una BANDA ("5+", "10+"…) en vez del número. Reusa K_ANON_MIN canónico.
+    from anonymization_engine import K_ANON_MIN
+
+    def _band(n: int) -> str:
+        """Conteo exacto → banda (nunca el número fino). Ej. 5..9 → '5+', 10..19 → '10+'."""
+        floor = (n // 5) * 5
+        return f"{floor}+"
+
     try:
         db = request.app.state.db
         s = await db.marketplace_searches.find_one({"visitor_id": visitor_id}, {"_id": 0}, sort=[("created_at_dt", -1)]) or {}
@@ -210,15 +220,23 @@ async def parecidos_cerraron(request: Request, visitor_id: str, limit: int = 4):
         my_pres = s.get("precio_max")
         from collections import Counter
         votes = Counter()
+        n_cierres = Counter()   # cierres TOTALES por dev → el k-gate (independiente de la similitud)
         meta = {}
         async for cl in db.copiloto_closings.find({}, {"_id": 0, "dev_id": 1, "dev_name": 1, "colonia": 1, "buscado": 1}):
+            dev = cl.get("dev_id")
+            if not dev:
+                continue
+            n_cierres[dev] += 1
             b = cl.get("buscado") or {}
             bz = {str(c).strip().lower() for c in (b.get("colonias") or [])}
             sim = (1 if (my_z & bz) else 0) + (1 if (my_pres and b.get("presupuesto_max") and abs(my_pres - b["presupuesto_max"]) / max(my_pres, 1) < 0.3) else 0)
-            if sim > 0 and cl.get("dev_id"):
-                votes[cl["dev_id"]] += sim
-                meta[cl["dev_id"]] = {"name": cl.get("dev_name"), "colonia": cl.get("colonia")}
-        top = [{"dev_id": k, "name": meta[k]["name"], "colonia": meta[k]["colonia"], "cierres": v} for k, v in votes.most_common(limit)]
+            if sim > 0:
+                votes[dev] += sim
+                meta[dev] = {"name": cl.get("dev_name"), "colonia": cl.get("colonia")}
+        # k-gate: suprime devs con menos de K_ANON_MIN cierres totales (des-anonimizables). Banda, no conteo exacto.
+        top = [{"dev_id": k, "name": meta[k]["name"], "colonia": meta[k]["colonia"], "cierres": _band(n_cierres[k])}
+               for k, v in votes.most_common()
+               if n_cierres[k] >= K_ANON_MIN][:limit]
         return {"ok": True, "parecidos_cerraron": top}
     except Exception as e:  # noqa: BLE001
         log.warning(f"[flywheel] parecidos-cerraron fail: {e}")

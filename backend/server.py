@@ -1352,8 +1352,18 @@ def _csrf_allowed_hosts(request) -> set:
     return hosts
 
 
+def _csrf_reject(message: str = "Origen no permitido para esta acción.", code: str = "csrf_origin_rejected"):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=403, content={"code": code, "message": message})
+
+
 @app.middleware("http")
 async def csrf_cookie_origin_guard(request, call_next):
+    # P2-FO-05 · Un control de SEGURIDAD no debe fail-openear ante su propio error.
+    # `sensitive` marca que estamos en una mutación auth-por-cookie (no Bearer): si el
+    # guard revienta DENTRO de esa rama, en PROD se deniega (fail-closed); en dev se
+    # permite para no romper desarrollo. Fuera de esa rama, fallo del guard = fail-soft.
+    sensitive = False
     try:
         if request.method in _CSRF_METHODS:
             auth = request.headers.get("authorization", "")
@@ -1363,7 +1373,9 @@ async def csrf_cookie_origin_guard(request, call_next):
                 or request.cookies.get("session_token")
             )
             # Solo nos metemos con mutaciones auth-por-cookie (no Bearer).
+            # Bearer → FAIL-OPEN siempre (API/tests usan Authorization, no son CSRF).
             if has_cookie_auth and not is_bearer:
+                sensitive = True
                 origin = request.headers.get("origin", "")
                 referer = request.headers.get("referer", "")
                 src = origin or referer  # Origin primero; Referer como respaldo.
@@ -1375,22 +1387,57 @@ async def csrf_cookie_origin_guard(request, call_next):
                     if src_host and src_host not in allowed and (
                         not (_is_dev() and src_bare in allowed)
                     ):
-                        from fastapi.responses import JSONResponse
                         logging.warning(
                             f"[csrf] bloqueado {request.method} {request.url.path} "
                             f"origin={src_host!r} no en {sorted(allowed)!r}"
                         )
-                        return JSONResponse(
-                            status_code=403,
-                            content={
-                                "code": "csrf_origin_rejected",
-                                "message": "Origen no permitido para esta acción.",
-                            },
+                        return _csrf_reject()
+                else:
+                    # Sin Origin NI Referer en una mutación cookie-auth: un browser
+                    # SIEMPRE manda Origin en mutaciones cross-site, así que la ausencia
+                    # es sospechosa. En PROD → 403 (fail-closed). En dev/local → permitir
+                    # (clientes no-browser con cookie; no romper desarrollo).
+                    if _is_prod():
+                        logging.warning(
+                            f"[csrf] bloqueado {request.method} {request.url.path} "
+                            f"sin Origin ni Referer (mutación cookie-auth) en prod"
+                        )
+                        return _csrf_reject(
+                            message="Falta Origin/Referer para esta acción.",
+                            code="csrf_origin_missing",
                         )
     except Exception:
-        # Fail-soft: nunca tumbar la request por un fallo del propio guard.
-        pass
+        # El guard falló internamente. NO fail-openear un control de seguridad: en una
+        # mutación cookie-auth en PROD denegamos (fail-closed); en dev/local permitimos.
+        logging.exception(
+            f"[csrf] fallo interno del guard en {request.method} {request.url.path}"
+        )
+        if sensitive and _is_prod():
+            return _csrf_reject(
+                message="No se pudo validar el origen de la petición.",
+                code="csrf_guard_error",
+            )
     return await call_next(request)
+
+
+# ─── F3 · ERR-DETAIL-LEAK · Handler global de excepciones no manejadas ─────────
+# ~46 sitios reflejan str(e)/{e} en la respuesta (filtra rutas internas, SQL, paths,
+# stack hints → reconocimiento para un atacante). Un único handler para Exception NO
+# manejada loguea el detalle del lado servidor (con stack) y devuelve un mensaje
+# genérico + `ref` corto para correlacionar en logs/Sentry. NO intercepta HTTPException
+# ni errores de validación (FastAPI/Starlette los manejan con sus propios handlers).
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    from fastapi.responses import JSONResponse
+    ref = uuid.uuid4().hex[:8]
+    logging.getLogger("dmx.error").exception(
+        f"[unhandled] ref={ref} {request.method} {request.url.path}: "
+        f"{type(exc).__name__}: {exc}"
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno", "ref": ref},
+    )
 
 
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)

@@ -226,17 +226,18 @@ async def approve(
         {"auth_id": auth_id}, {"$set": patch}
     )
 
-    # Audit log
-    try:
-        from audit_log import log_mutation
-        await log_mutation(
+    # Audit log — B3-AUDIT-SWALLOW: nunca pass mudo; si falla deja warning, no rompe el request
+    from audit_log import log_mutation
+    from services.safe_audit import safe_audit
+    await safe_audit(
+        log_mutation(
             db, {"user_id": decided_by_user_id, "role": "developer_admin"},
             "update", "dev_advisor_authorization", auth_id,
             before={"status": doc["status"]},
             after={"status": "approved"},
-        )
-    except Exception:
-        pass
+        ),
+        ctx=f"whitelist.approve auth_id={auth_id}",
+    )
 
     # log_activity
     try:
@@ -304,16 +305,18 @@ async def reject(
         {"auth_id": auth_id}, {"$set": patch}
     )
 
-    try:
-        from audit_log import log_mutation
-        await log_mutation(
+    # Audit log — B3-AUDIT-SWALLOW: nunca pass mudo; si falla deja warning, no rompe el request
+    from audit_log import log_mutation
+    from services.safe_audit import safe_audit
+    await safe_audit(
+        log_mutation(
             db, {"user_id": decided_by_user_id, "role": "developer_admin"},
             "update", "dev_advisor_authorization", auth_id,
             before={"status": "pending"},
             after={"status": "rejected", "comentario": comentario},
-        )
-    except Exception:
-        pass
+        ),
+        ctx=f"whitelist.reject auth_id={auth_id}",
+    )
 
     try:
         from routes.dev_batch14 import log_activity
@@ -368,16 +371,18 @@ async def revoke(
         {"auth_id": auth_id}, {"$set": patch}
     )
 
-    try:
-        from audit_log import log_mutation
-        await log_mutation(
+    # Audit log — B3-AUDIT-SWALLOW: nunca pass mudo; si falla deja warning, no rompe el request
+    from audit_log import log_mutation
+    from services.safe_audit import safe_audit
+    await safe_audit(
+        log_mutation(
             db, {"user_id": revoked_by_user_id, "role": "developer_admin"},
             "update", "dev_advisor_authorization", auth_id,
             before={"status": "approved"},
             after={"status": "revoked", "reason": reason},
-        )
-    except Exception:
-        pass
+        ),
+        ctx=f"whitelist.revoke auth_id={auth_id}",
+    )
 
     try:
         from routes.dev_batch14 import log_activity

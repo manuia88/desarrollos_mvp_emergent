@@ -791,6 +791,11 @@ async def configure_slots(project_id: str, payload: SlotsPayload, request: Reque
     if user.role not in ("developer_admin", "superadmin"):
         raise HTTPException(403, "Solo developer_admin puede configurar slots")
     db = _db(request)
+    # A4-SLOTS · IDOR write cross-tenant: el rol NO basta — verifica que el proyecto
+    # sea del tenant del caller ANTES de escribir, o un dev contamina la agenda de citas
+    # de un proyecto ajeno (el reader público filtra solo por project_id).
+    from tenant_scope import assert_db_project_owner
+    await assert_db_project_owner(db, user, project_id)
     now_iso = _now().isoformat()
     dev_org_id = _tenant(user)
     upserted_ids = []
@@ -823,8 +828,26 @@ async def get_slot_availability(
     except ValueError:
         raise HTTPException(422, "date debe ser YYYY-MM-DD")
 
+    # A4-SLOTS · reader público: filtra por el dueño CANÓNICO del proyecto. Resuelve el
+    # dev_org_id del proyecto (db.projects/db.developments) y acota la consulta, para que
+    # slots estampados por otro tenant (p.ej. contaminados antes del fix de escritura) no
+    # se filtren a la disponibilidad pública. Fail-soft: si no se resuelve dueño o el doc
+    # no trae dev_org_id, cae al filtro plano por project_id (no rompe el booking legítimo).
+    slot_filt = {"project_id": project_id, "day_of_week": day_of_week, "active": True}
+    owner_org = None
+    try:
+        proj = await db.projects.find_one({"id": project_id}, {"_id": 0, "dev_org_id": 1})
+        if not proj:
+            proj = await db.developments.find_one({"id": project_id}, {"_id": 0, "dev_org_id": 1})
+        owner_org = (proj or {}).get("dev_org_id")
+    except Exception:
+        owner_org = None
+    if owner_org:
+        # Solo aplica a docs que SÍ tienen dev_org_id; los legacy sin campo siguen visibles.
+        slot_filt["$or"] = [{"dev_org_id": owner_org}, {"dev_org_id": {"$exists": False}}]
+
     slots = await db.project_slots.find(
-        {"project_id": project_id, "day_of_week": day_of_week, "active": True},
+        slot_filt,
         {"_id": 0},
     ).to_list(20)
 

@@ -12,6 +12,11 @@ from fastapi import APIRouter, Request
 router = APIRouter(tags=["cube-inbox"])
 
 
+def _tenant_of(user) -> Any:
+    """tenant_id (u org_id) del caller — para overlayar el estado del buzón PER-TENANT (dev-A no pisa a dev-B)."""
+    return getattr(user, "tenant_id", None) or getattr(user, "org_id", None)
+
+
 async def _dev_colonias(db, user) -> Set[str]:
     """Colonias donde el dev tiene proyectos — para priorizar las acciones que le tocan."""
     try:
@@ -35,7 +40,7 @@ async def dev_cube_actions(request: Request) -> Any:
     user = await require_dev_admin(request)
     db = request.app.state.db
     import activacion as ac
-    res = await ac.listar(db, destino="dev", estado="pendiente")
+    res = await ac.listar(db, destino="dev", estado="pendiente", tenant_id=_tenant_of(user))
     cols = await _dev_colonias(db, user)
     for a in res["acciones"]:
         a["relevante"] = bool(a.get("colonia") and a["colonia"] in cols)
@@ -47,11 +52,12 @@ async def dev_cube_actions(request: Request) -> Any:
 @router.post("/api/desarrollador/cube-actions/{action_id}/estado")
 async def dev_cube_action_estado(action_id: str, request: Request) -> Any:
     from routes.developer import require_dev_admin
-    await require_dev_admin(request)
+    user = await require_dev_admin(request)
     db = request.app.state.db
     b = await request.json()
     import activacion as ac
-    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="dev")
+    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="dev",
+                                      tenant_id=_tenant_of(user))
 
 
 @router.get("/api/desarrollador/memory")
@@ -108,20 +114,21 @@ async def dev_generar_copy(request: Request) -> Any:
 async def asesor_cube_actions(request: Request) -> Any:
     """Buzón del ASESOR: oportunidades que el cubo detectó y que calzan con leads que ya buscan ese segmento."""
     from routes.advisor import require_advisor
-    await require_advisor(request)
+    user = await require_advisor(request)
     db = request.app.state.db
     import activacion as ac
-    return await ac.listar(db, destino="asesor", estado="pendiente")
+    return await ac.listar(db, destino="asesor", estado="pendiente", tenant_id=_tenant_of(user))
 
 
 @router.post("/api/asesor/cube-actions/{action_id}/estado")
 async def asesor_cube_action_estado(action_id: str, request: Request) -> Any:
     from routes.advisor import require_advisor
-    await require_advisor(request)
+    user = await require_advisor(request)
     db = request.app.state.db
     b = await request.json()
     import activacion as ac
-    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="asesor")
+    return await ac.actualizar_estado(db, action_id, b.get("estado", "visto"), destino="asesor",
+                                      tenant_id=_tenant_of(user))
 
 
 @router.get("/api/marketplace/cube-actions")

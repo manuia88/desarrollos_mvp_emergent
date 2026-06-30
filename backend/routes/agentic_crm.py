@@ -505,9 +505,16 @@ async def resend_inbound_webhook(request: Request):
     svix_ts = request.headers.get("svix-timestamp", "")
     svix_sig = request.headers.get("svix-signature", "")
 
-    # En producción, secret obligatorio. Si está vacío → solo modo dev local.
-    if secret and not _verify_svix_signature(secret, raw_body, svix_id, svix_ts, svix_sig):
-        raise HTTPException(401, "Firma Svix inválida")
+    # FAIL-CLOSED en prod: sin secret O firma inválida NO se aceptan eventos (antes: secret vacío
+    # → cualquiera forjaba eventos · B1-WEBHOOK). En dev/preview se permite para pruebas locales.
+    if not secret or not _verify_svix_signature(secret, raw_body, svix_id, svix_ts, svix_sig):
+        try:
+            from server import _is_prod as _prod
+        except Exception:
+            _prod = lambda: os.environ.get("DMX_ENV", "").strip().lower() in ("prod", "production")
+        if _prod():
+            log.error("[resend_inbound] PROD sin firma/secret válido → rechazado")
+            raise HTTPException(401, "Firma Svix inválida")
 
     try:
         payload = json.loads(raw_body) if raw_body else {}

@@ -159,13 +159,14 @@ async def buyer_signal(s: SignalIn, request: Request):
         if not _ip_visitor_ok(ip_hash, vid):
             return {"ok": True, "throttled": True}
         dwell = s.dwell_ms if (isinstance(s.dwell_ms, int) and 0 <= s.dwell_ms <= 600000) else None
+        from data_developments import colonia_slug  # MOAT: id canónico (linaje cross-engine)
         doc = {
             "id": f"bs_{uuid.uuid4().hex[:12]}",
             "visitor_id": vid,
             "type": s.type,
             "entity_id": (s.entity_id or None),
             "unit_number": (s.unit_number or None),
-            "colonia": (s.colonia or "").strip().lower() or None,
+            "colonia": (colonia_slug(s.colonia) or None),   # MOAT: id canónico (linaje cross-engine)
             "value": (s.value or "")[:120] or None,
             "dwell_ms": dwell,
             "seconds": (s.seconds if (isinstance(s.seconds, int) and 0 <= s.seconds <= 86400) else None),

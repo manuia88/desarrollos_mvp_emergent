@@ -279,7 +279,8 @@ async def registrar_busqueda(b: GuardarBusquedaIn, request: Request):
         from ratelimit import client_ip as _c  # SEGURIDAD anti-spoofing (pentest 2026-06-27)
         ip = _c(request)
         now = _dt.utcnow()
-        cols = [_norm(c) for c in (b.colonias or []) if c]
+        from data_developments import colonia_slug as _cslug  # MOAT: id canónico (linaje cross-engine)
+        cols = [s for s in (_cslug(c) for c in (b.colonias or []) if c) if s]   # canonicaliza ANTES de persistir
         doc = {
             "id": f"mks_{_u.uuid4().hex[:12]}", "source": "perfilador",
             "colonias": cols, "colonia_id": (cols[0] if cols else None),

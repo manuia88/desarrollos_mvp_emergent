@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
@@ -311,30 +312,59 @@ async def get_setup_progress(request: Request):
 # E) WEEKLY BRIEF (AI-generated)
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def _generate_weekly_brief(user_id: str, inmobiliaria_id: str, db) -> Dict[str, Any]:
-    """Generate AI weekly brief for a user via Claude Haiku."""
+async def _generate_weekly_brief(user, inmobiliaria_id: str, db) -> Dict[str, Any]:
+    """Generate AI weekly brief for a user via Claude Haiku.
+
+    SEGURIDAD (Pasada 2 · C2-WEEKLY): los counts agregados (leads/citas/ventas/tareas/salud)
+    deben acotarse al tenant del caller. Antes corrían SIN scope → el brief mezclaba números
+    de OTROS tenants (el cache key ya era per-tenant, pero el dato adentro era global).
+    `user` puede venir como objeto UserOut o como dict (caller del job); tenant_scope._field
+    lee ambos. superadmin → god-view (sin scope). Fail-soft: tenant sin proyectos → counts a 0
+    (correcto: no hay dato propio), nunca dato ajeno."""
+    from tenant_scope import tenant_filter, user_dev_ids, is_superadmin
+
+    user_id = (user.get("user_id") if isinstance(user, dict) else getattr(user, "user_id", None)) or ""
+    super_view = is_superadmin(user)
+    # IDs de proyectos del tenant (para colecciones sin owner-field propio: tasks/health_scores/audit_log).
+    dev_ids = user_dev_ids(user) if not super_view else None  # None ⇒ sin filtro (god-view)
+
     now = _now()
     since_7d = now - timedelta(days=7)
     week_start = (now - timedelta(days=now.weekday())).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
 
-    # Pull stats
-    new_leads = await db.leads.count_documents({"created_at": {"$gte": since_7d}})
-    citas_count = await db.appointments.count_documents({"created_at": {"$gte": since_7d}})  # citas reales = appointments
+    # Scoping per-tenant. tenant_filter ya conoce leads/appointments; el resto se acota por project_id.
+    leads_scope = tenant_filter(user, "leads")
+    appts_scope = tenant_filter(user, "appointments")
+    # tasks/health_scores/audit_log NO están en _OWNER_FIELDS → se acotan por los proyectos del tenant.
+    proj_scope: Dict[str, Any] = {} if super_view else {"project_id": {"$in": dev_ids or []}}
+    health_scope: Dict[str, Any] = {} if super_view else {"entity_id": {"$in": dev_ids or []}}
+    # audit_log de unidades: entity_id = "{dev_id}__{unit_id}" → empata por prefijo de proyecto del tenant.
+    audit_scope: Dict[str, Any] = {}
+    if not super_view:
+        if dev_ids:
+            audit_scope = {"$or": [{"entity_id": {"$regex": f"^{re.escape(d)}__"}} for d in dev_ids]}
+        else:
+            audit_scope = {"entity_id": {"$in": []}}  # sin proyectos → 0 ventas (fail-soft, no fuga)
+
+    # Pull stats (TODOS acotados al tenant)
+    new_leads = await db.leads.count_documents({**leads_scope, "created_at": {"$gte": since_7d}})
+    citas_count = await db.appointments.count_documents({**appts_scope, "created_at": {"$gte": since_7d}})  # citas reales = appointments
     sales_count = await db.audit_log.count_documents({
+        **audit_scope,
         "entity_type": "unit",
         "action": "update",
         "to.status": {"$in": ["vendido", "reservado"]},
         "created_at": {"$gte": since_7d},
     })
     tasks_overdue = await db.tasks.count_documents({
-        "due_at": {"$lt": now}, "done": {"$ne": True},
+        **proj_scope, "due_at": {"$lt": now}, "done": {"$ne": True},
     })
 
-    # Health scores summary
+    # Health scores summary (acotado a los proyectos del tenant)
     cached_scores = await db.health_scores.find(
-        {"entity_type": "project"}, {"_id": 0, "score": 1, "entity_id": 1},
+        {**health_scope, "entity_type": "project"}, {"_id": 0, "score": 1, "entity_id": 1},
     ).to_list(20)
     avg_health = round(
         sum(s.get("score", 0) for s in cached_scores) / len(cached_scores)
@@ -446,7 +476,7 @@ async def get_weekly_brief(request: Request):
         return cached
 
     try:
-        return await _generate_weekly_brief(user.user_id, org, db)
+        return await _generate_weekly_brief(user, org, db)
     except Exception as e:
         log.warning(f"[weekly_brief] generation error: {e}")
         return {
@@ -469,14 +499,15 @@ async def generate_weekly_briefs_for_all(db):
     since_30d = _now() - timedelta(days=30)
     active_users = await db.users.find(
         {"last_login_at": {"$gte": since_30d.isoformat()}},
-        {"_id": 0, "user_id": 1, "tenant_id": 1},
+        # role/org_id/dev_org_id necesarios para que el scope per-tenant del brief sea exacto (C2-WEEKLY).
+        {"_id": 0, "user_id": 1, "tenant_id": 1, "org_id": 1, "dev_org_id": 1, "role": 1},
     ).to_list(200)
 
     count = 0
     for u in active_users:
         try:
             org = u.get("tenant_id") or "default"
-            await _generate_weekly_brief(u["user_id"], org, db)
+            await _generate_weekly_brief(u, org, db)  # pasa el dict completo → tenant_scope lo acota
             count += 1
         except Exception as e:
             log.warning(f"[weekly_briefs] user {u.get('user_id')} failed: {e}")

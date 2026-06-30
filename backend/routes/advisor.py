@@ -9,6 +9,7 @@ import uuid
 import hashlib
 import logging  # usado por logging.getLogger("dmx.advisor") en varios except (antes faltaba → NameError latente)
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
@@ -3150,11 +3151,18 @@ async def create_operacion(payload: OperacionIn, request: Request):
     if payload.side not in ("ambos", "vendedor", "comprador"): raise HTTPException(400, "side inválido")
     if payload.currency not in ("MXN", "USD", "AED"): raise HTTPException(400, "currency inválido")
 
-    comision_base = payload.valor_cierre * (payload.comision_pct / 100.0)
-    iva = comision_base * 0.16
-    platform_split = comision_base * 0.20
-    asesor_split = comision_base * 0.80
-    comision_total = comision_base + iva
+    # F2-MONEY · liquidación con Decimal (centavos exactos, no float). Cada monto se
+    # cuantiza a 0.01; el split del asesor es residual (comision_base - platform_split)
+    # para que platform+asesor sumen EXACTO la comisión base sin descuadre de centavos.
+    _cent = Decimal("0.01")
+    _q = lambda d: d.quantize(_cent, rounding=ROUND_HALF_UP)
+    valor_cierre = Decimal(str(payload.valor_cierre))
+    comision_pct = Decimal(str(payload.comision_pct))
+    comision_base = _q(valor_cierre * comision_pct / Decimal("100"))
+    iva = _q(comision_base * Decimal("0.16"))
+    platform_split = _q(comision_base * Decimal("0.20"))
+    asesor_split = _q(comision_base - platform_split)  # residual → suma exacta
+    comision_total = _q(comision_base + iva)
 
     item = {
         "id": _uid("op"),
@@ -3162,11 +3170,11 @@ async def create_operacion(payload: OperacionIn, request: Request):
         "owner_id": user.user_id,
         "status": "propuesta",
         "created_at": _now(),
-        "comision_base": round(comision_base, 2),
-        "iva": round(iva, 2),
-        "comision_total": round(comision_total, 2),
-        "platform_split": round(platform_split, 2),
-        "asesor_split": round(asesor_split, 2),
+        "comision_base": float(comision_base),
+        "iva": float(iva),
+        "comision_total": float(comision_total),
+        "platform_split": float(platform_split),
+        "asesor_split": float(asesor_split),
         **payload.model_dump(),
     }
     await db.asesor_operaciones.insert_one(dict(item))
@@ -3910,11 +3918,17 @@ async def seed_demo(request: Request):
         {"side": "vendedor", "contacto_id": ids_contactos[2], "desarrollo_id": "tamaulipas-89", "unidad_id": None, "valor_cierre": 7500000, "currency": "MXN", "comision_pct": 3.0, "fecha_cierre": (_now() + timedelta(days=90)).strftime("%Y-%m-%d"), "status": "propuesta"},
     ]
     for o in ops:
-        base = o["valor_cierre"] * (o["comision_pct"] / 100.0)
-        iva = base * 0.16
+        # F2-MONEY · misma liquidación Decimal que create_operacion (split asesor = residual).
+        _cent = Decimal("0.01")
+        _q = lambda d: d.quantize(_cent, rounding=ROUND_HALF_UP)
+        base = _q(Decimal(str(o["valor_cierre"])) * Decimal(str(o["comision_pct"])) / Decimal("100"))
+        iva = _q(base * Decimal("0.16"))
+        platform_split = _q(base * Decimal("0.20"))
+        asesor_split = _q(base - platform_split)  # residual → suma exacta
+        comision_total = _q(base + iva)
         doc = {"id": _uid("op"), "code": _unique_op_code(), "owner_id": user.user_id, "created_at": _now(), "seed": True,
-               "comision_base": round(base, 2), "iva": round(iva, 2), "comision_total": round(base + iva, 2),
-               "platform_split": round(base * 0.20, 2), "asesor_split": round(base * 0.80, 2), "notas": "", **o}
+               "comision_base": float(base), "iva": float(iva), "comision_total": float(comision_total),
+               "platform_split": float(platform_split), "asesor_split": float(asesor_split), "notas": "", **o}
         await db.asesor_operaciones.insert_one(dict(doc))
 
     return {"message": "Demo seed creado", "contactos": len(ids_contactos), "busquedas": len(busqs), "captaciones": len(capts), "tareas": len(tareas), "operaciones": len(ops)}
