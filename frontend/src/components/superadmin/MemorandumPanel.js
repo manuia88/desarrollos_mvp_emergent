@@ -3,9 +3,10 @@
 // lista para comité: resumen, oferta, demanda, tensión, inversión/riesgo, comparables y recomendación.
 // Cero dato inventado: TODO viene de la respuesta. Las cifras 's/d' (sin dato) se dejan tal cual (son honestas).
 // Reusa el endpoint /memorandum (getMemorandum). NO crea motor nuevo.
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, Badge } from '../advisor/primitives';
 import { getMemorandum } from '../../api/superadminDemandIntel';
+import ColoniaPicker from './ColoniaPicker';
 
 // ── tokens de tema oscuro (idénticos a ScreenerPanel) ───────────────────────
 const card = { padding: '18px 22px' };
@@ -13,11 +14,6 @@ const muted = '#888';
 const cream = 'var(--cream, #e8e6df)';
 const theme = 'var(--theme, #6366f1)';
 
-const inputStyle = {
-  background: 'rgba(255,255,255,0.04)', color: '#ddd', fontSize: 13,
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9, padding: '9px 12px',
-  flex: 1, minWidth: 200, outline: 'none',
-};
 const btnStyle = {
   padding: '9px 20px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
   background: theme, color: '#fff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
@@ -139,21 +135,38 @@ function Seccion({ seccion, index, destacada }) {
   );
 }
 
-export default function MemorandumPanel() {
-  const [colonia, setColonia] = useState('');
+export default function MemorandumPanel({ zona = '', onZona } = {}) {
+  // colonia local = el contexto compartido como semilla; el usuario puede cambiarla con el picker.
+  const [colonia, setColonia] = useState(zona || '');
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const generar = useCallback((q) => {
     const term = (q != null ? q : colonia).trim();
-    if (!term) { setErr('Escribe una colonia (ej. condesa).'); return; }
+    if (!term) { setErr('Elige una colonia.'); return; }
     setLoading(true); setErr(null);
     getMemorandum({ colonia: term })
       .then((d) => setData(d))
       .catch((e) => { setData(null); setErr(e.message || 'No se pudo generar el memorándum.'); })
       .finally(() => setLoading(false));
   }, [colonia]);
+
+  // Adopta la zona compartida si cambia desde afuera (otra tab eligió colonia).
+  useEffect(() => {
+    if (zona && zona !== colonia) setColonia(zona);
+  }, [zona]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Si entramos con una zona heredada y aún no se ha generado nada, auto-carga su memorándum.
+  useEffect(() => {
+    if (zona && !data && !loading && !err) generar(zona);
+  }, [zona]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // El usuario eligió en el picker → actualiza estado local + propaga al contexto compartido.
+  const onPick = (id) => {
+    setColonia(id);
+    if (onZona) onZona(id);
+  };
 
   const secciones = Array.isArray(data?.secciones) ? data.secciones : [];
   const isReco = (s) => (s?.titulo || '').toLowerCase().startsWith('recomend');
@@ -172,12 +185,11 @@ export default function MemorandumPanel() {
           onSubmit={(e) => { e.preventDefault(); generar(); }}
           style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}
         >
-          <input
+          <ColoniaPicker
             value={colonia}
-            onChange={(e) => setColonia(e.target.value)}
-            placeholder="ej. condesa"
-            style={inputStyle}
-            aria-label="Colonia"
+            onChange={onPick}
+            placeholder="Elige una colonia"
+            style={{ flex: 1, minWidth: 220 }}
           />
           <button type="submit" style={btnStyle} disabled={loading}>
             {loading ? 'Generando…' : 'Generar memorándum'}
@@ -195,7 +207,7 @@ export default function MemorandumPanel() {
       {/* ── VACÍO (sin búsqueda aún) ──────────────────────────────────────── */}
       {!data && !err && !loading && (
         <Card style={{ ...card, textAlign: 'center', color: muted, fontSize: 13, padding: '40px 22px' }}>
-          Escribe una colonia y genera su memorándum institucional.
+          Elige una colonia y genera su memorándum institucional.
         </Card>
       )}
 

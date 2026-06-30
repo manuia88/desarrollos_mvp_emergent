@@ -6,6 +6,7 @@
 // morado = demanda. Estilo oscuro idéntico al resto de paneles del folder (Card/Badge, fontSize 12-13).
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
+import ColoniaPicker from './ColoniaPicker';
 import {
   getWhatifOpciones, getWhatif,
   getLookalike,
@@ -58,7 +59,22 @@ const SUBS = [
   { id: 'vistas', label: 'Mis vistas y alertas' },
 ];
 
-export default function AnalisisPanel() {
+// CONTEXTO COMPARTIDO de zona — cada sub-sección semilla su colonia desde `zona` (la barra de arriba),
+// adopta cambios externos, y al elegir en el picker propaga al contexto compartido con `onZona(id)`.
+// Devuelve [colonia, onPick] donde onPick(id) actualiza el estado local y propaga hacia arriba.
+function useZonaColonia(zona, onZona) {
+  const [colonia, setColonia] = useState(zona || '');
+  useEffect(() => {
+    if (zona && zona !== colonia) setColonia(zona);
+  }, [zona]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onPick = (id) => {
+    setColonia(id);
+    if (onZona) onZona(id);
+  };
+  return [colonia, onPick, setColonia];
+}
+
+export default function AnalisisPanel({ zona = '', onZona } = {}) {
   const [sub, setSub] = useState('simulador');
 
   return (
@@ -80,14 +96,14 @@ export default function AnalisisPanel() {
         ))}
       </div>
 
-      {/* ── SECCIÓN ACTIVA ── */}
-      {sub === 'simulador' && <Simulador />}
-      {sub === 'comparables' && <Comparables />}
-      {sub === 'simetria' && <Simetria />}
-      {sub === 'sustitucion' && <Sustitucion />}
-      {sub === 'arquitecto' && <AutoArquitecto />}
+      {/* ── SECCIÓN ACTIVA ── (las que tienen colonia heredan el contexto compartido) */}
+      {sub === 'simulador' && <Simulador zona={zona} onZona={onZona} />}
+      {sub === 'comparables' && <Comparables zona={zona} onZona={onZona} />}
+      {sub === 'simetria' && <Simetria zona={zona} onZona={onZona} />}
+      {sub === 'sustitucion' && <Sustitucion zona={zona} onZona={onZona} />}
+      {sub === 'arquitecto' && <AutoArquitecto zona={zona} onZona={onZona} />}
       {sub === 'acciones' && <AccionesCubo />}
-      {sub === 'vistas' && <VistasAlertas />}
+      {sub === 'vistas' && <VistasAlertas zona={zona} onZona={onZona} />}
     </div>
   );
 }
@@ -95,11 +111,11 @@ export default function AnalisisPanel() {
 // ════════════════════════════════════════════════════════════════════════════
 // 1) SIMULADOR (what-if) — "¿cuánto vale agregar terraza en Polanco?"
 // ════════════════════════════════════════════════════════════════════════════
-function Simulador() {
+function Simulador({ zona, onZona }) {
   const [op, setOp] = useState(null);            // {atributos:[{id,label}], tipologias:[...]}
   const [opErr, setOpErr] = useState(null);
 
-  const [colonia, setColonia] = useState('');
+  const [colonia, onColonia] = useZonaColonia(zona, onZona);
   const [tipologia, setTipologia] = useState('');
   const [atributo, setAtributo] = useState('');
 
@@ -141,11 +157,7 @@ function Simulador() {
       <Card style={{ ...card, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Colonia</span>
-          <input
-            style={{ ...inputStyle, minWidth: 180 }} placeholder="ej. polanco"
-            value={colonia} onChange={(e) => setColonia(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') simular(); }}
-          />
+          <ColoniaPicker value={colonia} onChange={onColonia} style={{ minWidth: 180 }} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Tipología</span>
@@ -246,8 +258,8 @@ function MiniStat({ label, value, color }) {
 // ════════════════════════════════════════════════════════════════════════════
 // 2) COMPARABLES (lookalike) — colonias con perfil de mercado parecido
 // ════════════════════════════════════════════════════════════════════════════
-function Comparables() {
-  const [colonia, setColonia] = useState('');
+function Comparables({ zona, onZona }) {
+  const [colonia, onColonia] = useZonaColonia(zona, onZona);
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -271,11 +283,7 @@ function Comparables() {
       <Card style={{ ...card, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Colonia objetivo</span>
-          <input
-            style={{ ...inputStyle, minWidth: 200 }} placeholder="ej. polanco"
-            value={colonia} onChange={(e) => setColonia(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') buscar(); }}
-          />
+          <ColoniaPicker value={colonia} onChange={onColonia} style={{ minWidth: 200 }} />
         </div>
         <button style={{ ...btnStyle, opacity: colonia.trim() ? 1 : 0.5 }} onClick={buscar} disabled={!colonia.trim()}>
           {loading ? 'Buscando…' : 'Buscar'}
@@ -332,8 +340,8 @@ function Comparables() {
 // ════════════════════════════════════════════════════════════════════════════
 // 3) SIMETRÍA O↔D — balance oferta vs demanda por cada dimensión
 // ════════════════════════════════════════════════════════════════════════════
-function Simetria() {
-  const [colonia, setColonia] = useState('');
+function Simetria({ zona, onZona }) {
+  const [colonia, onColonia] = useZonaColonia(zona, onZona);
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -362,11 +370,7 @@ function Simetria() {
       <Card style={{ ...card, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Colonia (vacío = toda la ciudad)</span>
-          <input
-            style={{ ...inputStyle, minWidth: 200 }} placeholder="ej. polanco"
-            value={colonia} onChange={(e) => setColonia(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') ver(); }}
-          />
+          <ColoniaPicker value={colonia} onChange={onColonia} allowCity style={{ minWidth: 200 }} />
         </div>
         <button style={btnStyle} onClick={ver}>{loading ? 'Cargando…' : 'Ver'}</button>
       </Card>
@@ -449,9 +453,9 @@ function Simetria() {
 // ════════════════════════════════════════════════════════════════════════════
 // 4) SUSTITUCIÓN (Sankey legible) — flujos origen → destino por n
 // ════════════════════════════════════════════════════════════════════════════
-function Sustitucion() {
+function Sustitucion({ zona, onZona }) {
   const [por, setPor] = useState('tipologia'); // 'tipologia' | 'zona'
-  const [colonia, setColonia] = useState('');
+  const [colonia, onColonia] = useZonaColonia(zona, onZona);
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -489,11 +493,7 @@ function Sustitucion() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Colonia (opcional)</span>
-          <input
-            style={{ ...inputStyle, minWidth: 180 }} placeholder="ej. polanco"
-            value={colonia} onChange={(e) => setColonia(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') ver(); }}
-          />
+          <ColoniaPicker value={colonia} onChange={onColonia} allowCity style={{ minWidth: 180 }} />
         </div>
         <button style={btnStyle} onClick={ver}>{loading ? 'Cargando…' : 'Ver'}</button>
       </Card>
@@ -541,8 +541,8 @@ const DESTINOS = [
 ];
 const destLabel = (id) => (DESTINOS.find((d) => d.id === id) || {}).label || id;
 
-function AutoArquitecto() {
-  const [colonia, setColonia] = useState('');
+function AutoArquitecto({ zona, onZona }) {
+  const [colonia, onColonia] = useZonaColonia(zona, onZona);
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -568,11 +568,7 @@ function AutoArquitecto() {
       <Card style={{ ...card, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={lbl}>Colonia</span>
-          <input
-            style={{ ...inputStyle, minWidth: 200 }} placeholder="ej. polanco"
-            value={colonia} onChange={(e) => setColonia(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') disenar(); }}
-          />
+          <ColoniaPicker value={colonia} onChange={onColonia} style={{ minWidth: 200 }} />
         </div>
         <button style={{ ...btnStyle, opacity: colonia.trim() ? 1 : 0.5 }} onClick={disenar} disabled={!colonia.trim()}>
           {loading ? 'Diseñando…' : 'Diseñar producto'}
@@ -822,7 +818,7 @@ const OPERADORES = [
   { id: 'gt', txt: '>' }, { id: 'lt', txt: '<' }, { id: 'gte', txt: '≥' }, { id: 'lte', txt: '≤' }, { id: 'eq', txt: '=' },
 ];
 
-function VistasAlertas() {
+function VistasAlertas({ zona, onZona }) {
   const [vistas, setVistas] = useState(null);
   const [alertas, setAlertas] = useState(null);
   const [err, setErr] = useState(null);
@@ -830,7 +826,7 @@ function VistasAlertas() {
 
   // form
   const [nombre, setNombre] = useState('');
-  const [colonia, setColonia] = useState('');
+  const [colonia, onColonia, setColonia] = useZonaColonia(zona, onZona);
   const [metrica, setMetrica] = useState('gap_terraza');
   const [op, setOp] = useState('gt');
   const [valor, setValor] = useState('');
@@ -919,7 +915,7 @@ function VistasAlertas() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={lbl}>Colonia</span>
-            <input style={{ ...inputStyle, minWidth: 140 }} placeholder="ej. polanco" value={colonia} onChange={(e) => setColonia(e.target.value)} />
+            <ColoniaPicker value={colonia} onChange={onColonia} style={{ minWidth: 160 }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={lbl}>Métrica</span>
