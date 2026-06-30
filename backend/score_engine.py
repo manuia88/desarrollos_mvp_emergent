@@ -32,6 +32,10 @@ TIER_THRESHOLDS = {"green": 70, "amber": 40}  # green >=70, amber 40-69, red <40
 _DENUE_CITY_CACHE: Dict[str, Any] = {"ts": 0.0, "docs": None}
 _DENUE_CITY_TTL = 180.0  # seconds — long enough to span one full recompute pass
 
+# Same idea for the SACMEX water-incident city distribution (feeds N07).
+_WATER_CITY_CACHE: Dict[str, Any] = {"ts": 0.0, "docs": None}
+_WATER_CITY_TTL = 180.0
+
 
 @dataclass
 class ScoreResult:
@@ -64,6 +68,7 @@ class Recipe:
     layer: str = "descriptive"                # "descriptive" (N1-N2) | "predictive" (N4) | "narrative" (N5)
     needs_denue: bool = False                 # True → engine injects denue_zone_density.by_category pseudo-sources
     needs_natural_risk: bool = False          # True → engine injects risk_scores_zone natural-risk pseudo-source (N05)
+    needs_water: bool = False                 # True → engine injects sacmex_zone_colonia incidents pseudo-source (N07)
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -333,6 +338,25 @@ class ScoreEngine:
         )
         return {"_dmx_natural_risk": [{"payload": doc, "is_stub": False}] if doc else []}
 
+    async def _build_water_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For N07 (Water Security): inject the colonia's REAL SACMEX water-incident count
+        (`sacmex_zone_colonia`) + the city distribution (cached) for the percentile. NEVER invents:
+        if the colonia has no SACMEX doc → the recipe stubs honestly."""
+        zone_doc = await self.db.sacmex_zone_colonia.find_one(
+            {"zone_id": zone_id}, {"_id": 0, "incidents": 1},
+        )
+        now = time.monotonic()
+        if _WATER_CITY_CACHE["docs"] is None or (now - _WATER_CITY_CACHE["ts"]) > _WATER_CITY_TTL:
+            _WATER_CITY_CACHE["docs"] = await self.db.sacmex_zone_colonia.find(
+                {}, {"_id": 0, "incidents": 1},
+            ).to_list(length=4000)
+            _WATER_CITY_CACHE["ts"] = now
+        city_docs = _WATER_CITY_CACHE["docs"]
+        return {
+            "_dmx_water_zone": [{"payload": zone_doc, "is_stub": False}] if zone_doc else [],
+            "_dmx_water_city": [{"payload": d, "is_stub": False} for d in city_docs],
+        }
+
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
         recipe = get_recipe(code)
         if not recipe:
@@ -356,6 +380,9 @@ class ScoreEngine:
         if getattr(recipe, "needs_natural_risk", False):
             # N05 reads the colonia's real Atlas natural-risk score
             obs.update(await self._build_natural_risk_context(zone_id))
+        if getattr(recipe, "needs_water", False):
+            # N07 reads the colonia's real SACMEX water-incident count
+            obs.update(await self._build_water_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively

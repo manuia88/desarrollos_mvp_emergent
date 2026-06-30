@@ -369,13 +369,49 @@ class IEColN05InfrastructureResilience(Recipe):
 
 
 @register
-class IEColN07WaterSecurity(DataPendingRecipe):
+class IEColN07WaterSecurity(Recipe):
+    """N07 — Seguridad hídrica: confiabilidad del suministro (incidentes SACMEX REALES).
+    Lee el conteo de reportes de agua (fuga/falta de agua) de la colonia (`sacmex_zone_colonia`,
+    313k+ reportes CKAN datos.cdmx) inyectado como pseudo-fuente. Más incidentes = menor seguridad →
+    score = 100 − percentil de incidentes de ciudad. NUNCA inventa: sin reportes → stub honesto."""
     code = "IE_COL_N07_WATER_SECURITY"
-    version = "0.1"
-    dependencies = ["sacmex"]
+    version = "1.0"
+    scope = "colonia"
+    dependencies: List[str] = []
+    needs_water = True
     tier_logic = "higher_better"
-    description = "Seguridad hídrica: confiabilidad del suministro de agua (cortes SACMEX)."
-    reason = "Esperando fuente: SACMEX con resource_id vacío (sin dataset conectado)."
+    es_estimado = True
+    nota_estimacion = ("Proxy por densidad de reportes de incidentes de agua (SACMEX). Confunde el tamaño / "
+                       "la reportabilidad de la colonia; se refina con normalización por tomas o habitantes.")
+    description = ("Seguridad hídrica: confiabilidad del suministro (incidentes SACMEX: fuga/falta de agua), "
+                   "por percentil de ciudad invertido. 100 = menos incidentes (suministro más confiable).")
+
+    def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
+        zlst = obs_by_source.get("_dmx_water_zone") or []
+        zdoc = zlst[0].get("payload") if zlst else None
+        if not zdoc or zdoc.get("incidents") is None:
+            return self._stub_result(zone_id, reason="sin reportes SACMEX para esta colonia")
+        try:
+            inc = float(zdoc.get("incidents"))
+        except (TypeError, ValueError):
+            return self._stub_result(zone_id, reason="incidentes no numéricos")
+        city_vals: List[float] = []
+        for o in obs_by_source.get("_dmx_water_city") or []:
+            p = o.get("payload") or {}
+            try:
+                city_vals.append(float(p.get("incidents")))
+            except (TypeError, ValueError):
+                continue
+        pct = _percentile_of(inc, city_vals)               # alto = muchos incidentes
+        value = max(0.0, min(100.0, round(100.0 - pct, 2)))  # invertir: pocos incidentes = score alto
+        n_city = len(city_vals)
+        conf = "high" if n_city >= 20 else ("med" if n_city >= 5 else "low")
+        return ScoreResult(
+            code=self.code, zone_id=zone_id, value=value,
+            tier=self._tier_for(value), confidence=conf, is_stub=False,
+            inputs_used={"sacmex_zone": 1, "sacmex_city": n_city},
+            formula_version=self.version,
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
