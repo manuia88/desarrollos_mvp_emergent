@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import httpx
 
@@ -63,7 +63,9 @@ async def _colonia_slug_map(db) -> Dict[str, str]:
 
 
 async def ingest_seismic_zones(db, *, timeout: float = 60.0) -> Dict[str, Any]:
-    """Mapea la zona sísmica oficial a cada colonia → `seismic_zone_colonia`. FAIL-SOFT."""
+    """Asigna la zona sísmica oficial a CADA colonia por JOIN ESPACIAL (punto-en-polígono) →
+    `seismic_zone_colonia`. City-wide: usa la geometría real, no el nombre. Fallback a match por
+    nombre para colonias sin geometría. FAIL-SOFT."""
     try:
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=_UA) as cli:
             r = await cli.get(SEISMIC_GEOJSON)
@@ -72,30 +74,67 @@ async def ingest_seismic_zones(db, *, timeout: float = 60.0) -> Dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "reason": "seismic_fetch_failed", "error": str(e)[:200]}
 
-    cols = await _colonia_slug_map(db)
-    now = datetime.now(timezone.utc)
-    written = 0
+    # Construir polígonos sísmicos + índice espacial (shapely).
+    import shapely.geometry as sg
+    from shapely.strtree import STRtree
+    polys: List[Any] = []
+    meta: List[Dict[str, Any]] = []
     for f in feats:
         props = f.get("properties", {}) or {}
-        nm = props.get("COLONIA")
-        deleg = props.get("DELEG")
-        # Nuestros ids canónicos son `slug(nombre)-slug(alcaldía)` → desambigua colonias homónimas.
-        # Probar nombre crudo Y nombre con abreviaciones expandidas, con y sin alcaldía.
-        ns, ne = _slug(nm), _slug(_expand(nm))
-        ds = _slug(deleg)
-        zid = (cols.get(f"{ns}-{ds}") or cols.get(f"{ne}-{ds}")
-               or cols.get(ns) or cols.get(ne))
+        res = _resilience(props.get("INTENSIDAD"))
+        geom = f.get("geometry")
+        if res is None or not geom:
+            continue
+        try:
+            shp = sg.shape(geom)
+            if not shp.is_valid:
+                shp = shp.buffer(0)
+        except Exception:
+            continue
+        polys.append(shp)
+        meta.append({"resilience": res, "seismic_zone": props.get("INTENSIDAD"), "deleg": props.get("DELEG")})
+    if not polys:
+        return {"ok": False, "reason": "no_seismic_polygons"}
+    tree = STRtree(polys)
+
+    now = datetime.now(timezone.utc)
+    written = 0
+    async for c in db.colonias.find({}, {"id": 1, "name": 1, "center": 1, "geometry": 1}):
+        zid = c.get("id")
         if not zid:
             continue
-        res = _resilience(props.get("INTENSIDAD"))
-        if res is None:
+        # Punto representativo de la colonia (center, o centroide del polígono).
+        pt = None
+        ctr = c.get("center")
+        if isinstance(ctr, (list, tuple)) and len(ctr) == 2:
+            try:
+                pt = sg.Point(float(ctr[0]), float(ctr[1]))
+            except (TypeError, ValueError):
+                pt = None
+        if pt is None and c.get("geometry"):
+            try:
+                pt = sg.shape(c["geometry"]).representative_point()
+            except Exception:
+                pt = None
+        if pt is None:
+            continue
+        m = None
+        try:
+            for idx in tree.query(pt):          # shapely 2.x → índices int de candidatos
+                i = int(idx)
+                if polys[i].contains(pt):
+                    m = meta[i]
+                    break
+        except Exception:
+            m = None
+        if m is None:
             continue
         await db.seismic_zone_colonia.update_one(
             {"zone_id": zid},
-            {"$set": {"zone_id": zid, "seismic_zone": props.get("INTENSIDAD"),
-                      "resilience": res, "alcaldia": props.get("DELEG"),
-                      "source": "atlas_sismico_cdmx", "colonia_catalogo": nm, "synced_at": now}},
+            {"$set": {"zone_id": zid, "seismic_zone": m["seismic_zone"], "resilience": m["resilience"],
+                      "alcaldia": m.get("deleg"), "source": "atlas_sismico_cdmx_spatial",
+                      "colonia_catalogo": c.get("name"), "synced_at": now}},
             upsert=True,
         )
         written += 1
-    return {"ok": True, "seismic_colonias": len(feats), "written": written}
+    return {"ok": True, "seismic_polygons": len(polys), "written": written}
