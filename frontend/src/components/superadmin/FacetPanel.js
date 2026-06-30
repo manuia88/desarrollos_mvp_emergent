@@ -23,6 +23,79 @@ const btnGhost = {
 const th = { fontSize: 11, color: '#888', textAlign: 'left', padding: '5px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
 const td = { fontSize: 12.5, padding: '5px 8px', borderTop: '1px solid rgba(255,255,255,0.05)' };
 
+// ── Skeleton de carga (pulso CSS, inyectado una vez) ─────────────────────────
+const SKELETON_STYLE_ID = 'facetpanel-skeleton-keyframes';
+function ensureSkeletonStyle() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SKELETON_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = SKELETON_STYLE_ID;
+  el.textContent = '@keyframes fpPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }';
+  document.head.appendChild(el);
+}
+const skBlock = (w, h = 10, extra = {}) => ({
+  width: w, height: h, borderRadius: 4,
+  background: 'rgba(255,255,255,0.10)',
+  animation: 'fpPulse 1.2s ease-in-out infinite',
+  ...extra,
+});
+
+// Una "tarjeta lado" fantasma (insinúa total + barras de desglose).
+function SkeletonSideCard() {
+  return (
+    <Card style={card} aria-hidden="true">
+      <div style={skBlock(120, 11, { marginBottom: 12 })} />
+      <div style={skBlock(90, 30, { marginBottom: 14 })} />
+      <div style={{ display: 'grid', gap: 8 }}>
+        {[78, 62, 90, 48, 70].map((w, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={skBlock(96, 9)} />
+            <div style={skBlock(`${w}%`, 9, { flex: 'none' })} />
+            <div style={skBlock(34, 9, { marginLeft: 'auto' })} />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Tabla fantasma (insinúa el relacional oferta/demanda/gap).
+function SkeletonRelacional() {
+  return (
+    <Card style={card} aria-hidden="true">
+      <div style={skBlock(220, 11, { marginBottom: 14 })} />
+      <div style={{ display: 'grid', gap: 9 }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={skBlock(110, 9)} />
+            <div style={skBlock(46, 9, { marginLeft: 'auto' })} />
+            <div style={skBlock(46, 9)} />
+            <div style={skBlock(46, 9)} />
+            <div style={skBlock(64, 14)} />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Bloque de carga completo (dos tarjetas lado + relacional) con etiqueta accesible.
+function ResultSkeleton() {
+  return (
+    <div style={{ display: 'grid', gap: 16 }} role="status" aria-live="polite" aria-busy="true">
+      <span style={{
+        position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+        overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+      }}>Contando oferta y demanda…</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+        <SkeletonSideCard />
+        <SkeletonSideCard />
+      </div>
+      <SkeletonRelacional />
+    </div>
+  );
+}
+
 const POB_LABEL = { unidades: 'Unidades', desarrollos: 'Desarrollos', demanda: 'Demanda' };
 const GEO_NIVELES = ['colonia', 'alcaldia', 'corredor'];
 
@@ -65,6 +138,7 @@ export default function FacetPanel() {
   const [ctLoading, setCtLoading] = useState(false);
 
   useEffect(() => {
+    ensureSkeletonStyle();
     getFacetCatalog()
       .then((d) => {
         setCatalog(d);
@@ -185,7 +259,7 @@ export default function FacetPanel() {
       </Card>
 
       {/* RESULTADO */}
-      {loading && <Card style={card}>Contando oferta y demanda…</Card>}
+      {loading && <ResultSkeleton />}
       {data && !qErr && !loading && <FacetResult data={data} ctx={queryCtx} />}
 
       {/* CROSS-TAB (2D) */}
@@ -289,14 +363,14 @@ function FacetResult({ data, ctx }) {
       {/* INDEPENDIENTE — dos tarjetas lado a lado */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         <SideCard
-          title="Oferta · lo que existe" accent="#22c55e" side={oferta} fuente={oferta.fuente || proc.oferta}
+          title="Oferta · lo que existe" kind="oferta" accent="#22c55e" side={oferta} fuente={oferta.fuente || proc.oferta}
           action={ctx ? (
             <button style={{ ...btnGhost, padding: '5px 12px', fontSize: 11.5 }} onClick={verLasN} disabled={allLoading}>
               {allLoading ? 'Listando…' : allOpen ? 'ocultar lista' : `ver las ${fmtN(oferta.total)} →`}
             </button>
           ) : null}
         />
-        <SideCard title="Demanda · lo que se busca" accent="var(--theme)" side={demanda} fuente={demanda.fuente || proc.demanda} />
+        <SideCard title="Demanda · lo que se busca" kind="demanda" accent="var(--theme)" side={demanda} fuente={demanda.fuente || proc.demanda} />
       </div>
 
       {/* LISTA GENERAL (todas las N de la oferta del filtro) */}
@@ -317,7 +391,7 @@ function FacetResult({ data, ctx }) {
           </div>
         </div>
 
-        {porValor.length === 0 && <div style={{ fontSize: 12.5, color: '#666' }}>Sin cruce por valor todavía.</div>}
+        {porValor.length === 0 && <div style={{ fontSize: 12.5, color: '#888' }}>Esta consulta no devolvió cruce de oferta vs demanda por {groupBy}. Prueba otra agrupación, otra ventana, o quita filtros.</div>}
         {porValor.length > 0 && (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -334,6 +408,8 @@ function FacetResult({ data, ctx }) {
               {porValor.map((r, i) => {
                 const gap = r.gap != null ? r.gap : (r.demanda || 0) - (r.oferta || 0);
                 const gapColor = gap > 0 ? '#22c55e' : gap < 0 ? '#dc2626' : '#888';
+                // Texto que NO depende del color: "falta N — oportunidad" / "sobra N — sobreoferta".
+                const gapWord = gap > 0 ? `falta ${fmtN(gap)} · oportunidad` : gap < 0 ? `sobra ${fmtN(-gap)} · sobreoferta` : 'equilibrado';
                 const valor = r.valor;
                 const open = rowKey === valor;
                 return (
@@ -342,7 +418,10 @@ function FacetResult({ data, ctx }) {
                       <td style={td}>{valor ?? '—'}</td>
                       <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.oferta)}</td>
                       <td style={{ ...td, textAlign: 'right', color: '#bbb' }}>{fmtN(r.demanda)}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: gapColor }}>{gap > 0 ? '+' : ''}{fmtN(gap)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: gapColor }}>{gap > 0 ? '+' : ''}{fmtN(gap)}</div>
+                        <div style={{ fontSize: 10, color: '#888', whiteSpace: 'nowrap' }}>{gapWord}</div>
+                      </td>
                       <td style={{ ...td, textAlign: 'right' }}>
                         {r.tension != null && r.tension !== '' ? <Badge tone={tensionTone(r.tension)}>{r.tension}</Badge> : <span style={{ color: '#555' }}>—</span>}
                       </td>
@@ -376,8 +455,15 @@ function FacetResult({ data, ctx }) {
           </table>
         )}
 
-        <div style={{ fontSize: 11.5, color: '#777', marginTop: 10 }}>
-          <span style={{ color: '#22c55e' }}>verde</span> = demanda &gt; oferta (oportunidad) · <span style={{ color: '#dc2626' }}>rojo</span> = oferta &gt; demanda (sobreoferta)
+        <div style={{ fontSize: 11.5, color: '#777', marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: '#22c55e', display: 'inline-block' }} />
+            <span><strong style={{ color: '#22c55e' }}>falta</strong> (demanda &gt; oferta) = oportunidad</span>
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: '#dc2626', display: 'inline-block' }} />
+            <span><strong style={{ color: '#dc2626' }}>sobra</strong> (oferta &gt; demanda) = sobreoferta</span>
+          </span>
         </div>
         {rel.lectura && <div style={{ fontSize: 13, color: '#ddd', lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontStyle: 'italic' }}>{rel.lectura}</div>}
       </Card>
@@ -408,7 +494,7 @@ function EntityList({ list, pob, title, note, embedded }) {
     <>
       {header}
       {entidades.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: '#666' }}>Sin entidades que cumplan.</div>
+        <div style={{ fontSize: 12.5, color: '#888' }}>Ninguna entidad cumple este filtro. Si esperabas resultados, revisa la clave/valor de los filtros o amplía la ventana.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <EntityTable entidades={entidades} pob={pob} />
@@ -505,28 +591,76 @@ function EntityTable({ entidades, pob }) {
   );
 }
 
-function SideCard({ title, accent, side, fuente, action }) {
+function SideCard({ title, kind, accent, side, fuente, action }) {
   const breakdown = side.breakdown || [];
-  const mx = Math.max(1, ...breakdown.map((b) => b.n || 0));
+  const ns = breakdown.map((b) => b.n || 0);
+  const mx = Math.max(1, ...ns);
+  // Promedio del propio desglose → marca de referencia para que el ojo compare cada barra contra él.
+  const avg = ns.length ? ns.reduce((a, c) => a + c, 0) / ns.length : 0;
+  const avgPct = mx > 0 ? Math.min(100, (avg / mx) * 100) : 0;
+  // Etiqueta de texto del lado (oferta/demanda) → significado sin depender del color.
+  const kindLabel = kind ? String(kind) : null;
+
   return (
     <Card style={card}>
-      <div style={lbl}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+        <span style={lbl}>{title}</span>
+        {kindLabel && (
+          <span style={{
+            fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: accent, border: `1px solid ${accent}`, borderRadius: 9999, padding: '2px 8px',
+          }}>{kindLabel}</span>
+        )}
+      </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 34, fontWeight: 800, color: accent, letterSpacing: '-0.02em', lineHeight: 1 }}>{fmtN(side.total)}</span>
-        <span style={{ fontSize: 12.5, color: '#888' }}>total</span>
+        <span style={{ fontSize: 12.5, color: '#888' }}>{kindLabel ? `${kindLabel} (total)` : 'total'}</span>
         {action && <span style={{ marginLeft: 'auto' }}>{action}</span>}
       </div>
-      {breakdown.length === 0 && <div style={{ fontSize: 12, color: '#666' }}>Sin desglose.</div>}
-      <div style={{ display: 'grid', gap: 5 }}>
-        {breakdown.map((b, i) => (
-          <div key={b.valor ?? i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
-            <span style={{ width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#ddd' }}>{b.valor ?? '—'}</span>
-            <span style={{ flex: 1, height: 9, borderRadius: 2, background: accent, opacity: 0.7, width: `${((b.n || 0) / mx) * 100}%` }} />
-            <strong style={{ width: 48, textAlign: 'right', color: accent }}>{fmtN(b.n)}</strong>
-            <span style={{ width: 44, textAlign: 'right', fontSize: 11, color: '#888' }}>{b.pct != null ? `${b.pct}%` : '—'}</span>
+      {breakdown.length === 0 ? (
+        <div style={{ fontSize: 12, color: '#888' }}>
+          Sin desglose para esta consulta. Ajusta los filtros, la geo o la ventana para ver el corte de {kindLabel || 'datos'}.
+        </div>
+      ) : (
+        <>
+          {/* Escala de referencia: el ojo sabe contra qué compara (máx del desglose + línea de promedio). */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10.5, color: '#888', marginBottom: 6 }}>
+            <span style={{ width: 110 }} />
+            <span style={{ flex: 1, display: 'flex', justifyContent: 'space-between' }}>
+              <span>0</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'inline-block', width: 1, height: 9, background: '#bbb' }} />
+                prom {fmtN(Math.round(avg))}
+              </span>
+              <span>máx {fmtN(mx)}</span>
+            </span>
+            <span style={{ width: 48 }} />
+            <span style={{ width: 44 }} />
           </div>
-        ))}
-      </div>
+          <div style={{ display: 'grid', gap: 5 }}>
+            {breakdown.map((b, i) => {
+              const n = b.n || 0;
+              const w = (n / mx) * 100;
+              return (
+                <div key={b.valor ?? i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                  <span style={{ width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#ddd' }}>{b.valor ?? '—'}</span>
+                  {/* riel con barra + tick de promedio (línea vertical tenue) */}
+                  <span style={{ flex: 1, position: 'relative', height: 9, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                    <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 2, background: accent, opacity: 0.7, width: `${w}%` }} />
+                    <span title={`promedio ${fmtN(Math.round(avg))}`} style={{ position: 'absolute', left: `${avgPct}%`, top: -2, bottom: -2, width: 1, background: 'rgba(255,255,255,0.55)' }} />
+                  </span>
+                  <strong style={{ width: 48, textAlign: 'right', color: accent }}>{fmtN(n)}</strong>
+                  <span style={{ width: 44, textAlign: 'right', fontSize: 11, color: '#888' }}>{b.pct != null ? `${b.pct}%` : '—'}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10.5, color: '#777', marginTop: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ display: 'inline-block', width: 1, height: 9, background: 'rgba(255,255,255,0.55)' }} />
+            línea vertical = promedio del desglose ({fmtN(Math.round(avg))})
+          </div>
+        </>
+      )}
       {fuente && <div style={{ fontSize: 11, color: '#777', marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>fuente: {fuente}</div>}
     </Card>
   );
@@ -539,7 +673,7 @@ function CrosstabTable({ ct }) {
   return (
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto' }}>
       <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{ct.facet_a} (filas) × {ct.facet_b} (columnas)</div>
-      {rows.length === 0 && <div style={{ fontSize: 12.5, color: '#666' }}>Sin datos para este cruce.</div>}
+      {rows.length === 0 && <div style={{ fontSize: 12.5, color: '#888' }}>Este cruce ({ct.facet_a} × {ct.facet_b}) no devolvió combinaciones con datos. Prueba otras dos facetas.</div>}
       {rows.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
           <thead>
@@ -577,8 +711,18 @@ function UnmetSection({ unmet }) {
         <div style={lbl}>Lo que NO existe · demanda con 0 oferta</div>
         <Badge tone="ok">oportunidad</Badge>
       </div>
-      {unmet == null && <div style={{ fontSize: 12.5, color: '#888' }}>Cargando huecos…</div>}
-      {unmet && huecos.length === 0 && <div style={{ fontSize: 12.5, color: '#666' }}>Sin huecos detectados por ahora.</div>}
+      {unmet == null && (
+        <div role="status" aria-busy="true" style={{ display: 'grid', gap: 8 }}>
+          <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>Cargando huecos…</span>
+          {[88, 70, 80].map((w, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12 }}>
+              <div style={skBlock(`${w}%`, 11)} />
+              <div style={skBlock(40, 11, { marginLeft: 'auto' })} />
+            </div>
+          ))}
+        </div>
+      )}
+      {unmet && huecos.length === 0 && <div style={{ fontSize: 12.5, color: '#888' }}>Sin huecos detectados: la oferta cubre la demanda registrada (o aún no hay búsquedas con 0 oferta).</div>}
       {huecos.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>

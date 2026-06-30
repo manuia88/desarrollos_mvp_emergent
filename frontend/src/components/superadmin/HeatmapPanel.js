@@ -46,10 +46,11 @@ function colorFor(v, escala, divergente) {
   return rgb([lerp(lo[0], hi[0], t), lerp(lo[1], hi[1], t), lerp(lo[2], hi[2], t)]);
 }
 // radio del marcador (px) proporcional a |valor| (o n_devs como respaldo) dentro de la escala.
+// A zoom de ciudad los círculos deben resaltar sobre el basemap oscuro → mínimo 10, máximo 22px.
 function radiusFor(p, escala) {
   const lim = escala ? Math.max(Math.abs(escala.min || 0), Math.abs(escala.max || 0), 1e-9) : 1;
   const base = p.valor != null ? Math.abs(p.valor) / lim : (p.n_devs ? Math.min(1, p.n_devs / 10) : 0.25);
-  return Math.round(7 + Math.max(0, Math.min(1, base)) * 15); // 7..22 px
+  return Math.round(10 + Math.max(0, Math.min(1, base)) * 12); // 10..22 px
 }
 
 // formato de valor para etiquetas (usa la unidad si vino del catálogo)
@@ -191,15 +192,11 @@ export default function HeatmapPanel() {
 
       {/* ── MAPA + LISTAS (las listas SIEMPRE visibles) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 16, alignItems: 'start' }}>
-        <HeatMap puntos={puntos} escala={escala} divergente={divergente} unidad={unidadActual} loading={loading} />
+        <HeatMap puntos={puntos} escala={escala} divergente={divergente} unidad={unidadActual} loading={loading} top={top} />
         <div style={{ display: 'grid', gap: 14 }}>
           <RankList title={divergente ? 'Mayor tensión' : 'Más alto'} items={top} escala={escala} divergente={divergente} unidad={unidadActual} alto />
           <RankList title={divergente ? 'Menor tensión' : 'Más bajo'} items={bottom} escala={escala} divergente={divergente} unidad={unidadActual} />
-          {escala && (
-            <div style={{ fontSize: 11, color: '#777', lineHeight: 1.5 }}>
-              {escala.con_dato} de {escala.total} colonias con dato. Clic en una para centrar el mapa.
-            </div>
-          )}
+          <DataState escala={escala} hasData={!!data} />
         </div>
       </div>
     </div>
@@ -207,22 +204,61 @@ export default function HeatmapPanel() {
 }
 
 // ── LEYENDA de color (min ↔ max) ─────────────────────────────────────────────
+// Texto explícito de qué significa el color, no solo el gradiente.
 function Legend({ escala, divergente, unidad }) {
   if (!escala) return null;
   const grad = divergente
     ? 'linear-gradient(90deg, rgb(220,70,60), rgb(90,95,110), rgb(34,197,94))'
     : 'linear-gradient(90deg, rgb(120,140,230), rgb(67,56,202))';
   return (
-    <div style={{ minWidth: 220 }}>
-      <div style={{ height: 10, borderRadius: 6, background: grad, border: '1px solid rgba(255,255,255,0.12)' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#888', marginTop: 4 }}>
+    <div style={{ minWidth: 240 }}>
+      <div style={{ fontSize: 10, color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>
+        Qué significa el color
+      </div>
+      <div style={{ height: 12, borderRadius: 6, background: grad, border: '1px solid rgba(255,255,255,0.18)' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#bbb', marginTop: 5, fontWeight: 600 }}>
         <span>{fmtVal(escala.min, unidad)}</span>
-        {divergente && <span style={{ color: '#999' }}>0</span>}
+        {divergente && <span style={{ color: '#9aa0b0' }}>0</span>}
         <span>{fmtVal(escala.max, unidad)}</span>
       </div>
-      <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-        {divergente ? 'rojo = sobreoferta · verde = oportunidad' : 'claro → intenso a más valor'}
-      </div>
+      {divergente ? (
+        <div style={{ fontSize: 10.5, color: '#9aa0b0', marginTop: 6, lineHeight: 1.5 }}>
+          <span style={{ color: 'rgb(220,90,80)', fontWeight: 700 }}>rojo</span> = sobreoferta (negativo)
+          {' · '}<span style={{ color: '#9aa0b0', fontWeight: 700 }}>gris</span> = en equilibrio (0)
+          {' · '}<span style={{ color: 'rgb(52,197,110)', fontWeight: 700 }}>verde</span> = oportunidad (positivo)
+        </div>
+      ) : (
+        <div style={{ fontSize: 10.5, color: '#9aa0b0', marginTop: 6, lineHeight: 1.5 }}>
+          <span style={{ color: 'rgb(140,160,235)', fontWeight: 700 }}>claro</span> = menor valor (mín)
+          {' → '}<span style={{ color: 'rgb(120,108,220)', fontWeight: 700 }}>intenso</span> = mayor valor (máx)
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ESTADO HONESTO de cobertura de dato ──────────────────────────────────────
+// con_dato / total visible; si con_dato=0 → mensaje claro de "sin dato" (no mapa vacío sin explicación).
+function DataState({ escala, hasData }) {
+  if (!hasData) return null;
+  const con = escala?.con_dato;
+  const tot = escala?.total;
+  if (con === 0) {
+    return (
+      <Card style={{ ...card, padding: '10px 12px', borderLeft: '3px solid #d97706' }}>
+        <div style={{ fontSize: 12, color: '#e0a050', fontWeight: 700 }}>Sin dato para esta selección</div>
+        <div style={{ fontSize: 11, color: '#999', marginTop: 3, lineHeight: 1.5 }}>
+          Ninguna de las {tot ?? '—'} colonias tiene valor para esta métrica. Prueba otra métrica o segmento.
+        </div>
+      </Card>
+    );
+  }
+  if (con == null || tot == null) return null;
+  return (
+    <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+      <strong style={{ color: '#bbb' }}>{con} de {tot}</strong> colonias con dato
+      {con < tot ? <span style={{ color: '#777' }}> · las {tot - con} restantes salen en gris</span> : null}.
+      {' '}Clic en una para centrar el mapa.
     </div>
   );
 }
@@ -243,6 +279,11 @@ function RankList({ title, items, escala, divergente, unidad, alto }) {
       <div style={{ display: 'grid', gap: 2 }}>
         {items.map((it, i) => {
           const c = colorFor(it.valor, escala, divergente);
+          // texto de tensión (no depender solo del color): signo del valor → oportunidad / sobreoferta
+          const tensTxt = divergente && it.valor != null
+            ? (it.valor > 0 ? 'oportunidad' : it.valor < 0 ? 'sobreoferta' : 'equilibrio')
+            : null;
+          const tensCol = it.valor > 0 ? '#22c55e' : it.valor < 0 ? 'rgb(225,110,100)' : '#9aa0b0';
           return (
             <button
               key={(it.nombre || i) + '-' + i}
@@ -257,10 +298,13 @@ function RankList({ title, items, escala, divergente, unidad, alto }) {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 9999, background: c, flexShrink: 0 }} />
+                <span style={{ width: 10, height: 10, borderRadius: 9999, background: c, flexShrink: 0, border: '1px solid rgba(255,255,255,0.35)' }} />
                 <span style={{ fontSize: 12, color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.nombre}</span>
               </span>
-              <span style={{ fontSize: 12, color: '#fff', fontWeight: 700, flexShrink: 0 }}>{fmtVal(it.valor, unidad)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {tensTxt && <span style={{ fontSize: 10, color: tensCol, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>{tensTxt}</span>}
+                <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>{fmtVal(it.valor, unidad)}</span>
+              </span>
             </button>
           );
         })}
@@ -270,7 +314,7 @@ function RankList({ title, items, escala, divergente, unidad, alto }) {
 }
 
 // ── EL MAPA (maplibre LAZY, mismo patrón que LugaresMap) ─────────────────────
-function HeatMap({ puntos, escala, divergente, unidad, loading }) {
+function HeatMap({ puntos, escala, divergente, unidad, loading, top }) {
   const ref = useRef(null);
   const mapRef = useRef(null);
   const mlRef = useRef(null);
@@ -304,6 +348,12 @@ function HeatMap({ puntos, escala, divergente, unidad, loading }) {
     return () => { cancelled = true; if (mapRef.current) { try { mapRef.current.remove(); } catch (e) { /* noop */ } mapRef.current = null; } };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // nombres del top-5 → etiqueta de valor permanente sobre el punto (lectura sin hover)
+  const labeledNames = useMemo(
+    () => new Set((top || []).slice(0, 5).map((t) => t.nombre)),
+    [top],
+  );
+
   // (re)pintar los marcadores cuando cambian los puntos / escala
   useEffect(() => {
     const map = mapRef.current; const maplibregl = mlRef.current;
@@ -313,25 +363,46 @@ function HeatMap({ puntos, escala, divergente, unidad, loading }) {
     pts.forEach((p) => {
       const r = radiusFor(p, escala);
       const c = colorFor(p.valor, escala, divergente);
+      const labeled = labeledNames.has(p.nombre);
+      // wrapper centra el círculo y permite colgar una etiqueta de valor debajo (top-5)
       const el = document.createElement('div');
-      el.style.cssText = `width:${r}px;height:${r}px;border-radius:9999px;background:${c};opacity:.82;`
-        + 'border:1px solid rgba(255,255,255,0.55);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.45);';
+      el.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+      const dot = document.createElement('div');
+      // halo oscuro + borde blanco → el círculo resalta sobre el basemap dark
+      dot.style.cssText = `width:${r}px;height:${r}px;border-radius:9999px;background:${c};opacity:.95;`
+        + 'border:2px solid rgba(255,255,255,0.9);box-sizing:border-box;'
+        + 'box-shadow:0 0 0 1px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.5);';
+      el.appendChild(dot);
+      if (labeled && p.valor != null) {
+        const tag = document.createElement('div');
+        tag.textContent = fmtVal(p.valor, unidad);
+        tag.style.cssText = "margin-top:3px;font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:800;"
+          + 'color:#fff;background:rgba(12,14,22,0.9);border:1px solid rgba(255,255,255,0.25);'
+          + 'border-radius:6px;padding:1px 5px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.5);';
+        el.appendChild(tag);
+      }
       const safe = (s) => String(s == null ? '' : s).replace(/</g, '&lt;');
       const extra = (p.oferta != null || p.demanda != null)
-        ? `<div style="color:#A2A6BC;font-size:11px;margin-top:2px;">oferta ${p.oferta ?? '—'} · demanda ${p.demanda ?? '—'}</div>` : '';
-      const html = `<div style="font-family:'DM Sans',sans-serif;max-width:200px;">`
-        + `<div style="font-weight:700;font-size:12.5px;color:#3A3E55;">${safe(p.nombre)}</div>`
-        + `<div style="color:#0E7A53;font-weight:800;font-size:12px;margin-top:2px;">${safe(fmtVal(p.valor, unidad))}</div>`
-        + `${p.alcaldia ? `<div style="color:#A2A6BC;font-size:11px;">${safe(p.alcaldia)}</div>` : ''}${extra}</div>`;
+        ? `<div style="color:#A2A6BC;font-size:11px;margin-top:3px;">oferta ${p.oferta ?? '—'} · demanda ${p.demanda ?? '—'}</div>` : '';
+      const html = `<div style="font-family:'DM Sans',sans-serif;max-width:220px;">`
+        + `<div style="font-weight:700;font-size:13px;color:#3A3E55;">${safe(p.nombre)}</div>`
+        + `<div style="color:#0E7A53;font-weight:800;font-size:14px;margin-top:2px;">${safe(fmtVal(p.valor, unidad))}</div>`
+        + `${p.alcaldia ? `<div style="color:#A2A6BC;font-size:11px;margin-top:1px;">${safe(p.alcaldia)}</div>` : ''}${extra}</div>`;
       const popup = new maplibregl.Popup({ offset: 12, closeButton: false }).setHTML(html);
       try {
         const mk = new maplibregl.Marker({ element: el }).setLngLat([p.lng, p.lat]).setPopup(popup).addTo(map);
-        el.addEventListener('mouseenter', () => { try { if (!popup.isOpen()) mk.togglePopup(); } catch (e) { /* noop */ } });
-        el.addEventListener('mouseleave', () => { try { if (popup.isOpen()) mk.togglePopup(); } catch (e) { /* noop */ } });
+        el.addEventListener('mouseenter', () => {
+          dot.style.transform = 'scale(1.15)';
+          try { if (!popup.isOpen()) mk.togglePopup(); } catch (e) { /* noop */ }
+        });
+        el.addEventListener('mouseleave', () => {
+          dot.style.transform = '';
+          try { if (popup.isOpen()) mk.togglePopup(); } catch (e) { /* noop */ }
+        });
         markersRef.current.push(mk);
       } catch (e) { /* noop */ }
     });
-  }, [pts, escala, divergente, unidad, ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pts, escala, divergente, unidad, ready, labeledNames]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // centrar el mapa cuando una colonia de la lista pide foco
   useEffect(() => {
@@ -370,6 +441,26 @@ function HeatMap({ puntos, escala, divergente, unidad, loading }) {
       {ready > 0 && pts.length === 0 && !loading && (
         <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(12,14,22,0.85)', color: '#aaa', fontSize: 12, padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
           Ninguna colonia con dato para esta selección.
+        </div>
+      )}
+      {/* leyenda compacta SOBRE el mapa: el color queda explicado sin salir del mapa */}
+      {escala && pts.length > 0 && (
+        <div style={{ position: 'absolute', left: 12, bottom: 12, background: 'rgba(12,14,22,0.9)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '8px 10px', maxWidth: 230 }}>
+          <div style={{
+            height: 8, borderRadius: 5, marginBottom: 5,
+            background: divergente
+              ? 'linear-gradient(90deg, rgb(220,70,60), rgb(90,95,110), rgb(34,197,94))'
+              : 'linear-gradient(90deg, rgb(120,140,230), rgb(67,56,202))',
+          }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', fontWeight: 600 }}>
+            <span>{fmtVal(escala.min, unidad)}</span>
+            {divergente && <span style={{ color: '#9aa0b0' }}>0</span>}
+            <span>{fmtVal(escala.max, unidad)}</span>
+          </div>
+          <div style={{ fontSize: 9.5, color: '#9aa0b0', marginTop: 4 }}>
+            {divergente ? 'rojo sobreoferta · verde oportunidad' : 'claro → intenso a más valor'}
+          </div>
+          <div style={{ fontSize: 9.5, color: '#777', marginTop: 3 }}>círculo = colonia · tamaño = magnitud</div>
         </div>
       )}
     </div>
