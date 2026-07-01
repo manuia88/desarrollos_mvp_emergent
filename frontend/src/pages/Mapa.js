@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import Navbar from '../components/landing/Navbar';
 import { fetchColonias } from '../api/marketplace';
 import { X, ArrowRight } from '../components/icons';
 import { Z } from '../styles/zIndex';
@@ -80,7 +79,7 @@ function _polyCentroid(geom) {
   } catch { return null; }
 }
 
-export default function Mapa({ user, onLogin, onLogout }) {
+export default function Mapa() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const mapRef = useRef(null);
@@ -443,104 +442,69 @@ export default function Mapa({ user, onLogin, onLogout }) {
   }, [mapReady]);
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
-      <main style={{ paddingTop: 60, position: 'relative', height: 'calc(100vh - 60px)' }}>
-        {!TOKEN && (
-          <div style={{
-            position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-            zIndex: Z.DROPDOWN, padding: '14px 20px',
-            background: 'rgba(239,68,68,0.14)',
-            border: '1px solid rgba(239,68,68,0.4)',
-            borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',
-          }} data-testid="mapbox-token-missing">
-            {t('mapa.token_missing')}
-          </div>
-        )}
-        <div ref={container} style={{ position: 'absolute', inset: 0 }} data-testid="mapa-container" />
+    // LAYOUT full-viewport: SIDEBAR (info) + MAPA. Un solo producto integrado — sin widgets sueltos.
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fff' }}>
 
-        {/* Floating header — tarjeta clara (glass blanco). top:76 = LIMPIO del navbar (60px) → ya no encimado. */}
-        <div style={{
-          position: 'absolute', top: 76, left: 20, zIndex: Z.DROPDOWN,
-          padding: '16px 20px',
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid #ECECEC',
-          backdropFilter: 'blur(18px)',
-          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
-          borderRadius: 18,
-          maxWidth: 340,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>{tc('Mapa de Valores · CDMX')}</div>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: '#1E2230', letterSpacing: '-0.02em', marginBottom: 6 }}>
-            ¿Cuánto cuesta el m² por colonia?
-          </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: '#5A5F6E', lineHeight: 1.5 }}>
-            Precio por m² real de cada colonia. Toca una para ver su valuación, plusvalía y qué tan segura es.
+      {/* ========================= SIDEBAR (hub de info · un solo scroll) ========================= */}
+      <aside style={{
+        width: 400, flexShrink: 0, height: '100vh', overflowY: 'auto',
+        background: '#fff', borderRight: '1px solid #ECECEC',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Header limpio: brand + eyebrow */}
+        <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid #F1F2F6' }}>
+          <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#1E2230', letterSpacing: '-0.02em' }}>
+              Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span>
+            </span>
+          </Link>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginTop: 8 }}>
+            {tc('Mapa de Valores · CDMX')}
           </div>
         </div>
 
-        {/* Toolbar flotante limpia (estilo Monopolio) · top:76 = limpio del navbar */}
-        <div style={{
-          position: 'absolute', top: 76, right: 20, zIndex: Z.DROPDOWN,
-          display: 'flex', gap: 6, padding: 4,
-          background: 'rgba(255,255,255,0.92)', border: '1px solid #ECECEC',
-          backdropFilter: 'blur(18px)', boxShadow: '0 12px 36px rgba(16,24,40,0.12)', borderRadius: 9999,
-        }}>
-          <button data-testid="layer-toggle-ie" style={{
-            padding: '7px 14px', borderRadius: 9999, background: 'var(--grad)', color: '#fff',
-            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'default',
-          }}>{tc('Mapa de precios')}</button>
-          <button onClick={() => setShowDevs((v) => !v)} data-testid="toggle-desarrollos" style={{
-            padding: '7px 14px', borderRadius: 9999,
-            background: showDevs ? 'rgba(31,160,106,0.14)' : 'transparent',
-            color: showDevs ? '#1FA06A' : '#5A5F6E',
-            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
-          }}>{tc('Desarrollos')}</button>
-        </div>
+        {/* Cuerpo del sidebar: bienvenida ↔ colonia seleccionada */}
+        {!selectedColonia ? (
+          /* ---------- BIENVENIDA (sin colonia) ---------- */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '28px 26px' }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#1E2230', letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 12 }}>
+              ¿Cuánto cuesta el m² por colonia?
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: '#5A5F6E', lineHeight: 1.55 }}>
+              Precio por m² real de cada colonia. Toca una en el mapa para ver su valuación, plusvalía y qué tan segura es.
+            </div>
 
-        {/* Legend — Precio por m² (rampa morada · tarjeta clara) */}
-        <div style={{
-          position: 'absolute', bottom: 20, left: 20, zIndex: Z.DROPDOWN,
-          padding: '12px 16px',
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid #ECECEC',
-          backdropFilter: 'blur(18px)',
-          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
-          borderRadius: 14,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 8 }}>{tc('Valor del suelo · $/m²')}</div>
-          <div style={{
-            width: 160, height: 8, borderRadius: 9999,
-            background: 'linear-gradient(to right, #CFE3F2, #9079D8, #7C5CFF, #9B46CB, #C63FAE)',
-          }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: 160, fontFamily: 'DM Sans', fontSize: 10, color: '#5A5F6E', marginTop: 5 }}>
-            <span>$500</span><span>$3k</span><span>$19k+</span>
+            {/* Leyenda de la rampa (parte de la bienvenida, no flotante) */}
+            <div style={{ marginTop: 'auto', paddingTop: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 10 }}>{tc('Valor del suelo · $/m²')}</div>
+              <div style={{
+                height: 10, borderRadius: 9999,
+                background: 'linear-gradient(to right, #CFE3F2, #9079D8, #7C5CFF, #9B46CB, #C63FAE)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', marginTop: 6 }}>
+                <span>$500</span><span>$3k</span><span>$19k+</span>
+              </div>
+              <div style={{ fontSize: 10, color: '#9AA0AE', marginTop: 8 }}>Catastro oficial SIGCDMX · acércate para ver los predios.</div>
+            </div>
           </div>
-          <div style={{ fontSize: 9.5, color: '#9AA0AE', marginTop: 6 }}>Catastro oficial SIGCDMX · click = predios</div>
-        </div>
-
-        {/* Panel rico de colonia — CLARO · gráfica histórica de plusvalía + AVM + scores + Vigila */}
-        {selectedColonia && (() => {
+        ) : (() => {
+          /* ---------- COLONIA SELECCIONADA ---------- */
           const c = selectedColonia;
-          const tr = c.trend || [];
           const up = c.momentum_positive !== false && !String(c.momentum || '').startsWith('-');
           const isW = !!watched[c.id];
           return (
-          <div data-testid="colonia-side-panel" style={{
-            position: 'absolute', top: 100, right: 20, zIndex: Z.DROPDOWN,
-            width: 360, maxHeight: 'calc(100% - 140px)', overflowY: 'auto',
-            padding: 22, background: 'rgba(255,255,255,0.97)', border: '1px solid #ECECEC',
-            backdropFilter: 'blur(18px)', boxShadow: '0 24px 60px rgba(16,24,40,0.18)', borderRadius: 20,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 4 }}>{c.alcaldia}</div>
-                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#1E2230', letterSpacing: '-0.02em' }}>{c.name}</div>
-              </div>
-              <button onClick={() => setSelected(null)} data-testid="close-panel" style={{
-                width: 30, height: 30, borderRadius: 9999, background: '#F1F2F6', border: '1px solid #ECECEC',
-                color: '#5A5F6E', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}><X size={13} /></button>
+          <div data-testid="colonia-side-panel" style={{ padding: '20px 26px 28px' }}>
+            {/* Volver a la bienvenida */}
+            <button onClick={() => setSelected(null)} data-testid="close-panel" style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', marginBottom: 18,
+              borderRadius: 9999, background: '#F6F4FF', border: '1px solid #E7E0FF',
+              color: 'var(--theme)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+            }}><X size={12} /> Ver todo el mapa</button>
+
+            {/* Encabezado */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 4 }}>{c.alcaldia}</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#1E2230', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{c.name}</div>
             </div>
 
             {/* Precio/m² grande + plusvalía (o aviso si la colonia aún no tiene valuación) */}
@@ -600,7 +564,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
                 const upv = (lastYoy ?? 0) >= 0, col = upv ? '#1FA06A' : '#C63FAE';
                 const alc = valoracion.alcaldia_plusvalia && valoracion.alcaldia_plusvalia.alcaldia;
                 return (
-                  <div style={{ marginTop: 12, marginBottom: 16 }}>
+                  <div style={{ marginTop: 16, marginBottom: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E' }}>{tc('Plusvalía · valorización anual')}</div>
                       {lastYoy != null && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: col }}>{upv ? '▲' : '▼'} {Math.abs(lastYoy).toFixed(1)}%/año</div>}
@@ -621,13 +585,13 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
             {/* Sello de calidad — solo si NO hay dato real (ni catastro oficial ni scores) */}
             {!catastro && (c.calidad_estimada || (!c.has_data && !c.scores)) && (
-              <div style={{ marginBottom: 10 }}>
+              <div style={{ marginTop: 12, marginBottom: 10 }}>
                 <DisclosurePill esEstimado quality={c.calidad_estimada ? 'estimated' : 'seeded'} />
               </div>
             )}
 
             {/* Scores en lenguaje de beneficio */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 16, marginBottom: 16 }}>
               {[['comercio', 'Todo a la Mano'], ['movilidad', 'Llegas Rápido'], ['seguridad', 'Tranquila'], ['vida', 'Mucha Vida']].map(([k, label]) => (
                 <div key={k} style={{ padding: '10px 12px', background: '#F6F4FF', border: '1px solid #E7E0FF', borderRadius: 12 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: '#7C5CFF', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
@@ -693,7 +657,43 @@ export default function Mapa({ user, onLogin, onLogout }) {
           </div>
           );
         })()}
-      </main>
+      </aside>
+
+      {/* ========================= MAPA ========================= */}
+      <div style={{ flex: 1, position: 'relative', height: '100vh' }}>
+        <div ref={container} style={{ position: 'absolute', inset: 0 }} data-testid="mapa-container" />
+
+        {!TOKEN && (
+          <div style={{
+            position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+            zIndex: Z.DROPDOWN, padding: '14px 20px',
+            background: 'rgba(239,68,68,0.14)',
+            border: '1px solid rgba(239,68,68,0.4)',
+            borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',
+          }} data-testid="mapbox-token-missing">
+            {t('mapa.token_missing')}
+          </div>
+        )}
+
+        {/* Único control flotante: segmented pill glass arriba-derecha (capa + toggle desarrollos) */}
+        <div style={{
+          position: 'absolute', top: 16, right: 16, zIndex: Z.DROPDOWN,
+          display: 'flex', gap: 6, padding: 4,
+          background: 'rgba(255,255,255,0.92)', border: '1px solid #ECECEC',
+          backdropFilter: 'blur(18px)', boxShadow: '0 8px 28px rgba(16,24,40,0.12)', borderRadius: 9999,
+        }}>
+          <button data-testid="layer-toggle-ie" style={{
+            padding: '7px 14px', borderRadius: 9999, background: 'var(--grad)', color: '#fff',
+            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'default',
+          }}>{tc('Mapa de precios')}</button>
+          <button onClick={() => setShowDevs((v) => !v)} data-testid="toggle-desarrollos" style={{
+            padding: '7px 14px', borderRadius: 9999,
+            background: showDevs ? 'rgba(31,160,106,0.14)' : 'transparent',
+            color: showDevs ? '#1FA06A' : '#5A5F6E',
+            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+          }}>{tc('Desarrollos')}</button>
+        </div>
+      </div>
     </div>
   );
 }
