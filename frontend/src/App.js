@@ -1173,10 +1173,11 @@ function SimuladorRoute() {
 
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
-  // La ficha NUEVA (FichaDesarrollo) es la default. La v1 legacy se retiró: ?v1 cae al default.
+  // La ficha COCKPIT (FichaCockpit / v3) es la DEFAULT. La v2 (FichaDesarrollo) queda tras ?v2=1 para comparar.
+  // La v1 legacy se retiró: ?v1 cae al default (v3).
   const params = new URLSearchParams(window.location.search);
-  if (params.get('v3')) return <FichaCockpit user={user} onLogin={openAuth} />;   // prototipo cockpit (rediseño UX)
-  return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;
+  if (params.get('v2')) return <FichaDesarrollo user={user} onLogin={openAuth} onLogout={logout} />;   // rebuild anterior (comparación)
+  return <FichaCockpit user={user} onLogin={openAuth} />;   // v3 cockpit — default
 }
 
 // AdvisorRoute es el guard COMPARTIDO de los portales profesionales: lo usan tanto las

@@ -20,6 +20,8 @@ import SeccionDinero from '../components/ficha/SeccionDinero';   // módulo unif
 import PlanDePago from '../components/ficha/PlanDePago';         // simulador del esquema de pago al dev (apartado/enganche/mensualidades/escritura + gastos)
 import SeccionConfianza from '../components/ficha/SeccionConfianza';
 import SeccionUbicacion from '../components/ficha/SeccionUbicacion';
+import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD de asequibilidad "¿cuánto puedo pagar?" — filtra/recomienda unidad por presupuesto (scoped a la unidad)
+import SeccionLente from '../components/ficha/SeccionLente';         // hechos reales del proyecto vistos por el lente (vivir | invertir)
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';   // asistente IA flotante — consciente de la unidad/lente/sección que ve el cliente
 import DevStructuredData from '../components/seo/DevStructuredData';   // GEO: schema RealEstateListing + FAQPage (reconecta el structured data que ya existía)
@@ -115,7 +117,7 @@ function InfoTip({ text }) {
     </span>
   );
 }
-function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnidades, onVerDinero, onVerConfianza }) {
+function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, lens, onVerUnidades, onVerDinero, onVerConfianza }) {
   const cfg = dev.config || {};
   const cp = dev.construction_progress || {};
   const pct = Math.max(0, Math.min(100, cp.percentage || 0));
@@ -167,6 +169,9 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, onVerUnida
   return (
     <div className="dmx-proj" style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
       <PhotoGallery dev={dev} />
+
+      {/* El proyecto visto por TU lente (vivir | invertir): hechos reales del dev a la medida de para qué la quieres */}
+      {lens && <SeccionLente dev={dev} lens={lens} />}
 
       {/* ① LO PRIMERO QUE QUIERE VER — características del depa */}
       <div>
@@ -464,6 +469,8 @@ export default function FichaCockpit({ user, onLogin }) {
   const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
+  // Ancla legacy #ie-scores (click del badge de ranking en el marketplace): en la v3 no hay sección con ese id → aterriza en Confianza (donde vive la lectura de confianza/scores). Sin scroll a un id que no existe.
+  useEffect(() => { if (window.location.hash === '#ie-scores') setTab('confianza'); }, []);
   useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
   // Atlax AGÉNTICO: sus botones manejan la ficha (navegar tabs · agendar · guardar). navRef trae los últimos handlers (sin stale).
   const navRef = useRef(null);
@@ -565,7 +572,9 @@ export default function FichaCockpit({ user, onLogin }) {
     <LightScope>
       <DevStructuredData dev={dev} />
       <PublicNav />
-      <a href={`/desarrollo/${id}`} title="Volver al diseño actual" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--cream)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(16,18,28,0.28)' }}>← Diseño actual</a>
+      {process.env.REACT_APP_DEV_PREVIEW === "true" && (
+        <a href={`/desarrollo/${id}?v2=1`} title="Ver el diseño anterior (v2)" style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 9999, background: 'var(--cream)', color: '#fff', fontFamily: HEAD, fontWeight: 800, fontSize: 12.5, textDecoration: 'none', boxShadow: '0 8px 22px rgba(16,18,28,0.28)' }}>← Diseño anterior</a>
+      )}
       <main style={{ paddingTop: 64 }}>
         {/* ── HEADER COMPACTO + TABS (pegajoso) ── */}
         <div style={{ position: 'sticky', top: 56, zIndex: 30, background: 'var(--surface, #faf9f7)', borderBottom: '1px solid var(--card-border, var(--border))', backdropFilter: 'saturate(1.2) blur(6px)' }}>
@@ -598,11 +607,13 @@ export default function FichaCockpit({ user, onLogin }) {
             {/* Lens UNO solo (founder: evitar el toggle duplicado entre Tu unidad y Tu dinero) — persistente en ambas. */}
             {(tab === 'unidad' || tab === 'dinero') && <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />}
 
-            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} onVerUnidades={() => goTab('unidad')} onVerDinero={() => goTab('dinero')} onVerConfianza={() => goTab('confianza')} />}
+            {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} lens={lens} onVerUnidades={() => goTab('unidad')} onVerDinero={() => goTab('dinero')} onVerConfianza={() => goTab('confianza')} />}
 
             {tab === 'unidad' && (
               <>
                 {unit && <div style={{ marginBottom: 20 }}><CockpitCard dev={dev} unit={unit} lens={lens} keyNum={keyNum} hk={hk} kM2={kM2} onVerDinero={() => goTab('dinero')} onAgendar={agendar} saved={savedUnits.has(unit.unit_number)} onToggleSave={toggleSaveUnit} /></div>}
+                {/* WIZARD de asequibilidad "¿cuánto puedo pagar?" — te recomienda la unidad que te queda por presupuesto (scoped a la elegida) */}
+                <div style={{ marginBottom: 20 }}><SeccionPanorama dev={dev} unit={unit} onSelectUnit={pickUnit} /></div>
                 <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} plusvalia={hk.plusvalia} />
               </>
             )}
