@@ -1482,11 +1482,14 @@ app.include_router(internal_users_router)
 from routes.directories import router as directories_router
 app.include_router(directories_router)
 
-# Métricas granulares (roadmap): plusvalía hiper-segmentada + AVM de mercado por predio (nivel manzana en el mapa)
+# Métricas granulares (roadmap): plusvalía hiper-segmentada + AVM de mercado por predio (nivel manzana en el mapa) +
+# gentrificación (zona-subiendo, motor nuevo derivado de plusvalía SHF + crimen a la baja + demanda + edad del parque)
 from routes.plusvalia import router as plusvalia_router
 app.include_router(plusvalia_router)
 from routes.mapa_predios import router as mapa_predios_router
 app.include_router(mapa_predios_router)
+from routes.gentrificacion import router as gentrificacion_router
+app.include_router(gentrificacion_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
