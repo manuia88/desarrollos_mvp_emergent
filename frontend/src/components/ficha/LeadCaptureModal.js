@@ -11,13 +11,19 @@ import { visitorId } from '../../lib/buyerSignal';
 const API = process.env.REACT_APP_BACKEND_URL;
 const REASON_TXT = {
   agendar: 'Agenda tu visita',
+  wizard_vivir: 'Un asesor te arma el plan para vivir aquí',
   asesor_vivir: 'Un asesor te arma el plan',
   asesor: 'Que un asesor te contacte',
   calc_inversion_pdf: 'Recibe tu análisis de inversión',
   default: 'Habla con un asesor',
 };
+// El wizard "para vivir" NO debe heredar el lensLabel "Invertir" de la ficha. Cuando el lead viene del wizard vivir
+// (o el caller pasa lensOverride), forzamos la etiqueta correcta.
+const LENS_OVERRIDE = { wizard_vivir: 'Para vivir', asesor_vivir: 'Para vivir' };
 
-export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason = 'default', onClose }) {
+export default function LeadCaptureModal({ dev, unit, lensLabel, lensOverride, keyAns, reason = 'default', onClose }) {
+  // Etiqueta de lente EFECTIVA: override explícito > override por reason (wizard vivir) > la que trae la ficha.
+  const lens = lensOverride || LENS_OVERRIDE[reason] || lensLabel || null;
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +39,7 @@ export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason 
     try {
       const resp = await fetch(`${API}/api/buyer/registrar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
-        body: JSON.stringify({ visitor_id: visitorId(), name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, dev_id: dev.id, source: `ficha_${reason}`, unit_number: unit ? unit.unit_number : null, lens: lensLabel || null, contexto: keyAns || null }),
+        body: JSON.stringify({ visitor_id: visitorId(), name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, dev_id: dev.id, source: `ficha_${reason}`, unit_number: unit ? unit.unit_number : null, lens: lens || null, contexto: keyAns || null }),
       });
       if (!resp.ok) throw new Error('registro falló');
       setSent(true);
@@ -56,7 +62,7 @@ export default function LeadCaptureModal({ dev, unit, lensLabel, keyAns, reason 
               <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)' }}>
                 <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tu asesor recibe</div>
                 <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 5, lineHeight: 1.5 }}>
-                  {dev.name}{unit ? ` · unidad ${unit.unit_number}` : ''}{lensLabel ? ` · ${lensLabel}` : ''}{keyAns ? ` · ${keyAns}` : ''}. <span style={{ color: 'var(--cream-3)' }}>No repites nada.</span>
+                  {dev.name}{unit ? ` · unidad ${unit.unit_number}` : ''}{lens ? ` · ${lens}` : ''}{keyAns ? ` · ${keyAns}` : ''}. <span style={{ color: 'var(--cream-3)' }}>No repites nada.</span>
                 </div>
               </div>
 

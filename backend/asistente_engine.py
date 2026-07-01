@@ -1395,6 +1395,8 @@ class AsistenteEngine:
         nombre: str, whatsapp: str,
         email: Optional[str] = None, mensaje: Optional[str] = None,
         source: Optional[str] = None,
+        dev_id: Optional[str] = None, unit_number: Optional[str] = None,
+        lens: Optional[str] = None, visitor_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Captura lead, asocia a sesión, persiste en `leads` con source override-able.
 
@@ -1440,6 +1442,19 @@ class AsistenteEngine:
             "last_activity_at": now_iso,
             "created_by": "_asistente_publico",
         }
+        # V3-LEAD-02/ATLAX-01 · ATRIBUCIÓN: adjunta el contexto de la ficha (v3) SOLO cuando llega no-nulo. Sin esto el
+        # lead conversacional quedaba con development_id=None y el DEV nunca lo veía en su cockpit (filtra por ese campo).
+        # Estos campos los lee tanto db.leads como el espejo mirror_lead_to_asesor_contacto (Ficha360 del asesor).
+        _dev = (dev_id or "").strip() or None
+        if _dev:
+            lead["development_id"] = _dev
+            lead["project_id"] = _dev
+        if (unit_number or "").strip():
+            lead["unidad_interes"] = unit_number.strip()[:60]
+        if (lens or "").strip():
+            lead["lente"] = lens.strip()[:60]
+        if (visitor_id or "").strip():
+            lead["visitor_id"] = visitor_id.strip()
         await self.db.leads.insert_one(dict(lead))
         # Puente al CRM del asesor — antes el lead de Atlax quedaba HUÉRFANO en db.leads (assigned_to=None →
         # invisible en "Mis Leads", nunca llegaba al asesor ni al Cerebro). Asigna al receptor público y lo

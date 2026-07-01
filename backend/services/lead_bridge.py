@@ -143,6 +143,17 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             except Exception:  # noqa: BLE001
                 pass
 
+        # V3-LEAD-03 · contexto de la ficha que el comprador eligió (unidad/lente/escenario/desarrollo). NO-DESTRUCTIVO:
+        # solo pisa el campo del contacto cuando este re-engage trae un valor nuevo (None nunca borra lo previo). Así el
+        # espejo se mantiene fresco cuando el comprador vuelve por la v3 sin perder el contexto que ya tenía el asesor.
+        _ctx_upd = {k: v for k, v in {
+            "development_id": lead.get("development_id"),
+            "project_id": lead.get("project_id") or lead.get("development_id"),
+            "unidad_interes": lead.get("unidad_interes"),
+            "lente": lead.get("lente"),
+            "contexto_registro": lead.get("contexto_registro"),
+        }.items() if v}
+
         # 1) ¿ya materializado este lead? → idempotente
         existing = await db.asesor_contactos.find_one(
             {"owner_id": owner, "source_lead_id": lead_id}, {"_id": 0, "id": 1}
@@ -158,6 +169,7 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
                 }
                 if taste_compact:
                     _upd["taste_compact"] = taste_compact   # refresca el gusto al re-engancharse
+                _upd.update(_ctx_upd)   # V3-LEAD-03 · refresca el contexto de la ficha solo si llegó no-nulo
                 await db.asesor_contactos.update_one({"id": existing["id"]}, {"$set": _upd})
             except Exception:  # noqa: BLE001
                 pass
@@ -177,6 +189,15 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
                 _dupset = {"source_lead_id": lead_id, "origin": "marketplace"}
                 if taste_compact:
                     _dupset["taste_compact"] = taste_compact   # alta manual ahora con gusto del comprador
+                _dupset.update(_ctx_upd)   # V3-LEAD-03 · adjunta contexto de la ficha (solo lo no-nulo) al enlazar
+                # El contacto manual ahora hereda la temperatura/engagement REAL del lead (solo si llegó) → el asesor lo
+                # ve calentarse. NO-DESTRUCTIVO: temperatura solo si el lead trae una, score/factores solo si no-nulos.
+                if lead.get("temperatura"):
+                    _dupset["temperatura"] = lead["temperatura"]
+                if lead.get("engagement_score") is not None:
+                    _dupset["engagement_score"] = lead["engagement_score"]
+                if lead.get("engagement_factores"):
+                    _dupset["engagement_factores"] = lead["engagement_factores"]
                 await db.asesor_contactos.update_one({"id": dup["id"]}, {"$set": _dupset})
                 return dup["id"]
 

@@ -42,7 +42,9 @@ async def build_visitor_taste(db, visitor_id: str):
         except Exception:  # noqa: BLE001
             vids = [visitor_id]
         liked, saved, dismissed = set(), set(), {}
-        async for s in db.buyer_signals.find({"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save"]}, "active": True}, {"_id": 0, "entity_id": 1, "type": 1}):
+        # V3-TASTE-DARK: la v3 (ficha unit-céntrica) emite "unit_save" con entity_id=dev_id ya resuelto → cuenta como
+        # señal positiva (guardado) para que el gusto NO se apague al migrar a la ficha nueva. Aditivo, fail-soft.
+        async for s in db.buyer_signals.find({"visitor_id": {"$in": vids}, "type": {"$in": ["like", "save", "unit_save"]}, "active": True}, {"_id": 0, "entity_id": 1, "type": 1}):
             if s.get("entity_id"):
                 (liked if s["type"] == "like" else saved).add(s["entity_id"])
         pos_devs = liked | saved

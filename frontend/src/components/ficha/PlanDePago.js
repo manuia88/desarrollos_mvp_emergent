@@ -5,7 +5,8 @@
  *   Incluye el DESGLOSE DEL CRÉDITO hipotecario para la escrituración (se movió aquí desde la calc; la calc ya hace TIR).
  * Datos reales: GET /api/public/payment-schemes/{dev}. Sin esquema → no se muestra (hide-if-empty).
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { sendBuyerSignal } from '../../lib/buyerSignal';
 import { Card, SERIF, SANS, HEAD } from './ui';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -28,6 +29,50 @@ export default function PlanDePago({ dev, unit }) {
     fetch(`${API}/api/public/payment-schemes/${dev.id}`).then((r) => r.json()).then((d) => { if (alive) setData(d); }).catch(() => {});
     return () => { alive = false; };
   }, [dev.id]);
+
+  // Captura la EXPLORACIÓN financiera "vivir" (antes invisible): el esquema/enganche/mensualidad/plazo que arma el
+  // comprador con el plan del dev. Se re-dispara al cambiar esquema o plazo (no en cada frame), con debounce. Fail-soft.
+  // Nota: hook ANTES del early-return (regla de hooks); recomputa los montos localmente para no depender de derivados.
+  const payFired = useRef(new Set());
+  const payTimer = useRef(null);
+  useEffect(() => {
+    const scs = (data && data.schemes) || [];
+    if (!scs.length) return undefined;
+    const s = scs.find((x) => x.id === selId) || scs[0];
+    if (!s) return undefined;
+    const k = `${dev.id || ''}|${s.id}|${plazo}`;
+    if (payFired.current.has(k)) return undefined;
+    if (payTimer.current) clearTimeout(payTimer.current);
+    payTimer.current = setTimeout(() => {
+      if (payFired.current.has(k)) return;
+      payFired.current.add(k);
+      try {
+        const m = (data && data.meses_auto) || 18;
+        const p = Math.round(basePrice * (1 - (s.descuento_pct || 0) / 100));
+        const fir = p * (s.firma_pct || 0) / 100;
+        const men = m ? (p * (s.mensualidades_pct || 0) / 100) / m : 0;
+        const esc = p * (s.escritura_pct || 0) / 100;
+        sendBuyerSignal('payment_explore', {
+          entity_id: dev.id,
+          unit_number: unit && unit.unit_number,
+          colonia: dev.colonia_id || dev.colonia,
+          value: String(s.nombre || s.id),
+          meta: {
+            esquema: s.nombre || s.id,
+            enganche_pct: s.firma_pct,
+            enganche: Math.round(fir),
+            mensualidad: Math.round(men),
+            meses: m,
+            plazo,
+            escritura: Math.round(esc),
+            precio: p,
+            intent: 'vivir',
+          },
+        });
+      } catch (_) { /* noop */ }
+    }, 500);
+    return () => { if (payTimer.current) clearTimeout(payTimer.current); };
+  }, [data, selId, plazo, basePrice, dev.id, dev.colonia_id, dev.colonia, unit]);
 
   const schemes = (data && data.schemes) || [];
   const meses = (data && data.meses_auto) || 18;

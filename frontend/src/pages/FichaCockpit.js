@@ -36,6 +36,12 @@ function Loading({ msg }) {
   return <LightScope><PublicNav /><div style={{ paddingTop: 170, textAlign: 'center', fontFamily: SANS, color: 'var(--cream-3)' }}>{msg}</div></LightScope>;
 }
 
+// V3-SENSOR-01: emite module_open (via signalModule del padre) cuando el contenido del módulo se MONTA. Cero UI, fail-soft.
+function ModuleOpen({ name, fire }) {
+  useEffect(() => { if (fire && name) fire(name); }, [name]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 // Toggle de lente: para qué la quieres. Cambia los números (mensualidad vs TIR) sin reorganizar la página.
 function LensToggle({ lens, setLens, invMode, setInvMode }) {
   const pill = (active) => ({ padding: '8px 16px', borderRadius: 9999, border: active ? '1.5px solid var(--theme)' : '1px solid var(--card-border, var(--border))', background: active ? 'rgba(99,102,241,0.08)' : 'transparent', color: active ? 'var(--theme)' : 'var(--cream-2)', fontFamily: HEAD, fontWeight: 800, fontSize: 13.5, cursor: 'pointer' });
@@ -471,7 +477,25 @@ export default function FichaCockpit({ user, onLogin }) {
   useEffect(() => { document.body.classList.add('public-light'); return () => document.body.classList.remove('public-light'); }, []);
   // Ancla legacy #ie-scores (click del badge de ranking en el marketplace): en la v3 no hay sección con ese id → aterriza en Confianza (donde vive la lectura de confianza/scores). Sin scroll a un id que no existe.
   useEffect(() => { if (window.location.hash === '#ie-scores') setTab('confianza'); }, []);
-  useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor' }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
+  // V3-LEAD-04: el wizard (dmx:lead) trae su unidad recomendada y el perfil del comprador → los llevamos al modal (y al asesor).
+  useEffect(() => { const onLead = (e) => setLeadModal({ reason: (e && e.detail && e.detail.source) || 'asesor', unit: e && e.detail && e.detail.unit, perfil: e && e.detail && e.detail.perfil }); window.addEventListener('dmx:lead', onLead); return () => window.removeEventListener('dmx:lead', onLead); }, []);
+  // V3-FICHA-VIEW-LOST: la v3 dejó de emitir la vista de ficha. Reponemos el patrón de la ficha legacy — ficha_view al montar,
+  // dwell (tiempo total) al salir y scroll_depth (máx alcanzado). Alimenta el copiloto/lead score + la demanda por colonia.
+  useEffect(() => {
+    if (!dev || !dev.id) return undefined;
+    const col = dev.colonia_id || dev.colonia;
+    const t0 = Date.now();
+    let maxScroll = 0;
+    const onScroll = () => { const h = document.documentElement.scrollHeight - window.innerHeight; if (h > 0) maxScroll = Math.max(maxScroll, Math.round((window.scrollY / h) * 100)); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    try { sendBuyerSignal('ficha_view', { entity_id: dev.id, colonia: col, unit_number: unit && unit.unit_number, value: 'v3' }); } catch (e) { /* noop */ }
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      const ms = Date.now() - t0;
+      if (ms > 1500) { try { sendBuyerSignal('dwell', { entity_id: dev.id, colonia: col, dwell_ms: Math.min(ms, 600000) }); } catch (e) { /* noop */ } }
+      if (maxScroll > 5) { try { sendBuyerSignal('scroll_depth', { entity_id: dev.id, colonia: col, value: String(Math.min(100, maxScroll)) }); } catch (e) { /* noop */ } }
+    };
+  }, [dev && dev.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Atlax AGÉNTICO: sus botones manejan la ficha (navegar tabs · agendar · guardar). navRef trae los últimos handlers (sin stale).
   const navRef = useRef(null);
   useEffect(() => {
@@ -538,7 +562,12 @@ export default function FichaCockpit({ user, onLogin }) {
     setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' });
     try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ }
   };
-  const goTo = (anchor) => { if (anchor === 'unidades') goTab('unidad'); else if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
+  // V3-01: "panorama" es el WIZARD de asequibilidad, que vive en la pestaña "Tu unidad" (no en "Tu dinero"). Vamos a esa pestaña y bajamos al wizard.
+  const goTo = (anchor) => {
+    if (anchor === 'panorama') { goTab('unidad'); setTimeout(() => { const el = document.querySelector('[data-panorama]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 160); }
+    else if (anchor === 'unidades') goTab('unidad');
+    else if (anchor === 'inversion') goTab('dinero');
+  };
   // FLYWHEEL: el LENTE (vivir/invertir · individual/institucional) es una señal fuerte de intención → alimenta el perfil
   // del comprador, el cubo por-intención y la demanda que ven dev/superadmin. (La v2 la emitía; la v3 no — se cablea aquí.)
   const chooseLens = (k) => { setLens(k); try { sendBuyerSignal('lens', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, value: k }); } catch (e) { /* noop */ } };
@@ -546,6 +575,8 @@ export default function FichaCockpit({ user, onLogin }) {
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
   const toggleSaveUnit = () => { if (!unit || !unit.unit_number) return; const u = unit.unit_number; const on = !savedUnits.has(u); try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u); else n.delete(u); return n; }); };
+  // V3-SENSOR-01: cada módulo del moat que se abre → module_open (mismos value que la v2:172) → lead score + demanda dev/superadmin.
+  const signalModule = (m) => { try { sendBuyerSignal('module_open', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: m }); } catch (e) { /* noop */ } };
 
   const keyNum = lens === 'invertir'
     ? (hk.tir != null ? { v: `${hk.tir.toFixed(1)}%`, l: 'Rendimiento (TIR)', sub: hk.cetes != null ? (hk.tir > hk.cetes ? 'le gana a CETES' : 'debajo de CETES') : null } : null)
@@ -617,7 +648,7 @@ export default function FichaCockpit({ user, onLogin }) {
               <>
                 {unit && <div style={{ marginBottom: 20 }}><CockpitCard dev={dev} unit={unit} lens={lens} keyNum={keyNum} hk={hk} kM2={kM2} onVerDinero={() => goTab('dinero')} onAgendar={agendar} saved={savedUnits.has(unit.unit_number)} onToggleSave={toggleSaveUnit} /></div>}
                 {/* WIZARD de asequibilidad "¿cuánto puedo pagar?" — te recomienda la unidad que te queda por presupuesto (scoped a la elegida) */}
-                <div style={{ marginBottom: 20 }}><SeccionPanorama dev={dev} unit={unit} onSelectUnit={pickUnit} /></div>
+                <div data-panorama style={{ marginBottom: 20 }}><ModuleOpen name="vivir_panorama" fire={signalModule} /><SeccionPanorama dev={dev} unit={unit} onSelectUnit={pickUnit} /></div>
                 <SeccionUnidades dev={dev} selectedUnit={unit} onSelectUnit={pickUnit} onGoTo={goTo} multi={multi} selectedIds={fundIds} onToggleUnit={toggleFund} plusvalia={hk.plusvalia} />
               </>
             )}
@@ -626,11 +657,13 @@ export default function FichaCockpit({ user, onLogin }) {
               <>
                 {!unit && !multi && <EmptyHint text="Elige una unidad en “Tu unidad” para ver tus números exactos." onGo={() => goTab('unidad')} />}
                 {/* ① CÓMO PAGAS: el esquema de pago al desarrollador (apartado/enganche/mensualidades/escritura + gastos) */}
+                <ModuleOpen name="vivir_pago" fire={signalModule} />
                 <PlanDePago dev={dev} unit={multi ? null : unit} />
                 {/* ② TU CRÉDITO + RENDIMIENTO a fondo — la calc ya trae el simulador de crédito (no se duplica) */}
                 {lens === 'invertir' && (unit || multi) && (
                   <div style={{ marginTop: 24 }}>
                     <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'var(--theme)', letterSpacing: '0.07em', marginBottom: 10 }}>Análisis de Inversión a Fondo</div>
+                    <ModuleOpen name="inv_calc" fire={signalModule} />
                     <SeccionCalcInversion dev={dev} unit={unit} mode={invMode} units={fundUnits} onGoTo={goTo} />
                   </div>
                 )}
@@ -643,7 +676,7 @@ export default function FichaCockpit({ user, onLogin }) {
               </>
             )}
 
-            {tab === 'confianza' && (<><SeccionConfianza dev={dev} /><div style={{ marginTop: 22 }}><SeccionUbicacion dev={dev} /></div></>)}
+            {tab === 'confianza' && (<><ModuleOpen name="confianza" fire={signalModule} /><SeccionConfianza dev={dev} /><div style={{ marginTop: 22 }}><ModuleOpen name="vivir_zona" fire={signalModule} /><SeccionUbicacion dev={dev} /></div></>)}
           </div>
 
           {/* SIDEBAR fijo: precio + número clave + acciones + asesor */}
@@ -681,9 +714,14 @@ export default function FichaCockpit({ user, onLogin }) {
         @keyframes dmxProg{ from{ width:0;} }
       `}</style>
       {/* Atlax flotante — consciente de la unidad/lente/sección que ve el cliente (context vivo) */}
-      <AtlaxBubble theme="light" context={atlaxContext} welcome={atlaxWelcome} quickActions={atlaxQuickActions} />
+      <AtlaxBubble theme="light" context={atlaxContext} welcome={atlaxWelcome} quickActions={atlaxQuickActions} dev={dev} unit={unit} lens={lens} />
       {compareOpen && <ComparaProyectos dev={dev} onClose={() => setCompareOpen(false)} />}
-      {leadModal && <LeadCaptureModal dev={dev} unit={unit} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />}
+      {leadModal && (() => {
+        // V3-LEAD-04: si el lead vino del wizard, usa SU unidad recomendada (resolviéndola al objeto real para precio/specs) y su perfil; si no, la elegida en la ficha.
+        const wu = leadModal.unit;
+        const leadUnit = wu ? ((dev.units || []).find((u) => u.unit_number === wu) || { unit_number: wu }) : unit;
+        return <LeadCaptureModal dev={dev} unit={leadUnit} perfil={leadModal.perfil} lensLabel={lensLabel} keyAns={keyNum && keyNum.v} reason={leadModal.reason} onClose={() => setLeadModal(null)} />;
+      })()}
     </LightScope>
   );
 }

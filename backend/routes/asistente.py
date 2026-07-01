@@ -82,6 +82,12 @@ class CaptureLeadIn(BaseModel):
     email: Optional[str] = None
     mensaje: Optional[str] = None
     source: Optional[str] = None  # override: "caya_bubble" o "asistente_publico" (default)
+    # V3-LEAD-02/ATLAX-01 · atribución: contexto de la ficha (v3) → el lead conversacional deja de quedar
+    # HUÉRFANO (development_id=None) y el DEV por fin lo ve. Todos opcionales, fail-soft.
+    dev_id: Optional[str] = None
+    unit_number: Optional[str] = None
+    lens: Optional[str] = None
+    visitor_id: Optional[str] = None
 
 
 class AskIn(BaseModel):
@@ -269,6 +275,8 @@ async def capture_lead(session_token: str, body: CaptureLeadIn, request: Request
             nombre=body.nombre, whatsapp=body.whatsapp,
             email=body.email, mensaje=body.mensaje,
             source=body.source,
+            dev_id=body.dev_id, unit_number=body.unit_number,
+            lens=body.lens, visitor_id=body.visitor_id,
         )
     except ValueError as e:
         raise HTTPException(404, str(e))

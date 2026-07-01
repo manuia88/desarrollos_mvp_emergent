@@ -306,6 +306,14 @@ async def interes_desarrollo(dev_id: str, request: Request):
         db = request.app.state.db
         likes = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "like", "active": True})
         saves = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "save", "active": True})
+        # V3-INTERES-SOCIAL: la ficha v3 guarda a nivel UNIDAD ("unit_save", entity_id=dev_id). Se hace roll-up unidad→dev
+        # y se DEDUPLICA por visitante (distinct visitor_id) para que N unidades guardadas por 1 persona = 1 guardado del
+        # dev, y sumar al conteo social sin inflarlo. Aditivo, fail-soft.
+        try:
+            usavers = await db.buyer_signals.distinct("visitor_id", {"entity_id": dev_id, "type": "unit_save", "active": True})
+            saves += len([v for v in usavers if v])
+        except Exception:  # noqa: BLE001
+            pass
         views = await db.buyer_signals.count_documents({"entity_id": dev_id, "type": "ficha_view"})
         # P3-03 (auditoría v3): la prueba social PÚBLICA (bajo→medio→alto) usaba K=3 hardcodeado en vez del umbral
         # canónico. Bajo el tope FLY-02 (25 visitor_id/ip_hora) una sola IP podía volcar un umbral de 3. Se alinea con
@@ -798,6 +806,9 @@ async def compute_engagement(db, visitor_id: str) -> dict:
         ("module_open",  5, 25, lambda c: f"Abrió {c} análisis a fondo"),
         ("ficha_view",   3, 21, lambda c: f"Vio {c} ficha{'s' if c > 1 else ''}"),
         ("lens",         4,  8, lambda c: "Definió para qué la quiere"),
+        # V3-SENSOR-02: el tiempo/atención por sección de la ficha v3 ("section_time") calienta el lead — atención
+        # sostenida = interés real. Peso bajo con tope para no dominar. Aditivo, fail-soft.
+        ("section_time", 3, 15, lambda c: f"Se detuvo en {c} sección{'es' if c > 1 else ''} clave"),
     ]
     score, factores = 0, []
     for t, w, cap, label in pesos:
@@ -1038,7 +1049,9 @@ async def taste_scores(db, visitor_id: str) -> dict:
         from data_developments import DEVELOPMENTS
         by_id = {d.get("id"): d for d in DEVELOPMENTS}
         liked_ids = []
-        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": "like", "active": True}, {"_id": 0, "entity_id": 1}):
+        # V3-TASTE-DARK: incluye "unit_save" de la ficha v3 (entity_id=dev_id ya resuelto) como señal positiva de gusto,
+        # para que 'Para ti' no se apague al migrar a la ficha unit-céntrica. Aditivo, fail-open.
+        async for s in db.buyer_signals.find({"visitor_id": visitor_id, "type": {"$in": ["like", "unit_save"]}, "active": True}, {"_id": 0, "entity_id": 1}):
             if s.get("entity_id"):
                 liked_ids.append(s["entity_id"])
         liked = [by_id[i] for i in liked_ids if i in by_id]

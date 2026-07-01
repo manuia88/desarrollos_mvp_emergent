@@ -22,9 +22,11 @@ function lectura(lens, dev) {
   const F = (t, v) => (v != null && v !== '' ? { t, v } : null);
 
   if (lens === 'invertir') {
+    // 'Zona' derivada de dato real de ubicación (colonia · alcaldía), NO hardcodeado. hide-if-empty si no hay dato.
+    const zona = [dev.colonia, dev.alcaldia].filter(Boolean).join(' · ') || null;
     return {
       head: 'Para que tu dinero trabaje',
-      facts: [F('Plusvalía', plus != null ? `+${plus}% desde lanzamiento` : null), F('Preventa', meses ? `entras hoy, pagas en ${meses} meses sin banco` : null), F('Zona', 'consolidada · obra nueva')].filter(Boolean),
+      facts: [F('Plusvalía', plus != null ? `+${plus}% desde lanzamiento` : null), F('Preventa', meses ? `entras hoy, pagas en ${meses} meses sin banco` : null), F('Zona', zona)].filter(Boolean),
     };
   }
   return {

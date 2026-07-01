@@ -132,8 +132,8 @@ export default function SeccionUbicacion({ dev }) {
                   <div style={{ flex: 1, marginBottom: 14, padding: '12px 15px', borderRadius: 12, border: '1px solid var(--card-border, var(--border))', background: 'var(--surface-card)' }}>
                     <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-                      <select value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid var(--card-border, var(--border))', fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: 'var(--cream)', background: 'var(--surface-card)', cursor: 'pointer' }}>
-                        {arr.slice(0, 8).map((x, j) => <option key={x.name} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>)}
+                      <select name={`slot-${i}`} aria-label={label} value={idx} onChange={(e) => setPick({ ...pick, [i]: Number(e.target.value) })} style={{ flex: '1 1 200px', minWidth: 0, padding: '9px 12px', borderRadius: 10, border: '1px solid var(--card-border, var(--border))', fontFamily: HEAD, fontWeight: 700, fontSize: 15, color: 'var(--cream)', background: 'var(--surface-card)', cursor: 'pointer' }}>
+                        {arr.slice(0, 8).map((x, j) => <option key={`${x.name}-${j}`} value={j}>{x.name}{x.rating ? `  ·  ★${x.rating}` : ''}</option>)}
                       </select>
                       {p && p.rating ? <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: '#059669', whiteSpace: 'nowrap' }}>★{p.rating}</span> : null}
                     </div>

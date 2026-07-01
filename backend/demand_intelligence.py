@@ -87,6 +87,10 @@ def _signal_segment(s: Dict[str, Any]) -> str:
     """Segmento de intención de UNA señal: vivir / invertir / desconocido (desde meta.intent/uso/tipo o el tipo de señal)."""
     meta = s.get("meta") or {}
     raw = str(meta.get("intent") or meta.get("uso") or s.get("intent") or "").lower()
+    # V3-SENSOR-05: la ficha v3 emite el lente en "value" (como intent_split lo lee). Para type=="lens" toma también
+    # s.value como fuente de intención, para que el desglose por_segmento NO caiga a "desconocido". Aditivo, fail-soft.
+    if not raw and s.get("type") == "lens":
+        raw = str(s.get("value") or "").lower()
     seg = _normalize_intent(raw, s.get("type") or "")
     if seg in ("invertir", "invertir-renta", "invertir-plusvalía", "flip"):
         return "invertir"

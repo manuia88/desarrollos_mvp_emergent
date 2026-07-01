@@ -12,7 +12,7 @@ import AtlaxResults from './AtlaxResults';      // motor FUERTE compartido con l
 import AtlaxQuickView from './AtlaxQuickView';  // ficha en vista rápida (misma que la superficie)
 import AtlaxLeadModal from './AtlaxLeadModal';  // "Hablar con un Asesor" → lead REAL
 import { searchAtlax, isCompareQuery } from '../../lib/atlaxSearch';  // un solo buscador en todas las ventanas
-import { claimVisitor } from '../../lib/buyerSignal';                 // U1: pega visitor_id al usuario logueado (cross-device)
+import { claimVisitor, sendBuyerSignal, visitorId } from '../../lib/buyerSignal';   // U1: pega visitor_id al usuario logueado · ATLAX-02: el diálogo sobre ESTE dev es visible al cubo
 import { fetchBuySignal } from '../../api/marketplace';
 import { Z } from '../../styles/zIndex';
 
@@ -77,7 +77,7 @@ function saveHistory(h) {
 
 
 // ─── LeadCaptureMiniForm (W4.4E.5.1) ─────────────────────────────────────
-function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false, pageContext = null }) {
+function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false, pageContext = null, fichaCtx = null }) {
   const [nombre, setNombre] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -98,11 +98,18 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose, light = false
     setSubmitting(true);
     try {
       const { captureLeadFromAtlax } = await import('../../api/atlaxApi');
+      const fdev = fichaCtx && fichaCtx.dev;
+      const funit = fichaCtx && fichaCtx.unit;
       await captureLeadFromAtlax(asistenteToken, {
         nombre: nombre.trim(),
         whatsapp: whatsapp.trim(),
         email: email.trim() || null,
         mensaje: pageContext || null,   // lo que el usuario buscaba/veía → el asesor recibe un lead CON contexto, no en blanco
+        // V3-LEAD-01 · el lead lleva ESTE dev/unidad/lente → el dev/asesor lo ve (antes: lead sin development_id)
+        dev_id: (fdev && fdev.id) || null,
+        unit_number: (funit && funit.unit_number) || null,
+        lens: (fichaCtx && fichaCtx.lens) || null,
+        visitor_id: visitorId(),
       });
       setSuccess(true);
       try { localStorage.setItem(`dmx.atlax.lead_captured.${asistenteToken}`, 'true'); } catch (_) {/*ignore*/}
@@ -315,8 +322,12 @@ function renderRich(text) {
   return parts.map((seg, i) => (i % 2 === 1 ? <strong key={i}>{seg}</strong> : <React.Fragment key={i}>{seg}</React.Fragment>));
 }
 
-export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null, welcome = null, quickActions = null } = {}) {
+export default function AtlaxBubble({ mode = 'floating', startOpen = false, theme = 'dark', context = null, welcome = null, quickActions = null, dev = null, unit = null, lens = null } = {}) {
   const light = theme === 'light';
+  // V3-LEAD-01 · contexto de ficha (dev/unit/lens) en un ref → el lead REAL lo lleva al asesor + el dev lo ve
+  // (development_id/unidad/lente). Sin ref quedaría stale al cerrar sobre send/leadCtx.
+  const fichaRef = useRef({ dev, unit, lens });
+  useEffect(() => { fichaRef.current = { dev, unit, lens }; }, [dev, unit, lens]);
   // Tokens locales en claro: vuelve tinta el texto/bordes de todo el panel (rediseño /v2).
   const lightVars = light ? { '--cream': '#1E2230', '--cream-2': '#4A4F5E', '--cream-3': '#8A8F9E', '--border': '#ECECEC' } : {};
   // W4.4E.5.2 · One-time silent localStorage migration caya.*→atlax.* (synchronous, BEFORE state init)
@@ -372,9 +383,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
         const v = d.veredicto, pc = d.precio_contexto, vz = d.valuacion_zona, tm = d.timing;
         const L = [];
         if (v && v.titulo) L.push(`**${v.titulo}**${v.lectura ? ' — ' + v.lectura : ''}`);
-        if (pc && pc.posicion && pc.posicion.etiqueta) L.push(`💰 Precio: ${pc.posicion.etiqueta}${pc.este_pm2 ? ` (~$${Math.round(pc.este_pm2 / 1000)}k/m², vs obra nueva comparable)` : ''}.`);
-        if (vz && vz.plusvalia_oficial && vz.plusvalia_oficial.plusvalia_anual_pct != null) L.push(`📈 Plusvalía oficial de la zona: +${vz.plusvalia_oficial.plusvalia_anual_pct}% anual.`);
-        if (tm && tm.fase_label) L.push(`⏱ Momento de la zona: ${tm.fase_label}.`);
+        if (pc && pc.posicion && pc.posicion.etiqueta) L.push(`Precio: ${pc.posicion.etiqueta}${pc.este_pm2 ? ` (~$${Math.round(pc.este_pm2 / 1000)}k/m², vs obra nueva comparable)` : ''}.`);
+        if (vz && vz.plusvalia_oficial && vz.plusvalia_oficial.plusvalia_anual_pct != null) L.push(`Plusvalía oficial de la zona: +${vz.plusvalia_oficial.plusvalia_anual_pct}% anual.`);
+        if (tm && tm.fase_label) L.push(`Momento de la zona: ${tm.fase_label}.`);
         const summary = L.length
           ? `Analicé **${dn}** por ti:\n\n${L.join('\n')}\n\n¿Quieres que **agende una visita** o te muestro **otros parecidos**?`
           : `Revisé ${dn}. Cuéntame tu presupuesto y zona y te digo si encaja.`;
@@ -448,6 +459,20 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
     if (!q || busy) return;
     setBusy(true);
     if (!overrideQuery) setInput('');
+    // ATLAX-02 · si hay ficha (dev) en contexto, el diálogo sobre ESTE dev se vuelve visible al cubo/dev/superadmin
+    // (antes atlax_query era colonia-scoped sin dev_id → el dev nunca veía las preguntas sobre su proyecto).
+    try {
+      const fd = fichaRef.current || {};
+      if (fd.dev && fd.dev.id) {
+        sendBuyerSignal('atlax_query', {
+          entity_id: fd.dev.id,
+          unit_number: (fd.unit && fd.unit.unit_number) || null,
+          colonia: fd.dev.colonia_id || fd.dev.colonia || null,
+          value: q,
+          meta: { kind: 'ficha_chat', lens: fd.lens || null },
+        });
+      }
+    } catch (_) { /* noop */ }
     const userMsg = { role: 'user', content: q, ts: Date.now() };
     const aid = `b_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     setMessages(prev => [...prev, userMsg, { id: aid, role: 'assistant', content: '', pending: true, ts: Date.now() }]);
@@ -853,7 +878,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                     <AtlaxResults r={m.results} compact
                       onQuick={(dev, list) => setQuickDev({ list: list || [dev], index: Math.max(0, (list || [dev]).findIndex((d) => d.id === dev.id)) })}
                       onRefine={(suf) => send(null, `${(m.results.query || '')} ${suf}`)}
-                      onAdvisor={() => setLeadCtx({ dev: null, query: m.results.query || '' })} />
+                      onAdvisor={() => setLeadCtx({ dev: fichaRef.current.dev || null, unit: fichaRef.current.unit || null, lens: fichaRef.current.lens || null, query: m.results.query || '' })} />
                   </div>
                 )}
 
@@ -927,6 +952,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
                 light={light}
                 asistenteToken={asistenteToken}
                 pageContext={contextRef.current}
+                fichaCtx={fichaRef.current}
                 onSuccess={() => setLeadCaptured(true)}
                 onClose={() => { setShowLeadForm(false); setFormDismissed(true); }}
               />
@@ -1050,7 +1076,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false, them
         }
       `}</style>
 
-      {quickDev && <AtlaxQuickView list={quickDev.list} start={quickDev.index} onClose={() => setQuickDev(null)} onAdvisor={(dev) => { setQuickDev(null); setLeadCtx({ dev: dev || null, query: '' }); }} />}
+      {quickDev && <AtlaxQuickView list={quickDev.list} start={quickDev.index} onClose={() => setQuickDev(null)} onAdvisor={(qdev) => { setQuickDev(null); setLeadCtx({ dev: qdev || fichaRef.current.dev || null, unit: fichaRef.current.unit || null, lens: fichaRef.current.lens || null, query: '' }); }} />}
       {leadCtx && <AtlaxLeadModal ctx={leadCtx} onClose={() => setLeadCtx(null)} />}
     </>
   );

@@ -233,8 +233,10 @@ async def build_grafo(db, colonia_id: Optional[str] = None, dias: int = 90) -> D
     # el superadmin ven no solo qué se busca, sino qué se DESEA (señal más fuerte). Cierra el ciclo del like.
     likes_by_col: Counter = Counter()
     try:
+        # V3-GRAFO-COLONIA-LIKE: el deseo por colonia también incluye guardados ("save") y guardados de unidad de la
+        # ficha v3 ("unit_save") — no solo likes — para que la señal de deseo no se apague al migrar a la v3. Aditivo, fail-open.
         async for ls in db.buyer_signals.find(
-                {"type": "like", "active": True, "created_at_dt": {"$gte": now - timedelta(days=dias)}},
+                {"type": {"$in": ["like", "save", "unit_save"]}, "active": True, "created_at_dt": {"$gte": now - timedelta(days=dias)}},
                 {"_id": 0, "colonia": 1}):
             nm = str(ls.get("colonia") or "").strip().lower()
             if not nm:

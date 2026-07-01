@@ -60,9 +60,10 @@ export default function SeccionPanorama({ dev, unit, onSelectUnit }) {
   const mejorEsOtra = mejor && ref && mejor.id !== ref.id;
 
   const lead = () => {
+    // Solo dmx:lead (un único modal). Antes también disparaba dmx:ask-atlax → dos modales encimados.
+    // El contexto del wizard (unidad + perfil) viaja con el evento para que el modal no pida repetir nada.
     try {
-      window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'wizard_vivir', devId: dev.id, devName: dev.name, unit: ref && ref.unit_number, perfil: { ...ans, recamaras: recNec, precio_max: precioMax, presupuesto: precioMax } } }));
-      window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, intent: 'asesor_vivir', unit: ref && ref.unit_number, perfil: ans } }));
+      window.dispatchEvent(new CustomEvent('dmx:lead', { detail: { source: 'wizard_vivir', reason: 'wizard_vivir', devId: dev.id, devName: dev.name, unit: ref, perfil: { ...ans, recamaras: recNec, precio_max: precioMax, presupuesto: precioMax } } }));
     } catch (e) { /* noop */ }
   };
 

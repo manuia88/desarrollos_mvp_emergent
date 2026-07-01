@@ -30,6 +30,12 @@ export async function captureLeadFromAtlax(asistenteToken, payload) {
     email: payload.email || null,
     mensaje: payload.mensaje || null,
     source: 'atlax_bubble',
+    // V3-LEAD-01 · el lead lleva ficha (dev/unidad/lente) + visitor_id → el dev/asesor lo ve y hereda las señales
+    // del comprador (antes: lead sin development_id → el dev nunca lo veía). Solo se incluyen si vienen.
+    ...(payload.dev_id ? { dev_id: payload.dev_id } : {}),
+    ...(payload.unit_number ? { unit_number: payload.unit_number } : {}),
+    ...(payload.lens ? { lens: payload.lens } : {}),
+    ...(payload.visitor_id ? { visitor_id: payload.visitor_id } : {}),
   };
   return _fetch(`${API}/api/asistente/sessions/${asistenteToken}/capture-lead`, {
     method: 'POST',
