@@ -71,20 +71,23 @@ export default function PublicNav() {
           <div style={{ position: 'relative' }} onMouseEnter={() => setTools(true)} onMouseLeave={() => setTools(false)}>
             <button style={navBtnStyle} onClick={() => setTools((v) => !v)}>{tc('Herramientas')} ▾</button>
             {tools && (
-              <div className="dmx-card" style={{
-                position: 'absolute', top: '100%', left: 0, marginTop: 6, minWidth: 248, padding: 7,
-                background: 'var(--bg-2)', boxShadow: 'var(--sh-card)', borderRadius: 'var(--r-inner)',
-              }}>
-                {TOOLS.map((tl) => (
-                  <Link key={tl.to} to={tl.to} style={{
-                    display: 'block', padding: '9px 12px', borderRadius: 9, textDecoration: 'none',
-                    color: 'var(--cream-2)', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif",
-                  }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
-                    {tc(tl.label)}
-                  </Link>
-                ))}
+              // FIX dropdown: el menú va en un contenedor con `paddingTop` (puente invisible) en vez de `marginTop`
+              // (hueco muerto). Así el área de hover es CONTINUA del botón al menú → al bajar el cursor ya no se cierra.
+              <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 248, zIndex: 60 }}>
+                <div className="dmx-card" style={{
+                  padding: 7, background: 'var(--bg-2)', boxShadow: 'var(--sh-card)', borderRadius: 'var(--r-inner)',
+                }}>
+                  {TOOLS.map((tl) => (
+                    <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
+                      display: 'block', padding: '9px 12px', borderRadius: 9, textDecoration: 'none',
+                      color: 'var(--cream-2)', fontSize: 13.5, fontFamily: "'DM Sans',sans-serif",
+                    }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'; e.currentTarget.style.color = 'var(--theme)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
+                      {tc(tl.label)}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
