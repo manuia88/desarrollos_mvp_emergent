@@ -62,6 +62,89 @@ def _norm_alc(s: Any) -> str:
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 
 
+def _slug(s: Any) -> str:
+    """Slug con guion-bajo (formato zone_id de ie_scores: 'roma_norte', 'del_valle_centro')."""
+    import re
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
+
+
+async def _price_cuts_by_colonia(db) -> Dict[str, Any]:
+    """(1.3) Índice de recortes de precio — LEE de price_events (colección viva, 18 docs). Un 'recorte' es
+    un evento con delta_pct<0. Compone tres derivables por colonia: % de recortes, magnitud media (recorte_medio)
+    y días al 1er recorte (mediana de la latencia por desarrollo). Dato real, sin inventar."""
+    from collections import defaultdict
+    from datetime import datetime
+
+    def _pdate(v):
+        if isinstance(v, datetime):
+            return v
+        try:
+            return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+
+    ev = defaultdict(list)
+    try:
+        async for d in db.price_events.find(
+            {}, {"_id": 0, "dev_id": 1, "colonia_id": 1, "delta_pct": 1, "changed_at": 1}
+        ):
+            col = _slug(d.get("colonia_id"))
+            if col:
+                ev[col].append(d)
+    except Exception:
+        return {}
+    out: Dict[str, Any] = {}
+    for col, docs in ev.items():
+        deltas = [_n(x.get("delta_pct")) for x in docs if _n(x.get("delta_pct")) is not None]
+        total = len(deltas)
+        cuts = [d for d in deltas if d < 0]
+        n_cuts = len(cuts)
+        # latencia (días) al 1er recorte por desarrollo → mediana de la colonia
+        by_dev = defaultdict(list)
+        for x in docs:
+            by_dev[x.get("dev_id")].append(x)
+        lat = []
+        for _dev, ds in by_dev.items():
+            ds = sorted(ds, key=lambda r: str(r.get("changed_at") or ""))
+            base = _pdate(ds[0].get("changed_at"))
+            fc = next((r for r in ds if (_n(r.get("delta_pct")) or 0) < 0), None)
+            if base and fc:
+                cdt = _pdate(fc.get("changed_at"))
+                if cdt:
+                    lat.append(max((cdt - base).days, 0))
+        dias_1er = sorted(lat)[len(lat) // 2] if lat else None
+        out[col] = {
+            "eventos": total,
+            "recortes": n_cuts,
+            "price_cut_pct": round(100 * n_cuts / total) if total else None,
+            "recorte_medio": round(sum(cuts) / n_cuts, 1) if n_cuts else None,
+            "dias_a_1er_recorte": dias_1er,
+        }
+    return out
+
+
+async def _ie_liquidez_ghost_by_zone(db) -> Dict[str, Any]:
+    """(1.5) Liquidez de zona + Ghost-zone — LEE de ie_scores los IE ya computados (IE_COL_LIQUIDEZ,
+    IE_COL_GHOST_ZONE). NO recomputa: empaqueta value/tier/confidence/is_stub tal cual (celda honesta:
+    si el IE viene stub, se marca es_estimado y se reporta la fuente, no se fabrica número)."""
+    out: Dict[str, Any] = {}
+    try:
+        async for d in db.ie_scores.find(
+            {"code": {"$in": ["IE_COL_LIQUIDEZ", "IE_COL_GHOST_ZONE"]}},
+            {"_id": 0, "code": 1, "zone_id": 1, "value": 1, "tier": 1,
+             "confidence": 1, "is_stub": 1, "computed_at": 1},
+        ):
+            zid = _slug(d.get("zone_id"))
+            if not zid:
+                continue
+            out.setdefault(zid, {})[d.get("code")] = d
+    except Exception:
+        return {}
+    return out
+
+
 async def _shf_forecast_by_alcaldia(db) -> Dict[str, Any]:
     """Apreciación YoY REAL del índice de precios SHF por alcaldía (mismo trimestre, año anterior).
     Cubre 5 alcaldías + 'CDMX (estatal)' como fallback city-wide. Dato oficial, no inventado."""
@@ -123,6 +206,16 @@ async def build_context(db, since_days: int = 180, top: int = 20) -> Dict[str, A
         g["temporal"] = await di.temporal_demand(db)
     except Exception:
         g["temporal"] = {}
+    # (1.3) recortes de precio · (1.5) liquidez/ghost — colecciones vivas (price_events, ie_scores).
+    # Se adjuntan por slug de zona; las compuestas nuevas leen de aquí. Best-effort: {} si vacías.
+    try:
+        g["price_cuts"] = await _price_cuts_by_colonia(db)
+    except Exception:
+        g["price_cuts"] = {}
+    try:
+        g["ie_liq_ghost"] = await _ie_liquidez_ghost_by_zone(db)
+    except Exception:
+        g["ie_liq_ghost"] = {}
     # mercado (feeders — best-effort; None si apagado)
     g["cetes"] = None
     try:
@@ -175,7 +268,76 @@ def _conv_low(g):
 # Cada entrada: (n, pack, nombre, descubre, fn(z, g) -> valor)
 P = {1: "Pricing", 2: "Demand", 3: "Investor", 4: "Risk", 5: "Absorption",
      6: "Underwriting", 7: "Livability", 8: "Competitive", 9: "Lead", 10: "Momentum",
-     11: "Suelo&Construcción", 12: "STR/Airbnb"}
+     11: "Suelo&Construcción", 12: "STR/Airbnb", 13: "Liquidez&Ghost"}
+
+
+# ── lookups de las compuestas nuevas (leen los datasets adjuntos en build_context) ──
+def _pc(z, g):
+    """Índice de recortes de la colonia de la zona (de price_events)."""
+    return (g.get("price_cuts") or {}).get(_slug(z.get("zona")))
+
+
+def _ie_lg(z, g, code):
+    """Celda IE (LIQUIDEZ o GHOST) de la zona, tal cual quedó en ie_scores."""
+    return ((g.get("ie_liq_ghost") or {}).get(_slug(z.get("zona"))) or {}).get(code)
+
+
+def _recortes_index(z, g):
+    """(1.3) COMPUESTA legible: fusiona price_cut_pct + recorte_medio + días_a_1er_recorte.
+    None honesto si la colonia no tiene eventos de precio."""
+    pc = _pc(z, g)
+    if not pc or not pc.get("eventos"):
+        return None
+    return {
+        "price_cut_pct": pc.get("price_cut_pct"),
+        "recorte_medio_pct": pc.get("recorte_medio"),
+        "dias_a_1er_recorte": pc.get("dias_a_1er_recorte"),
+        "recortes": pc.get("recortes"),
+        "eventos": pc.get("eventos"),
+        "señal": ("recortes frecuentes" if (pc.get("price_cut_pct") or 0) >= 25
+                  else "precio firme" if (pc.get("price_cut_pct") or 0) == 0
+                  else "recortes puntuales"),
+        "fuente": "price_events",
+        "es_estimado": False,
+        "confianza": "alta",
+    }
+
+
+def _liquidez_ghost(z, g):
+    """(1.5) COMPUESTA legible: empaqueta IE_COL_LIQUIDEZ + IE_COL_GHOST_ZONE ya computados.
+    Reporta por celda su value/tier/confianza/es_estimado (is_stub→sin número, honesto)."""
+    liq = _ie_lg(z, g, "IE_COL_LIQUIDEZ")
+    ghost = _ie_lg(z, g, "IE_COL_GHOST_ZONE")
+    if liq is None and ghost is None:
+        return None
+
+    def _cell(d, label):
+        if d is None:
+            return None
+        stub = bool(d.get("is_stub"))
+        return {
+            "valor": None if stub else _n(d.get("value")),
+            "tier": d.get("tier"),
+            "confianza": d.get("confidence"),
+            "es_estimado": stub,
+            "fuente": "ie_scores",
+            "nota": (f"{label}: pendiente de feeder (IE en stub)" if stub else None),
+        }
+
+    liq_c = _cell(liq, "liquidez")
+    ghost_c = _cell(ghost, "ghost_zone")
+    gv = ghost_c.get("valor") if ghost_c else None
+    lectura = None
+    if gv is not None:
+        lectura = ("zona fantasma (poca vida de calle)" if gv <= 33
+                   else "zona con vida media" if gv <= 66
+                   else "zona muy viva")
+    return {
+        "liquidez": liq_c,          # qué tan rápido se compra/vende (IE ya computado)
+        "ghost_zone": ghost_c,      # vida de calle real (OSM/datos_cdmx) — antídoto a comprar en un desierto
+        "lectura_ghost": lectura,
+        "fuente": "ie_scores (IE_COL_LIQUIDEZ, IE_COL_GHOST_ZONE)",
+    }
 
 
 def _str(z, k):
@@ -450,6 +612,14 @@ COMPOSITES: List = [
      lambda z, g: round((_str(z, "listings") or 0) * ((z.get("absorcion") or {}).get("vendido_pct") or 0) / 100) if _str(z, "listings") else None),
     (120, 12, "Índice STR", "blend ocupación + RevPAR + cap rate Airbnb = atractivo de renta corta",
      lambda z, g: round(min((_str(z, "ocupacion_pct") or 0), 100) * 0.3 + min((_str(z, "revpar") or 0), 200) / 200 * 35 + min((z.get("cap_rate_str") or 0), 15) / 15 * 35) if _str(z, "revpar") else None),
+
+    # ── PACK 1 · PRICING (compuesta nueva 1.3, lee de price_events) ──
+    (121, 1, "Índice de recortes de precio", "¿bajan precio en esta zona? cuánto y qué tan rápido (recortes+magnitud+días al 1er recorte)",
+     lambda z, g: _recortes_index(z, g)),
+
+    # ── PACK 13 · LIQUIDEZ & GHOST (compuesta nueva 1.5, lee IE ya computados de ie_scores) ──
+    (122, 13, "Liquidez de zona + Ghost-zone", "qué tan líquida es la zona y si tiene vida de calle (¿estás comprando en un desierto?)",
+     lambda z, g: _liquidez_ghost(z, g)),
 ]
 
 
@@ -461,6 +631,8 @@ _PENDING_SOURCE: Dict[int, str] = {
     40: "Cruce de documentos (escritura/predial) — al cargar la papelería de los desarrollos",
     66: "Sentimiento de residentes — reseñas (sin dataset abierto; se acumula con uso)",
     78: "Brokers activos por zona — se acumula al listar más desarrollos",
+    121: "Eventos de precio (price_events) — se prende cuando la zona registra cambios de precio de listado",
+    122: "IE de liquidez/ghost-zone (ie_scores) — se prende al recomputar el IE con feeder OSM/datos_cdmx",
 }
 _PENDING_DEFAULT = "Feeder de mercado / actividad de plataforma — la fórmula ya está cableada y se prende con el dato"
 
@@ -504,7 +676,7 @@ async def compute_all(db, since_days: int = 180, top: int = 20) -> Dict[str, Any
     return {"catalogo": catalogo, "por_zona": por_zona,
             "cobertura": {"reales": real_count, "total": total_count, "pct": cobertura_pct,
                           "compuestas_vivas": n_vivas, "compuestas_total": len(COMPOSITES),
-                          "nota": "120/120 construidas y funcionando: las 'esperando_dato' reportan su fuente pendiente (stub honesto), no un número inventado"},
+                          "nota": f"{len(COMPOSITES)}/{len(COMPOSITES)} construidas y funcionando: las 'esperando_dato' reportan su fuente pendiente (stub honesto), no un número inventado"},
             "packs": {str(k): v for k, v in P.items()}}
 
 
@@ -520,9 +692,34 @@ async def for_dev(db, colonias: List[str], since_days: int = 180) -> Dict[str, A
 
 
 async def for_asesor(db, since_days: int = 180) -> Dict[str, Any]:
-    """Subconjunto ASESOR (Lead + STR/Airbnb para leads inversionistas) — calidad/fit/pitch/timing + yield Airbnb por zona."""
+    """Subconjunto ASESOR (Lead + STR/Airbnb + Liquidez&Ghost) — calidad/fit/pitch/timing + yield Airbnb +
+    liquidez/vida-de-calle por zona (útil para argumentar rapidez de reventa al lead)."""
     full = await compute_all(db, since_days=since_days, top=40)
-    packs = {"Lead", "STR/Airbnb"}
+    packs = {"Lead", "STR/Airbnb", "Liquidez&Ghost"}
     ns = {c["n"] for c in full["catalogo"] if c["pack"] in packs}
     rows = [{**pz, "valores": {k: v for k, v in pz["valores"].items() if k in ns}} for pz in full["por_zona"]]
     return {"catalogo": [c for c in full["catalogo"] if c["pack"] in packs], "por_zona": rows}
+
+
+async def for_inversor(db, since_days: int = 180) -> Dict[str, Any]:
+    """Subconjunto INVERSOR (Investor + Liquidez&Ghost + el nuevo Índice de recortes de Pricing) —
+    yield/spread/plusvalía + qué tan LÍQUIDA es la zona (entrar-salir) + si el mercado está recortando precio."""
+    full = await compute_all(db, since_days=since_days, top=40)
+    packs = {"Investor", "Liquidez&Ghost"}
+    ns = {c["n"] for c in full["catalogo"] if c["pack"] in packs}
+    ns.add(121)  # Índice de recortes de precio (Pricing) — señal directa para negociar/timing de entrada
+    rows = [{**pz, "valores": {k: v for k, v in pz["valores"].items() if k in ns}} for pz in full["por_zona"]]
+    cat = [c for c in full["catalogo"] if c["pack"] in packs or c["n"] == 121]
+    return {"catalogo": cat, "por_zona": rows}
+
+
+async def for_comprador(db, since_days: int = 180) -> Dict[str, Any]:
+    """Subconjunto COMPRADOR (Liquidez&Ghost + Índice de recortes) — ¿la zona tiene vida de calle (no un desierto)?
+    ¿es líquida si necesito revender? ¿está el precio bajando (buen momento para negociar)?"""
+    full = await compute_all(db, since_days=since_days, top=40)
+    packs = {"Liquidez&Ghost"}
+    ns = {c["n"] for c in full["catalogo"] if c["pack"] in packs}
+    ns.add(121)  # Índice de recortes — al comprador le importa si hay margen de negociación
+    rows = [{**pz, "valores": {k: v for k, v in pz["valores"].items() if k in ns}} for pz in full["por_zona"]]
+    cat = [c for c in full["catalogo"] if c["pack"] in packs or c["n"] == 121]
+    return {"catalogo": cat, "por_zona": rows}

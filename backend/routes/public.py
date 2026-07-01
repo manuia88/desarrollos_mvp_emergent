@@ -1205,6 +1205,14 @@ async def colonia_watch_list(watcher: str, request: Request):
 
 
 # ─── Catastro OFICIAL por colonia (SIGCDMX) — valor catastral + desglose por predio ──────────────
+@router.get("/api/catastro/colonia/{colonia_id}/far-vintage")
+async def catastro_far_vintage(colonia_id: str, request: Request):
+    """FAR (intensidad de construcción = sup_construcción/sup_terreno) + vintage (edad del parque) por colonia —
+    land intelligence: FAR bajo + %subutilizado alto = potencial de desarrollo. Dev + superadmin."""
+    from catastro_sig_engine import far_vintage_colonia
+    return await far_vintage_colonia(request.app.state.db, colonia_id)
+
+
 @router.get("/api/catastro/colonia/{colonia}")
 async def catastro_colonia(colonia: str, request: Request):
     """Valor catastral OFICIAL agregado de la colonia + desglose por predio (Catastro SIGCDMX 2021).

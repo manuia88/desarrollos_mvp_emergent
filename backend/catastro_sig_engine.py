@@ -388,3 +388,115 @@ async def ensure_indexes(db) -> None:
     await db.catastro_predios.create_index("catastro_id", unique=True)
     await db.catastro_predios.create_index("colonia_norm")
     await db.catastro_predios.create_index("colonia_iecm")
+
+
+# ─── FAR (intensidad de construcción) + VINTAGE (edad del parque) ───────────────────────────────
+# far_aprovechado = sup_construccion / sup_terreno (por predio). Bajo = SUBUTILIZADO = potencial de
+# desarrollo (land intelligence). vintage = edad del parque construido (2025 - anio). Fuente: Catastro
+# SIGCDMX 2021 (oficial, es_estimado=False). NADA inventado: si no hay dato del predio, no cuenta.
+YEAR_NOW = 2025          # año de referencia para la edad (catastro 2021 + margen)
+FAR_MAX = 20.0           # descarta ratios absurdos (errores de captura del catastro)
+SUBUTIL_FAR = 0.5        # umbral "subutilizado": construyó <50% de su terreno (1 nivel o menos)
+
+
+def year_int(v) -> Optional[int]:
+    """anio del catastro → int válido (1800..YEAR_NOW) o None. Tolera 'NA', '0', '', floats."""
+    try:
+        y = int(float(str(v).strip()))
+    except (TypeError, ValueError):
+        return None
+    return y if 1800 <= y <= YEAR_NOW else None
+
+
+def far_of(sup_construccion, sup_terreno) -> Optional[float]:
+    """FAR aprovechado del predio = construcción/terreno. None si falta dato o ratio absurdo."""
+    try:
+        st = float(sup_terreno); sc = float(sup_construccion)
+    except (TypeError, ValueError):
+        return None
+    if st <= 0 or sc < 0:
+        return None
+    far = sc / st
+    return far if 0.0 < far <= FAR_MAX else None
+
+
+def rollup_far_vintage(predios) -> Dict[str, Any]:
+    """Agrega FAR + vintage sobre un iterable de predios (dicts con sup_construccion/sup_terreno/anio).
+    Devuelve el rollup listo para colonia_catastro_byid. Usado por el seed y por la lectura en vivo →
+    UNA sola fórmula (cero divergencia). Mediana por conteo (streaming-friendly, sin sort caro)."""
+    import statistics
+    fars: List[float] = []
+    anios: List[int] = []
+    for d in predios:
+        far = far_of(d.get("sup_construccion"), d.get("sup_terreno"))
+        if far is not None:
+            fars.append(far)
+        yr = year_int(d.get("anio"))
+        if yr is not None:
+            anios.append(yr)
+    n_far = len(fars)
+    n_anio = len(anios)
+    sub = [f for f in fars if f < SUBUTIL_FAR]
+    return {
+        "far_medio": round(statistics.fmean(fars), 3) if fars else None,
+        "far_mediana": round(statistics.median(fars), 3) if fars else None,
+        "far_n": n_far,
+        "pct_subutilizado": round(100.0 * len(sub) / n_far, 1) if n_far else None,
+        "edad_media_parque": round(YEAR_NOW - statistics.fmean(anios), 1) if anios else None,
+        "anio_medio_parque": round(statistics.fmean(anios)) if anios else None,
+        "anio_mediana_parque": int(statistics.median(anios)) if anios else None,
+        "vintage_n": n_anio,
+    }
+
+
+async def far_vintage_colonia(db, colonia_id: str, max_live: int = 60000) -> Dict[str, Any]:
+    """FAR (intensidad de construcción) + VINTAGE (edad del parque) por colonia IECM.
+    Land intelligence: far_medio bajo + %subutilizado alto = MÁS potencial de desarrollo (terreno sin
+    aprovechar). Lee del rollup precomputado (colonia_catastro_byid, sembrado por seed_far_predios.py) y
+    si aún no está calculado para esa colonia lo computa EN VIVO desde catastro_predios (fail-soft).
+    `colonia_id` = id IECM (match exacto por cruce espacial). NADA inventado (fuente/confianza por celda)."""
+    out_base = {
+        "colonia_id": colonia_id,
+        "fuente": "Catastro SIGCDMX 2021 (oficial)",
+        "es_estimado": False,
+        "confianza": "alta",
+    }
+    # 1) rollup precomputado (rápido) — lo escribe el seed en colonia_catastro_byid
+    try:
+        doc = await db.colonia_catastro_byid.find_one(
+            {"colonia_id": colonia_id},
+            {"_id": 0, "far_medio": 1, "far_mediana": 1, "far_n": 1, "pct_subutilizado": 1,
+             "edad_media_parque": 1, "anio_medio_parque": 1, "anio_mediana_parque": 1,
+             "vintage_n": 1, "predios": 1},
+        )
+    except Exception:
+        doc = None
+    if doc and doc.get("far_medio") is not None:
+        d = {k: v for k, v in doc.items() if v is not None}
+        d["potencial_desarrollo"] = _potencial_label(doc.get("far_medio"), doc.get("pct_subutilizado"))
+        return {**out_base, "disponible": True, "origen": "rollup", **d}
+    # 2) fallback EN VIVO (colonia aún no sembrada) — mismo motor de agregación
+    cur = db.catastro_predios.find(
+        {"colonia_iecm": colonia_id, "sup_terreno": {"$gt": 0}},
+        {"_id": 0, "sup_construccion": 1, "sup_terreno": 1, "anio": 1},
+    ).limit(max_live)
+    predios = await cur.to_list(max_live)
+    if not predios:
+        return {**out_base, "disponible": False, "predios": 0}
+    roll = rollup_far_vintage(predios)
+    if roll.get("far_medio") is None:
+        return {**out_base, "disponible": False, "predios": len(predios)}
+    roll["potencial_desarrollo"] = _potencial_label(roll.get("far_medio"), roll.get("pct_subutilizado"))
+    return {**out_base, "disponible": True, "origen": "vivo", "predios": len(predios), **roll,
+            "confianza": "media" if len(predios) >= max_live else "alta"}
+
+
+def _potencial_label(far_medio, pct_sub) -> Optional[str]:
+    """Semáforo de potencial de desarrollo (land intelligence) desde FAR medio + %subutilizado."""
+    if far_medio is None:
+        return None
+    if far_medio < 0.6 or (pct_sub or 0) >= 35:
+        return "alto"        # parque bajo/subutilizado → hay tierra que aprovechar
+    if far_medio < 1.2 or (pct_sub or 0) >= 20:
+        return "medio"
+    return "bajo"            # ya densificado

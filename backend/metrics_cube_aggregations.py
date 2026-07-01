@@ -177,6 +177,14 @@ def _empty_kpis() -> Dict[str, Any]:
         "days_on_market_avg": None,
         "ie_score_promedio": None,
         "ai_usage_mxn": 0.0,
+        # RENTABILIDAD (roadmap de métricas) — se rellenan post-_finalize vía
+        # dmx_cube_feed.attach_rentability (REUSA RENTAL_YIELDS + inversion_v4_finance).
+        # None hasta que la celda tenga avg_price_per_m2 (no fabricamos precio).
+        "cap_rate_pct": None,
+        "yield_bruto": None,
+        "yield_neto": None,
+        "renta_m2": None,
+        "noi": None,
     }
 
 
@@ -283,12 +291,28 @@ async def aggregate_tier(db, tier: str, period: str) -> int:
     now = datetime.now(timezone.utc)
     rows: List[Dict[str, Any]] = []
 
+    # RENTABILIDAD: mercado vivo (CETES/inflación) UNA sola vez por corrida — lo consume
+    # inversion_v4_finance vía attach_rentability. Fail-open (si no hay, el motor usa defaults).
+    mkt: Dict[str, Any] = {}
+    try:
+        from market_rates_engine import market_context
+        mkt = await market_context(db) or {}
+    except Exception as e:
+        log.warning(f"[cube] market_context (rentabilidad) no disponible: {e}")
+    try:
+        from dmx_cube_feed import attach_rentability
+    except Exception as e:
+        log.warning(f"[cube] attach_rentability import falló: {e}")
+        attach_rentability = None
+
     if tier == "city":
         kpis = _empty_kpis()
         _agg = {"price": [], "price_per_m2": [], "dom": [], "ie": []}
         for d in devs:
             _accum_dev(kpis, d, leads_map, ai_map, now, _agg)
         _finalize(kpis, _agg)
+        if attach_rentability:
+            await attach_rentability(db, kpis, "city", CITY_ROOT_ID, mkt=mkt)
         rows.append({
             "tier": "city", "tier_id": CITY_ROOT_ID, "name": CITY_ROOT_NAME,
             "parent_tier_id": None, "parent_name": None,
@@ -312,6 +336,8 @@ async def aggregate_tier(db, tier: str, period: str) -> int:
                 g["lngs"].append(ll[1])
         for tid, g in groups.items():
             _finalize(g["kpis"], g["_agg"])
+            if attach_rentability:
+                await attach_rentability(db, g["kpis"], "alcaldia", tid, mkt=mkt)
             geo = {}
             if g["lats"]:
                 geo = {"lat": round(sum(g["lats"]) / len(g["lats"]), 6),
@@ -341,6 +367,8 @@ async def aggregate_tier(db, tier: str, period: str) -> int:
                 g["lngs"].append(ll[1])
         for cid, g in groups.items():
             _finalize(g["kpis"], g["_agg"])
+            if attach_rentability:
+                await attach_rentability(db, g["kpis"], "colonia", cid, hint_colonia_id=cid, mkt=mkt)
             geo = {}
             if g["lats"]:
                 geo = {"lat": round(sum(g["lats"]) / len(g["lats"]), 6),
@@ -362,6 +390,8 @@ async def aggregate_tier(db, tier: str, period: str) -> int:
             geo = {"lat": ll[0], "lng": ll[1]} if ll else {}
             cid = d.get("colonia_id") or _slug(d.get("colonia") or "") or "sin-colonia"
             col = d.get("colonia") or "Sin colonia"
+            if attach_rentability:
+                await attach_rentability(db, kpis, "development", d.get("id"), hint_colonia_id=cid, mkt=mkt)
             rows.append({
                 "tier": "development", "tier_id": d.get("id"),
                 "name": d.get("name") or d.get("id"),
