@@ -619,11 +619,14 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   </div>
                   <div className="dev-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
                     {picks.map(({ dev, r }, i) => (
-                      <div key={dev.id} style={{ position: 'relative' }}>
-                        <DevelopmentCard dev={dev} index={i} />
-                        <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 6, background: 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '5px 13px', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5, boxShadow: '0 2px 10px rgba(16,18,28,0.25)', whiteSpace: 'nowrap' }}>
+                      <div key={dev.id}>
+                        {/* La razón "porque te gustó X" iba encima del badge de estatus (chocaban). Ahora es una línea
+                            sutil ARRIBA de la tarjeta: discreta, no estorba, cero overlay sobre la imagen. */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 7px 3px', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, color: 'var(--cream-3)', letterSpacing: '0.01em' }}>
+                          <span style={{ color: 'var(--theme)', fontSize: 12, lineHeight: 1 }}>✨</span>
                           porque te gustó {(r.porque || '').split(' ')[0]}
                         </div>
+                        <DevelopmentCard dev={dev} index={i} />
                       </div>
                     ))}
                   </div>
