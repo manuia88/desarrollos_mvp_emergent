@@ -1251,6 +1251,24 @@ async def precio_posicion(request: Request, colonia: str, precio: float, m2: flo
         return {"disponible": False, "error": str(e)[:120]}
 
 
+# ─── Fase 2 mapa de valores · valoración por colonia (mercado $/m² + plusvalía SHF) ───────────────
+@router.get("/api/mapa/colonia/{colonia_id}/valoracion")
+async def mapa_colonia_valoracion(colonia_id: str, request: Request):
+    """Panel del mapa (Fase 2): precio de mercado $/m² (Monopolio → mini-AVM → catastro, con
+    fuente+confianza) + plusvalía anual DERIVADA del índice SHF de la alcaldía de la colonia
+    (serie 2020+, es_estimado marcado). Lee de `colonia_valoracion` si está sembrada; si no,
+    la calcula al vuelo (fail-soft por campo). REUSA colonia_valoracion_engine."""
+    db = request.app.state.db
+    try:
+        cached = await db.colonia_valoracion.find_one({"colonia_id": colonia_id}, {"_id": 0})
+        if cached and cached.get("name"):
+            return cached
+        from colonia_valoracion_engine import get_valoracion
+        return await get_valoracion(db, colonia_id)
+    except Exception as e:
+        return {"colonia_id": colonia_id, "disponible": False, "error": str(e)[:120]}
+
+
 class PrecioPosicionBatchIn(BaseModel):
     colonia: str
     nueva: bool = True

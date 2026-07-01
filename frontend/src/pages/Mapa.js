@@ -89,6 +89,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
   const [coloniaById, setColoniaById] = useState({});
   const [layer, setLayer] = useState('ie');
   const [showDevs, setShowDevs] = useState(false); // desarrollos ocultos por default → mapa limpio
+  const [valoracion, setValoracion] = useState(null); // F2: precio mercado + plusvalía real (colonia vs alcaldía)
   const [selected, setSelected] = useState(null);
   // Upgrade #1 — "Vigila esta colonia": watchlist local (la alerta de forecast + aviso de Atlax la
   // conecta el backend después; aquí queda el enganche real + la intención del comprador).
@@ -347,6 +348,15 @@ export default function Mapa({ user, onLogin, onLogout }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId]);
 
+  // F2 · Valoración de la colonia: precio de MERCADO real (Monopolio/AVM) + plusvalía anual derivada del índice SHF
+  // de la alcaldía (marcada "estimada"). Alimenta la gráfica de valorización del panel (estilo Propiedades.com).
+  useEffect(() => {
+    if (!selId) { setValoracion(null); return; }
+    setValoracion(null);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/mapa/colonia/${encodeURIComponent(selId)}/valoracion`)
+      .then((r) => r.json()).then((d) => setValoracion(d || null)).catch(() => setValoracion(null));
+  }, [selId]);
+
   // Catastro OFICIAL (SIGCDMX) — consulta por ID de colonia (cruce espacial · exacto 99%); el endpoint
   // cae al nombre si no es id. Antes consultaba por NOMBRE (regex frágil) → falsos "próximamente".
   const selKey = selected && (selected.id || selected.name);
@@ -578,24 +588,35 @@ export default function Mapa({ user, onLogin, onLogout }) {
               </div>
             )}
 
-            {/* GRÁFICA HISTÓRICA de precio/m² (24 meses) — lo que pide el founder */}
-            {tr.length > 1 && (() => {
-              const w = 312, h = 84, min = Math.min(...tr), max = Math.max(...tr), rng = max - min || 1;
-              const pts = tr.map((v, i) => `${(i / (tr.length - 1)) * w},${h - ((v - min) / rng) * (h - 12) - 6}`);
-              const col = up ? '#1FA06A' : '#C63FAE';
-              return (
-                <div style={{ marginTop: 12, marginBottom: 16 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 6 }}>{tc('Precio/m² · Últimos 24 Meses')}</div>
-                  <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h, display: 'block' }} preserveAspectRatio="none">
-                    <path d={`M${pts.join(' L')} L${w},${h} L0,${h} Z`} fill={col} opacity="0.12" />
-                    <path d={`M${pts.join(' L')}`} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', marginTop: 4 }}>
-                    <span>${tr[0]}k</span>
-                    <span style={{ color: col, fontWeight: 700 }}>hoy ${tr[tr.length - 1]}k/m²</span>
+            {/* PLUSVALÍA · valorización anual — F2: serie REAL derivada del índice oficial SHF de la alcaldía (marcada). */}
+            {(() => {
+              const pv = valoracion && valoracion.plusvalia;
+              const serie = (pv && Array.isArray(pv.series) && pv.series) || [];
+              if (serie.length > 1) {
+                const w = 312, h = 84, vals = serie.map((s) => s.valor_m2 || 0);
+                const min = Math.min(...vals), max = Math.max(...vals), rng = max - min || 1;
+                const pts = serie.map((s, i) => `${(i / (serie.length - 1)) * w},${h - (((s.valor_m2 || 0) - min) / rng) * (h - 12) - 6}`);
+                const lastYoy = serie[serie.length - 1].yoy_pct;
+                const upv = (lastYoy ?? 0) >= 0, col = upv ? '#1FA06A' : '#C63FAE';
+                const alc = valoracion.alcaldia_plusvalia && valoracion.alcaldia_plusvalia.alcaldia;
+                return (
+                  <div style={{ marginTop: 12, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: '#8A8F9E' }}>{tc('Plusvalía · valorización anual')}</div>
+                      {lastYoy != null && <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: col }}>{upv ? '▲' : '▼'} {Math.abs(lastYoy).toFixed(1)}%/año</div>}
+                    </div>
+                    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h, display: 'block' }} preserveAspectRatio="none">
+                      <path d={`M${pts.join(' L')} L${w},${h} L0,${h} Z`} fill={col} opacity="0.12" />
+                      <path d={`M${pts.join(' L')}`} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', marginTop: 4 }}>
+                      <span>{serie[0].anio}</span><span>{serie[serie.length - 1].anio}</span>
+                    </div>
+                    {pv.es_estimado && <div style={{ fontSize: 9.5, color: '#9AA0AE', marginTop: 5 }}>Estimada · índice oficial SHF de {alc || 'la alcaldía'}</div>}
                   </div>
-                </div>
-              );
+                );
+              }
+              return null;
             })()}
 
             {/* Sello de calidad — solo si NO hay dato real (ni catastro oficial ni scores) */}
