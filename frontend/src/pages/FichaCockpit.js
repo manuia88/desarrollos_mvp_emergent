@@ -539,6 +539,10 @@ export default function FichaCockpit({ user, onLogin }) {
     try { sendBuyerSignal('section_view', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, unit_number: unit && unit.unit_number, value: t }); } catch (e) { /* noop */ }
   };
   const goTo = (anchor) => { if (anchor === 'unidades') goTab('unidad'); else if (anchor === 'panorama' || anchor === 'inversion') goTab('dinero'); };
+  // FLYWHEEL: el LENTE (vivir/invertir · individual/institucional) es una señal fuerte de intención → alimenta el perfil
+  // del comprador, el cubo por-intención y la demanda que ven dev/superadmin. (La v2 la emitía; la v3 no — se cablea aquí.)
+  const chooseLens = (k) => { setLens(k); try { sendBuyerSignal('lens', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, value: k }); } catch (e) { /* noop */ } };
+  const chooseInvMode = (m) => { setInvMode(m); try { sendBuyerSignal('lens', { entity_id: dev.id, colonia: dev.colonia_id || dev.colonia, value: `invertir_${m}` }); } catch (e) { /* noop */ } };
   const askAtlax = () => { try { sendBuyerSignal('lead', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'atlax' }); } catch (e) { /* noop */ } window.dispatchEvent(new CustomEvent('dmx:ask-atlax', { detail: { devId: dev.id, devName: dev.name, colonia: dev.colonia, unit: unit && unit.unit_number } })); };
   const agendar = () => { try { sendBuyerSignal('intent', { entity_id: dev.id, unit_number: unit && unit.unit_number, colonia: dev.colonia, value: 'agendar' }); } catch (e) { /* noop */ } setLeadModal({ reason: 'agendar' }); };
   const toggleSaveUnit = () => { if (!unit || !unit.unit_number) return; const u = unit.unit_number; const on = !savedUnits.has(u); try { sendBuyerSignal(on ? 'unit_save' : 'unit_unsave', { entity_id: dev.id, unit_number: u, colonia: dev.colonia_id || dev.colonia }); } catch (e) { /* noop */ } setSavedUnits((s) => { const n = new Set(s); if (on) n.add(u); else n.delete(u); return n; }); };
@@ -605,7 +609,7 @@ export default function FichaCockpit({ user, onLogin }) {
         <div className="dmx-cockpit-grid" style={{ maxWidth: 1320, width: '94%', margin: '0 auto', padding: '24px 0 90px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 28, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
             {/* Lens UNO solo (founder: evitar el toggle duplicado entre Tu unidad y Tu dinero) — persistente en ambas. */}
-            {(tab === 'unidad' || tab === 'dinero') && <LensToggle lens={lens} setLens={setLens} invMode={invMode} setInvMode={setInvMode} />}
+            {(tab === 'unidad' || tab === 'dinero') && <LensToggle lens={lens} setLens={chooseLens} invMode={invMode} setInvMode={chooseInvMode} />}
 
             {tab === 'proyecto' && <TabProyecto dev={dev} amen={amen} tipo={tipo} beds={beds} m2r={m2r} park={park} nUnits={nUnits} rng={rng} lens={lens} onVerUnidades={() => goTab('unidad')} onVerDinero={() => goTab('dinero')} onVerConfianza={() => goTab('confianza')} />}
 
