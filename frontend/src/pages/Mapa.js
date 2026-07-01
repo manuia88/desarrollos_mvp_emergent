@@ -265,65 +265,9 @@ export default function Mapa({ user, onLogin, onLogout }) {
         },
       });
 
-      // Heatmap source (centers weighted by price_m2)
-      map.addSource('centers', { type: 'geojson', data: buildCentersGeoJSON(colonias) });
-      map.addLayer({
-        id: 'price-heat',
-        type: 'heatmap',
-        source: 'centers',
-        layout: { visibility: 'none' },
-        paint: {
-          'heatmap-weight': [
-            'interpolate', ['linear'], ['get', 'price_m2'],
-            30, 0.2, 70, 0.6, 110, 1.0,
-          ],
-          'heatmap-radius': 70,
-          'heatmap-opacity': 0.75,
-          'heatmap-color': [
-            'interpolate', ['linear'], ['heatmap-density'],
-            0, 'rgba(6,8,15,0)',
-            0.2, 'rgba(99,102,241,0.4)',
-            0.5, 'rgba(236,72,153,0.6)',
-            0.9, 'rgba(245,158,11,0.85)',
-            1, 'rgba(239,68,68,0.9)',
-          ],
-        },
-      });
-
-      // ── Burbujas de VALOR: círculo por colonia (tamaño + color por precio/m²) + etiqueta con el precio ──
-      map.addLayer({
-        id: 'colonia-glow', type: 'circle', source: 'centers',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'price_m2'], 30, 26, 90, 42, 140, 58],
-          'circle-color': ['interpolate', ['linear'], ['get', 'price_m2'], 30, '#A78BFA', 80, '#7C5CFF', 140, '#C63FAE'],
-          'circle-opacity': 0.16, 'circle-blur': 0.9,
-        },
-      });
-      map.addLayer({
-        id: 'colonia-dot', type: 'circle', source: 'centers',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'price_m2'], 30, 7, 90, 12, 140, 17],
-          'circle-color': ['interpolate', ['linear'], ['get', 'price_m2'], 30, '#A78BFA', 80, '#7C5CFF', 140, '#C63FAE'],
-          'circle-stroke-width': 2.5, 'circle-stroke-color': '#ffffff',
-        },
-      });
-      map.addLayer({
-        id: 'colonia-price', type: 'symbol', source: 'centers',
-        layout: {
-          'text-field': ['concat', ['get', 'name'], '\n$', ['to-string', ['get', 'price_m2']], 'k/m²'],
-          'text-size': 12, 'text-offset': [0, 1.3], 'text-anchor': 'top',
-          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-        },
-        paint: { 'text-color': '#2A2140', 'text-halo-color': '#ffffff', 'text-halo-width': 2 },
-      });
-      map.on('click', 'colonia-dot', (e) => {
-        const f = e.features?.[0]; if (!f) return;
-        const c = coloniaById[f.properties.id] || f.properties;
-        setSelected(c);
-        if (c.center) map.flyTo({ center: c.center, zoom: 13.2, duration: 700 });
-      });
-      map.on('mouseenter', 'colonia-dot', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'colonia-dot', () => { map.getCanvas().style.cursor = ''; });
+      // REDISEÑO F1 (estética Monopolio): UN solo sistema visual = el POLÍGONO choropleth. Se retiraron el heatmap
+      // y las 3 capas de burbujas (glow/dot/price) que competían con el relleno y hacían "ruido". El precio/plusvalía
+      // ahora se lee en el TOOLTIP flotante (hover) y en el panel lateral — no gritado sobre el mapa.
 
       // Click handler
       map.on('click', 'colonias-fill', (e) => {
@@ -337,7 +281,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
         // Solo acerca si estás LEJOS; si ya estás en zoom de predio, no muevas el mapa (fix "se aleja").
         if (e.lngLat && map.getZoom() < 14) map.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 13.4, duration: 700 });
       });
-      // Hover: resalta la colonia bajo el cursor (feature-state) → navegar/distinguir zonas es claro.
+      // Hover: resalta la colonia (feature-state) + TOOLTIP flotante limpio (nombre · $/m² suelo · $/m² mercado).
+      const tip = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, className: 'dmx-map-tip', maxWidth: '240px' });
       let hoveredId = null;
       map.on('mousemove', 'colonias-fill', (e) => {
         map.getCanvas().style.cursor = 'pointer';
@@ -345,11 +290,22 @@ export default function Mapa({ user, onLogin, onLogout }) {
         if (hoveredId !== null) map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: false });
         hoveredId = f.id;
         map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: true });
+        const p = f.properties || {};
+        const suelo = p.valor_catastral ? `$${Math.round(p.valor_catastral).toLocaleString('es-MX')}/m² suelo` : '';
+        const merc = p.price_m2 ? `<span style="color:#7C5CFF;font-weight:700">$${p.price_m2}k/m²</span> mercado` : '';
+        tip.setLngLat(e.lngLat).setHTML(
+          `<div style="font-family:'DM Sans',sans-serif;font-size:12.5px;line-height:1.5;color:#2A2140">
+             <div style="font-family:Outfit,sans-serif;font-weight:800;font-size:13.5px;margin-bottom:2px">${p.name || ''}</div>
+             ${p.alcaldia ? `<div style="color:#8A85A0;font-size:11px;margin-bottom:4px">${p.alcaldia}</div>` : ''}
+             ${merc ? `<div>${merc}</div>` : ''}${suelo ? `<div style="color:#6B6684">${suelo}</div>` : ''}
+           </div>`
+        ).addTo(map);
       });
       map.on('mouseleave', 'colonias-fill', () => {
         map.getCanvas().style.cursor = '';
         if (hoveredId !== null) map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: false });
         hoveredId = null;
+        tip.remove();
       });
       setMapReady((v) => v + 1);  // señal: el mapa cargó → re-engancha las capas dependientes (predios)
     });
@@ -364,17 +320,10 @@ export default function Mapa({ user, onLogin, onLogout }) {
     const setVis = (id, vis) => {
       if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', vis);
     };
-    if (layer === 'ie') {
-      setVis('colonias-fill', 'visible');
-      setVis('colonias-outline', 'visible');
-      setVis('colonias-labels', 'visible');
-      setVis('price-heat', 'none');
-    } else {
-      setVis('colonias-fill', 'none');
-      setVis('colonias-outline', 'visible');
-      setVis('colonias-labels', 'visible');
-      setVis('price-heat', 'visible');
-    }
+    // Un solo sistema visual (el choropleth de polígonos). Siempre visible fill+borde+etiqueta.
+    setVis('colonias-fill', 'visible');
+    setVis('colonias-outline', 'visible');
+    setVis('colonias-label', 'visible');
   }, [layer]);
 
   const selectedColonia = selected;  // ahora `selected` es el objeto (props del polígono o la colonia seed)
@@ -521,8 +470,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
           borderRadius: 9999,
         }}>
           {[
-            { k: 'ie', label: 'Precio/m²' },
-            { k: 'heat', label: 'Mapa de calor' },
+            { k: 'ie', label: 'Mapa de precios' },
           ].map(l => {
             const active = layer === l.k;
             return (
