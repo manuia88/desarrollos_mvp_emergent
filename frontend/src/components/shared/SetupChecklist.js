@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronRight } from '../../components/icons';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -93,7 +94,7 @@ export function SetupChecklist({ className = '' }) {
             fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
             color: 'var(--cream-3)', marginBottom: 2,
           }}>
-            CONFIGURACIÓN INICIAL
+            {tc('Configuración inicial')}
           </div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>
             {done} de {total} pasos completados

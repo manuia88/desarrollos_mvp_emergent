@@ -8,6 +8,7 @@ import { createProblemReport } from '../../api/diagnostic';
 import { AlertTriangle, X } from '../icons';
 import { Check } from 'lucide-react';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 export default function ReportProblemButton({ user }) {
   const [open, setOpen] = useState(false);
@@ -77,7 +78,7 @@ export default function ReportProblemButton({ user }) {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-                    Reportar problema
+                    {tc('Reportar problema')}
                   </h3>
                   <button onClick={reset} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer', padding: 4 }}>
                     <X size={16} />
@@ -125,7 +126,7 @@ export default function ReportProblemButton({ user }) {
                   <Check size={22} color="#22c55e" />
                 </div>
                 <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
-                  Reporte enviado
+                  {tc('Reporte enviado')}
                 </h3>
                 <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--cream-3)' }}>
                   ID: <code style={{ color: 'var(--cream-2)' }}>{submitted.report_id}</code>
@@ -138,7 +139,7 @@ export default function ReportProblemButton({ user }) {
               </div>
             ) : (
               <div>
-                <h3 style={{ margin: '0 0 6px', fontSize: 14, color: 'var(--red)' }}>Error al enviar</h3>
+                <h3 style={{ margin: '0 0 6px', fontSize: 14, color: 'var(--red)' }}>{tc('Error al enviar')}</h3>
                 <p style={{ fontSize: 12, color: 'var(--cream-3)' }}>{submitted.error}</p>
                 <button onClick={reset}
                   style={{ background: 'rgba(var(--cream-rgb),0.1)', color: 'var(--cream)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, cursor: 'pointer', marginTop: 10 }}>

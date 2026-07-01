@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../../api/developer';
 import { CheckCircle, AlertTriangle, Sparkle } from '../../components/icons';
+import { tc } from '../../lib/titleCase';
 
 const ROLE_LABELS = {
   admin: 'Administrador',
@@ -112,7 +113,7 @@ export default function AceptarInvitacion() {
 
         {!loading && invite && !error && (
           <>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>INVITACIÓN ACTIVA</div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>{tc('Invitación activa')}</div>
             <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: '0 0 6px', letterSpacing: '-0.025em', lineHeight: 1.15 }}>
               Bienvenido a {invite.dev_org_name}
             </h1>

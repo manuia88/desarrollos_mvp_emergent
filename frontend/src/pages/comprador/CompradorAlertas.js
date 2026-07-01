@@ -261,7 +261,7 @@ export default function CompradorAlertas() {
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7,
             }}
           >
-            <Plus size={13} /> Nueva alerta
+            <Plus size={13} /> {tc('Nueva alerta')}
           </button>
         </div>
 
@@ -284,7 +284,7 @@ export default function CompradorAlertas() {
                 cursor: 'pointer',
               }}
             >
-              {t.label}
+              {tc(t.label)}
             </button>
           ))}
         </div>

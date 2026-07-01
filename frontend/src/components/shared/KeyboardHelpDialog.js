@@ -5,6 +5,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const MOD = isMac ? '⌘' : 'Ctrl';
@@ -117,7 +118,7 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 18,
               color: 'var(--cream)', marginBottom: 2,
             }}>
-              Atajos de teclado
+              {tc('Atajos de teclado')}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
               Presiona <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(var(--cream-rgb),0.1)', border: '1px solid rgba(var(--cream-rgb),0.2)', fontSize: 10 }}>?</kbd> para abrir · <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(var(--cream-rgb),0.1)', border: '1px solid rgba(var(--cream-rgb),0.2)', fontSize: 10 }}>Esc</kbd> para cerrar

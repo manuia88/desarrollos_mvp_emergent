@@ -19,7 +19,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, LogOut, User, Settings } from 'lucide-react';
 import { DEV_NAV_V2 } from '../../config/navByRoleV2';
-import { titleCase } from '../../utils/titleCase';
+import { tc } from '../../lib/titleCase';
 
 // Una ruta hoja está activa si coincide exacto o es prefijo de segmento.
 function matchesPath(pathname, to) {
@@ -120,7 +120,7 @@ export default function DevSidebarV2({ user, onLogout, badges = {} }) {
                 className={`${rowBase} ${isGroupActive && !active?.childKey ? activeCls : (isGroupActive ? 'text-[var(--frame-primary)] font-semibold' : idleCls)}`}
               >
                 <group.Icon size={18} className="shrink-0" />
-                <span className="truncate">{titleCase(group.label)}</span>
+                <span className="truncate">{tc(group.label)}</span>
                 {groupBadge > 0 && !hasChildren && <Badge count={groupBadge} />}
                 {hasChildren && (
                   <>
@@ -145,7 +145,7 @@ export default function DevSidebarV2({ user, onLogout, badges = {} }) {
                         className={`${rowBase} py-1.5 ${isChildActive ? activeCls : idleCls}`}
                       >
                         <child.Icon size={16} className="shrink-0" />
-                        <span className="truncate">{titleCase(child.label)}</span>
+                        <span className="truncate">{tc(child.label)}</span>
                         <Badge count={childBadge} />
                       </Link>
                     );

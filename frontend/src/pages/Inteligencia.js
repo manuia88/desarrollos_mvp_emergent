@@ -10,6 +10,7 @@ import AtlaxBubble from '../components/landing/AtlaxBubble';
 import ScoreBadge from '../components/investment/ScoreBadge';
 import DMXMarketIndex from '../components/marketplace/DMXMarketIndex';
 import { useAuth } from '../App';
+import { tc } from '../lib/titleCase';
 
 const CATEGORIES = [
   { Icon: Leaf,    n: 14, t: 'Vida cotidiana',     d: 'Densidad de servicios, áreas verdes, ruido, ritmo del barrio, calidad del aire.' },
@@ -41,7 +42,7 @@ export default function Inteligencia() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar onLogin={openAuth} user={user} onLogout={logout} />
       <main style={{ padding: '110px 24px 80px', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="eyebrow" style={{ marginBottom: 12 }}>CÓMO MEDIMOS CADA ZONA</div>
+        <div className="eyebrow" style={{ marginBottom: 12 }}>{tc('Cómo medimos cada zona')}</div>
         <h1 style={{
           fontFamily: 'Outfit', fontWeight: 800,
           fontSize: 'clamp(36px, 6vw, 60px)',
@@ -75,7 +76,7 @@ export default function Inteligencia() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
             <div>
-              <div className="eyebrow" style={{ marginBottom: 4 }}>EN VIVO · ANÁLISIS DE LA COLONIA</div>
+              <div className="eyebrow" style={{ marginBottom: 4 }}>{tc('En vivo · análisis de la colonia')}</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                 {zone.name} · lectura actual
               </div>
@@ -167,7 +168,7 @@ export default function Inteligencia() {
           gap: 20, flexWrap: 'wrap',
         }}>
           <div style={{ maxWidth: 640 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>QUIÉN USA ESTOS DATOS</div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>{tc('Quién usa estos datos')}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 22, color: 'var(--cream)', marginBottom: 6, letterSpacing: '-0.02em' }}>
               Compradores, asesores y desarrolladoras — la misma capa de verdad.
             </div>

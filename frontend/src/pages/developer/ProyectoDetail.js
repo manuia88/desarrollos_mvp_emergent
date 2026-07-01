@@ -35,7 +35,7 @@ import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
 import FichaHome, { AreaInsights } from '../../components/developer/FichaHome';
-import { titleCase } from '../../utils/titleCase';
+import { tc } from '../../lib/titleCase';
 import useInlineSaver from '../../hooks/useInlineSaver';
 import { Z } from '../../styles/zIndex';
 
@@ -614,7 +614,7 @@ export default function ProyectoDetail({ user, onLogout }) {
                 onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.boxShadow = 'inset 0 -2px 0 rgba(var(--theme-rgb),0.5)'; } }}
                 onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-3)'; e.currentTarget.style.boxShadow = 'none'; } }}
               >
-                {titleCase(t.label)}
+                {tc(t.label)}
                 {t.phase && (
                   <span style={{
                     position: 'absolute', top: 4, right: 4,
@@ -795,7 +795,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                 cursor: 'pointer',
               }}
             >
-              {titleCase('CAPTURAR NUEVO TOUR')}
+              {tc('CAPTURAR NUEVO TOUR')}
             </button>
             <button
               type="button"
@@ -808,7 +808,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                 cursor: 'pointer',
               }}
             >
-              {titleCase('SUBIR ARCHIVO')}
+              {tc('SUBIR ARCHIVO')}
             </button>
           </div>
         )}
@@ -871,7 +871,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                     opacity: s.status === 'ready' ? 1 : 0.45,
                   }}
                 >
-                  {titleCase('PREVIEW')}
+                  {tc('PREVIEW')}
                 </button>
                 {canManage && (
                   <button
@@ -886,7 +886,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
                       cursor: 'pointer',
                     }}
                   >
-                    {titleCase('BORRAR')}
+                    {tc('BORRAR')}
                   </button>
                 )}
               </div>

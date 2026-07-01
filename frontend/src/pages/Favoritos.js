@@ -56,7 +56,7 @@ export default function Favoritos() {
   const TabBtn = ({ k, label, n }) => (
     <button onClick={() => setTab(k)} data-testid={`fav-tab-${k}`}
       style={{ padding: '8px 16px', borderRadius: 9999, border: '1px solid ' + (tab === k ? 'var(--theme)' : 'var(--border)'), background: tab === k ? 'var(--theme)' : '#fff', color: tab === k ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-      {label}{n != null && <span style={{ opacity: 0.7, marginLeft: 5 }}>{n}</span>}
+      {tc(label)}{n != null && <span style={{ opacity: 0.7, marginLeft: 5 }}>{n}</span>}
     </button>
   );
 

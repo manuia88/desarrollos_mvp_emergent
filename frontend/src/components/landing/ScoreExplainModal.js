@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import * as api from '../../api/ie_scores';
 import { X, Sparkle } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
   const [data, setData] = useState(null);
@@ -44,7 +45,7 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>CÓMO LO SABEMOS</div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{tc('Cómo lo sabemos')}</div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>
               {code}
             </h2>
@@ -143,7 +144,7 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
 
             {/* Dependencies */}
             <div style={{ marginBottom: 14 }}>
-              <div className="eyebrow" style={{ marginBottom: 6 }}>FUENTES</div>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>{tc('Fuentes')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {data.dependencies.map(dep => (
                   <span key={dep} data-testid={`explain-dep-${dep}`} style={{
@@ -164,7 +165,7 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
             {/* Sample IDs */}
             {data.observation_sample_ids?.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>MUESTRA DE OBSERVACIONES</div>
+                <div className="eyebrow" style={{ marginBottom: 6 }}>{tc('Muestra de observaciones')}</div>
                 <div style={{ fontFamily: 'monospace', fontSize: 10.5, color: 'var(--cream-3)' }}>
                   {data.observation_sample_ids.slice(0, 8).join(' · ')}
                 </div>

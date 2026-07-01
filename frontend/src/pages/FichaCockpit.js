@@ -25,6 +25,7 @@ import SeccionLente from '../components/ficha/SeccionLente';         // hechos r
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';   // asistente IA flotante — consciente de la unidad/lente/sección que ve el cliente
 import DevStructuredData from '../components/seo/DevStructuredData';   // GEO: schema RealEstateListing + FAQPage (reconecta el structured data que ya existía)
+import { tc } from '../lib/titleCase';   // title case inteligente canónico (respeta CDMX/IE, m², baja de/la/en…)
 
 const money = (n) => (n ? `$${Number(n).toLocaleString('es-MX')}` : '—');
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -106,9 +107,8 @@ function EmptyHint({ text, onGo }) {
 
 // Pestaña "El proyecto": contexto que SUMA valor — historia, avance de obra (fases+bitácora), disponibilidad, prototipos,
 // el precio desde el lanzamiento, amenidades y el desarrollador. Todo dato real del dev (hide-if-empty).
-// Title case inteligente (capitaliza palabras importantes, deja minúsculas artículos/preposiciones).
-const TITLE_SMALL = new Set(['de', 'la', 'el', 'los', 'las', 'en', 'y', 'a', 'del', 'que', 'lo', 'con', 'por', 'o', 'desde', 'para', 'su', 'tu']);
-const titleCase = (s) => String(s || '').split(' ').map((w, i) => (i > 0 && TITLE_SMALL.has(w.toLowerCase()) ? w.toLowerCase() : (w ? w[0].toUpperCase() + w.slice(1) : w))).join(' ');
+// Title case inteligente: se unifica al caser canónico tc() (lib/titleCase) — respeta acrónimos (CDMX/IE), m²/números y baja palabras menores.
+const titleCase = tc;
 // Globitos: explicación sencilla para alguien que no sabe nada de comprar inmuebles.
 const TEC_TIP = { Niveles: 'Cuántos pisos tiene la torre.', Elevadores: 'Cuántos elevadores hay. Más elevadores = menos espera.', Cisterna: 'Depósito de agua del edificio. Te da reserva si el suministro de la ciudad falla.', Estructura: 'Cómo está construido. “Antisísmico (NTC-2020)” = cumple la norma sísmica vigente de CDMX.', Estacionamiento: 'Dónde están los cajones. Subterráneo = no ocupan fachada ni vista.', Gas: 'Tipo de gas. Natural = por tubería, más barato y seguro que el de tanque.', Agua: 'De dónde viene el agua. Con cisterna hay reserva propia del edificio.', Energía: 'Suministro de luz. Planta de emergencia = no te quedas a oscuras en apagones.', Internet: 'Conexión. Fibra óptica = internet rápido y estable.' };
 const FACT_TIP = { 'Depas por piso': 'Cuántos departamentos comparten cada piso. Menos = más privacidad.', Prototipos: 'Cuántos modelos distintos de departamento hay (por tamaño y distribución).', Niveles: 'Cuántos pisos tiene la torre.' };
@@ -545,7 +545,7 @@ export default function FichaCockpit({ user, onLogin }) {
   const nUnits = dev.total_units || (dev.units ? dev.units.length : null);
   const amen = Array.isArray(cfg.amenidades) && cfg.amenidades.length ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : []);
   const tipoMap = { departamento: 'Departamento', casa: 'Casa', loft: 'Loft', ph: 'Penthouse', estudio: 'Estudio' };
-  const tipo = tipoMap[dev.property_type] || (dev.property_type ? dev.property_type[0].toUpperCase() + dev.property_type.slice(1) : null);
+  const tipo = tipoMap[dev.property_type] || (dev.property_type ? tc(dev.property_type) : null);
   const multi = lens === 'invertir' && invMode === 'institucional';
   const fundUnits = (dev.units || []).filter((u) => u.status === 'disponible' && fundIds.includes(u.id));
   const toggleFund = (id) => setFundIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));

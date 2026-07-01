@@ -22,6 +22,7 @@ import SeccionPanorama from '../components/ficha/SeccionPanorama';   // WIZARD v
 import SeccionCalcInversion from '../components/ficha/SeccionCalcInversion'; // calculadora REAL de zona (InversionV4) traída a la ficha
 import LeadCaptureModal from '../components/ficha/LeadCaptureModal'; // cierra el ciclo: alto intento → lead → asesor_contactos
 import DevStructuredData from '../components/seo/DevStructuredData';   // GEO: schema RealEstateListing + FAQPage (reconecta el structured data que ya existía)
+import { tc } from '../lib/titleCase';   // title case inteligente canónico (respeta CDMX/IE, m², baja de/la/en…)
 
 const ANCLAS = [
   ['proyecto', 'El proyecto'], ['lente', '¿Para qué?'], ['unidades', 'Unidades'], ['panorama', 'Tu panorama'], ['confianza', 'Confianza'],
@@ -131,7 +132,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
   const amen = Array.isArray(cfg.amenidades) && cfg.amenidades.length ? cfg.amenidades : (Array.isArray(dev.amenities) ? dev.amenities : []);
   const servicios = cfg.servicios && typeof cfg.servicios === 'object' ? Object.entries(cfg.servicios).filter(([, v]) => v) : [];
   const tipoMap = { departamento: 'Departamento', casa: 'Casa', loft: 'Loft', ph: 'Penthouse', estudio: 'Estudio' };
-  const tipo = tipoMap[dev.property_type] || (dev.property_type ? dev.property_type[0].toUpperCase() + dev.property_type.slice(1) : null);
+  const tipo = tipoMap[dev.property_type] || (dev.property_type ? tc(dev.property_type) : null);
   const pagos = [...(cfg.formas_pago ? ['Preventa con mensualidades', 'Contado con descuento'] : []), 'Crédito hipotecario'];
 
   const goTo = (anchor) => {

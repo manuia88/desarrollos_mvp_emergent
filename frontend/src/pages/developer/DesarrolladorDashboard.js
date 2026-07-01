@@ -21,11 +21,11 @@ import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecomm
 import PortfolioCockpit from '../../components/developer/PortfolioCockpit';
 import PortfolioReading from '../../components/developer/PortfolioReading';
 import ZonaCambios from '../../components/developer/ZonaCambios';
-import { titleCase } from '../../utils/titleCase';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 // Convierte un slug crudo (ej. "altavista-polanco") en un nombre legible.
-const prettyDevName = (slug) => titleCase(String(slug || '').replace(/[-_]/g, ' '));
+const prettyDevName = (slug) => tc(String(slug || '').replace(/[-_]/g, ' '));
 
 // Hover compartido para tarjetas (eleva + glow de marca discreto)
 const cardEnter = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px -12px rgba(109,74,255,0.40)'; e.currentTarget.style.borderColor = 'rgba(109,74,255,0.45)'; };

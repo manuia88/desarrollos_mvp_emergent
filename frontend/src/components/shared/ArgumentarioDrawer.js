@@ -10,6 +10,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { queryArgumentario, fetchArgumentarioRecent } from '../../api/asesor';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
@@ -152,7 +153,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
               color: 'var(--cream-3)',
             }}>Coach inline</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream)', marginTop: 2 }}>
-              Plan venta IA
+              {tc('Plan venta IA')}
             </div>
           </div>
           <button

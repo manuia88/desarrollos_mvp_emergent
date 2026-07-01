@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MapPin } from '../icons';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -85,7 +86,7 @@ export default function RolePicker({ user, onDone }) {
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
               DesarrollosMX
             </div>
-            <div className="eyebrow" style={{ marginTop: 2 }}>COMPLETA TU PERFIL</div>
+            <div className="eyebrow" style={{ marginTop: 2 }}>{tc('Completa tu perfil')}</div>
           </div>
         </div>
 

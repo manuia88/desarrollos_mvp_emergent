@@ -11,7 +11,7 @@ import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
 import { listInventory, patchUnitFields, patchUnitFieldsBulk, getPaymentSchemes } from '../../api/developer';
 import { appliedPrice } from '../../utils/paymentSchemes';
-import { titleCase } from '../../utils/titleCase';
+import { tc } from '../../lib/titleCase';
 import PaymentQuoter from './PaymentQuoter';
 import { Search, Upload, Building } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
@@ -1323,7 +1323,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
               onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; e.currentTarget.style.color = 'var(--cream)'; } }}
               onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream-3)'; } }}
             >
-              {titleCase(st.label)}
+              {tc(st.label)}
             </button>
           );
         })}

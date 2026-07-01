@@ -19,6 +19,7 @@ import { pushRecentProject, getMyPreferences } from '../../api/preferences18';
 import { listProjectsWithStats } from '../../api/developer';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { Z } from '../../styles/zIndex';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -375,7 +376,7 @@ export function ProjectSwitcher({ user }) {
           padding: '14px 16px', borderBottom: '1px solid rgba(var(--cream-rgb),0.08)',
         }}>
           <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
-            Cambiar proyecto
+            {tc('Cambiar proyecto')}
           </span>
           <button
             onClick={() => setOpen(false)}

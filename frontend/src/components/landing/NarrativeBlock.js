@@ -9,6 +9,7 @@
 //   showFooter: bool
 import React, { useEffect, useState } from 'react';
 import { Sparkle, Database, ChevronDown } from '../icons';
+import { tc } from '../../lib/titleCase';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -152,7 +153,7 @@ export default function NarrativeBlock({
       >
         <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Sparkle size={10} color="var(--indigo-3)" />
-          <span className="eyebrow">COMPRA AHORA VS ESPERAR · IA</span>
+          <span className="eyebrow">{tc('Compra ahora vs esperar · IA')}</span>
           {data.partial && (
             <span style={{
               marginLeft: 8, padding: '2px 7px', borderRadius: 9999,

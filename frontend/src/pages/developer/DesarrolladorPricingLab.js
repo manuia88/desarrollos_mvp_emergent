@@ -6,7 +6,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { Card, Badge, Toast, fmt0, fmtMXN } from '../../components/advisor/primitives';
 import * as leadsApi from '../../api/leads';
 import { Activity, Target, Plus, X, CheckCircle, Sparkle } from '../../components/icons';
-import { titleCase } from '../../utils/titleCase';
+import { tc } from '../../lib/titleCase';
 
 const TABS = [
   { k: 'active',  label: 'Experimentos activos', Icon: Activity },
@@ -22,13 +22,13 @@ export default function DesarrolladorPricingLab({ user, onLogout }) {
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div style={{ marginBottom: 22 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>Experimentos de precio · {titleCase((slug || '').replace(/[-_]/g, ' '))}</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Experimentos de precio · {tc((slug || '').replace(/[-_]/g, ' '))}</div>
         <h1 data-testid="pricing-lab-h1" style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)',
           letterSpacing: '-0.025em', margin: '4px 0 6px',
         }}>
           <Target size={20} style={{ verticalAlign: 'middle', marginRight: 10 }} />
-          Experimentos de precio — {titleCase((slug || '').replace(/[-_]/g, ' '))}
+          Experimentos de precio — {tc((slug || '').replace(/[-_]/g, ' '))}
         </h1>
         <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 720, lineHeight: 1.55 }}>
           Lanza experimentos A/B de precio o paquetes para mejorar la conversión. Cada visitante ve una variante fija y medimos el embudo completo.

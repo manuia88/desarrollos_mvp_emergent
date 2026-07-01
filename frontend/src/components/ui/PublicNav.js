@@ -101,8 +101,8 @@ export default function PublicNav() {
             <span data-testid="nav-fav-count" style={{ background: 'var(--theme)', color: '#fff', borderRadius: 9999, padding: '1px 7px', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, minWidth: 18, textAlign: 'center' }}>{favCount}</span>
           )}
         </Link>
-        <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
-        <Link to="/mapa" style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
+        <Link to="/login" style={{ textDecoration: 'none' }}><Button variant="secondary" size="sm">{tc('Entrar')}</Button></Link>
+        <Link to="/mapa" style={{ textDecoration: 'none' }}><Button size="sm">{tc('Abrir mapa')}</Button></Link>
         </>)}
         {isMobile && (
           <button onClick={() => setMenuOpen((o) => !o)} aria-label="Menú" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 11, border: '1px solid var(--border)', background: 'transparent', color: 'var(--cream)', fontSize: 20, cursor: 'pointer' }}>{menuOpen ? '✕' : '☰'}</button>
@@ -115,8 +115,8 @@ export default function PublicNav() {
           {TOOLS.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ ...mobileItem, fontSize: 13.5, paddingTop: 7, paddingBottom: 7 }}>{tc(tl.label)}</Link>)}
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link to="/favoritos" onClick={() => setMenuOpen(false)} style={{ ...mobileItem, padding: '8px 0' }}>♥ Favoritos{favCount > 0 ? ` (${favCount})` : ''}</Link>
-            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto' }}><Button variant="secondary" size="sm">Entrar</Button></Link>
-            <Link to="/mapa" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}><Button size="sm">Abrir mapa</Button></Link>
+            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', marginLeft: 'auto' }}><Button variant="secondary" size="sm">{tc('Entrar')}</Button></Link>
+            <Link to="/mapa" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}><Button size="sm">{tc('Abrir mapa')}</Button></Link>
           </div>
         </div>
       )}
