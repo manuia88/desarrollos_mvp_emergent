@@ -87,7 +87,8 @@ export default function Mapa({ user, onLogin, onLogout }) {
   const container = useRef(null);
   const [colonias, setColonias] = useState([]);
   const [coloniaById, setColoniaById] = useState({});
-  const [layer, setLayer] = useState('ie'); // 'ie' or 'heat'
+  const [layer, setLayer] = useState('ie');
+  const [showDevs, setShowDevs] = useState(false); // desarrollos ocultos por default → mapa limpio
   const [selected, setSelected] = useState(null);
   // Upgrade #1 — "Vigila esta colonia": watchlist local (la alerta de forecast + aviso de Atlax la
   // conecta el backend después; aquí queda el enganche real + la intención del comprador).
@@ -182,13 +183,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
     const apply = () => {
       if (m.getSource('devs')) { m.getSource('devs').setData(data); return; }
       m.addSource('devs', { type: 'geojson', data });
+      // Desarrollos OCULTOS por default (toggle "Desarrollos" del toolbar) — el mapa de valores arranca LIMPIO
+      // (solo el choropleth), sin los puntos/precios encimados. El usuario los prende si quiere ver el inventario.
       m.addLayer({
         id: 'dev-point', type: 'circle', source: 'devs',
+        layout: { visibility: 'none' },
         paint: { 'circle-radius': 5, 'circle-color': '#1FA06A', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
       });
       m.addLayer({
         id: 'dev-label', type: 'symbol', source: 'devs',
-        layout: { 'text-field': ['case', ['has', 'pm2'], ['concat', '$', ['to-string', ['get', 'pm2']], 'k'], ''], 'text-size': 10, 'text-offset': [0, 1.1], 'text-anchor': 'top' },
+        layout: { visibility: 'none', 'text-field': ['case', ['has', 'pm2'], ['concat', '$', ['to-string', ['get', 'pm2']], 'k'], ''], 'text-size': 10, 'text-offset': [0, 1.1], 'text-anchor': 'top' },
         paint: { 'text-color': '#1FA06A', 'text-halo-color': '#fff', 'text-halo-width': 1.5 },
       });
       m.on('click', 'dev-point', (e) => { const f = e.features && e.features[0]; if (f) window.location.href = `/desarrollo/${f.properties.slug}`; });
@@ -291,13 +295,16 @@ export default function Mapa({ user, onLogin, onLogout }) {
         hoveredId = f.id;
         map.setFeatureState({ source: 'colonias', id: hoveredId }, { hover: true });
         const p = f.properties || {};
-        const suelo = p.valor_catastral ? `$${Math.round(p.valor_catastral).toLocaleString('es-MX')}/m² suelo` : '';
-        const merc = p.price_m2 ? `<span style="color:#7C5CFF;font-weight:700">$${p.price_m2}k/m²</span> mercado` : '';
+        // Solo PRECIO DE MERCADO (lo que la gente entiende). NADA de valor catastral en el hover (confunde /
+        // parece "mentira" a quien no sabe). Si no hay precio de mercado de esta colonia, invita a tocar.
+        const merc = p.price_m2
+          ? `<div style="font-size:15px"><span style="font-family:Outfit,sans-serif;font-weight:800;color:#7C5CFF">$${p.price_m2}k</span> <span style="color:#6B6684;font-size:12px">/m²</span></div>`
+          : `<div style="color:#8A85A0;font-size:11.5px">Toca para ver su valuación</div>`;
         tip.setLngLat(e.lngLat).setHTML(
-          `<div style="font-family:'DM Sans',sans-serif;font-size:12.5px;line-height:1.5;color:#2A2140">
-             <div style="font-family:Outfit,sans-serif;font-weight:800;font-size:13.5px;margin-bottom:2px">${p.name || ''}</div>
-             ${p.alcaldia ? `<div style="color:#8A85A0;font-size:11px;margin-bottom:4px">${p.alcaldia}</div>` : ''}
-             ${merc ? `<div>${merc}</div>` : ''}${suelo ? `<div style="color:#6B6684">${suelo}</div>` : ''}
+          `<div style="font-family:'DM Sans',sans-serif;line-height:1.45;color:#2A2140">
+             <div style="font-family:Outfit,sans-serif;font-weight:800;font-size:13.5px">${p.name || ''}</div>
+             ${p.alcaldia ? `<div style="color:#8A85A0;font-size:11px;margin-bottom:5px">${p.alcaldia}</div>` : '<div style="height:5px"></div>'}
+             ${merc}
            </div>`
         ).addTo(map);
       });
@@ -324,7 +331,10 @@ export default function Mapa({ user, onLogin, onLogout }) {
     setVis('colonias-fill', 'visible');
     setVis('colonias-outline', 'visible');
     setVis('colonias-label', 'visible');
-  }, [layer]);
+    // Desarrollos: solo si el toggle está prendido.
+    setVis('dev-point', showDevs ? 'visible' : 'none');
+    setVis('dev-label', showDevs ? 'visible' : 'none');
+  }, [layer, showDevs, devs]);
 
   const selectedColonia = selected;  // ahora `selected` es el objeto (props del polígono o la colonia seed)
 
@@ -439,9 +449,9 @@ export default function Mapa({ user, onLogin, onLogout }) {
         )}
         <div ref={container} style={{ position: 'absolute', inset: 0 }} data-testid="mapa-container" />
 
-        {/* Floating header — tarjeta clara (glass blanco) */}
+        {/* Floating header — tarjeta clara (glass blanco). top:76 = LIMPIO del navbar (60px) → ya no encimado. */}
         <div style={{
-          position: 'absolute', top: 20, left: 20, zIndex: Z.DROPDOWN,
+          position: 'absolute', top: 76, left: 20, zIndex: Z.DROPDOWN,
           padding: '16px 20px',
           background: 'rgba(255,255,255,0.92)',
           border: '1px solid #ECECEC',
@@ -459,36 +469,23 @@ export default function Mapa({ user, onLogin, onLogout }) {
           </div>
         </div>
 
-        {/* Layer toggle */}
+        {/* Toolbar flotante limpia (estilo Monopolio) · top:76 = limpio del navbar */}
         <div style={{
-          position: 'absolute', top: 20, right: 20, zIndex: Z.DROPDOWN,
+          position: 'absolute', top: 76, right: 20, zIndex: Z.DROPDOWN,
           display: 'flex', gap: 6, padding: 4,
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid #ECECEC',
-          backdropFilter: 'blur(18px)',
-          boxShadow: '0 12px 36px rgba(16,24,40,0.12)',
-          borderRadius: 9999,
+          background: 'rgba(255,255,255,0.92)', border: '1px solid #ECECEC',
+          backdropFilter: 'blur(18px)', boxShadow: '0 12px 36px rgba(16,24,40,0.12)', borderRadius: 9999,
         }}>
-          {[
-            { k: 'ie', label: 'Mapa de precios' },
-          ].map(l => {
-            const active = layer === l.k;
-            return (
-              <button key={l.k}
-                onClick={() => setLayer(l.k)}
-                data-testid={`layer-toggle-${l.k}`}
-                style={{
-                  padding: '7px 14px', borderRadius: 9999,
-                  background: active ? 'var(--grad)' : 'transparent',
-                  color: active ? '#fff' : '#5A5F6E',
-                  border: 'none',
-                  fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-                  cursor: 'pointer',
-                }}>
-                {tc(l.label)}
-              </button>
-            );
-          })}
+          <button data-testid="layer-toggle-ie" style={{
+            padding: '7px 14px', borderRadius: 9999, background: 'var(--grad)', color: '#fff',
+            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'default',
+          }}>{tc('Mapa de precios')}</button>
+          <button onClick={() => setShowDevs((v) => !v)} data-testid="toggle-desarrollos" style={{
+            padding: '7px 14px', borderRadius: 9999,
+            background: showDevs ? 'rgba(31,160,106,0.14)' : 'transparent',
+            color: showDevs ? '#1FA06A' : '#5A5F6E',
+            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+          }}>{tc('Desarrollos')}</button>
         </div>
 
         {/* Legend — Precio por m² (rampa morada · tarjeta clara) */}
