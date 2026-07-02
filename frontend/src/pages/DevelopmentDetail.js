@@ -93,6 +93,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   // Ficha consciente: la última búsqueda del comprador → resaltar las unidades que cumplen en la lista de precios.
   const [matchCriteria] = useState(() => readMatchCriteria());
   const [dev, setDev] = useState(null);
+  const [loadErr, setLoadErr] = useState(false); // distingue "falló la carga" de "aún cargando"
   const [pxExp, setPxExp] = useState(null); // experiment_id activo para rastrear el lead
   // Default a 'precios': en un marketplace lo primero que el comprador quiere ver es la lista
   // de precios (unidades + m² + estado). Antes caía en 'descripcion' y la lista quedaba escondida.
@@ -154,6 +155,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
   useEffect(() => {
     let alive = true;
+    setLoadErr(false);
     fetchDevelopment(id).then(async (d) => {
       if (!alive) return;
       // Pricing Lab · lado VISITANTE: descubre experimento activo, registra la VISTA y aplica
@@ -169,7 +171,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         }
       } catch (_) { /* fail-open */ }
       if (alive) setDev(d);
-    }).catch(() => { if (alive) setDev(null); });
+    }).catch(() => { if (alive) { setDev(null); setLoadErr(true); } });
     // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
     trackPropertyView(id, 'marketplace');
     // Cross-Portal v2 · fotos REALES del dev (dev_assets) sobre el seed. El endpoint ya filtra
@@ -252,6 +254,18 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     }
   }, [user, gateContext, promoted, dev]);
 
+  if (loadErr) {
+    return (
+      <LightScope>
+        <PublicNav />
+        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>
+          <p style={{ marginBottom: 16 }}>No pudimos cargar este desarrollo.</p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reintentar</button>
+        </div>
+      </LightScope>
+    );
+  }
+
   if (!dev) {
     return (
       <LightScope>
@@ -300,7 +314,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             <div className="eyebrow" style={{ marginBottom: 10, letterSpacing: '0.14em' }}>
               <Link to="/marketplace" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>{t('marketplace.page_title')}</Link>
               {' / '}
-              {dev.colonia.toUpperCase()} · {dev.alcaldia.toUpperCase()} · CDMX
+              {[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).map((s) => String(s).toUpperCase()).join(' · ')}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 10 }}>

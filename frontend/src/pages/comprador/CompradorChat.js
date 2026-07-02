@@ -37,6 +37,7 @@ export default function CompradorChat() {
   const loadThreads = useCallback(async () => {
     try {
       const list = await fetchThreads();
+      setError(null);
       setThreads(list);
       // Auto-select first thread or thread from navigation state
       if (location.state?.threadId) {
@@ -70,10 +71,10 @@ export default function CompradorChat() {
 
   return (
     <CompradorLayout>
-      <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 96px)', minHeight: 500 }}>
+      <div className="comprador-chat-split" style={{ display: 'flex', gap: 16, height: 'calc(100vh - 96px)', minHeight: 500 }}>
 
         {/* Thread list — 320px */}
-        <div style={{
+        <div className="comprador-chat-threadlist" style={{
           width: 320, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
           background: 'rgba(13,16,23,0.85)',
@@ -98,6 +99,22 @@ export default function CompradorChat() {
             {loading ? (
               <div style={{ padding: 24, color: 'rgba(240,235,224,0.35)', fontFamily: 'DM Sans', fontSize: 13 }}>
                 Cargando…
+              </div>
+            ) : error ? (
+              <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'rgba(240,235,224,0.6)', marginBottom: 10 }}>
+                  No pudimos cargar tus conversaciones
+                </div>
+                <button
+                  onClick={() => { setLoading(true); loadThreads().finally(() => setLoading(false)); }}
+                  style={{
+                    fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#6366F1',
+                    background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.3)',
+                    borderRadius: 8, padding: '7px 14px', cursor: 'pointer',
+                  }}
+                >
+                  Reintentar
+                </button>
               </div>
             ) : threads.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center' }}>

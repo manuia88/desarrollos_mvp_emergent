@@ -113,6 +113,8 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
   const [text, setText] = useState('');
   const [attached, setAttached] = useState(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [sendErr, setSendErr] = useState(false);
+  const [sending, setSending] = useState(false);
   const fileRef = useRef(null);
   const acceptRef = useRef('image/*');
   const taRef = useRef(null);
@@ -128,8 +130,12 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
   const send = async () => {
     let tt = text.trim();
     if (attached) tt = (tt ? tt + '\n' : '') + `📎 ${attached.name}`;
-    if (!tt) return;
-    await onSend(tt); setText(''); setAttached(null);
+    if (!tt || sending) return;
+    setSending(true); setSendErr(false);
+    const ok = await onSend(tt);
+    setSending(false);
+    if (ok === false) { setSendErr(true); return; }  // fallo → conserva el texto para reintentar
+    setText(''); setAttached(null);
   };
   const draft = async () => { const d = await onDraft(); if (d) setText(d); };
   const pickFile = (accept) => { acceptRef.current = accept; setAttachOpen(false); if (fileRef.current) { fileRef.current.accept = accept; fileRef.current.click(); } };
@@ -172,11 +178,16 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
           placeholder="Escribe tu mensaje…  (Enter envía · Shift+Enter salto de línea)"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           style={{ flex: 1, resize: 'none', overflowY: 'auto', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, lineHeight: 1.5, outline: 'none', minHeight: 84, maxHeight: 320 }} />
-        <button type="button" onClick={send} disabled={disabled || (!text.trim() && !attached)}
-          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
-          Enviar →
+        <button type="button" onClick={send} disabled={disabled || sending || (!text.trim() && !attached)}
+          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || sending || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || sending || (!text.trim() && !attached)) ? 0.5 : 1 }}>
+          {sending ? 'Enviando…' : 'Enviar →'}
         </button>
       </div>
+      {sendErr && (
+        <div style={{ marginTop: 8, fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: '#F87171' }}>
+          No se pudo enviar. Tu mensaje sigue en la caja — vuelve a intentarlo.
+        </div>
+      )}
     </div>
   );
 }
@@ -327,23 +338,26 @@ function ConversationInboxBody({ user }) {
     } catch { /* no-op */ }
   }, [curConv]);
 
+  // Devuelve true si el mensaje se envió (para que el composer solo limpie la caja en éxito
+  // y no pierda el texto en silencio si el POST falla).
   const sendAsAsesor = useCallback(async (text) => {
-    if (!curConv || !text) return;
+    if (!curConv || !text) return false;
     try {
+      let res;
       if (DM.includes(curConv.channel)) {
-        const res = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, {
+        res = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
           body: JSON.stringify({ text, channel: curConv.channel }),
         });
-        if (res.ok) await refreshDetail();
       } else {
-        const res = await fetch(`${API}/api/conversation/message`, {
+        res = await fetch(`${API}/api/conversation/message`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
           body: JSON.stringify({ conversation_id: curConv.conversation_id, message: text, role: 'asesor' }),
         });
-        if (res.ok) await refreshDetail();
       }
-    } catch { /* no-op */ }
+      if (res.ok) { await refreshDetail(); return true; }
+      return false;
+    } catch { return false; }
   }, [curConv, refreshDetail]);
 
   // B6 · draft IA del mensaje (reusa B5.5.2 · solo hilos con lead_id)

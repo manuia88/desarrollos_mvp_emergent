@@ -187,6 +187,8 @@ export default function Inteligencia() {
             Ver el motor en acción <ArrowRight size={12} />
           </a>
         </div>
+
+        <TopColoniasByScore />
       </main>
       <CtaFooter />
 
@@ -196,7 +198,6 @@ export default function Inteligencia() {
         code={explainCode}
         onClose={() => setExplainCode(null)}
       />
-      <TopColoniasByScore />
       <AtlaxBubble />
     </div>
   );

@@ -40,7 +40,11 @@ export default function CompradorFavoritos() {
 
   const handleDelete = async (favId) => {
     if (!window.confirm('¿Eliminar este favorito?')) return;
-    await deleteFavorite(favId);
+    try {
+      await deleteFavorite(favId);
+    } catch (e) {
+      /* el borrado falló — el load() de abajo resincroniza y muestra el estado real */
+    }
     load();
   };
 

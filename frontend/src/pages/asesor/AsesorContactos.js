@@ -60,6 +60,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
   const [scoreMin, setScoreMin] = useState(() => parseInt(searchParams.get('score_min') || '0', 10));
   const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);  // distingue "falló la carga" de "bandeja vacía"
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -72,6 +73,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
 
   const load = async () => {
     setLoading(true);
+    setLoadErr(false);
     try {
       if (smartList) {
         // Smart list activa: usar endpoint smart-lists en lugar de listado standard
@@ -91,6 +93,8 @@ function AsesorContactosLegacy({ user, onLogout }) {
         }
         setList(items);
       }
+    } catch (e) {
+      setLoadErr(true);
     } finally { setLoading(false); }
   };
 
@@ -320,6 +324,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
       </div>
 
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+        : loadErr ? <Empty title="No pudimos cargar tus contactos" sub="Revisa tu conexión e inténtalo de nuevo." cta={<button className="btn btn-primary" onClick={load}>Reintentar</button>} />
         : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin contactos'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer contacto o ajusta filtros.'} />
         : (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -849,6 +854,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [list, setList] = useState([]);
   const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);  // distingue "falló la carga" de "bandeja vacía"
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -880,6 +886,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const load = async () => {
     if (forceDemo === '1') { setAutoDemo(false); setList(DEMO_LEADS); setLoading(false); return; }
     setLoading(true);
+    setLoadErr(false);
     try {
       let items;
       if (smartList) {
@@ -894,6 +901,8 @@ function AsesorContactosV2({ user, onLogout }) {
       const rich = items.length > 0 && items.some((l) => (l.buyer_score?.value) != null);
       if (forceDemo !== '0' && !rich) { setAutoDemo(true); setList(DEMO_LEADS); }
       else { setAutoDemo(false); setList(items); }
+    } catch (e) {
+      setLoadErr(true);
     } finally { setLoading(false); }
   };
 
@@ -1339,6 +1348,7 @@ function AsesorContactosV2({ user, onLogout }) {
         <SecLine lab="Tu embudo de leads" note="arrastra conforme avanzan" />
 
         {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+          : loadErr ? <Empty title="No pudimos cargar tus leads" sub="Revisa tu conexión e inténtalo de nuevo." cta={<button className="btn btn-primary" onClick={load}>Reintentar</button>} />
           : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin leads'} sub={smartList ? 'Prueba con otro chip o vuelve a "Todos".' : 'Crea tu primer lead con "+ Nuevo lead".'} />
           : view === 'pipeline' ? (
             <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${ETAPA_ORDER.length}, minmax(232px, 1fr))`, gap: 14, alignItems: 'start', overflowX: 'auto' }}>

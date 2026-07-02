@@ -514,6 +514,13 @@ textarea:focus-visible,
   .section-pad { padding: 64px 24px; }
 }
 
+/* ── Chat comprador · split responsive ──────────────────────────────────── */
+/* En móvil el split fijo (lista 320px + hilo al lado) se desborda: apilar. */
+@media (max-width: 640px) {
+  .comprador-chat-split { flex-direction: column; height: auto !important; }
+  .comprador-chat-threadlist { width: 100% !important; max-height: 40vh; }
+}
+
 /* ── Tag pill ───────────────────────────────────────────────────────────── */
 .tag-pill {
   display: inline-flex;

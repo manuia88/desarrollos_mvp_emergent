@@ -125,3 +125,21 @@ CONFIRMADAS: 21 lecturas de colecciones sensibles alcanzables cross-tenant. **Co
 - **redirect_uri desde base_url** (HIGH→PARCIAL): requiere Host spoof + env sin setear + sin TrustedHostMiddleware.
 - **_csrf_states en memoria** (HIGH→PARCIAL): solo rompe con >1 worker; deploy actual single-worker. Mitigación (Redis/HMAC state) → N4.
 - **require_role dead code** (MEDIUM): 0 callsites; no es vuln, invita a mal uso futuro → N4 (remover o documentar).
+
+### BATCH 9 · FRONTEND UX/UI + accesibilidad + estados rotos — workflow 32 archivos · 73 candidatos · **46 confirmados / 27 refutados**
+Por categoría: accesibilidad 18 · estado 9 · bug_render 8 · feedback_alert 6 · responsive 2 · consistencia 2 · ui_muerta 1.
+
+**Tanda 1 · P0 + P1 (9 · lo que ROMPE o CONFUNDE) → ✅ CORREGIDA**
+| # | Sev | Archivo:línea | Defecto |
+|---|-----|---------------|---------|
+| FE-01 | P0 | DevelopmentDetail.js:303 | `dev.colonia.toUpperCase()` sin guard → pantalla blanca si el back devuelve colonia/alcaldía null |
+| FE-02 | P1 | DevelopmentDetail.js:255 | error de carga indistinguible del loading (ambos `dev===null`) → spinner eterno si el fetch falla |
+| FE-03 | P1 | PropertyDetail.js:58 | mismo patrón: catch→null cae en el guard de loading (sin estado de error) |
+| FE-04 | P1 | Inteligencia.js:199 | `<TopColoniasByScore/>` se pintaba DESPUÉS del footer y fuera de `<main>` |
+| FE-05 | P1 | asesor/AsesorContactos.js:73 | `load` con try/finally SIN catch → el empty-state enmascara un fallo de fetch (Legacy + V2) |
+| FE-06 | P1 | asesor/ConversationInbox.js:330 | `sendAsAsesor` solo refresca si res.ok; el composer limpiaba la caja siempre → mensaje desaparece en silencio |
+| FE-07 | P1 | comprador/CompradorChat.js:49 | estado `error` se setea pero NUNCA se renderiza → muestra "Sin conversaciones" engañoso |
+| FE-08 | P1 | comprador/CompradorChat.js:73 | split fijo 320px + calc(100vh) se desborda en móvil |
+| FE-09 | P1 | comprador/CompradorFavoritos.js:43 | `handleDelete` sin try/catch → promesa rechazada, `load()` nunca corre |
+
+**Tanda 2 · P2 + P3 (accesibilidad + pulido)** — en curso (ver CORRECCIONES.md).

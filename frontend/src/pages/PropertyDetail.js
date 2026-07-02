@@ -47,16 +47,35 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
   const [colonia, setColonia] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [saved, setSaved] = useState(false);
+  const [loadErr, setLoadErr] = useState(false);
 
   useEffect(() => {
+    let alive = true;
+    setLoadErr(false);
+    setProperty(null);
     fetchProperty(id).then(async (p) => {
+      if (!alive) return;
       setProperty(p);
       setSaved(isFavorite(p.id));
       const [c, sim] = await Promise.all([fetchColonia(p.colonia_id), fetchSimilar(p.id)]);
+      if (!alive) return;
       setColonia(c);
       setSimilar(sim);
-    }).catch(() => setProperty(null));
+    }).catch(() => { if (alive) setLoadErr(true); });
+    return () => { alive = false; };
   }, [id]);
+
+  if (loadErr) {
+    return (
+      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>
+          <p style={{ marginBottom: 16 }}>No pudimos cargar esta propiedad.</p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reintentar</button>
+        </div>
+      </div>
+    );
+  }
 
   if (!property) {
     return (

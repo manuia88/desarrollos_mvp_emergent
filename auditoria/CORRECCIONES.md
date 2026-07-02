@@ -90,3 +90,22 @@
 **Feature · Señales de feedback estructuradas (Batch 7 · founder):** taxonomía cerrada de 7 ejes (desenlace/objeción/atractores/perfil/gap-producto/competencia/calidad) → `backend/feedback_signals.py` + `routes/feedback_signals.py` (POST captura owner-scoped/auto-tag IA · GET índice de mercado por dev con k-anonimato). La IA convierte la conversación en etiquetas; el dev/mercado ven solo etiquetas, nunca la conversación. Doc `FEEDBACK_SIGNALS_SPEC.md`. Test `test_feedback_signals.py` (4). AUD-044 resuelto vía AUD-050.
 
 **Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.
+
+---
+
+## Batch 9 · Frontend UX/UI (workflow 32 archivos · 46 confirmados)
+
+**Tanda 1 · P0 + P1 (lo que rompe/confunde) — ✅ 9/9 corregidas:**
+| # | Sev | Fix |
+|---|-----|-----|
+| FE-01 | P0 | `DevelopmentDetail.js` breadcrumb: `[dev.colonia, dev.alcaldia,'CDMX'].filter(Boolean).map(...toUpperCase).join(' · ')` — ya no crashea con colonia/alcaldía null |
+| FE-02 | P1 | `DevelopmentDetail.js`: estado `loadErr` → branch de error con "Reintentar" antes del loading |
+| FE-03 | P1 | `PropertyDetail.js`: estado `loadErr` + branch de error + cancelación (`alive`) en el useEffect (cubre también el P2:51 de cleanup) |
+| FE-04 | P1 | `Inteligencia.js`: `<TopColoniasByScore/>` movido DENTRO de `<main>`, antes del footer |
+| FE-05 | P1 | `AsesorContactos.js` (Legacy + V2): `catch` en `load` → `loadErr` → `<Empty>` con "Reintentar" en vez de enmascarar el fallo como bandeja vacía |
+| FE-06 | P1 | `ConversationInbox.js`: `sendAsAsesor` devuelve boolean; el composer solo limpia la caja en éxito, muestra aviso + conserva el texto si falla (estados `sending`/`sendErr`) |
+| FE-07 | P1 | `CompradorChat.js`: branch de `error` renderizado con "Reintentar" + `setError(null)` al reintentar |
+| FE-08 | P1 | `CompradorChat.js` + `index.css`: clases `.comprador-chat-split`/`.comprador-chat-threadlist` + media query `max-width:640px` → apila en móvil (no desborda) |
+| FE-09 | P1 | `CompradorFavoritos.js`: `handleDelete` con try/catch → `load()` siempre resincroniza |
+
+Verificación: `NODE_ENV=development babel react-app` parsea los 7 archivos OK.
