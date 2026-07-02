@@ -1032,7 +1032,7 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
             extra={"reason": payload.reason or ""},
         )
     except Exception as e:
-        import logging; logging.getLogger("dmx").warning(f"units_history record failed: {e}")
+        logging.getLogger("dmx").warning(f"units_history record failed: {e}")  # [AUD-006] el import local hacía a 'logging' local en TODA la función → UnboundLocalError en el handler de arriba
     # F0.1 — Audit log (critical mutation + ML emit)
     try:
         from audit_log import log_mutation
