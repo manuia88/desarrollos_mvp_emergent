@@ -24,8 +24,11 @@ from typing import Any, Dict, List, Optional
 log = logging.getLogger("dmx.bulletins_engine")
 
 UPLOAD_BASE = os.environ.get("IE_UPLOAD_DIR", "/app/backend/uploads/ie_engine")
-PDF_DIR = os.path.join(os.path.dirname(UPLOAD_BASE), "bulletins")
-os.makedirs(PDF_DIR, exist_ok=True)
+# [AUD-018] antes: os.makedirs('/app/.../bulletins') EN IMPORT → OSError en FS read-only (local/CI) →
+# CRASHEA el import de server.py (routes.bulletins). Mismo patrón que AUD-008, con os.makedirs. Fallback a tmp.
+from pathlib import Path
+from fs_fallback import dir_or_tmp
+PDF_DIR = str(dir_or_tmp(Path(os.path.dirname(UPLOAD_BASE)) / "bulletins", "bulletins"))
 
 TOP_ZONES = [
     {"zone_id": "polanco", "name": "Polanco"},

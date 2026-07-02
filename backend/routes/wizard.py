@@ -23,14 +23,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
 log = logging.getLogger("dmx.wizard")
 router = APIRouter(prefix="/api/dev/wizard", tags=["wizard"])
 
-UPLOAD_ROOT = Path(os.environ.get("WIZARD_STORAGE_PATH", "/app/backend/uploads/wizard_ia"))
-UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+# [AUD-018] mkdir import-time con /app → fallback a tmp si FS read-only (local/CI); en Emergent idéntico.
+from fs_fallback import dir_or_tmp
+UPLOAD_ROOT = dir_or_tmp(Path(os.environ.get("WIZARD_STORAGE_PATH", "/app/backend/uploads/wizard_ia")), "wizard_ia")
 MAX_FILE_MB = 20
 MAX_FILES = 10
 ACCEPTED_EXT = {".pdf", ".xlsx", ".xls", ".csv", ".docx", ".txt", ".md"}
@@ -498,7 +499,6 @@ async def create_project(payload: WizardProjectPayload, request: Request):
 
     # Trigger diagnostic (B0.5) 5min later
     try:
-        from diagnostic_engine import run_diagnostics
         asyncio.create_task(_delayed_diagnostic(db, slug, user))
     except Exception:
         pass
@@ -601,7 +601,7 @@ async def _run_claude_extraction(dev_org_id: str, combined_text: str, source_sum
     if not emergent_key or not combined_text.strip():
         return None
     try:
-        from ai_budget import is_within_budget, track_ai_call
+        from ai_budget import is_within_budget
         if not await is_within_budget(None, dev_org_id):
             return None
     except Exception:
