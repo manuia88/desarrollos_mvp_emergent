@@ -127,7 +127,11 @@ def _predictions(top_roi: List[Dict[str, Any]]) -> Dict[str, Any]:
     cold = [r["slug"] for r in top_roi[-3:]] if len(top_roi) > 3 else []
     hed = [r.get("hedonic_change_pct") or 0 for r in top_roi if r.get("hedonic_change_pct")]
     avg = round(sum(hed) / len(hed), 1) if hed else None
-    es_estimado = any(r.get("fuente") in ("ejemplo", "estimado_score") for r in top_roi) or avg is None
+    # [AUD-016] Honestidad: la propia 'nota' declara que es un escenario DIRECCIONAL derivado del índice
+    # de zona, "no un pronóstico medido" → SIEMPRE es estimado, aun con hedónicos reales (es una proyección,
+    # no una medición). Antes marcaba es_estimado=False con dato real → número que parece "medido" pero es
+    # derivado. Viola la doctrina fuente/confianza/es_estimado.
+    es_estimado = True
     return {
         "q_next_avg_appreciation": avg,            # derivado, no hardcodeado
         "hot_zones": hot, "cold_zones": cold,
