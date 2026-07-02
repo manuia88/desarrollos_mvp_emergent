@@ -1,0 +1,878 @@
+Run started:2026-07-02 02:28:30.420262+00:00
+
+Test results:
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/apify_trends_engine.py:142:11
+141	    raw = f"{_normalize(query)}|{geo or DEFAULT_GEO}|{timeframe or DEFAULT_TIMEFRAME}"
+142	    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+143	
+
+--------------------------------------------------
+>> Issue: [B108:hardcoded_tmp_directory] Probable insecure usage of temp file/directory.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-377 (https://cwe.mitre.org/data/definitions/377.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b108_hardcoded_tmp_directory.html
+   Location: backend/cma_pdf_renderer.py:72:24
+71	                return None
+72	            cache_dir = "/tmp/dmx_cma_logos"
+73	            os.makedirs(cache_dir, exist_ok=True)
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: backend/colonias_catalog.py:507:11
+506	    base = _ckan_base()
+507	    sql = (f'SELECT "colonia_catalogo", "alcaldia_catalogo", AVG("latitud") AS lat, '
+508	           f'AVG("longitud") AS lng, COUNT(*) AS n FROM "{rid}" '
+509	           f'WHERE "anio_hecho" >= {year_from} AND "latitud" BETWEEN 19 AND 20 '
+510	           f'AND "longitud" BETWEEN -100 AND -98 AND "colonia_catalogo" != \'\' '
+511	           f'GROUP BY "colonia_catalogo", "alcaldia_catalogo" HAVING COUNT(*) > {min_incidents}')
+512	    try:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/conversation_kb_gaps_engine.py:75:22
+74	    seed = f"{normalized}|{tenant_id or 'default'}"
+75	    return "kbgap_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:20]
+76	
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/conversation_lead_enrichment.py:114:27
+113	    # Idempotency: 1 dispatch por lead_id
+114	    marker_id = "caenr_" + hashlib.sha1(str(lead_id).encode("utf-8")).hexdigest()[:20]
+115	    try:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/conversation_soc_integration.py:44:21
+43	    seed = f"{asesor_id}|{signal_type}|{value}|{bucket}"
+44	    return "csoc_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:20]
+45	
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/conversation_workflow_bridge.py:40:23
+39	    seed = f"agentwf|{workflow_id}|{lead_id}|{bucket}"
+40	    return "wfexec_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
+41	
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/conversation_workflow_bridge.py:45:24
+44	    seed = f"pause|{workflow_id}|{lead_id}"
+45	    return "wfpause_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
+46	
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: backend/crime_fgj_engine.py:72:11
+71	    dlng = _RADIUS_M / (111_320.0 * max(0.2, math.cos(math.radians(lat))))
+72	    sql = (f'SELECT "categoria_delito", COUNT(*) AS n FROM "{rid}" '
+73	           f'WHERE "anio_hecho" >= {year_from} '
+74	           f'AND "latitud"::float BETWEEN {lat - dlat:.5f} AND {lat + dlat:.5f} '
+75	           f'AND "longitud"::float BETWEEN {lng - dlng:.5f} AND {lng + dlng:.5f} '
+76	           f'GROUP BY "categoria_delito"')
+77	    try:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/cube_cache.py:29:8
+28	    blob = json.dumps(params, sort_keys=True, default=str)
+29	    h = hashlib.sha1(blob.encode()).hexdigest()[:16]
+30	    return f"{prefix}:{h}"
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/data_developments.py:457:13
+456	    # Use a hash of dev id to vary and avoid duplicates
+457	    digest = hashlib.md5(dev["id"].encode()).hexdigest()
+458	    offsets = [int(digest[i:i+2], 16) for i in range(0, 12, 2)]
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/data_developments.py:553:19
+552	            unit_num = f"{level:02d}{proto['name']}"
+553	            seed = hashlib.md5(f"{dev['id']}{unit_num}".encode()).hexdigest()
+554	            status_val = int(seed[:2], 16) % 100
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: backend/fgj_trajectory_ingest.py:45:11
+44	    yrs = "','".join(_YEARS)
+45	    sql = (f"SELECT colonia_catalogo, anio_hecho, count(*) AS n FROM \"{FGJ_RESOURCE_ID}\" "
+46	           f"WHERE anio_hecho IN ('{yrs}') GROUP BY colonia_catalogo, anio_hecho")
+47	    try:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/maps_engine.py:324:11
+323	    s = "&".join(f"{k}={v}" for k, v in sorted(filters.items()))
+324	    return hashlib.md5(s.encode()).hexdigest()[:8]
+325	
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/parallax_engine.py:43:8
+42	    """Cache key = dev + hash del ORDEN de fotos (mismo orden = mismo parallax → buyers con igual gusto comparten)."""
+43	    h = hashlib.sha1(("|".join(photo_urls or [])).encode("utf-8")).hexdigest()[:12]
+44	    return f"{dev_id}-{h}"
+
+--------------------------------------------------
+>> Issue: [B310:blacklist] Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-22 (https://cwe.mitre.org/data/definitions/22.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b310-urllib-urlopen
+   Location: backend/parallax_engine.py:60:8
+59	        log.info("[parallax] descargando modelo MiDaS-small (1 vez)…")
+60	        urllib.request.urlretrieve(_MODEL_URL, _MODEL)
+61	    _net = cv2.dnn.readNetFromONNX(_MODEL)
+
+--------------------------------------------------
+>> Issue: [B310:blacklist] Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-22 (https://cwe.mitre.org/data/definitions/22.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b310-urllib-urlopen
+   Location: backend/parallax_engine.py:122:23
+121	                req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+122	                data = urllib.request.urlopen(req, timeout=25).read()
+123	                arr = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/reputation_monitor_engine.py:267:41
+266	                    "author": author,
+267	                    "external_id": f"nw_{hashlib.md5(ext.encode()).hexdigest()[:14]}",
+268	                })
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/reputation_monitor_engine.py:295:39
+294	        from llm_client import LlmChat, UserMessage
+295	        session_key = f"rep_sentiment_{hashlib.md5(txt.encode()).hexdigest()[:10]}"
+296	        system_prompt = (
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/reviews_residents_engine.py:163:56
+162	                reviews.append({
+163	                    "external_id": f"atlas:{entity_id}:{hashlib.md5(text_el.get_text().encode()).hexdigest()[:10]}",
+164	                    "author": (author_el.get_text().strip() if author_el else "anónimo"),
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/reviews_residents_engine.py:188:35
+187	            return {"sentiment": "neutral", "themes": [], "confidence": 0.5, "stub": True}
+188	        session_key = f"sentiment_{hashlib.md5(text.encode()).hexdigest()[:10]}"
+189	        system_prompt = (
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/routes/advisor.py:3465:16
+3464	
+3465	    cache_key = hashlib.md5(f"{payload.contacto_id}|{payload.desarrollo_id}|{payload.objetivo}|{_now().strftime('%Y-W%V')}".encode()).hexdigest()
+3466	    cached = await db.asesor_argumentarios.find_one({"cache_key": cache_key}, {"_id": 0})
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/routes/advisor.py:3572:16
+3571	    # Cache 24h por (advisor, contact, dev|none)
+3572	    cache_key = hashlib.md5(
+3573	        f"rag|{user.user_id}|{payload.contact_id}|{payload.development_id or 'none'}|v1.0".encode()
+3574	    ).hexdigest()
+3575	    if not payload.force:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/routes/dev_batch5.py:208:12
+207	    """Deterministic variant assignment: hash visitor_id+exp_id → bucket."""
+208	    h = int(hashlib.md5(f"{visitor_id}:{exp_id}".encode()).hexdigest(), 16)
+209	    bucket = (h % 10000) / 10000.0
+
+--------------------------------------------------
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-605 (https://cwe.mitre.org/data/definitions/605.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b104_hardcoded_bind_all_interfaces.html
+   Location: backend/routes/landings.py:293:24
+292	    from ratelimit import client_ip as _c  # SEGURIDAD (4ª pasada): IP canónica anti-spoofing
+293	    ip = _c(request) or "0.0.0.0"
+294	    return hashlib.sha256(ip.encode()).hexdigest()[:20]
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/routes/public.py:2014:18
+2013	                    "unit_feature": list(unit_feature or []), "stage": stage, "tipo": tipo}
+2014	            sig = _hl.md5(_json.dumps(crit, sort_keys=True, default=str).encode()).hexdigest()[:16]
+2015	            day = datetime.utcnow().strftime("%Y-%m-%d")
+
+--------------------------------------------------
+>> Issue: [B108:hardcoded_tmp_directory] Probable insecure usage of temp file/directory.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-377 (https://cwe.mitre.org/data/definitions/377.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b108_hardcoded_tmp_directory.html
+   Location: backend/routes/share_meta.py:23:15
+22	
+23	OG_CACHE_DIR = "/tmp/dmx_og_cache"
+24	os.makedirs(OG_CACHE_DIR, exist_ok=True)
+
+--------------------------------------------------
+>> Issue: [B608:hardcoded_sql_expressions] Possible SQL injection vector through string-based query construction.
+   Severity: Medium   Confidence: Low
+   CWE: CWE-89 (https://cwe.mitre.org/data/definitions/89.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html
+   Location: backend/sacmex_water_ingest.py:41:10
+40	    """Agrega incidentes SACMEX por colonia y los persiste en `sacmex_zone_colonia`. FAIL-SOFT."""
+41	    sql = f'SELECT colonia_catalogo, count(*) AS n FROM "{SACMEX_RESOURCE_ID}" GROUP BY colonia_catalogo'
+42	    try:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/scripts/seed_w6_marketplace_templates.py:103:32
+102	    for i, (title, category, tier, price, avg_rating, downloads) in enumerate(TEMPLATE_DATA[:count]):
+103	        tpl_id = f"{TPL_PREFIX}{hashlib.sha1(title.encode()).hexdigest()[:10]}"
+104	        author_user_id = f"seed_author_{(i % 4) + 1}"  # 4 authors distintos
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/scripts/seed_w6_marketplace_templates.py:136:40
+135	        for c in range(n_clones):
+136	            clone_id = f"{CLONE_PREFIX}{hashlib.sha1(f'{tpl_id}{c}'.encode()).hexdigest()[:12]}"
+137	            existing_c = await db.marketplace_template_clones.find_one({"id": clone_id})
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/scripts/seed_w6_marketplace_templates.py:157:42
+156	        for r in range(n_ratings):
+157	            rating_id = f"{RATING_PREFIX}{hashlib.sha1(f'{tpl_id}{r}'.encode()).hexdigest()[:12]}"
+158	            existing_r = await db.marketplace_template_ratings.find_one({"id": rating_id})
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/scripts/seed_w6_marketplace_templates.py:175:40
+174	    for i, title in enumerate(PENDING_TITLES):
+175	        tpl_id = f"{TPL_PREFIX}pending-{hashlib.sha1(title.encode()).hexdigest()[:10]}"
+176	        existing = await db.marketplace_templates.find_one({"id": tpl_id})
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/social_ads_engine.py:88:17
+87	    for i in range(n):
+88	        digest = hashlib.sha1(f"{meta_business_id}|{i}".encode()).hexdigest()[:10]
+89	        accounts.append({
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/social_ads_engine.py:123:45
+122	        camp = {
+123	            "campaign_id": f"meta_camp_stub_{hashlib.sha1(f'{account_id}{i}'.encode()).hexdigest()[:10]}",
+124	            "name": names[i % len(names)],
+
+--------------------------------------------------
+>> Issue: [B310:blacklist] Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-22 (https://cwe.mitre.org/data/definitions/22.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b310-urllib-urlopen
+   Location: backend/studio_carrusel_engine.py:110:13
+109	        import urllib.request
+110	        with urllib.request.urlopen(logo_url, timeout=5) as r:
+111	            data = r.read()
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_5.py:22:8
+21	def _login(email, password):
+22	    r = requests.post(f"{BASE}/api/auth/login",
+23	                      json={"email": email, "password": password})
+24	    assert r.status_code == 200, f"Login failed ({email}): {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_5.py:37:8
+36	    """Public endpoint — no auth required."""
+37	    r = requests.get(f"{BASE}/api/public/projects/{slug}/booking")
+38	    return r
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_5.py:43:8
+42	    """Get a valid public project slug from the developer's projects."""
+43	    r = requests.get(f"{BASE}/api/developments", cookies=admin_cookies, params={"limit": 5})
+44	    if r.status_code != 200:
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_5.py:86:4
+85	    # First reset branding to defaults
+86	    requests.put(
+87	        f"{BASE}/api/orgs/me/branding",
+88	        json={"primary_color": "#06080F", "accent_color": "#F4E9D8"},
+89	        cookies=admin_cookies,
+90	    )
+91	
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:20:8
+19	def _login(email, password):
+20	    r = requests.post(f"{BASE}/api/auth/login",
+21	                      json={"email": email, "password": password})
+22	    assert r.status_code == 200, f"Login failed: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:27:8
+26	def _get_prefs(cookies):
+27	    r = requests.get(f"{BASE}/api/preferences/me", cookies=cookies)
+28	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:49:8
+48	    tour_id = "dev_first_login_test_b19"
+49	    r = requests.post(
+50	        f"{BASE}/api/preferences/me/tour-complete",
+51	        json={"tour_id": tour_id},
+52	        cookies=dev_cookies,
+53	    )
+54	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:68:8
+67	    tour_id = "asesor_first_login_test_b19"
+68	    r = requests.post(
+69	        f"{BASE}/api/preferences/me/tour-dismiss",
+70	        json={"tour_id": tour_id},
+71	        cookies=dev_cookies,
+72	    )
+73	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:95:8
+94	    """POST tour-complete with empty tour_id → 422."""
+95	    r = requests.post(
+96	        f"{BASE}/api/preferences/me/tour-complete",
+97	        json={"tour_id": ""},
+98	        cookies=dev_cookies,
+99	    )
+100	    assert r.status_code == 422, f"Expected 422, got {r.status_code}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subA.py:105:8
+104	    """POST tour-complete without cookies → 401."""
+105	    r = requests.post(
+106	        f"{BASE}/api/preferences/me/tour-complete",
+107	        json={"tour_id": "some_tour"},
+108	    )
+109	    assert r.status_code in (401, 403), f"Expected 401/403 unauthenticated, got {r.status_code}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:25:8
+24	def _login(email, password):
+25	    r = requests.post(f"{BASE}/api/auth/login",
+26	                      json={"email": email, "password": password})
+27	    assert r.status_code == 200, f"Login failed ({email}): {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:45:8
+44	    """GET /api/orgs/me/branding returns branding object."""
+45	    r = requests.get(f"{BASE}/api/orgs/me/branding", cookies=admin_cookies)
+46	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:60:8
+59	    }
+60	    r = requests.put(
+61	        f"{BASE}/api/orgs/me/branding",
+62	        json=payload,
+63	        cookies=admin_cookies,
+64	    )
+65	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:73:12
+72	    # Verify GET reads exact value
+73	    get_r = requests.get(f"{BASE}/api/orgs/me/branding", cookies=admin_cookies)
+74	    assert get_r.status_code == 200
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:82:8
+81	    """PUT /api/orgs/me/branding with asesor role → 403."""
+82	    r = requests.put(
+83	        f"{BASE}/api/orgs/me/branding",
+84	        json={"primary_color": "#FF0000"},
+85	        cookies=asesor_cookies,
+86	    )
+87	    assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:101:8
+100	    files = {"file": ("test.png", io.BytesIO(png_bytes), "image/png")}
+101	    r = requests.post(
+102	        f"{BASE}/api/orgs/me/branding/logo",
+103	        files=files,
+104	        cookies=admin_cookies,
+105	    )
+106	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:116:8
+115	    files = {"file": ("big.png", io.BytesIO(big_content), "image/png")}
+116	    r = requests.post(
+117	        f"{BASE}/api/orgs/me/branding/logo",
+118	        files=files,
+119	        cookies=admin_cookies,
+120	    )
+121	    assert r.status_code == 413, f"Expected 413, got {r.status_code}: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:126:8
+125	    """POST /api/orgs/cross-portal/log creates event in collection."""
+126	    r = requests.post(
+127	        f"{BASE}/api/orgs/cross-portal/log",
+128	        json={"event_type": "project_published", "entity_id": "test-project-001"},
+129	        cookies=admin_cookies,
+130	    )
+131	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subB.py:147:8
+146	    }
+147	    r = requests.put(
+148	        f"{BASE}/api/orgs/me/branding",
+149	        json=reset_payload,
+150	        cookies=admin_cookies,
+151	    )
+152	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:18:8
+17	def _login(email, password):
+18	    r = requests.post(f"{BASE}/api/auth/login",
+19	                      json={"email": email, "password": password})
+20	    assert r.status_code == 200, f"Login failed ({email}): {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:41:8
+40	    }
+41	    r = requests.patch(
+42	        f"{BASE}/api/preferences/me",
+43	        json=payload,
+44	        cookies=dev_cookies,
+45	    )
+46	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:49:12
+48	    # Read back
+49	    get_r = requests.get(f"{BASE}/api/preferences/me", cookies=dev_cookies)
+50	    assert get_r.status_code == 200
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:62:8
+61	    """PATCH with only hide_pricing changes that field, does not reset others."""
+62	    r = requests.patch(
+63	        f"{BASE}/api/preferences/me",
+64	        json={"presentation_mode": {"hide_pricing": True}},
+65	        cookies=dev_cookies,
+66	    )
+67	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:69:12
+68	
+69	    get_r = requests.get(f"{BASE}/api/preferences/me", cookies=dev_cookies)
+70	    prefs = get_r.json()
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:105:8
+104	    """PATCH /api/preferences/me with field outside whitelist → 422."""
+105	    r = requests.patch(
+106	        f"{BASE}/api/preferences/me",
+107	        json={"malicious_field": "hack", "presentation_mode": {"unknown_subfield": True}},
+108	        cookies=dev_cookies,
+109	    )
+110	    # Unknown top-level fields are ignored (not 422) per Pydantic's extra='ignore'
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:116:12
+115	    # Verify the malicious field was NOT persisted
+116	    get_r = requests.get(f"{BASE}/api/preferences/me", cookies=dev_cookies)
+117	    prefs = get_r.json()
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch19_subC.py:123:8
+122	    """PATCH presentation mode without auth → 401."""
+123	    r = requests.patch(
+124	        f"{BASE}/api/preferences/me",
+125	        json={"presentation_mode": {"active": True}},
+126	    )
+127	    assert r.status_code in (401, 403), f"Expected 401/403, got {r.status_code}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:22:8
+21	def _login(email, password):
+22	    r = requests.post(f"{BASE}/api/auth/login",
+23	                      json={"email": email, "password": password})
+24	    assert r.status_code == 200, f"Login failed ({email}): {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:49:12
+48	    for tour_id in ["dev_first_login", "dev_post_first_project"]:
+49	        r = requests.post(
+50	            f"{BASE}/api/preferences/me/tour-complete",
+51	            json={"tour_id": tour_id},
+52	            cookies=admin_cookies,
+53	        )
+54	        assert r.status_code == 200, f"Failed to complete tour {tour_id}: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:58:8
+57	    # Seed a dismissed tour for admin
+58	    r = requests.post(
+59	        f"{BASE}/api/preferences/me/tour-dismiss",
+60	        json={"tour_id": "inmobiliaria_first_login"},
+61	        cookies=admin_cookies,
+62	    )
+63	    assert r.status_code == 200
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:67:12
+66	    for tour_id in ["asesor_first_login"]:
+67	        r = requests.post(
+68	            f"{BASE}/api/preferences/me/tour-complete",
+69	            json={"tour_id": tour_id},
+70	            cookies=asesor_cookies_jar,
+71	        )
+72	        assert r.status_code == 200, f"Failed for asesor {tour_id}: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:83:8
+82	
+83	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "30d"}, cookies=admin_cookies)
+84	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:121:8
+120	    # Use period=all to include all users regardless of created_at
+121	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "all"}, cookies=admin_cookies)
+122	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:149:8
+148	    """GET tour-completion with advisor role → 403."""
+149	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "30d"}, cookies=asesor_cookies)
+150	    assert r.status_code == 403, f"Expected 403 for advisor, got {r.status_code}: {r.text}"
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:155:8
+154	    """period=7d only counts users created_at in last 7 days."""
+155	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "7d"}, cookies=admin_cookies)
+156	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:171:8
+170	    """
+171	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "7d"}, cookies=admin_cookies)
+172	    assert r.status_code == 200, r.text
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b113_request_without_timeout.html
+   Location: backend/tests/test_batch21_subA.py:183:8
+182	    """period=invalid → 422."""
+183	    r = requests.get(TOUR_COMPLETION_ENDPOINT, params={"period": "invalid"}, cookies=admin_cookies)
+184	    assert r.status_code == 422, f"Expected 422 for invalid period, got {r.status_code}"
+
+--------------------------------------------------
+>> Issue: [B310:blacklist] Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.
+   Severity: Medium   Confidence: High
+   CWE: CWE-22 (https://cwe.mitre.org/data/definitions/22.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b310-urllib-urlopen
+   Location: backend/tests/test_search_parser.py:9:22
+8	        data=json.dumps({"query": q}).encode(), headers={"Content-Type": "application/json"})
+9	    return json.loads(urllib.request.urlopen(req).read()).get("filters", {})
+10	
+
+--------------------------------------------------
+>> Issue: [B108:hardcoded_tmp_directory] Probable insecure usage of temp file/directory.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-377 (https://cwe.mitre.org/data/definitions/377.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b108_hardcoded_tmp_directory.html
+   Location: backend/tests/wave4/test_brochure_engine_unit.py:122:49
+121	    """_social_public_urls omite formatos con path vacío."""
+122	    out = _social_public_urls("bid", {"fb_feed": "/tmp/a.png", "ig_feed": ""})
+123	    assert "fb_feed" in out
+
+--------------------------------------------------
+>> Issue: [B108:hardcoded_tmp_directory] Probable insecure usage of temp file/directory.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-377 (https://cwe.mitre.org/data/definitions/377.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b108_hardcoded_tmp_directory.html
+   Location: backend/voice_atlax_engine.py:98:23
+97	            _ensure_voice_dir()
+98	            tmp_path = f"{VOICE_DIR}/tmp_{uuid.uuid4().hex[:8]}.webm"
+99	            with open(tmp_path, "wb") as f:
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/workflow_engine.py:725:31
+724	        await db.workflow_audit.insert_one({
+725	            "id": "wfaudit_" + hashlib.sha1(
+726	                f"{event.get('lead_id')}|{reason}|{workflow_id}|{_now().isoformat()}".encode()).hexdigest()[:16],
+727	            "kind": "dispatch_blocked", "reason": reason,
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak SHA1 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html
+   Location: backend/workflow_engine.py:798:30
+797	        seed = f"{wf.get('id')}|{lead_id}|{event.get('type')}|{event.get('data', {}).get('event_name', '')}|{_now().strftime('%Y%m%d%H')}"
+798	        exec_id = "wfexec_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
+799	        r = await execute_workflow(
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 214075
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 4677
+		Medium: 50
+		High: 27
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 41
+		Medium: 102
+		High: 4611
+Files skipped (0):

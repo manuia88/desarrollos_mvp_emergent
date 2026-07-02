@@ -1,0 +1,958 @@
+
+> desarrollosmx@0.1.0 prebuild
+> sh -c 'cd ../backend && (../scripts/.venv/bin/python3 generate_seo_static.py || python3 generate_seo_static.py)' || true
+
+SEO estático generado en /Users/manuelacosta/Developer/desarrollos_mvp_emergent/frontend/public · 18 desarrollos · llms.txt 4303b · sitemap 49 urls
+
+> desarrollosmx@0.1.0 build
+> react-scripts build
+
+Creating an optimized production build...
+Compiled with warnings.
+
+[eslint] 
+src/App.js
+  Line 149:7:    'Barrios' is assigned a value but never used                                                                      no-unused-vars
+  Line 151:7:    'AsesoresLanding' is assigned a value but never used                                                              no-unused-vars
+  Line 217:7:    'DesarrolladorCalendarioSubidas' is assigned a value but never used                                               no-unused-vars
+  Line 223:7:    'DesarrolladorCitas' is assigned a value but never used                                                           no-unused-vars
+  Line 277:7:    'AsesorInventario' is assigned a value but never used                                                             no-unused-vars
+  Line 291:7:    'AsesorMisAliados' is assigned a value but never used                                                             no-unused-vars
+  Line 649:6:    React Hook useEffect has a missing dependency: 'location.hash'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 1137:10:  'PropertyDetailRoute' is defined but never used                                                                   no-unused-vars
+
+src/api/aiSuggestions.js
+  Line 40:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/badges.js
+  Line 14:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/batch17.js
+  Line 98:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/copilot.js
+  Line 37:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/diagnostic.js
+  Line 67:14:  Expected an error object to be thrown  no-throw-literal
+
+src/api/insights.js
+  Line 62:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/knowledge_graph.js
+  Line 44:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/api/metrics.js
+  Line 69:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/components/agentic_crm/ArgumentarioPanel.js
+  Line 6:41:   'useRef' is defined but never used             no-unused-vars
+  Line 416:9:  'discConf' is assigned a value but never used  no-unused-vars
+
+src/components/agentic_crm/MatchWeightsPanel.js
+  Line 9:38:   'BarChart2' is defined but never used         no-unused-vars
+  Line 183:9:  'prevSum' is assigned a value but never used  no-unused-vars
+  Line 184:9:  'newSum' is assigned a value but never used   no-unused-vars
+
+src/components/agentic_crm/VisitPrepDossier.js
+  Line 6:41:  'useMemo' is defined but never used  no-unused-vars
+
+src/components/asesor/AsesorMarketIntel.js
+  Line 9:36:  'C_THEME' is assigned a value but never used  no-unused-vars
+
+src/components/asesor/AsesorSidebarV2.js
+  Line 108:9:  'onSearchKeyDown' is assigned a value but never used  no-unused-vars
+
+src/components/asesor/ClientInsightsTab.js
+  Line 156:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/asesor/SenalesCalientesCard.js
+  Line 7:7:  'IDX_FIT' is assigned a value but never used         no-unused-vars
+  Line 8:7:  'IDX_URGENCIA' is assigned a value but never used    no-unused-vars
+  Line 9:7:  'IDX_INVENTARIO' is assigned a value but never used  no-unused-vars
+
+src/components/asesor/VisitAutoPrepCard.js
+  Line 74:11:  'tick' is assigned a value but never used  no-unused-vars
+
+src/components/comprador/CompradorCrossSellSection.js
+  Line 5:10:  'getMyOffers' is defined but never used  no-unused-vars
+
+src/components/comprador/DemandaMapaComprador.js
+  Line 36:22:  Unexpected mix of '&&' and '||'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+  Line 36:34:  Unexpected mix of '&&' and '||'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+
+src/components/developer/BattleCardScoreGauge.js
+  Line 13:7:  'BG' is assigned a value but never used  no-unused-vars
+
+src/components/developer/BulkUploadModal.js
+  Line 7:49:  'FileText' is defined but never used  no-unused-vars
+
+src/components/developer/CompareTab.js
+  Line 6:23:  'fmt0' is defined but never used        no-unused-vars
+  Line 7:26:  'ArrowRight' is defined but never used  no-unused-vars
+
+src/components/developer/CubeIntelligence.js
+  Line 11:36:  'C_WARM' is assigned a value but never used  no-unused-vars
+  Line 27:7:   'fmtBig' is assigned a value but never used  no-unused-vars
+
+src/components/developer/DiagnosticReportContent.js
+  Line 10:32:  'X' is defined but never used  no-unused-vars
+
+src/components/developer/ExpansionSimulatorModal.js
+  Line 7:47:  'TrendUp' is defined but never used    no-unused-vars
+  Line 7:56:  'TrendDown' is defined but never used  no-unused-vars
+
+src/components/developer/NewCitaModal.js
+  Line 2:38:    'useCallback' is defined but never used         no-unused-vars
+  Line 3:68:    'Plus' is defined but never used                no-unused-vars
+  Line 7:7:     'API' is assigned a value but never used        no-unused-vars
+  Line 168:11:  'isSuccess' is assigned a value but never used  no-unused-vars
+
+src/components/developer/SiteSelectionWizard.js
+  Line 7:36:  'Check' is defined but never used  no-unused-vars
+
+src/components/developer/VentasTab.js
+  Line 608:9:    'drawerSections' is assigned a value but never used  no-unused-vars
+  Line 1089:10:  'VistaDePlanta' is defined but never used            no-unused-vars
+
+src/components/developer/VistaPlantaInteractiva.js
+  Line 39:7:   'MAX_BG_BYTES' is assigned a value but never used                                                           no-unused-vars
+  Line 371:6:  React Hook useCallback has a missing dependency: 'devId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 509:9:  'currentFloorMeta' is assigned a value but never used                                                       no-unused-vars
+
+src/components/director/DirectorChatPanel.js
+  Line 13:37:  'getMessages' is defined but never used  no-unused-vars
+  Line 13:50:  'endSession' is defined but never used   no-unused-vars
+
+src/components/director/PricingAgentPanel.js
+  Line 110:10:  'fmtRel' is defined but never used  no-unused-vars
+
+src/components/documents/AssetGallery.js
+  Line 3:34:   'RotateCcw' is defined but never used                                                                    no-unused-vars
+  Line 3:53:   'AlertTriangle' is defined but never used                                                                no-unused-vars
+  Line 51:74:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/documents/CrossCheckView.js
+  Line 57:74:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/documents/DocumentsList.js
+  Line 226:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/documents/ExtractionView.js
+  Line 4:45:    'FileText' is defined but never used                                                                     no-unused-vars
+  Line 134:74:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/documents/SyncPreview.js
+  Line 4:52:   'Trash' is defined but never used                                                                        no-unused-vars
+  Line 4:59:   'Download' is defined but never used                                                                     no-unused-vars
+  Line 40:74:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 97:77:  Unexpected mix of '||' and '&&'. Use parentheses to clarify the intended order of operations             no-mixed-operators
+  Line 97:99:  Unexpected mix of '||' and '&&'. Use parentheses to clarify the intended order of operations             no-mixed-operators
+
+src/components/documents/UnitsHistoryTimeline.js
+  Line 4:29:   'Cloud' is defined but never used                                                                        no-unused-vars
+  Line 54:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/ficha/LeadCaptureModal.js
+  Line 8:41:  'HEAD' is defined but never used  no-unused-vars
+
+src/components/ficha/SeccionDinero.js
+  Line 10:22:  'SERIF' is defined but never used  no-unused-vars
+
+src/components/ficha/SeccionUbicacion.js
+  Line 45:9:  The 'lugares' logical expression could make the dependencies of useMemo Hook (at line 49) change on every render. To fix this, wrap the initialization of 'lugares' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+src/components/ficha/SeccionUnidades.js
+  Line 125:6:   React Hook useEffect has a missing dependency: 'selectedUnit'. Either include it or remove the dependency array                           react-hooks/exhaustive-deps
+  Line 125:7:   React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  Line 456:25:  'usadoM2' is assigned a value but never used                                                                                              no-unused-vars
+
+src/components/investment/InversionV4Calculator.js
+  Line 21:10:   'Tip' is defined but never used               no-unused-vars
+  Line 413:19:  'mesesHz' is assigned a value but never used  no-unused-vars
+
+src/components/investment/InvestmentSimulator.js
+  Line 27:9:    'navigate' is assigned a value but never used                                                                                no-unused-vars
+  Line 76:99:   React Hook useEffect has missing dependencies: 'autofill' and 'form.m2'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  Line 123:13:  'tier' is assigned a value but never used                                                                                    no-unused-vars
+
+src/components/landing/AtlaxBubble.js
+  Line 334:10:   '_migrated' is assigned a value but never used  no-unused-vars
+  Line 1009:25:  'fakeEvent' is assigned a value but never used  no-unused-vars
+
+src/components/landing/AtlaxVoiceButton.js
+  Line 65:6:  React Hook useCallback has missing dependencies: 'handleAudioReady' and 'stopRecording'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/landing/CtaFooter.js
+  Line 4:10:    'Link' is defined but never used                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  Line 108:15:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+src/components/marketplace/TopFilters.js
+  Line 119:14:  'i18n' is assigned a value but never used  no-unused-vars
+
+src/components/notifications/NotificationItem.js
+  Line 24:11:  't' is assigned a value but never used  no-unused-vars
+
+src/components/property/BriefingCard.js
+  Line 26:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/reverseSearch/SearchBar.js
+  Line 7:7:  'INDIGO' is assigned a value but never used  no-unused-vars
+
+src/components/reverseSearch/SearchResultCard.js
+  Line 7:7:    'ROSE' is assigned a value but never used   no-unused-vars
+  Line 27:22:  'scope' is assigned a value but never used  no-unused-vars
+
+src/components/shared/HealthScoreWidget.js
+  Line 15:10:  'TrendUp' is defined but never used  no-unused-vars
+
+src/components/shared/KeyboardHelpDialog.js
+  Line 5:27:  'useCallback' is defined but never used  no-unused-vars
+
+src/components/shared/LeadKanban.js
+  Line 86:63:   React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 101:13:  'resp' is assigned a value but never used                                                                no-unused-vars
+
+src/components/shared/NotificationsBell.js
+  Line 47:10:  'loading' is assigned a value but never used     no-unused-vars
+  Line 47:19:  'setLoading' is assigned a value but never used  no-unused-vars
+
+src/components/shared/PortalLayout.js
+  Line 74:9:   'isActive' is assigned a value but never used                                                             no-unused-vars
+  Line 216:6:  React Hook useEffect has a missing dependency: 'tiers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/shared/ProbabilityBar.js
+  Line 224:9:  'bgColor' is assigned a value but never used  no-unused-vars
+
+src/components/shared/ProjectSwitcher.js
+  Line 24:7:  'API' is assigned a value but never used  no-unused-vars
+
+src/components/studio/sections/LeadFormSection.js
+  Line 59:9:  The 'fields' conditional could make the dependencies of useMemo Hook (at line 90) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'fields' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+src/components/superadmin/ABExperimentsModal.js
+  Line 153:6:  React Hook useEffect has a missing dependency: 'onToast'. Either include it or remove the dependency array. If 'onToast' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+src/components/superadmin/AtlaxPersonaPanel.js
+  Line 418:10:  'masterOn' is assigned a value but never used  no-unused-vars
+
+src/components/superadmin/CompararPanel.js
+  Line 237:9:  The 'outcomes' logical expression could make the dependencies of useMemo Hook (at line 238) change on every render. To fix this, wrap the initialization of 'outcomes' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+src/components/superadmin/CubeBreadcrumb.js
+  Line 36:17:  Duplicate key 'border'  no-dupe-keys
+
+src/components/superadmin/HeatmapPanel.js
+  Line 8:16:  'Badge' is defined but never used  no-unused-vars
+
+src/components/superadmin/InlineEditableField.js
+  Line 45:44:  Unnecessary escape character: \-  no-useless-escape
+
+src/components/superadmin/KGAnomaliesPanel.js
+  Line 139:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/superadmin/MergeDiffVisualizer.js
+  Line 124:85:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/superadmin/ScreenerPanel.js
+  Line 128:9:  The 'metricas' logical expression could make the dependencies of useMemo Hook (at line 130) change on every render. To fix this, wrap the initialization of 'metricas' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  Line 128:9:  The 'metricas' logical expression could make the dependencies of useMemo Hook (at line 136) change on every render. To fix this, wrap the initialization of 'metricas' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+src/components/superadmin/StripeSubscriptionPanel.js
+  Line 20:66:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/components/tour3d/Tour3DViewer.js
+  Line 70:24:  Unexpected mix of '||' and '&&'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+  Line 70:36:  Unexpected mix of '||' and '&&'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+
+src/config/copilotPrompts.js
+  Line 59:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/data/colonias.js
+  Line 249:71:  Unexpected use of comma operator  no-sequences
+
+src/hooks/usePresentationMode.js
+  Line 79:23:  'setPrevSidebar' is assigned a value but never used  no-unused-vars
+
+src/lib/atlaxPrefs.js
+  Line 48:35:  Unexpected mix of '&&' and '||'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+  Line 48:48:  Unexpected mix of '&&' and '||'. Use parentheses to clarify the intended order of operations  no-mixed-operators
+
+src/lib/crossPortalToast.js
+  Line 6:7:  'PORTAL_ICONS' is assigned a value but never used  no-unused-vars
+
+src/lib/funnelTracker.js
+  Line 79:1:  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+src/pages/FichaDesarrollo.js
+  Line 84:74:  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  Line 153:9:  'hookValor' is assigned a value but never used                                                                                            no-unused-vars
+
+src/pages/Mapa.js
+  Line 86:10:   'buildCentersGeoJSON' is defined but never used  no-unused-vars
+  Line 118:17:  'setLayer' is assigned a value but never used    no-unused-vars
+
+src/pages/asesor/AsesorBriefings.js
+  Line 42:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/asesor/AsesorBusquedas.js
+  Line 8:10:  'Sparkle' is defined but never used  no-unused-vars
+
+src/pages/asesor/AsesorCaptaciones.js
+  Line 5:22:  'Card' is defined but never used  no-unused-vars
+
+src/pages/asesor/AsesorCitas.js
+  Line 7:68:  'AlertCircle' is defined but never used   no-unused-vars
+  Line 7:81:  'ExternalLink' is defined but never used  no-unused-vars
+
+src/pages/asesor/AsesorContactos.js
+  Line 5:52:    'Check' is defined but never used                                                                       no-unused-vars
+  Line 18:26:   'ScoreBar' is defined but never used                                                                    no-unused-vars
+  Line 759:10:  'isToday' is defined but never used                                                                     no-unused-vars
+  Line 809:10:  'LeadFilterChips' is defined but never used                                                             no-unused-vars
+  Line 857:21:  'setSmartList' is assigned a value but never used                                                       no-unused-vars
+  Line 872:10:  'presets' is assigned a value but never used                                                            no-unused-vars
+  Line 873:10:  'counts' is assigned a value but never used                                                             no-unused-vars
+  Line 874:10:  'totalContactos' is assigned a value but never used                                                     no-unused-vars
+  Line 918:6:   React Hook useEffect has a missing dependency: 'nav'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/asesor/AsesorInventario.js
+  Line 7:22:    'DollarSign' is defined but never used      no-unused-vars
+  Line 7:34:    'Phone' is defined but never used           no-unused-vars
+  Line 39:9:    'devId' is assigned a value but never used  no-unused-vars
+  Line 382:21:  'devId' is assigned a value but never used  no-unused-vars
+
+src/pages/asesor/AsesorMiniMarket.js
+  Line 8:10:  'Building2' is defined but never used  no-unused-vars
+
+src/pages/asesor/AsesorTareas.js
+  Line 4:22:  'Card' is defined but never used                    no-unused-vars
+  Line 4:35:  'Empty' is defined but never used                   no-unused-vars
+  Line 8:8:   'SortableList' is defined but never used            no-unused-vars
+  Line 65:9:  'handleReorder' is assigned a value but never used  no-unused-vars
+
+src/pages/asesor/CalendarSettings.js
+  Line 9:41:  'ExternalLink' is defined but never used  no-unused-vars
+
+src/pages/asesor/ConversationInbox.js
+  Line 9:25:     'RefreshCw' is defined but never used                  no-unused-vars
+  Line 9:68:     'User' is defined but never used                       no-unused-vars
+  Line 10:8:     'SentimentHeatmap' is defined but never used           no-unused-vars
+  Line 88:7:     'CHANNEL_LABEL' is assigned a value but never used     no-unused-vars
+  Line 191:10:   'confSummary' is assigned a value but never used       no-unused-vars
+  Line 198:10:   'copilotMin' is assigned a value but never used        no-unused-vars
+  Line 217:10:   'showMore' is assigned a value but never used          no-unused-vars
+  Line 217:20:   'setShowMore' is assigned a value but never used       no-unused-vars
+  Line 497:9:    'toggleCopilotMin' is assigned a value but never used  no-unused-vars
+  Line 1369:10:  'InfoRow' is defined but never used                    no-unused-vars
+
+src/pages/asesor/StudioDashboard.js
+  Line 6:31:   'ArrowRight' is defined but never used                                                                        no-unused-vars
+  Line 386:6:  React Hook useEffect has a missing dependency: 'batch.ads'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 405:9:  'angulos' is assigned a value but never used                                                                  no-unused-vars
+
+src/pages/comprador/CompradorAlertas.js
+  Line 10:39:  'AlertTriangle' is defined but never used     no-unused-vars
+  Line 49:10:  'editing' is assigned a value but never used  no-unused-vars
+
+src/pages/comprador/CompradorChat.js
+  Line 35:10:  'error' is assigned a value but never used                                                                           no-unused-vars
+  Line 51:6:   React Hook useCallback has a missing dependency: 'selectedThread'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/comprador/CompradorDashboard.js
+  Line 19:10:  'fmtMxn' is defined but never used  no-unused-vars
+
+src/pages/comprador/CompradorFavoritos.js
+  Line 9:20:  'Share' is defined but never used  no-unused-vars
+
+src/pages/comprador/CompradorPrivacy.js
+  Line 8:10:  'Shield' is defined but never used  no-unused-vars
+
+src/pages/comprador/CompradorWrapped.js
+  Line 6:28:  'useRef' is defined but never used  no-unused-vars
+
+src/pages/configuracion/PreferenciasPage.js
+  Line 76:9:  'navigate' is assigned a value but never used  no-unused-vars
+
+src/pages/developer/AutoAssignments.js
+  Line 8:46:  'BarChart' is defined but never used  no-unused-vars
+
+src/pages/developer/CitasPolicies.js
+  Line 8:28:  'Badge' is defined but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorCRM.js
+  Line 8:34:    'ArrowRight' is defined but never used                                                                   no-unused-vars
+  Line 92:10:   'KanbanTab' is defined but never used                                                                    no-unused-vars
+  Line 102:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 265:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/developer/DesarrolladorCRMShell.js
+  Line 19:10:  'listLeads' is defined but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorCashFlow.js
+  Line 8:35:   'fmt0' is defined but never used       no-unused-vars
+  Line 10:57:  'TrendUp' is defined but never used    no-unused-vars
+  Line 10:66:  'TrendDown' is defined but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorCitas.js
+  Line 6:55:    'CheckCircle' is defined but never used       no-unused-vars
+  Line 170:16:  'setPage' is assigned a value but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorCompetidores.js
+  Line 6:32:   'TrendDown' is defined but never used                                                                    no-unused-vars
+  Line 42:77:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/developer/DesarrolladorLeads.js
+  Line 3:10:    'Link' is defined but never used                                                                         no-unused-vars
+  Line 8:46:    'MessageCircle' is defined but never used                                                                no-unused-vars
+  Line 103:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/developer/DesarrolladorLegajo.js
+  Line 5:27:   'Navigate' is defined but never used           no-unused-vars
+  Line 7:10:   'PageHeader' is defined but never used         no-unused-vars
+  Line 24:10:  'PlaceholderTab' is defined but never used     no-unused-vars
+  Line 52:10:  'docTypes' is assigned a value but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorPricingLab.js
+  Line 6:36:   'fmtMXN' is defined but never used                                                                       no-unused-vars
+  Line 8:34:   'X' is defined but never used                                                                            no-unused-vars
+  Line 84:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/developer/DesarrolladorReportes.js
+  Line 3:38:    'useMemo' is defined but never used                                                                      no-unused-vars
+  Line 11:67:   'Sparkline' is defined but never used                                                                    no-unused-vars
+  Line 95:63:   React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 779:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 956:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/developer/DesarrolladorSiteSelection.js
+  Line 9:19:  'MapPin' is defined but never used         no-unused-vars
+  Line 9:86:  'AlertTriangle' is defined but never used  no-unused-vars
+
+src/pages/developer/DesarrolladorSolicitudes.js
+  Line 6:51:  'ChevronDown' is defined but never used  no-unused-vars
+  Line 7:3:   'AlertCircle' is defined but never used  no-unused-vars
+  Line 7:16:  'Eye' is defined but never used          no-unused-vars
+
+src/pages/developer/DesarrolladorUsuarios.js
+  Line 9:39:  'patchDevUser' is defined but never used  no-unused-vars
+
+src/pages/developer/InmobiliariaAsesores.js
+  Line 4:44:  'patchInmAsesor' is defined but never used  no-unused-vars
+  Line 5:43:  'AlertCircle' is defined but never used     no-unused-vars
+
+src/pages/developer/NuevoProyecto.js
+  Line 15:20:  'UploadCloud' is defined but never used  no-unused-vars
+  Line 15:50:  'Check' is defined but never used        no-unused-vars
+
+src/pages/portal/studio/PropertyIntakeForm.js
+  Line 570:11:  't' is assigned a value but never used  no-unused-vars
+
+src/pages/portal/tools/ComparatorPage.js
+  Line 14:7:  'BG' is assigned a value but never used      no-unused-vars
+  Line 18:7:  'BORDER' is assigned a value but never used  no-unused-vars
+
+src/pages/portal/tools/ProbabilityPage.js
+  Line 24:7:  'GRAD' is assigned a value but never used  no-unused-vars
+
+src/pages/portal/tools/TaxProjectorPage.js
+  Line 15:7:  'SURFACE' is assigned a value but never used  no-unused-vars
+
+src/pages/public/ApiDocsPage.js
+  Line 3:10:  'Code' is defined but never used  no-unused-vars
+
+src/pages/public/AtlaxSurface.js
+  Line 8:27:  'useNavigate' is defined but never used  no-unused-vars
+
+src/pages/public/LandingPublic.js
+  Line 3:38:  'lazy' is defined but never used  no-unused-vars
+
+src/pages/public/PublicCitaPage.js
+  Line 58:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/public/ValorColonia.js
+  Line 84:6:  React Hook useEffect has a missing dependency: 'slug'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/public/ZonePageV2.js
+  Line 409:9:  'm2' is assigned a value but never used          no-unused-vars
+  Line 978:9:  'arcRebuilt' is assigned a value but never used  no-unused-vars
+  Line 981:9:  'plus' is assigned a value but never used        no-unused-vars
+  Line 983:9:  'Q' is assigned a value but never used           no-unused-vars
+  Line 987:9:  'profLabel' is assigned a value but never used   no-unused-vars
+
+src/pages/superadmin/DataSourceDetailPage.js
+  Line 8:21:   'Sparkle' is defined but never used                                                                      no-unused-vars
+  Line 8:30:   'Database' is defined but never used                                                                     no-unused-vars
+  Line 8:50:   'Shield' is defined but never used                                                                       no-unused-vars
+  Line 8:58:   'Clock' is defined but never used                                                                        no-unused-vars
+  Line 85:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/DocumentsPage.js
+  Line 6:20:  'Database' is defined but never used  no-unused-vars
+
+src/pages/superadmin/MacroCiudad.js
+  Line 12:7:  'dim' is assigned a value but never used  no-unused-vars
+
+src/pages/superadmin/PrimitivesDemo.js
+  Line 16:3:   'Building2' is defined but never used  no-unused-vars
+  Line 16:14:  'MapPin' is defined but never used     no-unused-vars
+  Line 16:22:  'Users' is defined but never used      no-unused-vars
+  Line 16:29:  'FileText' is defined but never used   no-unused-vars
+  Line 16:45:  'Info' is defined but never used       no-unused-vars
+  Line 17:17:  'Layers' is defined but never used     no-unused-vars
+  Line 17:25:  'Zap' is defined but never used        no-unused-vars
+
+src/pages/superadmin/ScoresPage.js
+  Line 166:91:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array               react-hooks/exhaustive-deps
+  Line 183:6:   React Hook useEffect has missing dependencies: 'load' and 'task'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminAiCost.js
+  Line 12:76:  'getForecast' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminAuditLog.js
+  Line 11:63:  'exportUrl' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminAuditUnified.js
+  Line 48:67:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminBulkIngest.js
+  Line 7:71:  'X' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminBulletins.js
+  Line 32:66:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminCommercial.js
+  Line 9:57:  'Save' is defined but never used              no-unused-vars
+  Line 9:69:  'ArrowRightCircle' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminCompliance.js
+  Line 5:22:   'Card' is defined but never used                                                                            no-unused-vars
+  Line 97:66:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminCrossSellAnalytics.js
+  Line 50:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminDRPI.js
+  Line 34:66:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminDuplicates.js
+  Line 207:67:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminFraudAlerts.js
+  Line 3:10:   'Shield' is defined but never used                                                                          no-unused-vars
+  Line 55:67:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminFraudPatterns.js
+  Line 155:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminLeadSources.js
+  Line 10:28:  'Building2' is defined but never used  no-unused-vars
+  Line 10:39:  'Megaphone' is defined but never used  no-unused-vars
+  Line 10:50:  'Globe' is defined but never used      no-unused-vars
+
+src/pages/superadmin/SuperadminMetricsCube.js
+  Line 12:18:  'getTierChildren' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminObservability.js
+  Line 14:41:   'useMemo' is defined but never used                                                                          no-unused-vars
+  Line 18:33:   'Filter' is defined but never used                                                                           no-unused-vars
+  Line 18:46:   'ChevronRight' is defined but never used                                                                     no-unused-vars
+  Line 422:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array      react-hooks/exhaustive-deps
+  Line 552:67:  React Hook useEffect has a missing dependency: 'loadList'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminObservabilityPage.js
+  Line 4:34:  'BarChart' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminPartners.js
+  Line 3:10:   'HeartHandshake' is defined but never used                                                               no-unused-vars
+  Line 62:7:   'inputStyle' is assigned a value but never used                                                          no-unused-vars
+  Line 93:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminPhase5Foundation.js
+  Line 7:28:  'Badge' is defined but never used                      no-unused-vars
+  Line 24:7:  'COLONIAS_MUESTRA' is assigned a value but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminRiskAlerts.js
+  Line 3:10:   'TrendingDown' is defined but never used                                                                    no-unused-vars
+  Line 40:67:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminRiskScore.js
+  Line 31:66:  React Hook useEffect has a missing dependency: 'refresh'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/pages/superadmin/SuperadminTenants.js
+  Line 7:3:    'Eye' is defined but never used                no-unused-vars
+  Line 7:34:   'ChevronRight' is defined but never used       no-unused-vars
+  Line 347:9:  'navigate' is assigned a value but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminTerminalZona.js
+  Line 50:7:  'th' is assigned a value but never used  no-unused-vars
+  Line 51:7:  'td' is assigned a value but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminTransactionNetwork.js
+  Line 5:18:  'Network' is defined but never used  no-unused-vars
+
+src/pages/superadmin/SuperadminTrends.js
+  Line 2:41:  'useMemo' is defined but never used  no-unused-vars
+
+src/pages/superadmin/UserDiagnostics.js
+  Line 183:63:  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src/templates/landings/UrgentTemplate.js
+  Line 8:7:   'fmtMoney' is assigned a value but never used  no-unused-vars
+  Line 26:9:  'photos' is assigned a value but never used    no-unused-vars
+
+src/templates/landings/VideoFirstTemplate.js
+  Line 20:9:  'videoTestimonials' is assigned a value but never used  no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  475.39 kB              build/static/js/7871.438737bb.chunk.js
+  438.26 kB (+38.36 kB)  build/static/js/main.b2da062e.js
+  275.8 kB               build/static/js/4066.73579ea8.chunk.js
+  193.93 kB              build/static/js/2441.8adf2166.chunk.js
+  134.91 kB              build/static/js/646.f78cba22.chunk.js
+  98.08 kB               build/static/js/1432.40a054f2.chunk.js
+  96.14 kB               build/static/js/2042.11d600eb.chunk.js
+  81.33 kB               build/static/js/4804.df51c06c.chunk.js
+  59.51 kB               build/static/js/6419.ce255128.chunk.js
+  53.68 kB               build/static/js/5547.e618498b.chunk.js
+  38.93 kB               build/static/js/6299.ff73eede.chunk.js
+  34.59 kB               build/static/js/9156.5abfa734.chunk.js
+  31.57 kB               build/static/js/2417.d0fdaafa.chunk.js
+  30.25 kB               build/static/js/4675.a6dcfcdb.chunk.js
+  29.83 kB               build/static/js/1276.725fef3d.chunk.js
+  29.64 kB               build/static/js/8310.64c8c2b9.chunk.js
+  24.47 kB               build/static/js/6137.b6c52f58.chunk.js
+  23.42 kB               build/static/js/2412.adb9bb4b.chunk.js
+  22.76 kB               build/static/js/447.f12683b0.chunk.js
+  22.15 kB               build/static/js/6443.6d912008.chunk.js
+  20.82 kB               build/static/js/5432.91ba2f9d.chunk.js
+  19.74 kB               build/static/js/7886.d251009e.chunk.js
+  19.03 kB               build/static/js/5018.8569254b.chunk.js
+  17.99 kB (+1.39 kB)    build/static/css/main.de526d93.css
+  16.01 kB               build/static/js/4799.a082d61a.chunk.js
+  15.96 kB (+12.21 kB)   build/static/js/2331.76d8a73f.chunk.js
+  15.72 kB               build/static/js/4635.1685544d.chunk.js
+  15.33 kB               build/static/js/1295.cdfdbe85.chunk.js
+  14.72 kB               build/static/js/4158.e0265cf3.chunk.js
+  14.46 kB               build/static/js/376.0b54934e.chunk.js
+  14.16 kB               build/static/js/7771.d9faab8e.chunk.js
+  13.81 kB               build/static/js/4632.f6a72a86.chunk.js
+  13.4 kB                build/static/js/4874.1199fe8e.chunk.js
+  13.33 kB               build/static/js/4077.558d5247.chunk.js
+  13.08 kB               build/static/js/9216.24ef082f.chunk.js
+  13.06 kB               build/static/js/673.dc69141b.chunk.js
+  13.04 kB               build/static/js/490.4c9d38a0.chunk.js
+  12.66 kB               build/static/js/967.f2fa2001.chunk.js
+  12.47 kB               build/static/js/1750.ac6bc7e0.chunk.js
+  12.4 kB                build/static/js/6157.f5dfc7f6.chunk.js
+  12.36 kB               build/static/js/5758.878aaf20.chunk.js
+  12.19 kB               build/static/js/666.017ad182.chunk.js
+  12.04 kB               build/static/js/8007.04f761ad.chunk.js
+  11.94 kB               build/static/js/3317.edb2d5bb.chunk.js
+  11.74 kB               build/static/js/8325.c4a5ee93.chunk.js
+  11.63 kB               build/static/js/4994.ce66a6e6.chunk.js
+  11.48 kB               build/static/js/748.ed85b69a.chunk.js
+  11.47 kB               build/static/js/3451.de101a88.chunk.js
+  11.39 kB               build/static/js/3965.15945dfa.chunk.js
+  11.34 kB               build/static/js/8938.1fe00139.chunk.js
+  10.82 kB               build/static/js/848.f0f970ee.chunk.js
+  10.75 kB               build/static/js/2858.f7bd435e.chunk.js
+  10.65 kB               build/static/js/2844.10ff9c87.chunk.js
+  10.64 kB               build/static/js/8283.26967d1f.chunk.js
+  10.62 kB               build/static/js/1508.dd659ca7.chunk.js
+  10.59 kB               build/static/js/7759.029c1d63.chunk.js
+  10.44 kB               build/static/js/8751.4693586c.chunk.js
+  10.43 kB (+3.65 kB)    build/static/js/9968.1e185668.chunk.js
+  10.4 kB                build/static/js/1718.ec564960.chunk.js
+  10.17 kB               build/static/js/7603.12c9b66f.chunk.js
+  10.05 kB               build/static/js/1594.f0c841e3.chunk.js
+  10.03 kB               build/static/css/9276.21514c11.chunk.css
+  9.85 kB                build/static/js/6224.c31cc83f.chunk.js
+  9.82 kB                build/static/js/6966.5b9923fa.chunk.js
+  9.69 kB                build/static/js/2259.5c295b08.chunk.js
+  9.63 kB                build/static/js/8537.2f164725.chunk.js
+  9.54 kB                build/static/js/425.7dc19a06.chunk.js
+  9.3 kB                 build/static/js/6837.d04796f5.chunk.js
+  9.23 kB                build/static/js/2497.7338515d.chunk.js
+  9.19 kB                build/static/js/8726.a3aa92ef.chunk.js
+  9.18 kB                build/static/js/4237.5ad3357c.chunk.js
+  9.08 kB                build/static/js/3643.cccbfe66.chunk.js
+  9.04 kB                build/static/js/9162.3c3785ce.chunk.js
+  8.92 kB                build/static/js/8373.fc03d0a9.chunk.js
+  8.82 kB                build/static/js/8621.d4b8fc97.chunk.js
+  8.76 kB                build/static/js/5250.837148cd.chunk.js
+  8.68 kB                build/static/js/5367.3c3ea9aa.chunk.js
+  8.65 kB                build/static/js/9013.a944d398.chunk.js
+  8.6 kB                 build/static/js/8215.f1894019.chunk.js
+  8.58 kB                build/static/js/2646.a47594d6.chunk.js
+  8.56 kB                build/static/js/6630.c4c30a0f.chunk.js
+  8.53 kB                build/static/js/1975.9160081b.chunk.js
+  8.43 kB                build/static/js/9550.9274a2e4.chunk.js
+  8.35 kB                build/static/js/3502.380f6733.chunk.js
+  8.34 kB                build/static/js/9408.65f57778.chunk.js
+  8.33 kB                build/static/js/5569.efc4c8d8.chunk.js
+  8.25 kB                build/static/js/7043.c3d03665.chunk.js
+  8.2 kB (+2.38 kB)      build/static/js/8410.87331480.chunk.js
+  8.09 kB                build/static/js/6427.9e0abda5.chunk.js
+  8.06 kB                build/static/js/7713.2922c616.chunk.js
+  7.99 kB                build/static/js/3276.6b05ff7f.chunk.js
+  7.95 kB                build/static/js/4934.d3ba7c7a.chunk.js
+  7.88 kB                build/static/js/4982.e78dfc47.chunk.js
+  7.88 kB                build/static/js/5004.a73867ec.chunk.js
+  7.81 kB                build/static/js/8440.8723d22c.chunk.js
+  7.81 kB                build/static/js/8959.0316066f.chunk.js
+  7.76 kB                build/static/js/1627.753ab2e1.chunk.js
+  7.7 kB                 build/static/js/7764.aae34d53.chunk.js
+  7.57 kB                build/static/js/4341.e072ea64.chunk.js
+  7.53 kB                build/static/js/1149.7aaf2a67.chunk.js
+  7.52 kB                build/static/js/8087.df46fd91.chunk.js
+  7.49 kB (-72.57 kB)    build/static/js/17.6a8c6a22.chunk.js
+  7.46 kB                build/static/js/5838.7298a27d.chunk.js
+  7.4 kB                 build/static/js/236.8296f13a.chunk.js
+  7.38 kB                build/static/js/3066.545b72d8.chunk.js
+  7.37 kB                build/static/js/1463.c657d142.chunk.js
+  7.32 kB (+2.26 kB)     build/static/js/4980.850f90c8.chunk.js
+  7.3 kB                 build/static/js/2080.5c1c4c7c.chunk.js
+  7.27 kB                build/static/js/5502.c5707b44.chunk.js
+  7.27 kB                build/static/js/2079.18f66717.chunk.js
+  7.26 kB                build/static/js/7289.16ba0936.chunk.js
+  7.24 kB                build/static/js/268.4cefbd45.chunk.js
+  7.23 kB                build/static/js/5601.6cab3bf5.chunk.js
+  7.22 kB                build/static/js/2016.37c2344d.chunk.js
+  7.2 kB                 build/static/js/4634.9d52bd22.chunk.js
+  7.16 kB                build/static/js/4011.5ed0d19a.chunk.js
+  7.13 kB                build/static/js/6089.21a14ecf.chunk.js
+  7.13 kB                build/static/js/1676.0f9de594.chunk.js
+  7.09 kB                build/static/js/2726.483d4400.chunk.js
+  7.07 kB                build/static/js/1223.5094c7c5.chunk.js
+  7.07 kB                build/static/js/2850.4ebf1d70.chunk.js
+  6.94 kB                build/static/js/1323.a024ae42.chunk.js
+  6.89 kB                build/static/js/4642.b382dc93.chunk.js
+  6.88 kB                build/static/js/4352.289afdee.chunk.js
+  6.87 kB                build/static/js/4403.03197e5b.chunk.js
+  6.82 kB                build/static/js/2015.8be015f5.chunk.js
+  6.82 kB                build/static/js/5429.1613a9d2.chunk.js
+  6.78 kB                build/static/js/5231.18829c6e.chunk.js
+  6.78 kB                build/static/js/9494.91330988.chunk.js
+  6.76 kB                build/static/js/1620.d3245284.chunk.js
+  6.73 kB                build/static/js/5066.2611fdc4.chunk.js
+  6.73 kB                build/static/js/1230.be761ed0.chunk.js
+  6.73 kB                build/static/js/6059.a4186628.chunk.js
+  6.71 kB                build/static/js/6081.a020b3f9.chunk.js
+  6.68 kB                build/static/js/8565.fbf6b5fc.chunk.js
+  6.61 kB                build/static/js/6375.4eaa0e13.chunk.js
+  6.6 kB                 build/static/js/9326.d0fddbe2.chunk.js
+  6.6 kB                 build/static/js/9441.ae1ea754.chunk.js
+  6.59 kB                build/static/js/5258.869d81f2.chunk.js
+  6.58 kB                build/static/js/8969.9b390584.chunk.js
+  6.56 kB                build/static/js/2783.d5aa2537.chunk.js
+  6.55 kB                build/static/js/9275.d5993d29.chunk.js
+  6.46 kB                build/static/js/1089.c222f20f.chunk.js
+  6.46 kB                build/static/js/6055.18704a08.chunk.js
+  6.45 kB                build/static/js/5929.8a7f2457.chunk.js
+  6.4 kB                 build/static/js/4839.dd76adad.chunk.js
+  6.4 kB                 build/static/js/3043.536f5fba.chunk.js
+  6.37 kB                build/static/js/2493.49924bdf.chunk.js
+  6.37 kB                build/static/js/60.3d680f33.chunk.js
+  6.36 kB                build/static/js/6972.2ac7bac2.chunk.js
+  6.35 kB                build/static/js/8799.3d7fedd7.chunk.js
+  6.34 kB                build/static/js/205.64f609a0.chunk.js
+  6.31 kB                build/static/js/2329.b407091a.chunk.js
+  6.31 kB                build/static/js/8942.724f941e.chunk.js
+  6.31 kB                build/static/js/9336.0088e632.chunk.js
+  6.21 kB                build/static/js/6039.303d91d3.chunk.js
+  6.17 kB                build/static/js/253.debf5218.chunk.js
+  6.16 kB                build/static/js/3683.79703037.chunk.js
+  6.1 kB                 build/static/js/6979.7b15c107.chunk.js
+  6.1 kB                 build/static/js/6828.b764c58f.chunk.js
+  6.08 kB                build/static/js/2054.e934e7a1.chunk.js
+  6.04 kB (-906 B)       build/static/js/2880.ffd391dd.chunk.js
+  6 kB                   build/static/js/4441.ef0b7f37.chunk.js
+  5.96 kB                build/static/js/5008.72f81471.chunk.js
+  5.94 kB                build/static/js/5620.de8ac71f.chunk.js
+  5.93 kB                build/static/js/4879.3376410e.chunk.js
+  5.91 kB                build/static/js/7748.2d746b8d.chunk.js
+  5.88 kB                build/static/js/8967.89d0c0a1.chunk.js
+  5.88 kB                build/static/js/7767.95ce13c0.chunk.js
+  5.86 kB                build/static/js/1861.a5f8c137.chunk.js
+  5.84 kB                build/static/js/6750.04d4a19a.chunk.js
+  5.83 kB                build/static/js/5028.02ec682d.chunk.js
+  5.83 kB                build/static/js/488.77b4fde6.chunk.js
+  5.8 kB                 build/static/js/6627.c54e44b4.chunk.js
+  5.78 kB                build/static/js/9919.15e0514e.chunk.js
+  5.75 kB                build/static/js/499.d4696c37.chunk.js
+  5.74 kB                build/static/js/5421.1b06286f.chunk.js
+  5.71 kB                build/static/js/442.64ad9ed2.chunk.js
+  5.7 kB                 build/static/js/6669.43ce4bfd.chunk.js
+  5.69 kB                build/static/js/4072.3910a819.chunk.js
+  5.64 kB                build/static/js/1305.dd21f5a0.chunk.js
+  5.64 kB                build/static/js/1196.30dfdf1f.chunk.js
+  5.61 kB                build/static/js/5763.b667b964.chunk.js
+  5.59 kB                build/static/js/4167.732fec2f.chunk.js
+  5.58 kB (+1.42 kB)     build/static/js/4042.ff857e6b.chunk.js
+  5.56 kB                build/static/js/2269.17a16ee0.chunk.js
+  5.55 kB                build/static/js/9531.3ddcc245.chunk.js
+  5.52 kB                build/static/js/4794.13c9e033.chunk.js
+  5.5 kB                 build/static/js/2813.a9274777.chunk.js
+  5.49 kB                build/static/js/8534.2a61352e.chunk.js
+  5.49 kB                build/static/js/3992.0fc2037e.chunk.js
+  5.44 kB                build/static/js/8201.efa8969a.chunk.js
+  5.41 kB                build/static/js/2902.73a84940.chunk.js
+  5.38 kB                build/static/js/5679.37c6d29f.chunk.js
+  5.37 kB                build/static/js/6498.10f2ca3d.chunk.js
+  5.37 kB                build/static/js/4784.afc55c5f.chunk.js
+  5.36 kB                build/static/js/5760.f7a3161a.chunk.js
+  5.33 kB                build/static/js/8567.f21ce546.chunk.js
+  5.32 kB                build/static/js/8725.b8f72da9.chunk.js
+  5.31 kB                build/static/js/2925.7b0947f5.chunk.js
+  5.26 kB                build/static/js/1132.3ba26c95.chunk.js
+  5.23 kB                build/static/js/3822.84bddab9.chunk.js
+  5.23 kB                build/static/js/6192.0c27af57.chunk.js
+  5.22 kB                build/static/js/7295.156168cd.chunk.js
+  5.21 kB                build/static/js/1298.2421870c.chunk.js
+  5.2 kB                 build/static/js/5047.157aa194.chunk.js
+  5.17 kB                build/static/js/5316.3878567c.chunk.js
+  5.16 kB                build/static/js/201.4079b042.chunk.js
+  5.15 kB                build/static/js/8769.10051e88.chunk.js
+  5.13 kB                build/static/js/6426.83158e0c.chunk.js
+  5.11 kB                build/static/js/8791.19cf3661.chunk.js
+  5.1 kB                 build/static/css/7871.8907ebdc.chunk.css
+  5.08 kB                build/static/js/8135.506e39d1.chunk.js
+  5.06 kB                build/static/js/4620.708d65b3.chunk.js
+  5.06 kB                build/static/js/9203.d79ec2b3.chunk.js
+  5 kB                   build/static/js/4410.b891b700.chunk.js
+  5 kB                   build/static/js/4489.b839980a.chunk.js
+  4.99 kB                build/static/js/3627.dd1f5812.chunk.js
+  4.93 kB                build/static/js/1713.4b5099e0.chunk.js
+  4.92 kB                build/static/js/7867.d564acba.chunk.js
+  4.92 kB                build/static/js/5500.9cb77bd6.chunk.js
+  4.89 kB                build/static/js/1723.98e7f878.chunk.js
+  4.85 kB                build/static/js/1468.c082d56d.chunk.js
+  4.84 kB                build/static/js/5552.265034aa.chunk.js
+  4.83 kB                build/static/js/6036.49620292.chunk.js
+  4.81 kB                build/static/js/1596.d908e2ab.chunk.js
+  4.8 kB                 build/static/js/2263.c188c693.chunk.js
+  4.78 kB                build/static/js/5668.349447c7.chunk.js
+  4.76 kB                build/static/js/7862.63ff4f3e.chunk.js
+  4.73 kB                build/static/js/2403.668c2143.chunk.js
+  4.71 kB                build/static/js/5963.443e3dd6.chunk.js
+  4.67 kB                build/static/js/8544.457fa770.chunk.js
+  4.66 kB                build/static/js/8065.013b643f.chunk.js
+  4.65 kB                build/static/js/9839.6df06d24.chunk.js
+  4.64 kB                build/static/js/8911.8b2481ea.chunk.js
+  4.62 kB                build/static/js/6638.5bd98e94.chunk.js
+  4.59 kB                build/static/js/1561.de2e7eba.chunk.js
+  4.53 kB                build/static/js/1875.f1aa4587.chunk.js
+  4.47 kB                build/static/js/8505.c2ef6756.chunk.js
+  4.45 kB                build/static/js/1935.878dcdf0.chunk.js
+  4.39 kB                build/static/js/5927.379ab2f4.chunk.js
+  4.39 kB                build/static/js/356.93f7bc1c.chunk.js
+  4.35 kB                build/static/js/6179.1e3e8bc5.chunk.js
+  4.33 kB                build/static/js/1119.9ba27fba.chunk.js
+  4.29 kB                build/static/js/8375.c74dd07c.chunk.js
+  4.29 kB                build/static/js/756.aea1bbbb.chunk.js
+  4.29 kB                build/static/js/1572.d87cc4a4.chunk.js
+  4.28 kB                build/static/js/6317.4e13b495.chunk.js
+  4.28 kB                build/static/js/1645.105fce48.chunk.js
+  4.27 kB                build/static/js/800.e101b71d.chunk.js
+  4.2 kB                 build/static/js/7797.e72e0623.chunk.js
+  4.18 kB                build/static/js/1482.a945b0ba.chunk.js
+  4.1 kB                 build/static/js/2202.3a9250b9.chunk.js
+  4.1 kB                 build/static/js/2431.7dedea62.chunk.js
+  4.09 kB                build/static/js/6901.55ebcc19.chunk.js
+  4.08 kB                build/static/js/7708.93b07a8c.chunk.js
+  4.08 kB                build/static/js/5638.86999cef.chunk.js
+  4.08 kB                build/static/js/9586.f5adade7.chunk.js
+  4.07 kB                build/static/js/1370.44ede8e4.chunk.js
+  4.07 kB                build/static/js/6057.2cabdbde.chunk.js
+  4.06 kB (-14.72 kB)    build/static/js/9279.bc72daef.chunk.js
+  4.04 kB                build/static/js/5632.689a5200.chunk.js
+  4.03 kB                build/static/js/6147.f7029479.chunk.js
+  4 kB                   build/static/js/9776.732dd7a7.chunk.js
+  3.98 kB                build/static/js/3143.b26f15d9.chunk.js
+  3.95 kB                build/static/js/4537.1c153136.chunk.js
+  3.94 kB                build/static/js/9426.4ed03077.chunk.js
+  3.93 kB                build/static/js/9962.f510ac5b.chunk.js
+  3.91 kB                build/static/js/5831.37c4766e.chunk.js
+  3.87 kB                build/static/js/6284.399b73fe.chunk.js
+  3.86 kB                build/static/js/3491.d74b5410.chunk.js
+  3.79 kB                build/static/js/4944.e0dae06d.chunk.js
+  3.79 kB                build/static/js/5190.b54627b3.chunk.js
+  3.79 kB                build/static/js/5648.d419bb78.chunk.js
+  3.78 kB                build/static/js/3971.e903769e.chunk.js
+  3.78 kB                build/static/js/7780.33c08dbf.chunk.js
+  3.78 kB                build/static/js/7079.5eec45e9.chunk.js
+  3.76 kB                build/static/js/2034.2e42ccc8.chunk.js
+  3.76 kB                build/static/js/7721.cbaf76dc.chunk.js
+  3.74 kB                build/static/js/8299.d2c044a8.chunk.js
+  3.73 kB                build/static/js/6394.4d3c5dfe.chunk.js
+  3.71 kB                build/static/js/3406.f7446e70.chunk.js
+  3.7 kB                 build/static/js/7443.e389467a.chunk.js
+  3.63 kB                build/static/js/368.ee901181.chunk.js
+  3.6 kB                 build/static/js/8958.a85feee3.chunk.js
+  3.57 kB                build/static/js/4984.42113ba5.chunk.js
+  3.56 kB                build/static/js/4216.5ff43c76.chunk.js
+  3.51 kB                build/static/js/8872.db360771.chunk.js
+  3.5 kB                 build/static/js/9656.685b0825.chunk.js
+  3.4 kB                 build/static/js/8205.0aad3d2c.chunk.js
+  3.39 kB                build/static/js/9419.75585d23.chunk.js
+  3.33 kB                build/static/js/1254.66e3ae5e.chunk.js
+  3.32 kB                build/static/js/9461.2b14b7a5.chunk.js
+  3.25 kB                build/static/js/3486.dbed6124.chunk.js
+  3.22 kB                build/static/js/8123.4f49537e.chunk.js
+  3.22 kB                build/static/js/4264.94640f23.chunk.js
+  3.2 kB                 build/static/js/675.1ddbc225.chunk.js
+  3.18 kB                build/static/js/1121.4d68d4a2.chunk.js
+  3.16 kB                build/static/js/5184.7aafe391.chunk.js
+  3.15 kB (-894 B)       build/static/js/9128.00c57fe5.chunk.js
+  3.12 kB                build/static/js/5292.6c4fd447.chunk.js
+  3.08 kB (-1.71 kB)     build/static/js/5484.bf432864.chunk.js
+  3.07 kB                build/static/js/4761.2505c221.chunk.js
+  3.05 kB                build/static/js/5972.308146cb.chunk.js
+  3.03 kB                build/static/js/8291.46c96f4b.chunk.js
+  2.91 kB                build/static/js/1049.e6d19940.chunk.js
+  2.89 kB                build/static/js/8118.26d497bc.chunk.js
+  2.88 kB (-4.29 kB)     build/static/js/2838.85ab900d.chunk.js
+  2.7 kB                 build/static/js/4566.f78b7b01.chunk.js
+  2.63 kB                build/static/js/3065.d178bfa7.chunk.js
+  2.62 kB                build/static/js/4798.4c91f20d.chunk.js
+  2.62 kB                build/static/js/7179.fa6f9394.chunk.js
+  2.61 kB                build/static/js/8348.3102953c.chunk.js
+  2.6 kB                 build/static/js/1226.9d1b155b.chunk.js
+  2.59 kB                build/static/js/1662.ca88454e.chunk.js
+  2.55 kB                build/static/js/9666.2f26c7c7.chunk.js
+  2.52 kB (-8.99 kB)     build/static/js/9886.3f91e137.chunk.js
+  2.48 kB                build/static/js/64.e81a1eed.chunk.js
+  2.42 kB                build/static/js/9565.44a349bc.chunk.js
+  2.42 kB                build/static/js/2686.b990de0c.chunk.js
+  2.34 kB                build/static/js/1615.fdb7bbee.chunk.js
+  2.34 kB                build/static/js/5411.6bc76c37.chunk.js
+  2.21 kB (-2.03 kB)     build/static/js/6813.bfcb1aee.chunk.js
+  2.2 kB                 build/static/js/8353.c2a1ae2a.chunk.js
+  2.12 kB                build/static/js/7911.215c29d9.chunk.js
+  1.97 kB                build/static/js/2766.70bcd944.chunk.js
+  1.68 kB                build/static/js/8062.8ccdaea9.chunk.js
+  804 B                  build/static/js/4451.ea1717af.chunk.js
+  772 B                  build/static/js/6734.26884f79.chunk.js
+  640 B                  build/static/js/2821.c280aac5.chunk.js
+  448 B                  build/static/js/3355.109e773b.chunk.js
+  360 B                  build/static/js/6914.c3393ef5.chunk.js
+  360 B                  build/static/js/9295.e57b2190.chunk.js
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  yarn global add serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+

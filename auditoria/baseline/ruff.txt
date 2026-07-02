@@ -1,0 +1,14 @@
+439	F401	[-] unused-import
+411	E702	[ ] multiple-statements-on-one-line-semicolon
+365	E402	[ ] module-import-not-at-top-of-file
+153	E701	[ ] multiple-statements-on-one-line-colon
+ 63	F841	[-] unused-variable
+ 61	E741	[ ] ambiguous-variable-name
+ 56	F541	[*] f-string-missing-placeholders
+ 16	E401	[*] multiple-imports-on-one-line
+ 16	E731	[ ] lambda-assignment
+  5	F811	[-] redefined-while-unused
+  4	F821	[ ] undefined-name
+  1	F823	[ ] undefined-local
+Found 1590 errors.
+[*] 514 fixable with the `--fix` option (77 hidden fixes can be enabled with the `--unsafe-fixes` option).
