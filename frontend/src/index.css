@@ -72,6 +72,35 @@
 .mkt-photo img { transition: transform .6s cubic-bezier(.2,.8,.2,1); }
 .dmx-card:hover .mkt-photo img { transform: scale(1.06); }
 
+/* ── Superficie de HERRAMIENTAS (mapa · simulador · tax · comparador · probabilidad · valores) ──────
+ * Fondo gris suave para que las tarjetas BLANCAS floten con contraste real (el founder: "todo blanco
+ * sin contrastes"). Scopeado a `.tool-surface` → cero efecto en los portales oscuros. */
+.tool-surface { background: #EDEFF3; min-height: 100vh; }
+.tool-surface .dmx-card,
+.tool-surface .tool-card {
+  background: #fff;
+  border: 1px solid #E4E6EC;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05), 0 14px 32px -16px rgba(16,24,40,0.20);
+}
+.tool-surface .dmx-card:hover,
+.tool-surface .tool-card:hover {
+  border-color: rgba(124,92,255,0.45);
+  box-shadow: 0 4px 12px rgba(16,24,40,0.08), 0 26px 52px -20px rgba(124,92,255,0.32);
+  transform: translateY(-3px);
+}
+/* Sub-paneles / inputs dentro de una tarjeta de herramientas → un pelín más grises para escalonar. */
+.tool-surface .dmx-subcard { background: #F6F7FA; border: 1px solid #ECEDF2; border-radius: 12px; }
+.tool-surface input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+.tool-surface select,
+.tool-surface textarea {
+  background: #F6F7FA; border: 1px solid #E2E4EB; border-radius: 10px; color: #1E2230;
+}
+.tool-surface input:focus, .tool-surface select:focus, .tool-surface textarea:focus {
+  outline: none; border-color: rgba(124,92,255,0.55); background: #fff;
+  box-shadow: 0 0 0 3px rgba(124,92,255,0.12);
+}
+
 /* Tooltip de tarjeta — mismo diseño que los globitos del menú izquierdo, aparición instantánea */
 .tip { position: relative; }
 .tip-q { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: #fff; color: #B45309; font-size: 9px; font-weight: 800; margin-left: 5px; flex-shrink: 0; }

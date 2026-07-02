@@ -1,8 +1,18 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-06-18
+**Última actualización**: 2026-07-01
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+> **2026-07-01 · Mapa + Herramientas · rediseño Apple-tier + hipergranularidad (rama `feat/p1-feeders`)**:
+> MAPA `/mapa-valores` con **selector de 15 capas** (valor · AVM mercado · plusvalía · gentrificación · FAR · subutilizado ·
+> edad + **8 índices IE**: caminabilidad/seguridad/agua/escuelas/vida nocturna/senior/diversidad/infraestructura) que repinta
+> el choropleth + **leyenda flotante viva** + **buscador in-map** (endpoints nuevos `backend/routes/mapa_capas.py`).
+> **Full seeds** (ya no muestras): AVM-predio **1,087,728** (100%) · FAR **1,538** colonias · gentrificación **1,789**.
+> **5 tabs** (Simulador · Tax-projector · Comparador · Probabilidad · ACM/Valores) migrados de "v1 negro" a **claro Apple-tier**
+> preservando TODA la matemática (fiscal verificado ISAI CDMX $279,022). Nav unificado **`ToolNav`** (menú Herramientas real,
+> ya no navega) + `.tool-surface` (tarjetas blancas que FLOTAN sobre gris = contraste). Composites huérfanos cableados
+> (`backend/routes/composites.py` for_comprador/for_inversor). Detalle: **`PLAN_TABS_MAPA_UPGRADE.md`** + `memory/MAPA_TABS_APPLE_UPGRADE.md`.
 
 > **2026-06-18 · F6 · Copiloto de Compra (portal público) — hardening end-to-end**: buscador UNIFICADO (una entrada,
 > 4 obligatorios como preguntas, Perfilador retirado) · solo 2 etapas por fecha + filtro plazo vivo · casamentera

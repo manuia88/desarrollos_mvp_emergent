@@ -175,3 +175,149 @@ async def atom_units_for(db, tier: str, tier_id: Optional[str]) -> List[Dict[str
     except Exception:
         return []
     return rows
+
+
+# ─── RENTABILIDAD (roadmap de métricas) ───────────────────────────────────────
+# El cubo NO tenía renta/cap/yield (0/160 celdas). Estos helpers los computan REUSANDO
+# motores existentes (cero fórmula nueva, cero dato inventado):
+#   · RENTAL_YIELDS (investment_simulator_engine) → yield BRUTO anual por tier de zona.
+#   · inversion_v4_finance.analyze (institucional) → NOI, cap rate, yield neto sobre un
+#     depto REPRESENTATIVO de la celda (avg_price_per_m2 × m² típico).
+#   · inversion_v4_tax.make_isr_fn → ISR de renta consistente (mismo motor que la calc).
+# Cada celda queda etiquetada: fuente / confianza / es_estimado (siempre True aquí:
+# es un representativo de zona, no la unidad exacta). Fail-open: si no hay avg_price_per_m2
+# la celda queda SIN KPIs de renta (no fabricamos precio).
+M2_REPRESENTATIVO = 80          # depto típico de zona (mismo supuesto que /api/zona/:id/inversion)
+_CAPEX_RESERVE_PCT = 0.04       # reserva CapEx (default del motor v4)
+
+
+async def _tier_letter_for(db, tier: str, tier_id: Optional[str], hint_colonia_id: Optional[str] = None) -> str:
+    """Resuelve el tier de zona (A/B/C/D/F) para elegir el yield de RENTAL_YIELDS.
+
+    Reusa zone_score_engine (mismo mapeo que get_colonia_baseline). Para colonia/development
+    usa el zone_score de la colonia; alcaldía/city caen a 'B' (promedio) — no inventamos un
+    score de zona ancha. Fail-open a 'B'.
+    """
+    zone_id = None
+    if tier == "colonia":
+        zone_id = tier_id
+    elif tier == "development":
+        zone_id = hint_colonia_id
+    if not zone_id:
+        return "B"
+    try:
+        from zone_score_engine import get_score_or_compute
+        zs = await get_score_or_compute(db, zone_id, tier="colonia")
+        if zs and not zs.get("error"):
+            s = float(zs.get("score_total") or zs.get("score") or zs.get("score_numeric") or 0)
+            if s >= 85:
+                return "A"
+            if s >= 70:
+                return "B"
+            if s >= 55:
+                return "C"
+            if s >= 40:
+                return "D"
+            if s > 0:
+                return "F"
+    except Exception:
+        pass
+    return "B"
+
+
+def rentability_from_pm2(avg_price_per_m2: Optional[float], tier_letter: str,
+                         mkt: Optional[Dict[str, Any]] = None,
+                         m2: float = M2_REPRESENTATIVO) -> Optional[Dict[str, Any]]:
+    """KPIs de renta para UNA celda del cubo (pura, sin I/O). None si no hay precio/m².
+
+    Devuelve: cap_rate_pct, yield_bruto (%), yield_neto (%), renta_m2 (MXN/m²/mes), noi (MXN/año)
+    + fuente / confianza / es_estimado. REUSA RENTAL_YIELDS + inversion_v4_finance.analyze.
+    """
+    try:
+        pm2 = float(avg_price_per_m2 or 0)
+    except (TypeError, ValueError):
+        pm2 = 0.0
+    if pm2 <= 0 or m2 <= 0:
+        return None
+
+    try:
+        from investment_simulator_engine import RENTAL_YIELDS, DEFAULT_RENTAL_YIELD
+    except Exception:
+        RENTAL_YIELDS, DEFAULT_RENTAL_YIELD = {}, 0.045
+    yld_bruto = float(RENTAL_YIELDS.get(tier_letter, DEFAULT_RENTAL_YIELD))   # fracción anual bruta
+
+    valor = pm2 * m2
+    renta_mensual = valor * yld_bruto / 12.0
+    inp: Dict[str, Any] = {
+        "valor_propiedad": valor,
+        "renta_mensual": renta_mensual,
+        "modo_renta": "largo",
+        "con_credito": False,                 # NOI/cap de la zona: sin apalancamiento (going-in)
+        "num_unidades": 1,
+        "capex_reserve_pct": _CAPEX_RESERVE_PCT,
+        "horizonte_anios": 5,
+    }
+    if mkt:
+        for k_inp, k_mkt in (("cetes_1a", "cetes_1a"), ("inflacion_anual", "inflacion_anual")):
+            v = mkt.get(k_mkt)
+            if v not in (None, ""):
+                inp[k_inp] = v
+
+    try:
+        from inversion_v4_finance import analyze
+        isr_fn = None
+        try:
+            from inversion_v4_tax import make_isr_fn
+            isr_fn = make_isr_fn()
+        except Exception:
+            isr_fn = None
+        res = analyze(inp, isr_fn=isr_fn) or {}
+    except Exception:
+        res = {}
+
+    noi = res.get("noi")
+    cap_rate_pct = res.get("cap_rate_pct")
+    # yield neto = NOI / valor (fracción → %). Si el motor no lo dio, cae al cap rate (misma def sin crédito).
+    if noi is not None and valor:
+        yield_neto_pct = round(noi / valor * 100.0, 2)
+    elif cap_rate_pct is not None:
+        yield_neto_pct = round(float(cap_rate_pct), 2)
+    else:
+        yield_neto_pct = None
+
+    return {
+        "cap_rate_pct": round(float(cap_rate_pct), 2) if cap_rate_pct is not None else None,
+        "yield_bruto": round(yld_bruto * 100.0, 2),
+        "yield_neto": yield_neto_pct,
+        "renta_m2": round(renta_mensual / m2, 2) if m2 else None,   # MXN por m² al mes
+        "noi": round(float(noi)) if noi is not None else None,      # MXN al año (going-in)
+        "fuente": "RENTAL_YIELDS (yield por tier) + inversion_v4_finance (NOI/cap institucional)",
+        "confianza": "media" if tier_letter != "B" else "baja",     # tier resuelto por zone_score vs default 'B'
+        "es_estimado": True,                                        # representativo de zona, no la unidad exacta
+        "supuestos": {"m2_representativo": m2, "tier_zona": tier_letter,
+                      "capex_reserve_pct": _CAPEX_RESERVE_PCT, "con_credito": False},
+    }
+
+
+async def attach_rentability(db, kpis: Dict[str, Any], tier: str, tier_id: Optional[str],
+                             hint_colonia_id: Optional[str] = None,
+                             mkt: Optional[Dict[str, Any]] = None) -> None:
+    """Escribe los KPIs de renta EN `kpis` (in-place) para una celda del cubo. Fail-open.
+
+    Usa avg_price_per_m2 que el cubo YA calculó. Sin ese dato → deja los campos en None
+    (no fabricamos precio). Se llama tras _finalize en metrics_cube_aggregations.
+    """
+    try:
+        letter = await _tier_letter_for(db, tier, tier_id, hint_colonia_id)
+        rk = rentability_from_pm2(kpis.get("avg_price_per_m2"), letter, mkt=mkt)
+        if rk:
+            kpis["cap_rate_pct"] = rk["cap_rate_pct"]
+            kpis["yield_bruto"] = rk["yield_bruto"]
+            kpis["yield_neto"] = rk["yield_neto"]
+            kpis["renta_m2"] = rk["renta_m2"]
+            kpis["noi"] = rk["noi"]
+            kpis["rentabilidad_meta"] = {"fuente": rk["fuente"], "confianza": rk["confianza"],
+                                         "es_estimado": rk["es_estimado"], "supuestos": rk["supuestos"]}
+    except Exception:
+        # fail-open: la celda simplemente queda sin KPIs de renta
+        pass

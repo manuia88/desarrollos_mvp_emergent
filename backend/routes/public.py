@@ -1345,17 +1345,23 @@ async def predios_bbox(request: Request, w: float, s: float, e: float, n: float,
     box = {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
     q = {"geo": {"$geoWithin": {"$geometry": box}}, "poly": {"$exists": True}}
     feats: List[Dict[str, Any]] = []
+    ids: List[str] = []
+    con_avm = 0
     try:
         async for p in db.catastro_predios.find(
                 q, {"_id": 0, "poly": 1, "valor_unitario_suelo": 1, "valor_suelo": 1, "calle": 1,
                     "sup_terreno": 1, "sup_construccion": 1, "anio": 1, "colonia": 1, "cp": 1,
-                    "n_unidades": 1, "unidades": 1}
+                    "n_unidades": 1, "unidades": 1, "catastro_id": 1}
         ).limit(limit):
+            cid = p.get("catastro_id")
             props = {
                 "v": p.get("valor_unitario_suelo") or 0, "vs": p.get("valor_suelo") or 0,
                 "calle": (p.get("calle") or "")[:60], "sup": p.get("sup_terreno") or 0,
                 "supc": p.get("sup_construccion") or 0, "anio": p.get("anio") or "",
                 "colonia": (p.get("colonia") or "")[:40], "cp": p.get("cp") or ""}
+            if cid:
+                props["cid"] = cid
+                ids.append(cid)
             if p.get("n_unidades"):
                 props["nu"] = p["n_unidades"]
                 # unidades como JSON (Mapbox aplana props → se parsea en el popup)
@@ -1363,9 +1369,24 @@ async def predios_bbox(request: Request, w: float, s: float, e: float, n: float,
                     "r": (u.get("ref") or "")[:50], "c": u.get("sup_construccion") or 0, "vs": u.get("valor_suelo") or 0
                 } for u in (p.get("unidades") or [])[:30]], ensure_ascii=False)
             feats.append({"type": "Feature", "geometry": p["poly"], "properties": props})
+        # AVM de MERCADO ($/m²) por predio (estilo propiedades.com) — join avm_predios.predio_id == catastro_id.
+        # Materializado por seed_avm_predios; donde ya existe, el mapa pinta MERCADO en vez de catastral.
+        avm_map: Dict[str, Any] = {}
+        if ids:
+            async for a in db.avm_predios.find(
+                    {"predio_id": {"$in": ids}}, {"_id": 0, "predio_id": 1, "avm_m2": 1, "es_estimado": 1}):
+                if a.get("avm_m2"):
+                    avm_map[a["predio_id"]] = {"avm": round(a["avm_m2"]), "est": bool(a.get("es_estimado", True))}
+        for ft in feats:
+            cid = ft["properties"].pop("cid", None)
+            hit = avm_map.get(cid) if cid else None
+            if hit:
+                ft["properties"]["avm"] = hit["avm"]
+                ft["properties"]["avm_est"] = 1 if hit["est"] else 0
+                con_avm += 1
     except Exception:
         pass
-    return {"type": "FeatureCollection", "features": feats, "count": len(feats)}
+    return {"type": "FeatureCollection", "features": feats, "count": len(feats), "con_avm": con_avm if feats else 0}
 
 
 # ─── #3 "Búsqueda viva / Para ti" — personaliza desde el comportamiento (watchlist) · cold-start trending ──

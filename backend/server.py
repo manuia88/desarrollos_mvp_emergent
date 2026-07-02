@@ -1490,6 +1490,13 @@ from routes.mapa_predios import router as mapa_predios_router
 app.include_router(mapa_predios_router)
 from routes.gentrificacion import router as gentrificacion_router
 app.include_router(gentrificacion_router)
+# Selector de CAPAS del mapa: sirve cualquier métrica por colonia (valor/AVM/plusvalía/gentrificación/FAR +
+# 8 índices IE con cobertura amplia) para pintar el choropleth "¿qué pinto?" — surface hipergranular.
+from routes.mapa_capas import router as mapa_capas_router
+app.include_router(mapa_capas_router)
+# Compuestas por lente de portal — cablea for_comprador/for_inversor (estaban huérfanos, sin ruta).
+from routes.composites import router as composites_router
+app.include_router(composites_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:

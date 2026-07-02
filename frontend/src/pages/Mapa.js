@@ -9,6 +9,7 @@ import { X, ArrowRight } from '../components/icons';
 import { Z } from '../styles/zIndex';
 import DisclosurePill from '../components/shared/DisclosurePill';
 import { tc } from '../lib/titleCase';
+import ToolNav from '../components/ui/ToolNav';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -52,6 +53,34 @@ function buildGeoJSON(colonias) {
         : { type: 'Polygon', coordinates: [[...c.polygon, c.polygon[0]]] },
     })),
   };
+}
+
+// ── Capas del choropleth (selector "¿qué pinto?") ──────────────────────────────────────────────
+// Default = VALOR CATASTRAL (paint de siempre). Las demás capas pintan por 'metric_value' (inyectado
+// desde /api/mapa/capa/{key}). Escala score 0-100 = rojo→verde (calidad); escalas nativas (precio/FAR/%)
+// = rampa violeta→magenta de marca, anclada a min/p50/max reales de la capa. Sin dato → gris neutro.
+const VALOR_FILL_COLOR = ['case', ['has', 'valor_catastral'],
+  ['interpolate', ['linear'], ['get', 'valor_catastral'],
+    500, '#CFE3F2', 1500, '#9FB6E6', 2400, '#9079D8', 3300, '#7E5FD6', 5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE'],
+  'rgba(124,92,255,0.06)'];
+const VALOR_FILL_OPACITY = ['case', ['boolean', ['feature-state', 'hover'], false], 0.85,
+  ['case', ['has', 'valor_catastral'], 0.6, 0.10]];
+const CAPA_FILL_OPACITY = ['case', ['boolean', ['feature-state', 'hover'], false], 0.9,
+  ['case', ['has', 'metric_value'], 0.72, 0.10]];
+function _seqRamp(stats) {
+  const lo = (stats && typeof stats.min === 'number') ? stats.min : 0;
+  let mid = (stats && typeof stats.p50 === 'number') ? stats.p50 : (lo + 100) / 2;
+  let hi = (stats && typeof stats.max === 'number') ? stats.max : 100;
+  if (!(mid > lo)) mid = lo + Math.max(1, (hi - lo) / 2);
+  if (!(hi > mid)) hi = mid + Math.max(1, Math.abs(mid) * 0.1);
+  return ['interpolate', ['linear'], ['get', 'metric_value'],
+    lo, '#CFE3F2', lo + (mid - lo) / 2, '#9FB6E6', mid, '#9079D8', mid + (hi - mid) / 2, '#7C5CFF', hi, '#C63FAE'];
+}
+function capaFillColor(meta, stats) {
+  const ramp = (meta && meta.scale === 'score')
+    ? ['interpolate', ['linear'], ['get', 'metric_value'], 20, '#E5484D', 40, '#F0883E', 55, '#F5D90A', 72, '#8DCE4A', 88, '#2F9E44']
+    : _seqRamp(stats);
+  return ['case', ['has', 'metric_value'], ramp, '#E6E6EF'];
 }
 
 function buildCentersGeoJSON(colonias) {
@@ -114,6 +143,11 @@ export default function Mapa() {
   const [geojson, setGeojson] = useState(null);  // polígonos REALES (1,811 IECM) para el choropleth
   const [mapReady, setMapReady] = useState(0);   // se incrementa cada vez que el mapa carga (re-engancha capas)
   const [devs, setDevs] = useState([]);          // desarrollos reales = los PREDIOS que sí vendemos
+  const [capas, setCapas] = useState([]);        // catálogo de capas del choropleth (/api/mapa/capas)
+  const [activeCapa, setActiveCapa] = useState('valor');  // capa activa ("¿qué pinto?") · default valor del suelo
+  const [capaMeta, setCapaMeta] = useState(null);         // meta+stats de la capa activa → alimenta la legend
+  const [capaOpen, setCapaOpen] = useState(false);        // dropdown del selector de capas abierto
+  const [mapSearch, setMapSearch] = useState('');         // búsqueda in-map (colonia)
   useEffect(() => {
     fetchColonias().then(list => {
       setColonias(list);
@@ -138,6 +172,58 @@ export default function Mapa() {
     const apply = () => { const s = m.getSource('colonias'); if (s) s.setData(geojson); };
     if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
   }, [geojson]);
+
+  // Catálogo de capas del choropleth (para el selector "¿qué pinto?").
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/mapa/capas`).then((r) => r.json())
+      .then((d) => { if (d && Array.isArray(d.capas)) setCapas(d.capas); }).catch(() => {});
+  }, []);
+
+  // Aplica la capa activa: parte de `geojson` (choropleth real con valor_catastral + id), inyecta metric_value
+  // desde /api/mapa/capa/{key} y repinta. 'valor' = default (limpia metric_value, restaura paint catastral).
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !geojson) return undefined;
+    let cancelled = false;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    const run = async () => {
+      if (!m.getLayer || !m.getLayer('colonias-fill')) return;
+      const src = m.getSource('colonias');
+      if (!src) return;
+      if (activeCapa === 'valor') {
+        const feats = geojson.features.map((f) => {
+          const p = { ...(f.properties || {}) }; delete p.metric_value; return { ...f, properties: p };
+        });
+        if (!cancelled) {
+          src.setData({ ...geojson, features: feats });
+          m.setPaintProperty('colonias-fill', 'fill-color', VALOR_FILL_COLOR);
+          m.setPaintProperty('colonias-fill', 'fill-opacity', VALOR_FILL_OPACITY);
+          setCapaMeta({ key: 'valor', label: 'Valor del suelo', unit: '$/m²', scale: 'price', emoji: '💰',
+            fuente: 'catastro', es_estimado: false, stats: { min: 500, p50: 3000, max: 19000 } });
+        }
+        return;
+      }
+      try {
+        const r = await fetch(`${API}/api/mapa/capa/${activeCapa}`).then((x) => x.json());
+        if (cancelled || !r || !r.values) return;
+        const vals = r.values;
+        const feats = geojson.features.map((f) => {
+          const p = { ...(f.properties || {}) };
+          const id = p.id;
+          if (id != null && Object.prototype.hasOwnProperty.call(vals, id)) p.metric_value = vals[id];
+          else delete p.metric_value;
+          return { ...f, properties: p };
+        });
+        src.setData({ ...geojson, features: feats });
+        m.setPaintProperty('colonias-fill', 'fill-color', capaFillColor(r.meta, r.stats));
+        m.setPaintProperty('colonias-fill', 'fill-opacity', CAPA_FILL_OPACITY);
+        setCapaMeta({ ...(r.meta || {}), stats: r.stats });
+      } catch { /* fail-open: deja el paint anterior */ }
+    };
+    if (m.isStyleLoaded && m.isStyleLoaded()) run(); else m.once('idle', run);
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCapa, geojson, mapReady]);
 
   // BÚSQUEDA → MAPA: si llega ?colonia=ID, enfoca esa colonia al entrar (de las 16 seed o de las 1,811 vía centroide) +
   // abre su panel. Así la info fluye: el usuario busca/elige una zona y el mapa lo lleva justo ahí.
@@ -247,9 +333,11 @@ export default function Mapa() {
         source: 'colonias',
         paint: {
           'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#5B33D6', 'rgba(91,51,214,0.35)'],
-          'line-width': ['case', ['boolean', ['feature-state', 'hover'], false],
-            2.4,
-            ['interpolate', ['linear'], ['zoom'], 10, 0.5, 13, 1.1, 15, 1.8]],
+          // zoom DEBE ir top-level (Mapbox lo prohíbe dentro de 'case'): interpolate afuera, hover adentro de cada parada.
+          'line-width': ['interpolate', ['linear'], ['zoom'],
+            10, ['case', ['boolean', ['feature-state', 'hover'], false], 2.4, 0.5],
+            13, ['case', ['boolean', ['feature-state', 'hover'], false], 2.4, 1.1],
+            15, ['case', ['boolean', ['feature-state', 'hover'], false], 2.4, 1.8]],
         },
       });
       // Nombre de colonia (aparece al acercar · ayuda a ubicarte)
@@ -389,10 +477,15 @@ export default function Mapa() {
         m.addLayer({
           id: 'catastro-poly-fill', type: 'fill', source: 'catastro-poly',
           paint: {
-            'fill-color': ['interpolate', ['linear'], ['get', 'v'],
-              500, '#CFE3F2', 1500, '#9FB6E6', 2400, '#9079D8', 3300, '#7E5FD6',
-              5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE'],
-            'fill-opacity': 0.6,
+            // Si el predio tiene AVM de MERCADO ($/m², estilo propiedades.com) se pinta con su escala de mercado;
+            // si no, cae al valor catastral del suelo. Misma rampa violeta→magenta = "más caro = más magenta".
+            'fill-color': ['case', ['has', 'avm'],
+              ['interpolate', ['linear'], ['get', 'avm'],
+                25000, '#CFE3F2', 45000, '#9FB6E6', 65000, '#9079D8', 85000, '#7C5CFF', 110000, '#9B46CB', 140000, '#C63FAE'],
+              ['interpolate', ['linear'], ['get', 'v'],
+                500, '#CFE3F2', 1500, '#9FB6E6', 2400, '#9079D8', 3300, '#7E5FD6', 5000, '#7C5CFF', 9000, '#9B46CB', 19000, '#C63FAE']],
+            // Los predios con precio de mercado resaltan un poco más que los de solo catastral.
+            'fill-opacity': ['case', ['has', 'avm'], 0.74, 0.55],
           },
         });
         m.addLayer({
@@ -417,9 +510,17 @@ export default function Mapa() {
               ${units.map((u) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px;padding:1.5px 0"><span style="color:#5A5F6E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(u.r || '').replace(/.*?(depto|dpto|dep|loc)/i, '$1').slice(0, 22) || '—'}</span><span style="color:#1E2230;white-space:nowrap">${u.c ? Math.round(u.c) + 'm² · ' : ''}${mx(u.vs)}</span></div>`).join('')}
               </div>
             </div>` : '';
+          // Bloque de MERCADO (estilo propiedades.com): lidera con el $/m² de mercado cuando el predio está materializado.
+          const avmBlock = pr.avm ? `
+            <div style="background:linear-gradient(135deg,#F3EEFF,#FBEFF8);border-radius:10px;padding:9px 11px;margin:2px 0 9px">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#7C5CFF;margin-bottom:1px">Precio de mercado estimado</div>
+              <div style="font-family:Outfit,sans-serif;font-weight:800;font-size:19px;color:#1E2230">$${(pr.avm / 1000).toFixed(0)}k<span style="font-size:12px;color:#8A85A0;font-weight:600"> /m²</span></div>
+              <div style="font-size:9px;color:#9AA0AE;margin-top:1px">AVM DesarrollosMX · ${Number(pr.avm_est) ? 'estimado' : 'con comparables'}</div>
+            </div>` : '';
           const html = `<div style="font-family:'DM Sans',sans-serif;min-width:210px">
             <div style="font-weight:700;font-size:13px;color:#1E2230;margin-bottom:2px">${(pr.calle || 'Predio').slice(0, 55)}</div>
             <div style="font-size:10.5px;color:#8A8F9E;margin-bottom:8px">${pr.colonia || ''}${pr.cp ? ' · CP ' + pr.cp : ''}</div>
+            ${avmBlock}
             <div style="font-size:11.5px;line-height:1.7">
               ${row('Valor catastral', mx(pr.vs))}
               ${row('Suelo', mx(pr.v) + '/m²')}
@@ -443,23 +544,27 @@ export default function Mapa() {
 
   return (
     // LAYOUT full-viewport: SIDEBAR (info) + MAPA. Un solo producto integrado — sin widgets sueltos.
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#fff' }}>
+
+      {/* ========================= NAV SUPERIOR unificado (menú Herramientas real) ========================= */}
+      <ToolNav />
+
+      {/* Fila: SIDEBAR + MAPA (llena el resto bajo el nav) */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ========================= SIDEBAR (hub de info · un solo scroll) ========================= */}
       <aside style={{
-        width: 400, flexShrink: 0, height: '100vh', overflowY: 'auto',
+        width: 400, flexShrink: 0, height: '100%', overflowY: 'auto',
         background: '#fff', borderRight: '1px solid #ECECEC',
         display: 'flex', flexDirection: 'column',
       }}>
-        {/* Header limpio: brand + eyebrow */}
+        {/* Header limpio: título de la herramienta (el brand vive en el nav superior) */}
         <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid #F1F2F6' }}>
-          <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#1E2230', letterSpacing: '-0.02em' }}>
-              Desarrollos<span style={{ color: 'var(--theme)' }}>MX</span>
-            </span>
-          </Link>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginTop: 8 }}>
-            {tc('Mapa de Valores · CDMX')}
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 21, color: '#1E2230', letterSpacing: '-0.02em' }}>
+            {tc('Mapa de Valores')}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#8A8F9E', marginTop: 6 }}>
+            CDMX · Precio del m²
           </div>
         </div>
 
@@ -474,17 +579,10 @@ export default function Mapa() {
               Precio por m² real de cada colonia. Toca una en el mapa para ver su valuación, plusvalía y qué tan segura es.
             </div>
 
-            {/* Leyenda de la rampa (parte de la bienvenida, no flotante) */}
-            <div style={{ marginTop: 'auto', paddingTop: 28 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#8A8F9E', marginBottom: 10 }}>{tc('Valor del suelo · $/m²')}</div>
-              <div style={{
-                height: 10, borderRadius: 9999,
-                background: 'linear-gradient(to right, #CFE3F2, #9079D8, #7C5CFF, #9B46CB, #C63FAE)',
-              }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 11, color: '#5A5F6E', marginTop: 6 }}>
-                <span>$500</span><span>$3k</span><span>$19k+</span>
-              </div>
-              <div style={{ fontSize: 10, color: '#9AA0AE', marginTop: 8 }}>Catastro oficial SIGCDMX · acércate para ver los predios.</div>
+            {/* La leyenda vive FLOTANTE sobre el mapa (siempre visible, cambia con la capa). */}
+            <div style={{ marginTop: 'auto', paddingTop: 24, fontSize: 12, color: '#9AA0AE', lineHeight: 1.55 }}>
+              Usa <b style={{ color: '#5A5F6E' }}>¿Qué pinto?</b> (arriba a la derecha del mapa) para cambiar la capa:
+              precio, plusvalía, seguridad, agua, escuelas, vida nocturna y más. Acércate para ver los predios.
             </div>
           </div>
         ) : (() => {
@@ -660,8 +758,80 @@ export default function Mapa() {
       </aside>
 
       {/* ========================= MAPA ========================= */}
-      <div style={{ flex: 1, position: 'relative', height: '100vh' }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
         <div ref={container} style={{ position: 'absolute', inset: 0 }} data-testid="mapa-container" />
+
+        {/* Búsqueda in-map (jump a colonia) — arriba-izquierda, estilo Monopolio/propiedades.com */}
+        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: Z.DROPDOWN, width: 262 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', border: '1px solid #ECECEF', borderRadius: mapSearch.trim().length >= 2 ? '13px 13px 0 0' : 13, boxShadow: '0 6px 24px rgba(16,24,40,0.10)' }}>
+            <span style={{ color: '#9AA0AE', fontSize: 15 }}>⌕</span>
+            <input value={mapSearch} onChange={(e) => setMapSearch(e.target.value)} placeholder="Busca una colonia…" data-testid="mapa-search"
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'DM Sans', fontSize: 13, color: '#1E2230' }} />
+            {mapSearch && <button onClick={() => setMapSearch('')} style={{ border: 'none', background: 'transparent', color: '#9AA0AE', cursor: 'pointer', fontSize: 13 }}>✕</button>}
+          </div>
+          {mapSearch.trim().length >= 2 && (() => {
+            const q = mapSearch.trim().toLowerCase();
+            const hits = colonias.filter((c) => (c.name || '').toLowerCase().includes(q)).slice(0, 7);
+            return (
+              <div style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', border: '1px solid #ECECEF', borderTop: 'none', borderRadius: '0 0 13px 13px', boxShadow: '0 12px 32px rgba(16,24,40,0.14)', overflow: 'hidden' }}>
+                {hits.length === 0 ? (
+                  <div style={{ padding: '11px 13px', fontFamily: 'DM Sans', fontSize: 12.5, color: '#9AA0AE' }}>Sin resultados</div>
+                ) : hits.map((c) => (
+                  <button key={c.id} onClick={() => {
+                    const m = mapRef.current;
+                    let center = c.center;
+                    if (!center && geojson) { const f = (geojson.features || []).find((ft) => (ft.properties || {}).id === c.id); if (f) center = _polyCentroid(f.geometry); }
+                    setSelected({ ...c }); setMapSearch('');
+                    if (center && m) m.flyTo({ center, zoom: 13.8, duration: 900 });
+                  }} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, padding: '9px 13px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F5F5F9'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: '#1E2230' }}>{c.name}</span>
+                    <span style={{ fontSize: 10.5, color: '#9AA0AE' }}>{c.alcaldia || ''}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Leyenda FLOTANTE (bottom-left) — siempre visible, refleja la capa activa + su fuente. */}
+        {capaMeta && (() => {
+          const m = capaMeta; const st = m.stats || {};
+          const isScore = m.scale === 'score';
+          const grad = isScore
+            ? 'linear-gradient(to right, #E5484D, #F0883E, #F5D90A, #8DCE4A, #2F9E44)'
+            : 'linear-gradient(to right, #CFE3F2, #9FB6E6, #9079D8, #7C5CFF, #C63FAE)';
+          const fmt = (v) => {
+            if (v == null || isNaN(v)) return '—';
+            if (m.scale === 'price' || m.scale === 'price_hi') return '$' + (Math.abs(v) >= 1000 ? Math.round(v / 1000) + 'k' : Math.round(v));
+            if (m.unit === '%' || m.unit === '%/año') return (Math.round(v * 10) / 10) + '%';
+            if (isScore) return Math.round(v);
+            return Math.round(v * 100) / 100;
+          };
+          const src = m.fuente === 'sistema_ie' ? 'Índice DesarrollosMX'
+            : m.fuente === 'colonia_valoracion' ? 'AVM / SHF DesarrollosMX'
+            : m.fuente === 'colonia_catastro_byid' ? 'Catastro SIGCDMX' : 'Catastro oficial SIGCDMX';
+          return (
+            <div data-testid="mapa-legend" style={{
+              position: 'absolute', left: 16, bottom: 22, zIndex: Z.DROPDOWN, width: 222,
+              background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(16px)', border: '1px solid #ECECEF',
+              borderRadius: 14, boxShadow: '0 8px 28px rgba(16,24,40,0.12)', padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                <span style={{ fontSize: 15 }}>{m.emoji}</span>
+                <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: '#1E2230', letterSpacing: '-0.01em' }}>{m.label}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: '#9AA0AE', fontWeight: 600 }}>{m.unit}</span>
+              </div>
+              <div style={{ height: 9, borderRadius: 9999, background: grad }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Sans', fontSize: 10.5, color: '#5A5F6E', marginTop: 6 }}>
+                <span>{isScore ? '0' : fmt(st.min)}</span><span>{isScore ? '50' : fmt(st.p50)}</span><span>{isScore ? '100' : fmt(st.max)}</span>
+              </div>
+              <div style={{ fontSize: 9.5, color: '#9AA0AE', marginTop: 8, lineHeight: 1.35 }}>
+                {src}{m.es_estimado ? ' · estimado' : m.es_estimado === false ? ' · dato oficial' : ''}
+              </div>
+            </div>
+          );
+        })()}
 
         {!TOKEN && (
           <div style={{
@@ -675,24 +845,75 @@ export default function Mapa() {
           </div>
         )}
 
-        {/* Único control flotante: segmented pill glass arriba-derecha (capa + toggle desarrollos) */}
-        <div style={{
-          position: 'absolute', top: 16, right: 16, zIndex: Z.DROPDOWN,
-          display: 'flex', gap: 6, padding: 4,
-          background: 'rgba(255,255,255,0.92)', border: '1px solid #ECECEC',
-          backdropFilter: 'blur(18px)', boxShadow: '0 8px 28px rgba(16,24,40,0.12)', borderRadius: 9999,
-        }}>
-          <button data-testid="layer-toggle-ie" style={{
-            padding: '7px 14px', borderRadius: 9999, background: 'var(--grad)', color: '#fff',
-            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'default',
-          }}>{tc('Mapa de precios')}</button>
-          <button onClick={() => setShowDevs((v) => !v)} data-testid="toggle-desarrollos" style={{
-            padding: '7px 14px', borderRadius: 9999,
-            background: showDevs ? 'rgba(31,160,106,0.14)' : 'transparent',
-            color: showDevs ? '#1FA06A' : '#5A5F6E',
-            border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
-          }}>{tc('Desarrollos')}</button>
+        {/* Backdrop para cerrar el selector al hacer click fuera */}
+        {capaOpen && (
+          <div onClick={() => setCapaOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: Z.DROPDOWN - 1 }} />
+        )}
+
+        {/* Controles flotantes glass arriba-derecha: SELECTOR DE CAPA ("¿qué pinto?") + toggle desarrollos */}
+        <div style={{ position: 'absolute', top: 16, right: 16, zIndex: Z.DROPDOWN, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{
+            display: 'flex', gap: 6, padding: 4,
+            background: 'rgba(255,255,255,0.92)', border: '1px solid #ECECEC',
+            backdropFilter: 'blur(18px)', boxShadow: '0 8px 28px rgba(16,24,40,0.12)', borderRadius: 9999,
+          }}>
+            <button onClick={() => setCapaOpen((o) => !o)} data-testid="capa-selector" style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderRadius: 9999,
+              background: 'var(--grad)', color: '#fff', border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+            }}>
+              <span style={{ fontSize: 14 }}>{(capaMeta && capaMeta.emoji) || '💰'}</span>
+              <span>{(capaMeta && capaMeta.label) || 'Valor del suelo'}</span>
+              <span style={{ opacity: 0.85, fontSize: 10, transform: capaOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>▾</span>
+            </button>
+            <button onClick={() => setShowDevs((v) => !v)} data-testid="toggle-desarrollos" style={{
+              padding: '7px 14px', borderRadius: 9999,
+              background: showDevs ? 'rgba(31,160,106,0.14)' : 'transparent',
+              color: showDevs ? '#1FA06A' : '#5A5F6E',
+              border: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+            }}>{tc('Desarrollos')}</button>
+          </div>
+
+          {/* Dropdown de capas agrupado por categoría (surface de valor/AVM/plusvalía/gentrificación/FAR + 8 índices IE) */}
+          {capaOpen && (
+            <div data-testid="capa-menu" style={{
+              width: 292, maxHeight: '68vh', overflowY: 'auto',
+              background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)',
+              border: '1px solid #ECECEF', borderRadius: 16, boxShadow: '0 16px 48px rgba(16,24,40,0.18)', padding: 8,
+            }}>
+              {(() => {
+                const order = []; const g = {};
+                capas.forEach((c) => { if (!g[c.cat]) { g[c.cat] = []; order.push(c.cat); } g[c.cat].push(c); });
+                return order.map((cat) => (
+                  <div key={cat} style={{ marginBottom: 2 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#9AA0AE', padding: '9px 10px 4px' }}>{cat}</div>
+                    {g[cat].map((c) => {
+                      const on = activeCapa === c.key;
+                      return (
+                        <button key={c.key} onClick={() => { setActiveCapa(c.key); setCapaOpen(false); }} data-testid={`capa-${c.key}`} style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '9px 10px', borderRadius: 11,
+                          border: 'none', background: on ? 'rgba(124,92,255,0.10)' : 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background .12s',
+                        }}
+                          onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = '#F5F5F9'; }}
+                          onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                          <span style={{ fontSize: 17, width: 22, textAlign: 'center', flexShrink: 0 }}>{c.emoji}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: '#1E2230' }}>{c.label}</span>
+                            <span style={{ display: 'block', fontSize: 10.5, color: '#9AA0AE', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.help}</span>
+                          </span>
+                          {on && <span style={{ color: 'var(--theme)', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+              <div style={{ fontSize: 10, color: '#9AA0AE', padding: '9px 10px 4px', borderTop: '1px solid #F1F2F6', marginTop: 4, lineHeight: 1.4 }}>
+                Cada capa muestra su fuente y si es estimada. Nada inventado.
+              </div>
+            </div>
+          )}
         </div>
+      </div>
       </div>
     </div>
   );
