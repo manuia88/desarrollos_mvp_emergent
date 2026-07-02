@@ -17,23 +17,26 @@ y los fixes de auth del Batch 3 (AUD-021/022/023).
 - [ ] `AIRROI_ENABLED=true` — (nuevo) freno de emergencia; ponlo `false` para apagar AirROI sin deploy.
 - [ ] `DMX_ENV=production`
 - [ ] `DMX_DEV_MODE` ausente o `false` (si `true` seedea cuentas demo con password público)
-- [ ] `JWT_SECRET` (el arranque ABORTA en prod sin él)
-- [ ] `ADMIN_PASSWORD` ≠ `Admin2026!` (el default es público)
-- [ ] `LFPDPPP_SALT`, `IE_FERNET_KEY`, `CRON_SECRET`, `STRIPE_WEBHOOK_SECRET`,
-      `LEAD_CAPTURE_SECRET`, `ERP_WEBHOOK_SECRET`
-- [ ] `TRUSTED_PROXY_HOPS` = `1` (ingress) o `2` (si Cloudflare va delante)
+- [ ] `ADMIN_PASSWORD` ≠ `Admin2026!` (el default es público) — esto **rota la contraseña del superadmin
+      `admin@desarrollosmx.io`; NO se borra la cuenta**, es tu admin real.
 - [ ] `CORS_ORIGINS` = `https://desarrollosmx.io,https://www.desarrollosmx.io`
+- [ ] `TRUSTED_PROXY_HOPS` = `1` (ingress) o `2` (si Cloudflare va delante)
+- [ ] Secretos aleatorios (`JWT_SECRET` — el arranque ABORTA sin él —, `LFPDPPP_SALT`, `CRON_SECRET`,
+      `LEAD_CAPTURE_SECRET`, `ERP_WEBHOOK_SECRET`) + `STRIPE_WEBHOOK_SECRET` (de tu panel de Stripe).
+      Genera cada uno con (córrelo tú; el valor NUNCA pasa por el chat):
+      ```
+      python3 -c "import secrets; print(secrets.token_urlsafe(48))"     # uno por cada secreto de arriba
+      python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"  # IE_FERNET_KEY
+      ```
 
-## 3. Acciones una-sola-vez en la DB de prod
-- [ ] **Aislar developers antiguos** (AUD-023b): correr la migración idempotente.
+## 3. Acción una-sola-vez en la DB de prod — UN comando
+- [ ] Correr el script de endurecimiento (aísla tenants AUD-023b + borra SOLO las 2 cuentas demo
+      `@demo.com`; **NO toca `admin@desarrollosmx.io`**, tu superadmin real). Lee MONGO_URL/DB_NAME del
+      entorno de prod → no pasas secretos a nadie. Idempotente, dry-run por defecto.
       ```
-      MONGO_URL=<prod> DB_NAME=<prod> \
-        python3 backend/scripts/migrate_aud023_dev_tenants.py            # dry-run (muestra qué haría)
-      MONGO_URL=<prod> DB_NAME=<prod> \
-        python3 backend/scripts/migrate_aud023_dev_tenants.py --apply    # aplica
+      python3 backend/scripts/prod_db_hardening.py            # dry-run: muestra qué haría
+      python3 backend/scripts/prod_db_hardening.py --apply     # aplica
       ```
-- [ ] **Borrar cuentas demo** si la DB de prod se seedeó alguna vez en dev:
-      `developer@demo.com`, `asesor@demo.com`, `admin@desarrollosmx.io` (backdoor con password público).
 
 ## 4. Cloudflare (infra)
 - [ ] **Clickjacking**: Response Header Transform Rule → `X-Frame-Options: DENY` +

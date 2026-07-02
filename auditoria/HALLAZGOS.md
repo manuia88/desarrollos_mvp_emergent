@@ -70,6 +70,12 @@
 - **`/api/landing/{slug}`** (LOW missing_auth → REFUTADO): render de landing público; `preview=1` solo adelanta contenido de marketing (whitelist curado), sin PII/dinero; slug no enumerable.
 - **`/api/voice/{audio_id}/download`** (LOW missing_auth → REFUTADO): sirve el MP3 de salida TTS de Atlax (sesión anónima), no PII; `audio_id` = token aleatorio 48-bit no enumerable. Nota defensa-en-profundidad: bindear a sesión.
 
+### BATCH 5 · barrido inyección/SSRF (31 objetivos · SSRF / path-traversal / file-upload / cmd / NoSQL · workflow 10 finders + verificación adversarial 3-lentes · 1 confirmado / 1 refutado)
+| AUD-032 | **CRITICAL** | ssrf | `POST /api/public/search/by-url` (anónimo, solo rate-limit) → `services/url_parser.py:parse_external_url` hacía `httpx.get(body.url)` de la URL cruda del usuario. `_detect_source` validaba por **substring** → `http://inmuebles24.com.mx@169.254.169.254/…` o `…/?x=inmuebles24.com.mx` pasaban → el server leía metadata de nube (169.254.169.254 → credenciales IAM), Redis/Mongo internos, port-scan ciego; `follow_redirects=True` habilitaba redirect-a-interno/DNS-rebinding. 3/3 lentes (2 agentes) confirmaron. **La defensa canónica ya existía** (`services/url_guard.py`, usada por parallax) pero este path no la llamaba. | `services/url_parser.py:34,284` | **corregido** (guard `assert_safe_url` + host real + `follow_redirects=False`) |
+
+### BATCH 5 · REFUTADO
+- **`/api/voice/{audio_id}/download`** (LOW path_traversal → REFUTADO): el converter `str` de FastAPI (`[^/]+`) impide `/` en `{audio_id}` y siempre se anexa `.mp3` → confinado a `VOICE_DIR`, sin lectura arbitraria (mismo veredicto que Batch 4). Solo queda nota de defensa-en-profundidad (bindear a sesión).
+
 ### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
 - **JWT_SECRET efímero** (HIGH→REFUTADO): requiere mala-config del operador (DMX_ENV vacío/typo); atacante sin influencia. Guard fail-closed cubre cookies/HSTS. Mitigación defensiva → N3.
 - **prefijo heurístico user_dev_ids** (HIGH→REFUTADO): precondición inalcanzable (atacante no controla developer_id ajeno).

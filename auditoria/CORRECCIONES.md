@@ -41,3 +41,9 @@
 | AUD-030 | N3 | (este commit) | `test_aud_batch4_idor.py::test_aud030` | oráculo validate-code sin rate-limit + `random` → rate-limit por IP + `secrets` (CSPRNG) |
 
 **Batch 4 (barrido IDOR · workflow 26 finders + verif adversarial 3-lentes):** 380 endpoints públicos analizados → **11 candidatos → 7 confirmados** (1 CRITICAL + 4 MEDIUM/LOW corregidos aquí + AUD-031 LOW diferido en PENDIENTES) · **4 refutados** (casamentera/plusvalia-estado/landing-slug/voice-download). Test: `test_aud_batch4_idor.py` (4 tests, verdes).
+
+| AUD-032 | N3 | (este commit) | `test_aud032_ssrf.py` (3 tests) | **[CRÍTICO SSRF]** `/api/public/search/by-url` traía la URL cruda del usuario → metadata de nube/servicios internos. Fix: detección por hostname real + guard canónico `services.url_guard.assert_safe_url` (REUSO, ya lo usa parallax) + `follow_redirects=False` |
+
+**Batch 5 (barrido inyección/SSRF · workflow 10 finders + verif adversarial 3-lentes):** 31 objetivos (SSRF/traversal/upload/cmd/NoSQL) → **1 confirmado** (AUD-032 SSRF crítico, corregido) · **1 refutado** (voice-download traversal). El resto (upload, subprocess parallax con lista, NoSQL) salió limpio. Test: `test_aud032_ssrf.py` (3 verdes).
+
+**Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.

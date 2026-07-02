@@ -10,6 +10,7 @@ import json
 import logging
 import re
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -32,9 +33,15 @@ _HEADERS = {
 
 
 def _detect_source(url: str) -> Optional[str]:
-    url_lower = url.lower()
+    # [AUD-032] Validar por HOSTNAME real, no por substring de la URL completa. Antes `if src in url_lower`
+    # dejaba pasar `http://inmuebles24.com.mx@169.254.169.254/...` o `http://10.0.0.5/?x=inmuebles24.com.mx`
+    # (el dominio soportado en userinfo/query/path) → el fetch iba a un destino interno (SSRF).
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return None
     for src in SUPPORTED_SOURCES:
-        if src in url_lower:
+        if host == src or host.endswith("." + src):
             return src
     return None
 
@@ -274,11 +281,20 @@ async def parse_external_url(url: str) -> Dict[str, Any]:
             "supported": SUPPORTED_SOURCES,
         }
 
+    # [AUD-032] Guard anti-SSRF ANTES del fetch (reusa el canónico services.url_guard, igual que
+    # parallax_engine): bloquea localhost / IP privada-reservada / metadata de nube (169.254.169.254).
+    # Endpoint anónimo → sin esto, un atacante hacía que el server leyera servicios internos.
+    try:
+        from services.url_guard import assert_safe_url
+        assert_safe_url(url, label="external_search")
+    except Exception:
+        return {"error": "URL no permitida", "supported": SUPPORTED_SOURCES}
+
     try:
         async with httpx.AsyncClient(
             headers=_HEADERS,
             timeout=10.0,
-            follow_redirects=True,
+            follow_redirects=False,  # [AUD-032] un redirect a destino interno evadiría el guard (DNS-rebinding)
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
         ) as client:
             resp = await client.get(url)
