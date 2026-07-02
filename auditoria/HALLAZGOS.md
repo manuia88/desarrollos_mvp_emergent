@@ -37,3 +37,9 @@
 - **B608 (4):** SQL al **API CKAN open-data externa** (datos.cdmx, read-only) con `rid` de ENV + numéricos → BAJO; reforzado con coerción `int()` (AUD-012, colonias_catalog.py).
 - **B603 (2):** `subprocess.run` en forma-lista (sin shell) con args controlados (ffmpeg / ruff en test) → seguro.
 - **B105/B106 (~97):** 100% falsos positivos — nombres de campo (`password_hash`, `asistente_token`) y nombres de ENV var (`IE_INEGI_TOKEN`), cero secretos hardcoded.
+
+## Batch 3 — inventario de auth (AUD-020) + auditoría del núcleo (workflow en curso)
+
+| ID | Sev | Área | Hallazgo | Evidencia | Estado |
+|---|---|---|---|---|---|
+| AUD-020 | INFO→POSITIVO | Auth inventory | La columna `depends` de ENDPOINTS.csv marcaba 1,498/1,539 "sin auth" = FALSO (este backend enforza auth in-body). Detector mejorado (`enrich_endpoints_auth.py`): **1,020 in-body + 95 deleg + 41 Depends + 3 cron = 1,159 autenticados**; 380 residual "PÚBLICO?" (cota superior, incluye legítimamente-públicos: marketplace/widgets/simulador/invitación-por-token/visitor-tracking/webhooks). De 25 candidatos sensibles, spot-checks (advisor_whitelist, documents, agentic_crm) = **100% autenticados** con rol+ownership (`_require_dev_or_superadmin`+`_assert_dev_access`, `require_superadmin`, `_auth_dev`+dev_org scope). **Veredicto: auth ampliamente enforzada vía helpers; público-sensible-sin-auth ≈ 0 en la muestra.** Worklist para barrido IDOR: `auditoria/ENDPOINTS_PUBLICOS.csv`. | `auditoria/ENDPOINTS_PUBLICOS.csv`, `enrich_endpoints_auth.py` | **auditado** (positivo) |
