@@ -53,9 +53,11 @@ def test_aud037_briefing_engine_scoped():
 
 def test_aud038_visit_prep_y_casamentera_owner():
     ac = _src("routes/agentic_crm.py")
-    # casamentera + generate_visit_prep deben llamar assert_lead_owner
-    cas = re.search(r"async def casamentera\(.*?res = await compute_match", ac, re.S).group(0)
-    assert "assert_lead_owner" in cas, "casamentera debe validar dueño del lead (AUD-038)"
+    # [AUD-049] casamentera CANCELADA: ya no debe cruzar leads con orgs aliadas (sin compute_match cross-org)
+    cas = re.search(r"async def casamentera\(.*?\n(?=\n@router|\n# )", ac, re.S).group(0)
+    assert "compute_match" not in cas and "get_active_partner_org_ids" not in cas, \
+        "casamentera cross-org debe estar apagada (AUD-049): sin compute_match ni pool de orgs aliadas"
+    assert "410" in cas, "casamentera debe devolver 410 (deshabilitada)"
     vp = re.search(r"async def generate_visit_prep\(.*?generate_dossier", ac, re.S).group(0)
     assert "assert_lead_owner" in vp, "generate_visit_prep debe validar dueño (fail-closed, AUD-038)"
     assert 'lead_org and getattr(user, "tenant_id", None) != lead_org' not in vp, \

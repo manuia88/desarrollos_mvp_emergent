@@ -86,7 +86,10 @@ async def _assert_lead_owner(db, user, lead_id: str) -> Dict[str, Any]:
     )
     if owner_id and uid and owner_id == uid:
         return lead_doc
-    if tenant and lead_doc.get("tenant_id") == tenant:
+    # [AUD-054] El match por tenant SOLO aplica a inmobiliaria/dev (admin/director). Un asesor plano
+    # únicamente puede tocar SUS propios leads (no los de un compañero de la misma inmobiliaria).
+    from tenant_scope import ASESOR_PERSONAL_ROLES
+    if role not in ASESOR_PERSONAL_ROLES and tenant and lead_doc.get("tenant_id") == tenant:
         return lead_doc
     raise HTTPException(403, "Lead no pertenece al asesor")
 

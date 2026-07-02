@@ -193,19 +193,13 @@ async def lead_insights(
 ):
     user = await _auth_asesor(request)
     db = _db(request)
-    # Seguridad (IDOR): compute_client_insights NO filtra por asesor → verificamos
-    # aquí que el lead pertenezca a este asesor antes de exponer PII/conducta.
-    if user.role not in ("superadmin", "asesor_admin", "developer_admin",
-                         "developer_director", "inmobiliaria_admin"):
-        owned = await db.leads.find_one(
-            {"id": lead_id, "$or": [{"assigned_to": user.user_id}, {"asesor_id": user.user_id}]},
-            {"_id": 1})
-        if not owned:
-            owned = await db.asesor_contactos.find_one(
-                {"$or": [{"id": lead_id}, {"source_lead_id": lead_id}], "owner_id": user.user_id},
-                {"_id": 1})
-        if not owned:
-            raise HTTPException(404, "Lead no encontrado")
+    # [AUD-055] Este endpoint expone la CONVERSACIÓN del cliente (last_message_text + sentiment). Un DEV
+    # NUNCA accede a conversaciones (solo pipeline) → bloqueado aunque el lead sea de su desarrollo.
+    if user.role in ("developer_admin", "developer_director"):
+        raise HTTPException(403, "Los desarrolladores no acceden a la conversación del cliente.")
+    # Propiedad CONSCIENTE DEL ROL: asesor=solo SUS leads · inmobiliaria=los de sus asesores · superadmin=todo.
+    from tenant_scope import assert_lead_owner
+    await assert_lead_owner(db, user, lead_id)
     from services.client_insights import compute_client_insights
     return await compute_client_insights(
         db, lead_id, asesor_id=user.user_id, force=force,

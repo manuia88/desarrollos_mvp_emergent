@@ -19,6 +19,9 @@ import os
 from typing import List
 
 SUPERADMIN_ROLES = {"superadmin"}
+# [AUD-051] Roles de asesor "plano": ven SOLO sus propios leads (nunca los de un compañero de la
+# misma inmobiliaria). El resto (inmobiliaria_admin/director, developer_*) tiene alcance por tenant.
+ASESOR_PERSONAL_ROLES = {"advisor", "asesor", "asesor_freelance", "broker"}
 
 
 def _demo_mode() -> bool:
@@ -118,26 +121,41 @@ def assert_dev_project(user, project_id):
 
 
 async def assert_lead_owner(db, user, lead_id):
-    """403/404 si el lead no es del tenant del usuario (o superadmin). Tolerante al fork de nombre
-    de tenant (org_id/dev_org_id/inmobiliaria_id/owner_id/assigned_to). Para cerrar IDOR sobre leads."""
+    """Candado de propiedad de lead, CONSCIENTE DEL ROL (modelo del founder · doc AUTHZ_MODEL.md):
+      · superadmin → todo.
+      · asesor PLANO (advisor/asesor/asesor_freelance/broker) → SOLO sus propios leads (dueño por-usuario:
+        owner_id/assigned_to/asesor_id == su user_id). NUNCA los de un compañero del mismo tenant.
+      · inmobiliaria/dev (admin/director) → alcance por TENANT (o su propia asignación).
+    [AUD-051] Antes usaba `tenant_of(user) in owners` SIN distinguir rol → un asesor plano veía los leads
+    de otros asesores de su misma inmobiliaria (comparten tenant_id)."""
     from fastapi import HTTPException
     if is_superadmin(user):
         return
-    proj = {"_id": 0, "org_id": 1, "dev_org_id": 1, "inmobiliaria_id": 1, "owner_id": 1, "assigned_to": 1}
+    proj = {"_id": 0, "org_id": 1, "dev_org_id": 1, "inmobiliaria_id": 1,
+            "owner_id": 1, "assigned_to": 1, "asesor_id": 1}
     lead = await db.leads.find_one({"id": lead_id}, proj)
     if not lead:
         lead = await db.asesor_contactos.find_one({"id": lead_id}, proj)
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
-    owners = {lead.get("org_id"), lead.get("dev_org_id"), lead.get("inmobiliaria_id"),
-              lead.get("owner_id"), lead.get("assigned_to")}
-    owners.discard(None)
-    if not owners:
+    personal_owners = {lead.get("owner_id"), lead.get("assigned_to"), lead.get("asesor_id")}
+    tenant_owners = {lead.get("org_id"), lead.get("dev_org_id"), lead.get("inmobiliaria_id")}
+    personal_owners.discard(None)
+    tenant_owners.discard(None)
+    if not personal_owners and not tenant_owners:
         # Lead sin dueño: en demo no bloquea; en producción NIEGA (fail-closed, regla 5).
         if _demo_mode():
             return
         raise HTTPException(403, "Lead sin dueño asignado")
-    if tenant_of(user) in owners or actor_id(user) in owners:
+    aid = actor_id(user)
+    role = _field(user, "role", "") or ""
+    if role in ASESOR_PERSONAL_ROLES:
+        # Asesor plano: solo SUS leads. 404 (no 403) para no revelar existencia de leads ajenos.
+        if aid and aid in personal_owners:
+            return
+        raise HTTPException(404, "Lead no encontrado")
+    # Inmobiliaria/dev: alcance por tenant o por su propia asignación.
+    if tenant_of(user) in tenant_owners or (aid and aid in personal_owners):
         return
     raise HTTPException(403, "Este lead es de otra cuenta")
 

@@ -730,14 +730,31 @@ async def get_lead_ai_summary(lead_id: str, request: Request):
     pms = lead.get("payment_methods", [])
     intent = lead.get("intent")
     status = lead.get("status", "nuevo")
+    # [AUD-056] "Actividad reciente": si el viewer NO puede ver la conversación (un DEV), NUNCA texto de
+    # notas → solo señales ESTRUCTURADAS de pipeline (resultado de visita / motivo / etapa). Así el dev
+    # conserva su retro sin leer la conversación (regla founder · AUTHZ_MODEL.md §3).
+    can_conv = can_view_conversation(user, lead)
 
-    # Cached summary if exists
+    def _activity() -> str:
+        if can_conv:
+            return " · ".join((n.get("text") or "")[:60] for n in notes[-5:]) or "Sin notas recientes"
+        parts = []
+        if lead.get("visit_outcome"):
+            parts.append(f"resultado visita: {lead.get('visit_outcome')}")
+        if lead.get("lost_reason"):
+            parts.append(f"motivo: {lead.get('lost_reason')}")
+        parts.append(f"etapa: {status}")
+        return " · ".join(parts)
+
+    # Cached summary if exists (para dev, sobre-escribe recent_activity note-derived con lo estructurado)
     cached = lead.get("ai_summary")
     if cached and isinstance(cached, dict):
-        return {**cached, "lead_id": lead_id, "_cached": True}
+        out = {**cached, "lead_id": lead_id, "_cached": True}
+        if not can_conv:
+            out["recent_activity"] = _activity()
+        return out
 
     # Generate summary heuristically
-    notes_text = " · ".join((n.get("text") or "")[:60] for n in notes[-5:])
     summary = {
         "lead_id": lead_id,
         "headline": f"Cliente {contact.get('name', 'sin nombre')} en etapa {status}",
@@ -747,7 +764,7 @@ async def get_lead_ai_summary(lead_id: str, request: Request):
             if budget.get("min") or budget.get("max") else "Sin presupuesto"
         ),
         "payment_methods": pms,
-        "recent_activity": notes_text or "Sin notas recientes",
+        "recent_activity": _activity(),
         "recommendations": [
             "Confirmar interés con llamada en las próximas 24h" if status == "nuevo" else
             "Seguimiento WhatsApp con propuesta personalizada" if status in ("contactado", "visita_agendada") else

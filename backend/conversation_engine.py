@@ -436,13 +436,17 @@ class ConversationEngine:
     # ── read ───────────────────────────────────────────────────────────────
     async def get_conversation(
         self, conversation_id: str, caller_tenant_id: Optional[str] = None,
-        is_superadmin: bool = False,
+        is_superadmin: bool = False, caller_asesor_id: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """F1 fix · tenant-gate read. If caller_tenant_id provided and not
-        superadmin, thread tenant_id must match (else returns None → 404)."""
+        """F1 fix · tenant-gate read. If caller_tenant_id provided and not superadmin, thread tenant_id
+        must match. [AUD-053] Si caller_asesor_id (asesor PLANO), además el hilo debe ser SUYO
+        (asesor_id) → un asesor no lee la conversación del lead de un compañero de su inmobiliaria."""
         q: Dict[str, Any] = {"_id": conversation_id}
-        if caller_tenant_id and not is_superadmin:
-            q["tenant_id"] = caller_tenant_id
+        if not is_superadmin:
+            if caller_tenant_id:
+                q["tenant_id"] = caller_tenant_id
+            if caller_asesor_id:
+                q["asesor_id"] = caller_asesor_id
         thread = await self.db.conversation_threads.find_one(q)
         if not thread:
             return None
@@ -456,13 +460,16 @@ class ConversationEngine:
 
     async def list_lead_conversations(
         self, lead_id: str, caller_tenant_id: Optional[str] = None,
-        is_superadmin: bool = False,
+        is_superadmin: bool = False, caller_asesor_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """F1 fix · tenant-gate list. If caller_tenant_id provided and not
-        superadmin, filter by tenant_id (else returns empty list)."""
+        """F1 fix · tenant-gate list. [AUD-053] Si caller_asesor_id (asesor PLANO), además filtra por
+        asesor_id → un asesor no lista los hilos del lead de un compañero de su inmobiliaria."""
         q: Dict[str, Any] = {"lead_id": lead_id}
-        if caller_tenant_id and not is_superadmin:
-            q["tenant_id"] = caller_tenant_id
+        if not is_superadmin:
+            if caller_tenant_id:
+                q["tenant_id"] = caller_tenant_id
+            if caller_asesor_id:
+                q["asesor_id"] = caller_asesor_id
         docs = await self.db.conversation_threads.find(q).sort(
             "last_message_at", -1).to_list(length=100)
         return [self._thread_public(d) for d in docs]

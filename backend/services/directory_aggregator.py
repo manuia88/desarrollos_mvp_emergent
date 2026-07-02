@@ -424,7 +424,9 @@ async def get_inmobiliaria_red_comercial(db, inmobiliaria_id: str) -> Dict[str, 
         if not partner_id:
             continue
         branding = await _get_inmobiliaria_branding(db, partner_id)
-        kpi = await _kpi_for_inmobiliaria(db, partner_id)
+        # [AUD-050] NO exponer KPIs derivados de los leads/compradores de OTRA inmobiliaria (deals,
+        # leads referidos, conversión). El modelo prohíbe que una inmobiliaria vea datos de compradores
+        # de otra. Solo metadata de la alianza (nombre/branding/comisión). NUNCA `_kpi_for_inmobiliaria`.
         cross_inm.append({
             "type": "cross_inmobiliaria",
             "id": partner_id,
@@ -433,7 +435,6 @@ async def get_inmobiliaria_red_comercial(db, inmobiliaria_id: str) -> Dict[str, 
             "commission_pct": c.get("commission_pct_default"),
             "notes": c.get("notes"),
             "since": _iso(c.get("decided_at") or c.get("requested_at")),
-            "kpi": kpi,
         })
 
     return {

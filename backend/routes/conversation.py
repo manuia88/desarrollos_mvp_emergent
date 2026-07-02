@@ -155,6 +155,15 @@ def _tenant_of(user) -> str:
     return getattr(user, "tenant_id", None) or getattr(user, "user_id", None) or "default"
 
 
+def _asesor_scope(user) -> Optional[str]:
+    """[AUD-053] Si el caller es un asesor PLANO → su user_id (solo ve SUS hilos). Para
+    inmobiliaria/dev (admin/director) y superadmin → None (alcance tenant / god-view)."""
+    from tenant_scope import ASESOR_PERSONAL_ROLES
+    if getattr(user, "role", "") in ASESOR_PERSONAL_ROLES:
+        return getattr(user, "user_id", None)
+    return None
+
+
 # ─── Asesor endpoints ─────────────────────────────────────────────────────────
 @router.post("/start", status_code=201)
 async def start_conversation(body: StartIn, request: Request):
@@ -209,6 +218,24 @@ async def post_message(body: MessageIn, request: Request):
     if not body.message or not body.message.strip():
         raise HTTPException(422, "Mensaje vacío")
 
+    # [AUD-057] Mensaje de STAFF (role != 'user', p.ej. 'asesor'): exige auth + ser dueño del hilo
+    # (o admin del mismo tenant / superadmin). Antes cualquiera con un conversation_id podía inyectar
+    # mensajes como asesor en la conversación ajena. El chat público del comprador (role='user') sigue igual.
+    if (body.role or "user") != "user":
+        if user is None:
+            raise HTTPException(401, "Auth requerida para enviar como asesor")
+        thr = await db.conversation_threads.find_one(
+            {"_id": body.conversation_id}, {"_id": 0, "asesor_id": 1, "tenant_id": 1})
+        if not thr:
+            raise HTTPException(404, "Conversación no encontrada")
+        role_u = getattr(user, "role", "") or ""
+        owns = thr.get("asesor_id") and thr.get("asesor_id") == getattr(user, "user_id", None)
+        admin_same_tenant = (role_u in {"inmobiliaria_admin", "inmobiliaria_director",
+                                        "developer_admin", "developer_director"}
+                             and thr.get("tenant_id") == _tenant_of(user))
+        if not (owns or admin_same_tenant or role_u == "superadmin"):
+            raise HTTPException(403, "No puedes escribir en una conversación ajena")
+
     # F2 · pre-LLM quota check (FAIL-OPEN si quota engine ausente).
     # Si autenticado, quota engine aplica per-user/per-tenant cap real.
     # Si anon, el daily cap por IP (D3 arriba) ya es la barrera.
@@ -257,6 +284,7 @@ async def lead_conversations(lead_id: str, request: Request):
     is_sa = getattr(user, "role", "") == "superadmin"
     items = await engine.list_lead_conversations(
         lead_id, caller_tenant_id=_tenant_of(user), is_superadmin=is_sa,  # F1
+        caller_asesor_id=_asesor_scope(user),  # [AUD-053] asesor plano: solo SUS hilos
     )
     return {"lead_id": lead_id, "count": len(items), "conversations": items}
 
@@ -273,6 +301,7 @@ async def get_conversation(conversation_id: str, request: Request):
     is_sa = getattr(user, "role", "") == "superadmin"
     conv = await engine.get_conversation(
         conversation_id, caller_tenant_id=_tenant_of(user), is_superadmin=is_sa,  # F1
+        caller_asesor_id=_asesor_scope(user),  # [AUD-053] asesor plano: solo SUS hilos
     )
     if not conv:
         raise HTTPException(404, "Conversación no encontrada")

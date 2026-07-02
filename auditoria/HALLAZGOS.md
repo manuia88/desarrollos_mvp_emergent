@@ -95,6 +95,23 @@ CONFIRMADAS: 21 lecturas de colecciones sensibles alcanzables cross-tenant. **Co
 - **studio_landing_engine ab_winner** (LOW → REFUTADO): lee leads sin scope PERO solo devuelve agregados (completeness/count), nunca PII; además bug slug/id deja el conteo en 0. Higiene, no fuga.
 - **soc_franchise vía Atlax** + **buyer_score vía Atlax** (MEDIUM → REFUTADOS): el asistente público tiene allow-list dura `PUBLIC_TOOLS` que NO incluye esas tools → el dispatch es inalcanzable por el canal público. El gate ya existe (fix previo). Confirma que el candado de Atlax funciona.
 
+### BATCH 7 · modelo de autorización de leads/conversaciones (regla founder · doc `AUTHZ_MODEL.md`) — workflow 7 chunks + verif adversarial · **12 violaciones confirmadas / 1 refutada** · ✅ TODAS CORREGIDAS (AUD-049..057, con OK del founder · tests `test_aud_batch7_authz.py`)
+**Grupo A — compartir compradores CROSS-ORG (cancelado por founder):**
+| AUD-049 | HIGH | crossorg_comprador | `casamentera` cruza el comprador del caller con asesores de orgs ALIADAS y expone su roster+métricas; sin flag que lo apague | `routes/agentic_crm.py:1244` | ABIERTO → apagar |
+| AUD-050 | MEDIUM | inmob_cross | red-comercial expone KPIs (deals/leads/conversión) derivados de los compradores de OTRA inmobiliaria aliada | `services/directory_aggregator.py:427` | ABIERTO → quitar KPIs de leads |
+**Grupo B — ASESOR ve leads/conversaciones de OTRO asesor de su misma inmobiliaria (candado a nivel TENANT, no per-asesor):**
+| AUD-051 | HIGH | raíz | `assert_lead_owner` pasa si `tenant_of(user)` empata inmobiliaria_id → un asesor plano ve leads de otro asesor del mismo tenant (no distingue asesor de inmobiliaria_admin) | `tenant_scope.py:140` | ABIERTO (RAÍZ) |
+| AUD-052 | HIGH | asesor_ve_ajeno | GET/PATCH/watchlist `/api/asesor/leads/{id}` usan el candado tenant → leen/mutan lead ajeno | `routes/advisor.py:4201` | ABIERTO |
+| AUD-053 | HIGH | asesor_ve_ajeno | `get_conversation` + `list_lead_conversations` acotan solo por tenant → un asesor lee el CHAT completo del lead de otro asesor | `conversation_engine.py:443,463` | ABIERTO |
+| AUD-054 | MEDIUM | asesor_ve_ajeno | `_assert_lead_owner` (copia local en lead_enrichment) mismo bypass tenant | `routes/lead_enrichment.py:89` | ABIERTO |
+**Grupo C — DEV ve CONVERSACIONES/notas del cliente (prohibido; solo pipeline):**
+| AUD-055 | HIGH | dev_ve_conversacion | `/api/asesor/lead/{id}/insights` exime a developer_admin/director → devuelve `last_message_text` (mensaje textual del comprador) | `routes/asesor_daily_tools.py:198` | ABIERTO |
+| AUD-056 | HIGH | dev_ve_conversacion | `/ai-summary` + `/ai-summary-v2` construyen el resumen desde el TEXTO de las notas del asesor y lo dan al dev (can_view_ai_summary) | `routes/dev_batch4_2.py:740` + `dev_batch4_4.py:409` | ABIERTO → resumen dev = solo pipeline |
+**Grupo D — inyección en conversaciones:**
+| AUD-057 | HIGH | tamper | `send_message` sin gate de dueño/tenant + ruta con `_optional_user` → cualquiera con un conversation_id inyecta mensajes (incl. role=asesor) en el hilo ajeno | `conversation_engine.py:230` | ABIERTO |
+
+**REFUTADO (1):** `get_lead_detail` ai_summary "3er sink" (dev_batch4_2:649) — el ai_summary cacheado NO contiene texto crudo de notas (solo la abstracción LLM) y el dev ya lo obtiene por su endpoint dedicado; no es exploit incremental. La causa real (¿debe el dev recibir resúmenes derivados de notas?) queda cubierta por AUD-056.
+
 ### REFUTADOS / no-explotables-hoy (verificación adversarial · documentados, no se tocan)
 - **JWT_SECRET efímero** (HIGH→REFUTADO): requiere mala-config del operador (DMX_ENV vacío/typo); atacante sin influencia. Guard fail-closed cubre cookies/HSTS. Mitigación defensiva → N3.
 - **prefijo heurístico user_dev_ids** (HIGH→REFUTADO): precondición inalcanzable (atacante no controla developer_id ajeno).

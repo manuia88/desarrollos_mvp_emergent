@@ -1243,37 +1243,12 @@ async def get_match_weights_distribution(request: Request, org_id: Optional[str]
 # ─── #4.2 Casamentera cross-org — cruza un lead con asesores/inventario de orgs ALIADAS ──────────
 @router.get("/api/agentic-crm/casamentera/{lead_id}")
 async def casamentera(lead_id: str, request: Request):
-    """Marketplace agéntico (la casamentera): cruza un lead con asesores de orgs ALIADAS (solo alianzas
-    aprobadas = cruce SEGURO · candado E5). Reusa compute_match + cross_org_partnerships. Build-for-endstate:
-    se activa al haber alianzas + leads; honesto-vacío si no."""
-    user = await _require_authorized(request)
-    db = request.app.state.db
-    # [AUD-038] el lead debe ser del tenant del caller (antes: compute_match leía el lead ajeno sin scope).
-    from tenant_scope import assert_lead_owner
-    await assert_lead_owner(db, user, lead_id)
-    org = _resolve_org(user, None)
-    from services.cross_org_partnerships import get_active_partner_org_ids
-    partners = await get_active_partner_org_ids(db, "dev", org)  # org_type no filtra la consulta base
-    if not partners:
-        return {"matches": [], "partners": 0, "cross_org": True,
-                "note": "Aún no tienes alianzas activas. Al aprobar una alianza cross-org, aquí verás compradores de tu red que encajan con tu inventario (y viceversa)."}
-    pool = []
-    try:
-        async for u in db.users.find(
-            {"$or": [{"dev_org_id": {"$in": partners}}, {"inmobiliaria_id": {"$in": partners}}],
-             "role": {"$regex": "asesor|advisor|broker", "$options": "i"}},
-            {"_id": 0, "user_id": 1}).limit(100):
-            if u.get("user_id"):
-                pool.append(u["user_id"])
-    except Exception:
-        pass
-    if not pool:
-        return {"matches": [], "partners": len(partners), "cross_org": True,
-                "note": "Tus orgs aliadas aún no tienen asesores con inventario que cruce. Se activa al haber inventario."}
-    from services.lead_to_asesor_match import compute_match
-    res = await compute_match(db, lead_id, asesor_pool=pool)
-    matches = res.get("matches") or res.get("ranked") or ([res] if res and res.get("score") is not None else [])
-    return {"matches": matches, "partners": len(partners), "pool": len(pool), "cross_org": True}
+    """[AUD-049] CANCELADO por el founder. La "casamentera" cruzaba el comprador de una org con los
+    asesores de OTRA inmobiliaria/dev aliada y exponía su roster + métricas — compartir compradores
+    entre organizaciones está TERMINANTEMENTE PROHIBIDO (ver auditoria/AUTHZ_MODEL.md). El endpoint se
+    conserva como stub inerte (410) para no romper llamadas existentes del front; NO cruza nada."""
+    await _require_authorized(request)
+    raise HTTPException(410, "La casamentera cross-org está deshabilitada: no se comparten compradores entre organizaciones.")
 
 
 # ─── W4.7 Y.4C — Argumentario Tone Behavioral-Driven ─────────────────────────

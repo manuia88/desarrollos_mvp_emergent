@@ -67,4 +67,16 @@
 
 **Batch 6 · decisiones de producto (founder):** de los 6 diferidos, 5 resueltos aquí (AUD-043/045/046/047/048). Queda **AUD-044** (red comercial: mostrar volumen del socio) pendiente de aclaración → PENDIENTES. Test: `test_aud_batch6_tenant.py` (15 verdes).
 
+| AUD-049 | N3 | (este commit) | `test_aud049` | casamentera cross-org APAGADA (410) — el founder canceló compartir compradores entre orgs |
+| AUD-050 | N3 | (este commit) | `test_aud050` | red-comercial ya NO expone KPIs derivados de leads del socio (solo branding de la alianza) |
+| AUD-051 | N3 | (este commit) | `test_aud051` (comportamiento) | **RAÍZ**: `assert_lead_owner` role-aware — asesor plano=solo SUS leads · inmobiliaria=su tenant · superadmin=todo |
+| AUD-052 | N3 | (cascada 051) | `test_aud051` | `/api/asesor/leads/{id}` GET/PATCH/watchlist heredan el candado role-aware |
+| AUD-053 | N3 | (este commit) | `test_aud053` | conversation get/list con scope per-asesor (asesor no lee el chat del lead de un compañero) |
+| AUD-054 | N3 | (este commit) | `test_aud051` | lead_enrichment `_assert_lead_owner`: quita el bypass de tenant para asesor plano |
+| AUD-055 | N3 | (este commit) | `test_aud055` | insights bloquea a los devs (expone conversación) + propiedad role-aware al resto |
+| AUD-056 | N3 | (este commit) | `test_aud056` | resumen IA (v1+v2) SOLO de pipeline estructurado, nunca texto de notas → el dev conserva retro sin conversación |
+| AUD-057 | N3 | (este commit) | `test_aud057` | `send_message` gatea mensajes de staff por dueño del hilo (no inyección cross-org/anon) |
+
+**Batch 7 (modelo de autorización · workflow 7 chunks + verif adversarial):** 12 violaciones confirmadas → **12 corregidas** (con OK del founder que fijó el modelo canónico en `AUTHZ_MODEL.md`). Patrón raíz = `assert_lead_owner` daba alcance por-tenant sin distinguir rol. Test `test_aud_batch7_authz.py` (8 tests, incl. comportamiento del candado). El dev conserva su retro vía señales estructuradas (etapa/visit_outcome/lost_reason), sin conversación.
+
 **Nota de deploy:** script único `backend/scripts/prod_db_hardening.py` (dry-run default · `--apply`) hace el paso de DB del checklist: aísla tenants (AUD-023b) + borra SOLO las 2 cuentas demo `@demo.com` (NUNCA el superadmin real `admin@desarrollosmx.io`). Ver `auditoria/DEPLOY_CHECKLIST.md`.

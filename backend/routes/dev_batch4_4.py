@@ -387,8 +387,11 @@ SUMMARY_RATE_LIMIT_HOURS = 1
 
 
 async def _build_ai_summary(db, lead: Dict) -> Dict:
-    """Generate AI summary via Claude with deterministic fallback."""
-    notes = (lead.get("notes") or [])[-10:]
+    """Generate AI summary via Claude with deterministic fallback.
+    [AUD-056] El resumen se CACHEA en el lead y lo leen TAMBIÉN los devs (que por regla NO ven la
+    conversación). Por eso NUNCA se arma con el texto de las notas/conversación: solo con señales
+    ESTRUCTURADAS de pipeline (etapa, resultado de visita, motivo, presupuesto, calor, citas, auditoría).
+    El asesor/inmobiliaria conserva la conversación por sus propias vías (endpoints per-asesor)."""
     audit = []
     try:
         audit = await db.audit_log.find(
@@ -405,14 +408,18 @@ async def _build_ai_summary(db, lead: Dict) -> Dict:
         "status": lead.get("status"), "intent": lead.get("intent"),
         "budget_range": lead.get("budget_range"), "payment_methods": lead.get("payment_methods", []),
         "heat_tag": lead.get("heat_tag"),
+        # [AUD-056] señales ESTRUCTURADAS de pipeline (NO texto de notas/conversación).
+        "visit_outcome": lead.get("visit_outcome"),
+        "lost_reason": lead.get("lost_reason"),
         "notes_count": len(lead.get("notes") or []),
-        "recent_notes": [{"text": n.get("text", "")[:120], "ts": n.get("created_at")} for n in notes[-5:]],
         "audit_recent": [{"action": a.get("action"), "type": a.get("entity_type"), "ts": a.get("ts")} for a in audit[:10]],
         "appointments": appts,
     }
     claude = await _claude_json(
         system=(
-            "Eres coach senior de ventas inmobiliarias en México. Analiza este lead y produce JSON válido con keys: "
+            "Eres coach senior de ventas inmobiliarias en México. Analiza este lead SOLO a partir de sus "
+            "SEÑALES DE PIPELINE (etapa, resultado de visita, motivo, presupuesto, calor, citas) — NO tienes "
+            "acceso a la conversación. Produce JSON válido con keys: "
             "summary (str max 200 caracteres, narrativa breve del estado actual), "
             "last_action (str max 80 caracteres), "
             "sentiment ('positivo'|'neutral'|'preocupante'), "
@@ -439,7 +446,9 @@ async def _build_ai_summary(db, lead: Dict) -> Dict:
         result = {
             "summary": f"Cliente en etapa {lead.get('status', 'nuevo')} con presupuesto "
                        f"{(lead.get('budget_range') or {}).get('max', 0)/1_000_000:.1f}M MXN. "
-                       f"{len(appts)} citas registradas, {len(notes)} notas del asesor.",
+                       f"{len(appts)} citas registradas"
+                       + (f" · resultado visita: {lead.get('visit_outcome')}" if lead.get('visit_outcome') else "")
+                       + (f" · motivo: {lead.get('lost_reason')}" if lead.get('lost_reason') else "") + ".",
             "last_action": (last_audit or {}).get("action", "sin_actividad") if last_audit else "sin actividad reciente",
             "sentiment": "preocupante" if lead.get("velocity_flag") else
                          "positivo" if lead.get("heat_tag") == "caliente" else "neutral",
