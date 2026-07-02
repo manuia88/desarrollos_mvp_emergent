@@ -196,6 +196,7 @@ function ConversationInboxBody({ user }) {
   const { t } = useTranslation(['conversation_round2_ui', 'conversation_confidence']);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listErr, setListErr] = useState(false);  // distingue "falló la carga" de "bandeja vacía"
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -234,6 +235,7 @@ function ConversationInboxBody({ user }) {
 
   const loadList = useCallback(async () => {
     setLoading(true);
+    setListErr(false);
     try {
       // B6 · bandeja UNIFICADA — WhatsApp (B5.5) + chats IA en una lista (los segmentos filtran en cliente).
       const res = await fetch(`${API}/api/asesor/conversations/unified`, { headers: authHeaders(), credentials: 'include' });
@@ -242,10 +244,10 @@ function ConversationInboxBody({ user }) {
         setList(Array.isArray(data.conversations) ? data.conversations : []);
         setStats(data.stats || null);
       } else {
-        setList([]); setStats(null);
+        setList([]); setStats(null); setListErr(true);
       }
     } catch {
-      setList([]); setStats(null);
+      setList([]); setStats(null); setListErr(true);
     } finally {
       setLoading(false);
     }
@@ -390,12 +392,14 @@ function ConversationInboxBody({ user }) {
     const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
     setPropPicker(null);
     if (lid) {
+      // Guardar en el tablero del lead es best-effort; que falle NO impide recomendar en el chat.
       try {
-        await fetch(`${API}/api/asesor/contactos/${lid}/board`, {
+        const res = await fetch(`${API}/api/asesor/contactos/${lid}/board`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
           body: JSON.stringify({ dev_id: p.id, name: p.name, price_from: p.price_from, colonia: p.colonia }),
         });
-      } catch { /* no-op */ }
+        if (!res.ok) console.warn('attachProp board add failed', res.status);
+      } catch (e) { console.warn('attachProp board add error', e); }
     }
     setComposeSeed(`Te recomiendo ${p.name}${p.colonia ? ` en ${p.colonia}` : ''} — creo que te va a encantar. ¿Te la mando? 🙌`);
   }, [detail, curConv]);
@@ -514,9 +518,11 @@ function ConversationInboxBody({ user }) {
   const dismissSug = useCallback((key) => setCopilotDismiss((d) => ({ ...d, [key]: true })), []);
 
   // Copiloto · preguntar sobre ESTE lead (chat contextual)
-  const askLeadCopilot = useCallback(async () => {
+  const askLeadCopilot = useCallback(async (overrideQ) => {
     const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
-    const q = copilotAsk.trim();
+    // overrideQ permite disparar con un valor explícito (chips de pregunta rápida) sin depender
+    // del estado copilotAsk aún no aplicado. Si llega el event (onClick), se ignora.
+    const q = ((typeof overrideQ === 'string' ? overrideQ : copilotAsk) || '').trim();
     if (!lid || !q || copilotBusy) return;
     setCopilotBusy(true); setCopilotAnswer(null);
     try {
@@ -618,7 +624,7 @@ function ConversationInboxBody({ user }) {
         {/* Buscador en el lugar de "Actualizar" (founder: ya refresca solo · liberamos la fila) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', width: 280, maxWidth: '40vw' }}>
           <Search size={14} style={{ color: 'var(--cream-3)' }} />
-          <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
+          <input placeholder={t('inbox.search')} aria-label={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
             style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
         </div>
       </div>
@@ -653,6 +659,14 @@ function ConversationInboxBody({ user }) {
           {loading ? (
             <div style={{ padding: 24, color: 'var(--cream-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> …
+            </div>
+          ) : listErr ? (
+            <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--cream)', marginBottom: 10 }}>No pudimos cargar la bandeja</div>
+              <button type="button" onClick={loadList}
+                style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                Reintentar
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '32px 20px', textAlign: 'center' }}>
@@ -1205,7 +1219,7 @@ function ConversationInboxBody({ user }) {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
                   {['¿Cómo le doy seguimiento?', '¿Qué objeción puede tener?', 'Dame un cierre para este lead'].map((q) => (
-                    <button key={q} type="button" onClick={() => { setCopilotAsk(q); setTimeout(askLeadCopilot, 0); }}
+                    <button key={q} type="button" onClick={() => { setCopilotAsk(q); askLeadCopilot(q); }}
                       style={{ fontSize: 10.5, fontWeight: 600, padding: '5px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', cursor: 'pointer' }}>{q}</button>
                   ))}
                 </div>

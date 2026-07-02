@@ -120,7 +120,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
   }, [id]);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs).catch(() => setDevs([]));
   }, []);
 
   const openContact = (c) => {
@@ -328,7 +328,8 @@ function AsesorContactosLegacy({ user, onLogout }) {
         : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin contactos'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer contacto o ajusta filtros.'} />
         : (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <table data-testid="contacts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table data-testid="contacts-table" style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px 10px', width: 36 }}>
@@ -392,6 +393,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
         )}
 
@@ -464,7 +466,7 @@ function BulkTaskForm({ busy, onCancel, onSubmit, t }) {
   );
 }
 
-function CreateContactForm({ onCreated, onError }) {
+function CreateContactForm({ onCreated, onError, entityLabel = 'contacto' }) {
   const [f, setF] = useState({ first_name: '', last_name: '', phone: '', email: '', tipo: 'comprador', temperatura: 'frio', tags: '' });
   const [sub, setSub] = useState(false);
   const submit = async () => {
@@ -517,7 +519,7 @@ function CreateContactForm({ onCreated, onError }) {
           style={{ width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
       </label>
       <button onClick={submit} disabled={sub || !f.first_name.trim()} data-testid="new-contact-submit" className="btn btn-primary" style={{ justifyContent: 'center', opacity: (sub || !f.first_name.trim()) ? 0.6 : 1 }}>
-        {sub ? 'Creando…' : 'Crear contacto'}
+        {sub ? 'Creando…' : `Crear ${entityLabel}`}
       </button>
     </div>
   );
@@ -594,6 +596,7 @@ function ArgumentarioForm({ contact, devs, onDone }) {
   const [out, setOut] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hoverCitation, setHoverCitation] = useState(null);
+  const [copied, setCopied] = useState(null);   // 'text' | 'wa' | 'err' — feedback de copiado
 
   const run = async () => {
     setLoading(true);
@@ -668,8 +671,14 @@ function ArgumentarioForm({ contact, devs, onDone }) {
     out.call_to_action,
   ].filter(Boolean).join('\n\n') : '';
 
-  const copyAll = () => { navigator.clipboard.writeText(fullText); };
-  const copyWa = () => { navigator.clipboard.writeText(out.whatsapp_text || fullText); };
+  const copyTo = async (text, tag) => {
+    try {
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); setCopied(tag); }
+      else { setCopied('err'); }
+    } catch { setCopied('err'); }
+  };
+  const copyAll = () => copyTo(fullText, 'text');
+  const copyWa = () => copyTo(out.whatsapp_text || fullText, 'wa');
   const waPhone = (contact.phones?.[0] || '').replace(/\D/g, '');
   const waUrl = waPhone && out && out.whatsapp_text
     ? `https://wa.me/${waPhone}?text=${encodeURIComponent(out.whatsapp_text)}`
@@ -738,10 +747,15 @@ function ArgumentarioForm({ contact, devs, onDone }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
             <button onClick={copyAll} data-testid="arg-copy" className="btn btn-glass btn-sm">Copiar texto</button>
             <button onClick={copyWa} data-testid="arg-copy-wa" className="btn btn-glass btn-sm">Copiar WhatsApp</button>
             {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">Enviar por WhatsApp</a>}
+            {copied && (
+              <span role="status" aria-live="polite" style={{ fontFamily: 'DM Sans', fontSize: 12, color: copied === 'err' ? '#F87171' : 'var(--green, #22C55E)' }}>
+                {copied === 'err' ? 'No se pudo copiar' : '✓ Copiado'}
+              </span>
+            )}
           </div>
         </Card>
       )}
@@ -1393,7 +1407,7 @@ function AsesorContactosV2({ user, onLogout }) {
           )}
 
         <Drawer open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo lead">
-          <CreateContactForm onCreated={(c) => { setShowCreate(false); setToast({ kind: 'success', text: 'Lead creado' }); load(); nav(`/asesor/contactos/${c.id}`); }} onError={(tx) => setToast({ kind: 'error', text: tx })} />
+          <CreateContactForm entityLabel="lead" onCreated={(c) => { setShowCreate(false); setToast({ kind: 'success', text: 'Lead creado' }); load(); nav(`/asesor/contactos/${c.id}`); }} onError={(tx) => setToast({ kind: 'error', text: tx })} />
         </Drawer>
 
         <Ficha360

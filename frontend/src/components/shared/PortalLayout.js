@@ -390,7 +390,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)]">
+          <aside id="mobile-sidebar" className="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)]">
             {sidebarContent}
           </aside>
         </div>

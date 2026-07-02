@@ -50,13 +50,13 @@ export default function DesarrolladorFeedback() {
     let alive = true;
     getDevFeedbackIndex()
       .then((d) => { if (alive) setData(d); })
-      .catch((e) => { if (alive) setErr(e.message); })
+      .catch((e) => { if (alive) { console.error('getDevFeedbackIndex', e); setErr(true); } })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
 
   if (loading) return <div style={{ padding: 40 }}>Cargando retro de mercado…</div>;
-  if (err) return <div style={{ padding: 40, color: '#EC4899' }}>Error: {err}</div>;
+  if (err) return <div style={{ padding: 40, color: '#EC4899' }}>No pudimos cargar la retro de mercado. Inténtalo de nuevo.</div>;
 
   const n = data?.n_leads_con_feedback || 0;
   return (

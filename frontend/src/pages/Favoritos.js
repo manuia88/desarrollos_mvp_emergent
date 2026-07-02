@@ -53,8 +53,9 @@ export default function Favoritos() {
     try { await fetch(`${API}/api/buyer/favoritos/quitar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitor_id: vid, dev_id: devId }) }); } catch { /* noop */ }
   };
 
-  const TabBtn = ({ k, label, n }) => (
-    <button onClick={() => setTab(k)} data-testid={`fav-tab-${k}`}
+  // Función (no componente inline) → el <button> conserva su identidad entre renders y no pierde el foco al cambiar de tab.
+  const tabBtn = (k, label, n) => (
+    <button key={k} onClick={() => setTab(k)} data-testid={`fav-tab-${k}`}
       style={{ padding: '8px 16px', borderRadius: 9999, border: '1px solid ' + (tab === k ? 'var(--theme)' : 'var(--border)'), background: tab === k ? 'var(--theme)' : '#fff', color: tab === k ? '#fff' : 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
       {tc(label)}{n != null && <span style={{ opacity: 0.7, marginLeft: 5 }}>{n}</span>}
     </button>
@@ -84,9 +85,9 @@ export default function Favoritos() {
 
         {!loading && items.length > 0 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-            <TabBtn k="todos" label="Todos" n={items.length} />
-            <TabBtn k="cita" label="Con visita" n={nCita} />
-            <TabBtn k="nota" label="Con nota" n={nNota} />
+            {tabBtn('todos', 'Todos', items.length)}
+            {tabBtn('cita', 'Con visita', nCita)}
+            {tabBtn('nota', 'Con nota', nNota)}
           </div>
         )}
 
@@ -98,6 +99,15 @@ export default function Favoritos() {
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 6 }}>{tc('Aún no guardas nada')}</div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)', marginBottom: 18 }}>Dale ♥ a los desarrollos que te gusten y aparecerán aquí.</div>
             <Link to="/marketplace" className="btn btn-primary" style={{ textDecoration: 'none' }}>Explorar desarrollos</Link>
+          </div>
+        )}
+
+        {!loading && items.length > 0 && shown.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '48px 20px', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface-card)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)' }}>
+              {tab === 'cita' ? 'Ninguno de tus favoritos tiene visita agendada todavía.' : tab === 'nota' ? 'Ninguno de tus favoritos tiene nota todavía.' : 'Sin resultados en este filtro.'}
+            </div>
+            <button onClick={() => setTab('todos')} style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>Ver todos</button>
           </div>
         )}
 
@@ -169,15 +179,15 @@ function InlineForm({ kind, devId, vid, leadId, onDone, onCancel }) {
   return (
     <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface-card)' }}>
       {kind === 'nota'
-        ? <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Tu nota (ej. me encanta pero le falta luz)…" rows={2} style={{ ...inStyle, resize: 'vertical' }} />
+        ? <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Tu nota (ej. me encanta pero le falta luz)…" aria-label="Tu nota" rows={2} style={{ ...inStyle, resize: 'vertical' }} />
         : (
           <>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', fontWeight: 600, marginBottom: 7 }}>Agenda tu visita {leadId ? '' : '— y te contactamos'}</div>
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder="¿Cuándo te queda? (ej. sábado 11am)" style={inStyle} />
+            <input value={text} onChange={(e) => setText(e.target.value)} placeholder="¿Cuándo te queda? (ej. sábado 11am)" aria-label="¿Cuándo te queda la visita?" style={inStyle} />
             {!leadId && (
               <>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" style={inStyle} />
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp" style={inStyle} />
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" aria-label="Tu nombre" style={inStyle} />
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp" aria-label="Tu WhatsApp" type="tel" inputMode="tel" style={inStyle} />
               </>
             )}
           </>

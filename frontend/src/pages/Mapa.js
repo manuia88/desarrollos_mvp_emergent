@@ -1,7 +1,7 @@
 // Mapa page — Mapbox GL JS with CDMX colonia polygons colored by IE Score + heatmap toggle
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { fetchColonias } from '../api/marketplace';
@@ -111,6 +111,7 @@ function _polyCentroid(geom) {
 export default function Mapa() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const mapRef = useRef(null);
   const container = useRef(null);
   const [colonias, setColonias] = useState([]);
@@ -281,12 +282,12 @@ export default function Mapa() {
         layout: { visibility: 'none', 'text-field': ['case', ['has', 'pm2'], ['concat', '$', ['to-string', ['get', 'pm2']], 'k'], ''], 'text-size': 10, 'text-offset': [0, 1.1], 'text-anchor': 'top' },
         paint: { 'text-color': '#1FA06A', 'text-halo-color': '#fff', 'text-halo-width': 1.5 },
       });
-      m.on('click', 'dev-point', (e) => { const f = e.features && e.features[0]; if (f) window.location.href = `/desarrollo/${f.properties.slug}`; });
+      m.on('click', 'dev-point', (e) => { const f = e.features && e.features[0]; if (f) navigate(`/desarrollo/${f.properties.slug}`); });
       m.on('mouseenter', 'dev-point', () => { m.getCanvas().style.cursor = 'pointer'; });
       m.on('mouseleave', 'dev-point', () => { m.getCanvas().style.cursor = ''; });
     };
     if (m.isStyleLoaded && m.isStyleLoaded()) apply(); else m.once('idle', apply);
-  }, [devs, coloniaById]);
+  }, [devs, coloniaById, navigate]);
 
   useEffect(() => {
     if (!TOKEN || !container.current || mapRef.current || colonias.length === 0) return;
@@ -765,9 +766,9 @@ export default function Mapa() {
         <div style={{ position: 'absolute', top: 16, left: 16, zIndex: Z.DROPDOWN, width: 262 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', border: '1px solid #ECECEF', borderRadius: mapSearch.trim().length >= 2 ? '13px 13px 0 0' : 13, boxShadow: '0 6px 24px rgba(16,24,40,0.10)' }}>
             <span style={{ color: '#9AA0AE', fontSize: 15 }}>⌕</span>
-            <input value={mapSearch} onChange={(e) => setMapSearch(e.target.value)} placeholder="Busca una colonia…" data-testid="mapa-search"
+            <input value={mapSearch} onChange={(e) => setMapSearch(e.target.value)} placeholder="Busca una colonia…" aria-label="Buscar una colonia en el mapa" data-testid="mapa-search"
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'DM Sans', fontSize: 13, color: '#1E2230' }} />
-            {mapSearch && <button onClick={() => setMapSearch('')} style={{ border: 'none', background: 'transparent', color: '#9AA0AE', cursor: 'pointer', fontSize: 13 }}>✕</button>}
+            {mapSearch && <button onClick={() => setMapSearch('')} aria-label="Limpiar búsqueda" style={{ border: 'none', background: 'transparent', color: '#9AA0AE', cursor: 'pointer', fontSize: 13 }}>✕</button>}
           </div>
           {mapSearch.trim().length >= 2 && (() => {
             const q = mapSearch.trim().toLowerCase();

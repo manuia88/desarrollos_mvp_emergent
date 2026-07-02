@@ -109,3 +109,15 @@
 | FE-09 | P1 | `CompradorFavoritos.js`: `handleDelete` con try/catch → `load()` siempre resincroniza |
 
 Verificación: `NODE_ENV=development babel react-app` parsea los 7 archivos OK.
+
+**Tanda 2 · P2 + P3 (accesibilidad + pulido) — ✅ 37/37 corregidas** (19 archivos):
+- **Accesibilidad (18):** `aria-label`/`<label>` en inputs/selects sin etiqueta (`Inteligencia` colonia, `Mapa` búsqueda, `SuperadminMetricsCube`, `SalaDeControl` emoji/nombre, `Favoritos` nota/fecha/nombre/WhatsApp, `ConversationInbox` búsqueda) · `aria-label` en icon-buttons (`FichaCockpit` ✕, `SuperadminTenants` impersonar, `SalaDeControl` cerrar, `Mapa` limpiar) · `aria-label`+`aria-expanded`+`aria-controls` en menús (`ToolNav` dropdown+hamburguesa, `PortalLayout` `id="mobile-sidebar"` que faltaba) · `<Card>`/`<span>` clickeables → `role="button"`+`tabIndex`+`onKeyDown` (`FichaCockpit` ubicación) y `<button>` (`FichaCockpit` track record) · `role="status"`/`aria-live` en avisos (`SalaDeControl` trabajando/toast) · `SuperadminTenants` select de estado con label.
+- **Estado (9):** error≠vacío en bandeja (`ConversationInbox` `listErr`+reintentar), tours 3D (`ProyectoDetail` `scanErr`), favoritos con filtro sin resultados (`Favoritos`) · loading con texto (`DevelopmentDetail`/`PropertyDetail` "Cargando…" en vez de "…").
+- **bug_render (8):** guard `Piso ${unit.level}` → filter+join (`FichaDesarrollo`) · stale-closure en `loadThreads` → functional update (`CompradorChat`) · race del copiloto → `askLeadCopilot(overrideQ)` sin `setTimeout` (`ConversationInbox`) · borde alpha 0.97→0.28 (`SalaDeControl`).
+- **feedback_alert (6):** `alert()` → aviso inline (`ProyectoDetail` borrar tour) · `e.message` crudo → mensaje amable + `console.error` (`SalaDeControl`, `DesarrolladorFeedback`) · `clipboard.writeText` con try/catch + feedback "✓ Copiado/No se pudo copiar" (`AsesorContactos`) · `attachProp` chequea `res.ok` (`ConversationInbox`).
+- **responsive (1):** tabla de 11 columnas envuelta en `overflow-x:auto`+`min-width` (`AsesorContactos`).
+- **ui_muerta (1):** click en desarrollo del mapa `window.location.href` → `navigate()` SPA (`Mapa`).
+- **consistencia (2):** cursor nativo oculto SOLO con clase `custom-cursor-on` que pone `CustomCursor` al montar (respeta `prefers-reduced-motion`) → si el JS no corre, hay cursor · `color-scheme: light` scopeado a `.theme-light-scope`/`.tool-surface` (controles nativos claros en superficies claras).
+- **P3 menores:** `TabBtn` inline → función `tabBtn` (no remonta, no pierde foco); WhatsApp `type="tel"`+`inputMode`; devs fetch Legacy con `.catch`; `CreateContactForm` botón dinámico "Crear lead/contacto".
+
+Verificación: `NODE_ENV=development babel react-app` parsea los 18 `.js` OK · CSS con llaves balanceadas · sin refs colgantes a `TabBtn`.

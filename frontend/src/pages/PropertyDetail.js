@@ -81,7 +81,7 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
     return (
       <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
         <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
-        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando la propiedad…</div>
       </div>
     );
   }

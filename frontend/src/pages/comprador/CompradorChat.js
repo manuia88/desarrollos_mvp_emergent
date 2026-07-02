@@ -43,8 +43,9 @@ export default function CompradorChat() {
       if (location.state?.threadId) {
         const t = list.find(th => th.thread_id === location.state.threadId);
         if (t) setSelectedThread(t);
-      } else if (list.length > 0 && !selectedThread) {
-        setSelectedThread(list[0]);
+      } else if (list.length > 0) {
+        // functional update → no depende de `selectedThread` (evita closure obsoleto en el poll)
+        setSelectedThread(prev => prev || list[0]);
       }
     } catch (e) {
       setError(e.message);

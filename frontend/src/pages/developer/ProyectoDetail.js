@@ -728,16 +728,19 @@ function Tours3DSection({ projectSlug, devId, user }) {
   const [showUploader, setShowUploader] = useState(false);
   const [previewScan, setPreviewScan] = useState(null);
   const [units, setUnits] = useState([]);
+  const [scanErr, setScanErr] = useState(false);   // distingue "falló la carga" de "sin tours"
+  const [notice, setNotice] = useState(null);      // aviso inline (reemplaza alert() bloqueante)
 
   const role = user?.role;
   const canManage = role === 'superadmin' || role === 'developer_admin' || role === 'dev_admin';
 
   const reload = useCallback(() => {
     setLoading(true);
+    setScanErr(false);
     fetch(`${API}/api/tour-3dgs/scans?project_slug=${encodeURIComponent(projectSlug)}&limit=100`, { credentials: 'include' })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error('load_failed'); return r.json(); })
       .then((d) => setScans(d?.items || []))
-      .catch(() => setScans([]))
+      .catch(() => { setScans([]); setScanErr(true); })
       .finally(() => setLoading(false));
   }, [API, projectSlug]);
 
@@ -756,9 +759,10 @@ function Tours3DSection({ projectSlug, devId, user }) {
     try {
       const res = await fetch(`${API}/api/tour-3dgs/scans/${scanId}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok && res.status !== 204) throw new Error('delete_failed');
+      setNotice(null);
       reload();
     } catch (_) {
-      alert('No se pudo eliminar el tour.');
+      setNotice('No se pudo eliminar el tour. Inténtalo de nuevo.');
     }
   };
 
@@ -814,9 +818,20 @@ function Tours3DSection({ projectSlug, devId, user }) {
         )}
       </div>
 
+      {notice && (
+        <div role="status" aria-live="polite" style={{ marginBottom: 12, padding: '9px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.32)', fontFamily: 'DM Sans', fontSize: 12.5, color: '#F87171' }}>
+          {notice}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ padding: 18, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
           Cargando…
+        </div>
+      ) : scanErr ? (
+        <div style={{ padding: 24, textAlign: 'center', border: '1px dashed rgba(248,113,113,0.28)', borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
+          No pudimos cargar los tours 3D.{' '}
+          <button type="button" onClick={reload} style={{ background: 'none', border: 'none', color: '#818CF8', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>Reintentar</button>
         </div>
       ) : scans.length === 0 ? (
         <div style={{

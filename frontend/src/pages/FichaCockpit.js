@@ -200,7 +200,11 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, lens, onVe
       {/* ubicación */}
       <div>
         {h2('Ubicación')}
-        <Card className="dmx-proj-card" onClick={onVerConfianza} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginTop: 12, cursor: onVerConfianza ? 'pointer' : 'default' }}>
+        <Card className="dmx-proj-card" onClick={onVerConfianza}
+          role={onVerConfianza ? 'button' : undefined} tabIndex={onVerConfianza ? 0 : undefined}
+          aria-label={onVerConfianza ? 'Ver mapa, lugares y la zona' : undefined}
+          onKeyDown={onVerConfianza ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onVerConfianza(); } } : undefined}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginTop: 12, cursor: onVerConfianza ? 'pointer' : 'default' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>{dev.address_full || dev.street || dev.name}</div>
             <div style={{ fontFamily: SANS, fontSize: 13, color: 'var(--cream-2)', marginTop: 3 }}>{[dev.colonia, dev.alcaldia, 'CDMX'].filter(Boolean).join(' · ')}</div>
@@ -353,7 +357,7 @@ function TabProyecto({ dev, amen, tipo, beds, m2r, park, nUnits, rng, lens, onVe
             <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>{developer.name}</div>
             <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-2)' }}>{[developer.founded_year && `Desde ${developer.founded_year}`, developer.projects_delivered && `${developer.projects_delivered} proyectos entregados`].filter(Boolean).join(' · ') || 'Ve su track record en Confianza'}</div>
           </div>
-          {onVerConfianza && <span onClick={onVerConfianza} style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: 'var(--theme)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Su track record →</span>}
+          {onVerConfianza && <button type="button" onClick={onVerConfianza} style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 13, color: 'var(--theme)', cursor: 'pointer', whiteSpace: 'nowrap', background: 'none', border: 'none', padding: 0 }}>Su track record →</button>}
         </Card>
       )}
 
@@ -411,7 +415,7 @@ function ComparaProyectos({ dev, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface, #faf9f7)', borderRadius: 18, maxWidth: 1000, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '22px 24px', boxShadow: '0 24px 60px rgba(16,18,28,0.32)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: 'var(--cream)' }}>Comparar proyectos</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--cream-3)', cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--cream-3)', cursor: 'pointer' }}>✕</button>
         </div>
         <div style={{ fontFamily: SANS, fontSize: 12, color: 'var(--cream-3)', marginBottom: 14 }}>Hasta 5 proyectos lado a lado, con su parte financiera. {picked.length < 4 && 'Agrega otro abajo.'}</div>
         <div style={{ overflowX: 'auto' }}>

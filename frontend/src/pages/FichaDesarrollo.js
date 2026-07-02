@@ -387,7 +387,7 @@ export default function FichaDesarrollo({ user, onLogin }) {
                 <div style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--theme)' }}>Tu decisión</div>
                 <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--cream)', margin: '6px 0 2px', lineHeight: 1 }}>{unit ? money(unit.price) : (dev.price_from_display || money(dev.price_from))}</div>
                 <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'var(--cream-3)', marginBottom: 14 }}>
-                  {unit ? `${unit.unit_number} · Piso ${unit.level} · ${unit.m2_total || unit.m2_privative} m²` : multi ? `${fundUnits.length} unidades · fondo` : `Desde · ${STAGE[dev.stage] || dev.stage}`}
+                  {unit ? [unit.unit_number, (unit.level != null && unit.level !== '') && `Piso ${unit.level}`, (unit.m2_total || unit.m2_privative) && `${unit.m2_total || unit.m2_privative} m²`].filter(Boolean).join(' · ') : multi ? `${fundUnits.length} unidades · fondo` : `Desde · ${STAGE[dev.stage] || dev.stage}`}
                 </div>
 
                 {/* el camino que vas armando */}

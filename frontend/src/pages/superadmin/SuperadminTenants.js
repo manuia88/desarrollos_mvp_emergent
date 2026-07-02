@@ -512,11 +512,12 @@ export default function SuperadminTenants({ user, onLogout }) {
                       <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
                         <button data-testid={`tenant-impersonate-${t.tenant_id}`}
                           onClick={e => { e.stopPropagation(); setImpTarget(t); }}
-                          title="Impersonar"
+                          title="Impersonar" aria-label={`Impersonar ${t.name}`}
                           style={{ padding: '5px 10px', borderRadius: 9999, background: 'rgba(250,204,21,0.10)', border: '1px solid rgba(250,204,21,0.32)', color: '#FACC15', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 5 }}>
                           <UserCheck size={11} />
                         </button>
                         <select data-testid={`tenant-status-select-${t.tenant_id}`} value={t.status} onClick={e => e.stopPropagation()}
+                          aria-label={`Cambiar estado de ${t.name}`}
                           onChange={e => setStatusEdit({ tenant: t, newStatus: e.target.value })}
                           style={{ padding: '4px 9px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.65)', fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer', appearance: 'none' }}>
                           <option value="active">Activo</option>
@@ -558,6 +559,7 @@ export default function SuperadminTenants({ user, onLogout }) {
                     </button>
                     <select onClick={e => e.stopPropagation()} value={t.status}
                       onChange={e => setStatusEdit({ tenant: t, newStatus: e.target.value })}
+                      aria-label={`Cambiar estado de ${t.name}`}
                       data-testid={`tenant-status-select-m-${t.tenant_id}`}
                       style={{ padding: '4px 9px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.65)', fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer' }}>
                       <option value="active">Activo</option>

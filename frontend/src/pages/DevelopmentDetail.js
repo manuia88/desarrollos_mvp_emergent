@@ -270,7 +270,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     return (
       <LightScope>
         <PublicNav />
-        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+        <div style={{ padding: 120, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando el desarrollo…</div>
       </LightScope>
     );
   }

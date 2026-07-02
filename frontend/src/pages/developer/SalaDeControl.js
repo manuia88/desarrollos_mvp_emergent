@@ -203,7 +203,7 @@ export default function SalaDeControl({ user, onLogout }) {
       setLastRun({ goalId, status: r.status, results: r.results || [], scopeLabel: useScope.label });
       await load();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (e) { setToast('Algo falló: ' + e.message); }
+    } catch (e) { console.error('runCerebroGoal', e); setToast('No se pudo completar la acción. Inténtalo de nuevo.'); }
     finally { setRunning(false); }
   };
   const runCompare = () => {
@@ -513,8 +513,8 @@ export default function SalaDeControl({ user, onLogout }) {
               </div>
             ))}
 
-            {running && <p style={{ fontSize: 13, color: '#a78bfa', margin: '0 2px 10px' }}>Trabajando… ⏳</p>}
-            {toast && <p style={{ fontSize: 14, color: 'var(--cream-2)', margin: '0 2px 12px' }}>{toast}</p>}
+            {running && <p role="status" aria-live="polite" style={{ fontSize: 13, color: '#a78bfa', margin: '0 2px 10px' }}>Trabajando… ⏳</p>}
+            {toast && <p role="status" aria-live="polite" style={{ fontSize: 14, color: 'var(--cream-2)', margin: '0 2px 12px' }}>{toast}</p>}
 
             {/* RESULTADO — insight con estructura: respuesta + qué significa + de dónde sale + qué hacer */}
             {lastRun && lastRun.results.length > 0 && (
@@ -647,7 +647,7 @@ export default function SalaDeControl({ user, onLogout }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.04em' }}>Lo que ya hice por ti</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {done.map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(21,128,61,0.97)' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.28)' }}>
                       <Check size={15} color="var(--green)" /><span style={{ fontSize: 13.5, color: 'var(--cream)' }}>{phraseDone(t.action)}</span>
                     </div>
                   ))}
@@ -737,12 +737,12 @@ export default function SalaDeControl({ user, onLogout }) {
             <div onClick={e => e.stopPropagation()} style={{ width: 'min(620px,96vw)', maxHeight: '86vh', overflow: 'auto', background: 'var(--frame-pop, #11151f)', border: '1px solid rgba(var(--cream-rgb),0.16)', borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>Crea tu tarjeta</h2>
-                <button onClick={() => setBuilder(false)} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer' }}><X size={18} /></button>
+                <button onClick={() => setBuilder(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: 'var(--cream-3)', cursor: 'pointer' }}><X size={18} /></button>
               </div>
               <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--cream-3)' }}>Ponle nombre y elige las cosas que quieres que haga, en orden.</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                <input value={cardEmoji} onChange={e => setCardEmoji(e.target.value.slice(0, 2))} style={{ width: 46, textAlign: 'center', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9, padding: '9px', fontSize: 16 }} />
-                <input value={cardName} onChange={e => setCardName(e.target.value)} placeholder="Nombre (ej. Mi rutina de lunes)" data-testid="card-name"
+                <input value={cardEmoji} onChange={e => setCardEmoji(e.target.value.slice(0, 2))} aria-label="Emoji de la tarjeta" placeholder="🎯" style={{ width: 46, textAlign: 'center', background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9, padding: '9px', fontSize: 16 }} />
+                <input value={cardName} onChange={e => setCardName(e.target.value)} placeholder="Nombre (ej. Mi rutina de lunes)" aria-label="Nombre de la tarjeta" data-testid="card-name"
                   style={{ flex: 1, background: 'rgba(var(--cream-rgb),0.06)', color: 'var(--cream)', border: '1px solid rgba(var(--cream-rgb),0.14)', borderRadius: 9, padding: '9px 12px', fontSize: 14 }} />
               </div>
               {Object.entries(catalog).map(([area, items]) => (

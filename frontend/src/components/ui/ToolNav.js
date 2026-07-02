@@ -75,12 +75,13 @@ export default function ToolNav() {
             ))}
             {/* Herramientas: DROPDOWN real por CLICK (nunca navega) + backdrop para cerrar al hacer click fuera. */}
             <div style={{ position: 'relative' }}>
-              <button style={{ ...linkStyle, color: tools ? 'var(--theme)' : '#5A5F6E' }} onClick={() => setTools((v) => !v)} data-testid="toolnav-herramientas">
+              <button style={{ ...linkStyle, color: tools ? 'var(--theme)' : '#5A5F6E' }} onClick={() => setTools((v) => !v)} data-testid="toolnav-herramientas"
+                aria-haspopup="menu" aria-expanded={tools} aria-controls="toolnav-menu">
                 {tc('Herramientas')} <span style={{ fontSize: 10, transform: tools ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>▾</span>
               </button>
               {tools && (<>
                 <div onClick={() => setTools(false)} style={{ position: 'fixed', inset: 0, zIndex: 55 }} />
-                <div data-testid="toolnav-menu" style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 256, zIndex: 60 }}>
+                <div id="toolnav-menu" data-testid="toolnav-menu" role="menu" style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 6, minWidth: 256, zIndex: 60 }}>
                   <div style={{ padding: 7, background: '#fff', border: '1px solid #ECECEF', boxShadow: '0 16px 44px rgba(16,24,40,0.16)', borderRadius: 14 }}>
                     {TOOLS.map((tl) => (
                       <Link key={tl.to} to={tl.to} onClick={() => setTools(false)} style={{
@@ -105,12 +106,12 @@ export default function ToolNav() {
         </>)}
 
         {isMobile && (
-          <button onClick={() => setMenuOpen((o) => !o)} aria-label="Menú" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 11, border: '1px solid #E2E3E9', background: '#fff', color: '#1E2230', fontSize: 20, cursor: 'pointer' }}>{menuOpen ? '✕' : '☰'}</button>
+          <button onClick={() => setMenuOpen((o) => !o)} aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={menuOpen} aria-controls="toolnav-mobile-menu" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 11, border: '1px solid #E2E3E9', background: '#fff', color: '#1E2230', fontSize: 20, cursor: 'pointer' }}>{menuOpen ? '✕' : '☰'}</button>
         )}
       </div>
 
       {isMobile && menuOpen && (
-        <div style={{ borderTop: '1px solid #ECECEF', background: '#fff', padding: '10px 20px 18px', boxShadow: '0 12px 30px rgba(16,24,40,0.10)' }}>
+        <div id="toolnav-mobile-menu" style={{ borderTop: '1px solid #ECECEF', background: '#fff', padding: '10px 20px 18px', boxShadow: '0 12px 30px rgba(16,24,40,0.10)' }}>
           {LINKS.map((l) => <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '11px 0', textDecoration: 'none', color: '#1E2230', fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, borderBottom: '1px solid #F1F2F6' }}>{tc(l.label)}</Link>)}
           <div style={{ color: '#9AA0AE', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 0 4px' }}>Herramientas</div>
           {TOOLS.map((tl) => <Link key={tl.to} to={tl.to} onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '8px 0', textDecoration: 'none', color: '#5A5F6E', fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 600 }}>{tc(tl.label)}</Link>)}

@@ -8,8 +8,12 @@ export default function CustomCursor() {
   const glowRef = useRef(null);
 
   useEffect(() => {
-    // Only activate on pointer:fine (desktop mouse)
+    // Only activate on pointer:fine (desktop mouse) y si el usuario NO pidió menos movimiento.
+    // El cursor nativo se oculta (CSS) SOLO cuando esta clase está presente → si el JS no corre,
+    // el cursor nativo permanece visible (evita quedarse sin cursor por un fallo de carga).
     if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.body.classList.add('custom-cursor-on');
 
     let mx = -999, my = -999;
     let rx = -999, ry = -999;
@@ -44,6 +48,7 @@ export default function CustomCursor() {
     return () => {
       window.removeEventListener('mousemove', onMove);
       cancelAnimationFrame(raf);
+      document.body.classList.remove('custom-cursor-on');
     };
   }, []);
 

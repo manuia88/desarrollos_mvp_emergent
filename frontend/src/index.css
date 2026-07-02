@@ -203,8 +203,11 @@ body {
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  cursor: none;
 }
+
+/* Oculta el cursor nativo SOLO cuando el cursor custom está activo (clase la pone CustomCursor.js
+   al montar en desktop). Si el JS no corre o el usuario pidió menos movimiento → cursor nativo visible. */
+body.custom-cursor-on { cursor: none; }
 
 @media (pointer: coarse) {
   body { cursor: auto; }
@@ -585,6 +588,12 @@ textarea:focus-visible,
    .asr-select (usada en formularios del CRM).
    ────────────────────────────────────────────────────────────────────────── */
 :root, body, input, select, textarea { color-scheme: dark; }
+
+/* …pero en superficies CLARAS los controles nativos (popup de <select>, date-picker, autofill)
+   deben verse claros, no oscuros. Scopeado a los contenedores de tema claro. */
+.theme-light-scope, .tool-surface,
+.theme-light-scope input, .theme-light-scope select, .theme-light-scope textarea,
+.tool-surface input, .tool-surface select, .tool-surface textarea { color-scheme: light; }
 
 /* Hide native number-input spinners (founder los ve como cuadrados blancos en dark) */
 input[type="number"]::-webkit-inner-spin-button,

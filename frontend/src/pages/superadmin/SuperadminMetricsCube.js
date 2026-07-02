@@ -962,6 +962,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                   }}>
                     <input
                       data-testid="cube-search"
+                      aria-label={`Buscar ${node?.next_tier || 'en la tabla'}`}
                       value={search} onChange={e => setSearch(e.target.value)}
                       placeholder={`Buscar ${node?.next_tier || ''}…`}
                       style={{

@@ -84,6 +84,7 @@ export default function Inteligencia() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
               <select
                 data-testid="ie-demo-zone-select"
+                aria-label="Elegir colonia"
                 value={zone.id}
                 onChange={(e) => setZone(DEMO_ZONES.find(z => z.id === e.target.value) || DEMO_ZONES[0])}
                 style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: 'var(--cream)', background: 'rgba(255,255,255,0.07)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', cursor: 'pointer' }}
