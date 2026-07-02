@@ -7,7 +7,11 @@ pytestmark = pytest.mark.integration
 
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
-assert BASE_URL, "REACT_APP_BACKEND_URL is required"
+if not BASE_URL:
+    # [AUD-009] antes: assert a nivel módulo → ERROR de COLECCIÓN que interrumpía TODA la suite
+    # (0 tests corrían). Un test de integración sin su env debe SALTARSE, no tirar la colección.
+    pytest.skip("integración: requiere REACT_APP_BACKEND_URL apuntando a un backend vivo",
+                allow_module_level=True)
 
 
 # ─── Health ───────────────────────────────────────────────────────────────────

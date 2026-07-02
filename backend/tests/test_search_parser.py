@@ -52,17 +52,42 @@ CASOS = [
     ("3R, 2b, 2e, RG 249m2", "min_sqm", 249),
 ]
 
-ok, fail = 0, []
-for q, k, exp in CASOS:
-    got = parse(q).get(k)
-    if isinstance(exp, list):
-        passed = set(exp) <= set(got or [])
-    else:
-        passed = got == exp
-    if passed: ok += 1
-    else: fail.append((q, k, exp, got))
+# [AUD-009] Antes este loop corría A NIVEL MÓDULO → pytest lo ejecutaba en COLECCIÓN
+# (urlopen sin backend → URLError → toda la suite interrumpida). Ahora: script bajo
+# __main__ (uso documentado intacto) + test pytest que se salta si no hay backend vivo.
 
-print(f"PASA: {ok}/{len(CASOS)}")
-for q, k, exp, got in fail:
-    print(f"  X '{q}' · {k}: esperaba {exp}, dio {got}")
-sys.exit(0 if not fail else 1)
+def _run_casos():
+    ok, fail = 0, []
+    for q, k, exp in CASOS:
+        got = parse(q).get(k)
+        if isinstance(exp, list):
+            passed = set(exp) <= set(got or [])
+        else:
+            passed = got == exp
+        if passed: ok += 1
+        else: fail.append((q, k, exp, got))
+    return ok, fail
+
+
+def _backend_vivo() -> bool:
+    try:
+        urllib.request.urlopen("http://localhost:8000/api/health", timeout=1.5)
+        return True
+    except Exception:
+        return False
+
+
+def test_search_parser_casos():
+    import pytest
+    if not _backend_vivo():
+        pytest.skip("integración: requiere backend vivo en localhost:8000")
+    ok, fail = _run_casos()
+    assert not fail, f"PASA {ok}/{len(CASOS)} · fallas: {fail[:5]}"
+
+
+if __name__ == "__main__":
+    ok, fail = _run_casos()
+    print(f"PASA: {ok}/{len(CASOS)}")
+    for q, k, exp, got in fail:
+        print(f"  X '{q}' · {k}: esperaba {exp}, dio {got}")
+    sys.exit(0 if not fail else 1)

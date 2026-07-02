@@ -111,4 +111,8 @@ async def main():
     print(f"{PASS} EQUIPO ROJO VERDE — Cerebro resiste los ataques. GATE E5 PASA.")
 
 
-asyncio.run(main())
+# [AUD-009] antes corría a NIVEL MÓDULO → pytest ejecutaba TODO el redteam en la COLECCIÓN
+# (conexión a Mongo + borrado de colecciones de test) e interrumpía la suite si no había DB.
+# El uso documentado (python cerebro_redteam_test.py) queda idéntico.
+if __name__ == "__main__":
+    asyncio.run(main())
